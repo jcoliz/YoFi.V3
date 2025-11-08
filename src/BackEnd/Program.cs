@@ -1,3 +1,5 @@
+using YoFi.V3.BackEnd.Startup;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
@@ -5,9 +7,7 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddSwagger();
 
 var app = builder.Build();
 
@@ -16,7 +16,9 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // TODO: if (startupOptions.EnableSwaggerUi)
+    // TODO: Logger.Information("Enabling Swagger UI");
+    app.UseSwagger();
 }
 
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
