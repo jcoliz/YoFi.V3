@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Entities", "Entities", "{5F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Entities", "src\Entities\YoFi.V3.Entities.csproj", "{344238D7-43C4-4584-892D-C474616BB5F6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Application", "Application", "{22BAF98C-8415-17C4-B26A-D537657BC863}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Application", "src\Application\YoFi.V3.Application.csproj", "{A4B94D63-0683-4671-93EB-E4C505A39B6E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +91,18 @@ Global
 		{344238D7-43C4-4584-892D-C474616BB5F6}.Release|x64.Build.0 = Release|x64
 		{344238D7-43C4-4584-892D-C474616BB5F6}.Release|x86.ActiveCfg = Release|x64
 		{344238D7-43C4-4584-892D-C474616BB5F6}.Release|x86.Build.0 = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|Any CPU.Build.0 = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|x64.ActiveCfg = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|x64.Build.0 = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|x86.ActiveCfg = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Debug|x86.Build.0 = Debug|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|Any CPU.ActiveCfg = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|Any CPU.Build.0 = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|x64.ActiveCfg = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|x64.Build.0 = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|x86.ActiveCfg = Release|x64
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -94,6 +110,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5F5D2DA1-D523-9746-CCCB-000D35E306D2} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{344238D7-43C4-4584-892D-C474616BB5F6} = {5F5D2DA1-D523-9746-CCCB-000D35E306D2}
+		{22BAF98C-8415-17C4-B26A-D537657BC863} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{A4B94D63-0683-4671-93EB-E4C505A39B6E} = {22BAF98C-8415-17C4-B26A-D537657BC863}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5924CE06-5024-49B7-BE37-B4D8BB051E13}
