@@ -2,13 +2,13 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.0.0
 MinimumVisualStudioVersion = 17.8.0.0
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.AppHost", "YoFi.V3.AppHost\YoFi.V3.AppHost.csproj", "{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "src\AppHost\YoFi.V3.AppHost.csproj", "{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.ServiceDefaults", "YoFi.V3.ServiceDefaults\YoFi.V3.ServiceDefaults.csproj", "{38260700-C5E4-44EC-99C0-396CC1681D46}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "src\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj", "{38260700-C5E4-44EC-99C0-396CC1681D46}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.ApiService", "YoFi.V3.ApiService\YoFi.V3.ApiService.csproj", "{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BackEnd", "src\BackEnd\YoFi.V3.BackEnd.csproj", "{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.Web", "YoFi.V3.Web\YoFi.V3.Web.csproj", "{553D4745-1EF2-484D-87D7-1C35C144A1C0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FrontEnd.Blazor", "src\FrontEnd.Blazor\YoFi.V3.FrontEnd.Blazor.csproj", "{553D4745-1EF2-484D-87D7-1C35C144A1C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

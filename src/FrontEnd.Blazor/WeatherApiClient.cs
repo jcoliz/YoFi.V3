@@ -1,4 +1,4 @@
-namespace YoFi.V3.Web;
+namespace YoFi.V3.FrontEnd.Blazor;
 
 public class WeatherApiClient(HttpClient httpClient)
 {

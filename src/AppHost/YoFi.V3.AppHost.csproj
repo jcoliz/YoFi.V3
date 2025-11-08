@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YoFi.V3.ApiService\YoFi.V3.ApiService.csproj" />
-    <ProjectReference Include="..\YoFi.V3.Web\YoFi.V3.Web.csproj" />
+    <ProjectReference Include="..\BackEnd\YoFi.V3.BackEnd.csproj" />
+    <ProjectReference Include="..\FrontEnd.Blazor\YoFi.V3.FrontEnd.Blazor.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,5 @@
-using YoFi.V3.Web;
-using YoFi.V3.Web.Components;
+using YoFi.V3.FrontEnd.Blazor;
+using YoFi.V3.FrontEnd.Blazor.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

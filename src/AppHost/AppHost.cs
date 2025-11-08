@@ -1,9 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.YoFi_V3_ApiService>("apiservice")
+var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
     .WithHttpHealthCheck("/health");
 
-builder.AddProject<Projects.YoFi_V3_Web>("webfrontend")
+builder.AddProject<Projects.YoFi_V3_FrontEnd_Blazor>("frontend-blazor")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
     .WithReference(apiService)
