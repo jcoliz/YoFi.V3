@@ -1,0 +1,42 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.0.0
+MinimumVisualStudioVersion = 17.8.0.0
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.AppHost", "YoFi.V3.AppHost\YoFi.V3.AppHost.csproj", "{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.ServiceDefaults", "YoFi.V3.ServiceDefaults\YoFi.V3.ServiceDefaults.csproj", "{38260700-C5E4-44EC-99C0-396CC1681D46}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.ApiService", "YoFi.V3.ApiService\YoFi.V3.ApiService.csproj", "{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YoFi.V3.Web", "YoFi.V3.Web\YoFi.V3.Web.csproj", "{553D4745-1EF2-484D-87D7-1C35C144A1C0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2B46BB4-8AEA-4BE4-BDD2-0DE990A8B9F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38260700-C5E4-44EC-99C0-396CC1681D46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38260700-C5E4-44EC-99C0-396CC1681D46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38260700-C5E4-44EC-99C0-396CC1681D46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38260700-C5E4-44EC-99C0-396CC1681D46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A87FCD1-789E-4A5D-ABFA-A4A5A3D20F54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{553D4745-1EF2-484D-87D7-1C35C144A1C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{553D4745-1EF2-484D-87D7-1C35C144A1C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{553D4745-1EF2-484D-87D7-1C35C144A1C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{553D4745-1EF2-484D-87D7-1C35C144A1C0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5924CE06-5024-49B7-BE37-B4D8BB051E13}
+	EndGlobalSection
+EndGlobal
