@@ -1,3 +1,4 @@
+using YoFi.V3.Application.Features;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Entities.Models;
 
@@ -9,6 +10,8 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 builder.Services.AddSwagger();
+
+builder.Services.AddScoped<WeatherFeature>();
 
 var app = builder.Build();
 
@@ -24,16 +27,9 @@ if (app.Environment.IsDevelopment())
 
 string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/weatherforecast", (WeatherFeature weatherFeature) =>
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
+    var forecast = weatherFeature.GetWeatherForecasts(5);
     return forecast;
 })
 .WithName("GetWeatherForecast");
