@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Entities\YoFi.V3.Entities.csproj" />
   </ItemGroup>
 
   <ItemGroup>
