@@ -20,4 +20,4 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Run Tests
-      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage
+      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
