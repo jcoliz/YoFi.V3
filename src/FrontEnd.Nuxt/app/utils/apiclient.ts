@@ -28,10 +28,8 @@ export class WeatherClient {
             }
         };
 
-        return this.transformOptions(options_).then(transformedOptions_ => {
-            return this.http.fetch(url_, transformedOptions_);
-        }).then((_response: Response) => {
-            return this.transformResult(url_, _response, (_response: Response) => this.processGetWeatherForecasts(_response));
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetWeatherForecasts(_response);
         });
     }
 
