@@ -65,6 +65,19 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Node.js
+node_modules/
+.nuxt/
+.output/
+.env
+*.log
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+
 # Tye
 .tye/
 
