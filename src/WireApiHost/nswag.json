@@ -10,7 +10,7 @@
       "runtime": null,
       "targetFramework": null,
       "noBuild": true,
-      "msBuildOutputPath": null,
+      "msBuildOutputPath": "$(MSBuildOutputPath)",
       "verbose": true,
       "workingDirectory": null,
       "aspNetCoreEnvironment": "Development",
