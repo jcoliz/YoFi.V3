@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Aspire AppHost",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/AppHost/YoFi.V3.AppHost.csproj"
+    },
+    {
+      "name": "Backend API",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/src/BackEnd/YoFi.V3.BackEnd.csproj"
+    }
+  ]
+}

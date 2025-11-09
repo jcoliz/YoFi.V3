@@ -3,6 +3,8 @@
     "ms-dotnettools.csdevkit",
     "vue.volar",
     "dbaeumer.vscode-eslint",
-    "editorconfig.editorconfig"
+    "editorconfig.editorconfig",
+    "bierner.markdown-mermaid",
+    "yzhang.markdown-all-in-one"
   ]
 }
