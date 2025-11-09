@@ -9,4 +9,10 @@ builder.AddProject<Projects.YoFi_V3_FrontEnd_Blazor>("frontend-blazor")
     .WithReference(apiService)
     .WaitFor(apiService);
 
+builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
+    .WithReference(apiService)
+    .WithHttpEndpoint(env: "PORT")
+    .WithExternalHttpEndpoints()
+    .PublishAsDockerFile();
+
 builder.Build().Run();
