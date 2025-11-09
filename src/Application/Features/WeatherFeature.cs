@@ -14,6 +14,7 @@ public class WeatherFeature
         return Enumerable.Range(1, days).Select(index =>
             new WeatherForecast
             (
+                index,
                 DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
                 Random.Shared.Next(-20, 55),
                 Summaries[Random.Shared.Next(Summaries.Length)]

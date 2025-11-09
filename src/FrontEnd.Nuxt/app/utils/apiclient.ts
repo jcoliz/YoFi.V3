@@ -60,6 +60,7 @@ export class WeatherClient {
 }
 
 export class WeatherForecast implements IWeatherForecast {
+    id?: number;
     date?: Date;
     temperatureC?: number;
     summary?: string | undefined;
@@ -76,6 +77,7 @@ export class WeatherForecast implements IWeatherForecast {
 
     init(_data?: any) {
         if (_data) {
+            this.id = _data["id"];
             this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
             this.temperatureC = _data["temperatureC"];
             this.summary = _data["summary"];
@@ -92,6 +94,7 @@ export class WeatherForecast implements IWeatherForecast {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
         data["date"] = this.date ? formatDate(this.date) : undefined as any;
         data["temperatureC"] = this.temperatureC;
         data["summary"] = this.summary;
@@ -101,6 +104,7 @@ export class WeatherForecast implements IWeatherForecast {
 }
 
 export interface IWeatherForecast {
+    id?: number;
     date?: Date;
     temperatureC?: number;
     summary?: string | undefined;

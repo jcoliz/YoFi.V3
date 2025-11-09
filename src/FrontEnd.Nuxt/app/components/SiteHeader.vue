@@ -8,7 +8,7 @@
 
       <ul class="nav nav-pills">
         <RouterLink class="nav-link" to="/">Home</RouterLink>
-        <RouterLink class="nav-link" to="/features">Features</RouterLink>
+        <RouterLink class="nav-link" to="/weather">Weather</RouterLink>
         <RouterLink class="nav-link" to="/faq">FAQs</RouterLink>
         <RouterLink class="nav-link" to="/about">About</RouterLink>
       </ul>
