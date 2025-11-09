@@ -3,21 +3,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApiDocument(options =>
+{
+    options.Title = "YoFi.V3 Backend";
+    options.Description = "Application boundary between .NET backend and YoFi.V3 frontend.";
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
 
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
+app.UseOpenApi();
+app.UseSwaggerUi();
 app.MapControllers();
 
 app.Run();
