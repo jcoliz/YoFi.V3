@@ -3,7 +3,7 @@
   "defaultVariables": null,
   "documentGenerator": {
     "aspNetCoreToOpenApi": {
-      "project": "YoFi.V3.WireApiHost.csproj",
+      "project": "$(MSBuildProjectFile)",
       "documentName": "v1",
       "msBuildProjectExtensionsPath": null,
       "configuration": null,

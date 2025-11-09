@@ -15,10 +15,12 @@
 
   <PropertyGroup>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <ApiClientConfigFile>nswag.json</ApiClientConfigFile>
+    <ApiClientOutputFile>../FrontEnd.Nuxt/app/utils/apiclient.ts</ApiClientOutputFile>
   </PropertyGroup>
   
   <Target Name="NSwag" AfterTargets="PostBuildEvent">
-    <Exec WorkingDirectory="$(ProjectDir)" Command="$(NSwagExe_Net100) run $(ProjectDir)\nswag.json /variables:Configuration=$(Configuration)"/>
+    <Exec WorkingDirectory="$(ProjectDir)" Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:Configuration=$(Configuration),MSBuildProjectFile=$(MSBuildProjectFile),OutputFile=$(ApiClientOutputFile)"/>
   </Target>
 
 </Project>
