@@ -18,5 +18,10 @@ export default defineNuxtConfig({
   },
   css: [
     '~/assets/scss/custom.scss'
-  ]
+  ],
+  router: {
+    options: {
+      linkActiveClass: 'active'
+    }
+  }  
 })
