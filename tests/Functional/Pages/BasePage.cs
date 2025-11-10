@@ -54,7 +54,7 @@ public class BasePage(IPage? _page)
         Assert.That(response!.Ok, Is.True);
     }
 
-    protected async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)
+    public async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)
     {
         var context = TestContext.Parameters["screenshotContext"] ?? "Local";
         var testclassfull = $"{TestContext.CurrentContext.Test.ClassName}";

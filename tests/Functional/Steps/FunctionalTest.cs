@@ -52,7 +52,10 @@ public abstract class FunctionalTest : PageTest
 
         // Need a fresh object store for each test
         _objectStore = new ObjectStore();
-        
+
+        // Add a basepage object to the object store
+        _objectStore.Add(new BasePage(Page));
+
         // Add x-test-name cookie, which will insert test name into logs for easy
         // correlation (in the future)
         await this.Context.AddCookiesAsync(
@@ -95,11 +98,10 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected async Task WhenUserLaunchesSite()
     {
-        var pageModel = new BasePage(Page);
-
+        var pageModel = It<BasePage>() ?? new BasePage(Page);
         var result = await pageModel.LaunchSite();
-
-        _objectStore.Add<IResponse>(result!);
+        _objectStore.Add(pageModel);
+        _objectStore.Add(result);
     }
 
     /// <summary>
@@ -110,8 +112,7 @@ public abstract class FunctionalTest : PageTest
     /// <returns></returns>
     protected async Task SelectOptionInNavbar(string option)
     {
-        var pageModel = new BasePage(Page);
-
+        var pageModel = It<BasePage>();
         await pageModel.NavBar.SelectOptionAsync(option);
     }
 
@@ -124,7 +125,7 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected Task ThenPageLoadedOk()
     {
-        var response = _objectStore.Get<IResponse>();
+        var response = It<IResponse>();
 
         Assert.That(response!.Ok, Is.True);
 
@@ -137,10 +138,8 @@ public abstract class FunctionalTest : PageTest
     /// <param name="text">Text expected in page title</param>
     protected async Task PageTitleContains(string text)
     {
-        var pageModel = new BasePage(Page);
-
+        var pageModel = It<BasePage>();
         var pageTitle = await pageModel.GetPageTitle();
-
         Assert.That(pageTitle, Does.Contain(text));
     }
 
@@ -150,10 +149,8 @@ public abstract class FunctionalTest : PageTest
     /// <param name="text">Text expected as the H1</param>
     protected async Task PageHeadingIs(string text)
     {
-        var pageModel = new BasePage(Page);
-
+        var pageModel = It<BasePage>();
         var heading1 = await pageModel.GetPageHeading();
-
         Assert.That(heading1, Is.EqualTo(text));
     }
 
@@ -194,29 +191,13 @@ public abstract class FunctionalTest : PageTest
     private static readonly Regex findEnvRegex = new("{(.*?)}");
     private static readonly Regex replaceEnvRegex = new("({.*?})");
 
-    protected async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)
+    protected async Task SaveScreenshotAsync()
     {
-        var context = TestContext.Parameters["screenshotContext"] ?? "Local";
-        var testclassfull = $"{TestContext.CurrentContext.Test.ClassName}";
-        var testclass = testclassfull.Split(".").Last();
-        var testname = MakeValidFileName($"{TestContext.CurrentContext.Test.Name}");
-        var displaymoment = string.IsNullOrEmpty(moment) ? string.Empty : $"-{moment.Replace('/', '-')}";
-        var filename = $"Screenshot/{context}/{testclass}/{testname}{displaymoment}.png";
-        await Page!.ScreenshotAsync(new PageScreenshotOptions() { Path = filename, OmitBackground = true, FullPage = fullPage });
-        TestContext.AddTestAttachment(filename);
-    }
-
-    // https://stackoverflow.com/questions/309485/c-sharp-sanitize-file-name
-    private static string MakeValidFileName( string name )
-    {
-        var invalidChars = System.Text.RegularExpressions.Regex.Escape( new string( System.IO.Path.GetInvalidFileNameChars() ) );
-        var invalidRegStr = string.Format( @"([{0}]*\.+$)|([{0}]+)", invalidChars );
-
-        return System.Text.RegularExpressions.Regex.Replace( name, invalidRegStr, "_" );
+        var pageModel = It<BasePage>() ?? new BasePage(Page);
+        await pageModel.SaveScreenshotAsync();
     }
 
     #endregion
-
 }
 
 /// <summary>
