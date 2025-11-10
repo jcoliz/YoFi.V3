@@ -4,7 +4,6 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Platforms>x64;ARM64</Platforms>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 </Project>

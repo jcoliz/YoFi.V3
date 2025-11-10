@@ -23,17 +23,20 @@ public abstract class FunctionalTest : PageTest
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
 
     protected Uri? baseUrl;
-    
+
     #endregion
 
     #region Overrides
 
-    public override BrowserNewContextOptions ContextOptions() => 
+    public override BrowserNewContextOptions ContextOptions() =>
         new()
         {
             AcceptDownloads = true,
             ViewportSize = new ViewportSize() { Width = 1280, Height = 720 },
-            BaseURL = checkEnvironment(TestContext.Parameters["webAppUrl"]!)
+            BaseURL = checkEnvironment(
+                TestContext.Parameters["webAppUrl"]
+                ?? throw new ArgumentNullException("webAppUrl test parameter not set")
+            )
         };
     #endregion
 
@@ -48,7 +51,8 @@ public abstract class FunctionalTest : PageTest
         // Note that this does need to be done in setup, because we get a new
         // browser context every time. Is there a place we could tell Playwright
         // this just ONCE??
-        if (Int32.TryParse(TestContext.Parameters["defaultTimeout"],out var val))
+        var defaultTimeoutParam = TestContext.Parameters["defaultTimeout"];
+        if (Int32.TryParse(defaultTimeoutParam, out var val))
             Context.SetDefaultTimeout(val);
 
         // Need a fresh object store for each test
@@ -60,10 +64,10 @@ public abstract class FunctionalTest : PageTest
         // Add x-test-name cookie, which will insert test name into logs for easy
         // correlation (in the future)
         await this.Context.AddCookiesAsync(
-        [ 
-            new Cookie() 
-            { 
-                Name = "x-test-name", 
+        [
+            new Cookie()
+            {
+                Name = "x-test-name",
                 Value = HttpUtility.UrlEncode(TestContext.CurrentContext.Test.Name),
                 Domain = baseUrl!.Host,
                 Path = "/"
@@ -74,7 +78,10 @@ public abstract class FunctionalTest : PageTest
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
-        var url = checkEnvironment(TestContext.Parameters["webAppUrl"]!);
+        var url = checkEnvironment(
+                TestContext.Parameters["webAppUrl"]
+                ?? throw new ArgumentNullException("webAppUrl test parameter not set")
+            );
         baseUrl = new(url);
     }
     #endregion
@@ -183,7 +190,7 @@ public abstract class FunctionalTest : PageTest
         {
             var env = match.Groups[1].Value;
             var envVar = Environment.GetEnvironmentVariable(env)!;
-            result = replaceEnvRegex.Replace(old, envVar);            
+            result = replaceEnvRegex.Replace(old, envVar);
         }
 
         return result;

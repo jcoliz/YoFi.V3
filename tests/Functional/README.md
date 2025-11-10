@@ -40,9 +40,9 @@ Likewise, running against a deployed instance is for the far future. Right now, 
 Before running the tests, there are two key prerequisites.
 
 1. Install [.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download)
-2. Install Chromium for Playwright 
+2. Install Chromium for Playwright
 
-To install Chromium for Playwright, first build the functional tests. Then run the install script which is generated in the build. This only needs to be done once on initial setup, then again 
+To install Chromium for Playwright, first build the functional tests. Then run the install script which is generated in the build. This only needs to be done once on initial setup, then again
 whenever the Playwright packages are updated to a new version.
 
 ```Powershell
@@ -55,7 +55,3 @@ whenever the Playwright packages are updated to a new version.
 2. Ensure the steps are available in [FunctionalTest.cs](./Steps/FunctionalTest.cs)
 3. Write additional [Page](./Pages/) or [Component](./Components/) models if page functionality is new or changed.
 4. Using the [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file as an example, write new C# test files in the [Feature](./Features/) directory. GitHub copilot chat is excellent at this.
-
-## Known issues
-
-Currently the frontend is on a different port every time we start it. This requires a change to the `local.runsettings` file every time we run a new local instance.

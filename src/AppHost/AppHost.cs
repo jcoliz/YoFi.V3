@@ -6,7 +6,7 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
     .WithReference(apiService)
     .WaitFor(apiService)
-    .WithHttpEndpoint(env: "PORT")
+    .WithHttpEndpoint(port: 5173, env: "PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 

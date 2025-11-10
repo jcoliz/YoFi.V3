@@ -1,0 +1,3 @@
+{
+    "dotnet.unitTests.runSettingsPath": "${workspaceFolder}/tests/Functional/local.runsettings"
+}
