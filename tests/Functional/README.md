@@ -10,8 +10,8 @@ Playwright-driven browser-based tests running against the Front End.
 4. **Pre-deployment CI**: Functional tests absolutely must run in automated tests, and server as a blocker to deployment.
 5. **Non-destructive**. We must be able to run the functional tests against a deployed instance, so it must be sufficiently isolated that it doesn't interfere with real-life use.
 6. **Gherkin**: Tests will be written in strict Gherkin form.
-7. **Generated Future**: In the future, we'll use C# code generation to convert the Gherkin features into running C# tests. In the meantime, the hand-written tests will mimic the generated code in the future. 
-8. **Page Object Models**: We use page models to encapsulate knowledge about the structure of specific pages or controls.
+7. **Generated Future**: In the future, we'll use C# code generation to convert the Gherkin features into running C# tests. In the meantime, the hand-written tests will mimic the generated code in the future. The [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file gives the template for these tests
+8. **Page Object Models**: We use page and component models to encapsulate knowledge about the structure of specific pages or controls.
 
 ## Targets
 

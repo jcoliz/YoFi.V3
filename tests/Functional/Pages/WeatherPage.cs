@@ -1,6 +1,4 @@
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
-using YoFi.V3.Tests.Functional.Components;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
