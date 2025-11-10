@@ -92,14 +92,21 @@ graph TB
 ### Prerequisites
 
 - .NET 10.0 SDK
-- Node.js 20+ and pnpm
+- Node.js 24+ and pnpm
 - Visual Studio 2022 or VS Code with C# Dev Kit
 
 ### Running Locally
 
 1. Clone the repository
-2. Run the Aspire AppHost:
+2. Ensure all prerequisites installed
+3. Install npm packages for the Frontend:
    ```powershell
-   dotnet watch --project src/AppHost
+   cd src/FrontEnd.Nuxt
+   pnpm install
    ```
-3. Open the Aspire Dashboard (URL shown in console output)
+4. Run the Aspire AppHost:
+   ```powershell
+   cd src/AppHost
+   dotnet watch
+   ```
+5. Open the Aspire Dashboard (URL shown in console output)
