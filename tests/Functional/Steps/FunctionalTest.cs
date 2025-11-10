@@ -3,6 +3,7 @@ using System.Web;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using YoFi.V3.Tests.Functional.Components;
+using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
@@ -94,8 +95,10 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected async Task WhenUserLaunchesSite()
     {
-        // TODO: Refactor to use Page Object Models
-        var result = await Page!.GotoAsync("/");
+        var pageModel = new BasePage(Page);
+
+        var result = await pageModel.LaunchSite();
+
         _objectStore.Add<IResponse>(result!);
     }
 
@@ -107,11 +110,9 @@ public abstract class FunctionalTest : PageTest
     /// <returns></returns>
     protected async Task SelectOptionInNavbar(string option)
     {
-        var navBar = new NavBar(Page);
+        var pageModel = new BasePage(Page);
 
-        await navBar.SelectOptionAsync(option);
-
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await pageModel.NavBar.SelectOptionAsync(option);
     }
 
     #endregion
@@ -136,7 +137,10 @@ public abstract class FunctionalTest : PageTest
     /// <param name="text">Text expected in page title</param>
     protected async Task PageTitleContains(string text)
     {
-        var pageTitle = await Page.TitleAsync();
+        var pageModel = new BasePage(Page);
+
+        var pageTitle = await pageModel.GetPageTitle();
+
         Assert.That(pageTitle, Does.Contain(text));
     }
 
@@ -146,7 +150,10 @@ public abstract class FunctionalTest : PageTest
     /// <param name="text">Text expected as the H1</param>
     protected async Task PageHeadingIs(string text)
     {
-        var heading1 = await Page.Locator("h1").InnerTextAsync();
+        var pageModel = new BasePage(Page);
+
+        var heading1 = await pageModel.GetPageHeading();
+
         Assert.That(heading1, Is.EqualTo(text));
     }
 

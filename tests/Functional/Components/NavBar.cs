@@ -12,5 +12,6 @@ public class NavBar(IPage parent)
     public async Task SelectOptionAsync(string option)
     {
         await this[option].ClickAsync();
+        await parent.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 }
