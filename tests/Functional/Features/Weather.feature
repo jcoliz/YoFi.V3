@@ -2,7 +2,7 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:FunctionalTest
 @template:Features/FunctionalTest.mustache
-@before-then:SaveScreenshot
+@hook:before-first-then:SaveScreenshot
 Feature: (Weather) Forecasts load and displays successfully
 
 Scenario: Forecasts load OK

@@ -2,11 +2,11 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:FunctionalTest
 @template:Features/FunctionalTest.mustache
-@before-then:SaveScreenshot
+@hook:before-first-then:SaveScreenshot
 Feature: (Pages) All pages load and display successfully
 
-The idea here is one test per site page. We are not testing functionality. 
-We just want it to load, and take a nice screen shot. In the future, this could be 
+The idea here is one test per site page. We are not testing functionality.
+We just want it to load, and take a nice screen shot. In the future, this could be
 turned into an image-compare tests where we make sure the screen shots don't change.
 
 Scenario: Root loads OK

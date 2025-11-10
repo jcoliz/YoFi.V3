@@ -6,8 +6,8 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// (Pages) All pages load and display successfully
 /// </summary>
 /// <remarks>
-/// The idea here is one test per site page. We are not testing functionality. 
-/// We just want it to load, and take a nice screen shot. In the future, this could be 
+/// The idea here is one test per site page. We are not testing functionality.
+/// We just want it to load, and take a nice screen shot. In the future, this could be
 /// turned into an image-compare tests where we make sure the screen shots don't change.
 /// </remarks>
 public partial class PagesFeature_Tests : FunctionalTest
@@ -20,8 +20,10 @@ public partial class PagesFeature_Tests : FunctionalTest
     {
         // When user launches site
         await WhenUserLaunchesSite();
-        // Hook: Before first `Then` step
+
+        // Hook Before first Then Step
         await SaveScreenshotAsync();
+
         // Then page loaded ok
         await ThenPageLoadedOk();
     }
@@ -37,16 +39,20 @@ public partial class PagesFeature_Tests : FunctionalTest
     {
         // Given user has launched site
         await GivenLaunchedSite();
+
         // When user selects option <page> in nav bar
         await SelectOptionInNavbar(page);
-        // Hook: Before first `Then` step
+
+        // Hook Before first Then Step
         await SaveScreenshotAsync();
+
         // Then page loaded ok
         await ThenPageLoadedOk();
-        // Then page heading is <page>
+
+        // And page heading is <page>
         await PageHeadingIs(page);
-        // Then page title contains <page>
+
+        // And page title contains <page>
         await PageTitleContains(page);
     }
-
 }

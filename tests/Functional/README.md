@@ -54,4 +54,4 @@ whenever the Playwright packages are updated to a new version.
 1. Write new Gherkin scenarios in a [Feature](./Features/) file. Either create a new feature, or add new scenarios to an existing feature.
 2. Ensure the steps are available in [FunctionalTest.cs](./Steps/FunctionalTest.cs)
 3. Write additional [Page](./Pages/) or [Component](./Components/) models if page functionality is new or changed.
-4. Using the [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file as an example, write new C# test files in the [Feature](./Features/) directory. GitHub copilot chat is excellent at this.
+4. Write or update new C# test files in the [Feature](./Features/) directory, following the [Instructions](./INSTRUCTIONS.md) provided. GitHub Copilot is excellent at this!
