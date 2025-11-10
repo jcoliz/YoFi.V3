@@ -1,0 +1,35 @@
+using {{Using}};
+
+namespace {{Namespace}};
+
+/// <summary>
+/// {{FeatureDescription}}
+/// </summary>
+/// <remarks>
+{{#Description}}
+/// {{.}}
+{{/Description}}
+/// {{DescriptionLine}}
+/// </remarks>
+public partial class {{FeatureName}}Feature_Tests : {{BaseClass}}
+{
+    {{#Scenarios}}
+    /// <summary>
+    /// Scenario: {{Name}}
+    /// </summary>
+    {{#ExplicitTag}}
+    [Explicit]
+    {{/ExplicitTag}}
+    {{#Examples}}
+    [TestCase({{.}})]
+    {{/Examples}}
+    public async Task {{Method}}({{Args}})
+    {
+        {{#Steps}}
+        // {{Keyword}} {{Text}}
+        await {{Method}}({{Args}});
+        {{/Steps}}
+    }
+
+    {{/Scenarios}}
+}

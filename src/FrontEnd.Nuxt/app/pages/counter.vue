@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+useHead({
+  title: 'Counter',
+});
+
 const increaseCount = () => {
     count.value++;
 };

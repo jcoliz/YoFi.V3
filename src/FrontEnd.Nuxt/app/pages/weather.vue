@@ -2,6 +2,10 @@
 import { ref, onMounted } from "vue"
 import * as api from "../utils/apiclient"
 
+useHead({
+  title: 'Weather',
+});
+
 /**
  * Forecast data to display
  */
