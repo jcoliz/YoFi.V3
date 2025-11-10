@@ -42,6 +42,7 @@ public abstract class FunctionalTest : PageTest
     [SetUp]
     public async Task SetUp()
     {
+        // By convention, I put data-test-id attributes on important elements
         Playwright.Selectors.SetTestIdAttribute("data-test-id");
 
         // Note that this does need to be done in setup, because we get a new
