@@ -1,0 +1,10 @@
+version: '3.4'
+name: yofi_development_ci
+services: 
+  frontend:
+    build:
+      context: ../src/FrontEnd.Nuxt
+      dockerfile: ./docker/Dockerfile
+    restart: always
+    ports:
+      - '5000:80'

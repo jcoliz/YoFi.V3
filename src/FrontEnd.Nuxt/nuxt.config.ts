@@ -24,7 +24,8 @@ export default defineNuxtConfig({
       linkActiveClass: 'active'
     }
   },
-  routeRules: {
-    '/api/**': { cors: true, proxy: `${process.env.services__backend__http__0}/api/**` }
+  routeRules: {//
+    //'/api/**': { cors: true, proxy: `${process.env.services__backend__http__0}/api/**` }
+    '/api/**': { proxy: `http://localhost:5379/api/**` }
   }
 })
