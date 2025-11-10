@@ -1,4 +1,4 @@
-using YoFi.V3.Application.Features;
+using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,8 +10,7 @@ builder.AddServiceDefaults();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddSwagger();
-
-builder.Services.AddScoped<WeatherFeature>();
+builder.Services.AddApplicationFeatures();
 
 var app = builder.Build();
 
