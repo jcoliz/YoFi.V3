@@ -98,7 +98,7 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected async Task WhenUserLaunchesSite()
     {
-        var pageModel = It<BasePage>() ?? new BasePage(Page);
+        var pageModel = It<BasePage>();
         var result = await pageModel.LaunchSite();
         _objectStore.Add(pageModel);
         _objectStore.Add(result);
@@ -162,9 +162,8 @@ public abstract class FunctionalTest : PageTest
     protected async Task WeatherPageDisplaysForecasts(int expectedCount)
     {
         var weatherPage = new WeatherPage(Page);
-
+        _objectStore.Add(weatherPage);
         var actualCount = await weatherPage.ForecastRows.CountAsync();
-
         Assert.That(actualCount, Is.EqualTo(expectedCount));
     }
 
@@ -193,7 +192,7 @@ public abstract class FunctionalTest : PageTest
 
     protected async Task SaveScreenshotAsync()
     {
-        var pageModel = It<BasePage>() ?? new BasePage(Page);
+        var pageModel = It<BasePage>();
         await pageModel.SaveScreenshotAsync();
     }
 
@@ -228,5 +227,14 @@ public class ObjectStore
     public T Get<T>() where T : class
     {
         return (T)_objects[typeof(T).Name];
+    }
+
+    public bool Contains<T>() where T : class
+    {
+        return _objects.ContainsKey(typeof(T).Name);
+    }
+    public bool Contains<T>(string key) where T : class
+    {
+        return _objects.ContainsKey(key);
     }
 }
