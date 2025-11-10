@@ -157,6 +157,20 @@ public abstract class FunctionalTest : PageTest
         Assert.That(heading1, Is.EqualTo(text));
     }
 
+    /// <summary>
+    /// Then page contains (\S+) forecasts
+    /// </summary>
+    /// <param name="expectedCount"></param>
+    /// <returns></returns>
+    protected async Task WeatherPageDisplaysForecasts(int expectedCount)
+    {
+        var weatherPage = new WeatherPage(Page);
+
+        var actualCount = await weatherPage.ForecastRows.CountAsync();
+
+        Assert.That(actualCount, Is.EqualTo(expectedCount));
+    }
+
     #endregion
 
     #region Helpers
