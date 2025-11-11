@@ -12,7 +12,7 @@ public interface IDataProvider
     /// </summary>
     /// <typeparam name="TEntity">The type of entity being operated on by this set.</typeparam>
     /// <returns>queryable set of <typeparamref name="TEntity"/> objects</returns>
-    IQueryable<TEntity> Get<TEntity>() where TEntity : IModel;
+    IQueryable<TEntity> Get<TEntity>() where TEntity : class, IModel;
 
     /// <summary>
     /// Add an item
@@ -47,6 +47,6 @@ public interface IDataProvider
     /// <typeparam name="T">Type of entities being queried</typeparam>
     /// <param name="query">Query to execute</param>
     /// <returns>List of items</returns>
-    Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : IModel;
-    Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : IModel;
+    Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : class, IModel;
+    Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : class, IModel;
 }
