@@ -113,12 +113,12 @@ public abstract class FunctionalTest : PageTest
     }
 
     /// <summary>
-    /// When user selects option (\S+) in nav bar, or
-    /// Given user selected option (\S+) in nav bar
+    /// When user visits the (\S+) page, or
+    /// Given user visited the (\S+) page, or
     /// </summary>
     /// <param name="option">Displayed text of navbar item to click</param>
     /// <returns></returns>
-    protected async Task SelectOptionInNavbar(string option)
+    protected async Task VisitPage(string option)
     {
         var pageModel = It<BasePage>();
         await pageModel.NavBar.SelectOptionAsync(option);

@@ -7,5 +7,5 @@ Feature: (Weather) Forecasts load and displays successfully
 
 Scenario: Forecasts load OK
     Given user has launched site
-    And user selected option "Weather" in nav bar
+    And user visited the "Weather" page
     Then page contains 5 forecasts

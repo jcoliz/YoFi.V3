@@ -19,7 +19,7 @@ public partial class WeatherFeature_Tests : FunctionalTest
         await GivenLaunchedSite();
 
         // And user selected option "Weather" in nav bar
-        await SelectOptionInNavbar("Weather");
+        await VisitPage("Weather");
 
         // Hook Before first Then Step
         await SaveScreenshotAsync();

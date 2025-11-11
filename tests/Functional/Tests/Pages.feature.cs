@@ -41,7 +41,7 @@ public partial class PagesFeature_Tests : FunctionalTest
         await GivenLaunchedSite();
 
         // When user selects option <page> in nav bar
-        await SelectOptionInNavbar(page);
+        await VisitPage(page);
 
         // Hook Before first Then Step
         await SaveScreenshotAsync();

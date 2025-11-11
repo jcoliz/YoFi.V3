@@ -15,7 +15,7 @@ Scenario: Root loads OK
 
 Scenario Outline: Every page loads OK
     Given user has launched site
-    When user selects option <page> in nav bar
+    When user visits the <page> page
     Then page loaded ok
     And page heading is <page>
     And page title contains <page>

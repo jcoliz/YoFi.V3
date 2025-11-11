@@ -6,14 +6,15 @@ changes do not break existing features.
 
 ## Principles
 
-1. **Completeness**: All user scenarios should be covered by functional tests
+1. **Behavior-Driven Development**. When crafting new functionality, *start* by writing the behavior into a functional test, and then implement the feature in code.
+2. **Completeness**: All user scenarios should be covered by functional tests
 3. **Fast, simple, reliable**: In order to be effective, developers need to be able to quickly run them locally before every commit. If the tests are flaky, or difficult to setup or run, or take too long, we won't actually run them locally.
-2. **Multiple Targets**: Tests can be run against multiple target environments. (See "Targets", below.)
-4. **Pre-deployment CI**: Functional tests absolutely must run in automated tests. Failed tests must block deployment.
-5. **Non-destructive**. We must be able to run the functional tests against a deployed instance, so it must be sufficiently isolated that it doesn't interfere with real-life use.
-6. **Gherkin**: Tests will be written in strict Gherkin form.
-7. **Generated Future**: In the future, we'll use C# code generation to convert the Gherkin features into running C# tests. In the meantime, the hand-written tests will mimic the generated code in the future. The [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file gives the template for these tests
-8. **Page Object Models**: We use page and component models to encapsulate knowledge about the structure of specific pages or controls.
+4. **Multiple Targets**: Tests can be run against multiple target environments. (See "Targets", below.)
+5. **Pre-deployment CI**: Functional tests absolutely must run in automated tests. Failed tests must block deployment.
+6. **Non-destructive**. We must be able to run the functional tests against a deployed instance, so it must be sufficiently isolated that it doesn't interfere with real-life use.
+7. **Gherkin**: Tests will be written in strict Gherkin form.
+8. **Generated Future**: In the future, we'll use C# code generation to convert the Gherkin features into running C# tests. In the meantime, the hand-written tests will mimic the generated code in the future. The [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file gives the template for these tests
+9. **Page Object Models**: We use page and component models to encapsulate knowledge about the structure of specific pages or controls.
 
 ## Targets
 
