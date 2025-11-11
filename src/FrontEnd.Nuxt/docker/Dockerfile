@@ -13,6 +13,10 @@ COPY ./ ./
 # Install dependencies
 RUN npm install
 
+# Set the API base URL at build time
+ARG NUXT_PUBLIC_API_BASE_URL=https://your-backend.azurewebsites.net
+ENV NUXT_PUBLIC_API_BASE_URL=$NUXT_PUBLIC_API_BASE_URL
+
 # Build the static site
 RUN npm run generate
 
