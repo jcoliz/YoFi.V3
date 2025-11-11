@@ -4,7 +4,7 @@ Date: 2025-11-09
 
 ## Status
 
-Draft
+Approved
 
 ## Context
 
@@ -20,7 +20,7 @@ What infrastructure should we deploy this app into in production?
 
 ### Composition
 
-We will likely have just to components to the app itself.
+We will likely have just two components to the app itself.
 * Back End .NET API service
 * Front End Nuxt UI
 
@@ -28,7 +28,7 @@ We will likely have just to components to the app itself.
 
 1. Azure Container Apps (ACA). Seems like the default way to deploy Aspire apps
 2. Azure Kubernetes Service. Like ACA, only more complicated.
-3. Azure Static Web Apps for the front-end, with ACA as a backend. I think there is a designed pattern in Azure Static Web Apps for this case.
+3. Azure Static Web Apps for the front-end, with ACA as a backend.
 4. Azure Static Web Apps for the front-end, with Azure App Service as a backend.
 5. Azure Blob Storage for the front-end. However, requirement #3 is not natively met by Azure Blob Storage. It requires Azure Front Door, which is kind of expensive
 
@@ -36,15 +36,16 @@ We will likely have just to components to the app itself.
 
 **Frontend**: Azure Static Web Apps
 - Nuxt static generation (`nuxt generate`)
-- Free tier includes custom domain + HTTPS
+- Includes custom domain + HTTPS
+- Supports proxy to Azure App Service Backend (see [docs](https://learn.microsoft.com/en-us/azure/static-web-apps/apis-app-service))
+- Linkage can be done [in ARM template](https://learn.microsoft.com/en-us/azure/templates/microsoft.web/staticsites/linkedbackends?pivots=deployment-language-bicep)
+- Standard (not free) tier required for backend linkage
 - Global CDN distribution
-- GitHub integration for CI/CD
 
 **Backend**: Azure App Service (Basic B1 tier)
 - Single container deployment
-- Persistent storage for SQLite database (per ADR 0005)
+- Persistent storage for SQLite database (contemplated in [ADR 0005](./0005-database-backend.md))
 - Cost-effective for low, steady traffic (~$13/month)
-- Built-in custom domain + SSL support
 
 ### Alternative Considered: Azure Container Apps
 
@@ -65,3 +66,9 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 - Less auto-scaling capability (must manually scale App Service)
 - Cannot easily scale to zero like ACA
 - May need to migrate to ACA later if traffic patterns become highly variable
+
+### For future consideration
+
+Should we use Azure Static Web Apps [linked backend](https://learn.microsoft.com/en-us/azure/static-web-apps/apis-app-service) feature, or directly call the backend from JS running in browser?
+
+See [ADR 0007](./0007-backend-proxy-or-direct) for a deeper discussion.
