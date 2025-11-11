@@ -35,7 +35,11 @@ export default defineNuxtConfig({
       // is read from the build environment (e.g., Docker build ARG).
       // NOTE: Nuxt generation reads NUXT_PUBLIC_* environment variables at build time
       // ALSO NOTE: Using this `apiBaseUrl` is still a work in progress.
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5379'
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5379',
+      services__backend__http__0: process.env.services__backend__http__0 || 'not specified',
+      finalApiBaseUrl: process.env.NODE_ENV === 'development'
+        ? (process.env.services__backend__http__0) // During development, Aspire will provide the backend URL on this variable
+        : (process.env.NUXT_PUBLIC_API_BASE_URL) // For production or container, the backend URL **must** be provided at build time
     }
   }
 })
