@@ -68,3 +68,7 @@ For **YoFi.V3** (a personal finance app), an SPA makes sense because:
 - Users benefit from fast, interactive UI
 - You want modern development experience (Nuxt 4)
 - You can reuse the API for potential future mobile app
+
+## Related Decisions
+
+- [0002. Vue.js Frontend](0002-vue-js.md) - Choice of frontend framework for implementing this SPA

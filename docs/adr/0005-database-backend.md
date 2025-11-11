@@ -165,3 +165,7 @@ Secondly, have a look at "Turso/libSQL (Modern SQLite)" to learn more about this
 - Can use Azure Files for SQLite file to enable some multi-instance scenarios if needed
 
 What do you think? Does SQLite meet your needs, or do you need the scalability of PostgreSQL/SQL Server?
+
+## Related Decisions
+
+- [0006. Production Infrastructure](0006-production-infrastructure.md) - Azure App Service provides persistent storage for SQLite database

@@ -160,6 +160,11 @@ export function useCounter() {
 - We're using TypeScript anyway, but the flexibility exists
 - May be confusing if mixing JS and TS patterns
 
+## Related Decisions
+
+- [0001. Single Page Web App](0001-spa-web-app.md) - Decision to build a SPA that requires a frontend framework
+- [0003. Nuxt Meta-Framework](0003-nuxt.md) - Choice of meta-framework built on Vue.js
+
 ## References
 
 - [Vue.js Official Documentation](https://vuejs.org/)

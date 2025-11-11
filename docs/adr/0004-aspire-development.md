@@ -32,7 +32,7 @@ We will use **.NET Aspire** for development orchestration. It is well-suited to 
 
 ### Scope Limitation
 
-**Important:** This decision applies **only to development orchestration**, not production deployment. 
+**Important:** This decision applies **only to development orchestration**, not production deployment.
 
 For production, we're leaning toward:
 - Frontend: Static Web App (Azure Static Web Apps or CDN)
@@ -134,7 +134,7 @@ If we decide to change this later:
 - [0001. Single Page Web App](0001-spa-web-app.md) - Established need for frontend/backend separation
 - [0002. Vue.js](0002-vue-js.md) - Frontend framework choice
 - [0003. Nuxt](0003-nuxt.md) - Frontend meta-framework choice
-- Future: Production deployment architecture (pending)
+- [0006. Production Infrastructure](0006-production-infrastructure.md) - Production deployment differs from Aspire dev orchestration
 
 ### References
 

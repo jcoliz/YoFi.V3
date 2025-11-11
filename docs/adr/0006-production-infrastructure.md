@@ -71,4 +71,10 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 
 Should we use Azure Static Web Apps [linked backend](https://learn.microsoft.com/en-us/azure/static-web-apps/apis-app-service) feature, or directly call the backend from JS running in browser?
 
-See [ADR 0007](./0007-backend-proxy-or-direct) for a deeper discussion.
+See [ADR 0007](./0007-backend-proxy-or-direct.md) for a deeper discussion.
+
+## Related Decisions
+
+- [0004. Aspire Development](0004-aspire-development.md) - Development orchestration differs from production deployment
+- [0005. Database Backend](0005-database-backend.md) - SQLite database stored on App Service persistent storage
+- [0007. Proxy to backend or make direct calls?](0007-backend-proxy-or-direct.md) - Frontend-to-backend communication approach

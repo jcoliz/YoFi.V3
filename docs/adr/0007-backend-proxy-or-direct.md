@@ -122,3 +122,7 @@ The decision is still open, pending research of GitHub Copilot's recommendation.
 ## Consequences
 
 What becomes easier or more difficult to do because of this change?
+
+## Related Decisions
+
+- [0006. Production Infrastructure](0006-production-infrastructure.md) - Production infrastructure context for this decision
