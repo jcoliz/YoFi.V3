@@ -89,13 +89,30 @@ graph TB
 
 ## Getting Started
 
-### Prerequisites
+### Running in Container
+
+It's quick and easy to run the app:
+
+1. Clone the repository
+2. Ensure Docker is installed and running
+3. Build the containers
+    ```
+    ./scripts/Build-Container.ps1
+    ```
+4. Run the containers
+    ```
+    ./scripts/Start-Container.ps1
+    ```
+
+This will open a browser window to the running app.
+
+### Development Prerequisites
 
 - .NET 10.0 SDK
 - Node.js 24+ and pnpm
 - Visual Studio 2022 or VS Code with C# Dev Kit
 
-### Running Locally
+### Running Development Environment
 
 1. Clone the repository
 2. Ensure all prerequisites installed
