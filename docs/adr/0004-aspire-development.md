@@ -8,7 +8,13 @@ Accepted
 
 ## Context
 
-Given the previous architectural decisions (SPA frontend with Nuxt, .NET backend with separate controllers), we need to choose a methodology to orchestrate the multiple components of this application during development.
+### Question
+
+How should we orchestrate the multiple components of this application during development?
+
+### Background
+
+Frontend and backend will be packaged, deployed, hosted, and executed as separate units, so orchestration between them is necessary.
 
 ### Previous Pain Points
 
