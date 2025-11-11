@@ -89,6 +89,8 @@ graph TB
 
 ## Getting Started
 
+For more details about the various environments where the app is built to run, please see [ENVIRONMENTS.md](./docs/ENVIRONMENTS.md).
+
 ### Running in Container
 
 It's quick and easy to run the app:
