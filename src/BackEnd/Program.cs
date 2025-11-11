@@ -17,7 +17,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
 {
     // TODO: if (startupOptions.EnableSwaggerUi)
     // TODO: Logger.Information("Enabling Swagger UI");
