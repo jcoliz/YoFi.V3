@@ -23,16 +23,43 @@ public class WeatherPage(IPage? _page): BasePage(_page)
 
         if (cells.Count < 3)
         {
-            return new ForecastRowData(null, null, null, cells.Count);
+            return new ForecastRowData(null, null, null, null, cells.Count);
+        }
+
+        var dateText = await cells[0].InnerTextAsync();
+        DateTime? parsedDate = null;
+        
+        if (DateTime.TryParse(dateText, out var date))
+        {
+            parsedDate = date;
         }
 
         return new ForecastRowData(
-            Date: await cells[0].InnerTextAsync(),
+            Date: dateText,
+            ParsedDate: parsedDate,
             Temperature: await cells[1].InnerTextAsync(),
             Conditions: await cells[2].InnerTextAsync(),
             CellCount: cells.Count
         );
     }
+
+    public async Task<List<DateTime>> GetParsedDatesAsync()
+    {
+        var rows = await GetAllForecastRowsAsync();
+        var dates = new List<DateTime>();
+
+        foreach (var row in rows)
+        {
+            var data = await GetForecastRowDataAsync(row);
+            if (!data.ParsedDate.HasValue)
+            {
+                throw new InvalidOperationException($"Unable to parse date: '{data.Date}'");
+            }
+            dates.Add(data.ParsedDate.Value);
+        }
+
+        return dates;
+    }
 }
 
-public record ForecastRowData(string? Date, string? Temperature, string? Conditions, int CellCount);
+public record ForecastRowData(string? Date, DateTime? ParsedDate, string? Temperature, string? Conditions, int CellCount);

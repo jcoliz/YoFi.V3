@@ -149,29 +149,15 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenForecastsShouldBeOrderedChronologically()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var rows = await weatherPage.GetAllForecastRowsAsync();
+        var dates = await weatherPage.GetParsedDatesAsync();
 
-        Assert.That(rows.Count, Is.GreaterThan(1), "Need at least 2 forecasts to verify chronological order");
+        Assert.That(dates.Count, Is.GreaterThan(1), "Need at least 2 forecasts to verify chronological order");
 
-        DateTime? previousDate = null;
-
-        foreach (var row in rows)
+        for (int i = 1; i < dates.Count; i++)
         {
-            var data = await weatherPage.GetForecastRowDataAsync(row);
-
-            // Try to parse the date (adjust format as needed based on actual format)
-            if (DateTime.TryParse(data.Date, out var currentDate))
-            {
-                if (previousDate.HasValue)
-                {
-                    Assert.That(currentDate, Is.GreaterThan(previousDate.Value),
-                        $"Forecasts should be in chronological order. Found {currentDate} after {previousDate}");
-                }
-                previousDate = currentDate;
-            }
+            Assert.That(dates[i], Is.GreaterThan(dates[i - 1]),
+                $"Forecasts should be in chronological order. Found {dates[i]} after {dates[i - 1]}");
         }
-
-        Assert.That(previousDate, Is.Not.Null, "At least one date should be parseable");
     }
 
     #endregion
