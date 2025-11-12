@@ -144,6 +144,11 @@ Use Entity Framework Core with the SQLite provider for a single, consistent data
 
 Secondly, have a look at "Turso/libSQL (Modern SQLite)" to learn more about this option.
 
+Update: Using SQLite requires persistent shared storage in the App Service. The only docs
+I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
+
+Currently reviewing [Mount Azure Storage as a local share in App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage?wt.mc_id=knowledgesearch_inproduct_azure-agent-for-github-copilot&tabs=basic%2Cportal&pivots=container-linux). Although this is something different. This is mounting a storage volume! Not the shared storage mentioned above.
+
 ## Consequences
 
 **Positive:**

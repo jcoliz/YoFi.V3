@@ -2,10 +2,11 @@
 // Provisions a complete set of needed production resources for YoFi.V3
 //
 // Includes:
-//    * Resource group
 //    * Azure Static Web App hosting the front-end Nuxt application
 //    * Azure App Service hosting the back-end .NET API
 //
+// TODO:
+//    * Azure Storage account for persistent file storage
 
 @description('Primary location for all resources')
 param location string = resourceGroup().location
@@ -22,6 +23,13 @@ module web './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
   params: {
     suffix: suffix
     location: location
+    // Persistent storage needed for SQLite database files
+    configuration: [
+      {
+        name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+        value: 'true'
+      }
+    ]
   }
 }
 
@@ -35,6 +43,7 @@ module staticWebApp './AzDeploy.Bicep/Web/staticapp.bicep' = {
 }
 
 output webAppName string = web.outputs.webAppName
+output webAppDefaultHostName string = web.outputs.webAppDefaultHostName
 output appInsightsName string = web.outputs.appInsightsName
 output logAnalyticsName string = web.outputs.logAnalyticsName
 output staticWebAppName string = staticWebApp.outputs.name
