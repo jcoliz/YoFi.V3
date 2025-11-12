@@ -58,16 +58,14 @@ const client = new api.WeatherClient()
             <thead>
             <tr>
                 <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
+                <th>Temp.</th>
                 <th>Summary</th>
             </tr>
             </thead>
             <tbody data-test-id="forecast-table-body">
             <tr v-for="forecast in forecasts" :key="forecast.id">
                 <td>{{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}</td>
-                <td>{{ forecast.temperatureC }}</td>
-                <td>{{ forecast.temperatureF }}</td>
+                <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
                 <td>{{ forecast.summary }}</td>
             </tr>
             </tbody>

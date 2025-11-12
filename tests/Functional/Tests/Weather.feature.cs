@@ -3,28 +3,52 @@ using YoFi.V3.Tests.Functional.Steps;
 namespace YoFi.V3.Tests.Functional.Features;
 
 /// <summary>
-/// (Weather) Forecasts load and displays successfully
+/// Weather Forecasts
 /// </summary>
 /// <remarks>
+/// As a user planning my activities
+/// I want to view upcoming weather forecasts
+/// So that I can plan accordingly
 /// </remarks>
-public partial class WeatherFeature_Tests : FunctionalTest
+public class WeatherForecasts : WeatherSteps
 {
     /// <summary>
-    /// Scenario: Forecasts load OK
+    /// User views the weather forecast
     /// </summary>
     [Test]
-    public async Task ForecastsLoadOK()
+    public async Task UserViewsTheWeatherForecast()
     {
-        // Given user has launched site
-        await GivenLaunchedSite();
-
-        // And user selected option "Weather" in nav bar
-        await VisitPage("Weather");
-
-        // Hook Before first Then Step
+        await GivenIAmOnTheHomePage();
+        await WhenINavigateToViewTheWeatherForecast();
+        // Hook: Before first Then Step
         await SaveScreenshotAsync();
+        await ThenIShouldSeeUpcomingWeatherPredictions();
+        await ThenEachForecastShouldShowTheDateTemperatureAndConditions();
+    }
 
-        // Then page contains 5 forecasts
-        await WeatherPageDisplaysForecasts(5);
+    /// <summary>
+    /// Forecasts show both Celsius and Fahrenheit
+    /// </summary>
+    [Test]
+    public async Task ForecastsShowBothCelsiusAndFahrenheit()
+    {
+        await GivenIAmViewingWeatherForecasts();
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+        await ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
+        await ThenTheTemperatureConversionsShouldBeAccurate();
+    }
+
+    /// <summary>
+    /// Multi-day forecast is available
+    /// </summary>
+    [Test]
+    public async Task MultiDayForecastIsAvailable()
+    {
+        await GivenIAmViewingWeatherForecasts();
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+        await ThenIShouldSeeForecastsForAtLeastTheNext5Days();
+        await ThenForecastsShouldBeOrderedChronologically();
     }
 }
