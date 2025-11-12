@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
@@ -23,21 +24,26 @@ public class WeatherPage(IPage? _page): BasePage(_page)
 
         if (cells.Count < 3)
         {
-            return new ForecastRowData(null, null, null, null, cells.Count);
+            return new ForecastRowData(null, null, null, null, null, null, cells.Count);
         }
 
         var dateText = await cells[0].InnerTextAsync();
         DateTime? parsedDate = null;
-        
+
         if (DateTime.TryParse(dateText, out var date))
         {
             parsedDate = date;
         }
 
+        var temperatureText = await cells[1].InnerTextAsync();
+        var (parsedCelsius, parsedFahrenheit) = ParseTemperature(temperatureText);
+
         return new ForecastRowData(
             Date: dateText,
             ParsedDate: parsedDate,
-            Temperature: await cells[1].InnerTextAsync(),
+            Temperature: temperatureText,
+            ParsedCelsius: parsedCelsius,
+            ParsedFahrenheit: parsedFahrenheit,
             Conditions: await cells[2].InnerTextAsync(),
             CellCount: cells.Count
         );
@@ -60,6 +66,24 @@ public class WeatherPage(IPage? _page): BasePage(_page)
 
         return dates;
     }
+
+    private static (double? celsius, double? fahrenheit) ParseTemperature(string temperatureText)
+    {
+        var celsiusMatch = Regex.Match(temperatureText ?? "", @"(-?\d+(?:\.\d+)?)\s*°?C");
+        var fahrenheitMatch = Regex.Match(temperatureText ?? "", @"(-?\d+(?:\.\d+)?)\s*°?F");
+
+        double? celsius = celsiusMatch.Success ? double.Parse(celsiusMatch.Groups[1].Value) : null;
+        double? fahrenheit = fahrenheitMatch.Success ? double.Parse(fahrenheitMatch.Groups[1].Value) : null;
+
+        return (celsius, fahrenheit);
+    }
 }
 
-public record ForecastRowData(string? Date, DateTime? ParsedDate, string? Temperature, string? Conditions, int CellCount);
+public record ForecastRowData(
+    string? Date,
+    DateTime? ParsedDate,
+    string? Temperature,
+    double? ParsedCelsius,
+    double? ParsedFahrenheit,
+    string? Conditions,
+    int CellCount);

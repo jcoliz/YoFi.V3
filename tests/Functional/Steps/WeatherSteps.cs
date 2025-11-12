@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -91,11 +90,10 @@ public abstract class WeatherSteps : FunctionalTest
         {
             var data = await weatherPage.GetForecastRowDataAsync(row);
 
-            // Temperature should contain both C and F (e.g., "20°C / 68°F" or similar format)
-            Assert.That(data.Temperature, Does.Contain("C").Or.Contains("°C"),
-                "Temperature should include Celsius");
-            Assert.That(data.Temperature, Does.Contain("F").Or.Contains("°F"),
-                "Temperature should include Fahrenheit");
+            Assert.That(data.ParsedCelsius, Is.Not.Null,
+                $"Temperature should include Celsius: {data.Temperature}");
+            Assert.That(data.ParsedFahrenheit, Is.Not.Null,
+                $"Temperature should include Fahrenheit: {data.Temperature}");
         }
     }
 
@@ -113,14 +111,10 @@ public abstract class WeatherSteps : FunctionalTest
         {
             var data = await weatherPage.GetForecastRowDataAsync(row);
 
-            // Extract Celsius and Fahrenheit values using regex
-            var celsiusMatch = Regex.Match(data.Temperature ?? "", @"(-?\d+(?:\.\d+)?)\s*°?C");
-            var fahrenheitMatch = Regex.Match(data.Temperature ?? "", @"(-?\d+(?:\.\d+)?)\s*°?F");
-
-            if (celsiusMatch.Success && fahrenheitMatch.Success)
+            if (data.ParsedCelsius.HasValue && data.ParsedFahrenheit.HasValue)
             {
-                var celsius = double.Parse(celsiusMatch.Groups[1].Value);
-                var fahrenheit = double.Parse(fahrenheitMatch.Groups[1].Value);
+                var celsius = data.ParsedCelsius.Value;
+                var fahrenheit = data.ParsedFahrenheit.Value;
 
                 // Formula: F = C * 9/5 + 32
                 var expectedFahrenheit = celsius * 9.0 / 5.0 + 32.0;
