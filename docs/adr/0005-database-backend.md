@@ -144,10 +144,22 @@ Use Entity Framework Core with the SQLite provider for a single, consistent data
 
 Secondly, have a look at "Turso/libSQL (Modern SQLite)" to learn more about this option.
 
+### Ongoing experience with SQLite for this use case
+
 Update: Using SQLite requires persistent shared storage in the App Service. The only docs
 I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
 
 Currently reviewing [Mount Azure Storage as a local share in App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage?wt.mc_id=knowledgesearch_inproduct_azure-agent-for-github-copilot&tabs=basic%2Cportal&pivots=container-linux). Although this is something different. This is mounting a storage volume! Not the shared storage mentioned above.
+
+Here's a good thread: [Shared persistent memory for Azure Web app](https://learn.microsoft.com/en-us/answers/questions/1411761/shared-persistent-memory-for-azure-web-app)
+
+By default, when you create an app service, each app service plan is allotted with some amount of storage based on their tier. Azure App service file system has three types of files Persistent, temporary and Machine level read-only files and each type have certain threshold as well refer to Github documentation to understand more about them.
+
+Azure Web Apps provide a limited amount of persistent storage that can be used to store files and data. However, this storage is not intended for long-term storage of large amounts of data, and it is not recommended to use it for storing data that needs to be frequently accessed or modified.
+
+In your case, since you want to store a JSON blob that will be shared by all users of your web app and accessed frequently, it is not recommended to use the Azure Web App storage for this purpose. The storage provided by Azure Web Apps is intended for temporary storage of application data, **such as session state and cache data**.
+
+Instead, you can mount Azure storage account as a local file share to store your JSON blob. Azure Blob storage is a cost-effective way to store large amounts of unstructured data, such as JSON files. Refer to this documentation on how to mount storage account in azure app service.
 
 ## Consequences
 
