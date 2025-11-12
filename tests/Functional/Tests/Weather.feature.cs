@@ -1,4 +1,5 @@
 using YoFi.V3.Tests.Functional.Steps;
+using NUnit.Framework;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -18,11 +19,19 @@ public class WeatherForecasts : WeatherSteps
     [Test]
     public async Task UserViewsTheWeatherForecast()
     {
+        // Given I am on the home page
         await GivenIAmOnTheHomePage();
+
+        // When I navigate to view the weather forecast
         await WhenINavigateToViewTheWeatherForecast();
+
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
+
+        // Then I should see upcoming weather predictions
         await ThenIShouldSeeUpcomingWeatherPredictions();
+
+        // And each forecast should show the date, temperature, and conditions
         await ThenEachForecastShouldShowTheDateTemperatureAndConditions();
     }
 
@@ -32,10 +41,16 @@ public class WeatherForecasts : WeatherSteps
     [Test]
     public async Task ForecastsShowBothCelsiusAndFahrenheit()
     {
+        // Given I am viewing weather forecasts
         await GivenIAmViewingWeatherForecasts();
+
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
+
+        // Then each forecast should display temperature in both Celsius and Fahrenheit
         await ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
+
+        // And the temperature conversions should be accurate
         await ThenTheTemperatureConversionsShouldBeAccurate();
     }
 
@@ -45,10 +60,16 @@ public class WeatherForecasts : WeatherSteps
     [Test]
     public async Task MultiDayForecastIsAvailable()
     {
+        // Given I am viewing weather forecasts
         await GivenIAmViewingWeatherForecasts();
+
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
+
+        // Then I should see forecasts for at least the next 5 days
         await ThenIShouldSeeForecastsForAtLeastTheNext5Days();
+
+        // And forecasts should be ordered chronologically
         await ThenForecastsShouldBeOrderedChronologically();
     }
 }
