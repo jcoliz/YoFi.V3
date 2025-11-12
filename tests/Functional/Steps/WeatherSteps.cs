@@ -50,7 +50,7 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenIShouldSeeUpcomingWeatherPredictions()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var actualCount = await weatherPage.ForecastRows.CountAsync();
+        var actualCount = await weatherPage.GetForecastCountAsync();
         Assert.That(actualCount, Is.GreaterThan(0), "Expected to see at least one weather forecast");
     }
 
@@ -60,27 +60,20 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenEachForecastShouldShowTheDateTemperatureAndConditions()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var rows = await weatherPage.ForecastRows.AllAsync();
+        var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
 
         foreach (var row in rows)
         {
-            var cells = await row.Locator("td").AllAsync();
-            Assert.That(cells.Count, Is.GreaterThanOrEqualTo(3),
+            var data = await weatherPage.GetForecastRowDataAsync(row);
+
+            Assert.That(data.CellCount, Is.GreaterThanOrEqualTo(3),
                 "Each forecast row should have at least 3 cells (date, temperature, conditions)");
 
-            // Verify date cell has content
-            var dateText = await cells[0].InnerTextAsync();
-            Assert.That(dateText, Is.Not.Empty, "Date cell should not be empty");
-
-            // Verify temperature cell has content
-            var tempText = await cells[1].InnerTextAsync();
-            Assert.That(tempText, Is.Not.Empty, "Temperature cell should not be empty");
-
-            // Verify conditions cell has content
-            var conditionsText = await cells[2].InnerTextAsync();
-            Assert.That(conditionsText, Is.Not.Empty, "Conditions cell should not be empty");
+            Assert.That(data.Date, Is.Not.Empty, "Date cell should not be empty");
+            Assert.That(data.Temperature, Is.Not.Empty, "Temperature cell should not be empty");
+            Assert.That(data.Conditions, Is.Not.Empty, "Conditions cell should not be empty");
         }
     }
 
@@ -90,19 +83,18 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var rows = await weatherPage.ForecastRows.AllAsync();
+        var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
 
         foreach (var row in rows)
         {
-            var cells = await row.Locator("td").AllAsync();
-            var tempText = await cells[1].InnerTextAsync();
+            var data = await weatherPage.GetForecastRowDataAsync(row);
 
             // Temperature should contain both C and F (e.g., "20°C / 68°F" or similar format)
-            Assert.That(tempText, Does.Contain("C").Or.Contains("°C"),
+            Assert.That(data.Temperature, Does.Contain("C").Or.Contains("°C"),
                 "Temperature should include Celsius");
-            Assert.That(tempText, Does.Contain("F").Or.Contains("°F"),
+            Assert.That(data.Temperature, Does.Contain("F").Or.Contains("°F"),
                 "Temperature should include Fahrenheit");
         }
     }
@@ -113,18 +105,17 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenTheTemperatureConversionsShouldBeAccurate()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var rows = await weatherPage.ForecastRows.AllAsync();
+        var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
 
         foreach (var row in rows)
         {
-            var cells = await row.Locator("td").AllAsync();
-            var tempText = await cells[1].InnerTextAsync();
+            var data = await weatherPage.GetForecastRowDataAsync(row);
 
             // Extract Celsius and Fahrenheit values using regex
-            var celsiusMatch = Regex.Match(tempText, @"(-?\d+(?:\.\d+)?)\s*°?C");
-            var fahrenheitMatch = Regex.Match(tempText, @"(-?\d+(?:\.\d+)?)\s*°?F");
+            var celsiusMatch = Regex.Match(data.Temperature ?? "", @"(-?\d+(?:\.\d+)?)\s*°?C");
+            var fahrenheitMatch = Regex.Match(data.Temperature ?? "", @"(-?\d+(?:\.\d+)?)\s*°?F");
 
             if (celsiusMatch.Success && fahrenheitMatch.Success)
             {
@@ -147,7 +138,7 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenIShouldSeeForecastsForAtLeastTheNext5Days()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var actualCount = await weatherPage.ForecastRows.CountAsync();
+        var actualCount = await weatherPage.GetForecastCountAsync();
         Assert.That(actualCount, Is.GreaterThanOrEqualTo(5),
             $"Expected at least 5 days of forecasts, but found {actualCount}");
     }
@@ -158,7 +149,7 @@ public abstract class WeatherSteps : FunctionalTest
     protected async Task ThenForecastsShouldBeOrderedChronologically()
     {
         var weatherPage = GetOrCreateWeatherPage();
-        var rows = await weatherPage.ForecastRows.AllAsync();
+        var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(1), "Need at least 2 forecasts to verify chronological order");
 
@@ -166,11 +157,10 @@ public abstract class WeatherSteps : FunctionalTest
 
         foreach (var row in rows)
         {
-            var cells = await row.Locator("td").AllAsync();
-            var dateText = await cells[0].InnerTextAsync();
+            var data = await weatherPage.GetForecastRowDataAsync(row);
 
             // Try to parse the date (adjust format as needed based on actual format)
-            if (DateTime.TryParse(dateText, out var currentDate))
+            if (DateTime.TryParse(data.Date, out var currentDate))
             {
                 if (previousDate.HasValue)
                 {
