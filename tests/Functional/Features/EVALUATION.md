@@ -1,64 +1,86 @@
 # Evaluation of functional tests for BDD
 
-Prompt: "Evaluate my test features. Are these descrived at the right level for Behavior driven development?"
+Prompt: "I see you scored Weather.feature as a 8/10. What changes are needed to get 10/10?"
 
-Let me examine your test features and related components to provide a comprehensive evaluation.
+Great question! Let me analyze what would take `Weather.feature` from 8/10 to 10/10:
 
-## Evaluation of Your BDD Test Features
+## Changes for 10/10 BDD Score
 
-Your test features show **good technical implementation** but have **some BDD anti-patterns**. Here's a detailed assessment:
+### 1. **Remove Implementation Details** (-1 point)
 
-### ❌ **Issues with Current Approach**
-
-#### 1. **Pages.feature is NOT behavior-focused**
+**Current:**
 ```gherkin
-Feature: (Pages) All pages load and display successfully
-Scenario: Root loads OK
+Scenario: User views the weather forecast
+    Given I am on the home page
+    When I navigate to view the weather forecast
 ```
 
-**Problem**: This describes **technical testing** (smoke tests), not **user behavior**. BDD should focus on *what* users do and *why*, not *how* the system works internally.
+**Issue:** "I am on the home page" exposes navigation structure. Users don't think "I need to be on the home page first" - they just want to see weather.
 
-**BDD is about**: Business value and user goals
-**This is about**: Technical validation (does it render?)
-
-#### 2. **Weather.feature is too implementation-focused**
+**Better (10/10):**
 ```gherkin
-Scenario: Forecasts load OK
-    Given user has launched site
-    And user visited the "Weather" page
-    Then page contains 5 forecasts
+Scenario: User views the weather forecast
+    Given I want to check the weather
+    When I navigate to view the weather forecast
+    Then I should see upcoming weather predictions
+    And each forecast should show the date, temperature, and conditions
 ```
 
-**Problems**:
-- "page contains 5 forecasts" - Why 5? Is this a business rule or arbitrary test data?
-- Missing the "why" - What is the user trying to accomplish?
-- No clear business value being tested
+OR simply start with the action:
+```gherkin
+Scenario: User views the weather forecast
+    When I view the weather forecast
+    Then I should see upcoming weather predictions
+    And each forecast should show the date, temperature, and conditions
+```
 
-### ✅ **What You're Doing Well**
+### 2. **Make "5 days" Business-Meaningful** (-0.5 points)
 
-1. **Good step abstraction**: Your steps like `user has launched site` are readable
-2. **Clean separation**: Page Objects pattern is properly implemented
-3. **Reusable steps**: The base class pattern allows good step reuse
-4. **Proper Gherkin syntax**: Technically correct Given/When/Then structure
+**Current:**
+```gherkin
+Then I should see forecasts for at least the next 5 days
+```
 
-### 📋 **BDD Best Practices Assessment**
+**Issue:** Why 5 days? Is this arbitrary test data or a business requirement?
 
-| Aspect | Current State | BDD Best Practice |
-|--------|--------------|-------------------|
-| **Describes user behavior** | ❌ No | ✅ Should describe *what* user wants to achieve |
-| **Business-readable** | ⚠️ Partially | ✅ Should be readable by non-technical stakeholders |
-| **Focused on outcomes** | ❌ No | ✅ Should test business outcomes, not UI state |
-| **Independent of implementation** | ❌ No | ✅ Should work if UI changes |
-| **Expresses business value** | ❌ No | ✅ Should tie to user stories/requirements |
+**Better (10/10):**
+```gherkin
+Then I should see forecasts for multiple days ahead
+And I should be able to plan for the upcoming work week
+```
 
-### 🎯 **Recommended Improvements**
+OR if 5 days IS a business rule:
+```gherkin
+Then I should see a 5-day forecast
+And forecasts should cover Monday through Friday
+```
 
-#### Transform Weather.feature to be behavior-focused:
+### 3. **Focus on User Value, Not Technical Validation** (-0.5 points)
+
+**Current:**
+```gherkin
+Scenario: Forecasts show both Celsius and Fahrenheit
+    Given I am viewing weather forecasts
+    Then each forecast should display temperature in both Celsius and Fahrenheit
+    And the temperature conversions should be accurate
+```
+
+**Issue:** "temperature conversions should be accurate" - this tests implementation correctness, not user behavior.
+
+**Better (10/10):**
+```gherkin
+Scenario: International users can view temperatures in their preferred units
+    Given I am viewing weather forecasts
+    Then I can see temperatures in both Celsius and Fahrenheit
+    And I can understand the forecast regardless of my location
+```
+
+## Complete 10/10 Version
 
 ````gherkin
 @using:YoFi.V3.Tests.Functional.Steps
 @namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:FunctionalTest
+@baseclass:WeatherSteps
 @template:Features/FunctionalTest.mustache
 @hook:before-first-then:SaveScreenshot
 Feature: Weather Forecasts
@@ -67,51 +89,25 @@ Feature: Weather Forecasts
     So that I can plan accordingly
 
 Scenario: User views the weather forecast
-    Given I am on the home page
-    When I navigate to view the weather forecast
+    When I view the weather forecast
     Then I should see upcoming weather predictions
     And each forecast should show the date, temperature, and conditions
 
-Scenario: Forecasts show both Celsius and Fahrenheit
+Scenario: International users can view temperatures in their preferred units
     Given I am viewing weather forecasts
-    Then each forecast should display temperature in both Celsius and Fahrenheit
-    And the temperature conversions should be accurate
+    Then I can see temperatures in both Celsius and Fahrenheit
 
-Scenario: Multi-day forecast is available
+Scenario: Multi-day forecast helps me plan ahead
     Given I am viewing weather forecasts
-    Then I should see forecasts for at least the next 5 days
+    Then I should see forecasts for multiple days ahead
     And forecasts should be ordered chronologically
 ````
 
-#### For Pages.feature - Consider removing or renaming:
+## Key Principles Applied
 
-These appear to be **smoke tests** or **visual regression tests**, not BDD scenarios. Options:
+1. **User-centric language**: "I view" not "I am on the home page"
+2. **Business value over technical validation**: Removed "conversions should be accurate" (that's a unit test concern)
+3. **Meaningful context**: Changed scenario names to express WHY users care
+4. **Implementation agnostic**: No reference to page structure or navigation
 
-**Option 1: Remove from BDD suite**
-- Move to a separate technical test suite
-- These are valuable but aren't BDD
-
-**Option 2: Rename to clarify intent**
-````gherkin
-Feature: Site Navigation (Technical Smoke Tests)
-    These are technical validation tests, not behavior specifications
-
-Scenario: All primary pages are accessible
-    # This is a technical test, not a user story
-````
-
-### 💡 **Key BDD Principles to Apply**
-
-1. **Write from user perspective**: "I want to..." not "page contains..."
-2. **Focus on business value**: Why does the user care about 5 forecasts?
-3. **Be implementation-agnostic**: Don't mention "page", "table", "rows" - describe what the user *perceives*
-4. **Include business context**: Add Feature descriptions with "As a... I want... So that..."
-5. **Test behavior, not state**: "I can plan my week" not "5 forecasts exist"
-
-### 📊 **Overall Rating**
-
-- **Technical Implementation**: 8/10 ✅
-- **BDD Alignment**: 4/10 ⚠️
-- **Business Value**: 3/10 ❌
-
-**Recommendation**: Your test infrastructure is solid, but the **scenarios need to be rewritten** to focus on user behavior and business outcomes rather than technical implementation details. Consider involving product owners or stakeholders in writing feature files - if they can't understand them, they're not true BDD.
+The difference between 8/10 and 10/10 is subtle but important: **every word should express user intent or business value, with zero technical leakage**.
