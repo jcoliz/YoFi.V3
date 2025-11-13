@@ -4,7 +4,7 @@ Date: 2025-11-11
 
 ## Status
 
-Draft
+Accepted
 
 ## Context
 
@@ -16,112 +16,68 @@ Should we use Azure Static Web Apps [linked backend](https://learn.microsoft.com
 
 As documented in [ADR 0006](./0006-production-infrastructure.md), I'm planning to use Azure Static Web Apps for the frontend and Azure App Service for the backend.
 
-## Recommendation
-
-Prompt: "Consider this ADR. Would it be better to use the backend proxy provided by Azure Static Web apps, or instead to directly call backend from the frontend JS code?"
-
-I'll help you analyze the tradeoffs between using the Azure Static Web Apps backend proxy versus direct backend calls from the frontend. Let me first gather some context about your current setup. Based on my analysis of your codebase and the ADR, here's my assessment:
-
-### Analysis: Backend Proxy vs. Direct API Calls
-
-#### Current Situation
-Your Nuxt frontend currently uses **proxying** (in `nuxt.config.ts`) to route `/api/**` requests to the backend during development. The API client in `apiclient.ts` makes relative calls (e.g., `/api/Weather`).
-
-#### Recommendation: **Direct API Calls** ✅
-
-**You should call the backend directly from the frontend JS code.** Here's why:
-
-#### Cost Savings
-- **Azure Static Web Apps Free Tier**: Supports custom domains with HTTPS
-- **Eliminates Standard tier** requirement (~$9/month savings)
-- Standard tier is **only** needed for the managed backend integration feature
-
-#### Technical Advantages
-1. **CORS is straightforward**: Just configure CORS in your .NET backend (`Program.cs`)
-2. **Better for static generation**: When you run `nuxt generate`, the site is truly static—no server-side proxying needed
-3. **Simpler architecture**: Frontend and backend are independently deployable
-4. **Better observability**: Direct calls make it easier to trace requests
-5. **CDN-friendly**: Static Web Apps CDN works optimally with static content
-
-#### Implementation Changes Needed
-
-````typescript
-export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
-
-  runtimeConfig: {
-    public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5379'
-    }
-  },
-
-  // ...existing code...
-
-  // Remove the proxy configuration
-  // routeRules: {
-  //   '/api/**': { proxy: `http://localhost:5379/api/**` }
-  // }
-})
-````
-
-````typescript
-<script setup lang="ts">
-import { ref, onMounted } from "vue"
-import * as api from "../utils/apiclient"
-
-const config = useRuntimeConfig()
-
-// ...existing code...
-
-// Pass the base URL to the client
-const client = new api.WeatherClient(config.public.apiBaseUrl)
-
-// ...existing code...
-</script>
-````
-
-#### Backend CORS Configuration
-
-````csharp
-// ...existing code...
-
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins(
-            "http://localhost:5173",  // Local dev
-            "https://your-custom-domain.com"  // Production
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
-    });
-});
-
-// ...existing code...
-
-app.UseCors();
-
-// ...existing code...
-````
-
-#### Deployment Configuration
-Set `NUXT_PUBLIC_API_BASE_URL` environment variable in Azure Static Web Apps to point to your App Service backend URL.
-
-#### The Only Downside
-You lose the "single URL" convenience—users see the backend API URL in network requests. However, this is a **minor** concern compared to the cost savings and architectural benefits.
-
-#### Updated ADR Recommendation
-I'd suggest **removing** the "For future consideration" section and making direct API calls the **primary decision** to maximize cost efficiency.
-
 ## Decision
 
-The decision is still open, pending research of GitHub Copilot's recommendation.
+We will call the backend directly from the frontend JS code.
 
 ## Consequences
 
 What becomes easier or more difficult to do because of this change?
+
+### Cost Savings
+
+* **Azure Static Web Apps Free Tier**: Supports custom domains with HTTPS
+* **Eliminates Standard tier** requirement (~$9/month savings)
+* Standard tier was otherwise **only** needed for the managed backend integration feature
+
+### Technical Advantages
+
+* **CORS is straightforward**: Configure CORS in the .NET backend (`Program.cs`)
+* **Better for static generation**: When we run `nuxt generate`, the site is truly static. No server-side proxying is needed.
+* **Simpler architecture**: Frontend and backend are independently deployable
+* **Better observability**: Direct calls make it easier to trace requests
+* **CDN-friendly**: Static Web Apps CDN works optimally with static content
+
+### Downsides
+
+* The front-end container image is coupled to where the backend is hosted. This makes it less portable, and locks it into running exactly in the environment where the backend is running in the expected place.
+* We will need to update the CORS code in the back-end to be environment-specific as well. We wouldn't want the producting backend to accept CORS requests from a development client.
+* We lose the "single URL" convenience—users see the backend API URL in network requests. However, this is a **minor** concern compared to the cost savings and architectural benefits.
+* Rollback complexity: Frontend and backend versions become tightly coupled
+
+### Implementation: FrontEnd Generation
+
+We need to set `NUXT_PUBLIC_API_BASE_URL` environment variable **when generating** the Azure Static Web Apps content to point to the App Service backend URL. The frontend container dockerfile accepts an `ARG` for this.
+
+The front-end is generated for only two environments. (See [ENVIRONMENTS.md](../ENVIRONMENTS.md) for a discussion of environments.)
+
+* **Container**: In this environment, the frontend is built into a container. The only mechanism used to build it is to run `docker compose build` on the [docker-compose-ci.yml](../../docker/docker-compose-ci.yml) project. Here we can control setting `NUXT_PUBLIC_API_BASE_URL`.
+* **Production**: The frontend is generated by an Azure Pipelines step which is not yet written. In that situation, we will set `NUXT_PUBLIC_API_BASE_URL` using a pipeline variable that will pointed to the deployed location of our production backend.
+
+### 🔒 Security & CORS Configuration
+
+The current CORS setup in Program.cs will need further work.
+
+* Implement environment-specific CORS origins via configuration
+* Consider wildcard risks e.g. we don't want production to accept dev requests
+* Investigate CORS preflight handling for complex requests
+
+### 📊 Monitoring & Observability
+
+There are additional considerations to review in this area. However, I don't see these as strong enough to take a different direction. These are implementation details we will need to handle.
+
+* Error handling: What happens when backend is unreachable?
+* CORS failures: How will you we monitor and debug CORS issues in production?
+* Client-side error reporting: Direct API calls mean client-side errors need proper telemetry
+
+### Rollback Plan: How to handle deployment failures
+
+There are questions to consider around the coupling of components.
+However, I don't see a case where it affects this decision. If we
+instead chose to proxy calls, we would still have these problems.
+
+* What if one component deploys successfully, and the other fails?
+* What if we need to roll the entire system back?
 
 ## Related Decisions
 

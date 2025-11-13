@@ -24,20 +24,13 @@ export default defineNuxtConfig({
       linkActiveClass: 'active'
     }
   },
-  routeRules: {
-    // This is used to proxy API requests during **development**
-    '/api/**': { cors: true, proxy: `${process.env.services__backend__http__0}/api/**` }
-  },
   runtimeConfig: {
     public: {
       // For **CI** and **production**, the frontend is statically generated using
       // `nuxt generate`. At that time, the NUXT_PUBLIC_API_BASE_URL environment variable
       // is read from the build environment (e.g., Docker build ARG).
-      // NOTE: Nuxt generation reads NUXT_PUBLIC_* environment variables at build time
-      // ALSO NOTE: Using this `apiBaseUrl` is still a work in progress.
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5379',
-      services__backend__http__0: process.env.services__backend__http__0 || 'not specified',
-      finalApiBaseUrl: process.env.NODE_ENV === 'development'
+      // NOTE: Nuxt generation reads **only** NUXT_PUBLIC_* environment variables at build time
+      apiBaseUrl: process.env.NODE_ENV === 'development'
         ? (process.env.services__backend__http__0) // During development, Aspire will provide the backend URL on this variable
         : (process.env.NUXT_PUBLIC_API_BASE_URL) // For production or container, the backend URL **must** be provided at build time
     }

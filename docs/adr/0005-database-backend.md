@@ -32,7 +32,7 @@ The problem with this approach is I've got two separate data implementations, wh
 
 ### Additional Options to Consider
 
-I asked Claude, "Please review this in-progress ADR. Do you have any other suggestions to consider for my database backend which would meet my requirements?"
+I asked GitHub Copilot, "Please review this in-progress ADR. Do you have any other suggestions to consider for my database backend which would meet my requirements?"
 
 GitHub Copilot: Great ADR! Let me suggest some additional options to consider:
 

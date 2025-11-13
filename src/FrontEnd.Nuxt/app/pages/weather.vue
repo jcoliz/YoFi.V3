@@ -15,12 +15,13 @@ const forecasts = ref<api.IWeatherForecast[]>()
 /**
  * Whether we are loading data from the server presently
  */
- const isLoading = ref(false)
+const isLoading = ref(false)
 
  /**
  * Client for communicating with server
  */
-const client = new api.WeatherClient()
+const { baseUrl } = useApiBaseUrl();
+const client = new api.WeatherClient(baseUrl)
 
 /**
  * Get items from the server
