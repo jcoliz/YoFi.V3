@@ -325,4 +325,52 @@ public class SimpleTests
         // The exact behavior depends on your concurrency strategy
         Assert.DoesNotThrowAsync(async () => await context2.SaveChangesAsync());
     }
+
+    [Test]
+    public async Task Get_SupportsFiltering()
+    {
+        // Given: Multiple weather forecasts
+        IDataProvider provider = _context;
+        _context.WeatherForecasts.AddRange(
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now), TemperatureC = 20, Summary = "Sunny" },
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now.AddDays(1)), TemperatureC = 25, Summary = "Hot" },
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now.AddDays(2)), TemperatureC = 15, Summary = "Cool" }
+        );
+        await _context.SaveChangesAsync();
+
+        // When: Filtering by temperature
+        var query = provider.Get<WeatherForecast>().Where(f => f.TemperatureC > 18);
+        var results = await provider.ToListNoTrackingAsync(query);
+
+        // Then: Should return only forecasts with temperature > 18
+        Assert.That(results, Has.Count.EqualTo(2));
+        Assert.That(results.All(f => f.TemperatureC > 18), Is.True);
+    }
+
+    [Test]
+    public async Task Get_SupportsOrdering()
+    {
+        // Given: Multiple weather forecasts
+        IDataProvider provider = _context;
+        var date1 = DateOnly.FromDateTime(DateTime.Now);
+        var date2 = DateOnly.FromDateTime(DateTime.Now.AddDays(1));
+        var date3 = DateOnly.FromDateTime(DateTime.Now.AddDays(-1));
+        
+        _context.WeatherForecasts.AddRange(
+            new WeatherForecast() { Date = date1, TemperatureC = 20, Summary = "Sunny" },
+            new WeatherForecast() { Date = date2, TemperatureC = 25, Summary = "Hot" },
+            new WeatherForecast() { Date = date3, TemperatureC = 15, Summary = "Cool" }
+        );
+        await _context.SaveChangesAsync();
+
+        // When: Ordering by date
+        var query = provider.Get<WeatherForecast>().OrderBy(f => f.Date);
+        var results = await provider.ToListNoTrackingAsync(query);
+
+        // Then: Should return forecasts in date order
+        Assert.That(results, Has.Count.EqualTo(3));
+        Assert.That(results[0].Date, Is.EqualTo(date3));
+        Assert.That(results[1].Date, Is.EqualTo(date1));
+        Assert.That(results[2].Date, Is.EqualTo(date2));
+    }
 }
