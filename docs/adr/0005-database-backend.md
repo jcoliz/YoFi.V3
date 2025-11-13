@@ -146,6 +146,8 @@ Secondly, have a look at "Turso/libSQL (Modern SQLite)" to learn more about this
 
 ### Ongoing experience with SQLite for this use case
 
+Update: I'm worried about the [limitations on migrations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations). Will this continue to work as more migrations are added in the future??
+
 Update: Using SQLite requires persistent shared storage in the App Service. The only docs
 I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
 
