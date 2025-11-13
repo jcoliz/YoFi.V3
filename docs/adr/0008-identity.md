@@ -92,3 +92,154 @@ Given the technology stack and requirements, implement:
 ## Implementation
 
 Detailed implementation guidance can be found in [IDENTITY-DESIGN.md](../IDENTITY-DESIGN.md).
+
+## Architecture Conflict
+
+Looking at the conflict between [AADR 0006 (Production Infrastructure)](./0006-production-infrastructure.md) and ADR 0008 (identity), there's a fundamental incompatibility:
+
+- **ADR 0006** assumes **static site generation** for the frontend
+- **ADR 0008** requires **server-side rendering** for the authentication system
+
+**ADR 0006 Infrastructure Decision:**
+```
+Frontend: Azure Static Web Apps
+- Nuxt static generation (nuxt generate)
+```
+
+**ADR 0008 Identity Requirement:**
+```typescript
+// This needs a server to run
+export default NuxtAuthHandler({...})
+```
+
+Static sites can't run server-side code, so `@sidebase/nuxt-auth` won't work.
+
+### My current plan
+
+I will build the identity backend out *as if* we were going to use `@sidebase/nuxt-auth`. This allows me to defer this decision.
+
+### Recommended Resolution Options
+
+#### Option 1: Update ADR 0006 (Recommended)
+
+**Change the frontend infrastructure to support SSR:**
+
+````typescript
+// Update ADR 0006
+Frontend: Azure Container Apps or Azure App Service
+- Nuxt SSR mode (not static generation)
+- Can run server-side authentication
+- Still supports custom domain + HTTPS
+````
+
+**Why this is better:**
+- ✅ Keeps the sophisticated identity design from ADR 0008
+- ✅ Financial apps benefit from server-side rendering anyway (SEO, security)
+- ✅ User-specific content is inherently dynamic
+- ✅ Claims-based authorization works as designed
+
+**Updated Infrastructure:**
+
+```yaml
+Frontend: Azure Container Apps (Nuxt SSR)
+- Consumption plan scales to zero when not used
+- Can run @sidebase/nuxt-auth server handlers
+- Custom domain + HTTPS supported
+- Better for dynamic, authenticated content
+
+Backend: Azure App Service (unchanged)
+- API remains the same
+- JWT validation works as designed
+```
+
+#### Option 2: Simplify ADR 0008
+
+**Change to client-side only authentication:**
+
+````typescript
+// Simplified auth without @sidebase/nuxt-auth
+// Direct API calls to ASP.NET Core backend
+// Manual token management in Nuxt
+````
+
+**Consequences:**
+- ❌ Lose sophisticated session management
+- ❌ More custom auth code to maintain
+- ❌ Less secure (tokens stored client-side only)
+- ✅ Keep static site generation
+- ✅ Lower hosting costs
+
+#### Option 3: Hybrid Approach
+
+**Use different rendering for different page types:**
+
+````typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  nitro: {
+    routeRules: {
+      // Static marketing pages
+      '/': { prerender: true },
+      '/about': { prerender: true },
+      '/pricing': { prerender: true },
+      
+      // SSR for authenticated areas
+      '/login': { ssr: true },
+      '/dashboard/**': { ssr: true },
+      '/accounts/**': { ssr: true },
+    }
+  }
+})
+````
+
+**Infrastructure:**
+- Static marketing pages → Azure Static Web Apps
+- Authenticated app → Azure Container Apps
+- Backend API → Azure App Service
+
+### My Recommendation: Option 1
+
+**Update ADR 0006 to use Azure Container Apps for the frontend.**
+
+#### Why This Makes Sense
+
+1. **Cost is comparable** - ACA consumption plan can scale to zero
+2. **Better fit for the app** - Financial apps are inherently user-specific and dynamic
+3. **Security** - Server-side auth is more secure for financial data
+4. **Future-proof** - Easier to add features like real-time updates, background jobs, etc.
+
+### Updating ADR 0006...
+
+````markdown
+#### Decision
+
+**Frontend**: Azure Container Apps (Consumption Plan)
+- Nuxt SSR mode (`ssr: true`)
+- Server-side authentication handlers
+- Scales to zero when not used
+- Custom domain + HTTPS supported
+- Supports @sidebase/nuxt-auth
+
+**Backend**: Azure App Service (Basic B1 tier) - unchanged
+- Single container deployment
+- Persistent storage for SQLite database
+- JWT token validation
+
+#### Why the Change
+
+Initial decision for static generation was made before identity 
+requirements were fully understood. Financial applications with 
+user authentication benefit more from server-side rendering for:
+- Security (server-side session management)
+- Performance (user-specific data)
+- Functionality (real-time features)
+````
+
+#### Action Items
+
+1. **Update ADR 0006** to reflect the infrastructure change
+2. **Mark the conflict as resolved** in ADR 0008
+3. **Update deployment configuration** to use SSR instead of static generation
+4. **Adjust cost projections** (ACA consumption vs Static Web Apps)
+
+This resolution maintains the security and functionality benefits of your identity design while using appropriate Azure services for a dynamic, authenticated application.
