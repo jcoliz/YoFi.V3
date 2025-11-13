@@ -1,5 +1,6 @@
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
+using YoFi.V3.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddSwagger();
 builder.Services.AddApplicationFeatures();
+builder.Services.AddDatabase(builder.Configuration);
 
 // See ADR 0007 for a disussion of CORS policies.
 builder.Services.AddCors(options =>
@@ -31,6 +33,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Prepare the database
+app.PrepareDatabaseAsync();
+    
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 

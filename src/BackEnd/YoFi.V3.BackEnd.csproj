@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
+    <ProjectReference Include="..\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
   </ItemGroup>
 
   <ItemGroup>

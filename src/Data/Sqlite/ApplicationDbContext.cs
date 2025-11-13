@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
