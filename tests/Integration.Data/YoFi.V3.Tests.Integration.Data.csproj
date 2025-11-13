@@ -12,4 +12,8 @@
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
+  </ItemGroup>
+
 </Project>
