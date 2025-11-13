@@ -96,7 +96,35 @@ builder.Services.AddAuthorization(options =>
 });
 ````
 
-### 2. Authentication Controller
+### 2. Authorization Strategy
+
+For your specific requirement of users having access to specific accounts:
+
+````csharp
+// filepath: c:\Source\jcoliz\YoFi.V3\src\BackEnd\Program.cs
+// Custom authorization policy
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AccountAccess", policy =>
+        policy.RequireAssertion(context =>
+        {
+            var accountId = context.Resource as string; // Account ID from route
+            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            // Check database for user-account relationship
+            return CheckUserAccountAccess(userId, accountId);
+        }));
+});
+````
+
+Usage in controllers:
+````csharp
+// In your controllers
+[Authorize(Policy = "AccountAccess")]
+[HttpGet("accounts/{accountId}/transactions")]
+public async Task<IActionResult> GetTransactions(string accountId) { ... }
+````
+
+### 3. Authentication Controller
 
 Create authentication endpoints that `@sidebase/nuxt-auth` can call:
 
@@ -132,7 +160,7 @@ public class AuthController : ControllerBase
         if (result.Succeeded)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
-            var token = await GenerateJwtToken(user);
+            var token = GenerateJwtToken(user);
             
             return Ok(new
             {
@@ -176,7 +204,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        var token = await GenerateJwtToken(user);
+        var token = GenerateJwtToken(user);
         return Ok(new { token });
     }
 
@@ -187,10 +215,30 @@ public class AuthController : ControllerBase
         await _signInManager.SignOutAsync();
         return Ok();
     }
+
+    private string GenerateJwtToken(ApplicationUser user)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email)
+            }),
+            Expires = DateTime.UtcNow.AddHours(24),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key), 
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
 }
 ````
 
-### 3. JWT Token Generation with Claims
+### 4. JWT Token Generation with Claims
 
 Enhanced JWT token generation to include account access claims:
 
@@ -253,7 +301,7 @@ private async Task<List<UserAccountAccess>> GetUserAccountAccess(string userId)
 }
 ````
 
-### 4. Data Models
+### 5. Data Models
 
 ````csharp
 // filepath: c:\Source\jcoliz\YoFi.V3\src\BackEnd\Entities\Models\Identity.cs
@@ -312,6 +360,92 @@ export default defineNuxtConfig({
 ### 2. Authentication Handler
 
 Configure Auth.js to work with ASP.NET Core backend and expose JWT claims:
+
+````typescript
+// filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\server\api\auth\[...].ts
+import CredentialsProvider from '@auth/core/providers/credentials'
+import { NuxtAuthHandler } from '#auth'
+
+export default NuxtAuthHandler({
+  secret: useRuntimeConfig().authSecret,
+  providers: [
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        try {
+          const response = await $fetch(`${process.env.NUXT_PUBLIC_API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password
+            })
+          })
+
+          if (response.token) {
+            return {
+              id: response.user.id,
+              email: response.user.email,
+              name: response.user.name,
+              accessToken: response.token
+            }
+          }
+          return null
+        } catch (error) {
+          console.error('Auth error:', error)
+          return null
+        }
+      }
+    })
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.accessToken = user.accessToken
+      }
+      return token
+    },
+    async session({ session, token }) {
+      session.accessToken = token.accessToken
+      return session
+    }
+  }
+})
+````
+
+### 3. Authenticated API Calls
+
+Composable to automatically include JWT token in API requests:
+
+````typescript
+// filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\composables\useAuthenticatedFetch.ts
+export const useAuthenticatedFetch = () => {
+  const { data: session } = useAuth()
+  
+  return $fetch.create({
+    onRequest({ request, options }) {
+      if (session.value?.accessToken) {
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${session.value.accessToken}`
+        }
+      }
+    }
+  })
+}
+
+// Usage in components
+// const authFetch = useAuthenticatedFetch()
+// const transactions = await authFetch('/api/transactions')
+````
+
+### 4. Enhanced Authentication Handler with JWT Claims
+
+For the claims-based authorization features, here's the enhanced authentication handler:
 
 ````typescript
 // filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\server\api\auth\[...].ts
@@ -393,33 +527,7 @@ export default NuxtAuthHandler({
 })
 ````
 
-### 3. Authenticated API Calls
-
-Composable to automatically include JWT token in API requests:
-
-````typescript
-// filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\composables\useAuthenticatedFetch.ts
-export const useAuthenticatedFetch = () => {
-  const { data: session } = useAuth()
-  
-  return $fetch.create({
-    onRequest({ request, options }) {
-      if (session.value?.accessToken) {
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${session.value.accessToken}`
-        }
-      }
-    }
-  })
-}
-
-// Usage in components
-// const authFetch = useAuthenticatedFetch()
-// const transactions = await authFetch('/api/transactions')
-````
-
-### 4. Accessing Claims in Components
+### 5. Accessing Claims in Components
 
 Now you can easily access the claims throughout your Nuxt app:
 
@@ -467,59 +575,6 @@ export const useAccountAccess = () => {
     userPreferences
   }
 }
-````
-
-### 5. Usage in Vue Components
-
-````vue
-<!-- filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\pages\accounts\[id].vue -->
-<template>
-  <div>
-    <h1>Account Dashboard</h1>
-    
-    <!-- Show different content based on role -->
-    <div v-if="canEditAccount(accountId)">
-      <button @click="editAccount">Edit Account</button>
-      <button @click="deleteTransaction">Delete Transaction</button>
-    </div>
-    
-    <div v-else-if="canViewAccount(accountId)">
-      <p>You have read-only access to this account</p>
-    </div>
-    
-    <div v-else>
-      <p>You don't have access to this account</p>
-    </div>
-
-    <!-- List only accessible accounts -->
-    <select v-model="selectedAccount">
-      <option v-for="accountId in accessibleAccounts" :key="accountId" :value="accountId">
-        Account {{ accountId }}
-      </option>
-    </select>
-  </div>
-</template>
-
-<script setup>
-const route = useRoute()
-const accountId = route.params.id as string
-
-const { 
-  canEditAccount, 
-  canViewAccount, 
-  accessibleAccounts 
-} = useAccountAccess()
-
-const selectedAccount = ref('')
-
-// Redirect if no access
-if (!canViewAccount(accountId)) {
-  throw createError({
-    statusCode: 403,
-    statusMessage: 'Access denied to this account'
-  })
-}
-</script>
 ````
 
 ### 6. Middleware for Route Protection
@@ -729,6 +784,7 @@ export const usePermissionUpdates = () => {
 // Custom endpoints - fully configurable
 const API_BASE = process.env.NUXT_PUBLIC_API_BASE_URL // e.g., "https://api.yourdomain.com"
 
+// Your custom endpoints
 const authEndpoints = {
   login: `${API_BASE}/api/auth/login`,
   user: `${API_BASE}/api/auth/user`,
@@ -752,19 +808,14 @@ export default NuxtAuthHandler({
 })
 ````
 
-#### Environment-Specific Configuration
+#### Key Benefits
 
-````typescript
-// filepath: c:\Source\jcoliz\YoFi.V3\src\FrontEnd.Nuxt\.env.example
-# Development
-NUXT_PUBLIC_API_BASE_URL=http://localhost:5000
+✅ **Environment-specific**: Different URLs for dev/staging/prod  
+✅ **Runtime configurable**: Can change without rebuilding  
+✅ **Custom endpoints**: Use any URL structure you want  
+✅ **Multiple backends**: Can authenticate against different services  
 
-# Production
-# NUXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com
-
-# Auth Secret
-NUXT_AUTH_SECRET=your-super-secret-auth-secret-here
-````
+So you have complete control over where `@sidebase/nuxt-auth` makes its authentication calls - nothing is hard-coded!
 
 ### 4. Error Handling
 
