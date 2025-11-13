@@ -17,7 +17,7 @@ const forecasts = ref<api.IWeatherForecast[]>()
  */
 const isLoading = ref(false)
 
- /**
+/**
  * Client for communicating with server
  */
 const { baseUrl } = useApiBaseUrl();

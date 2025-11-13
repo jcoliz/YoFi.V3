@@ -17,10 +17,15 @@
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <ApiClientConfigFile>nswag.json</ApiClientConfigFile>
     <ApiClientOutputFile>../FrontEnd.Nuxt/app/utils/apiclient.ts</ApiClientOutputFile>
+    <VersionOutputFile>../FrontEnd.Nuxt/app/assets/version.txt</VersionOutputFile>
   </PropertyGroup>
   
   <Target Name="NSwag" AfterTargets="PostBuildEvent">
     <Exec WorkingDirectory="$(ProjectDir)" Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:Configuration=$(Configuration),MSBuildOutputPath=$(OutputPath),MSBuildProjectFile=$(MSBuildProjectFile),OutputFile=$(ApiClientOutputFile)"/>
+  </Target>
+
+  <Target Name="Version" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh --command &quot; &amp;'$(ProjectDir)\..\..\scripts\Get-Version.ps1' &gt; '$(VersionOutputFile)' &quot;" />
   </Target>
 
 </Project>

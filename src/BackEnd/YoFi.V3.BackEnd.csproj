@@ -10,4 +10,12 @@
     <PackageReference Include="NSwag.AspNetCore" Version="14.6.2" />
   </ItemGroup>
 
+  <Target Name="Version" BeforeTargets="PreBuildEvent">
+    <Exec Command="pwsh --command &quot; &amp;'$(ProjectDir)\..\..\scripts\Get-Version.ps1' &gt; '$(BaseIntermediateOutputPath)\version.txt' &quot;" />
+  </Target>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(BaseIntermediateOutputPath)\version.txt" />
+  </ItemGroup>
+
 </Project>

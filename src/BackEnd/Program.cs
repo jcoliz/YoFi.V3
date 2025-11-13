@@ -7,6 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
+// Add version information to the configuration
+builder.AddVersion(); // TODO: pass logger
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -48,6 +51,7 @@ app.UseExceptionHandler();
 
 app.UseCors();
 app.MapDefaultEndpoints();
+
 app.MapControllers();
 
 app.Run();
