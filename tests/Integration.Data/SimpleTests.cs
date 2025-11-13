@@ -292,4 +292,37 @@ public class SimpleTests
         // Then: Should complete without error and save no changes
         Assert.That(changeCount, Is.EqualTo(0));
     }
+
+    [Test]
+    [Explicit("SQLite doesn't support true concurrency testing with in-memory databases")]
+    public async Task ConcurrentUpdates_HandledCorrectly()
+    {
+        // Given: Two contexts accessing the same entity
+        using var context1 = new ApplicationDbContext(_options);
+        using var context2 = new ApplicationDbContext(_options);
+        
+        // Add initial entity
+        var forecast = new WeatherForecast()
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            TemperatureC = 20,
+            Summary = "Sunny"
+        };
+        context1.WeatherForecasts.Add(forecast);
+        await context1.SaveChangesAsync();
+        var id = forecast.Id;
+
+        // When: Both contexts modify the same entity
+        var entity1 = await context1.WeatherForecasts.FindAsync(id);
+        var entity2 = await context2.WeatherForecasts.FindAsync(id);
+        
+        entity1!.Summary = "Cloudy";
+        entity2!.Summary = "Rainy";
+        
+        await context1.SaveChangesAsync(); // First save succeeds
+        
+        // Then: Second save should either succeed (last-write-wins) or throw concurrency exception
+        // The exact behavior depends on your concurrency strategy
+        Assert.DoesNotThrowAsync(async () => await context2.SaveChangesAsync());
+    }
 }
