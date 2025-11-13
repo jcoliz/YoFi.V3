@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,14 +16,14 @@ public partial class WeatherController(WeatherFeature weatherFeature, ILogger<We
     [HttpGet]
     [ProducesResponseType(typeof(WeatherForecast[]), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetWeatherForecasts()
+    public async Task<IActionResult> GetWeatherForecasts()
     {
         try
         {
             LogFetchingWeatherForecasts();
 
             const int numberOfDays = 5;
-            var weather = weatherFeature.GetWeatherForecasts(numberOfDays);
+            var weather = await weatherFeature.GetWeatherForecasts(numberOfDays);
             LogSuccessfullyFetchedWeatherForecasts(numberOfDays);
             return Ok(weather);
         }

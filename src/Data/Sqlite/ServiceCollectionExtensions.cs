@@ -11,7 +11,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Data Source=:memory:";
+            ?? "Data Source=app.db";
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(connectionString));
