@@ -10,14 +10,17 @@ See: https://erwinstaal.nl/posts/db-per-tenant-catalog-database-ef-core-migratio
 
 After making changes to the `ApplicationDbContext`, we need to add a migration
 to describe how those changes will show up in the database. Migrations do need
-to be added separately for Sql Server and Postgres.
+to be added separately for each database backend.
 
 From the root of the project, set `$env:MIGRATION` a name for this migration, and run:
 
 ```Powershell
 dotnet build
-dotnet ef migrations add $env:MIGRATION -o .\Migrations\ -n YoFi.V3.Data.Sqlite.Migrations --project .\src\Data\Sqlite\ --startup-project .\src\Data\Sqlite.MigrationsHost\ --context ApplicationDbContext
+dotnet ef migrations add $env:MIGRATION -o .\Migrations\ -n YoFi.V3.Data.Sqlite.Migrations --project .\src\Data\Sqlite\ --startup-project .\src\Data\Sqlite.MigrationHost\ --context ApplicationDbContext
 ```
+
+Note that I have put this into the [Add-Migration.ps1](../../../scripts/Add-Migration.ps1) script.
+Next time I run a migration, I can test that and then update these directions.
 
 If you make a mistake and need to re-do it, be sure to remove the `ApplicationDbContextModelSnapshot.cs` file.
 
@@ -36,6 +39,8 @@ create one:
 ```Powershell
 PS ListsWebApp.V3> dotnet ef migrations script --project .\src\Data\Sqlite\ --startup-project .\src\Data\Sqlite.MigrationsHost\ --context ApplicationDbContext -i -o out\sqlite-migration.sql
 ```
+
+TODO: Create a script for this also!
 
 ## Never EnsureCreated
 
