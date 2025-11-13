@@ -47,6 +47,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration.Data", "Integra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Tests.Integration.Data", "tests\Integration.Data\YoFi.V3.Tests.Integration.Data.csproj", "{D6BB44BA-0BF1-4EAA-8124-57589126C666}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sqlite.MigrationHost", "Sqlite.MigrationHost", "{C1C18CDD-68BF-C334-59A2-2BF067EC0B6F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Data.Sqlite.MigrationHost", "src\Data\Sqlite.MigrationHost\YoFi.V3.Data.Sqlite.MigrationHost.csproj", "{6057C121-A724-4286-B87F-964AE52041DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -189,6 +193,18 @@ Global
 		{D6BB44BA-0BF1-4EAA-8124-57589126C666}.Release|x64.Build.0 = Release|Any CPU
 		{D6BB44BA-0BF1-4EAA-8124-57589126C666}.Release|x86.ActiveCfg = Release|Any CPU
 		{D6BB44BA-0BF1-4EAA-8124-57589126C666}.Release|x86.Build.0 = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|x64.Build.0 = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Debug|x86.Build.0 = Debug|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|x64.ActiveCfg = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|x64.Build.0 = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|x86.ActiveCfg = Release|Any CPU
+		{6057C121-A724-4286-B87F-964AE52041DE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -211,6 +227,8 @@ Global
 		{200EF0D8-D35C-474A-BC53-680D3AECB339} = {FC9ADC4C-F5E4-E1C4-4B5E-C64C8D83E16A}
 		{6E5695B2-FA9C-AB39-B129-37A1347BF387} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D6BB44BA-0BF1-4EAA-8124-57589126C666} = {6E5695B2-FA9C-AB39-B129-37A1347BF387}
+		{C1C18CDD-68BF-C334-59A2-2BF067EC0B6F} = {58A5B24B-8FB4-5A6E-5EF4-1E3E19F29B1B}
+		{6057C121-A724-4286-B87F-964AE52041DE} = {C1C18CDD-68BF-C334-59A2-2BF067EC0B6F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5924CE06-5024-49B7-BE37-B4D8BB051E13}
