@@ -52,4 +52,24 @@ public class SimpleTests
         Assert.That(saved.Summary, Is.EqualTo("Sunny"));
         Assert.That(saved.Id, Is.GreaterThan(0)); // ID should be assigned
     }
+
+    [Test]
+    public async Task Get_ReturnsQueryableSet()
+    {
+        // Given
+        IDataProvider provider = _context;
+        _context.WeatherForecasts.AddRange(
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now), TemperatureC = 20, Summary = "Sunny" },
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now.AddDays(1)), TemperatureC = 25, Summary = "Hot" }
+        );
+        await _context.SaveChangesAsync();
+
+        // When
+        var query = provider.Get<WeatherForecast>();
+        var results = await provider.ToListNoTrackingAsync(query);
+
+        // Then
+        Assert.That(results, Has.Count.EqualTo(2));
+    }
+
 }
