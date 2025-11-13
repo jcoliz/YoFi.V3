@@ -79,11 +79,11 @@ See [Architecture Decision Records](adr/README.md):
 ## Testing Strategy
 
 - **Unit Tests** (`tests/Unit/`) - Application layer business logic
-- **Functional (E2E) Tests** (future) - Full UI workflows
+- **Functional (E2E) Tests** (`tests/Functional/`) - Full UI workflows using Playwright
+- **Data Layer Integration Tests** (`tests/Integration.Data/`) - Database service integration
 
 ### Under consideration
 
-Also considering Claude's recommendation to include these:
+Also considering GitHub Copilot recommendation to include these:
 
-- **Integration Tests** (future) - Database/external service integration
 - **API Tests** (future) - Contract testing for REST API
