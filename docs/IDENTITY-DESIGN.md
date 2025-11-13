@@ -416,6 +416,168 @@ export default NuxtAuthHandler({
   }
 })
 ````
+#### authorize schema
+
+Prompt: "Question about this design. In NuxtAuthHandler, in CredentialsProvider, in the authorize method, is there a certain schema I'm expected to return there?"
+
+Yes, there is a specific schema expected from the `authorize` method in `@sidebase/nuxt-auth`'s `CredentialsProvider`. The `authorize` method should return either:
+
+1. **A user object** (for successful authentication)
+2. **`null`** (for failed authentication)
+
+#### Expected User Object Schema
+
+The user object returned from `authorize` should follow this structure:
+
+````typescript
+// Required fields
+{
+  id: string,        // Unique user identifier
+  email?: string,    // User's email (optional but recommended)
+  name?: string,     // User's display name (optional but recommended)
+}
+
+// You can add any additional custom properties
+{
+  id: string,
+  email: string,
+  name: string,
+  accessToken?: string,        // Your JWT token
+  accountAccess?: string[],    // Custom claims
+  accountRoles?: Record<string, string>,  // Custom claims
+  userPreferences?: any,       // Custom data
+  // ... any other properties you need
+}
+````
+
+#### Key Points
+
+1. **`id` is required** - This becomes the primary identifier in the session
+2. **Standard fields** - `email`, `name`, `image` are recognized by Auth.js
+3. **Custom fields** - You can add any additional properties for your app's needs
+4. **Return `null`** - For authentication failures
+
+#### Example from Your Design
+
+Looking at your design document, you have two examples:
+
+**Basic version:**
+````typescript
+return {
+  id: response.user.id,
+  email: response.user.email,
+  name: response.user.name,
+  accessToken: response.token
+}
+````
+
+**Enhanced version with claims:**
+````typescript
+return {
+  id: decodedToken.sub || decodedToken.nameid,
+  email: decodedToken.email,
+  name: decodedToken.name,
+  accessToken: response.token,
+  // Include custom claims in the session
+  accountAccess: decodedToken.account_access || [],
+  accountRoles: Object.keys(decodedToken)
+    .filter(key => key.startsWith('account_role_'))
+    .reduce((acc, key) => {
+      const accountId = key.replace('account_role_', '')
+      acc[accountId] = decodedToken[key]
+      return acc
+    }, {} as Record<string, string>),
+  userPreferences: decodedToken.user_preferences ? 
+    JSON.parse(decodedToken.user_preferences) : {}
+}
+````
+
+Both examples are correct! The enhanced version shows how you can include additional claims/data that will be available throughout your Nuxt app via the session.
+
+#### session schema
+
+Prompt: How about the `session` method. What is the expected structure of the result there?
+
+Looking at the `session` callback in your NuxtAuthHandler, the `session` callback is expected to return a session object with a specific structure. Let me explain the expected schema:
+
+#### Session Object Structure
+
+The `session` callback should return an object with this structure:
+
+````typescript
+{
+  user: {
+    id?: string,
+    name?: string,
+    email?: string,
+    image?: string,
+    // ... any custom properties you add
+  },
+  expires: string, // ISO date string
+  // ... any custom session properties
+}
+````
+
+#### Key Points
+
+1. **`user` object is required** - This contains the user information
+2. **`expires` is handled automatically** - Auth.js manages this
+3. **Custom properties** - You can add any additional properties to both the session and user objects
+
+#### Example from Your Design
+
+In your design document, you have this session callback:
+
+````typescript
+async session({ session, token }) {
+  // Make claims available in the session
+  session.user.id = token.id
+  session.user.accountAccess = token.accountAccess
+  session.user.accountRoles = token.accountRoles
+  session.user.userPreferences = token.userPreferences
+  session.accessToken = token.accessToken
+  return session
+}
+````
+
+This is correct! You're:
+
+1. **Modifying the existing session object** - Adding custom properties to `session.user`
+2. **Adding session-level properties** - Like `session.accessToken`
+3. **Returning the modified session** - Auth.js will use this as the final session
+
+## Complete Structure Your App Uses
+
+Based on your design, your session object will look like this:
+
+````typescript
+{
+  user: {
+    id: string,
+    name: string,
+    email: string,
+    // Custom claims from JWT
+    accountAccess: string[],
+    accountRoles: Record<string, string>,
+    userPreferences: any
+  },
+  expires: string,
+  // Custom session property
+  accessToken: string
+}
+````
+
+#### Best Practices
+
+1. **Always return the session object** - Even if you don't modify it
+2. **Don't store sensitive data** - Session data can be accessed client-side
+3. **Keep it lightweight** - Large session objects can impact performance
+4. **Use token data** - Transfer data from the JWT token to the session for easy access
+
+The session callback is where you transform the internal token data into the format your app will use throughout the user's session.
+
+
+---
 
 ### 3. Authenticated API Calls
 
@@ -691,6 +853,187 @@ const canEdit = session.value?.user?.accountRoles[accountId] === 'editor'
 ✅ **Flexibility**: Easy to add new claim types without frontend changes  
 ✅ **Real-time**: Can refresh claims when permissions change  
 ✅ **Offline-friendly**: Works even when temporarily disconnected  
+
+#### CheckUserAccountAccess
+
+Prompt: The method `CheckUserAccountAccess` is referenced here. Is that provided by ASP.NET or do I need to implement that?
+
+The `CheckUserAccountAccess` method is **not provided by ASP.NET Core** - you need to implement it yourself. This is a custom method that contains your application's specific business logic for determining whether a user has access to a particular account.
+
+Here's how you would implement it:
+
+#### Option 1: Simple Implementation
+
+````csharp
+public class AccountAccessService
+{
+    private readonly ApplicationDbContext _context;
+
+    public AccountAccessService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<bool> CheckUserAccountAccessAsync(string userId, string accountId)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(accountId))
+            return false;
+
+        // Check if user has access to this account
+        return await _context.UserAccountAccess
+            .AnyAsync(uaa => uaa.UserId == userId && uaa.AccountId == accountId);
+    }
+}
+````
+
+#### Option 2: Inline Implementation in Program.cs
+
+For the authorization policy, you could implement it directly:
+
+````csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AccountAccess", policy =>
+        policy.RequireAssertion(async context =>
+        {
+            var accountId = context.Resource as string;
+            var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(accountId))
+                return false;
+
+            // Get the DbContext from DI
+            var dbContext = context.HttpContext.RequestServices
+                .GetRequiredService<ApplicationDbContext>();
+            
+            // Check database for user-account relationship
+            return await dbContext.UserAccountAccess
+                .AnyAsync(uaa => uaa.UserId == userId && uaa.AccountId == accountId);
+        }));
+});
+````
+
+#### Option 3: Claims-Based Approach (Recommended)
+
+Since you're already including account access in JWT claims, you can use those instead:
+
+````csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AccountAccess", policy =>
+        policy.RequireAssertion(context =>
+        {
+            var accountId = context.Resource as string;
+            
+            // Check if user has the account_access claim for this account
+            var accountAccessClaims = context.User
+                .FindAll("account_access")
+                .Select(c => c.Value);
+            
+            return accountAccessClaims.Contains(accountId);
+        }));
+});
+````
+
+#### Usage in Controllers
+
+Here's how you'd use it in your controllers:
+
+````csharp
+[ApiController]
+[Route("api/accounts/{accountId}/[controller]")]
+public class TransactionController : ControllerBase
+{
+    [HttpGet]
+    [Authorize(Policy = "AccountAccess")]
+    public async Task<IActionResult> GetTransactions(string accountId)
+    {
+        // The accountId will be passed as the resource to the policy
+        // You can also manually check if needed:
+        
+        // Option 1: Using claims (fast)
+        var accountAccessClaims = User.FindAll("account_access").Select(c => c.Value);
+        if (!accountAccessClaims.Contains(accountId))
+        {
+            return Forbid();
+        }
+
+        // Your transaction logic here...
+        return Ok();
+    }
+}
+````
+
+#### Alternative: Custom Authorization Handler
+
+For more complex scenarios, you might want a custom authorization handler:
+
+````csharp
+public class AccountAccessRequirement : IAuthorizationRequirement
+{
+    public string AccountId { get; set; }
+    
+    public AccountAccessRequirement(string accountId = null)
+    {
+        AccountId = accountId;
+    }
+}
+
+public class AccountAccessHandler : AuthorizationHandler<AccountAccessRequirement>
+{
+    private readonly ApplicationDbContext _context;
+
+    public AccountAccessHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        AccountAccessRequirement requirement)
+    {
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var accountId = requirement.AccountId ?? context.Resource as string;
+
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(accountId))
+        {
+            context.Fail();
+            return;
+        }
+
+        // Check claims first (faster)
+        var accountAccessClaims = context.User.FindAll("account_access").Select(c => c.Value);
+        if (accountAccessClaims.Contains(accountId))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        // Fallback to database check if claims don't contain it
+        var hasAccess = await _context.UserAccountAccess
+            .AnyAsync(uaa => uaa.UserId == userId && uaa.AccountId == accountId);
+
+        if (hasAccess)
+            context.Succeed(requirement);
+        else
+            context.Fail();
+    }
+}
+
+// Register in Program.cs
+builder.Services.AddScoped<IAuthorizationHandler, AccountAccessHandler>();
+````
+
+#### Recommendation
+
+I'd recommend **Option 3 (Claims-Based)** since you're already including account access in your JWT tokens. This approach is:
+
+- **Fast**: No database queries needed
+- **Secure**: Claims are cryptographically signed
+- **Scalable**: Works even if database is temporarily unavailable
+- **Simple**: Minimal code required
+
+The claims-based approach aligns perfectly with your JWT strategy outlined in the design document!
 
 ## Advanced Patterns
 
