@@ -12,7 +12,10 @@ After making changes to the `ApplicationDbContext`, we need to add a migration
 to describe how those changes will show up in the database. Migrations do need
 to be added separately for Sql Server and Postgres.
 
+From the root of the project, set `$env:MIGRATION` a name for this migration, and run:
+
 ```Powershell
+dotnet build
 dotnet ef migrations add $env:MIGRATION -o .\Migrations\ -n YoFi.V3.Data.Sqlite.Migrations --project .\src\Data\Sqlite\ --startup-project .\src\Data\Sqlite.MigrationsHost\ --context ApplicationDbContext
 ```
 
