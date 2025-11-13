@@ -1,18 +1,22 @@
 namespace YoFi.V3.Tests.Unit.Tests;
 
 using NUnit.Framework;
+using Moq;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Entities.Models;
+using YoFi.V3.Entities.Providers;
 
 [TestFixture]
 public class WeatherTests
 {
     private WeatherFeature _weatherFeature;
+    private Mock<IDataProvider> _mockDataProvider;
 
     [SetUp]
     public void Setup()
     {
-        _weatherFeature = new WeatherFeature();
+        _mockDataProvider = new Mock<IDataProvider>();
+        _weatherFeature = new WeatherFeature(_mockDataProvider.Object);
     }
 
     [Test]
