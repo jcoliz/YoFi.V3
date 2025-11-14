@@ -162,11 +162,25 @@ public class AuthController : ControllerBase
             return NotFound();
         }
 
-        // Get structured entitlements from JWT token (ADR 0009)
-        var entitlementsClaims = User.FindAll("entitlements");
-        var entitlements = entitlementsClaims
-            .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
-            .ToList();
+        // Parse compact entitlements format from JWT token
+        var entitlementsString = User.FindFirst("entitlements")?.Value ?? "";
+        var entitlements = new List<AccountEntitlement>();
+        
+        if (!string.IsNullOrEmpty(entitlementsString))
+        {
+            entitlements = entitlementsString
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(entry => 
+                {
+                    var parts = entry.Split(':');
+                    return new AccountEntitlement
+                    {
+                        Subject = parts[0],
+                        Role = parts.Length > 1 ? parts[1] : "viewer"
+                    };
+                })
+                .ToList();
+        }
 
         // Convert to legacy format for frontend compatibility
         var accountAccess = entitlements.Select(e => e.Subject).ToList();
@@ -179,7 +193,7 @@ public class AuthController : ControllerBase
             name = user.UserName,
             accountAccess = accountAccess,
             accountRoles = accountRoles,
-            entitlements = entitlements, // New structured format
+            entitlements = entitlements, // Structured format for frontend
             userPreferences = User.FindFirst("user_preferences")?.Value
         });
     }
@@ -240,16 +254,11 @@ public class AuthController : ControllerBase
             new Claim("name", user.UserName ?? user.Email)
         };
         
-        // Add structured entitlements (ADR 0009)
-        var entitlements = userAccounts.Select(account => new AccountEntitlement
+        // Add compact entitlements format: "accountId:role,accountId:role"
+        if (userAccounts.Any())
         {
-            Subject = account.AccountId,
-            Role = account.Role
-        }).ToList();
-        
-        foreach (var entitlement in entitlements)
-        {
-            claims.Add(new Claim("entitlements", JsonSerializer.Serialize(entitlement)));
+            var entitlementsString = string.Join(",", userAccounts.Select(a => $"{a.AccountId}:{a.Role}"));
+            claims.Add(new Claim("entitlements", entitlementsString));
         }
         
         // Add any other custom claims
@@ -591,11 +600,25 @@ public async Task<IActionResult> GetProfile()
         return NotFound();
     }
 
-    // Get structured entitlements from JWT token (ADR 0009)
-    var entitlementsClaims = User.FindAll("entitlements");
-    var entitlements = entitlementsClaims
-        .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
-        .ToList();
+    // Parse compact entitlements format from JWT token
+    var entitlementsString = User.FindFirst("entitlements")?.Value ?? "";
+    var entitlements = new List<AccountEntitlement>();
+    
+    if (!string.IsNullOrEmpty(entitlementsString))
+    {
+        entitlements = entitlementsString
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(entry => 
+            {
+                var parts = entry.Split(':');
+                return new AccountEntitlement
+                {
+                    Subject = parts[0],
+                    Role = parts.Length > 1 ? parts[1] : "viewer"
+                };
+            })
+            .ToList();
+    }
 
     // Convert to legacy format for frontend compatibility
     var accountAccess = entitlements.Select(e => e.Subject).ToList();
@@ -608,7 +631,7 @@ public async Task<IActionResult> GetProfile()
         name = user.UserName,
         accountAccess = accountAccess,
         accountRoles = accountRoles,
-        entitlements = entitlements, // New structured format
+        entitlements = entitlements, // Structured format for frontend
         userPreferences = User.FindFirst("user_preferences")?.Value
     });
 }
@@ -816,23 +839,23 @@ public class AccountAccessHandler : AuthorizationHandler<AccountAccessRequiremen
             return Task.CompletedTask;
         }
 
-        // Parse entitlements from JWT
-        var entitlementsClaims = context.User.FindAll("entitlements");
-        var entitlements = entitlementsClaims
-            .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
-            .ToList();
+        // Parse compact entitlements from JWT
+        var entitlementsString = context.User.FindFirst("entitlements")?.Value ?? "";
+        var userEntitlement = entitlementsString
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(entry => entry.StartsWith($"{accountId}:"));
 
-        // Check if user has required role for this account
-        var userEntitlement = entitlements.FirstOrDefault(e => e.Subject == accountId);
-        if (userEntitlement != null && requirement.AllowedRoles.Contains(userEntitlement.Role))
+        if (userEntitlement != null)
         {
-            context.Succeed(requirement);
-        }
-        else
-        {
-            context.Fail();
+            var role = userEntitlement.Split(':').LastOrDefault() ?? "viewer";
+            if (requirement.AllowedRoles.Contains(role))
+            {
+                context.Succeed(requirement);
+                return Task.CompletedTask;
+            }
         }
 
+        context.Fail();
         return Task.CompletedTask;
     }
 }

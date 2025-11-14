@@ -127,7 +127,7 @@ UserPreferences (UserId, DefaultAccountId, Theme, ...)
 {
   "sub": "user123",
   "email": "john@example.com",
-  "entitlements": [ { "subject": "<account1_guid>", "role": "owner" }, { "subject": "<account2_guid>", "role": "editor" } ],
+  "entitlements": "account1_guid:owner,account2_guid:editor,account3_guid:viewer"
 }
 ```
 
