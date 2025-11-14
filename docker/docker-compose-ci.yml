@@ -1,6 +1,7 @@
 name: yofi-ci
 services:
   frontend:
+    image: yofi-v3-frontend
     build:
       context: ../src/FrontEnd.Nuxt
       dockerfile: ./docker/Dockerfile
@@ -16,6 +17,7 @@ services:
       backend:
         condition: service_healthy
   backend:
+    image: yofi-v3-backend
     build:
       context: ..
       dockerfile: ./docker/BackEnd.dockerfile
