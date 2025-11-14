@@ -52,11 +52,13 @@ graph TB
         Backend[BackEnd<br/>ASP.NET Core]
         Controllers[Controllers<br/>HTTP API Layer]
         Application[Application<br/>Business Logic]
-        Entities[Entities<br/>Data Models]
+        Data[Data.Sqlite<br/>Entity Framework]
+        Entities[Entities<br/>Data Models & Interfaces]
 
         Backend --> Controllers
         Controllers --> Application
-        Application --> Entities
+        Application --> Data
+        Data --> Entities
     end
 
     subgraph "Development Tools"
@@ -73,6 +75,7 @@ graph TB
     style Nuxt fill:#41b883
     style Backend fill:#512bd4
     style Application fill:#0078d4
+    style Data fill:#6db33f
 ```
 
 ### Project Structure
@@ -81,10 +84,12 @@ graph TB
 - **[src/BackEnd](src/BackEnd)** - API host
 - **[src/Controllers](src/Controllers)** - HTTP API controllers
 - **[src/Application](src/Application)** - Business logic (Features)
+- **[src/Data](src/Data)** - Data access layer (Entity Framework)
 - **[src/Entities](src/Entities)** - Data models and interfaces
 - **[src/WireApiHost](src/WireApiHost)** - TypeScript API client generator
 - **[src/FrontEnd.Nuxt](src/FrontEnd.Nuxt)** - Vue/Nuxt user interface
 - **[tests/Unit](tests/Unit)** - Unit tests for Application layer
+- **[tests/Integration.Data](tests/Integration.Data)** - Integration tests for Data layer
 - **[tests/Functional](tests/Functional)** - Functional tests for end-to-end scenarios
 
 ## Getting Started
