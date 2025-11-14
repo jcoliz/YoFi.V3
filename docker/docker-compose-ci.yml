@@ -1,5 +1,4 @@
-version: '3.4'
-name: yofi_development_ci
+name: yofi-ci
 services:
   frontend:
     build:
@@ -10,7 +9,6 @@ services:
           # perspective of JS code running in user's browser, *not* from the perspective of
           # within the container.
         - NUXT_PUBLIC_API_BASE_URL=http://localhost:5001
-    image: yofi_frontend_ci:${SOLUTION_VERSION}
     restart: always
     ports:
       - '5000:80'

@@ -6,6 +6,7 @@ out/
 **/obj/
 docs/
 scripts/
+!scripts/Get-Version.ps1
 docker/
 !docker/config-docker.toml
 **/*.sln
