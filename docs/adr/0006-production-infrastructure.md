@@ -41,11 +41,13 @@ We will likely have just two components to the app itself.
 - Linkage can be done [in ARM template](https://learn.microsoft.com/en-us/azure/templates/microsoft.web/staticsites/linkedbackends?pivots=deployment-language-bicep)
 - Standard (not free) tier required for backend linkage
 - Global CDN distribution
+- Compatible with client-side authentication using `@sidebase/nuxt-auth` local provider
 
 **Backend**: Azure App Service (Basic B1 tier)
 - Single container deployment
 - Persistent storage for SQLite database (contemplated in [ADR 0005](./0005-database-backend.md))
 - Cost-effective for low, steady traffic (~$13/month)
+- Provides authentication endpoints for frontend
 
 ### Alternative Considered: Azure Container Apps
 
@@ -61,11 +63,13 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 - Less configuration complexity than ACA
 - Can deploy directly from GitHub Actions
 - `.PublishAsDockerFile()` in `AppHost.cs` already supports this
+- Static site generation works with client-side authentication
 
 **More Difficult**:
 - Less auto-scaling capability (must manually scale App Service)
 - Cannot easily scale to zero like ACA
 - May need to migrate to ACA later if traffic patterns become highly variable
+- Authentication state managed entirely client-side
 
 ### For future consideration
 
@@ -73,179 +77,20 @@ Should we use Azure Static Web Apps [linked backend](https://learn.microsoft.com
 
 See [ADR 0007](./0007-backend-proxy-or-direct.md) for a deeper discussion.
 
+## Authentication Compatibility
+
+This infrastructure decision is compatible with the identity system outlined in [ADR 0008](./0008-identity.md). The `@sidebase/nuxt-auth` local provider works perfectly with static site generation by:
+
+- Making direct HTTP calls to the ASP.NET Core backend authentication endpoints
+- Handling JWT token storage and management client-side
+- Providing secure session management without requiring server-side session storage
+- Maintaining all the benefits of a battle-tested authentication library
+
+The static frontend will authenticate against the App Service backend using standard REST API calls, keeping the architecture simple and cost-effective.
+
 ## Related Decisions
 
 - [0004. Aspire Development](0004-aspire-development.md) - Development orchestration differs from production deployment
 - [0005. Database Backend](0005-database-backend.md) - SQLite database stored on App Service persistent storage
 - [0007. Proxy to backend or make direct calls?](0007-backend-proxy-or-direct.md) - Frontend-to-backend communication approach
-
-## Concerns identified
-
-There is some conflict between the approach documented here of using static site generation, and the system I'm evaluating for identity, in [0008. Identity](./0008-identity.md).
-
-Question: "Will this identity system work with static site generation??"
-
-Answer: **No, this design will NOT work with static site generation (SSG)**. Here's why and what you can do about it:
-
-## Why It Won't Work with SSG
-
-### 1. Server-Side Auth Handler
-Your design includes this server-side authentication handler:
-
-````typescript
-export default NuxtAuthHandler({...})
-````
-
-**Problem**: SSG pre-generates all pages at build time. There's no server to run the auth handler.
-
-### 2. Runtime Environment Variables
-Your config uses runtime secrets:
-
-````typescript
-runtimeConfig: {
-  authSecret: process.env.NUXT_AUTH_SECRET, // ❌ Not available in SSG
-}
-````
-
-**Problem**: Runtime config requires a server to provide values at request time.
-
-### 3. Session Management
-`@sidebase/nuxt-auth` relies on server-side session handling, which requires a running server.
-
-## Solutions
-
-### Option 1: Use SSR/SPA Mode Instead
-**Recommended for your use case**
-
-````typescript
-export default defineNuxtConfig({
-  ssr: true, // ✅ Server-side rendering (hybrid)
-  // OR
-  ssr: false, // ✅ Single Page App mode
-  
-  modules: ['@sidebase/nuxt-auth'],
-  // ... rest of your config
-})
-````
-
-**Why this works better:**
-- ✅ Server can handle authentication
-- ✅ Dynamic user sessions
-- ✅ Real-time authorization checks
-- ✅ Your current design works as-is
-
-### Option 2: Client-Side Only Auth (for SSG)
-If you must use SSG, you'd need to completely redesign the auth:
-
-````typescript
-export default defineNuxtConfig({
-  ssr: false, // SPA mode
-  nitro: {
-    preset: 'static' // Static generation
-  },
-  
-  // Remove @sidebase/nuxt-auth
-  // modules: ['@sidebase/nuxt-auth'], // ❌ Remove this
-  
-  runtimeConfig: {
-    public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
-    }
-  }
-})
-````
-
-Then implement client-side auth manually:
-
-````typescript
-export const useAuth = () => {
-  const user = ref(null)
-  const token = useCookie('auth-token', { 
-    secure: true, 
-    httpOnly: false, // Must be false for client access
-    sameSite: 'strict'
-  })
-
-  const login = async (credentials) => {
-    const response = await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: credentials,
-      baseURL: useRuntimeConfig().public.apiBaseUrl
-    })
-    
-    if (response.token) {
-      token.value = response.token
-      user.value = response.user
-      await navigateTo('/dashboard')
-    }
-  }
-
-  const logout = () => {
-    token.value = null
-    user.value = null
-    navigateTo('/login')
-  }
-
-  return { user, login, logout, token }
-}
-````
-
-### Option 3: Hybrid Approach
-Use Nuxt's hybrid rendering for different page types:
-
-````typescript
-export default defineNuxtConfig({
-  nitro: {
-    routeRules: {
-      // Static pages
-      '/': { prerender: true },
-      '/about': { prerender: true },
-      '/pricing': { prerender: true },
-      
-      // Dynamic auth-required pages
-      '/dashboard/**': { ssr: true },
-      '/accounts/**': { ssr: true },
-      '/login': { ssr: true },
-    }
-  },
-  
-  modules: ['@sidebase/nuxt-auth'],
-  // ... your current config
-})
-````
-
-## Recommendation for Your Project
-
-Based on your identity design document, **I recommend Option 1 (SSR/SPA mode)** because:
-
-1. **Your design is sophisticated** - Claims-based auth, JWT tokens, real-time updates
-2. **Financial app** - Likely needs dynamic, personalized content anyway
-3. **User-specific data** - Account access, transactions, preferences
-4. **Security** - Server-side session validation is more secure
-
-### Why SSG Doesn't Fit Your Use Case
-
-Your app appears to be:
-- ✅ **User-centric** (personal financial data)
-- ✅ **Dynamic content** (transactions, accounts)
-- ✅ **Authenticated workflows** (login required)
-- ✅ **Real-time features** (claims updates)
-
-SSG is better for:
-- ❌ **Content sites** (blogs, marketing pages)
-- ❌ **Public content** (documentation, landing pages)
-- ❌ **Minimal interactivity** (mostly read-only)
-
-## Quick Fix
-
-If you want to keep your current design, just ensure SSR is enabled:
-
-````typescript
-export default defineNuxtConfig({
-  ssr: true, // ✅ Add this line
-  modules: ['@sidebase/nuxt-auth'],
-  // ... rest of your current config stays the same
-})
-````
-
-Your authentication design is excellent for a server-rendered application - it just needs a server to work! 🚀
+- [0008. Identity](0008-identity.md) - Client-side authentication using local provider

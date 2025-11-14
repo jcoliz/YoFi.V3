@@ -4,7 +4,7 @@ Date: 2025-11-13
 
 ## Status
 
-In Review
+Accepted
 
 ## Context
 
@@ -24,43 +24,93 @@ Some questions that come to mind:
 
 ### Analysis
 
-Based on the existing architecture (Nuxt 4 + ASP.NET Core + direct API calls), this is a well-structured ADR that correctly identifies the key architectural questions around authentication and authorization.
+Based on the existing architecture (Nuxt 4 + ASP.NET Core + direct API calls) and the infrastructure decision to use static site generation ([ADR 0006](./0006-production-infrastructure.md)), we need a client-side authentication solution that works with static hosting.
 
 ## Decision
 
-### Hybrid Approach with ASP.NET Core Identity + @sidebase/nuxt-auth
+### Client-Side Authentication with ASP.NET Core Identity + @sidebase/nuxt-auth Local Provider
 
-Given the technology stack and requirements, implement:
+Given the technology stack and static hosting requirements, implement:
 
-#### Frontend (Nuxt 4)
-- **Use [@sidebase/nuxt-auth](https://auth.sidebase.com/)** - The modern successor to NuxtAuth for Nuxt 3/4
-- Configure it to work with the ASP.NET Core backend as a custom provider
+#### Frontend (Nuxt 4 - Static Generated)
+- **Use [@sidebase/nuxt-auth](https://auth.sidebase.com/) with local provider** - Client-side authentication
+- Configure to work with ASP.NET Core backend authentication endpoints
+- JWT token management handled client-side with secure cookie storage
 
 #### Backend (ASP.NET Core)
 - **Use ASP.NET Core Identity** with JWT tokens for stateless authentication
+- Provide REST API endpoints for login, logout, registration, and profile
 - This gives battle-tested auth components while maintaining the direct API call architecture
 
 #### Identity Provider
 - **Start with built-in authentication** (username/password stored in SQLite database)
 - **Future-proof for external providers** (Microsoft Entra ID, Google, etc.) using ASP.NET Core Identity's external login providers
 
+### Configuration Example
+
+````typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  ssr: false, // SPA mode for static generation
+  nitro: {
+    preset: 'static'
+  },
+  
+  modules: ['@sidebase/nuxt-auth'],
+  
+  auth: {
+    providers: {
+      local: {
+        type: 'local',
+        endpoints: {
+          signIn: { path: '/login', method: 'post' },
+          signOut: { path: '/logout', method: 'post' },
+          signUp: { path: '/register', method: 'post' },
+          getSession: { path: '/profile', method: 'get' }
+        },
+        pages: {
+          login: '/login'
+        },
+        token: {
+          signInResponseTokenPointer: '/token',
+          type: 'Bearer',
+          cookieName: 'auth.token',
+          headerName: 'Authorization',
+          headerType: 'Bearer',
+          cookieMaxAge: 60 * 60 * 24 * 30 // 30 days
+        },
+        sessionDataType: { id: 'string', email: 'string', name: 'string' }
+      }
+    }
+  },
+  
+  runtimeConfig: {
+    public: {
+      authBaseURL: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/auth'
+    }
+  }
+})
+````
+
 ### Addressing Specific Questions
 
-1. **NuxtAuth?** → Use **@sidebase/nuxt-auth** instead (modern, actively maintained for Nuxt 3/4)
+1. **NuxtAuth?** → Use **@sidebase/nuxt-auth with local provider** (modern, works with static generation)
 
-2. **ASP.NET Identity?** → **Yes, absolutely**. It's mature, well-tested, and integrates perfectly with your stack
+2. **ASP.NET Identity?** → **Yes, absolutely**. It's mature, well-tested, and provides the API endpoints for the frontend
 
 3. **External providers?** → **Later**. Start with built-in, add external providers when needed using ASP.NET Core's external login system
 
 4. **Authorization?** → Use **ASP.NET Core's policy-based authorization** with custom claims for account access. Store user-to-account mappings in your database
 
-5. **Examples?** → The combination is common. Key is using JWT tokens as the bridge between frontend and backend auth
+5. **Examples?** → The local provider pattern is common for SPA + API architectures. JWT tokens bridge frontend and backend auth
 
 ### Why This Approach Works Well
 
 ✅ **Security**: ASP.NET Core Identity is battle-tested with regular security updates  
 ✅ **Familiar**: You already know ASP.NET Core Identity well  
 ✅ **Stateless**: JWT tokens work perfectly with your direct API call architecture  
+✅ **Static Hosting Compatible**: No server-side session handling required  
+✅ **Cost Effective**: Works with Azure Static Web Apps infrastructure  
 ✅ **Extensible**: Easy to add external providers later  
 ✅ **Single Database**: User data stays in your SQLite database with your business data  
 ✅ **Authorization Ready**: Built-in support for roles and custom claims for account-level permissions  
@@ -72,174 +122,37 @@ Given the technology stack and requirements, implement:
 - **Security**: ASP.NET Core Identity is battle-tested with regular security updates
 - **Familiarity**: Leverages existing ASP.NET Core Identity knowledge
 - **Stateless Architecture**: JWT tokens work perfectly with direct API call architecture
+- **Static Hosting**: Compatible with Azure Static Web Apps cost-effective infrastructure
 - **Extensibility**: Easy to add external providers later
 - **Single Database**: User data stays in SQLite database with business data
 - **Authorization**: Built-in support for roles and custom claims for account-level permissions
 
 ### What becomes more complex:
 
-- **Initial Setup**: Requires configuration of both frontend and backend auth systems
-- **Token Management**: Need to handle JWT token lifecycle and refresh
+- **Client-Side Token Management**: All authentication state managed in browser
+- **Token Refresh**: Need to implement JWT token refresh logic client-side
 - **Custom Claims**: Account-level authorization requires custom implementation
+- **Security Considerations**: Tokens stored client-side (though mitigated by secure cookies and short expiry)
 - **Testing**: Authentication flows need to be tested across both frontend and backend
 
 ### Future Considerations:
 
 - External identity providers can be added incrementally
-- Session management handled by @sidebase/nuxt-auth
+- Session management handled by @sidebase/nuxt-auth local provider
 - Authorization policies can be extended for more granular permissions
+- Consider token refresh strategies for long-lived sessions
 
 ## Implementation
 
-Detailed implementation guidance can be found in [IDENTITY-DESIGN.md](../IDENTITY-DESIGN.md).
+Detailed implementation guidance can be found in IDENTITY-DESIGN.md.
 
-## Architecture Conflict
+## Architecture Compatibility
 
-Looking at the conflict between [AADR 0006 (Production Infrastructure)](./0006-production-infrastructure.md) and ADR 0008 (identity), there's a fundamental incompatibility:
+This identity design is fully compatible with ADR 0006 (Production Infrastructure):
 
-- **ADR 0006** assumes **static site generation** for the frontend
-- **ADR 0008** requires **server-side rendering** for the authentication system
+- ✅ **Static Site Generation**: Local provider works without server-side handlers
+- ✅ **Azure Static Web Apps**: Client-side authentication compatible
+- ✅ **Cost Effective**: No additional hosting costs for authentication
+- ✅ **Direct API Calls**: Maintains the established architecture pattern
 
-**ADR 0006 Infrastructure Decision:**
-```
-Frontend: Azure Static Web Apps
-- Nuxt static generation (nuxt generate)
-```
-
-**ADR 0008 Identity Requirement:**
-```typescript
-// This needs a server to run
-export default NuxtAuthHandler({...})
-```
-
-Static sites can't run server-side code, so `@sidebase/nuxt-auth` won't work.
-
-### My current plan
-
-I will build the identity backend out *as if* we were going to use `@sidebase/nuxt-auth`. This allows me to defer this decision.
-
-### Recommended Resolution Options
-
-#### Option 1: Update ADR 0006 (Recommended)
-
-**Change the frontend infrastructure to support SSR:**
-
-````typescript
-// Update ADR 0006
-Frontend: Azure Container Apps or Azure App Service
-- Nuxt SSR mode (not static generation)
-- Can run server-side authentication
-- Still supports custom domain + HTTPS
-````
-
-**Why this is better:**
-- ✅ Keeps the sophisticated identity design from ADR 0008
-- ✅ Financial apps benefit from server-side rendering anyway (SEO, security)
-- ✅ User-specific content is inherently dynamic
-- ✅ Claims-based authorization works as designed
-
-**Updated Infrastructure:**
-
-```yaml
-Frontend: Azure Container Apps (Nuxt SSR)
-- Consumption plan scales to zero when not used
-- Can run @sidebase/nuxt-auth server handlers
-- Custom domain + HTTPS supported
-- Better for dynamic, authenticated content
-
-Backend: Azure App Service (unchanged)
-- API remains the same
-- JWT validation works as designed
-```
-
-#### Option 2: Simplify ADR 0008
-
-**Change to client-side only authentication:**
-
-````typescript
-// Simplified auth without @sidebase/nuxt-auth
-// Direct API calls to ASP.NET Core backend
-// Manual token management in Nuxt
-````
-
-**Consequences:**
-- ❌ Lose sophisticated session management
-- ❌ More custom auth code to maintain
-- ❌ Less secure (tokens stored client-side only)
-- ✅ Keep static site generation
-- ✅ Lower hosting costs
-
-#### Option 3: Hybrid Approach
-
-**Use different rendering for different page types:**
-
-````typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  nitro: {
-    routeRules: {
-      // Static marketing pages
-      '/': { prerender: true },
-      '/about': { prerender: true },
-      '/pricing': { prerender: true },
-      
-      // SSR for authenticated areas
-      '/login': { ssr: true },
-      '/dashboard/**': { ssr: true },
-      '/accounts/**': { ssr: true },
-    }
-  }
-})
-````
-
-**Infrastructure:**
-- Static marketing pages → Azure Static Web Apps
-- Authenticated app → Azure Container Apps
-- Backend API → Azure App Service
-
-### My Recommendation: Option 1
-
-**Update ADR 0006 to use Azure Container Apps for the frontend.**
-
-#### Why This Makes Sense
-
-1. **Cost is comparable** - ACA consumption plan can scale to zero
-2. **Better fit for the app** - Financial apps are inherently user-specific and dynamic
-3. **Security** - Server-side auth is more secure for financial data
-4. **Future-proof** - Easier to add features like real-time updates, background jobs, etc.
-
-### Updating ADR 0006...
-
-````markdown
-#### Decision
-
-**Frontend**: Azure Container Apps (Consumption Plan)
-- Nuxt SSR mode (`ssr: true`)
-- Server-side authentication handlers
-- Scales to zero when not used
-- Custom domain + HTTPS supported
-- Supports @sidebase/nuxt-auth
-
-**Backend**: Azure App Service (Basic B1 tier) - unchanged
-- Single container deployment
-- Persistent storage for SQLite database
-- JWT token validation
-
-#### Why the Change
-
-Initial decision for static generation was made before identity 
-requirements were fully understood. Financial applications with 
-user authentication benefit more from server-side rendering for:
-- Security (server-side session management)
-- Performance (user-specific data)
-- Functionality (real-time features)
-````
-
-#### Action Items
-
-1. **Update ADR 0006** to reflect the infrastructure change
-2. **Mark the conflict as resolved** in ADR 0008
-3. **Update deployment configuration** to use SSR instead of static generation
-4. **Adjust cost projections** (ACA consumption vs Static Web Apps)
-
-This resolution maintains the security and functionality benefits of your identity design while using appropriate Azure services for a dynamic, authenticated application.
+The frontend will authenticate against the App Service backend using standard REST API calls, keeping the architecture simple, secure, and cost-effective.
