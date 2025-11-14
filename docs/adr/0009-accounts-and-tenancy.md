@@ -17,8 +17,6 @@ How should YoFi.V3 handle multiple users and financial data isolation? What is t
 YoFi.V3 is a rewrite of the [YoFi personal finance application](https://github.com/jcoliz/yofi). YoFi is single-tenant. This is a constraint I would like to improve
 upon with this rewrite.
 
-The identity system (ADR 0008) references "accounts" and "account access" extensively, but we need to define what an "account" represents in the business domain and how users relate to accounts.
-
 ### Key Questions
 
 1. **What is an "Account"?**
@@ -221,7 +219,10 @@ UserPreferences (UserId, DefaultAccountId, Theme, ...)
 
 - [ADR 0008: Identity System](0008-identity.md) - Provides the authentication foundation for this account model
 - [ADR 0005: Database Backend](0005-database-backend.md) - SQLite database will store account-scoped data
-- Future ADR 0010: Domain Model Migration - Will define how YoFi entities map to this account model
+
+## Migration from current YoFi
+
+All existing YoFi data (transactions, categories, budgets, etc.) will be migrated to a single account that will be identified during the migration process. This ensures existing users can continue using their historical data within the new multi-account structure.
 
 ## Questions for Review
 
@@ -240,6 +241,7 @@ UserPreferences (UserId, DefaultAccountId, Theme, ...)
 5. **How do we handle users with no account access (edge case)?** 
    ✅ **Enable account creation**: On empty "Accounts" page, allow user to create new account.
 
-#### Technical Details
+## Assorted Technical Details
+
 - **Account IDs**: Use GUIDs for security and uniqueness. My technical policy is that all identifiers which are visible to users are GUIDs.
 - **Default Account**: Updated when user switches accounts. If deault account is not accessible (user lost access, or account deleted), then user will be redirected to account switching page to choose a new default account.
