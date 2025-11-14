@@ -30,7 +30,12 @@ Then open the Aspire Dashboard URL shown in the console.
 
 ## Container
 
-To make functional tests easy to run both in Azure Pipelines or locally, the app can be containerized.
+The application can be packaged into containers and orchestrated with a [Docker Compose project](../docker/docker-compose-ci.yml).
+
+**Use cases:**
+- Run functional tests in CI pipeline
+- Run functional tests locally with ease
+- Distribute the entire application via DockerHub for evaluation
 
 **Architecture:**
 - Frontend generated as static site using `nuxt generate`
@@ -55,12 +60,12 @@ Run functional tests with `.\scripts\Run-FunctionalTestsVsContainer.ps1`.
 
 ## Production
 
-As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 0007](./adr/0007-backend-proxy-or-direct.md), the application is deployed to Azure.
+As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 0007](./adr/0007-backend-proxy-or-direct.md), the production application is hosted on Azure services.
 
 **Architecture:**
 - Frontend: Azure Static Web Apps (static site from `nuxt generate`)
-- Backend: Azure App Service (containerized .NET API)
-- Deployed via Azure Pipelines (to be defined)
+- Backend: Azure App Service (.NET Web API)
+- Deployed via [Azure Pipelines](../.azure/pipelines/ci.yaml). Note this is the **ONLY** supported methodology to deploy bits.
 
 **Frontend-to-Backend Communication:**
 - Static site built with `NUXT_PUBLIC_API_BASE_URL` set to production backend URL
@@ -74,8 +79,8 @@ As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 000
 
 | Aspect | Local | Container | Production |
 |--------|-------|-----------|------------|
-| Frontend | Node dev server | nginx (static) | Azure Static Web Apps |
-| Backend | .NET process | Docker container | Azure App Service container |
+| Frontend host | Node dev server | nginx (static) | Azure Static Web Apps |
+| Backend host | .NET process | Docker container | Azure App Service |
 | Frontend build | `npm run dev` | `npm run generate` | `npm run generate` |
 | API calls | Proxied via Nuxt | Direct (baked URL) | Direct (baked URL) |
 | Orchestration | .NET Aspire | Docker Compose | Azure |
