@@ -104,7 +104,7 @@ came from.
 
 ```sql
 -- Users (from ASP.NET Core Identity)
-Users (Id, Email, UserName, etc.)
+Users (Id, Email, UserName, DefaultAccountId)
 
 -- Account entity
 Accounts (Id, Name, CreatedBy, CreatedDate, IsActive)
@@ -116,45 +116,50 @@ UserAccountAccess (UserId, AccountId, Role, InvitedBy, JoinedDate)
 Transactions (Id, AccountId, Date, Amount, Description, ...)
 Categories (Id, AccountId, Name, ...)
 Budgets (Id, AccountId, Month, Amount, ...)
+
+-- User preferences (start global)
+UserPreferences (UserId, Theme, ...)
 ```
 
 ### Implementation Details
 
 #### JWT Claims Structure
+
 ```json
 {
   "sub": "user123",
   "email": "john@example.com",
-  "account_access": ["account1", "account2"],
-  "account_role_account1": "owner",
-  "account_role_account2": "editor"
+  "entitlements": [ { "subject": "<account1_guid>", "role": "owner" }, { "subject": "<account2_guid>", "role": "editor" } ],
 }
 ```
 
 #### API URL Structure
+
 ```
-/api/accounts/{accountId}/transactions
-/api/accounts/{accountId}/categories
-/api/accounts/{accountId}/budgets
-/api/accounts/{accountId}/reports
+/api/account/{AccountID}/transactions
+/api/account/{AccountID}/categories
+/api/account/{AccountID}/budgets
+/api/account/{AccountID}/reports
 ```
 
 #### Authorization Policies
+
 - **AccountAccess**: User must have access to the account
 - **AccountEdit**: User must have Editor or Owner role for the account
 - **AccountAdmin**: User must have Owner role for the account
 
 ### Account Lifecycle
 
-#### Account Creation
-1. User creates account → becomes Owner automatically
-2. Account gets unique ID and display name
-3. Default categories/settings are created
-
 #### User Invitation
 1. Owner sends invitation by email, choosing the invited role
 2. Invited user accepts → gets specified role
 3. Email notifications for account activity
+
+#### Account Creation
+1. User is only eligible to register after being invited by another user
+2. User registers → Auto-create personal account
+3. User logs in → Redirect to their default account dashboard  
+4. User can switch accounts via "Accounts" page
 
 #### User Removal
 1. Only Owners can remove users
@@ -218,8 +223,17 @@ Budgets (Id, AccountId, Month, Amount, ...)
 
 ## Questions for Review
 
-1. **Is the three-role model sufficient?** (Owner/Editor/Viewer) Yes, this is perfect.
-2. **Should user preferences be account-scoped or global?** Unclear. What are some exmaples of preferences we would need to save?
-3. **How should account switching work in the UI?** User will visit an "Accounts" page, and pick a current account. This setting now applies to all UI actions until user makes another choice.
-4. **Should there be a default account concept for new users?** Yes, a new user automatically gets provisioned with a personal account they're the owner of.
-5. **How do we handle users with no account access (edge case)?** On user's "Accounts" page, it will be blank. User should be allowed to create an account in this case.
+1. **Is the three-role model sufficient?** (Owner/Editor/Viewer) 
+   ✅ **Yes, this is perfect.**
+
+2. **Should user preferences be account-scoped or global?** 
+   ✅ **Start with global preferences** for simplicity. There isn't an obvious need for preferences right now. Just to have something here, we could save light/dark mode theme switch.
+
+3. **How should account switching work in the UI?** 
+   ✅ **Account selection page approach**: User visits "Accounts" page and selects current account. This context applies to all subsequent UI actions. Consider adding account switcher in navigation for quick switching.
+
+4. **Should there be a default account concept for new users?** 
+   ✅ **Yes, auto-provision personal account**: New users automatically get a personal account they own, eliminating empty state.
+
+5. **How do we handle users with no account access (edge case)?** 
+   ✅ **Enable account creation**: On empty "Accounts" page, allow user to create new account.
