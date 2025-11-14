@@ -59,7 +59,7 @@ Examples:
 - "John's Personal Finances" (individual account)
 - "ABC Consulting Business" (business account)
 
-As an example, I would like to have my own personal "Account" which only I can access, as well as an "Account" that my wife and I share.
+As an example, I would like to have my own personal "Account" which only I can access, as well as an "Account" that my wife and I share (household account).
 
 "Accounts" in YoFi have a one-to-many relationship with accounts at a bank. As it stands today, I download all transactions from multiple credit cards, and our
 savings account, and our checking account into a single YoFi "Account". Generally this
@@ -144,9 +144,9 @@ UserPreferences (UserId, Theme, ...)
 
 #### Authorization Policies
 
-- **AccountAccess**: User must have access to the account
+- **AccountView**: User must have Viewer, Editor, or Owner role for the account
 - **AccountEdit**: User must have Editor or Owner role for the account
-- **AccountAdmin**: User must have Owner role for the account
+- **AccountOwn**: User must have Owner role for the account
 
 ### Account Lifecycle
 
