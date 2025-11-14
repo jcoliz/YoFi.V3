@@ -34,6 +34,21 @@ builder.Services.AddCors(options =>
     });
 });
 
+#if false
+// TODO: Add Authorization policies - Updated to match ADR 0009
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AccountView", policy =>
+        policy.Requirements.Add(new AccountAccessRequirement("viewer", "editor", "owner")));
+        
+    options.AddPolicy("AccountEdit", policy =>
+        policy.Requirements.Add(new AccountAccessRequirement("editor", "owner")));
+        
+    options.AddPolicy("AccountOwn", policy =>
+        policy.Requirements.Add(new AccountAccessRequirement("owner")));
+});
+#endif
+
 var app = builder.Build();
 
 // Prepare the database

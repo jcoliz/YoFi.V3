@@ -100,7 +100,7 @@ export default defineNuxtConfig({
 
 3. **External providers?** → **Later**. Start with built-in, add external providers when needed using ASP.NET Core's external login system
 
-4. **Authorization?** → Use **ASP.NET Core's policy-based authorization** with custom claims for account access. Store user-to-account mappings in your database
+4. **Authorization?** → Use **ASP.NET Core's policy-based authorization** with custom claims for account access. Store user-to-account mappings in your database using the three-role model (Owner/Editor/Viewer) as defined in ADR 0009.
 
 5. **Examples?** → The local provider pattern is common for SPA + API architectures. JWT tokens bridge frontend and backend auth
 
@@ -125,7 +125,7 @@ export default defineNuxtConfig({
 - **Static Hosting**: Compatible with Azure Static Web Apps cost-effective infrastructure
 - **Extensibility**: Easy to add external providers later
 - **Single Database**: User data stays in SQLite database with business data
-- **Authorization**: Built-in support for roles and custom claims for account-level permissions
+- **Authorization**: Built-in support for roles and custom claims using the AccountView/AccountEdit/AccountOwn policies defined in ADR 0009
 
 ### What becomes more complex:
 
@@ -156,3 +156,9 @@ This identity design is fully compatible with ADR 0006 (Production Infrastructur
 - ✅ **Direct API Calls**: Maintains the established architecture pattern
 
 The frontend will authenticate against the App Service backend using standard REST API calls, keeping the architecture simple, secure, and cost-effective.
+
+## Related Decisions
+
+- [ADR 0009: Multi-tenancy and Account Model](0009-accounts-and-tenancy.md) - Defines the account structure, roles, and authorization policies that this identity system implements
+- [ADR 0006: Production Infrastructure](0006-production-infrastructure.md) - Azure infrastructure decisions
+- [ADR 0005: Database Backend](0005-database-backend.md) - SQLite database for storing user and account data

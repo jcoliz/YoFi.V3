@@ -4,7 +4,7 @@ Date: 2025-11-13
 
 ## Status
 
-Draft
+Accepted
 
 ## Context
 
@@ -104,7 +104,7 @@ came from.
 
 ```sql
 -- Users (from ASP.NET Core Identity)
-Users (Id, Email, UserName, DefaultAccountId)
+Users (Id, Email, UserName)
 
 -- Account entity
 Accounts (Id, Name, CreatedBy, CreatedDate, IsActive)
@@ -118,7 +118,7 @@ Categories (Id, AccountId, Name, ...)
 Budgets (Id, AccountId, Month, Amount, ...)
 
 -- User preferences (start global)
-UserPreferences (UserId, Theme, ...)
+UserPreferences (UserId, DefaultAccountId, Theme, ...)
 ```
 
 ### Implementation Details
@@ -156,10 +156,11 @@ UserPreferences (UserId, Theme, ...)
 3. Email notifications for account activity
 
 #### Account Creation
-1. User is only eligible to register after being invited by another user
-2. User registers → Auto-create personal account
-3. User logs in → Redirect to their default account dashboard  
-4. User can switch accounts via "Accounts" page
+1. **First User/Admin**: Can register directly and gets a personal account
+2. **Subsequent Users**: Must be invited by existing account owners
+3. Upon registration → Auto-create personal account for the new user
+4. User logs in → Redirect to their default account dashboard  
+5. User can switch accounts via "Accounts" page
 
 #### User Removal
 1. Only Owners can remove users
@@ -201,7 +202,8 @@ UserPreferences (UserId, Theme, ...)
 ## Implementation Phases
 
 ### Phase 1: Single-User Accounts (MVP)
-- One user per account (simplified for initial implementation)
+- Full database schema implemented
+- User invitation UI disabled (accounts are single-user by default)
 - Account creation during user registration
 - All financial features account-scoped
 
@@ -237,3 +239,7 @@ UserPreferences (UserId, Theme, ...)
 
 5. **How do we handle users with no account access (edge case)?** 
    ✅ **Enable account creation**: On empty "Accounts" page, allow user to create new account.
+
+#### Technical Details
+- **Account IDs**: Use GUIDs for security and uniqueness. My technical policy is that all identifiers which are visible to users are GUIDs.
+- **Default Account**: Updated when user switches accounts. If deault account is not accessible (user lost access, or account deleted), then user will be redirected to account switching page to choose a new default account.

@@ -162,22 +162,24 @@ public class AuthController : ControllerBase
             return NotFound();
         }
 
-        // Get claims from the JWT token
-        var accountAccessClaims = User.FindAll("account_access").Select(c => c.Value).ToList();
-        var accountRoles = User.Claims
-            .Where(c => c.Type.StartsWith("account_role_"))
-            .ToDictionary(
-                c => c.Type.Replace("account_role_", ""),
-                c => c.Value
-            );
+        // Get structured entitlements from JWT token (ADR 0009)
+        var entitlementsClaims = User.FindAll("entitlements");
+        var entitlements = entitlementsClaims
+            .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
+            .ToList();
+
+        // Convert to legacy format for frontend compatibility
+        var accountAccess = entitlements.Select(e => e.Subject).ToList();
+        var accountRoles = entitlements.ToDictionary(e => e.Subject, e => e.Role);
 
         return Ok(new
         {
             id = user.Id,
             email = user.Email,
             name = user.UserName,
-            accountAccess = accountAccessClaims,
+            accountAccess = accountAccess,
             accountRoles = accountRoles,
+            entitlements = entitlements, // New structured format
             userPreferences = User.FindFirst("user_preferences")?.Value
         });
     }
@@ -238,11 +240,16 @@ public class AuthController : ControllerBase
             new Claim("name", user.UserName ?? user.Email)
         };
         
-        // Add account access claims
-        foreach (var account in userAccounts)
+        // Add structured entitlements (ADR 0009)
+        var entitlements = userAccounts.Select(account => new AccountEntitlement
         {
-            claims.Add(new Claim("account_access", account.AccountId));
-            claims.Add(new Claim($"account_role_{account.AccountId}", account.Role)); // e.g., "owner", "viewer", "editor"
+            Subject = account.AccountId,
+            Role = account.Role
+        }).ToList();
+        
+        foreach (var entitlement in entitlements)
+        {
+            claims.Add(new Claim("entitlements", JsonSerializer.Serialize(entitlement)));
         }
         
         // Add any other custom claims
@@ -306,6 +313,12 @@ public class ApplicationUser : IdentityUser
     public string? Preferences { get; set; }
     public virtual ICollection<UserAccountAccess> AccountAccess { get; set; }
 }
+
+public class AccountEntitlement
+{
+    public string Subject { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty; // "owner", "editor", "viewer"
+}
 ````
 
 ## Frontend Implementation
@@ -345,7 +358,12 @@ export default defineNuxtConfig({
           headerType: 'Bearer',
           cookieMaxAge: 60 * 60 * 24 * 30 // 30 days
         },
-        sessionDataType: { id: 'string', email: 'string', name: 'string' }
+        sessionDataType: { 
+          id: 'string', 
+          email: 'string', 
+          name: 'string',
+          entitlements: 'AccountEntitlement[]'
+        }
       }
     }
   },
@@ -573,22 +591,24 @@ public async Task<IActionResult> GetProfile()
         return NotFound();
     }
 
-    // Get claims from the JWT token
-    var accountAccessClaims = User.FindAll("account_access").Select(c => c.Value).ToList();
-    var accountRoles = User.Claims
-        .Where(c => c.Type.StartsWith("account_role_"))
-        .ToDictionary(
-            c => c.Type.Replace("account_role_", ""),
-            c => c.Value
-        );
+    // Get structured entitlements from JWT token (ADR 0009)
+    var entitlementsClaims = User.FindAll("entitlements");
+    var entitlements = entitlementsClaims
+        .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
+        .ToList();
+
+    // Convert to legacy format for frontend compatibility
+    var accountAccess = entitlements.Select(e => e.Subject).ToList();
+    var accountRoles = entitlements.ToDictionary(e => e.Subject, e => e.Role);
 
     return Ok(new
     {
         id = user.Id,
         email = user.Email,
         name = user.UserName,
-        accountAccess = accountAccessClaims,
+        accountAccess = accountAccess,
         accountRoles = accountRoles,
+        entitlements = entitlements, // New structured format
         userPreferences = User.FindFirst("user_preferences")?.Value
     });
 }
@@ -761,3 +781,59 @@ JWT_AUDIENCE=YoFi.V3.Client
 ✅ **Performance**: Efficient token refresh and session management  
 
 This implementation provides a secure, maintainable identity system using ASP.NET Core Identity with the @sidebase/nuxt-auth local provider, offering the benefits of both familiar backend patterns and modern frontend authentication management.
+
+## Authorization Handlers
+
+### 1. Account Access Requirement and Handler
+
+Implement a custom authorization requirement and handler for account access:
+
+````csharp
+// filepath: c:\Source\jcoliz\YoFi.V3\src\BackEnd\Authorization\AccountAccessHandler.cs
+public class AccountAccessRequirement : IAuthorizationRequirement
+{
+    public string[] AllowedRoles { get; }
+    
+    public AccountAccessRequirement(params string[] allowedRoles)
+    {
+        AllowedRoles = allowedRoles;
+    }
+}
+
+public class AccountAccessHandler : AuthorizationHandler<AccountAccessRequirement>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        AccountAccessRequirement requirement)
+    {
+        // Get account ID from route data or resource
+        var accountId = context.Resource as string 
+            ?? context.User.FindFirst("current_account")?.Value;
+            
+        if (string.IsNullOrEmpty(accountId))
+        {
+            context.Fail();
+            return Task.CompletedTask;
+        }
+
+        // Parse entitlements from JWT
+        var entitlementsClaims = context.User.FindAll("entitlements");
+        var entitlements = entitlementsClaims
+            .Select(c => JsonSerializer.Deserialize<AccountEntitlement>(c.Value))
+            .ToList();
+
+        // Check if user has required role for this account
+        var userEntitlement = entitlements.FirstOrDefault(e => e.Subject == accountId);
+        if (userEntitlement != null && requirement.AllowedRoles.Contains(userEntitlement.Role))
+        {
+            context.Succeed(requirement);
+        }
+        else
+        {
+            context.Fail();
+        }
+
+        return Task.CompletedTask;
+    }
+}
+````
