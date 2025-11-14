@@ -1,6 +1,8 @@
 #
 # Add a new migration to the specified database provider.
 #
+# See: [Migration README](../src/Data/Sqlite.MigrationHost/README.md)
+#
 
 param(
     [Parameter(Mandatory=$true)]

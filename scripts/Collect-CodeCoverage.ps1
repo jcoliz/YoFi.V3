@@ -1,3 +1,11 @@
+#
+# Run tests and collect code coverage
+#
+# Requires: [ReportGenerator](https://github.com/danielpalme/ReportGenerator)
+#
+# To install: dotnet tool install -g dotnet-reportgenerator-globaltool
+#
+
 param(
     [Parameter()]
     [string]

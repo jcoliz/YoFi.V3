@@ -1,3 +1,8 @@
+#
+# Run functional tests in the CI Docker containers
+#
+# Useful for debugging CI build issues locally, and running functional tests easily.
+#
 
 $ErrorActionPreference = "Stop"
 Write-Output "Building and starting docker services..."
