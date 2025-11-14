@@ -6,7 +6,7 @@ COPY src/ServiceDefaults/YoFi.V3.ServiceDefaults.csproj ServiceDefaults/
 COPY src/Controllers/YoFi.V3.Controllers.csproj Controllers/
 COPY src/Application/YoFi.V3.Application.csproj Application/
 COPY src/Entities/YoFi.V3.Entities.csproj Entities/
-COPY src/Directory.build.props Directory.Build.props
+COPY src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj Data/Sqlite/
 
 WORKDIR /source/BackEnd
 RUN dotnet restore
