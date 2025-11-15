@@ -8,7 +8,7 @@ public static class __SetupApplicationOptions
     /// <summary>
     /// Get app version, store in configuration for later use
     /// </summary>
-    public static WebApplicationBuilder AddApplicationOptions(this WebApplicationBuilder builder /*TODO:, ILogger logger*/)
+    public static WebApplicationBuilder AddApplicationOptions(this WebApplicationBuilder builder, ILogger logger)
     {
         builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection(ApplicationOptions.Section));
 
@@ -21,7 +21,7 @@ public static class __SetupApplicationOptions
             using var streamreader = new StreamReader(stream!);
             var version = streamreader.ReadLine();
             builder.Configuration["Application:Version"] = version;
-            //TODO: logger.LogInformation("Version: {version}", version);
+            logger.LogInformation(21,"Version: {version}", version);
         }
 
         return builder;

@@ -1,90 +1,134 @@
+using System.Reflection;
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;
 
-var builder = WebApplication.CreateBuilder(args);
 
-// Get application options, which can be used during startup configuration
-ApplicationOptions applicationOptions = new();
-builder.Configuration.Bind(ApplicationOptions.Section, applicationOptions);
-
-// Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
-
-// Add version information to the configuration
-builder.AddApplicationOptions(); // TODO: pass logger
-
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddProblemDetails();
-builder.Services.AddSwagger();
-builder.Services.AddApplicationFeatures();
-builder.Services.AddDatabase(builder.Configuration);
-
-// See ADR 0007 for a disussion of CORS policies.
-builder.Services.AddCors(options =>
+ILogger? logger = default;
+try
 {
-    options.AddDefaultPolicy(policy =>
+    //
+    // Set up Startup logger
+    //
+
+    using var loggerFactory = LoggerFactory.Create(builder =>
     {
-        // TODO: Use either the ApplicationOptions.Environment value
-        // or a dedicated CORS configuration section to determine
-        // which origins to allow.
-        //
-        // Note that we know this information at build time, so we could
-        // even inject the allowed origins during the build.
-        //
-        // For now, we allow all possible values
-        policy.WithOrigins(
-            "http://localhost:5173",  // Local (used during development with Aspire)
-            "http://localhost:5000",  // Container (used in CI pipeline)
-            "https://your-custom-domain.com"  // Production (deployed to Azure)
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
+        builder.SetMinimumLevel(LogLevel.Debug);
+        builder.AddConsole();
+        builder.AddEventSourceLogger();
     });
-});
+    logger = loggerFactory.CreateLogger("Startup");
+    logger.LogInformation("Starting {App}",Assembly.GetExecutingAssembly().FullName);
 
-#if false
-// TODO: Add Authorization policies - Updated to match ADR 0009
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AccountView", policy =>
-        policy.Requirements.Add(new AccountAccessRequirement("viewer", "editor", "owner")));
-        
-    options.AddPolicy("AccountEdit", policy =>
-        policy.Requirements.Add(new AccountAccessRequirement("editor", "owner")));
-        
-    options.AddPolicy("AccountOwn", policy =>
-        policy.Requirements.Add(new AccountAccessRequirement("owner")));
-});
-#endif
+    //
+    // Set up Web application
+    //
+    var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+    // Get application options, which can be used during startup configuration
+    ApplicationOptions applicationOptions = new();
+    builder.Configuration.Bind(ApplicationOptions.Section, applicationOptions);
 
-// Prepare the database
-app.PrepareDatabaseAsync();
+    // Add service defaults & Aspire client integrations.
+    builder.AddServiceDefaults();
+
+    // Add version information to the configuration
+    builder.AddApplicationOptions(logger);
     
-// Configure the HTTP request pipeline.
-app.UseExceptionHandler();
+    //
+    // Add services to the container.
+    //
 
-// TODO: Do we need to enforce HTTPS in production? Or will Azure do that for us?
-#if false
-if (applicationOptions.Environment == EnvironmentType.Production)
-{
-    app.UseHsts();
-    app.UseHttpsRedirection();
+    builder.Services.AddControllers();
+    builder.Services.AddProblemDetails();
+    builder.Services.AddSwagger();
+    builder.Services.AddApplicationFeatures();
+    builder.Services.AddDatabase(builder.Configuration);
+
+    // See ADR 0007 for a disussion of CORS policies.
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            // TODO: Use either the ApplicationOptions.Environment value
+            // or a dedicated CORS configuration section to determine
+            // which origins to allow.
+            //
+            // Note that we know this information at build time, so we could
+            // even inject the allowed origins during the build.
+            //
+            // For now, we allow all possible values
+            policy.WithOrigins(
+                "http://localhost:5173",  // Local (used during development with Aspire)
+                "http://localhost:5000",  // Container (used in CI pipeline)
+                "https://your-custom-domain.com"  // Production (deployed to Azure)
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
+    });
+
+    #if false
+    // TODO: Add Authorization policies - Updated to match ADR 0009
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("AccountView", policy =>
+            policy.Requirements.Add(new AccountAccessRequirement("viewer", "editor", "owner")));
+            
+        options.AddPolicy("AccountEdit", policy =>
+            policy.Requirements.Add(new AccountAccessRequirement("editor", "owner")));
+            
+        options.AddPolicy("AccountOwn", policy =>
+            policy.Requirements.Add(new AccountAccessRequirement("owner")));
+    });
+    #endif
+
+    //
+    // Build the app
+    //
+
+    var app = builder.Build();
+
+    // Prepare the database
+    app.PrepareDatabaseAsync();
+        
+    // Configure the HTTP request pipeline.
+    app.UseExceptionHandler();
+
+    // TODO: Do we need to enforce HTTPS in production? Or will Azure do that for us?
+    #if false
+    if (applicationOptions.Environment == EnvironmentType.Production)
+    {
+        app.UseHsts();
+        app.UseHttpsRedirection();
+    }
+    #endif
+
+    if (applicationOptions.Environment != EnvironmentType.Production)
+    {
+        // TODO: Logger.Information("Enabling Swagger UI");
+        app.UseSwagger();
+    }
+
+    app.UseCors();
+    app.MapDefaultEndpoints();
+    app.MapControllers();
+
+    logger.LogInformation(10, "OK. Environment: {Environment}", applicationOptions.Environment);
+
+    app.Run();
+
 }
-#endif
-
-if (applicationOptions.Environment != EnvironmentType.Production)
+catch (Exception ex)
 {
-    // TODO: Logger.Information("Enabling Swagger UI");
-    app.UseSwagger();
+    if (logger is not null)
+    {
+        logger?.LogCritical(ex, "Failed to start {App}", Assembly.GetExecutingAssembly().FullName);    
+    }
+    else
+    {
+        Console.WriteLine("CRITICAL: Failed to start application");
+        Console.WriteLine(ex.ToString());
+    }
 }
-
-app.UseCors();
-app.MapDefaultEndpoints();
-app.MapControllers();
-
-app.Run();
