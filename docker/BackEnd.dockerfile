@@ -15,7 +15,7 @@ RUN dotnet restore
 # Software version number
 #   - Should correspond to tag
 #   - Including default value so if someone just runs "docker build", it will work
-ARG SOLUTION_VERSION=docker
+ARG SOLUTION_VERSION=docker-local
 
 # copy everything else and build app
 WORKDIR /source/src

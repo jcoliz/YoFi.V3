@@ -1,14 +1,19 @@
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Data;
+using YoFi.V3.Entities.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Get application options, which can be used during startup configuration
+ApplicationOptions applicationOptions = new();
+builder.Configuration.Bind(ApplicationOptions.Section, applicationOptions);
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
 // Add version information to the configuration
-builder.AddVersion(); // TODO: pass logger
+builder.AddApplicationOptions(); // TODO: pass logger
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -22,7 +27,13 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        // TODO: This needs to be specified either as a configuration option or build-time argument.
+        // TODO: Use either the ApplicationOptions.Environment value
+        // or a dedicated CORS configuration section to determine
+        // which origins to allow.
+        //
+        // Note that we know this information at build time, so we could
+        // even inject the allowed origins during the build.
+        //
         // For now, we allow all possible values
         policy.WithOrigins(
             "http://localhost:5173",  // Local (used during development with Aspire)
@@ -57,16 +68,23 @@ app.PrepareDatabaseAsync();
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-//if (app.Environment.IsDevelopment())
+// TODO: Do we need to enforce HTTPS in production? Or will Azure do that for us?
+#if false
+if (applicationOptions.Environment == EnvironmentType.Production)
 {
-    // TODO: if (startupOptions.EnableSwaggerUi)
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+#endif
+
+if (applicationOptions.Environment != EnvironmentType.Production)
+{
     // TODO: Logger.Information("Enabling Swagger UI");
     app.UseSwagger();
 }
 
 app.UseCors();
 app.MapDefaultEndpoints();
-
 app.MapControllers();
 
 app.Run();

@@ -1,4 +1,4 @@
-name: yofi-ci
+name: yofi-v3
 services:
   frontend:
     image: ${REGISTRY_PREFIX:-}yofi-v3-frontend
@@ -21,6 +21,8 @@ services:
     build:
       context: ..
       dockerfile: ./docker/BackEnd.dockerfile
+    environment:
+      - APPLICATION__ENVIRONMENT=Container
     restart: always
     ports:
       - '5001:8080'

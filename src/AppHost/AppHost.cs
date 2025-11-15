@@ -1,7 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health")
+    .WithEnvironment("APPLICATION__ENVIRONMENT", "Local");
 
 builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
     .WithReference(apiService)
