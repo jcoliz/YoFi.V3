@@ -28,69 +28,18 @@ Based on the existing architecture (Nuxt 4 + ASP.NET Core + direct API calls) an
 
 ## Decision
 
-### Client-Side Authentication with ASP.NET Core Identity + @sidebase/nuxt-auth Local Provider
+I created a new library, [Nuxt Identity](https://github.com/jcoliz/NuxtIdentity) to collect the needed glue to bring together these battle-tested auth components while maintaining the current direct API call architecture.
 
-Given the technology stack and static hosting requirements, implement:
+- **[@sidebase/nuxt-auth](https://auth.sidebase.com/) with local provider** - Client-side authentication
+- **ASP.NET Core Identity** with JWT tokens for stateless authentication
 
-#### Frontend (Nuxt 4 - Static Generated)
-- **Use [@sidebase/nuxt-auth](https://auth.sidebase.com/) with local provider** - Client-side authentication
-- Configure to work with ASP.NET Core backend authentication endpoints
-- JWT token management handled client-side with secure cookie storage
+Nuxt Identity aims to be a thin library, focused on moving data between .NET Identity and @sidebase/nuxt-auth. Here's what it's doing:
 
-#### Backend (ASP.NET Core)
-- **Use ASP.NET Core Identity** with JWT tokens for stateless authentication
-- Provide REST API endpoints for login, logout, registration, and profile
-- This gives battle-tested auth components while maintaining the direct API call architecture
-
-#### Identity Provider
-- **Start with built-in authentication** (username/password stored in SQLite database)
-- **Future-proof for external providers** (Microsoft Entra ID, Google, etc.) using ASP.NET Core Identity's external login providers
-
-### Configuration Example
-
-````typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  ssr: false, // SPA mode for static generation
-  nitro: {
-    preset: 'static'
-  },
-  
-  modules: ['@sidebase/nuxt-auth'],
-  
-  auth: {
-    providers: {
-      local: {
-        type: 'local',
-        endpoints: {
-          signIn: { path: '/login', method: 'post' },
-          signOut: { path: '/logout', method: 'post' },
-          signUp: { path: '/register', method: 'post' },
-          getSession: { path: '/profile', method: 'get' }
-        },
-        pages: {
-          login: '/login'
-        },
-        token: {
-          signInResponseTokenPointer: '/token',
-          type: 'Bearer',
-          cookieName: 'auth.token',
-          headerName: 'Authorization',
-          headerType: 'Bearer',
-          cookieMaxAge: 60 * 60 * 24 * 30 // 30 days
-        },
-        sessionDataType: { id: 'string', email: 'string', name: 'string' }
-      }
-    }
-  },
-  
-  runtimeConfig: {
-    public: {
-      authBaseURL: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/auth'
-    }
-  }
-})
-````
+- JWT handling: Setting up JWT token creating and validation with security best practices.
+- API endpoints: Supplying the expected endpoints, translating those requests into .NET Identity system calls, and returning the results in the expected form.
+- Error handling: Surfacing RFC 7807 compliant error responses with ProblemDetails middleware for better API consistency.
+- Role/claim visibility: Surfacing user's roles and claims in auth tokens and in the user session.
+- Refresh tokens: .NET Identity doesn't handle refresh tokens at all, so a big part of this libraries work is storing and validating those with automatic rotation.
 
 ### Addressing Specific Questions
 
@@ -141,10 +90,6 @@ export default defineNuxtConfig({
 - Session management handled by @sidebase/nuxt-auth local provider
 - Authorization policies can be extended for more granular permissions
 - Consider token refresh strategies for long-lived sessions
-
-## Implementation
-
-Detailed implementation guidance can be found in IDENTITY-DESIGN.md.
 
 ## Architecture Compatibility
 
