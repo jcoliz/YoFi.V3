@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import versionText from './assets/version.txt?raw';
 import * as api from "../utils/apiclient"
+definePageMeta({
+    title: 'About',
+    order: 4
+})
 
 useHead({
   title: 'About',

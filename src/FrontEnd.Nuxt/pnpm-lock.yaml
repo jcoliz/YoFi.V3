@@ -30,6 +30,9 @@ importers:
       '@types/node':
         specifier: ^24.10.0
         version: 24.10.0
+      nuxi:
+        specifier: ^3.30.0
+        version: 3.30.0
       sass:
         specifier: 1.93.3
         version: 1.93.3
@@ -2149,6 +2152,11 @@ packages:
 
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
+
+  nuxi@3.30.0:
+    resolution: {integrity: sha512-XBa68BF36jAlsXykoKQzEDeaEjxEGPNvzcvd7mkYH/Mzl25b9ji0m7HP0UBFer3Q7dWYV0nK0Citol1PktO3mg==}
+    engines: {node: ^16.10.0 || >=18.0.0}
+    hasBin: true
 
   nuxt@4.2.1:
     resolution: {integrity: sha512-OE5ONizgwkKhjTGlUYB3ksE+2q2/I30QIYFl3N1yYz1r2rwhunGA3puUvqkzXwgLQ3AdsNcigPDmyQsqjbSdoQ==}
@@ -5385,6 +5393,8 @@ snapshots:
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
+
+  nuxi@3.30.0: {}
 
   nuxt@4.2.1(@parcel/watcher@2.5.1)(@types/node@24.10.0)(@vue/compiler-sfc@3.5.24)(db0@0.3.4)(ioredis@5.8.2)(magicast@0.5.1)(rollup@4.53.1)(sass@1.93.3)(terser@5.44.1)(vite@7.2.2(@types/node@24.10.0)(jiti@2.6.1)(sass@1.93.3)(terser@5.44.1)(yaml@2.8.1))(yaml@2.8.1):
     dependencies:

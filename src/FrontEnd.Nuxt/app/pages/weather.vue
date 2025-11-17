@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
 import * as api from "../utils/apiclient"
+definePageMeta({
+    title: 'Weather',
+    order: 2
+})
 
 useHead({
   title: 'Weather',

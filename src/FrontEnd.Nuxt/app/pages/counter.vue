@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+definePageMeta({
+    title: 'Counter',
+    order: 3
+})
 
 useHead({
   title: 'Counter',

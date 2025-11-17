@@ -34,5 +34,9 @@ export default defineNuxtConfig({
         ? (process.env.services__backend__http__0) // During development, Aspire will provide the backend URL on this variable
         : (process.env.NUXT_PUBLIC_API_BASE_URL) // For production or container, the backend URL **must** be provided at build time
     }
+  },
+  appConfig:
+  {
+    name: "YoFi.V3"
   }
 })
