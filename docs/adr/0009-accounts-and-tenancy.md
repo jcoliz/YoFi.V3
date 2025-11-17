@@ -60,8 +60,7 @@ Examples:
 As an example, I would like to have my own personal "Account" which only I can access, as well as an "Account" that my wife and I share (household account).
 
 "Accounts" in YoFi have a one-to-many relationship with accounts at a bank. As it stands today, I download all transactions from multiple credit cards, and our
-savings account, and our checking account into a single YoFi "Account". Generally this
-works well, however, it would be useful to track which bank account any transaction
+savings account, and our checking account into a single YoFi "Account". Generally this works well, however, it would be useful to track which bank account any transaction
 came from.
 
 ### Multi-Tenancy Model: **Multi-Account Users with Role-Based Access**
@@ -104,14 +103,19 @@ came from.
 -- Users (from ASP.NET Core Identity)
 Users (Id, Email, UserName)
 
--- Account entity
-Accounts (Id, Name, CreatedBy, CreatedDate, IsActive)
+-- Account entity (Each account contains information pulled from multiple bank accounts)
+Accounts (Id, Name, IsActive)
+-- Future: CreatedBy, CreatedDate
+
+-- Bank Account maps to a physical account at a bank.
+BankAccount (Id, Name, Type, Number, AccountId)
 
 -- User-to-Account relationship with roles
-UserAccountAccess (UserId, AccountId, Role, InvitedBy, JoinedDate)
+UserAccountRoles (UserId, AccountId, Role)
+-- Future:InvitedBy, JoinedDate
 
 -- All financial data is account-scoped
-Transactions (Id, AccountId, Date, Amount, Description, ...)
+Transactions (Id, AccountId, BankAccountId, Date, Amount, Description, ...)
 Categories (Id, AccountId, Name, ...)
 Budgets (Id, AccountId, Month, Amount, ...)
 
@@ -187,12 +191,12 @@ UserPreferences (UserId, DefaultAccountId, Theme, ...)
 - **Account Management UI**: Need account settings, user management pages
 
 ### Migration Impact:
-- **From YoFi V1/V2**: Existing user data becomes their personal account
+- **From YoFi V1/V2**: When migrating existing data, user will identify which account to migrate it into 
 - **New Features**: All new features must be account-aware from day one
 - **API Design**: All endpoints must include account context
 
 ### Technical Implications:
-- **Application Layer**: All Features must accept AccountId parameter
+- **Application Layer**: All features must accept AccountId parameter
 - **Controllers**: Account-scoped authorization on all endpoints  
 - **Frontend**: Account selection/switching UI component
 - **Database**: Account foreign keys on all business entities
@@ -243,5 +247,6 @@ All existing YoFi data (transactions, categories, budgets, etc.) will be migrate
 
 ## Assorted Technical Details
 
-- **Account IDs**: Use GUIDs for security and uniqueness. My technical policy is that all identifiers which are visible to users are GUIDs.
-- **Default Account**: Updated when user switches accounts. If deault account is not accessible (user lost access, or account deleted), then user will be redirected to account switching page to choose a new default account.
+- **Account IDs**: Accounts, like all database entities, will use an integer as their database ID, and a separate GUID 'Key' to serve as their user-facing identifier.
+- **Current Account**: The account which user is currently interacting with. To interact with a different account, user must switch their current account. 
+- **Default Account**: Stored on the backend, this is the account which is loaded as the current account when user first logs in. Stored again when user switches current account. If default account is not accessible (user lost access, or account deleted), then user will be redirected to account switching page to choose a new default account.
