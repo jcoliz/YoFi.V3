@@ -111,7 +111,7 @@ Accounts (Id, Name, IsActive)
 BankAccount (Id, Name, Type, Number, AccountId)
 
 -- User-to-Account relationship with roles
-UserAccountRoles (UserId, AccountId, Role)
+UserAccountRoles (Id, UserId, AccountId, Role)
 -- Future:InvitedBy, JoinedDate
 
 -- All financial data is account-scoped
@@ -119,8 +119,8 @@ Transactions (Id, AccountId, BankAccountId, Date, Amount, Description, ...)
 Categories (Id, AccountId, Name, ...)
 Budgets (Id, AccountId, Month, Amount, ...)
 
--- User preferences (start global)
-UserPreferences (UserId, DefaultAccountId, Theme, ...)
+-- User preferences (separate table for flexibility)
+UserPreferences (Id, UserId, DefaultAccountId, Theme)
 ```
 
 ### Implementation Details

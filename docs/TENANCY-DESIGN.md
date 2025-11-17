@@ -185,3 +185,185 @@ var hasOwnerAccess = await context.UserAccountAccess
 ```
 
 This design gives you full flexibility for querying relationships while maintaining referential integrity and supporting your multi-tenant architecture from the ADR.
+
+---
+
+Prompt: "Question about ADR 0009. Is it better to have a separate user preferences table? Or is it better to put the prefs into the Users table? There is 1:1 mapping between user pref rows and user rows."
+
+Great question! For a 1:1 relationship like user preferences, there are good arguments for both approaches. Let me break down the considerations:
+
+## Option 1: Separate UserPreferences Table
+
+```sql
+Users (Id, Email, UserName, ...)
+UserPreferences (Id, UserId, DefaultAccountId, Theme, DateFormat, Currency, ...)
+```
+
+### ✅ Pros:
+- **Clean separation** - Core identity data separate from app preferences
+- **Optional preferences** - User can exist without preferences row
+- **Extensible** - Easy to add new preference columns without touching Identity tables
+- **Query optimization** - Can query users without loading preference data
+- **Migration friendly** - Adding preferences doesn't require altering Identity tables
+
+### ❌ Cons:
+- **JOIN overhead** - Need JOIN to get user + preferences
+- **Potential orphan data** - Preferences could exist without user (if not careful)
+- **More complex queries** - `LEFT JOIN` needed since preferences might not exist
+
+## Option 2: Preferences in Users Table
+
+```sql
+Users (Id, Email, UserName, DefaultAccountId, Theme, DateFormat, Currency, ...)
+```
+
+### ✅ Pros:
+- **Simple queries** - Everything in one table
+- **Better performance** - No JOINs needed
+- **Guaranteed consistency** - Preferences always exist with user
+- **Easier EF modeling** - Just properties on ApplicationUser
+
+### ❌ Cons:
+- **Mixed concerns** - Identity data mixed with app-specific data
+- **Migration complexity** - Adding preferences requires altering Identity table
+- **Nullable columns** - Preferences need default values or nullable types
+
+## My Recommendation: **Separate UserPreferences Table**
+
+For your YoFi.V3 project, I'd recommend the separate table approach because:
+
+### 1. **You're Extending IdentityUser**
+```csharp
+public class ApplicationUser : IdentityUser
+{
+    // Keep this clean - just navigation properties
+    public virtual UserPreferences? Preferences { get; set; }
+    public virtual ICollection<UserAccountAccess> AccountAccess { get; set; }
+}
+
+public class UserPreferences
+{
+    public Guid Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public Guid? DefaultAccountId { get; set; }
+    public string Theme { get; set; } = "light";
+    
+    // Navigation
+    public virtual ApplicationUser User { get; set; } = null!;
+    public virtual Account? DefaultAccount { get; set; }
+}
+```
+
+### 2. **Future Flexibility**
+Your ADR mentions starting with minimal preferences but expanding later. A separate table makes this much easier:
+
+```csharp
+// Easy to add later without touching Identity
+public class UserPreferences
+{
+    // Phase 1: Minimal
+    public Guid? DefaultAccountId { get; set; }
+    public string Theme { get; set; } = "light";
+    
+    // Phase 2: Add these later
+    // public string DateFormat { get; set; }
+    // public string Currency { get; set; }
+    // public bool EmailNotifications { get; set; }
+    // public TimeZoneInfo TimeZone { get; set; }
+}
+```
+
+### 3. **EF Configuration**
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+    
+    // User preferences (1:1 optional)
+    modelBuilder.Entity<ApplicationUser>()
+        .HasOne(u => u.Preferences)
+        .WithOne(p => p.User)
+        .HasForeignKey<UserPreferences>(p => p.UserId)
+        .OnDelete(DeleteBehavior.Cascade);
+        
+    // Default account relationship
+    modelBuilder.Entity<UserPreferences>()
+        .HasOne(p => p.DefaultAccount)
+        .WithMany()
+        .HasForeignKey(p => p.DefaultAccountId)
+        .OnDelete(DeleteBehavior.SetNull);
+}
+```
+
+### 4. **Usage Pattern**
+```csharp
+// Get user with preferences
+var user = await context.Users
+    .Include(u => u.Preferences)
+    .Include(u => u.AccountAccess)
+    .FirstAsync(u => u.Id == userId);
+
+// Create preferences if they don't exist
+if (user.Preferences == null)
+{
+    user.Preferences = new UserPreferences 
+    { 
+        UserId = user.Id,
+        Theme = "light"
+    };
+    await context.SaveChangesAsync();
+}
+```
+
+## Implementation Tips
+
+### 1. **Lazy Creation Pattern**
+```csharp
+public async Task<UserPreferences> GetOrCreateUserPreferencesAsync(string userId)
+{
+    var prefs = await context.UserPreferences.FirstOrDefaultAsync(p => p.UserId == userId);
+    if (prefs == null)
+    {
+        prefs = new UserPreferences { UserId = userId };
+        context.UserPreferences.Add(prefs);
+        await context.SaveChangesAsync();
+    }
+    return prefs;
+}
+```
+
+### 2. **Extension Method for Convenience**
+```csharp
+public static class ApplicationUserExtensions
+{
+    public static async Task<UserPreferences> GetPreferencesAsync(
+        this ApplicationUser user, 
+        ApplicationDbContext context)
+    {
+        if (user.Preferences != null) return user.Preferences;
+        
+        return await context.GetOrCreateUserPreferencesAsync(user.Id);
+    }
+}
+```
+
+## Updated ADR Schema
+
+```sql
+-- Users (from ASP.NET Core Identity)
+Users (Id, Email, UserName)
+
+-- Account entity
+Accounts (Id, Key, Name, IsActive)
+
+-- User-to-Account relationship with roles  
+UserAccountAccess (Id, UserId, AccountId, Role)
+
+-- User preferences (separate table for flexibility)
+UserPreferences (Id, UserId, DefaultAccountId, Theme)
+
+-- All financial data is account-scoped
+Transactions (Id, AccountId, Date, Amount, Description, ...)
+```
+
+The separate table approach gives you the best balance of clean separation, future flexibility, and performance for your multi-tenant architecture.
