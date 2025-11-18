@@ -111,7 +111,7 @@ Accounts (Id, Name, IsActive)
 BankAccount (Id, Name, Type, Number, AccountId)
 
 -- User-to-Account relationship with roles
-UserAccountRoles (Id, UserId, AccountId, Role)
+UserAccountRoleAssignment (Id, UserId, AccountId, Role)
 -- Future:InvitedBy, JoinedDate
 
 -- All financial data is account-scoped
@@ -247,6 +247,5 @@ All existing YoFi data (transactions, categories, budgets, etc.) will be migrate
 
 ## Assorted Technical Details
 
-- **Account IDs**: Accounts, like all database entities, will use an integer as their database ID, and a separate GUID 'Key' to serve as their user-facing identifier.
 - **Current Account**: The account which user is currently interacting with. To interact with a different account, user must switch their current account. 
 - **Default Account**: Stored on the backend, this is the account which is loaded as the current account when user first logs in. Stored again when user switches current account. If default account is not accessible (user lost access, or account deleted), then user will be redirected to account switching page to choose a new default account.
