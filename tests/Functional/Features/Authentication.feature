@@ -18,6 +18,7 @@ Scenario: User registers for a new account
     When I enter valid registration details:
         | Field            | Value                    |
         | Email            | newuser@example.com      |
+        | Username         | newuser                 |
         | Password         | SecurePassword123!       |
         | Confirm Password | SecurePassword123!       |
     And I submit the registration form

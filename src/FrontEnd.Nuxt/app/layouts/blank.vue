@@ -1,9 +1,7 @@
 <template>
-    <div data-test-id="blank-layout">
-        <main class="container align-items-center d-flex justify-content-center">
-            <div class="text-center p-5">
-                <slot/>
-            </div>
-        </main>
-    </div>
+    <main data-test-id="blank-layout" class="min-vh-100 d-flex align-items-center justify-content-center">
+        <div class="container-fluid">
+            <slot/>
+        </div>
+    </main>
 </template>
