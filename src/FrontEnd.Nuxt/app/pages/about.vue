@@ -31,39 +31,64 @@ const frontEndVersion = runtimeConfig.public.solutionVersion
 
 </script>
 <template>
-    <dl class="version-list">
-        <div class="version-item">
-            <dt><strong>Front End Version</strong><br/><small>runtimeConfig.public.solutionVersion</small></dt>
-            <dd>{{ frontEndVersion }}</dd>
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title mb-0">Version Information</h4>
         </div>
-        <div class="version-item">
-            <dt><strong>Back End Version</strong><br/><small>/api/version</small></dt>
-            <dd>{{ version }}</dd>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-sm-4">
+              <strong>Front End Version</strong><br/>
+              <small class="text-muted">runtimeConfig.public.solutionVersion</small>
+            </div>
+            <div class="col-sm-8">
+              {{ frontEndVersion }}
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4">
+              <strong>Back End Version</strong><br/>
+              <small class="text-muted">/api/version</small>
+            </div>
+            <div class="col-sm-8">
+              {{ version }}
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-sm-4">
+              <strong>API Base URL</strong>
+            </div>
+            <div class="col-sm-8">
+              {{ baseUrl }}
+            </div>
+          </div>
         </div>
-        <div class="version-item">
-            <dt><strong>API Base URL</strong></dt>
-            <dd>{{ baseUrl }}</dd>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Application Info</h5>
         </div>
-    </dl>
+        <div class="card-body">
+          <p class="text-muted">
+            <small>YoFi V3 is a personal finance management application built with Nuxt 4 and ASP.NET Core.</small>
+          </p>
+          <div class="d-grid gap-2 mt-3">
+            <a href="https://github.com/jcoliz/YoFi.V3" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-github me-1"></i>
+              YoFi V3 Repository
+            </a>
+            <a href="https://github.com/jcoliz/YoFi" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-github me-1"></i>
+              YoFi Original Repository
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.version-list {
-    display: grid;
-    gap: 1rem;
-}
-
-.version-item {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 2rem;
-}
-
-.version-item dt {
-    margin: 0;
-}
-
-.version-item dd {
-    margin: 0;
-}
-</style>
