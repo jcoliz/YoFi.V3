@@ -31,7 +31,7 @@ function systemLogout()
 </script>
 
 <template>
-    <DropDownPortable class="ms-2 my-1 d-flex align-items-middle">
+    <DropDownPortable class="ms-2 my-1 d-flex align-items-middle" data-test-id="login-state">
         <template #trigger>
             <a class="d-flex align-items-center link-body-emphasis text-decoration-none p-0 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 <template v-if="account">
@@ -45,17 +45,17 @@ function systemLogout()
             <!-- Note that popper is handling absolute positioning of the drop-down -->
             <ul class="dropdown-menu dropdown-menu-end text-small shadow">
                 <template v-if="account">
-                    <li><NuxtLink class="dropdown-item" to="/profile" >Profile</NuxtLink></li>
+                    <li><NuxtLink class="dropdown-item" to="/profile" data-test-id="Profile">Profile</NuxtLink></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" @click="systemLogout" >Sign Out</a></li>
+                    <li><a class="dropdown-item" @click="systemLogout" data-test-id="SignOut">Sign Out</a></li>
                 </template>
                 <template v-else>
-                    <li><a class="dropdown-item" @click="systemLogin" >Sign In</a></li>
+                    <li><a class="dropdown-item" @click="systemLogin" data-test-id="SignIn">Sign In</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><NuxtLink class="dropdown-item" to="/register" >Create Account</NuxtLink></li>
+                    <li><NuxtLink class="dropdown-item" to="/register" data-test-id="CreateAccount">Create Account</NuxtLink></li>
                     <li><hr class="dropdown-divider"></li>
                     <!-- Just for now! -->
-                    <li><NuxtLink class="dropdown-item" to="/profile" >Profile</NuxtLink></li>
+                    <li><NuxtLink class="dropdown-item" to="/profile" data-test-id="ProfileTemp">Profile</NuxtLink></li>
                 </template>
             </ul>
         </template>
