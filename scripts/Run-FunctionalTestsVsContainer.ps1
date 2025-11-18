@@ -5,14 +5,19 @@
 #
 
 $ErrorActionPreference = "Stop"
-Write-Output "Building and starting docker services..."
-$SolutionVersion = ./scripts/Get-Version.ps1
-docker compose -f ./docker/docker-compose-ci.yml up --build -d --wait --build-arg SOLUTION_VERSION=$SolutionVersion
 
-Push-Location ./tests/Functional
-Write-Output "Running tests..."
-dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\docker.runsettings
-Pop-Location
+try {
+    $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
+    Write-Output "Building and starting docker services with solution version $env:SOLUTION_VERSION..."
+    docker compose -f ./docker/docker-compose-ci.yml up --build -d --wait
 
-Write-Output "Stopping docker services..."
-docker compose -f ./docker/docker-compose-ci.yml down
+    Push-Location ./tests/Functional
+    Write-Output "Running tests..."
+    dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\docker.runsettings
+    Pop-Location
+}
+finally {
+    Write-Output "Stopping docker services..."
+    docker compose -f ./docker/docker-compose-ci.yml down
+    Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
+}
