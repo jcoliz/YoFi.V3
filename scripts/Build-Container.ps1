@@ -6,6 +6,7 @@
 
 try {
     $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
+    $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps" # Tag as built by this script
     docker compose -f ./docker/docker-compose-ci.yml build
     Write-Output "Built Docker CI containers with solution version $env:SOLUTION_VERSION"
 }

@@ -23,7 +23,7 @@
           Condition="'$(SolutionVersion)' == ''">
       <Output TaskParameter="ConsoleOutput" PropertyName="SolutionVersion" />
     </Exec>
-    
+
     <!-- Fallback value -->
     <PropertyGroup>
       <SolutionVersion Condition="'$(SolutionVersion)' == ''">local-build-unknown</SolutionVersion>
