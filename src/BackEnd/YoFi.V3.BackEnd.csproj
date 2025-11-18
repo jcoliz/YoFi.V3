@@ -10,11 +10,27 @@
     <PackageReference Include="NSwag.AspNetCore" Version="14.6.2" />
   </ItemGroup>
 
-  <Target Name="Version" BeforeTargets="PreBuildEvent">
-    <Exec Command="pwsh --command &quot; &amp;'$(ProjectDir)\..\..\scripts\Get-Version.ps1' &gt; '$(BaseIntermediateOutputPath)\version.txt' &quot;" />
+  <PropertyGroup>
+    <!-- consider disabling automatic git info appending -->
+    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- Generate version using Get-Version.ps1 -->
+  <Target Name="SetSolutionVersion" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo">
+    <!-- Only run the script if SolutionVersion not already set -->
+    <Exec Command="pwsh -Command &quot;&amp;'$(ProjectDir)\..\..\scripts\Get-Version.ps1'&quot;" 
+          ConsoleToMSBuild="true"
+          Condition="'$(SolutionVersion)' == ''">
+      <Output TaskParameter="ConsoleOutput" PropertyName="SolutionVersion" />
+    </Exec>
+    
+    <!-- Fallback value -->
+    <PropertyGroup>
+      <SolutionVersion Condition="'$(SolutionVersion)' == ''">local-build-unknown</SolutionVersion>
+      <InformationalVersion>$(SolutionVersion)</InformationalVersion>
+    </PropertyGroup>
+    
+    <Message Importance="high" Text="Using SolutionVersion: $(SolutionVersion)" />
   </Target>
 
-  <ItemGroup>
-    <EmbeddedResource Include="$(BaseIntermediateOutputPath)\version.txt" />
-  </ItemGroup>
 </Project>

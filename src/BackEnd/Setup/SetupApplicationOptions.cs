@@ -12,17 +12,14 @@ public static class __SetupApplicationOptions
     {
         builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection(ApplicationOptions.Section));
 
-        // Get app version, store in configuration for later use
+        // Get app version from assembly attribute
         var assembly = Assembly.GetEntryAssembly();
-        var resource = assembly!.GetManifestResourceNames().Where(x => x.EndsWith(".version.txt")).SingleOrDefault();
-        if (resource is not null)
-        {
-            using var stream = assembly.GetManifestResourceStream(resource);
-            using var streamreader = new StreamReader(stream!);
-            var version = streamreader.ReadLine();
-            builder.Configuration["Application:Version"] = version;
-            logger.LogInformation(21,"Version: {version}", version);
-        }
+        var version = assembly?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "unknown";
+            
+        builder.Configuration["Application:Version"] = version;
+        logger.LogInformation(21, "Version: {version}", version);
 
         return builder;
     }
