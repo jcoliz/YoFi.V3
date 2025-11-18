@@ -51,6 +51,8 @@ function systemLogout()
                 </template>
                 <template v-else>
                     <li><a class="dropdown-item" @click="systemLogin" >Log in</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><NuxtLink class="dropdown-item" to="/register" >Register</NuxtLink></li>
                 </template>
             </ul>
         </template>
