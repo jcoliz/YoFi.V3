@@ -17,6 +17,8 @@ const client = new api.VersionClient(baseUrl)
  */
 
 const version = ref<string>("Loading...")
+const runtimeConfig = useRuntimeConfig()
+const frontEndVersion = runtimeConfig.public.solutionVersion
 
 /**
  * When mounted, get the view data from server
@@ -32,8 +34,12 @@ const version = ref<string>("Loading...")
 <template>
     <table>
         <tr>
-            <td><strong class="me-2">Front End Version</strong></td>
+            <td><strong class="me-2">Version.Txt</strong></td>
             <td>{{ versionText }}</td>
+        </tr>
+        <tr>
+            <td><strong class="me-2">Front End Version</strong></td>
+            <td>{{ frontEndVersion }}</td>
         </tr>
         <tr>
             <td><strong class="me-2">Back End Version</strong></td>
