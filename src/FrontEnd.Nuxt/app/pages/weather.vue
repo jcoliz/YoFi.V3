@@ -6,10 +6,6 @@ definePageMeta({
     order: 2
 })
 
-useHead({
-  title: 'Weather',
-});
-
 /**
  * Forecast data to display
  */
@@ -54,8 +50,6 @@ const client = new api.WeatherClient(baseUrl)
 
 <template>
     <main>
-        <h1>Weather</h1>
-
         <p>This component demonstrates showing data loaded from a backend API service.</p>
 
         <p v-if="isLoading"><em>Loading...</em></p>

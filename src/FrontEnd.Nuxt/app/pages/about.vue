@@ -6,10 +6,6 @@ definePageMeta({
     order: 4
 })
 
-useHead({
-  title: 'About',
-});
-
 /**
  * Client for communicating with server
  */
@@ -34,7 +30,6 @@ const version = ref<string>("Loading...")
 
 </script>
 <template>
-    <h1>About</h1>
     <table>
         <tr>
             <td><strong class="me-2">Front End Version</strong></td>

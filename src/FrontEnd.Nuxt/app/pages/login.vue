@@ -1,11 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
-    title: 'Login'
+    title: 'Login',
+    // TODO: When login actually works: `layout: 'blank'`
 })
-useHead({
-  title: 'Login',
-});
+
 </script>
-<template>
-    <h1>Login</h1>
-</template>

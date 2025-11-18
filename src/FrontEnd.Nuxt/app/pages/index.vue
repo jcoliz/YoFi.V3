@@ -3,10 +3,4 @@ definePageMeta({
     title: 'Home',
     order: 1
 })
-useHead({
-  title: 'Home',
-});
 </script>
-<template>
-    <h1>Home</h1>
-</template>

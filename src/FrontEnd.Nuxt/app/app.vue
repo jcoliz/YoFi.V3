@@ -1,3 +1,19 @@
+<script setup lang="ts">
+const appConfig = useAppConfig()
+const route = useRoute()
+
+// Create a reactive computed title
+const pageTitle = computed(() => {
+  return route.meta.title ? `${route.meta.title} - ${appConfig.name}` : appConfig.name
+})
+
+useHead({
+  htmlAttrs: {
+    lang: "en"
+  },
+  title: pageTitle
+});
+</script>
 <template>
   <div>
     <NuxtLayout>
@@ -5,13 +21,3 @@
     </NuxtLayout>
   </div>
 </template>
-<script setup lang="ts">
-useHead({
-  htmlAttrs: {
-    lang: "en"
-  },
-  titleTemplate: (titleChunk) => {
-    return titleChunk ? `${titleChunk} - YoFi.V3` : 'YoFi.V3';
-  },  
-});
-</script>
