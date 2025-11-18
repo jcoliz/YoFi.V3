@@ -53,6 +53,9 @@ function systemLogout()
                     <li><a class="dropdown-item" @click="systemLogin" >Log in</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><NuxtLink class="dropdown-item" to="/register" >Register</NuxtLink></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <!-- Just for now! -->
+                    <li><NuxtLink class="dropdown-item" to="/profile" >Profile</NuxtLink></li>
                 </template>
             </ul>
         </template>
