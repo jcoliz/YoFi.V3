@@ -17,5 +17,4 @@
   <ItemGroup>
     <EmbeddedResource Include="$(BaseIntermediateOutputPath)\version.txt" />
   </ItemGroup>
-
 </Project>
