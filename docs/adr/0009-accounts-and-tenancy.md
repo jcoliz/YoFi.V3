@@ -94,28 +94,42 @@ As an example, I would like to have my own personal "Workspace" which only I can
 - No cross-Workspace data sharing
 - User preferences are global (not Workspace-scoped)
 
+#### Implementation vs. User Interface Terminology
+
+**Implementation Layer**: Uses "Tenant" terminology throughout the codebase
+- Database tables: `Tenants`, `UserTenantRoles`, etc.
+- C# classes: `Tenant`, `TenantId`, `ITenantService`, etc.
+- API routes: `/api/tenant/{tenantId}/transactions`
+
+**User Interface Layer**: Uses "Workspace" terminology for end users
+- UI components: Workspace selector, workspace switcher
+- User-facing documentation and help text
+- API documentation for frontend consumption
+
+**Rationale**: This separation allows UI terminology to evolve based on user testing while keeping the implementation domain-agnostic and reusable for other multi-tenant applications.
+
 ### Database Schema Implications
 
 ```sql
 -- Users (from ASP.NET Core Identity)
 Users (Id, Email, UserName)
 
--- Workspace entity (logical tenant boundary for financial data)
-Workspaces (Id, Name, IsActive)
+-- Tenant entity (logical tenant boundary for financial data)
+-- Note: Called "Workspace" in UI, "Tenant" in implementation
+Tenants (Id, Name, IsActive)
 -- Future: CreatedBy, CreatedDate
 
--- User-to-Workspace relationship with roles
-UserWorkspaceRoleAssignment (Id, UserId, WorkspaceId, Role)
+-- User-to-Tenant relationship with roles
+UserTenantRolesAssignments (Id, UserId, TenantId, Role)
 -- Future: InvitedBy, JoinedDate
 
--- All financial data is Workspace-scoped
-Transactions (Id, WorkspaceId, Date, Amount, Description, Source)
--- Source examples: "Chase Credit Card", "Wells Checking", "Cash", "Venmo", "Manual Entry"
-Categories (Id, WorkspaceId, Name)
-Budgets (Id, WorkspaceId, Month, Amount)
+-- All financial data is tenant-scoped
+Transactions (Id, TenantId, Date, Amount, Description, Source)
+Categories (Id, TenantId, Name)
+Budgets (Id, TenantId, Month, Amount)
 
 -- User preferences (separate table for flexibility)
-UserPreferences (Id, UserId, DefaultWorkspaceId, Theme)
+UserPreferences (Id, UserId, DefaultTenantId, Theme)
 ```
 
 ## Transaction Source Tracking
@@ -147,24 +161,44 @@ UserPreferences (Id, UserId, DefaultWorkspaceId, Theme)
 {
   "sub": "user123",
   "email": "john@example.com",
-  "entitlements": "Workspace1_guid:owner,Workspace2_guid:editor,Workspace3_guid:viewer"
+  "entitlements": "tenant1_guid:owner,tenant2_guid:editor,tenant3_guid:viewer"
 }
 ```
 
 #### API URL Structure
 
 ```
-/api/Workspace/{WorkspaceID}/transactions
-/api/Workspace/{WorkspaceID}/categories
-/api/Workspace/{WorkspaceID}/budgets
-/api/Workspace/{WorkspaceID}/reports
+/api/tenant/{tenantId}/transactions
+/api/tenant/{tenantId}/categories
+/api/tenant/{tenantId}/budgets
+/api/tenant/{tenantId}/reports
 ```
 
 #### Authorization Policies
 
-- **WorkspaceView**: User must have Viewer, Editor, or Owner role for the Workspace
-- **WorkspaceEdit**: User must have Editor or Owner role for the Workspace
-- **WorkspaceOwn**: User must have Owner role for the Workspace
+- **TenantView**: User must have Viewer, Editor, or Owner role for the tenant
+- **TenantEdit**: User must have Editor or Owner role for the tenant  
+- **TenantOwn**: User must have Owner role for the tenant
+
+#### Code Organization
+
+```
+src/
+  Entities/
+    Models/
+      Tenant.cs              // Core tenant entity
+      ITenantScoped.cs       // Interface for tenant-scoped entities
+  Application/
+    Services/
+      ITenantService.cs      // Tenant management
+      TenantContext.cs       // Current tenant context
+  Controllers/
+    TenantController.cs      // Backend tenant operations
+  Frontend/
+    Components/
+      WorkspaceSelector.vue  // UI uses "workspace" terminology
+      WorkspaceSwitcher.vue
+```
 
 ### Workspace Lifecycle
 
@@ -198,6 +232,9 @@ UserPreferences (Id, UserId, DefaultWorkspaceId, Theme)
 - **Scalable Authorization**: Role-based access scales to complex scenarios
 - **Family-Friendly**: Multiple family members can collaborate
 - **Business-Ready**: Proper permission model for business use
+- **Domain Agnostic Code**: Implementation can be reused for other multi-tenant applications
+- **UI Flexibility**: Can change user-facing terminology without code changes
+- **Developer Clarity**: Standard multi-tenancy patterns recognizable to any developer
 
 ### What becomes more complex:
 - **Database Queries**: All queries must be Workspace-scoped
@@ -212,10 +249,12 @@ UserPreferences (Id, UserId, DefaultWorkspaceId, Theme)
 - **API Design**: All endpoints must include Workspace context
 
 ### Technical Implications:
-- **Application Layer**: All features must accept WorkspaceId parameter
-- **Controllers**: Workspace-scoped authorization on all endpoints  
-- **Frontend**: Workspace selection/switching UI component
-- **Database**: Workspace foreign keys on all business entities
+- **Application Layer**: All features must accept TenantId parameter
+- **Controllers**: Tenant-scoped authorization on all endpoints  
+- **Frontend**: Workspace selection/switching UI component (maps to tenant backend)
+- **Database**: Tenant foreign keys on all business entities
+- **API Layer**: Uses tenant terminology for implementation clarity
+- **UI Layer**: Uses workspace terminology for user experience
 
 ## Implementation Phases
 
@@ -263,5 +302,12 @@ All existing YoFi data (transactions, categories, budgets, etc.) will be migrate
 
 ## Assorted Technical Details
 
-- **Current Workspace**: The Workspace which user is currently interacting with. To interact with a different Workspace, user must switch their current Workspace. 
-- **Default Workspace**: Stored on the backend, this is the Workspace which is loaded as the current Workspace when user first logs in. Stored again when user switches current Workspace. If default Workspace is not accessible (user lost access, or Workspace deleted), then user will be redirected to Workspace switching page to choose a new default Workspace.
+- **Current Tenant**: The tenant which user is currently interacting with (displayed as "Current Workspace" in UI)
+- **Default Tenant**: Stored on the backend, this is the tenant which is loaded as the current tenant when user first logs in (displayed as "Default Workspace" in UI)
+- **Terminology Mapping**: 
+  - Backend: Tenant, TenantId, ITenantService
+  - Frontend: Workspace, WorkspaceId, useWorkspace()
+  - Database: Tenants table, TenantId columns
+  - UI: "Workspace" in all user-facing text
+
+
