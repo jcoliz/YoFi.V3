@@ -1,0 +1,4 @@
+# .watchignore
+*.db
+*.db-shm
+*.db-wal
