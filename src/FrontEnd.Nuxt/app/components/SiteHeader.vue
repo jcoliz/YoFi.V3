@@ -2,7 +2,7 @@
 const appConfig = useAppConfig()
 const displayRoutes = useRouter()
   .getRoutes()
-  .filter(x => x.meta.order)
+  .filter(x => x.meta.order)  
   .sort((x, y) => (x.meta.order as number) - (y.meta.order as number))
 </script>
 <template>
@@ -22,6 +22,7 @@ const displayRoutes = useRouter()
           >{{ route.meta.title }}</NuxtLink>
         </ul>
       </nav>
+        <LoginState/>
     </header>
   </div>
 </template>
