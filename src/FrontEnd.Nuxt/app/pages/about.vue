@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import versionText from './assets/version.txt?raw';
 import * as api from "../utils/apiclient"
 definePageMeta({
     title: 'About',
@@ -32,22 +31,39 @@ const frontEndVersion = runtimeConfig.public.solutionVersion
 
 </script>
 <template>
-    <table>
-        <tr>
-            <td><strong class="me-2">Version.Txt</strong></td>
-            <td>{{ versionText }}</td>
-        </tr>
-        <tr>
-            <td><strong class="me-2">Front End Version</strong></td>
-            <td>{{ frontEndVersion }}</td>
-        </tr>
-        <tr>
-            <td><strong class="me-2">Back End Version</strong></td>
-            <td>{{ version }}</td>
-        </tr>
-        <tr>
-            <td><strong class="me-2">API Base URL</strong></td>
-            <td>{{ baseUrl }}</td>
-        </tr>
-    </table>
+    <dl class="version-list">
+        <div class="version-item">
+            <dt><strong>Front End Version</strong><br/><small>runtimeConfig.public.solutionVersion</small></dt>
+            <dd>{{ frontEndVersion }}</dd>
+        </div>
+        <div class="version-item">
+            <dt><strong>Back End Version</strong><br/><small>/api/version</small></dt>
+            <dd>{{ version }}</dd>
+        </div>
+        <div class="version-item">
+            <dt><strong>API Base URL</strong></dt>
+            <dd>{{ baseUrl }}</dd>
+        </div>
+    </dl>
 </template>
+
+<style scoped>
+.version-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.version-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+}
+
+.version-item dt {
+    margin: 0;
+}
+
+.version-item dd {
+    margin: 0;
+}
+</style>
