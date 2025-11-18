@@ -103,25 +103,71 @@ came from.
 -- Users (from ASP.NET Core Identity)
 Users (Id, Email, UserName)
 
--- Account entity (Each account contains information pulled from multiple bank accounts)
+-- Account entity (logical tenant boundary for financial data)
 Accounts (Id, Name, IsActive)
 -- Future: CreatedBy, CreatedDate
 
--- Bank Account maps to a physical account at a bank.
-BankAccount (Id, Name, Type, Number, AccountId)
-
 -- User-to-Account relationship with roles
 UserAccountRoleAssignment (Id, UserId, AccountId, Role)
--- Future:InvitedBy, JoinedDate
+-- Future: InvitedBy, JoinedDate
 
 -- All financial data is account-scoped
-Transactions (Id, AccountId, BankAccountId, Date, Amount, Description, ...)
-Categories (Id, AccountId, Name, ...)
-Budgets (Id, AccountId, Month, Amount, ...)
+Transactions (Id, AccountId, Date, Amount, Description, Source)
+-- Source examples: "Chase Credit Card", "Wells Checking", "Cash", "Venmo", "Manual Entry"
+Categories (Id, AccountId, Name)
+Budgets (Id, AccountId, Month, Amount)
 
 -- User preferences (separate table for flexibility)
 UserPreferences (Id, UserId, DefaultAccountId, Theme)
 ```
+
+
+Here's the updated ADR section with the "Source" approach:
+
+## Database Schema Implications
+
+```sql
+-- Users (from ASP.NET Core Identity)
+Users (Id, Email, UserName)
+
+-- Account entity (logical tenant boundary for financial data)
+Accounts (Id, Name, IsActive)
+-- Future: CreatedBy, CreatedDate
+
+-- User-to-Account relationship with roles
+UserAccountRoleAssignment (Id, UserId, AccountId, Role)
+-- Future: InvitedBy, JoinedDate
+
+-- All financial data is account-scoped
+Transactions (Id, AccountId, Date, Amount, Description, Source)
+-- Source examples: "Chase Credit Card", "Wells Checking", "Cash", "Venmo", "Manual Entry"
+Categories (Id, AccountId, Name)
+Budgets (Id, AccountId, Month, Amount)
+
+-- User preferences (separate table for flexibility)
+UserPreferences (Id, UserId, DefaultAccountId, Theme)
+```
+
+## Transaction Source Tracking
+
+**Source Field**: Each transaction includes a `Source` field that identifies where the transaction originated. This provides the bank account tracking functionality in a simple, flexible way.
+
+**Source Examples:**
+- `"Chase Freedom Credit Card"` - Credit card transactions
+- `"Wells Fargo Checking"` - Bank account transactions  
+- `"Cash"` - Cash transactions
+- `"Venmo"` - Digital payment transactions
+- `"Manual Entry"` - User-entered adjustments
+- `"Transfer from Wells"` - Internal transfers
+
+**Benefits of Source Approach:**
+- **Simple Implementation**: No complex foreign key relationships initially
+- **Natural Language**: Users immediately understand "where did this come from?"
+- **Import Friendly**: Easy to set during transaction imports from banks
+- **Flexible**: Can handle any transaction source without schema changes
+- **Future Ready**: Can evolve to structured entities later if needed
+
+**Future Evolution**: If more structured source management is needed, the Source field can later be supplemented with a formal `TransactionSources` table while maintaining backward compatibility.
 
 ### Implementation Details
 
