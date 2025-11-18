@@ -10,6 +10,7 @@ services:
           # perspective of JS code running in user's browser, *not* from the perspective of
           # within the container.
         - NUXT_PUBLIC_API_BASE_URL=http://localhost:5001
+        - NUXT_PUBLIC_SOLUTION_VERSION=${SOLUTION_VERSION:-'docker-compose'}
     restart: always
     ports:
       - '5000:80'
