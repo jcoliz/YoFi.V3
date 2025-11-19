@@ -88,14 +88,24 @@ Deployment Pipeline Inputs:
   azureStaticAppApiToken: <your_deployment_token>
   azureAppServiceName: web-{suffix}
   backendBaseUrl: https://web-{suffix}.azurewebsites.net
+  appInsightsConnectionString: <your_appinsights_connection_string>
 ```
 
 ### 2. Set up CD
 - YoFi.V3 includes CD pipeline definitions for Azure Pipelines
 - Create a new pipeline
 - Add the "deployment pipeline inputs" given above as pipeline variables
+- TODO: Add appInsightsConnectionString to CD config
 
-### 3. Monitoring
+### 3. Set up local development monitoring (TODO)
+- Create `./src/AppHost/config.toml`
+- Add these lines:
+    ```toml
+    [Application]
+    ApplicationInsights=<your_appinsights_connection_string>
+    ```
+
+### 4. Monitoring
 Access your application monitoring at:
 - **Application Insights**: Search for "insights-{suffix}" in Azure Portal
 - **Log Analytics**: Search for "logs-{suffix}" in Azure Portal

@@ -1,7 +1,12 @@
+using Microsoft.Extensions.Configuration;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+// TODO: Read from config file
 
 var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
     .WithHttpHealthCheck("/health")
+//TODO:    .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
     .WithEnvironment("APPLICATION__ENVIRONMENT", "Local");
 
 // Note that the version of the frontend isn't super relevant
@@ -12,6 +17,7 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 
 builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
     .WithEnvironment("NUXT_PUBLIC_SOLUTION_VERSION", "Aspire")
+// TODO:    .WithEnvironment("NUXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
     .WithReference(apiService)
     .WithHttpEndpoint(port: 5173, env: "PORT")
     .WithExternalHttpEndpoints()

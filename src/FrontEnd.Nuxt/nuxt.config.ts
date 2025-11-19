@@ -27,12 +27,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // This will be replaced by NUXT_PUBLIC_SOLUTION_VERSION during build
-      solutionVersion: '0.0', 
+      solutionVersion: 'nuxt.config.ts', 
       // During development, this value is supplied by Aspire in the AppHost
       // For Containers/Production, it is overwritten during the static generation step
       // by the NUXT_PUBLIC_API_BASE_URL environment variable
-      apiBaseUrl: process.env.services__backend__http__0
-      // That's the theory anyway! Need to test this!!
+      apiBaseUrl: process.env.services__backend__http__0,
+      applicationInsightsConnectionString: process.env.NUXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING || ''
     }
   },
   appConfig:
