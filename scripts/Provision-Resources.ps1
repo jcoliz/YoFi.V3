@@ -16,7 +16,8 @@ Write-Output "Creating Resource Group $ResourceGroup in $Location"
 az group create --name $ResourceGroup --location $Location
 
 Write-Output "Deploying to Resource Group $ResourceGroup"
-$result = az deployment group create --name "Deploy-$(Get-Random)" --resource-group $ResourceGroup --template-file "$PSScriptRoot/main.bicep" --parameter staticWebAppLocation=$StaticWebAppLocation | ConvertFrom-Json
+$Top = "$PSScriptRoot/.."
+$result = az deployment group create --name "Deploy-$(Get-Random)" --resource-group $ResourceGroup --template-file "$Top/infra/main.bicep" --parameter staticWebAppLocation=$StaticWebAppLocation | ConvertFrom-Json
 
 $staticWebAppName = $result.properties.outputs.staticWebAppName.value
 $webAppName = $result.properties.outputs.webAppName.value
