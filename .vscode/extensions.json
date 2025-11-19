@@ -5,6 +5,8 @@
     "dbaeumer.vscode-eslint",
     "editorconfig.editorconfig",
     "bierner.markdown-mermaid",
-    "yzhang.markdown-all-in-one"
+    "yzhang.markdown-all-in-one",
+    "ms-azuretools.vscode-bicep",
+    "ms-playwright.playwright"
   ]
 }
