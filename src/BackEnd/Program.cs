@@ -60,7 +60,7 @@ try
                 policy.WithOrigins(applicationOptions.AllowedCorsOrigins)
                       .AllowAnyHeader()
                       .AllowAnyMethod();
-                logger.LogInformation("CORS configured with allowed origins: {Origins}", string.Join(", ", applicationOptions.AllowedCorsOrigins));
+                logger.LogInformation(4,"CORS configured with allowed origins: {Origins}", string.Join(", ", applicationOptions.AllowedCorsOrigins));
             }
         });
     });
@@ -92,18 +92,18 @@ try
     // Configure the HTTP request pipeline.
     app.UseExceptionHandler();
 
-    // TODO: Do we need to enforce HTTPS in production? Or will Azure do that for us?
-    #if false
     if (applicationOptions.Environment == EnvironmentType.Production)
     {
         app.UseHsts();
         app.UseHttpsRedirection();
     }
-    #endif
 
+// During development phase, we'll keep swagger up even in non-development environments.
+#if false
     if (applicationOptions.Environment != EnvironmentType.Production)
+#endif
     {
-        // TODO: Logger.Information("Enabling Swagger UI");
+        logger.LogInformation(8,"Enabling Swagger UI");
         app.UseSwagger();
     }
 
