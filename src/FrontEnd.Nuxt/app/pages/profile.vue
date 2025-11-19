@@ -202,7 +202,7 @@ const handleUpdate = async () => {
             <small>Your default workspace for managing financial data</small>
           </p>
           <div class="d-grid">
-            <NuxtLink to="/workspace/dashboard" class="btn btn-outline-primary btn-sm">
+            <NuxtLink to="/" class="btn btn-outline-primary btn-sm">
               Go to Workspace
             </NuxtLink>
           </div>
