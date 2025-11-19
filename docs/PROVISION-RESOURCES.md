@@ -1,5 +1,7 @@
 # Provisioning Resource Infrastructure for Production
 
+This document describes how to provision the necessary Azure resources to deploy this application into.
+
 1. Ensure this repository has been cloned with submodules, or if not, initialize the submodules now
     ```
     git submodule update --init --recursive
@@ -16,10 +18,10 @@
 
 4. Run the provisioning script, providing these values
     ```
-    ./infra/Provision-Resources.ps1 -ResourceGroup <your_resource_group> -Location <primary_location> -StaticWebAppLocation <static_web_app_location>
+    ./scripts/Provision-Resources.ps1 -ResourceGroup <your_resource_group> -Location <primary_location> -StaticWebAppLocation <static_web_app_location>
     ```
 
-5. Create a CD pipeline in Azure Pipelines. The script will output a set of variables, which you'll need to set as your pipeline variables
+5. Create a CD pipeline in Azure Pipelines. The script will output a set of variables, which you'll need to set as your pipeline variables.
 
 ## TODO
 
