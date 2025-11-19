@@ -52,23 +52,28 @@ const client = new api.WeatherClient(baseUrl)
     <main>
         <p>This component demonstrates showing data loaded from a backend API service.</p>
 
-        <p v-if="isLoading"><em>Loading...</em></p>
-        <table v-else class="table">
-            <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp.</th>
-                <th>Summary</th>
-            </tr>
-            </thead>
-            <tbody data-test-id="forecast-table-body">
-            <tr v-for="forecast in forecasts" :key="forecast.id">
-                <td>{{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}</td>
-                <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
-                <td>{{ forecast.summary }}</td>
-            </tr>
-            </tbody>
-        </table>
+        <ClientOnly>        
+            <p v-if="isLoading"><em>Loading...</em></p>
+            <table v-else class="table">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Temp.</th>
+                    <th>Summary</th>
+                </tr>
+                </thead>
+                <tbody data-test-id="forecast-table-body">
+                <tr v-for="forecast in forecasts" :key="forecast.id">
+                    <td>{{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}</td>
+                    <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
+                    <td>{{ forecast.summary }}</td>
+                </tr>
+                </tbody>
+            </table>
+            <template #fallback>
+                <p><em>Please wait...</em></p>
+            </template>
+        </ClientOnly>
     </main>
 
 </template>
