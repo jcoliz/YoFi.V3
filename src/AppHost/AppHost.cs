@@ -17,7 +17,7 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 
 builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
     .WithEnvironment("NUXT_PUBLIC_SOLUTION_VERSION", "Aspire")
-    .WithEnvironment("NUXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
+    .WithEnvironment("NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
     .WithReference(apiService)
     .WithHttpEndpoint(port: 5173, env: "PORT")
     .WithExternalHttpEndpoints()

@@ -11,6 +11,7 @@ services:
           # within the container.
         - NUXT_PUBLIC_API_BASE_URL=http://localhost:5001
         - NUXT_PUBLIC_SOLUTION_VERSION=${SOLUTION_VERSION:-'docker-compose'}
+        - NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     restart: always
     ports:
       - '5000:80'
@@ -27,6 +28,7 @@ services:
     environment:
       - APPLICATION__ENVIRONMENT=Container
       - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
+      - APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     restart: always
     ports:
       - '5001:8080'

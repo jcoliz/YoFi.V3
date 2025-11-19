@@ -32,7 +32,8 @@ export default defineNuxtConfig({
       // For Containers/Production, it is overwritten during the static generation step
       // by the NUXT_PUBLIC_API_BASE_URL environment variable
       apiBaseUrl: process.env.services__backend__http__0,
-      applicationInsightsConnectionString: process.env.NUXT_PUBLIC_APPLICATIONINSIGHTS_CONNECTION_STRING || ''
+      // WARNING: Capitalization must match underscores exactly when overriding from environment variable
+      applicationInsightsConnectionString: 'nuxt.config.ts'
     }
   },
   appConfig:
