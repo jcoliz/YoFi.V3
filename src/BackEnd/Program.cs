@@ -31,7 +31,7 @@ try
     builder.Configuration.Bind(ApplicationOptions.Section, applicationOptions);
 
     // Add service defaults & Aspire client integrations.
-    builder.AddServiceDefaults();
+    builder.AddServiceDefaults(logger);
 
     // Add version information to the configuration
     builder.AddApplicationOptions(logger);
