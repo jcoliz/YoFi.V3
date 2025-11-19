@@ -17,9 +17,18 @@ param staticWebAppLocation string = resourceGroup().location
 @description('Unique suffix for all resources in this deployment')
 param suffix string = uniqueString(subscription().id,resourceGroup().id)
 
+// Provision Static Web App for front-end
+module frontend './AzDeploy.Bicep/Web/staticapp.bicep' = {
+  name: 'frontend'
+  params: {
+    suffix: suffix
+    location: staticWebAppLocation
+  }
+}
+
 // Provision Web App with App Insights and Log Analytics for backend API
-module web './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
-  name: 'web'
+module backend './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
+  name: 'backend'
   params: {
     suffix: suffix
     location: location
@@ -29,22 +38,17 @@ module web './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
         name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
         value: 'true'
       }
+      {
+        name: 'Application__AllowedCorsOrigins__0'
+        value: 'https://${frontend.outputs.defaultHostname}'
+      }
     ]
   }
 }
 
-// Provision Static Web App for front-end
-module staticWebApp './AzDeploy.Bicep/Web/staticapp.bicep' = {
-  name: 'staticWebApp'
-  params: {
-    suffix: suffix
-    location: staticWebAppLocation
-  }
-}
-
-output webAppName string = web.outputs.webAppName
-output webAppDefaultHostName string = web.outputs.webAppDefaultHostName
-output appInsightsName string = web.outputs.appInsightsName
-output logAnalyticsName string = web.outputs.logAnalyticsName
-output staticWebAppName string = staticWebApp.outputs.name
-output staticWebHostName string = staticWebApp.outputs.defaultHostname
+output webAppName string = backend.outputs.webAppName
+output webAppDefaultHostName string = backend.outputs.webAppDefaultHostName
+output appInsightsName string = backend.outputs.appInsightsName
+output logAnalyticsName string = backend.outputs.logAnalyticsName
+output staticWebAppName string = frontend.outputs.name
+output staticWebHostName string = frontend.outputs.defaultHostname
