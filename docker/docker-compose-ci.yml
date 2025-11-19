@@ -23,6 +23,7 @@ services:
       dockerfile: ./docker/BackEnd.dockerfile
     environment:
       - APPLICATION__ENVIRONMENT=Container
+      - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
     restart: always
     ports:
       - '5001:8080'

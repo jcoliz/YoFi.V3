@@ -51,21 +51,17 @@ try
     {
         options.AddDefaultPolicy(policy =>
         {
-            // TODO: Use either the ApplicationOptions.Environment value
-            // or a dedicated CORS configuration section to determine
-            // which origins to allow.
-            //
-            // Note that we know this information at build time, so we could
-            // even inject the allowed origins during the build.
-            //
-            // For now, we allow all possible values
-            policy.WithOrigins(
-                "http://localhost:5173",  // Local (used during development with Aspire)
-                "http://localhost:5000",  // Container (used in CI pipeline)
-                "https://your-custom-domain.com"  // Production (deployed to Azure)
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            if ( applicationOptions.AllowedCorsOrigins.Length == 0)
+            {
+                logger.LogError("No allowed CORS origins configured. Please set Application:AllowedCorsOrigins in configuration.");
+            }
+            else
+            {
+                policy.WithOrigins(applicationOptions.AllowedCorsOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+                logger.LogInformation("CORS configured with allowed origins: {Origins}", string.Join(", ", applicationOptions.AllowedCorsOrigins));
+            }
         });
     });
 

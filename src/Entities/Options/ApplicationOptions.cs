@@ -26,6 +26,12 @@ public record ApplicationOptions
     /// Injected by the build system
     /// </remarks>
     public string? Version { get; init; }
+
+    /// <summary>
+    /// Allowed CORS origins
+    /// </summary>
+    public string[] AllowedCorsOrigins { get; set; } = Array.Empty<string>();
+
 }
 
 public enum EnvironmentType
