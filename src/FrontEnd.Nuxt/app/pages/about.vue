@@ -18,6 +18,7 @@ const client = new api.VersionClient(baseUrl)
 const version = ref<string>("Loading...")
 const runtimeConfig = useRuntimeConfig()
 const frontEndVersion = runtimeConfig.public.solutionVersion
+const applicationInsightsConnectionString = runtimeConfig.public.applicationInsightsConnectionString
 
 /**
  * When mounted, get the view data from server
@@ -64,6 +65,15 @@ const frontEndVersion = runtimeConfig.public.solutionVersion
               {{ baseUrl }}
             </div>
           </div>
+          <div class="row mb-3">
+            <div class="col-sm-4">
+              <strong>Application Insights Connection String</strong><br/>
+              <small class="text-muted">runtimeConfig.public.applicationInsightsConnectionString</small>
+            </div>
+            <div class="col-sm-8">
+              {{ applicationInsightsConnectionString }}
+            </div>
+          </div>        
         </div>
       </div>
     </div>
