@@ -2,24 +2,35 @@
 
 ## Development Setup
 
-1. **Prerequisites**
-   - .NET 10.0 SDK
-   - Node.js 20+ with pnpm
-   - Visual Studio 2022 or VS Code with recommended extensions
+### Prerequisites
 
-2. **Clone and Setup**
-   ```powershell
-   git clone https://github.com/jcoliz/YoFi.V3.git
-   cd YoFi.V3
-   dotnet restore
-   cd src/FrontEnd.Nuxt
-   pnpm install
-   ```
+- .NET 10.0 SDK
+- Node.js 24+ with pnpm
+- Visual Studio 2022 or VS Code with recommended extensions
+- Docker Desktop (optional, for container workflows)
 
-3. **Running Locally**
-   ```powershell
-   dotnet watch --project src/AppHost
-   ```
+### Quick Start (Recommended)
+
+For first-time setup, use the automated development setup script:
+
+```powershell
+git clone --recurse-submodules https://github.com/jcoliz/YoFi.V3.git
+cd YoFi.V3
+.\scripts\Setup-Development.ps1
+```
+
+This script will:
+- Verify all required tools are installed (.NET 10 SDK, Node.js 24+, pnpm, Docker)
+- Restore .NET dependencies
+- Install frontend npm packages
+- Build the solution
+- Run tests to verify your setup is working correctly
+
+After setup completes, start the development environment:
+
+```powershell
+.\scripts\Start-LocalDev.ps1
+```
 
 ## Architecture
 

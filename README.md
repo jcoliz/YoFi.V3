@@ -96,6 +96,24 @@ graph TB
 
 For more details about the various environments where the app is built to run, please see [ENVIRONMENTS.md](./docs/ENVIRONMENTS.md).
 
+### Development Setup
+
+**Prerequisites:** .NET 10.0 SDK, Node.js 24+, pnpm, Visual Studio 2022 or VS Code
+
+Run the automated setup script after cloning:
+
+```powershell
+.\scripts\Setup-Development.ps1
+```
+
+This will verify tools, restore dependencies, build the solution, and run tests. Then start developing:
+
+```powershell
+.\scripts\Start-LocalDev.ps1
+```
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed development guidelines and [scripts/README.md](scripts/README.md) for available automation scripts.
+
 ### Running in Container
 
 It's quick and easy to run the app:
@@ -113,24 +131,3 @@ It's quick and easy to run the app:
 
 This will open a browser window to the running app.
 
-### Development Prerequisites
-
-- .NET 10.0 SDK
-- Node.js 24+ and pnpm
-- Visual Studio 2022 or VS Code with C# Dev Kit
-
-### Running Development Environment
-
-1. Clone the repository
-2. Ensure all prerequisites installed
-3. Install npm packages for the Frontend:
-   ```powershell
-   cd src/FrontEnd.Nuxt
-   pnpm install
-   ```
-4. Run the Aspire AppHost:
-   ```powershell
-   cd src/AppHost
-   dotnet watch
-   ```
-5. Open the Aspire Dashboard (URL shown in console output)

@@ -34,14 +34,15 @@ try {
     Write-Host "`nChecking prerequisites..." -ForegroundColor Cyan
 
     # Check .NET SDK
-    $requiredDotNetVersion = "10.0.100"
+    $requiredDotNetVersion = [System.Version]"10.0.100"
     try {
-        $dotnetVersion = dotnet --version
+        $dotnetVersionString = dotnet --version
+        $dotnetVersion = [System.Version]$dotnetVersionString
         if ($dotnetVersion -lt $requiredDotNetVersion) {
-            Write-Host "WARNING .NET SDK version $dotnetVersion is older than required $requiredDotNetVersion" -ForegroundColor Yellow
+            Write-Host "WARNING .NET SDK version $dotnetVersionString is older than required $requiredDotNetVersion" -ForegroundColor Yellow
             Write-Host "        Download from: https://dotnet.microsoft.com/download" -ForegroundColor Yellow
         }
-        Write-Host "OK .NET SDK: $dotnetVersion" -ForegroundColor Green
+        Write-Host "OK .NET SDK: $dotnetVersionString" -ForegroundColor Green
     } catch {
         Write-Host "ERROR .NET SDK not found. Please install .NET 10 SDK" -ForegroundColor Red
         Write-Host "      Download from: https://dotnet.microsoft.com/download" -ForegroundColor Yellow
