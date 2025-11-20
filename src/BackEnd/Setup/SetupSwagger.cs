@@ -9,6 +9,18 @@ public static class __SetupSwagger
         {
             options.Title = "YoFi.V3 Backend";
             options.Description = "Application boundary between .NET backend and YoFi.V3 frontend.";
+            options.Version = "v1";
+
+            options.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
+            {
+                Type = NSwag.OpenApiSecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                Description = "Enter your JWT token (without 'Bearer' prefix)"
+            });
+
+            options.OperationProcessors.Add(new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("Bearer"));
+
         });
         return services;
     }

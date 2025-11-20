@@ -6,6 +6,7 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Application\YoFi.V3.Application.csproj" />
+    <ProjectReference Include="..\..\submodules\NuxtIdentity\src\AspNetCore\NuxtIdentity.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,8 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Identity;
+using NuxtIdentity.AspNetCore.Extensions;
+using NuxtIdentity.Core.Configuration;
+using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Data;
@@ -19,7 +23,10 @@ try
         builder.AddEventSourceLogger();
     });
     logger = loggerFactory.CreateLogger("Startup");
-    logger.LogInformation("Starting {App}",Assembly.GetExecutingAssembly().FullName);
+    logger.LogInformation("Starting {App} Process ID: {ProcessId}, Thread ID: {ThreadId}",
+        Assembly.GetExecutingAssembly().FullName,
+        Environment.ProcessId,
+        Environment.CurrentManagedThreadId);
 
     //
     // Set up Web application
@@ -35,7 +42,7 @@ try
 
     // Add version information to the configuration
     builder.AddApplicationOptions(logger);
-    
+
     //
     // Add services to the container.
     //
@@ -45,6 +52,32 @@ try
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration);
+
+    //
+    // Add Identity services
+    //
+
+    // Configure JWT options
+    builder.Services.Configure<JwtOptions>(
+        builder.Configuration.GetSection(JwtOptions.SectionName));
+
+    // Add Identity
+    builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequiredLength = 6;
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+    // Add NuxtIdentity
+    builder.Services.AddNuxtIdentity<IdentityUser>();
+    builder.Services.AddNuxtIdentityEntityFramework<ApplicationDbContext>();
+    builder.Services.AddNuxtIdentityAuthentication();
 
     // See ADR 0007 for a disussion of CORS policies.
     builder.Services.AddCors(options =>
@@ -71,10 +104,10 @@ try
     {
         options.AddPolicy("AccountView", policy =>
             policy.Requirements.Add(new AccountAccessRequirement("viewer", "editor", "owner")));
-            
+
         options.AddPolicy("AccountEdit", policy =>
             policy.Requirements.Add(new AccountAccessRequirement("editor", "owner")));
-            
+
         options.AddPolicy("AccountOwn", policy =>
             policy.Requirements.Add(new AccountAccessRequirement("owner")));
     });
@@ -88,7 +121,7 @@ try
 
     // Prepare the database
     app.PrepareDatabaseAsync();
-        
+
     // Configure the HTTP request pipeline.
     app.UseExceptionHandler();
 
@@ -112,15 +145,18 @@ try
     app.MapControllers();
 
     logger.LogInformation(10, "OK. Environment: {Environment}", applicationOptions.Environment);
+    logger.LogInformation("[DIAG] ==================== APP READY ====================");
 
     app.Run();
+
+    logger.LogInformation("[DIAG] ==================== APP STOPPED ====================");
 
 }
 catch (Exception ex)
 {
     if (logger is not null)
     {
-        logger?.LogCritical(ex, "Failed to start {App}", Assembly.GetExecutingAssembly().FullName);    
+        logger?.LogCritical(ex, "Failed to start {App}", Assembly.GetExecutingAssembly().FullName);
     }
     else
     {

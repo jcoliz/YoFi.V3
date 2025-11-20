@@ -7,6 +7,227 @@
 /* eslint-disable */
 // ReSharper disable InconsistentNaming
 
+export class AuthClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    login(request: LoginRequest): Promise<LoginResponse> {
+        let url_ = this.baseUrl + "/api/auth/login";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogin(_response);
+        });
+    }
+
+    protected processLogin(response: Response): Promise<LoginResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = LoginResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<LoginResponse>(null as any);
+    }
+
+    signUp(request: SignUpRequest): Promise<LoginResponse> {
+        let url_ = this.baseUrl + "/api/auth/signup";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSignUp(_response);
+        });
+    }
+
+    protected processSignUp(response: Response): Promise<LoginResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = LoginResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<LoginResponse>(null as any);
+    }
+
+    getSession(): Promise<SessionResponse> {
+        let url_ = this.baseUrl + "/api/auth/user";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetSession(_response);
+        });
+    }
+
+    protected processGetSession(response: Response): Promise<SessionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SessionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SessionResponse>(null as any);
+    }
+
+    refreshTokens(request: RefreshRequest): Promise<RefreshResponse> {
+        let url_ = this.baseUrl + "/api/auth/refresh";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRefreshTokens(_response);
+        });
+    }
+
+    protected processRefreshTokens(response: Response): Promise<RefreshResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RefreshResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RefreshResponse>(null as any);
+    }
+
+    logout(request: RefreshRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/auth/logout";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogout(_response);
+        });
+    }
+
+    protected processLogout(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class TestControlClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -235,13 +456,94 @@ export class WeatherClient {
     }
 }
 
-export class TestUser implements ITestUser {
-    id?: number;
-    username?: string;
-    email?: string;
-    password?: string;
+export class LoginResponse implements ILoginResponse {
+    token?: TokenPair;
+    user?: UserInfo;
 
-    constructor(data?: ITestUser) {
+    constructor(data?: ILoginResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"] ? TokenPair.fromJS(_data["token"]) : undefined as any;
+            this.user = _data["user"] ? UserInfo.fromJS(_data["user"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): LoginResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new LoginResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token ? this.token.toJSON() : undefined as any;
+        data["user"] = this.user ? this.user.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface ILoginResponse {
+    token?: TokenPair;
+    user?: UserInfo;
+}
+
+export class TokenPair implements ITokenPair {
+    accessToken?: string;
+    refreshToken?: string;
+
+    constructor(data?: ITokenPair) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.accessToken = _data["accessToken"];
+            this.refreshToken = _data["refreshToken"];
+        }
+    }
+
+    static fromJS(data: any): TokenPair {
+        data = typeof data === 'object' ? data : {};
+        let result = new TokenPair();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["accessToken"] = this.accessToken;
+        data["refreshToken"] = this.refreshToken;
+        return data;
+    }
+}
+
+export interface ITokenPair {
+    accessToken?: string;
+    refreshToken?: string;
+}
+
+export class UserInfo implements IUserInfo {
+    id?: string;
+    name?: string;
+    email?: string;
+    roles?: string[];
+    claims?: ClaimInfo[];
+
+    constructor(data?: IUserInfo) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -253,15 +555,24 @@ export class TestUser implements ITestUser {
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
-            this.username = _data["username"];
+            this.name = _data["name"];
             this.email = _data["email"];
-            this.password = _data["password"];
+            if (Array.isArray(_data["roles"])) {
+                this.roles = [] as any;
+                for (let item of _data["roles"])
+                    this.roles!.push(item);
+            }
+            if (Array.isArray(_data["claims"])) {
+                this.claims = [] as any;
+                for (let item of _data["claims"])
+                    this.claims!.push(ClaimInfo.fromJS(item));
+            }
         }
     }
 
-    static fromJS(data: any): TestUser {
+    static fromJS(data: any): UserInfo {
         data = typeof data === 'object' ? data : {};
-        let result = new TestUser();
+        let result = new UserInfo();
         result.init(data);
         return result;
     }
@@ -269,18 +580,68 @@ export class TestUser implements ITestUser {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
-        data["username"] = this.username;
+        data["name"] = this.name;
         data["email"] = this.email;
-        data["password"] = this.password;
+        if (Array.isArray(this.roles)) {
+            data["roles"] = [];
+            for (let item of this.roles)
+                data["roles"].push(item);
+        }
+        if (Array.isArray(this.claims)) {
+            data["claims"] = [];
+            for (let item of this.claims)
+                data["claims"].push(item ? item.toJSON() : undefined as any);
+        }
         return data;
     }
 }
 
-export interface ITestUser {
-    id?: number;
-    username?: string;
+export interface IUserInfo {
+    id?: string;
+    name?: string;
     email?: string;
-    password?: string;
+    roles?: string[];
+    claims?: ClaimInfo[];
+}
+
+export class ClaimInfo implements IClaimInfo {
+    type?: string;
+    value?: string;
+
+    constructor(data?: IClaimInfo) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.type = _data["type"];
+            this.value = _data["value"];
+        }
+    }
+
+    static fromJS(data: any): ClaimInfo {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClaimInfo();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["type"] = this.type;
+        data["value"] = this.value;
+        return data;
+    }
+}
+
+export interface IClaimInfo {
+    type?: string;
+    value?: string;
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -345,6 +706,246 @@ export interface IProblemDetails {
     instance?: string | undefined;
 
     [key: string]: any;
+}
+
+export class LoginRequest implements ILoginRequest {
+    username?: string;
+    password?: string;
+
+    constructor(data?: ILoginRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.username = _data["username"];
+            this.password = _data["password"];
+        }
+    }
+
+    static fromJS(data: any): LoginRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new LoginRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["username"] = this.username;
+        data["password"] = this.password;
+        return data;
+    }
+}
+
+export interface ILoginRequest {
+    username?: string;
+    password?: string;
+}
+
+export class SignUpRequest implements ISignUpRequest {
+    username?: string;
+    email?: string;
+    password?: string;
+
+    constructor(data?: ISignUpRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.username = _data["username"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+        }
+    }
+
+    static fromJS(data: any): SignUpRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SignUpRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["username"] = this.username;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        return data;
+    }
+}
+
+export interface ISignUpRequest {
+    username?: string;
+    email?: string;
+    password?: string;
+}
+
+export class SessionResponse implements ISessionResponse {
+    user?: UserInfo | undefined;
+
+    constructor(data?: ISessionResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.user = _data["user"] ? UserInfo.fromJS(_data["user"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): SessionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SessionResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["user"] = this.user ? this.user.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface ISessionResponse {
+    user?: UserInfo | undefined;
+}
+
+export class RefreshResponse implements IRefreshResponse {
+    token?: TokenPair;
+
+    constructor(data?: IRefreshResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.token = _data["token"] ? TokenPair.fromJS(_data["token"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): RefreshResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["token"] = this.token ? this.token.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IRefreshResponse {
+    token?: TokenPair;
+}
+
+export class RefreshRequest implements IRefreshRequest {
+    refreshToken?: string;
+
+    constructor(data?: IRefreshRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.refreshToken = _data["refreshToken"];
+        }
+    }
+
+    static fromJS(data: any): RefreshRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RefreshRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["refreshToken"] = this.refreshToken;
+        return data;
+    }
+}
+
+export interface IRefreshRequest {
+    refreshToken?: string;
+}
+
+export class TestUser implements ITestUser {
+    id?: number;
+    username?: string;
+    email?: string;
+    password?: string;
+
+    constructor(data?: ITestUser) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.username = _data["username"];
+            this.email = _data["email"];
+            this.password = _data["password"];
+        }
+    }
+
+    static fromJS(data: any): TestUser {
+        data = typeof data === 'object' ? data : {};
+        let result = new TestUser();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["username"] = this.username;
+        data["email"] = this.email;
+        data["password"] = this.password;
+        return data;
+    }
+}
+
+export interface ITestUser {
+    id?: number;
+    username?: string;
+    email?: string;
+    password?: string;
 }
 
 export class WeatherForecast implements IWeatherForecast {
