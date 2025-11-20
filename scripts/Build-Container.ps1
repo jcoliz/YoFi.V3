@@ -31,7 +31,7 @@ try {
     }
     
     $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps"
-    Write-Verbose "Building containers with version: $env:SOLUTION_VERSION"
+    Write-Host "Building containers with version: $env:SOLUTION_VERSION" -ForegroundColor Cyan
     
     docker compose -f ./docker/docker-compose-ci.yml build
     if ($LASTEXITCODE -ne 0) {

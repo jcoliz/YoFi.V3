@@ -47,23 +47,24 @@ try {
     
     Push-Location $TestPath
     
-    Write-Verbose "Cleaning up previous test results..."
+    Write-Host "Cleaning up previous test results..." -ForegroundColor Cyan
     Remove-Item TestResults -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item bin\result -Recurse -Force -ErrorAction SilentlyContinue
     
-    Write-Verbose "Running $Tests tests with code coverage..."
+    Write-Host "Running $Tests tests with code coverage..." -ForegroundColor Cyan
     dotnet test --collect:"XPlat Code Coverage" --settings:coverlet.runsettings
     if ($LASTEXITCODE -ne 0) {
         throw "Test execution failed with exit code $LASTEXITCODE"
     }
     
-    Write-Verbose "Generating coverage report..."
+    Write-Host "Generating coverage report..." -ForegroundColor Cyan
     reportgenerator -reports:.\TestResults\*\coverage.cobertura.xml -targetdir:.\bin\result
     if ($LASTEXITCODE -ne 0) {
         throw "Report generation failed with exit code $LASTEXITCODE"
     }
     
     Write-Host "Coverage report generated successfully" -ForegroundColor Green
+    Write-Host "Opening report in browser..." -ForegroundColor Cyan
     Start-Process .\bin\result\index.html
 }
 catch {

@@ -47,13 +47,13 @@ try {
     $Top = "$PSScriptRoot/.."
     Push-Location $Top
     
-    Write-Verbose "Building solution..."
+    Write-Host "Building solution..." -ForegroundColor Cyan
     dotnet build
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed with exit code $LASTEXITCODE"
     }
     
-    Write-Verbose "Adding migration '$Name' for provider '$Provider'..."
+    Write-Host "Adding migration '$Name' for provider '$Provider'..." -ForegroundColor Cyan
     dotnet ef migrations add $Name -o .\Migrations\ -n "YoFi.V3.Data.$Provider.Migrations" --project ".\src\Data\$Provider\" --startup-project ".\src\Data\$Provider.MigrationHost\" --context ApplicationDbContext
     if ($LASTEXITCODE -ne 0) {
         throw "Migration creation failed with exit code $LASTEXITCODE"

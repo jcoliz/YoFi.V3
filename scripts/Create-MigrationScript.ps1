@@ -39,14 +39,14 @@ try {
     $Top = "$PSScriptRoot/.."
     Push-Location $Top
     
-    Write-Verbose "Building solution..."
+    Write-Host "Building solution..." -ForegroundColor Cyan
     dotnet build
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed with exit code $LASTEXITCODE"
     }
     
     $OutputPath = "out/$Provider-Migration.sql"
-    Write-Verbose "Generating migration script for $Provider to $OutputPath..."
+    Write-Host "Generating migration script for $Provider to $OutputPath..." -ForegroundColor Cyan
     
     dotnet ef migrations script --project "./src/Data/$Provider/" --startup-project "./src/Data/$Provider.MigrationHost/" --context ApplicationDbContext -i -o $OutputPath
     if ($LASTEXITCODE -ne 0) {
