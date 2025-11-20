@@ -24,7 +24,22 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+function Test-DockerRunning {
+    try {
+        docker info 2>&1 | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
 try {
+    if (-not (Test-DockerRunning)) {
+        Write-Error "Docker is not running. Please start Docker Desktop and try again."
+        exit 1
+    }
+    
     $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get version with exit code $LASTEXITCODE"

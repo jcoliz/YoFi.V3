@@ -23,7 +23,22 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+function Test-DockerRunning {
+    try {
+        docker info 2>&1 | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
 try {
+    if (-not (Test-DockerRunning)) {
+        Write-Error "Docker is not running. Please start Docker Desktop and try again."
+        exit 1
+    }
+    
     Write-Host "Stopping Docker CI containers..." -ForegroundColor Cyan
     docker compose -f ./docker/docker-compose-ci.yml down
     if ($LASTEXITCODE -ne 0) {
