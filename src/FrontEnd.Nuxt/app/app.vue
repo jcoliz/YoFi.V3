@@ -9,15 +9,15 @@ const pageTitle = computed(() => {
 
 useHead({
   htmlAttrs: {
-    lang: "en"
+    lang: 'en',
   },
-  title: pageTitle
-});
+  title: pageTitle,
+})
 </script>
 <template>
   <div>
     <NuxtLayout>
-      <NuxtPage/>
+      <NuxtPage />
     </NuxtLayout>
   </div>
 </template>

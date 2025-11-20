@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-    title: 'Profile'
+  title: 'Profile',
 })
 
 // TODO: Replace with actual user data from authentication context
@@ -9,7 +9,7 @@ const user = ref({
   username: 'testuser',
   workspaceName: 'Personal Finance',
   memberSince: '2024-01-15',
-  lastLogin: '2024-11-17'
+  lastLogin: '2024-11-17',
 })
 
 // Edit mode state
@@ -20,14 +20,14 @@ const errors = ref<string[]>([])
 // Form data for editing
 const editForm = ref({
   email: user.value.email,
-  username: user.value.username
+  username: user.value.username,
 })
 
 // Toggle edit mode
 const startEditing = () => {
   editForm.value = {
     email: user.value.email,
-    username: user.value.username
+    username: user.value.username,
   }
   isEditing.value = true
   errors.value = []
@@ -41,7 +41,7 @@ const cancelEditing = () => {
 // Handle profile update
 const handleUpdate = async () => {
   errors.value = []
-  
+
   // Client-side validation
   if (!editForm.value.email) {
     errors.value.push('Email is required')
@@ -49,28 +49,29 @@ const handleUpdate = async () => {
   if (!editForm.value.username) {
     errors.value.push('Username is required')
   }
-  
+
   if (errors.value.length > 0) {
     return
   }
-  
+
   isLoading.value = true
-  
+
   try {
     // TODO: Implement actual profile update API call
     console.log('Profile update attempt:', editForm.value)
-    
+
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // Update local user data
     user.value.email = editForm.value.email
     user.value.username = editForm.value.username
-    
+
     isEditing.value = false
-    
   } catch (error) {
-    errors.value.push(`Profile update failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
+    errors.value.push(
+      `Profile update failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+    )
   } finally {
     isLoading.value = false
   }
@@ -89,12 +90,11 @@ const handleUpdate = async () => {
             data-test-id="EditProfile"
             @click="startEditing"
           >
-            <i class="bi bi-pencil me-1"/>
+            <i class="bi bi-pencil me-1" />
             Edit Profile
           </button>
         </div>
         <div class="card-body">
-          
           <!-- Error Display -->
           <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="ProfileErrors">
             <ul class="mb-0">
@@ -150,7 +150,7 @@ const handleUpdate = async () => {
                 data-test-id="EditEmail"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
             <div class="mb-3">
               <label for="edit-username" class="form-label">Username</label>
@@ -162,7 +162,7 @@ const handleUpdate = async () => {
                 data-test-id="EditUsername"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
             <div class="d-flex gap-2">
               <button
@@ -171,7 +171,12 @@ const handleUpdate = async () => {
                 data-test-id="SaveProfile"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
+                <span
+                  v-if="isLoading"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                />
                 {{ isLoading ? 'Saving...' : 'Save Changes' }}
               </button>
               <button
@@ -185,7 +190,6 @@ const handleUpdate = async () => {
               </button>
             </div>
           </form>
-
         </div>
       </div>
     </div>
@@ -202,9 +206,7 @@ const handleUpdate = async () => {
             <small>Your default workspace for managing financial data</small>
           </p>
           <div class="d-grid">
-            <NuxtLink to="/" class="btn btn-outline-primary btn-sm">
-              Go to Workspace
-            </NuxtLink>
+            <NuxtLink to="/" class="btn btn-outline-primary btn-sm"> Go to Workspace </NuxtLink>
           </div>
         </div>
       </div>
@@ -217,16 +219,16 @@ const handleUpdate = async () => {
         <div class="card-body">
           <div class="d-grid gap-2">
             <button class="btn btn-outline-warning btn-sm" data-test-id="ChangePassword">
-              <i class="bi bi-lock me-1"/>
+              <i class="bi bi-lock me-1" />
               Change Password
             </button>
             <button class="btn btn-outline-info btn-sm" data-test-id="ManageWorkspaces">
-              <i class="bi bi-building me-1"/>
+              <i class="bi bi-building me-1" />
               Manage Workspaces
             </button>
-            <hr>
+            <hr />
             <button class="btn btn-outline-danger btn-sm" data-test-id="Logout">
-              <i class="bi bi-box-arrow-right me-1"/>
+              <i class="bi bi-box-arrow-right me-1" />
               Sign Out
             </button>
           </div>

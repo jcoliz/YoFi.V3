@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
-    title: 'Register',
-    layout: 'blank'
+  title: 'Register',
+  layout: 'blank',
 })
 
 // Reactive form data
@@ -9,7 +9,7 @@ const form = ref({
   email: '',
   username: '',
   password: '',
-  passwordAgain: ''
+  passwordAgain: '',
 })
 
 // Form validation and error handling
@@ -19,7 +19,7 @@ const isLoading = ref(false)
 // Form submission handler
 const handleSubmit = async () => {
   errors.value = []
-  
+
   // Client-side validation
   if (!form.value.email) {
     errors.value.push('Email is required')
@@ -33,29 +33,30 @@ const handleSubmit = async () => {
   if (form.value.password !== form.value.passwordAgain) {
     errors.value.push('Passwords do not match')
   }
-  
+
   if (errors.value.length > 0) {
     return
   }
-  
+
   isLoading.value = true
-  
+
   try {
     // TODO: Implement actual registration API call
     console.log('Registration attempt:', {
       email: form.value.email,
       username: form.value.username,
-      password: form.value.password
+      password: form.value.password,
     })
-    
+
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // TODO: Handle successful registration
     // Should redirect to workspace or login user automatically
-    
   } catch (error) {
-    errors.value.push(`Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
+    errors.value.push(
+      `Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+    )
   } finally {
     isLoading.value = false
   }
@@ -76,7 +77,6 @@ const isWeakPassword = computed(() => {
         </div>
         <div class="card-body">
           <form data-test-id="RegisterForm" @submit.prevent="handleSubmit">
-            
             <!-- Error Display -->
             <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
               <ul class="mb-0">
@@ -96,7 +96,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Enter your email"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
 
             <!-- Username Field -->
@@ -111,7 +111,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Choose a username"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
 
             <!-- Password Field -->
@@ -127,7 +127,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Enter a secure password"
                 :disabled="isLoading"
                 required
-              >
+              />
               <div v-if="isWeakPassword" class="invalid-feedback">
                 Password must be at least 8 characters long
               </div>
@@ -141,13 +141,18 @@ const isWeakPassword = computed(() => {
                 v-model="form.passwordAgain"
                 type="password"
                 class="form-control"
-                :class="{ 'is-invalid': form.passwordAgain && form.password !== form.passwordAgain }"
+                :class="{
+                  'is-invalid': form.passwordAgain && form.password !== form.passwordAgain,
+                }"
                 data-test-id="password-again"
                 placeholder="Confirm your password"
                 :disabled="isLoading"
                 required
+              />
+              <div
+                v-if="form.passwordAgain && form.password !== form.passwordAgain"
+                class="invalid-feedback"
               >
-              <div v-if="form.passwordAgain && form.password !== form.passwordAgain" class="invalid-feedback">
                 Passwords do not match
               </div>
             </div>
@@ -160,7 +165,12 @@ const isWeakPassword = computed(() => {
                 data-test-id="Register"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
+                <span
+                  v-if="isLoading"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                />
                 {{ isLoading ? 'Creating Account...' : 'Create Account' }}
               </button>
             </div>
@@ -168,11 +178,10 @@ const isWeakPassword = computed(() => {
             <!-- Login Link -->
             <div class="text-center">
               <p class="mb-0">
-                Already have an account? 
+                Already have an account?
                 <NuxtLink to="/login" class="text-decoration-none">Sign in here</NuxtLink>
               </p>
             </div>
-
           </form>
         </div>
       </div>

@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import * as api from "../utils/apiclient"
+import * as api from '../utils/apiclient'
 definePageMeta({
-    title: 'About',
-    order: 4
+  title: 'About',
+  order: 4,
 })
 
 /**
  * Client for communicating with server
  */
-const { baseUrl } = useApiBaseUrl();
+const { baseUrl } = useApiBaseUrl()
 const client = new api.VersionClient(baseUrl)
 
 /**
  * Version data to display
  */
 
-const version = ref<string>("Loading...")
+const version = ref<string>('Loading...')
 const runtimeConfig = useRuntimeConfig()
 const frontEndVersion = runtimeConfig.public.solutionVersion
 const applicationInsightsConnectionString = runtimeConfig.public.applicationInsightsConnectionString
@@ -23,13 +23,11 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
 /**
  * When mounted, get the view data from server
  */
- onMounted(() => {
-  client.getVersion()
-    .then((result) => {
-      version.value = result
-    })
+onMounted(() => {
+  client.getVersion().then((result) => {
+    version.value = result
+  })
 })
-
 </script>
 <template>
   <div class="row">
@@ -41,7 +39,7 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
         <div class="card-body">
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Front End Version</strong><br>
+              <strong>Front End Version</strong><br />
               <small class="text-muted">runtimeConfig.public.solutionVersion</small>
             </div>
             <div class="col-sm-8">
@@ -50,7 +48,7 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
           </div>
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Back End Version</strong><br>
+              <strong>Back End Version</strong><br />
               <small class="text-muted">/api/version</small>
             </div>
             <div class="col-sm-8">
@@ -67,13 +65,15 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
           </div>
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Application Insights Connection String</strong><br>
-              <small class="text-muted">runtimeConfig.public.applicationInsightsConnectionString</small>
+              <strong>Application Insights Connection String</strong><br />
+              <small class="text-muted"
+                >runtimeConfig.public.applicationInsightsConnectionString</small
+              >
             </div>
             <div class="col-sm-8">
               {{ applicationInsightsConnectionString }}
             </div>
-          </div>        
+          </div>
         </div>
       </div>
     </div>
@@ -85,15 +85,28 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
         </div>
         <div class="card-body">
           <p class="text-muted">
-            <small>YoFi V3 is a personal finance management application built with Nuxt 4 and ASP.NET Core.</small>
+            <small
+              >YoFi V3 is a personal finance management application built with Nuxt 4 and ASP.NET
+              Core.</small
+            >
           </p>
           <div class="d-grid gap-2 mt-3">
-            <a href="https://github.com/jcoliz/YoFi.V3" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
-              <i class="bi bi-github me-1"/>
+            <a
+              href="https://github.com/jcoliz/YoFi.V3"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-outline-primary btn-sm"
+            >
+              <i class="bi bi-github me-1" />
               YoFi V3 Repository
             </a>
-            <a href="https://github.com/jcoliz/YoFi" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-github me-1"/>
+            <a
+              href="https://github.com/jcoliz/YoFi"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-outline-secondary btn-sm"
+            >
+              <i class="bi bi-github me-1" />
               YoFi Original Repository
             </a>
           </div>

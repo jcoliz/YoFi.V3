@@ -3,9 +3,9 @@ import { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
-  
+
   const connectionString = config.public.applicationInsightsConnectionString as string
-  
+
   if (!connectionString) {
     console.warn('Application Insights connection string not configured')
     return
@@ -24,8 +24,8 @@ export default defineNuxtPlugin(() => {
       disableFetchTracking: false,
       enableCorsCorrelation: true,
       distributedTracingMode: 2, // W3C standard
-      autoTrackPageVisitTime: true
-    }
+      autoTrackPageVisitTime: true,
+    },
   })
 
   appInsights.loadAppInsights()
@@ -42,7 +42,7 @@ export default defineNuxtPlugin(() => {
   // Make available globally
   return {
     provide: {
-      appInsights: appInsights.appInsights
-    }
+      appInsights: appInsights.appInsights,
+    },
   }
 })

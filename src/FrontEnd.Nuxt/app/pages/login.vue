@@ -1,13 +1,13 @@
 <script setup lang="ts">
 definePageMeta({
-    title: 'Login',
-    layout: 'blank'
+  title: 'Login',
+  layout: 'blank',
 })
 
 // Reactive form data
 const form = ref({
   email: '',
-  password: ''
+  password: '',
 })
 
 // Form validation and error handling
@@ -17,7 +17,7 @@ const isLoading = ref(false)
 // Form submission handler
 const handleSubmit = async () => {
   errors.value = []
-  
+
   // Client-side validation
   if (!form.value.email) {
     errors.value.push('Email is required')
@@ -25,23 +25,23 @@ const handleSubmit = async () => {
   if (!form.value.password) {
     errors.value.push('Password is required')
   }
-  
+
   if (errors.value.length > 0) {
     return
   }
-  
+
   isLoading.value = true
-  
+
   try {
     // TODO: Implement actual login API call
     console.log('Login attempt:', {
       email: form.value.email,
-      password: form.value.password
+      password: form.value.password,
     })
-    
+
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // TODO: Handle successful login
     // Should validate credentials, set authentication state, and redirect to workspace
     // For now, simulate different responses based on email
@@ -49,12 +49,13 @@ const handleSubmit = async () => {
       errors.value.push('Invalid email or password')
       return
     }
-    
+
     // TODO: Navigate to workspace dashboard after successful login
     // await navigateTo('/workspace/dashboard')
-    
   } catch (error) {
-    errors.value.push(`Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
+    errors.value.push(
+      `Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+    )
   } finally {
     isLoading.value = false
   }
@@ -70,7 +71,6 @@ const handleSubmit = async () => {
         </div>
         <div class="card-body">
           <form data-test-id="LoginForm" @submit.prevent="handleSubmit">
-            
             <!-- Error Display -->
             <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
               <ul class="mb-0">
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
                 placeholder="Enter your email"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
 
             <!-- Password Field -->
@@ -105,7 +105,7 @@ const handleSubmit = async () => {
                 placeholder="Enter your password"
                 :disabled="isLoading"
                 required
-              >
+              />
             </div>
 
             <!-- Submit Button -->
@@ -116,7 +116,12 @@ const handleSubmit = async () => {
                 data-test-id="Login"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
+                <span
+                  v-if="isLoading"
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                />
                 {{ isLoading ? 'Signing In...' : 'Sign In' }}
               </button>
             </div>
@@ -124,11 +129,10 @@ const handleSubmit = async () => {
             <!-- Registration Link -->
             <div class="text-center">
               <p class="mb-0">
-                Don't have an account? 
+                Don't have an account?
                 <NuxtLink to="/register" class="text-decoration-none">Create one here</NuxtLink>
               </p>
             </div>
-
           </form>
         </div>
       </div>

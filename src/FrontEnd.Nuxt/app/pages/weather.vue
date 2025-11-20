@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
-import * as api from "../utils/apiclient"
+import { ref, onMounted } from 'vue'
+import * as api from '../utils/apiclient'
 definePageMeta({
-    title: 'Weather',
-    order: 2
+  title: 'Weather',
+  order: 2,
 })
 
 /**
@@ -20,17 +20,18 @@ const isLoading = ref(false)
 /**
  * Client for communicating with server
  */
-const { baseUrl } = useApiBaseUrl();
+const { baseUrl } = useApiBaseUrl()
 const client = new api.WeatherClient(baseUrl)
 
 /**
  * Get items from the server
  */
- async function getData() {
+async function getData() {
   forecasts.value = undefined
   isLoading.value = true
 
-  client.getWeatherForecasts()
+  client
+    .getWeatherForecasts()
     .then((result) => {
       forecasts.value = result
     })
@@ -42,38 +43,38 @@ const client = new api.WeatherClient(baseUrl)
 /**
  * When mounted, get the view data from server
  */
- onMounted(() => {
+onMounted(() => {
   getData()
 })
-
 </script>
 
 <template>
-    <main>
-        <p>This component demonstrates showing data loaded from a backend API service.</p>
+  <main>
+    <p>This component demonstrates showing data loaded from a backend API service.</p>
 
-        <ClientOnly>        
-            <p v-if="isLoading"><em>Loading...</em></p>
-            <table v-else class="table">
-                <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Temp.</th>
-                    <th>Summary</th>
-                </tr>
-                </thead>
-                <tbody data-test-id="forecast-table-body">
-                <tr v-for="forecast in forecasts" :key="forecast.id">
-                    <td>{{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}</td>
-                    <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
-                    <td>{{ forecast.summary }}</td>
-                </tr>
-                </tbody>
-            </table>
-            <template #fallback>
-                <p><em>Please wait...</em></p>
-            </template>
-        </ClientOnly>
-    </main>
-
+    <ClientOnly>
+      <p v-if="isLoading"><em>Loading...</em></p>
+      <table v-else class="table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Temp.</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody data-test-id="forecast-table-body">
+          <tr v-for="forecast in forecasts" :key="forecast.id">
+            <td>
+              {{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}
+            </td>
+            <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
+            <td>{{ forecast.summary }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <template #fallback>
+        <p><em>Please wait...</em></p>
+      </template>
+    </ClientOnly>
+  </main>
 </template>

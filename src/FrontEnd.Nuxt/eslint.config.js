@@ -29,5 +29,5 @@ export default withNuxt(
       // Prettier integration
       'prettier/prettier': 'warn',
     },
-  },
+  }
 )
