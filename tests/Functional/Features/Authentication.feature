@@ -22,7 +22,7 @@ Scenario: User registers for a new account
         | Password         | SecurePassword123!       |
         | Confirm Password | SecurePassword123!       |
     And I submit the registration form
-    Then I should be successfully registered
+    Then My registration request should be acklowledged
 
 Scenario: User logs into an existing account
     Given I have an existing account

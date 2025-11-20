@@ -79,6 +79,8 @@ public abstract class AuthenticationSteps : FunctionalTest
         await Page.GotoAsync("/login");
         var loginPage = GetOrCreateLoginPage();
         Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should be on login page");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
     }
 
     /// <summary>
@@ -297,9 +299,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     #region Steps: THEN
 
     /// <summary>
-    /// Then: I should be successfully registered
+    /// Then: My registration request should be acklowledged
     /// </summary>
-    protected async Task ThenIShouldBeSuccessfullyRegistered()
+    protected async Task ThenMyRegistrationRequestShouldBeAcklowledged()
     {
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
@@ -346,6 +348,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeMyProfilePage()
     {
         var profilePage = GetOrCreateProfilePage();
+        await profilePage.WaitForOnProfilePageAsync();
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
 
@@ -355,7 +358,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
     {
         var testuser = It<TestUser>();
-        var usernameInHeader = await Page.GetByTestId("site-header").GetByTestId("login-state").GetByTestId("login-state").GetByTestId("Username").TextContentAsync();
+        var usernameInHeader = await Page.GetByTestId("site-header").GetByTestId("login-state").GetByTestId("username").TextContentAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
     }
 

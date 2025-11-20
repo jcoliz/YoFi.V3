@@ -155,6 +155,12 @@ public class ProfilePage(IPage _page): BasePage(_page)
         return await AccountInfoSection.IsVisibleAsync() || await EditProfileForm.IsVisibleAsync();
     }
 
+    public async Task<bool> WaitForOnProfilePageAsync()
+    {
+        await AccountInfoSection.WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Visible });
+        return await AccountInfoSection.IsVisibleAsync();
+    }
+
     public async Task<string> GetCurrentEmailValueAsync()
     {
         if (await IsInEditModeAsync())

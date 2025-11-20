@@ -75,7 +75,7 @@ const isWeakPassword = computed(() => {
       <div class="card shadow">
         <div class="card-header text-center">
           <h3 class="card-title mb-0">
-            {{ isRegistered ? 'Welcome!' : 'Create Account' }}
+            {{ isRegistered ? 'Thanks!' : 'Request Account' }}
           </h3>
         </div>
         <div class="card-body">
@@ -89,33 +89,32 @@ const isWeakPassword = computed(() => {
               <div class="text-success mb-3">
                 <i class="bi bi-check-circle-fill fs-1"></i>
               </div>
-              <h5 data-test-id="display-username" class="mb-3">{{  form.username }}</h5>
-              <p data-test-id="display-email" class="text-muted mb-4">
+              <h5
+                data-test-id="display-username"
+                class="mb-3"
+              >
+                {{ form.username }}
+              </h5>
+              <p
+                data-test-id="display-email"
+                class="text-muted mb-4"
+              >
                 {{ form.email }}
               </p>
               <p class="text-muted mb-4">
-                Welcome to YoFi! Your account has been created and you're ready to get started.
+                Thanks for requesting an account. A member of our team will review your request and
+                get back to you shortly.
               </p>
             </div>
-            
+
             <div class="d-grid mb-3">
               <NuxtLink
-                to="/profile"
+                to="/login"
                 class="btn btn-primary"
-                data-test-id="GoToProfile"
+                data-test-id="ContinueButton"
               >
-                Continue to Profile
+                Continue
               </NuxtLink>
-            </div>
-            
-            <div class="text-center">
-              <p class="mb-0">
-                <NuxtLink
-                  to="/login"
-                  class="text-decoration-none"
-                  >Or sign in to existing account</NuxtLink
-                >
-              </p>
             </div>
           </div>
 
@@ -241,13 +240,12 @@ const isWeakPassword = computed(() => {
                 data-test-id="Register"
                 :disabled="isLoading"
               >
-                <span
+                <output
                   v-if="isLoading"
                   class="spinner-border spinner-border-sm me-2"
-                  role="status"
                   aria-hidden="true"
                 />
-                {{ isLoading ? 'Creating Account...' : 'Create Account' }}
+                {{ isLoading ? 'Requesting Account...' : 'Request Account' }}
               </button>
             </div>
 

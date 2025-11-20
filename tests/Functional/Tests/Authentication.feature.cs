@@ -10,7 +10,6 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// I want to register, login, and manage my account
 /// So that I can securely access my financial data
 /// </summary>
-[Explicit]
 public class UserAuthenticationTests : AuthenticationSteps
 {
     [SetUp]
@@ -46,8 +45,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
 
-        // Then I should be successfully registered
-        await ThenIShouldBeSuccessfullyRegistered();
+        // Then My registration request should be acklowledged
+        await ThenMyRegistrationRequestShouldBeAcklowledged();
     }
 
     /// <summary>
