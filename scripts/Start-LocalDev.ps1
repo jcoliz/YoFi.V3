@@ -19,5 +19,29 @@ The Aspire dashboard will open automatically and provide access to all services.
 https://learn.microsoft.com/en-us/dotnet/aspire/
 #>
 
-$Top = "$PSScriptRoot/.."
-dotnet watch --project "$Top/src/AppHost"
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+try {
+    $Top = "$PSScriptRoot/.."
+    $ProjectPath = "$Top/src/AppHost"
+    
+    if (-not (Test-Path $ProjectPath)) {
+        throw "AppHost project not found: $ProjectPath"
+    }
+    
+    Write-Host "Starting local development environment..." -ForegroundColor Cyan
+    Write-Host "Using dotnet watch for hot reload" -ForegroundColor Cyan
+    
+    dotnet watch --project $ProjectPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "dotnet watch failed with exit code $LASTEXITCODE"
+    }
+}
+catch {
+    Write-Error "Failed to start local development: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}

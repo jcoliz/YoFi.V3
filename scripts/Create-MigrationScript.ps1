@@ -25,17 +25,41 @@ This script does not work with Sqlite databases.
 https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying#sql-scripts
 #>
 
+[CmdletBinding()]
 param(
-    [Parameter()]
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("SqlServer", "PostgreSQL")]
     [string]
     $Provider
 )
 
 $ErrorActionPreference = "Stop"
 
-$Top = "$PSScriptRoot/.."
-
-Push-Location $Top
-dotnet build
-dotnet ef migrations script --project "./src/Data/$Provider/" --startup-project "./src/Data/$Provider.MigrationHost/" --context ApplicationDbContext -i -o "out/$Provider-Migration.sql"
-Pop-Location
+try {
+    $Top = "$PSScriptRoot/.."
+    Push-Location $Top
+    
+    Write-Verbose "Building solution..."
+    dotnet build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed with exit code $LASTEXITCODE"
+    }
+    
+    $OutputPath = "out/$Provider-Migration.sql"
+    Write-Verbose "Generating migration script for $Provider to $OutputPath..."
+    
+    dotnet ef migrations script --project "./src/Data/$Provider/" --startup-project "./src/Data/$Provider.MigrationHost/" --context ApplicationDbContext -i -o $OutputPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Migration script generation failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Migration script created successfully: $OutputPath" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to create migration script: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}
+finally {
+    Pop-Location
+}

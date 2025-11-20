@@ -30,20 +30,42 @@ See the Migration README at ../src/Data/Sqlite.MigrationHost/README.md for more 
 https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/
 #>
 
+[CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
     [string]
     $Name,
     [Parameter()]
+    [ValidateSet("Sqlite")]
     [string]
     $Provider = "Sqlite"
 )
 
 $ErrorActionPreference = "Stop"
 
-$Top = "$PSScriptRoot/.."
-
-Push-Location $Top
-dotnet build
-dotnet ef migrations add $Name -o .\Migrations\ -n "YoFi.V3.Data.$Provider.Migrations" --project ".\src\Data\$Provider\" --startup-project ".\src\Data\$Provider.MigrationHost\" --context ApplicationDbContext
-Pop-Location
+try {
+    $Top = "$PSScriptRoot/.."
+    Push-Location $Top
+    
+    Write-Verbose "Building solution..."
+    dotnet build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Verbose "Adding migration '$Name' for provider '$Provider'..."
+    dotnet ef migrations add $Name -o .\Migrations\ -n "YoFi.V3.Data.$Provider.Migrations" --project ".\src\Data\$Provider\" --startup-project ".\src\Data\$Provider.MigrationHost\" --context ApplicationDbContext
+    if ($LASTEXITCODE -ne 0) {
+        throw "Migration creation failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Migration '$Name' created successfully" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to add migration: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}
+finally {
+    Pop-Location
+}

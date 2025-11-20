@@ -30,17 +30,36 @@ For example: a1b2c3d-jsmith-11201630
 https://git-scm.com/docs/git-describe
 #>
 
-if (Test-Path env:SOLUTION_VERSION) 
-{
-    $Version = "$env:SOLUTION_VERSION"
-}
-else 
-{   
-    $User = $env:USERNAME
-    $Commit = git describe --always
-    $Time = $(Get-Date -Format "MMddHHmm")
+[CmdletBinding()]
+param()
 
-    $Version = "$Commit-$User-$Time"
-}
+$ErrorActionPreference = "Stop"
 
-Write-Output $Version
+try {
+    if (Test-Path env:SOLUTION_VERSION) {
+        $Version = "$env:SOLUTION_VERSION"
+        Write-Verbose "Using SOLUTION_VERSION from environment: $Version"
+    }
+    else {
+        $User = $env:USERNAME
+        if (-not $User) {
+            throw "USERNAME environment variable not set"
+        }
+        
+        $Commit = git describe --always 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to get git commit information. Is this a git repository?"
+        }
+        
+        $Time = Get-Date -Format "MMddHHmm"
+        $Version = "$Commit-$User-$Time"
+        Write-Verbose "Generated version: $Version"
+    }
+    
+    Write-Output $Version
+}
+catch {
+    Write-Error "Failed to get version: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}

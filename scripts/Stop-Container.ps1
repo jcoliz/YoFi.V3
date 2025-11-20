@@ -18,4 +18,22 @@ This command removes containers and networks but preserves volumes unless explic
 https://docs.docker.com/compose/
 #>
 
-docker compose -f ./docker/docker-compose-ci.yml down
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+try {
+    Write-Host "Stopping Docker CI containers..." -ForegroundColor Cyan
+    docker compose -f ./docker/docker-compose-ci.yml down
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker compose down failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Containers stopped successfully" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to stop containers: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}

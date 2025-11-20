@@ -21,20 +21,44 @@ Containers are always stopped after test execution, even if tests fail.
 https://docs.docker.com/compose/
 #>
 
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = "Stop"
 
 try {
     $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
-    Write-Output "Building and starting docker services with solution version $env:SOLUTION_VERSION..."
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to get version with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Building and starting docker services with solution version $env:SOLUTION_VERSION..." -ForegroundColor Cyan
     docker compose -f ./docker/docker-compose-ci.yml up --build -d --wait
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker compose up failed with exit code $LASTEXITCODE"
+    }
 
     Push-Location ./tests/Functional
-    Write-Output "Running tests..."
+    
+    Write-Host "Running functional tests..." -ForegroundColor Cyan
     dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\docker.runsettings
+    $testExitCode = $LASTEXITCODE
+    
     Pop-Location
+    
+    if ($testExitCode -ne 0) {
+        throw "Tests failed with exit code $testExitCode"
+    }
+    
+    Write-Host "Functional tests completed successfully" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to run functional tests: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
 }
 finally {
-    Write-Output "Stopping docker services..."
+    Write-Host "Stopping docker services..." -ForegroundColor Cyan
     docker compose -f ./docker/docker-compose-ci.yml down
     Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
 }

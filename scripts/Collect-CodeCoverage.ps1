@@ -28,18 +28,49 @@ The coverage report will be generated in .\bin\result\index.html and opened auto
 https://github.com/danielpalme/ReportGenerator
 #>
 
+[CmdletBinding()]
 param(
     [Parameter()]
+    [ValidateSet("Unit", "Functional")]
     [string]
     $Tests="Unit"
 )
 
-Push-Location "$PSScriptRoot/../tests/$Tests"
-$ErrorActionPreference = "Ignore"
-del TestResults -Recurse
-del bin\results -Recurse
 $ErrorActionPreference = "Stop"
-dotnet test --collect:"XPlat Code Coverage" --settings:coverlet.runsettings
-reportgenerator -reports:.\TestResults\*\coverage.cobertura.xml -targetdir:.\bin\result
-start .\bin\result\index.html
-Pop-Location
+
+try {
+    $TestPath = "$PSScriptRoot/../tests/$Tests"
+    
+    if (-not (Test-Path $TestPath)) {
+        throw "Test directory not found: $TestPath"
+    }
+    
+    Push-Location $TestPath
+    
+    Write-Verbose "Cleaning up previous test results..."
+    Remove-Item TestResults -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item bin\result -Recurse -Force -ErrorAction SilentlyContinue
+    
+    Write-Verbose "Running $Tests tests with code coverage..."
+    dotnet test --collect:"XPlat Code Coverage" --settings:coverlet.runsettings
+    if ($LASTEXITCODE -ne 0) {
+        throw "Test execution failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Verbose "Generating coverage report..."
+    reportgenerator -reports:.\TestResults\*\coverage.cobertura.xml -targetdir:.\bin\result
+    if ($LASTEXITCODE -ne 0) {
+        throw "Report generation failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Coverage report generated successfully" -ForegroundColor Green
+    Start-Process .\bin\result\index.html
+}
+catch {
+    Write-Error "Failed to collect code coverage: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}
+finally {
+    Pop-Location
+}

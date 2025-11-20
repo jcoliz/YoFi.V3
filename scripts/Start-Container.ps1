@@ -21,9 +21,25 @@ https://docs.docker.com/compose/
 #>
 
 
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = "Stop"
-docker compose -f ./docker/docker-compose-ci.yml up -d --wait
 
-Write-Host "Containers are up and running."
+try {
+    Write-Host "Starting Docker CI containers..." -ForegroundColor Cyan
+    docker compose -f ./docker/docker-compose-ci.yml up -d --wait
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker compose up failed with exit code $LASTEXITCODE"
+    }
 
-Start-Process "http://localhost:5000"
+    Write-Host "Containers are up and running." -ForegroundColor Green
+    Write-Host "Opening application at http://localhost:5000..." -ForegroundColor Cyan
+    
+    Start-Process "http://localhost:5000"
+}
+catch {
+    Write-Error "Failed to start containers: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}

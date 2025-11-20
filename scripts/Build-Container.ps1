@@ -19,11 +19,31 @@ to indicate they were built by this script.
 https://docs.docker.com/compose/
 #>
 
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
 try {
     $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
-    $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps" # Tag as built by this script
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to get version with exit code $LASTEXITCODE"
+    }
+    
+    $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps"
+    Write-Verbose "Building containers with version: $env:SOLUTION_VERSION"
+    
     docker compose -f ./docker/docker-compose-ci.yml build
-    Write-Output "Built Docker CI containers with solution version $env:SOLUTION_VERSION"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker build failed with exit code $LASTEXITCODE"
+    }
+    
+    Write-Host "Built Docker CI containers with solution version $env:SOLUTION_VERSION" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to build containers: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
 }
 finally {
     Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
