@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 
 function Test-DockerRunning {
     try {
-        docker info 2>&1 | Out-Null
+        $null = docker info 2>&1
         return ($LASTEXITCODE -eq 0)
     }
     catch {
@@ -39,20 +39,20 @@ try {
         Write-Error "Docker is not running. Please start Docker Desktop and try again."
         exit 1
     }
-    
+
     $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get version with exit code $LASTEXITCODE"
     }
-    
+
     $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps"
     Write-Host "Building containers with version: $env:SOLUTION_VERSION" -ForegroundColor Cyan
-    
+
     docker compose -f ./docker/docker-compose-ci.yml build
     if ($LASTEXITCODE -ne 0) {
         throw "Docker build failed with exit code $LASTEXITCODE"
     }
-    
+
     Write-Host "Built Docker CI containers with solution version $env:SOLUTION_VERSION" -ForegroundColor Green
 }
 catch {

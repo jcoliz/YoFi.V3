@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 
 function Test-DockerRunning {
     try {
-        docker info 2>&1 | Out-Null
+        $null = docker info 2>&1
         return ($LASTEXITCODE -eq 0)
     }
     catch {
@@ -38,13 +38,13 @@ try {
         Write-Error "Docker is not running. Please start Docker Desktop and try again."
         exit 1
     }
-    
+
     Write-Host "Stopping Docker CI containers..." -ForegroundColor Cyan
     docker compose -f ./docker/docker-compose-ci.yml down
     if ($LASTEXITCODE -ne 0) {
         throw "Docker compose down failed with exit code $LASTEXITCODE"
     }
-    
+
     Write-Host "Containers stopped successfully" -ForegroundColor Green
 }
 catch {
