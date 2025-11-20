@@ -1,4 +1,106 @@
 # Scripts
 
-This folder contains scripts of many different kinds. Often these would be scattered
-around the project, found wherever they're used. I think it's more useful to have them collected in one place.
+This folder contains scripts of many different kinds. Often these would be scattered around the project, found wherever they're used. I think it's more useful to have them collected in one place.
+
+## Table of Contents
+
+### Development Setup
+
+| Script | Synopsis |
+|--------|----------|
+| [`Setup-Development.ps1`](Setup-Development.ps1) | Setup development environment for new developers by verifying tools, restoring dependencies, building solution, and running tests |
+
+### Local Development
+
+| Script | Synopsis |
+|--------|----------|
+| [`Start-LocalDev.ps1`](Start-LocalDev.ps1) | Starts the local development environment using .NET Aspire with hot reload enabled |
+
+### Testing
+
+| Script | Synopsis |
+|--------|----------|
+| [`Run-Tests.ps1`](Run-Tests.ps1) | Run unit and integration tests (excludes functional tests) |
+| [`Run-FunctionalTestsVsContainer.ps1`](Run-FunctionalTestsVsContainer.ps1) | Runs functional tests against the CI Docker containers |
+| [`Collect-CodeCoverage.ps1`](Collect-CodeCoverage.ps1) | Runs tests and collects code coverage metrics with HTML report generation |
+
+### Database Management
+
+| Script | Synopsis |
+|--------|----------|
+| [`Add-Migration.ps1`](Add-Migration.ps1) | Adds a new Entity Framework migration to the specified database provider |
+| [`Create-MigrationScript.ps1`](Create-MigrationScript.ps1) | Creates a SQL script to migrate the database schema to the latest migration |
+
+### Docker Operations
+
+| Script | Synopsis |
+|--------|----------|
+| [`Build-Container.ps1`](Build-Container.ps1) | Builds the Docker CI containers locally for testing |
+| [`Start-Container.ps1`](Start-Container.ps1) | Starts the Docker CI containers locally and opens the application in browser |
+| [`Stop-Container.ps1`](Stop-Container.ps1) | Stops the Docker CI containers locally |
+
+### Azure Deployment
+
+| Script | Synopsis |
+|--------|----------|
+| [`Provision-Resources.ps1`](Provision-Resources.ps1) | Provisions Azure resources for the YoFi.V3 application using Bicep templates |
+
+### Build Utilities
+
+| Script | Synopsis |
+|--------|----------|
+| [`Get-Version.ps1`](Get-Version.ps1) | Gets the current version string for the solution build from environment or git |
+
+## Quick Start
+
+### For New Developers
+
+```powershell
+# First time setup
+.\Setup-Development.ps1
+
+# Start local development
+.\Start-LocalDev.ps1
+```
+
+### Running Tests
+
+```powershell
+# Run unit and integration tests
+.\Run-Tests.ps1
+
+# Run functional tests (requires Docker)
+.\Run-FunctionalTestsVsContainer.ps1
+
+# Collect code coverage
+.\Collect-CodeCoverage.ps1
+```
+
+### Docker Workflows
+
+```powershell
+# Build containers
+.\Build-Container.ps1
+
+# Start containers
+.\Start-Container.ps1
+
+# Stop containers
+.\Stop-Container.ps1
+```
+
+## Prerequisites
+
+- **PowerShell** 5.1 or later (Windows) or PowerShell Core 7+ (cross-platform)
+- **.NET SDK** 10.0 or later
+- **Node.js** 24+ with pnpm
+- **Docker Desktop** (for container-based workflows)
+- **Azure CLI** (for Azure deployment scripts)
+
+## Documentation
+
+For more information about contributing to this project, see:
+
+- [CONTRIBUTING.md](../docs/CONTRIBUTING.md) - Development guidelines
+- [ARCHITECTURE.md](../docs/ARCHITECTURE.md) - System architecture
+- [DEPLOYMENT.md](../docs/DEPLOYMENT.md) - Deployment processes
