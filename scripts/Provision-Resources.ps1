@@ -1,3 +1,41 @@
+<#
+.SYNOPSIS
+Provisions Azure resources for the YoFi.V3 application.
+
+.DESCRIPTION
+This script creates an Azure Resource Group and deploys all required Azure resources
+using Bicep templates. It provisions a Static Web App, Web App, Log Analytics Workspace,
+and Application Insights, then outputs the deployment information needed for CI/CD pipelines.
+
+.PARAMETER ResourceGroup
+The name of the Azure Resource Group to create or use. This parameter is required.
+
+.PARAMETER Location
+The Azure region where the Resource Group will be created (e.g., "eastus", "westus2").
+This parameter is required.
+
+.PARAMETER StaticWebAppLocation
+The Azure region where the Static Web App will be created. This may differ from the
+Resource Group location. This parameter is required.
+
+.EXAMPLE
+.\Provision-Resources.ps1 -ResourceGroup "yofi-rg" -Location "eastus" -StaticWebAppLocation "eastus2"
+Creates a resource group in East US and provisions all resources with the Static Web App in East US 2.
+
+.OUTPUTS
+The script outputs deployment information including:
+- Resource names (Static Web App, Web App, Log Analytics, App Insights)
+- Endpoints (Frontend URL, Backend API URL)
+- Deployment pipeline inputs (tokens and connection strings)
+
+.NOTES
+Requires Azure CLI to be installed and authenticated.
+The script uses the Bicep template located at ../infra/main.bicep.
+
+.LINK
+https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview
+#>
+
 param(
     [Parameter(Mandatory=$true)]
     [string]
