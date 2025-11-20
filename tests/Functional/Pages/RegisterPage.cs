@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using static Microsoft.Playwright.Assertions; // Add this line
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class RegisterPage(IPage _page): BasePage(_page)
@@ -10,6 +11,9 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public ILocator PasswordAgainInput => View.GetByTestId("password-again");
     public ILocator RegisterButton => View.GetByTestId("Register");
     public ILocator ErrorDisplay => View.GetByTestId("Errors");
+    public ILocator SuccessMessage => Page!.GetByTestId("SuccessMessage");
+    public ILocator EmailDisplay => SuccessMessage.GetByTestId("display-email");
+    public ILocator UsernameDisplay =>  SuccessMessage.GetByTestId("display-username");
     public ILocator SignInLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Sign in here" });
 
     public async Task RegisterAsync(string email, string username, string password)
@@ -29,6 +33,8 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
     public async Task EnterRegistrationDetailsAsync(string email, string username, string password, string confirmPassword)
     {
+        await ClearFormAsync();
+        await EmailInput.ClickAsync();
         await EmailInput.FillAsync(email);
         await UsernameInput.FillAsync(username);
         await PasswordInput.FillAsync(password);
@@ -87,6 +93,7 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
     public async Task<bool> IsOnRegistrationPageAsync()
     {
+        await View.WaitForAsync(new LocatorWaitForOptions { Timeout = 5000 });
         return await View.IsVisibleAsync();
     }
 
@@ -111,10 +118,10 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
     public async Task ClearFormAsync()
     {
-        await EmailInput.FillAsync("");
-        await UsernameInput.FillAsync("");
-        await PasswordInput.FillAsync("");
-        await PasswordAgainInput.FillAsync("");
+        await EmailInput.ClearAsync();
+        await UsernameInput.ClearAsync();
+        await PasswordInput.ClearAsync();
+        await PasswordAgainInput.ClearAsync();
     }
 
     public async Task<bool> IsLoadingAsync()

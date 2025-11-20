@@ -15,6 +15,7 @@ const form = ref({
 // Form validation and error handling
 const errors = ref<string[]>([])
 const isLoading = ref(false)
+const isRegistered = ref(false)
 
 // Form submission handler
 const handleSubmit = async () => {
@@ -51,8 +52,8 @@ const handleSubmit = async () => {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // TODO: Handle successful registration
-    // Should redirect to workspace or login user automatically
+    // Set success state
+    isRegistered.value = true
   } catch (error) {
     errors.value.push(
       `Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
@@ -73,10 +74,54 @@ const isWeakPassword = computed(() => {
     <div class="col-md-6 col-lg-4">
       <div class="card shadow">
         <div class="card-header text-center">
-          <h3 class="card-title mb-0">Create Account</h3>
+          <h3 class="card-title mb-0">
+            {{ isRegistered ? 'Welcome!' : 'Create Account' }}
+          </h3>
         </div>
         <div class="card-body">
+          <!-- Success Message -->
+          <div
+            v-if="isRegistered"
+            class="text-center"
+            data-test-id="SuccessMessage"
+          >
+            <div class="mb-4">
+              <div class="text-success mb-3">
+                <i class="bi bi-check-circle-fill fs-1"></i>
+              </div>
+              <h5 data-test-id="display-username" class="mb-3">{{  form.username }}</h5>
+              <p data-test-id="display-email" class="text-muted mb-4">
+                {{ form.email }}
+              </p>
+              <p class="text-muted mb-4">
+                Welcome to YoFi! Your account has been created and you're ready to get started.
+              </p>
+            </div>
+            
+            <div class="d-grid mb-3">
+              <NuxtLink
+                to="/profile"
+                class="btn btn-primary"
+                data-test-id="GoToProfile"
+              >
+                Continue to Profile
+              </NuxtLink>
+            </div>
+            
+            <div class="text-center">
+              <p class="mb-0">
+                <NuxtLink
+                  to="/login"
+                  class="text-decoration-none"
+                  >Or sign in to existing account</NuxtLink
+                >
+              </p>
+            </div>
+          </div>
+
+          <!-- Registration Form -->
           <form
+            v-else
             data-test-id="RegisterForm"
             @submit.prevent="handleSubmit"
           >

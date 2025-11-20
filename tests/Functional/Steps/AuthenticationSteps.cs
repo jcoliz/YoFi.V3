@@ -36,10 +36,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         await Page.GotoAsync("/register");
         var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");
+        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");        
 
-        // TODO: Work on a better way to ensure the page is fully loaded
-        await Task.Delay(1000); // Small delay to ensure page is fully loaded
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -114,6 +113,9 @@ public abstract class AuthenticationSteps : FunctionalTest
         var username = GetTableValue(registrationData, "Username");
         var password = GetTableValue(registrationData, "Password");
         var confirmPassword = GetTableValue(registrationData, "Confirm Password");
+
+        _objectStore.Add("Email", email);
+        _objectStore.Add("Username", username);
         
         await registerPage.EnterRegistrationDetailsAsync(email, username, password, confirmPassword);
     }
@@ -238,7 +240,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var email = registrationData.GetValue("Email");
         var password = registrationData.GetValue("Password");
         var confirmPassword = registrationData.GetValue("Confirm Password");
-        
+
         await registerPage.EnterRegistrationDetailsAsync(email, "existinguser", password, confirmPassword);
     }
 
@@ -267,8 +269,16 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldBeSuccessfullyRegistered()
     {
-        // TODO: Verify successful registration - could check for redirect or success message
-        await Task.CompletedTask;
+        var registerPage = GetOrCreateRegisterPage();
+        await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
+
+        var email = _objectStore.Get<string>("Email");
+        var username = _objectStore.Get<string>("Username");
+        var emailDisplayText = await registerPage.EmailDisplay.InnerTextAsync();
+        var usernameDisplayText = await registerPage.UsernameDisplay.InnerTextAsync();
+
+        Assert.That(emailDisplayText, Is.EqualTo(email), "Displayed email should match registered email");
+        Assert.That(usernameDisplayText, Is.EqualTo(username), "Displayed username should match registered username");
     }
 
     /// <summary>
