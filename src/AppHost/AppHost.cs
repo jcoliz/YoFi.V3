@@ -20,6 +20,7 @@ builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
     .WithEnvironment("NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
     .WithReference(apiService)
     .WithHttpEndpoint(port: 5173, env: "PORT")
+    .WithHttpHealthCheck("/health")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 

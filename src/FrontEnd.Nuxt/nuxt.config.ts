@@ -43,4 +43,9 @@ export default defineNuxtConfig({
   appConfig: {
     name: 'YoFi.V3',
   },
+  nitro: {
+    prerender: {
+      routes: ['/health'],
+    },
+  },
 })
