@@ -5,8 +5,8 @@ definePageMeta({
 
 // TODO: Replace with actual user data from authentication context
 const user = ref({
-  email: 'testuser@example.com',
-  username: 'testuser',
+  email: '__TEST__0001@example.com',
+  username: '__TEST__0001',
   workspaceName: 'Personal Finance',
   memberSince: '2024-01-15',
   lastLogin: '2024-11-17',

@@ -49,9 +49,8 @@ const handleSubmit = async () => {
       errors.value.push('Invalid email or password')
       return
     }
-
     // TODO: Navigate to workspace dashboard after successful login
-    // await navigateTo('/workspace/dashboard')
+    await navigateTo('/profile')
   } catch (error) {
     errors.value.push(
       `Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`,

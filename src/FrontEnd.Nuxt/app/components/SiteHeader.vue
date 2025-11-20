@@ -1,12 +1,23 @@
 <script setup lang="ts">
+console.log('[DEBUG] SiteHeader: Component loading')
+
 const appConfig = useAppConfig()
 const displayRoutes = useRouter()
   .getRoutes()
   .filter((x) => x.meta.order)
   .sort((x, y) => (x.meta.order as number) - (y.meta.order as number))
+
+console.log(
+  '[DEBUG] SiteHeader: Display routes:',
+  displayRoutes.map((r) => ({ path: r.path, title: r.meta.title })),
+)
+console.log('[DEBUG] SiteHeader: Will render FeatherIcon in header')
 </script>
 <template>
-  <div class="container">
+  <div
+    class="container"
+    data-test-id="site-header"
+  >
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <NuxtLink
         to="/"

@@ -4,6 +4,13 @@ using YoFi.V3.Tests.Functional.Helpers;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
+public class TestUser(int id)
+{
+    public string Email { get; init; } = $"__TEST__{id:0000}@example.com";
+    public string Username { get; init; } = $"__TEST__{id:0000}";
+    public string Password { get; init; } = "MyPassword123!";
+}
+
 /// <summary>
 /// Step definitions for Authentication feature tests
 /// </summary>
@@ -48,6 +55,19 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         // TODO: Implement account creation via API or database setup
         // For now, assume test accounts exist
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Given: I have an existing account
+    /// </summary>
+    protected async Task GivenIHaveAnExistingAccount()
+    {        
+        // TODO: Implement account creation via Test Control API
+
+        var testUser = new TestUser(1);
+        _objectStore.Add(testUser);
+        // TODO: Send request to create account via API
         await Task.CompletedTask;
     }
 
@@ -127,6 +147,18 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.ClickRegisterButtonAsync();
+    }
+
+    /// <summary>
+    /// When: I enter my existing credentials
+    /// </summary>
+    protected async Task WhenIEnterMyExistingCredentials()
+    {
+        var loginPage = GetOrCreateLoginPage();
+
+        var testuser = It<TestUser>();
+
+        await loginPage.EnterCredentialsAsync(testuser.Email, testuser.Password);
     }
 
     /// <summary>
@@ -306,6 +338,36 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         // TODO: Verify successful login state
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Then: I should see my profile page
+    /// </summary>
+    protected async Task ThenIShouldSeeMyProfilePage()
+    {
+        var profilePage = GetOrCreateProfilePage();
+        Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
+    }
+
+    /// <summary>
+    /// Then: I should see my username in the header
+    /// </summary>
+    protected async Task ThenIShouldSeeMyUsernameInTheHeader()
+    {
+        var testuser = It<TestUser>();
+        var usernameInHeader = await Page.GetByTestId("site-header").GetByTestId("login-state").GetByTestId("login-state").GetByTestId("Username").TextContentAsync();
+        Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
+    }
+
+    /// <summary>
+    /// Then: I should see my username on the profile page
+    /// </summary>
+    protected async Task ThenIShouldSeeMyUsernameOnTheProfilePage()
+    {
+        var testuser = It<TestUser>();
+        var profilePage = GetOrCreateProfilePage();
+        var usernameText = await profilePage.UsernameDisplay.TextContentAsync();
+        Assert.That(usernameText, Does.Contain(testuser.Username), "Username should be visible on the profile page");
     }
 
     /// <summary>

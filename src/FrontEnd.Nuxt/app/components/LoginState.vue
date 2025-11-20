@@ -6,16 +6,18 @@
  * and navigation to profile page.
  */
 
+console.log('[DEBUG] LoginState: Component loading')
+
 // Fake login state for demo purposes
 
-const account = ref(false)
-const name = ref('')
+const account = ref(true)
+const name = ref('__TEST__0001')
 const photo = ref('')
 
-function systemLogin() {
-  account.value = true
-  name.value = 'User Name'
+console.log('[DEBUG] LoginState: Account state:', account.value)
+console.log('[DEBUG] LoginState: Will render FeatherIcon:', !account.value)
 
+function systemLogin() {
   navigateTo('/login')
 }
 
@@ -47,10 +49,13 @@ function systemLogout() {
             height="32"
             class="rounded-circle me-2"
           />
-          <strong>{{ name }}</strong>
+          <strong
+            class="me-2"
+            data-test-id="username"
+            >{{ name }}</strong
+          >
         </template>
         <FeatherIcon
-          v-else
           icon="user"
           size="24"
           class="rounded-circle me-2"

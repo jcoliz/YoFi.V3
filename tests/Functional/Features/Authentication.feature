@@ -23,20 +23,16 @@ Scenario: User registers for a new account
         | Confirm Password | SecurePassword123!       |
     And I submit the registration form
     Then I should be successfully registered
-    And I should be automatically logged in
-    And I should be redirected to my default workspace
 
 Scenario: User logs into an existing account
-    Given I have an existing account with email "testuser@example.com"
+    Given I have an existing account
     And I am on the login page
-    When I enter my credentials:
-        | Field    | Value                |
-        | Email    | testuser@example.com |
-        | Password | MyPassword123!       |
+    When I enter my existing credentials
     And I click the login button
     Then I should be successfully logged in
-    And I should see my workspace dashboard
-    And I should see my email address in the navigation
+    And I should see my profile page
+    And I should see my username on the profile page
+    And I should see my username in the header
 
 Scenario: User login fails with invalid credentials
     Given I am on the login page

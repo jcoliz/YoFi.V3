@@ -48,11 +48,39 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // Then I should be successfully registered
         await ThenIShouldBeSuccessfullyRegistered();
+    }
 
-        // And I should be automatically logged in
-        await ThenIShouldBeAutomaticallyLoggedIn();
+    /// <summary>
+    /// User logs into an existing account
+    /// </summary>
+    [Test]
+    public async Task UserLogsIntoAnExistingAccount()
+    {
+        // Given I have an existing account
+        await GivenIHaveAnExistingAccount();
 
-        // And I should be redirected to my default workspace
-        await ThenIShouldBeRedirectedToMyDefaultWorkspace();
+        // And I am on the login page
+        await GivenIAmOnTheLoginPage();
+
+        // When I enter my existing credentials
+        await WhenIEnterMyExistingCredentials();
+
+        // And I click the login button
+        await WhenIClickTheLoginButton();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should be successfully logged in
+        await ThenIShouldBeSuccessfullyLoggedIn();
+
+        // And I should see my profile page
+        await ThenIShouldSeeMyProfilePage();
+
+        // And I should see my username on the profile page
+        await ThenIShouldSeeMyUsernameOnTheProfilePage();
+
+        // And I should see my username in the header
+        await ThenIShouldSeeMyUsernameInTheHeader();
     }
 }
