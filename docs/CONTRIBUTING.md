@@ -69,7 +69,7 @@ This project follows Clean Architecture with clear separation:
 ## Pull Request Process
 
 1. Create a feature branch from `main`
-2. Make your changes with clear, atomic commits
+2. Make your changes with clear, atomic commits following our [Commit Conventions](COMMIT-CONVENTIONS.md)
 3. Ensure all tests pass
 4. Update documentation if needed
 5. Create PR with clear description
