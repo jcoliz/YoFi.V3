@@ -1,0 +1,24 @@
+# Config files (to avoid circular formatting issues)
+.prettierrc
+.prettierrc.json
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.nuxt
+.output
+dist
+
+# Generated files
+.nitro
+.cache
+
+# Logs
+*.log
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
