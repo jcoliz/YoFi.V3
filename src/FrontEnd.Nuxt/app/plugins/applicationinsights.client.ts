@@ -1,10 +1,9 @@
-// plugins/applicationinsights.client.ts
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
 
-  const connectionString = config.public.applicationInsightsConnectionString as string
+  const connectionString = config.public.applicationInsightsConnectionString
 
   if (!connectionString) {
     console.warn('Application Insights connection string not configured')
