@@ -8,10 +8,6 @@
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
     <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.55.0" />
-    <PackageReference Include="NSwag.MSBuild" Version="14.6.3">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit.Analyzers" Version="4.7.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
@@ -20,21 +16,8 @@
   <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <ApiClientConfigFile>nswag.json</ApiClientConfigFile>
-    <ApiClientOutputFile>$(IntermediateOutputPath)Generated\ApiClient.cs</ApiClientOutputFile>
-  </PropertyGroup>
-
   <ItemGroup>
-    <Compile Include="$(ApiClientOutputFile)" Condition="Exists('$(ApiClientOutputFile)')" />
+    <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
-  
-  <!-- Cannot get this output step to work. Will just hand-generate the file for now -->
-  <!-- Target Name="GenerateApiClient" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(IntermediateOutputPath)Generated" />
-    <Exec WorkingDirectory="$(ProjectDir)" 
-          Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:Configuration=$(Configuration),OutputFile=$(ApiClientOutputFile),InputPath=$(ProjectDir)..\..\src\WireApiHost\bin\$(Configuration)\net10.0\" />
-  </Target -->
 
 </Project>
