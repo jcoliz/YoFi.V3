@@ -37,6 +37,9 @@ public abstract class AuthenticationSteps : FunctionalTest
         await Page.GotoAsync("/register");
         var registerPage = GetOrCreateRegisterPage();
         Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");
+
+        // TODO: Work on a better way to ensure the page is fully loaded
+        await Task.Delay(1000); // Small delay to ensure page is fully loaded
     }
 
     /// <summary>
