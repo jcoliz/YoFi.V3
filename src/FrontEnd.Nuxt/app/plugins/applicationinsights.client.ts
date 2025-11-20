@@ -42,7 +42,7 @@ export default defineNuxtPlugin(() => {
   // Make available globally
   return {
     provide: {
-      appInsights: appInsights.appInsights,
+      appInsights: appInsights.appInsights as unknown as ApplicationInsights,
     },
   }
 })
