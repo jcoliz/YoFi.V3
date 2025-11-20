@@ -2,11 +2,12 @@
   "recommendations": [
     "ms-dotnettools.csdevkit",
     "vue.volar",
-    "dbaeumer.vscode-eslint",
+    "dbaeumer.vscode-eslint", 
     "editorconfig.editorconfig",
     "bierner.markdown-mermaid",
     "yzhang.markdown-all-in-one",
     "ms-azuretools.vscode-bicep",
-    "ms-playwright.playwright"
+    "ms-playwright.playwright",
+    "esbenp.prettier-vscode"
   ]
 }
