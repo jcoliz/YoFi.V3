@@ -73,6 +73,16 @@ try {
         npm install -g pnpm
     }
 
+    # Check Docker (optional but recommended)
+    try {
+        docker --version | Out-Null
+        Write-Host "OK Docker: $(docker --version)" -ForegroundColor Green
+    } catch {
+        Write-Host "WARNING Docker not found or not running" -ForegroundColor Yellow
+        Write-Host "        Docker is recommended but not required for local development" -ForegroundColor Yellow
+        Write-Host "        Download from: https://www.docker.com/products/docker-desktop" -ForegroundColor Yellow
+    }
+
     # Restore .NET dependencies
     Write-Host "`nRestoring .NET dependencies..." -ForegroundColor Cyan
     dotnet restore
@@ -107,11 +117,9 @@ try {
 
     # Run tests to verify setup
     Write-Host "`nRunning tests..." -ForegroundColor Cyan
-    dotnet test --no-build
+    & "$PSScriptRoot\Run-Tests.ps1"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "WARNING Some tests failed. Review test output above." -ForegroundColor Yellow
-    } else {
-        Write-Host "OK All tests passed" -ForegroundColor Green
     }
 
     # Success message
