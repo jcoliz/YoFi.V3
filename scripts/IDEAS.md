@@ -50,23 +50,13 @@ Consider expanding the README with a brief description of each script:
 Based on your project structure, you might benefit from:
 
 ````powershell
-# Deploy-Local.ps1 - Deploy to local development
-# Deploy-Azure.ps1 - Deploy to Azure (when ready)
 # Setup-Development.ps1 - First-time dev environment setup
 # Clean-All.ps1 - Clean build artifacts, containers, etc.
 # Run-All-Tests.ps1 - Run unit + integration + functional tests
 # Generate-ApiDocs.ps1 - Generate API documentation
 ````
 
-### 3. Script Consistency Patterns
-
-Consider standardizing on:
-- **Error handling**: `$ErrorActionPreference = "Stop"`
-- **Parameter validation**: `[Parameter(Mandatory=$true)]`
-- **Help documentation**: `<#.SYNOPSIS#>` blocks
-- **Exit codes**: Consistent 0/1 return values
-
-### 4. Environment-Specific Scripts
+### 3. Environment-Specific Scripts
 
 You might want to add scripts for different environments:
 ````
@@ -103,53 +93,3 @@ Based on typical .NET/Nuxt projects:
 5. **`Backup-Database.ps1`** - Backup SQLite database
 6. **`Update-Dependencies.ps1`** - Update NuGet and npm packages
 7. **`Lint-All.ps1`** - Run linting on all code
-
-## Example Enhanced Script Template
-
-````powershell
-<#
-.SYNOPSIS
-    Builds Docker containers for the application
-
-.DESCRIPTION
-    This script builds all necessary Docker containers for local development
-    including the backend API and any supporting services.
-
-.PARAMETER Environment
-    The environment to build for (Development, Staging, Production)
-
-.PARAMETER Force
-    Force rebuild without using cache
-
-.EXAMPLE
-    ./Build-Container.ps1
-    ./Build-Container.ps1 -Environment Production -Force
-
-.NOTES
-    Requires Docker Desktop to be running
-#>
-param(
-    [Parameter(Mandatory=$false)]
-    [ValidateSet("Development", "Staging", "Production")]
-    [string]$Environment = "Development",
-    
-    [switch]$Force
-)
-
-$ErrorActionPreference = "Stop"
-
-try {
-    Write-Host "Building containers for $Environment..." -ForegroundColor Green
-    
-    # Your build logic here
-    
-    Write-Host "Build completed successfully!" -ForegroundColor Green
-    exit 0
-}
-catch {
-    Write-Host "Build failed: $_" -ForegroundColor Red
-    exit 1
-}
-````
-
-Overall, your script organization is solid! These suggestions would just make it even more maintainable and developer-friendly.
