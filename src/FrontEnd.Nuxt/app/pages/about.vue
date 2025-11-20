@@ -41,7 +41,7 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
         <div class="card-body">
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Front End Version</strong><br/>
+              <strong>Front End Version</strong><br>
               <small class="text-muted">runtimeConfig.public.solutionVersion</small>
             </div>
             <div class="col-sm-8">
@@ -50,7 +50,7 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
           </div>
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Back End Version</strong><br/>
+              <strong>Back End Version</strong><br>
               <small class="text-muted">/api/version</small>
             </div>
             <div class="col-sm-8">
@@ -67,7 +67,7 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
           </div>
           <div class="row mb-3">
             <div class="col-sm-4">
-              <strong>Application Insights Connection String</strong><br/>
+              <strong>Application Insights Connection String</strong><br>
               <small class="text-muted">runtimeConfig.public.applicationInsightsConnectionString</small>
             </div>
             <div class="col-sm-8">
@@ -89,11 +89,11 @@ const applicationInsightsConnectionString = runtimeConfig.public.applicationInsi
           </p>
           <div class="d-grid gap-2 mt-3">
             <a href="https://github.com/jcoliz/YoFi.V3" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
-              <i class="bi bi-github me-1"></i>
+              <i class="bi bi-github me-1"/>
               YoFi V3 Repository
             </a>
             <a href="https://github.com/jcoliz/YoFi" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm">
-              <i class="bi bi-github me-1"></i>
+              <i class="bi bi-github me-1"/>
               YoFi Original Repository
             </a>
           </div>

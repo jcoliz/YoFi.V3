@@ -70,7 +70,7 @@ const handleUpdate = async () => {
     isEditing.value = false
     
   } catch (error) {
-    errors.value.push('Profile update failed. Please try again.')
+    errors.value.push(`Profile update failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
   } finally {
     isLoading.value = false
   }
@@ -85,11 +85,11 @@ const handleUpdate = async () => {
           <h4 class="card-title mb-0">Account Information</h4>
           <button
             v-if="!isEditing"
-            @click="startEditing"
             class="btn btn-outline-primary btn-sm"
             data-test-id="EditProfile"
+            @click="startEditing"
           >
-            <i class="bi bi-pencil me-1"></i>
+            <i class="bi bi-pencil me-1"/>
             Edit Profile
           </button>
         </div>
@@ -139,7 +139,7 @@ const handleUpdate = async () => {
           </div>
 
           <!-- Edit Mode -->
-          <form v-else @submit.prevent="handleUpdate" data-test-id="EditProfileForm">
+          <form v-else data-test-id="EditProfileForm" @submit.prevent="handleUpdate">
             <div class="mb-3">
               <label for="edit-email" class="form-label">Email Address</label>
               <input
@@ -150,7 +150,7 @@ const handleUpdate = async () => {
                 data-test-id="EditEmail"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
             <div class="mb-3">
               <label for="edit-username" class="form-label">Username</label>
@@ -162,7 +162,7 @@ const handleUpdate = async () => {
                 data-test-id="EditUsername"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
             <div class="d-flex gap-2">
               <button
@@ -171,15 +171,15 @@ const handleUpdate = async () => {
                 data-test-id="SaveProfile"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
                 {{ isLoading ? 'Saving...' : 'Save Changes' }}
               </button>
               <button
                 type="button"
-                @click="cancelEditing"
                 class="btn btn-secondary"
                 data-test-id="CancelEdit"
                 :disabled="isLoading"
+                @click="cancelEditing"
               >
                 Cancel
               </button>
@@ -217,16 +217,16 @@ const handleUpdate = async () => {
         <div class="card-body">
           <div class="d-grid gap-2">
             <button class="btn btn-outline-warning btn-sm" data-test-id="ChangePassword">
-              <i class="bi bi-lock me-1"></i>
+              <i class="bi bi-lock me-1"/>
               Change Password
             </button>
             <button class="btn btn-outline-info btn-sm" data-test-id="ManageWorkspaces">
-              <i class="bi bi-building me-1"></i>
+              <i class="bi bi-building me-1"/>
               Manage Workspaces
             </button>
             <hr>
             <button class="btn btn-outline-danger btn-sm" data-test-id="Logout">
-              <i class="bi bi-box-arrow-right me-1"></i>
+              <i class="bi bi-box-arrow-right me-1"/>
               Sign Out
             </button>
           </div>

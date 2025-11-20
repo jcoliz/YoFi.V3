@@ -55,7 +55,7 @@ const handleSubmit = async () => {
     // Should redirect to workspace or login user automatically
     
   } catch (error) {
-    errors.value.push('Registration failed. Please try again.')
+    errors.value.push(`Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
   } finally {
     isLoading.value = false
   }
@@ -75,7 +75,7 @@ const isWeakPassword = computed(() => {
           <h3 class="card-title mb-0">Create Account</h3>
         </div>
         <div class="card-body">
-          <form @submit.prevent="handleSubmit" data-test-id="RegisterForm">
+          <form data-test-id="RegisterForm" @submit.prevent="handleSubmit">
             
             <!-- Error Display -->
             <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
@@ -96,7 +96,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Enter your email"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
 
             <!-- Username Field -->
@@ -111,7 +111,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Choose a username"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
 
             <!-- Password Field -->
@@ -127,7 +127,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Enter a secure password"
                 :disabled="isLoading"
                 required
-              />
+              >
               <div v-if="isWeakPassword" class="invalid-feedback">
                 Password must be at least 8 characters long
               </div>
@@ -146,7 +146,7 @@ const isWeakPassword = computed(() => {
                 placeholder="Confirm your password"
                 :disabled="isLoading"
                 required
-              />
+              >
               <div v-if="form.passwordAgain && form.password !== form.passwordAgain" class="invalid-feedback">
                 Passwords do not match
               </div>
@@ -160,7 +160,7 @@ const isWeakPassword = computed(() => {
                 data-test-id="Register"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
                 {{ isLoading ? 'Creating Account...' : 'Create Account' }}
               </button>
             </div>

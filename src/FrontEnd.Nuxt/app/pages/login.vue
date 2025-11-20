@@ -54,7 +54,7 @@ const handleSubmit = async () => {
     // await navigateTo('/workspace/dashboard')
     
   } catch (error) {
-    errors.value.push('Login failed. Please try again.')
+    errors.value.push(`Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
   } finally {
     isLoading.value = false
   }
@@ -69,7 +69,7 @@ const handleSubmit = async () => {
           <h3 class="card-title mb-0">Sign In</h3>
         </div>
         <div class="card-body">
-          <form @submit.prevent="handleSubmit" data-test-id="LoginForm">
+          <form data-test-id="LoginForm" @submit.prevent="handleSubmit">
             
             <!-- Error Display -->
             <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
                 placeholder="Enter your email"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
 
             <!-- Password Field -->
@@ -105,7 +105,7 @@ const handleSubmit = async () => {
                 placeholder="Enter your password"
                 :disabled="isLoading"
                 required
-              />
+              >
             </div>
 
             <!-- Submit Button -->
@@ -116,7 +116,7 @@ const handleSubmit = async () => {
                 data-test-id="Login"
                 :disabled="isLoading"
               >
-                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"/>
                 {{ isLoading ? 'Signing In...' : 'Sign In' }}
               </button>
             </div>

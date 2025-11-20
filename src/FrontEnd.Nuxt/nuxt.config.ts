@@ -1,7 +1,13 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  modules: ['@nuxt/eslint'],
   devtools: { enabled: true },
+  eslint: {
+    config: {
+      stylistic: false,
+    }
+  },
   devServer: {
     port: parseInt(process.env.PORT ?? "5173"),
   },

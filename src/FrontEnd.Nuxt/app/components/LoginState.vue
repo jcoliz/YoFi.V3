@@ -47,10 +47,10 @@ function systemLogout()
                 <template v-if="account">
                     <li><NuxtLink class="dropdown-item" to="/profile" data-test-id="Profile">Profile</NuxtLink></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" @click="systemLogout" data-test-id="SignOut">Sign Out</a></li>
+                    <li><a class="dropdown-item" data-test-id="SignOut" @click="systemLogout">Sign Out</a></li>
                 </template>
                 <template v-else>
-                    <li><a class="dropdown-item" @click="systemLogin" data-test-id="SignIn">Sign In</a></li>
+                    <li><a class="dropdown-item" data-test-id="SignIn" @click="systemLogin">Sign In</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><NuxtLink class="dropdown-item" to="/register" data-test-id="CreateAccount">Create Account</NuxtLink></li>
                     <li><hr class="dropdown-divider"></li>

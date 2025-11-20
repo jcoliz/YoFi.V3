@@ -8,7 +8,9 @@
     "start": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@coliz/vue-base-controls": "^0.0.15",
@@ -20,8 +22,15 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@nuxt/eslint": "^1.10.0",
+    "@nuxt/eslint-config": "^1.10.0",
     "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-vue": "^10.5.1",
     "nuxi": "^3.30.0",
-    "sass": "1.93.3"
+    "sass": "1.93.3",
+    "typescript-eslint": "^8.47.0"
   }
 }

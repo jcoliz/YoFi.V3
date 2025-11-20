@@ -30,5 +30,5 @@ const increaseCount = () => {
 
 <template>
     <p><output>Current count: {{ count }}</output></p>
-    <button class="btn btn-primary" @click="increaseCount" label="Click me">Click me</button>
+    <button class="btn btn-primary" label="Click me" @click="increaseCount">Click me</button>
 </template>
