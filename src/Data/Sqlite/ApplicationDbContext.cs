@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using NuxtIdentity.Core.Models;
+using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 
 namespace YoFi.V3.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options), IDataProvider
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<IdentityUser>(options), IDataProvider
 {
     #region Data
 
@@ -13,6 +17,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         get; set;
     }
 
+    /// <summary>
+    /// Referesh tokens for Nuxt Identity
+    /// </summary>
+    public DbSet<RefreshTokenEntity> RefreshTokens => Set<RefreshTokenEntity>();
+
     #endregion
 
     #region Model Building
@@ -20,6 +29,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Use the extension method from the library
+        modelBuilder.ConfigureNuxtIdentityRefreshTokens();
     }
 
     #endregion
