@@ -28,7 +28,10 @@ function systemLogout() {
 </script>
 
 <template>
-  <DropDownPortable class="ms-2 my-1 d-flex align-items-middle" data-test-id="login-state">
+  <DropDownPortable
+    class="ms-2 my-1 d-flex align-items-middle"
+    data-test-id="login-state"
+  >
     <template #trigger>
       <a
         class="d-flex align-items-center link-body-emphasis text-decoration-none p-0 dropdown-toggle"
@@ -46,7 +49,12 @@ function systemLogout() {
           />
           <strong>{{ name }}</strong>
         </template>
-        <FeatherIcon v-else icon="user" size="24" class="rounded-circle me-2" />
+        <FeatherIcon
+          v-else
+          icon="user"
+          size="24"
+          class="rounded-circle me-2"
+        />
       </a>
     </template>
     <template #default>
@@ -54,25 +62,48 @@ function systemLogout() {
       <ul class="dropdown-menu dropdown-menu-end text-small shadow">
         <template v-if="account">
           <li>
-            <NuxtLink class="dropdown-item" to="/profile" data-test-id="Profile">Profile</NuxtLink>
+            <NuxtLink
+              class="dropdown-item"
+              to="/profile"
+              data-test-id="Profile"
+              >Profile</NuxtLink
+            >
           </li>
           <li><hr class="dropdown-divider" /></li>
           <li>
-            <a class="dropdown-item" data-test-id="SignOut" @click="systemLogout">Sign Out</a>
+            <a
+              class="dropdown-item"
+              data-test-id="SignOut"
+              @click="systemLogout"
+              >Sign Out</a
+            >
           </li>
         </template>
         <template v-else>
-          <li><a class="dropdown-item" data-test-id="SignIn" @click="systemLogin">Sign In</a></li>
+          <li>
+            <a
+              class="dropdown-item"
+              data-test-id="SignIn"
+              @click="systemLogin"
+              >Sign In</a
+            >
+          </li>
           <li><hr class="dropdown-divider" /></li>
           <li>
-            <NuxtLink class="dropdown-item" to="/register" data-test-id="CreateAccount"
+            <NuxtLink
+              class="dropdown-item"
+              to="/register"
+              data-test-id="CreateAccount"
               >Create Account</NuxtLink
             >
           </li>
           <li><hr class="dropdown-divider" /></li>
           <!-- Just for now! -->
           <li>
-            <NuxtLink class="dropdown-item" to="/profile" data-test-id="ProfileTemp"
+            <NuxtLink
+              class="dropdown-item"
+              to="/profile"
+              data-test-id="ProfileTemp"
               >Profile</NuxtLink
             >
           </li>

@@ -54,7 +54,10 @@ onMounted(() => {
 
     <ClientOnly>
       <p v-if="isLoading"><em>Loading...</em></p>
-      <table v-else class="table">
+      <table
+        v-else
+        class="table"
+      >
         <thead>
           <tr>
             <th>Date</th>
@@ -63,7 +66,10 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody data-test-id="forecast-table-body">
-          <tr v-for="forecast in forecasts" :key="forecast.id">
+          <tr
+            v-for="forecast in forecasts"
+            :key="forecast.id"
+          >
             <td>
               {{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}
             </td>

@@ -70,7 +70,7 @@ const handleUpdate = async () => {
     isEditing.value = false
   } catch (error) {
     errors.value.push(
-      `Profile update failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+      `Profile update failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
     )
   } finally {
     isLoading.value = false
@@ -96,19 +96,34 @@ const handleUpdate = async () => {
         </div>
         <div class="card-body">
           <!-- Error Display -->
-          <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="ProfileErrors">
+          <div
+            v-if="errors.length > 0"
+            class="alert alert-danger"
+            data-test-id="ProfileErrors"
+          >
             <ul class="mb-0">
-              <li v-for="error in errors" :key="error">{{ error }}</li>
+              <li
+                v-for="error in errors"
+                :key="error"
+              >
+                {{ error }}
+              </li>
             </ul>
           </div>
 
           <!-- View Mode -->
-          <div v-if="!isEditing" data-test-id="AccountInfo">
+          <div
+            v-if="!isEditing"
+            data-test-id="AccountInfo"
+          >
             <div class="row mb-3">
               <div class="col-sm-3">
                 <strong>Email:</strong>
               </div>
-              <div class="col-sm-9" data-test-id="Email">
+              <div
+                class="col-sm-9"
+                data-test-id="Email"
+              >
                 {{ user.email }}
               </div>
             </div>
@@ -116,7 +131,10 @@ const handleUpdate = async () => {
               <div class="col-sm-3">
                 <strong>Username:</strong>
               </div>
-              <div class="col-sm-9" data-test-id="Username">
+              <div
+                class="col-sm-9"
+                data-test-id="Username"
+              >
                 {{ user.username }}
               </div>
             </div>
@@ -139,9 +157,17 @@ const handleUpdate = async () => {
           </div>
 
           <!-- Edit Mode -->
-          <form v-else data-test-id="EditProfileForm" @submit.prevent="handleUpdate">
+          <form
+            v-else
+            data-test-id="EditProfileForm"
+            @submit.prevent="handleUpdate"
+          >
             <div class="mb-3">
-              <label for="edit-email" class="form-label">Email Address</label>
+              <label
+                for="edit-email"
+                class="form-label"
+                >Email Address</label
+              >
               <input
                 id="edit-email"
                 v-model="editForm.email"
@@ -153,7 +179,11 @@ const handleUpdate = async () => {
               />
             </div>
             <div class="mb-3">
-              <label for="edit-username" class="form-label">Username</label>
+              <label
+                for="edit-username"
+                class="form-label"
+                >Username</label
+              >
               <input
                 id="edit-username"
                 v-model="editForm.username"
@@ -200,13 +230,21 @@ const handleUpdate = async () => {
         <div class="card-header">
           <h5 class="card-title mb-0">Current Workspace</h5>
         </div>
-        <div class="card-body" data-test-id="WorkspaceInfo">
+        <div
+          class="card-body"
+          data-test-id="WorkspaceInfo"
+        >
           <h6 class="text-primary">{{ user.workspaceName }}</h6>
           <p class="text-muted mb-2">
             <small>Your default workspace for managing financial data</small>
           </p>
           <div class="d-grid">
-            <NuxtLink to="/" class="btn btn-outline-primary btn-sm"> Go to Workspace </NuxtLink>
+            <NuxtLink
+              to="/"
+              class="btn btn-outline-primary btn-sm"
+            >
+              Go to Workspace
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -218,16 +256,25 @@ const handleUpdate = async () => {
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
-            <button class="btn btn-outline-warning btn-sm" data-test-id="ChangePassword">
+            <button
+              class="btn btn-outline-warning btn-sm"
+              data-test-id="ChangePassword"
+            >
               <i class="bi bi-lock me-1" />
               Change Password
             </button>
-            <button class="btn btn-outline-info btn-sm" data-test-id="ManageWorkspaces">
+            <button
+              class="btn btn-outline-info btn-sm"
+              data-test-id="ManageWorkspaces"
+            >
               <i class="bi bi-building me-1" />
               Manage Workspaces
             </button>
             <hr />
-            <button class="btn btn-outline-danger btn-sm" data-test-id="Logout">
+            <button
+              class="btn btn-outline-danger btn-sm"
+              data-test-id="Logout"
+            >
               <i class="bi bi-box-arrow-right me-1" />
               Sign Out
             </button>

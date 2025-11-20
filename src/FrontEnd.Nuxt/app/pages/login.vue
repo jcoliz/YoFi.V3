@@ -54,7 +54,7 @@ const handleSubmit = async () => {
     // await navigateTo('/workspace/dashboard')
   } catch (error) {
     errors.value.push(
-      `Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+      `Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
     )
   } finally {
     isLoading.value = false
@@ -70,17 +70,33 @@ const handleSubmit = async () => {
           <h3 class="card-title mb-0">Sign In</h3>
         </div>
         <div class="card-body">
-          <form data-test-id="LoginForm" @submit.prevent="handleSubmit">
+          <form
+            data-test-id="LoginForm"
+            @submit.prevent="handleSubmit"
+          >
             <!-- Error Display -->
-            <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
+            <div
+              v-if="errors.length > 0"
+              class="alert alert-danger"
+              data-test-id="Errors"
+            >
               <ul class="mb-0">
-                <li v-for="error in errors" :key="error">{{ error }}</li>
+                <li
+                  v-for="error in errors"
+                  :key="error"
+                >
+                  {{ error }}
+                </li>
               </ul>
             </div>
 
             <!-- Email Field -->
             <div class="mb-3">
-              <label for="email" class="form-label">Email Address</label>
+              <label
+                for="email"
+                class="form-label"
+                >Email Address</label
+              >
               <input
                 id="email"
                 v-model="form.email"
@@ -95,7 +111,11 @@ const handleSubmit = async () => {
 
             <!-- Password Field -->
             <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
+              <label
+                for="password"
+                class="form-label"
+                >Password</label
+              >
               <input
                 id="password"
                 v-model="form.password"
@@ -130,7 +150,11 @@ const handleSubmit = async () => {
             <div class="text-center">
               <p class="mb-0">
                 Don't have an account?
-                <NuxtLink to="/register" class="text-decoration-none">Create one here</NuxtLink>
+                <NuxtLink
+                  to="/register"
+                  class="text-decoration-none"
+                  >Create one here</NuxtLink
+                >
               </p>
             </div>
           </form>

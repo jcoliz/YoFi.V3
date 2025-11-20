@@ -55,7 +55,7 @@ const handleSubmit = async () => {
     // Should redirect to workspace or login user automatically
   } catch (error) {
     errors.value.push(
-      `Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`
+      `Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
     )
   } finally {
     isLoading.value = false
@@ -76,17 +76,33 @@ const isWeakPassword = computed(() => {
           <h3 class="card-title mb-0">Create Account</h3>
         </div>
         <div class="card-body">
-          <form data-test-id="RegisterForm" @submit.prevent="handleSubmit">
+          <form
+            data-test-id="RegisterForm"
+            @submit.prevent="handleSubmit"
+          >
             <!-- Error Display -->
-            <div v-if="errors.length > 0" class="alert alert-danger" data-test-id="Errors">
+            <div
+              v-if="errors.length > 0"
+              class="alert alert-danger"
+              data-test-id="Errors"
+            >
               <ul class="mb-0">
-                <li v-for="error in errors" :key="error">{{ error }}</li>
+                <li
+                  v-for="error in errors"
+                  :key="error"
+                >
+                  {{ error }}
+                </li>
               </ul>
             </div>
 
             <!-- Email Field -->
             <div class="mb-3">
-              <label for="email" class="form-label">Email Address</label>
+              <label
+                for="email"
+                class="form-label"
+                >Email Address</label
+              >
               <input
                 id="email"
                 v-model="form.email"
@@ -101,7 +117,11 @@ const isWeakPassword = computed(() => {
 
             <!-- Username Field -->
             <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
+              <label
+                for="username"
+                class="form-label"
+                >Username</label
+              >
               <input
                 id="username"
                 v-model="form.username"
@@ -116,7 +136,11 @@ const isWeakPassword = computed(() => {
 
             <!-- Password Field -->
             <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
+              <label
+                for="password"
+                class="form-label"
+                >Password</label
+              >
               <input
                 id="password"
                 v-model="form.password"
@@ -128,14 +152,21 @@ const isWeakPassword = computed(() => {
                 :disabled="isLoading"
                 required
               />
-              <div v-if="isWeakPassword" class="invalid-feedback">
+              <div
+                v-if="isWeakPassword"
+                class="invalid-feedback"
+              >
                 Password must be at least 8 characters long
               </div>
             </div>
 
             <!-- Confirm Password Field -->
             <div class="mb-3">
-              <label for="password-again" class="form-label">Confirm Password</label>
+              <label
+                for="password-again"
+                class="form-label"
+                >Confirm Password</label
+              >
               <input
                 id="password-again"
                 v-model="form.passwordAgain"
@@ -179,7 +210,11 @@ const isWeakPassword = computed(() => {
             <div class="text-center">
               <p class="mb-0">
                 Already have an account?
-                <NuxtLink to="/login" class="text-decoration-none">Sign in here</NuxtLink>
+                <NuxtLink
+                  to="/login"
+                  class="text-decoration-none"
+                  >Sign in here</NuxtLink
+                >
               </p>
             </div>
           </form>

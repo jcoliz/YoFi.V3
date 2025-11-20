@@ -12,7 +12,11 @@ const displayRoutes = useRouter()
         to="/"
         class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none"
       >
-        <FeatherIcon class="me-2" icon="box" size="32" />
+        <FeatherIcon
+          class="me-2"
+          icon="box"
+          size="32"
+        />
         <span class="fs-4">{{ appConfig.name }}</span>
       </NuxtLink>
       <nav>
