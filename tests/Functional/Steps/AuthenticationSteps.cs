@@ -82,7 +82,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         await testControlClient.DeleteUsersAsync();
 
         var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
-        _objectStore.Add(user);
+        _objectStore.Add("Registration Details", user);
 
         await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
     }
@@ -231,7 +231,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
 
-        var user = It<TestUser>();
+        var user = The<TestUser>("Registration Details");
 
         var emailDisplayText = await registerPage.EmailDisplay.InnerTextAsync();
         var usernameDisplayText = await registerPage.UsernameDisplay.InnerTextAsync();

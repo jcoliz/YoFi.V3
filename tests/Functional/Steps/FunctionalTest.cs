@@ -142,6 +142,8 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected async Task GivenIHaveAnExistingAccount()
     {
+        if (_objectStore.Contains<Generated.TestUser>())
+            return;
         await testControlClient.DeleteUsersAsync();
         var user = await testControlClient.CreateUserAsync();
         _objectStore.Add(user);

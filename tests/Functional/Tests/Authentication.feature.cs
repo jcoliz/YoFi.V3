@@ -12,6 +12,14 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </summary>
 public class UserAuthenticationTests : AuthenticationSteps
 {
+
+    [OneTimeSetUp]
+    public async Task OneTimeSetup()
+    {
+        // Hook: One-time setup
+        
+    }
+
     [SetUp]
     public async Task Background()
     {
