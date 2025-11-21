@@ -6,13 +6,9 @@
  * and navigation to profile page.
  */
 
-const { data, status, signOut } = useAuth()
+const { data, signOut } = useAuth()
 
 // Fake login state for demo purposes
-
-const account = ref(true)
-const name = ref('__TEST__0001')
-const photo = ref('')
 
 function systemLogin() {
   navigateTo('/login')

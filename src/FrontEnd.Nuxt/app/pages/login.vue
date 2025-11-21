@@ -4,7 +4,7 @@ definePageMeta({
   layout: 'blank',
 })
 
-const { signIn, status } = useAuth()
+const { signIn } = useAuth()
 
 // Reactive form data
 const form = ref({

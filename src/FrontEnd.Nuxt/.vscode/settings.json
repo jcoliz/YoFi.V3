@@ -15,5 +15,8 @@
   },
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "python.analysis.extraPaths": [
+    "c:\\Users\\jamescoliz\\.vscode\\extensions\\ms-security.ms-sentinel-1.0.0\\python"
+  ]
 }

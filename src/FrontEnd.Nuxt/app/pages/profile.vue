@@ -4,7 +4,7 @@ definePageMeta({
   middleware: 'sidebase-auth',
 })
 
-const { data, status, signOut } = useAuth()
+const { data, signOut } = useAuth()
 
 const workspace = ref({
   name: 'Default Workspace',
