@@ -4,8 +4,8 @@ definePageMeta({
   layout: 'blank',
   auth: {
     unauthenticatedOnly: true,
-    navigateAuthenticatedTo: '/profile'
-  }
+    navigateAuthenticatedTo: '/profile',
+  },
 })
 
 const { signUp } = useAuth()
@@ -50,11 +50,14 @@ const handleSubmit = async () => {
 
   try {
     isLoading.value = true
-    response.value = await signUp({
-      username: form.value.username,
-      email: form.value.email,
-      password: form.value.password
-    }, { preventLoginFlow: true })
+    response.value = await signUp(
+      {
+        username: form.value.username,
+        email: form.value.email,
+        password: form.value.password,
+      },
+      { preventLoginFlow: true },
+    )
   } catch (error: any) {
     console.error('*** Registration error:')
     console.log('- Status:', error.status)
@@ -63,7 +66,7 @@ const handleSubmit = async () => {
     console.log('- Full error object:', error)
 
     // Handle ProblemDetails format
-    const title = error.data?.title ?? "Registration failed"
+    const title = error.data?.title ?? 'Registration failed'
     const detail = error.data?.detail ?? error.message ?? 'Please try again'
     errors.value = [`${title}: ${detail}`]
   } finally {
@@ -139,10 +142,13 @@ const isWeakPassword = computed(() => {
               role="alert"
               data-test-id="Errors"
             >
-              <strong>Please fix the following errors:</strong><br>
-                <span v-for="error in errors" :key="error">
-                  {{ error }}
-                </span>
+              <strong>Please fix the following errors:</strong><br />
+              <span
+                v-for="error in errors"
+                :key="error"
+              >
+                {{ error }}
+              </span>
               <button
                 type="button"
                 class="btn-close"

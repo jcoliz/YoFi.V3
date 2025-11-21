@@ -36,13 +36,16 @@ const handleSubmit = async () => {
 
   try {
     isLoading.value = true
-    await signIn({
-      username: form.value.username,
-      password: form.value.password
-    },{
-      redirect: true,
-      callbackUrl: '/'
-    })
+    await signIn(
+      {
+        username: form.value.username,
+        password: form.value.password,
+      },
+      {
+        redirect: true,
+        callbackUrl: '/',
+      },
+    )
   } catch (error: any) {
     console.error('*** Login error:')
     console.log('- Status:', error.status)
@@ -51,7 +54,7 @@ const handleSubmit = async () => {
     console.log('- Full error object:', error)
 
     // Handle ProblemDetails format
-    const title = error.data?.title ?? "Login failed"
+    const title = error.data?.title ?? 'Login failed'
     const detail = error.data?.detail ?? error.message ?? 'Please check your credentials'
     errors.value = [`${title}: ${detail}`]
   } finally {
@@ -79,10 +82,13 @@ const handleSubmit = async () => {
               role="alert"
               data-test-id="Errors"
             >
-              <strong>Please fix the following errors:</strong><br>
-                <span v-for="error in errors" :key="error">
-                  {{ error }}
-                </span>
+              <strong>Please fix the following errors:</strong><br />
+              <span
+                v-for="error in errors"
+                :key="error"
+              >
+                {{ error }}
+              </span>
               <button
                 type="button"
                 class="btn-close"

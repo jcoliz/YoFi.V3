@@ -5,7 +5,7 @@ import type { ApplicationInsights } from '@microsoft/applicationinsights-web'
 definePageMeta({
   title: 'Counter',
   order: 3,
-  middleware: 'sidebase-auth'
+  middleware: 'sidebase-auth',
 })
 
 const count = ref(0)

@@ -66,124 +66,124 @@ const technologies: Technology[] = [
     logo: '/images/dotnet-logo.svg',
     description: 'Modern backend framework for building robust APIs and web applications',
     link: 'https://dotnet.microsoft.com/',
-    category: 'Backend'
+    category: 'Backend',
   },
   {
     name: 'Nuxt 4',
     logo: '/images/nuxt-icon-green.svg',
     description: 'Full-stack Vue framework with SSR, file-based routing, and auto-imports',
     link: 'https://nuxt.com/',
-    category: 'Frontend'
+    category: 'Frontend',
   },
   {
     name: 'Vue 3',
     logo: '/images/vue-logo.svg',
     description: 'Progressive JavaScript framework for building user interfaces',
     link: 'https://vuejs.org/',
-    category: 'Frontend'
+    category: 'Frontend',
   },
   {
     name: 'TypeScript',
     logo: '/images/ts-logo-512.svg',
     description: 'Strongly typed programming language that builds on JavaScript',
     link: 'https://www.typescriptlang.org/',
-    category: 'Language'
+    category: 'Language',
   },
   {
     name: 'Bootstrap 5',
     logo: '/images/bootstrap-logo.svg',
     description: 'CSS framework for building responsive, mobile-first websites',
     link: 'https://getbootstrap.com/',
-    category: 'Styling'
+    category: 'Styling',
   },
   {
     name: 'Entity Framework Core',
     logo: '/images/ef-logo.svg',
     description: 'Object-relational mapping framework for .NET applications',
     link: 'https://docs.microsoft.com/en-us/ef/',
-    category: 'Database'
+    category: 'Database',
   },
   {
     name: 'pnpm',
     logo: '/images/pnpm-no-name-with-frame.svg',
     description: 'Fast, disk space efficient package manager for Node.js',
     link: 'https://pnpm.io/',
-    category: 'Tools'
+    category: 'Tools',
   },
   {
     name: 'Azure Static Web Apps',
     logo: '/images/01007-icon-service-Static-Apps.svg',
     description: 'Full-stack web app hosting with integrated CI/CD workflows',
     link: 'https://azure.microsoft.com/en-us/services/app-service/static/',
-    category: 'Cloud'
+    category: 'Cloud',
   },
   {
     name: 'Azure App Services',
     logo: '/images/10035-icon-service-App-Services.svg',
     description: 'Platform for hosting web applications and APIs in the cloud',
     link: 'https://azure.microsoft.com/en-us/services/app-service/',
-    category: 'Cloud'
+    category: 'Cloud',
   },
   {
     name: 'Azure Application Insights',
     logo: '/images/00012-icon-service-Application-Insights.svg',
     description: 'Application performance monitoring and analytics service',
     link: 'https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview',
-    category: 'Monitoring'
+    category: 'Monitoring',
   },
   {
     name: 'Azure Pipelines',
     logo: '/images/10261-icon-service-Azure-DevOps.svg',
     description: 'Cloud-based CI/CD service for building, testing, and deploying code',
     link: 'https://azure.microsoft.com/en-us/services/devops/pipelines/',
-    category: 'DevOps'
+    category: 'DevOps',
   },
   {
     name: 'PostgreSQL',
     logo: '/images/postgres-elephant.png',
     description: 'Advanced open-source relational database system',
     link: 'https://www.postgresql.org/',
-    category: 'Database'
+    category: 'Database',
   },
   {
     name: 'SQLite',
     logo: '/images/sqlite-logo.svg',
     description: 'Lightweight, serverless database engine for development and testing',
     link: 'https://www.sqlite.org/',
-    category: 'Database'
+    category: 'Database',
   },
   {
     name: 'Docker',
     logo: '/images/docker-mark-blue.svg',
     description: 'Platform for developing, shipping, and running applications in containers',
     link: 'https://www.docker.com/',
-    category: 'DevOps'
+    category: 'DevOps',
   },
   {
     name: 'Playwright',
     logo: '/images/playwright-logo.svg',
     description: 'End-to-end testing framework for modern web applications',
     link: 'https://playwright.dev/',
-    category: 'Testing'
-  }
+    category: 'Testing',
+  },
 ]
 
 const sourceRepos = [
   {
     name: 'YoFi.V3',
     description: 'This complete reference implementation project',
-    link: 'https://github.com/jcoliz/YoFi.V3'
+    link: 'https://github.com/jcoliz/YoFi.V3',
   },
   {
     name: 'NuxtIdentity',
     description: 'Nuxt module for .NET Identity authentication',
-    link: 'https://github.com/jcoliz/NuxtIdentity'
+    link: 'https://github.com/jcoliz/NuxtIdentity',
   },
   {
     name: '@coliz/vue-base-controls',
     description: 'Reusable Vue components library',
-    link: 'https://github.com/jcoliz/vue-base-controls'
-  }
+    link: 'https://github.com/jcoliz/vue-base-controls',
+  },
 ]
 </script>
 
@@ -198,8 +198,8 @@ const sourceRepos = [
             A modern .NET 10 + Nuxt 4 stack with authentication, authorization, and best practices
           </p>
           <p class="mb-4">
-            This application serves as a comprehensive reference implementation showcasing
-            the integration of cutting-edge technologies for building robust, scalable web applications.
+            This application serves as a comprehensive reference implementation showcasing the
+            integration of cutting-edge technologies for building robust, scalable web applications.
           </p>
         </div>
       </div>
@@ -217,18 +217,32 @@ const sourceRepos = [
       </div>
 
       <div class="row g-4">
-        <div v-for="tech in technologies" :key="tech.name" class="col-md-6 col-lg-4">
+        <div
+          v-for="tech in technologies"
+          :key="tech.name"
+          class="col-md-6 col-lg-4"
+        >
           <div class="card h-100 shadow-sm">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center mb-3">
-                <img :src="tech.logo" :alt="tech.name + ' logo'" class="me-3" style="width: 40px; height: 40px; object-fit: contain;">
+                <img
+                  :src="tech.logo"
+                  :alt="tech.name + ' logo'"
+                  class="me-3"
+                  style="width: 40px; height: 40px; object-fit: contain"
+                />
                 <h5 class="card-title mb-0">{{ tech.name }}</h5>
               </div>
               <p class="card-text flex-grow-1">{{ tech.description }}</p>
               <div class="mt-auto">
                 <span class="badge bg-secondary mb-2">{{ tech.category }}</span>
-                <br>
-                <a :href="tech.link" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                <br />
+                <a
+                  :href="tech.link"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-outline-primary btn-sm"
+                >
                   Learn More <i class="bi bi-arrow-up-right"></i>
                 </a>
               </div>
@@ -251,14 +265,21 @@ const sourceRepos = [
         </div>
 
         <div class="row g-4">
-          <div v-for="repo in sourceRepos" :key="repo.name" class="col-md-4">
+          <div
+            v-for="repo in sourceRepos"
+            :key="repo.name"
+            class="col-md-4"
+          >
             <div class="card h-100">
               <div class="card-body d-flex flex-column">
-                <h5 class="card-title">
-                  <i class="bi bi-github me-2"></i>{{ repo.name }}
-                </h5>
+                <h5 class="card-title"><i class="bi bi-github me-2"></i>{{ repo.name }}</h5>
                 <p class="card-text flex-grow-1">{{ repo.description }}</p>
-                <a :href="repo.link" target="_blank" rel="noopener" class="btn btn-primary mt-auto">
+                <a
+                  :href="repo.link"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-primary mt-auto"
+                >
                   View on GitHub <i class="bi bi-arrow-up-right"></i>
                 </a>
               </div>
@@ -277,17 +298,30 @@ const sourceRepos = [
 
           <div class="row g-3 justify-content-center">
             <div class="col-auto">
-              <NuxtLink to="/register" class="btn btn-primary btn-lg">
+              <NuxtLink
+                to="/register"
+                class="btn btn-primary btn-lg"
+              >
                 <i class="bi bi-person-plus me-2"></i>Sign Up & Explore
               </NuxtLink>
             </div>
             <div class="col-auto">
-              <a href="https://hub.docker.com/r/jcoliz/yofi-v3" target="_blank" rel="noopener" class="btn btn-outline-primary btn-lg">
+              <a
+                href="https://hub.docker.com/r/jcoliz/yofi-v3"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-outline-primary btn-lg"
+              >
                 <i class="bi bi-download me-2"></i>Run Locally with Docker
               </a>
             </div>
             <div class="col-auto">
-              <a href="https://github.com/jcoliz/YoFi.V3" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-lg">
+              <a
+                href="https://github.com/jcoliz/YoFi.V3"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-outline-secondary btn-lg"
+              >
                 <i class="bi bi-code-slash me-2"></i>View Source Code
               </a>
             </div>
@@ -296,12 +330,21 @@ const sourceRepos = [
           <div class="mt-4">
             <p class="text-muted">
               Have feedback or questions?
-              <a href="https://github.com/jcoliz/YoFi.V3/issues" target="_blank" rel="noopener">
+              <a
+                href="https://github.com/jcoliz/YoFi.V3/issues"
+                target="_blank"
+                rel="noopener"
+              >
                 Open an issue
-              </a> or start a
-              <a href="https://github.com/jcoliz/YoFi.V3/discussions" target="_blank" rel="noopener">
-                discussion on GitHub
-              </a>.
+              </a>
+              or start a
+              <a
+                href="https://github.com/jcoliz/YoFi.V3/discussions"
+                target="_blank"
+                rel="noopener"
+              >
+                discussion on GitHub </a
+              >.
             </p>
           </div>
         </div>
@@ -309,4 +352,3 @@ const sourceRepos = [
     </div>
   </div>
 </template>
-
