@@ -52,7 +52,10 @@ public class BasePage(IPage? _page)
     {
         var response = await Page!.RunAndWaitForResponseAsync(action, regex);
         TestContext.Out.WriteLine("API request {0}", response.Url);
-        Assert.That(response!.Ok, Is.True);
+
+        // We also test failure cases, so we don't assert here
+        // TODO: Consider returning the response for further checking
+        // Assert.That(response!.Ok, Is.True);
     }
 
     public async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)

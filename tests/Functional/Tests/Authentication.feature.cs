@@ -68,7 +68,32 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Then I should see the home page
         await ThenIShouldSeeTheHomePage();
 
-        // Then I should be successfully logged in
+        // And I should be successfully logged in
         await ThenIShouldBeSuccessfullyLoggedIn();
+    }
+
+    /// <summary>
+    /// User login fails with invalid credentials
+    /// </summary>
+    [Test]
+    public async Task UserLoginFailsWithInvalidCredentials()
+    {
+        // Given I am on the login page
+        await GivenIAmOnTheLoginPage();
+
+        // When I enter invalid credentials
+        await WhenIEnterInvalidCredentials();
+
+        // And I click the login button
+        await WhenIClickTheLoginButton();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message "Invalid credentials"
+        await ThenIShouldSeeAnErrorMessage("Invalid credentials");
+
+        // And I should remain on the login page
+        await ThenIShouldRemainOnTheLoginPage();
     }
 }

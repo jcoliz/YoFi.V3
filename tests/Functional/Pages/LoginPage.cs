@@ -10,7 +10,7 @@ public class LoginPage(IPage _page): BasePage(_page)
     public ILocator UsernameInput => View.GetByTestId("username");
     public ILocator PasswordInput => View.GetByTestId("password");
     public ILocator LoginButton => View.GetByTestId("Login");
-    public ILocator ErrorDisplay => View.GetByTestId("Errors");
+    public ILocator ErrorDisplay => View.GetByTestId("error-display");
     public ILocator CreateAccountLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Create one here" });
 
     public async Task EnterCredentialsAsync(string email, string password)

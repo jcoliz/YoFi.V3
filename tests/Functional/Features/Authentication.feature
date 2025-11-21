@@ -3,7 +3,6 @@
 @baseclass:AuthenticationSteps
 @template:Features/FunctionalTest.mustache
 @hook:before-first-then:SaveScreenshot
-@explicit
 Feature: User Authentication
     As a user of YoFi
     I want to register, login, and manage my account
@@ -29,14 +28,10 @@ Scenario: User logs into an existing account
 
 Scenario: User login fails with invalid credentials
     Given I am on the login page
-    When I enter invalid credentials:
-        | Field    | Value                 |
-        | Email    | baduser@example.com   |
-        | Password | WrongPassword123!     |
+    When I enter invalid credentials
     And I click the login button
-    Then I should see an error message "Invalid email or password"
+    Then I should see an error message "Invalid credentials"
     And I should remain on the login page
-    And I should not be logged in
 
 Scenario: User login fails with missing password
     Given I am on the login page

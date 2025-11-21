@@ -129,6 +129,15 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
+    /// When: I enter invalid credentials
+    /// </summary>
+    protected async Task WhenIEnterInvalidCredentials()
+    {
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.EnterCredentialsAsync("invalid@example.com", "WrongPassword123!");
+    }
+
+    /// <summary>
     /// When: I leave the password field empty
     /// </summary>
     protected async Task WhenILeaveThePasswordFieldEmpty()

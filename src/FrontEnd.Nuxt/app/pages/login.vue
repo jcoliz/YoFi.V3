@@ -80,7 +80,7 @@ const handleSubmit = async () => {
               v-if="errors.length > 0"
               class="alert alert-danger alert-dismissible fade show"
               role="alert"
-              data-test-id="Errors"
+              data-test-id="error-display"
             >
               <strong>Please fix the following errors:</strong><br />
               <span
