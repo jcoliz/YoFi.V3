@@ -3,6 +3,8 @@ using System.Web;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using YoFi.V3.Tests.Functional.Components;
+using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps;
@@ -24,6 +26,26 @@ public abstract class FunctionalTest : PageTest
 
     protected Uri? baseUrl { get; private set; }
 
+    #endregion
+
+    #region Properties
+    private TestControlClient? _testControlClient;
+    protected TestControlClient testControlClient
+    {
+        get
+        {
+            if (_testControlClient is null)
+            {
+                _testControlClient = new TestControlClient(
+                    baseUrl:
+                        TestContext.Parameters["apiBaseUrl"]
+                        ?? throw new NullReferenceException("apiBaseUrl test parameter not set"),
+                    httpClient: new HttpClient()
+                );
+            }
+            return _testControlClient;
+        }
+    }
     #endregion
 
     #region Overrides
@@ -97,6 +119,57 @@ public abstract class FunctionalTest : PageTest
         await ThenPageLoadedOk();
     }
 
+    /// <summary>
+    /// Given: the application is running
+    /// </summary>
+    protected async Task GivenTheApplicationIsRunning()
+    {
+        await GivenLaunchedSite();
+    }
+
+    /// <summary>
+    /// Given: I am not logged in
+    /// </summary>
+    protected async Task GivenIAmNotLoggedIn()
+    {
+        // TODO: Implement logout if already logged in
+        // For now, assume we start from a clean state
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Given: I have an existing account
+    /// </summary>
+    protected async Task GivenIHaveAnExistingAccount()
+    {
+        await testControlClient.DeleteUsersAsync();
+        var user = await testControlClient.CreateUserAsync();
+        _objectStore.Add(user);
+    }
+
+    /// <summary>
+    /// Given: I am on the login page
+    /// </summary>
+    protected virtual async Task GivenIAmOnTheLoginPage()
+    {
+        await Page.GotoAsync("/login");
+        var loginPage = GetOrCreateLoginPage();
+        Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should be on login page");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    /// <summary>
+    /// Given: I am logged in
+    /// </summary>
+    protected async Task GivenIAmLoggedIn()
+    {
+        await GivenIHaveAnExistingAccount();
+        await GivenIAmOnTheLoginPage();
+        await WhenIEnterMyCredentials();
+        await WhenIClickTheLoginButton();
+        await ThenIShouldSeeTheHomePage();
+    }
+
     #endregion
 
     #region Steps: WHEN
@@ -122,6 +195,28 @@ public abstract class FunctionalTest : PageTest
     {
         var pageModel = It<BasePage>();
         await pageModel.SiteHeader.Nav.SelectOptionAsync(option);
+    }
+
+    /// <summary>
+    /// When: I enter my credentials
+    /// </summary>
+    protected async Task WhenIEnterMyCredentials()
+    {
+        var loginPage = GetOrCreateLoginPage();
+
+        var testuser = It<Generated.TestUser>();
+
+        await loginPage.EnterCredentialsAsync(testuser.Username, testuser.Password);
+    }
+
+    /// <summary>
+    /// When: I click the login button
+    /// </summary>
+    protected async Task WhenIClickTheLoginButton()
+    {
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.ClickLoginButtonAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     #endregion
@@ -175,6 +270,15 @@ public abstract class FunctionalTest : PageTest
         Assert.That(actualCount, Is.EqualTo(expectedCount));
     }
 
+    /// <summary>
+    /// Then: I should see the home page
+    /// </summary>
+    protected virtual async Task ThenIShouldSeeTheHomePage()
+    {
+        await Task.Delay(1000);
+        Assert.That(Page.Url.EndsWith('/'), Is.True, "Should be on home page");
+    }
+
     #endregion
 
     #region Helpers
@@ -202,6 +306,32 @@ public abstract class FunctionalTest : PageTest
     {
         var pageModel = It<BasePage>();
         await pageModel.SaveScreenshotAsync();
+    }
+
+    /// <summary>
+    /// Get or create LoginPage and store it in the object store
+    /// </summary>
+    protected LoginPage GetOrCreateLoginPage()
+    {
+        if (!_objectStore.Contains<LoginPage>())
+        {
+            var loginPage = new LoginPage(Page);
+            _objectStore.Add(loginPage);
+        }
+        return It<LoginPage>();
+    }
+
+    /// <summary>
+    /// Get or create WeatherPage and store it in the object store
+    /// </summary>
+    protected WeatherPage GetOrCreateWeatherPage()
+    {
+        if (!_objectStore.Contains<WeatherPage>())
+        {
+            var weatherPage = new WeatherPage(Page);
+            _objectStore.Add(weatherPage);
+        }
+        return It<WeatherPage>();
     }
 
     #endregion

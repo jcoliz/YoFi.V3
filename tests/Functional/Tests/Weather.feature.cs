@@ -13,15 +13,22 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </remarks>
 public class WeatherForecasts : WeatherSteps
 {
+    [SetUp]
+    public async Task Background()
+    {
+        // Given the application is running
+        await GivenTheApplicationIsRunning();
+
+        // And I am logged in
+        await GivenIAmLoggedIn();
+    }
+
     /// <summary>
     /// User views the weather forecast
     /// </summary>
     [Test]
     public async Task UserViewsTheWeatherForecast()
     {
-        // Given I am on the home page
-        await GivenIAmOnTheHomePage();
-
         // When I navigate to view the weather forecast
         await WhenINavigateToViewTheWeatherForecast();
 

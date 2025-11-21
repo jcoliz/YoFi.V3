@@ -1,9 +1,12 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions; // Add this line
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class RegisterPage(IPage _page): BasePage(_page)
 {
+    private static readonly Regex RegisterApiRegex = new("/api/auth/signup", RegexOptions.Compiled);
+
     public ILocator View => Page!.GetByTestId("RegisterForm");
     public ILocator EmailInput => View.GetByTestId("email");
     public ILocator UsernameInput =>  View.GetByTestId("username");
@@ -25,8 +28,8 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
         await SaveScreenshotAsync("Registering");
 
-        await WaitForApi(async () => 
-        { 
+        await WaitForApi(async () =>
+        {
             await RegisterButton.ClickAsync();
         }, "/api/auth/register*");
     }
@@ -60,7 +63,11 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public async Task ClickRegisterButtonAsync()
     {
         await SaveScreenshotAsync("Before-registration-attempt");
-        await RegisterButton.ClickAsync();
+
+        await WaitForApi(async () =>
+        {
+            await RegisterButton.ClickAsync();
+        }, RegisterApiRegex);
     }
 
     public async Task<bool> HasErrorMessageAsync(string expectedError)

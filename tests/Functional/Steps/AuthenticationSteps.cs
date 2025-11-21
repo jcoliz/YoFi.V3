@@ -18,42 +18,7 @@ public class TestUser(int id)
 /// </summary>
 public abstract class AuthenticationSteps : FunctionalTest
 {
-    private TestControlClient? _testControlClient;
-    protected TestControlClient testControlClient
-    {
-        get
-        {
-            if (_testControlClient is null)
-            {
-                _testControlClient = new TestControlClient(
-                    baseUrl:
-                        TestContext.Parameters["apiBaseUrl"]
-                        ?? throw new NullReferenceException("apiBaseUrl test parameter not set"),
-                    httpClient: new HttpClient()
-                );
-            }
-            return _testControlClient;
-        }
-    }
     #region Steps: GIVEN
-
-    /// <summary>
-    /// Given: the application is running
-    /// </summary>
-    protected async Task GivenTheApplicationIsRunning()
-    {
-        await GivenLaunchedSite();
-    }
-
-    /// <summary>
-    /// Given: I am not logged in
-    /// </summary>
-    protected async Task GivenIAmNotLoggedIn()
-    {
-        // TODO: Implement logout if already logged in
-        // For now, assume we start from a clean state
-        await Task.CompletedTask;
-    }
 
     /// <summary>
     /// Given: I am on the registration page
@@ -75,41 +40,6 @@ public abstract class AuthenticationSteps : FunctionalTest
         // TODO: Implement account creation via API or database setup
         // For now, assume test accounts exist
         await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Given: I have an existing account
-    /// </summary>
-    protected async Task GivenIHaveAnExistingAccount()
-    {
-        await testControlClient.DeleteUsersAsync();
-        var user = await testControlClient.CreateUserAsync();
-        _objectStore.Add(user);
-    }
-
-    /// <summary>
-    /// Given: I am on the login page
-    /// </summary>
-    protected async Task GivenIAmOnTheLoginPage()
-    {
-        await Page.GotoAsync("/login");
-        var loginPage = GetOrCreateLoginPage();
-        Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should be on login page");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-    }
-
-    /// <summary>
-    /// Given: I am logged in as {email}
-    /// </summary>
-    protected async Task GivenIAmLoggedInAs(string email)
-    {
-        // TODO: Implement login via API or direct authentication
-        // For now, go through UI login
-        await GivenIAmOnTheLoginPage();
-        await WhenIEnterMyCredentials(email, "MyPassword123!");
-        await WhenIClickTheLoginButton();
-        await ThenIShouldBeSuccessfullyLoggedIn();
     }
 
     /// <summary>
@@ -169,18 +99,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// When: I enter my credentials
     /// </summary>
-    protected async Task WhenIEnterMyCredentials()
-    {
-        var loginPage = GetOrCreateLoginPage();
-
-        var testuser = It<Generated.TestUser>();
-
-        await loginPage.EnterCredentialsAsync(testuser.Username, testuser.Password);
-    }
-
-    /// <summary>
-    /// When: I enter my credentials
-    /// </summary>
     protected async Task WhenIEnterMyCredentials(DataTable credentialsData)
     {
         var loginPage = GetOrCreateLoginPage();
@@ -197,14 +115,6 @@ public abstract class AuthenticationSteps : FunctionalTest
         await loginPage.EnterCredentialsAsync(email, password);
     }
 
-    /// <summary>
-    /// When: I click the login button
-    /// </summary>
-    protected async Task WhenIClickTheLoginButton()
-    {
-        var loginPage = GetOrCreateLoginPage();
-        await loginPage.ClickLoginButtonAsync();
-    }
 
     /// <summary>
     /// When: I enter invalid credentials
@@ -367,13 +277,6 @@ public abstract class AuthenticationSteps : FunctionalTest
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
 
-    /// <summary>
-    /// Then: I should see the home page
-    /// </summary>
-    protected async Task ThenIShouldSeeTheHomePage()
-    {
-        Assert.That(Page.Url.EndsWith('/'), Is.True, "Should be on home page");
-    }
 
     /// <summary>
     /// Then: I should see my username in the header
@@ -624,19 +527,6 @@ public abstract class AuthenticationSteps : FunctionalTest
             _objectStore.Add(registerPage);
         }
         return It<RegisterPage>();
-    }
-
-    /// <summary>
-    /// Get or create LoginPage and store it in the object store
-    /// </summary>
-    private LoginPage GetOrCreateLoginPage()
-    {
-        if (!_objectStore.Contains<LoginPage>())
-        {
-            var loginPage = new LoginPage(Page);
-            _objectStore.Add(loginPage);
-        }
-        return It<LoginPage>();
     }
 
     /// <summary>

@@ -40,7 +40,7 @@ try {
         exit 1
     }
 
-    $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1
+    $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1 -Stable
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get version with exit code $LASTEXITCODE"
     }

@@ -8,8 +8,11 @@ Feature: Weather Forecasts
     I want to view upcoming weather forecasts
     So that I can plan accordingly
 
+Background:
+    Given the application is running
+    And I am logged in
+
 Scenario: User views the weather forecast
-    Given I am on the home page
     When I navigate to view the weather forecast
     Then I should see upcoming weather predictions
     And each forecast should show the date, temperature, and conditions

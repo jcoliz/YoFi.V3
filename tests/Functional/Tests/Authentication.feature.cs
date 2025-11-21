@@ -13,7 +13,7 @@ namespace YoFi.V3.Tests.Functional.Features;
 public class UserAuthenticationTests : AuthenticationSteps
 {
     [SetUp]
-    public async Task SetupAsync()
+    public async Task Background()
     {
         // Given the application is running
         await GivenTheApplicationIsRunning();

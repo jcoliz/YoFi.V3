@@ -23,7 +23,6 @@ public abstract class WeatherSteps : FunctionalTest
     /// </summary>
     protected async Task GivenIAmViewingWeatherForecasts()
     {
-        await GivenIAmOnTheHomePage();
         await WhenINavigateToViewTheWeatherForecast();
     }
 
@@ -152,23 +151,6 @@ public abstract class WeatherSteps : FunctionalTest
             Assert.That(dates[i], Is.GreaterThan(dates[i - 1]),
                 $"Forecasts should be in chronological order. Found {dates[i]} after {dates[i - 1]}");
         }
-    }
-
-    #endregion
-
-    #region Helpers
-
-    /// <summary>
-    /// Get or create WeatherPage and store it in the object store
-    /// </summary>
-    private WeatherPage GetOrCreateWeatherPage()
-    {
-        if (!_objectStore.Contains<WeatherPage>())
-        {
-            var weatherPage = new WeatherPage(Page);
-            _objectStore.Add(weatherPage);
-        }
-        return It<WeatherPage>();
     }
 
     #endregion
