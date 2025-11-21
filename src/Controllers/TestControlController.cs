@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -36,13 +37,32 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(TestUser), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateUser()
+    public async Task<IActionResult> CreateUser()
     {
         try
         {
-            var result = new TestUser(new Random().Next(1, 0x10000));
-            LogOkUsername(result.Username);
-            return Ok(result);
+            var newUser = new TestUser(new Random().Next(1, 0x10000));
+
+            var result = await userManager.CreateAsync(new IdentityUser
+            {
+                UserName = newUser.Username,
+                Email = newUser.Email,
+                EmailConfirmed = false
+            }, newUser.Password);
+
+            if (!result.Succeeded)
+            {
+                var resultDetails = new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = string.Join("; ", result.Errors.Select(e => e.Description)),
+                    Status = StatusCodes.Status403Forbidden
+                };
+                return StatusCode(StatusCodes.Status403Forbidden, resultDetails);
+            }
+
+            LogOkUsername(newUser.Username);
+            return Created(nameof(CreateUser), newUser);
         }
         catch (Exception ex)
         {

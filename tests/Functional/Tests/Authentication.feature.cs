@@ -56,8 +56,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I am on the login page
         await GivenIAmOnTheLoginPage();
 
-        // When I enter my existing credentials
-        await WhenIEnterMyExistingCredentials();
+        // When I enter my credentials
+        await WhenIEnterMyCredentials();
 
         // And I click the login button
         await WhenIClickTheLoginButton();
@@ -65,16 +65,10 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
 
+        // Then I should see the home page
+        await ThenIShouldSeeTheHomePage();
+
         // Then I should be successfully logged in
         await ThenIShouldBeSuccessfullyLoggedIn();
-
-        // And I should see my profile page
-        await ThenIShouldSeeMyProfilePage();
-
-        // And I should see my username on the profile page
-        await ThenIShouldSeeMyUsernameOnTheProfilePage();
-
-        // And I should see my username in the header
-        await ThenIShouldSeeMyUsernameInTheHeader();
     }
 }

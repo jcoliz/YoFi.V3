@@ -1,44 +1,38 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class LoginPage(IPage _page): BasePage(_page)
 {
+    private static readonly Regex LoginApiRegex = new("/api/auth/login", RegexOptions.Compiled);
+
     public ILocator View => Page!.GetByTestId("LoginForm");
-    public ILocator EmailInput => View.GetByTestId("email");
+    public ILocator UsernameInput => View.GetByTestId("username");
     public ILocator PasswordInput => View.GetByTestId("password");
     public ILocator LoginButton => View.GetByTestId("Login");
     public ILocator ErrorDisplay => View.GetByTestId("Errors");
     public ILocator CreateAccountLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Create one here" });
 
-    public async Task LoginAsync(string email, string password)
-    {
-        await EmailInput.FillAsync(email);
-        await PasswordInput.FillAsync(password);
-
-        await SaveScreenshotAsync("Logging-in");
-
-        await WaitForApi(async () => 
-        { 
-            await LoginButton.ClickAsync();
-        }, "/api/auth/login*");
-    }
-
     public async Task EnterCredentialsAsync(string email, string password)
     {
-        await EmailInput.FillAsync(email);
+        await UsernameInput.FillAsync(email);
         await PasswordInput.FillAsync(password);
     }
 
-    public async Task EnterEmailOnlyAsync(string email)
+    public async Task EnterUsernameOnlyAsync(string username)
     {
-        await EmailInput.FillAsync(email);
+        await UsernameInput.FillAsync(username);
         // Intentionally leave password empty for validation testing
     }
 
     public async Task ClickLoginButtonAsync()
     {
         await SaveScreenshotAsync("Before-login-attempt");
-        await LoginButton.ClickAsync();
+
+        await WaitForApi(async () =>
+        {
+            await LoginButton.ClickAsync();
+        }, LoginApiRegex);
     }
 
     public async Task<bool> HasErrorMessageAsync(string expectedError)
@@ -70,14 +64,14 @@ public class LoginPage(IPage _page): BasePage(_page)
 
     public async Task<bool> AreInputsDisabledAsync()
     {
-        var emailDisabled = await EmailInput.IsDisabledAsync();
+        var emailDisabled = await UsernameInput.IsDisabledAsync();
         var passwordDisabled = await PasswordInput.IsDisabledAsync();
         return emailDisabled && passwordDisabled;
     }
 
     public async Task ClearFormAsync()
     {
-        await EmailInput.FillAsync("");
-        await PasswordInput.FillAsync("");
+        await UsernameInput.ClearAsync();
+        await PasswordInput.ClearAsync();
     }
 }

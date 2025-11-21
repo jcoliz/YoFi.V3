@@ -82,12 +82,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task GivenIHaveAnExistingAccount()
     {
-        // TODO: Implement account creation via Test Control API
-
-        var testUser = new TestUser(1);
-        _objectStore.Add(testUser);
-        // TODO: Send request to create account via API
-        await Task.CompletedTask;
+        await testControlClient.DeleteUsersAsync();
+        var user = await testControlClient.CreateUserAsync();
+        _objectStore.Add(user);
     }
 
     /// <summary>
@@ -170,15 +167,15 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// When: I enter my existing credentials
+    /// When: I enter my credentials
     /// </summary>
-    protected async Task WhenIEnterMyExistingCredentials()
+    protected async Task WhenIEnterMyCredentials()
     {
         var loginPage = GetOrCreateLoginPage();
 
-        var testuser = It<TestUser>();
+        var testuser = It<Generated.TestUser>();
 
-        await loginPage.EnterCredentialsAsync(testuser.Email, testuser.Password);
+        await loginPage.EnterCredentialsAsync(testuser.Username, testuser.Password);
     }
 
     /// <summary>
@@ -219,15 +216,6 @@ public abstract class AuthenticationSteps : FunctionalTest
         var password = GetTableValue(credentialsData, "Password");
 
         await loginPage.EnterCredentialsAsync(email, password);
-    }
-
-    /// <summary>
-    /// When: I enter only an email address {email}
-    /// </summary>
-    protected async Task WhenIEnterOnlyAnEmailAddress(string email)
-    {
-        var loginPage = GetOrCreateLoginPage();
-        await loginPage.EnterEmailOnlyAsync(email);
     }
 
     /// <summary>
@@ -356,6 +344,15 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldBeSuccessfullyLoggedIn()
     {
+
+        // And I should see my username in the header
+        await ThenIShouldSeeMyUsernameInTheHeader();
+
+        // Actually I think there is nothing to do here other than verify no error occurred
+        // Following steps will verify username in header
+        //
+        // Hmm, maybe I should move the "username in header" check here?
+
         // TODO: Verify successful login state
         await Task.CompletedTask;
     }
@@ -371,11 +368,19 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
+    /// Then: I should see the home page
+    /// </summary>
+    protected async Task ThenIShouldSeeTheHomePage()
+    {
+        Assert.That(Page.Url.EndsWith('/'), Is.True, "Should be on home page");
+    }
+
+    /// <summary>
     /// Then: I should see my username in the header
     /// </summary>
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
     {
-        var testuser = It<TestUser>();
+        var testuser = It<Generated.TestUser>();
         var usernameInHeader = await Page.GetByTestId("site-header").GetByTestId("login-state").GetByTestId("username").TextContentAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
     }
@@ -385,7 +390,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldSeeMyUsernameOnTheProfilePage()
     {
-        var testuser = It<TestUser>();
+        var testuser = It<Generated.TestUser>();
         var profilePage = GetOrCreateProfilePage();
         var usernameText = await profilePage.UsernameDisplay.TextContentAsync();
         Assert.That(usernameText, Does.Contain(testuser.Username), "Username should be visible on the profile page");

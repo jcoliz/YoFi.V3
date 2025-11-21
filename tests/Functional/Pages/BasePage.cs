@@ -1,11 +1,14 @@
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
+using NUnit.Framework.Internal;
 using YoFi.V3.Tests.Functional.Components;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class BasePage(IPage? _page)
 {
+    private static readonly string _apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? throw new NotImplementedException("API Base URL not configured in test parameters.");
+
     public IPage? Page { get; set; } = _page;
 
     public ILocator Header => Page!.Locator("h1");
@@ -18,7 +21,7 @@ public class BasePage(IPage? _page)
 
         return result!;
     }
-    
+
     public async Task<string> GetPageHeading()
     {
         return await Header.InnerTextAsync();
@@ -42,14 +45,12 @@ public class BasePage(IPage? _page)
     // TODO: Work out duplication with base functional test versions of these!
     public async Task WaitForApi(Func<Task> action, string? endpoint = null)
     {
-        var response = await Page!.RunAndWaitForResponseAsync(action, endpoint ?? "/api/**");             
-        TestContext.Out.WriteLine("API request {0}", response.Url);
-        Assert.That(response!.Ok, Is.True);
-    } 
+        throw new NotImplementedException("Prefer regex version of WaitForApi");
+    }
 
     public async Task WaitForApi(Func<Task> action, Regex regex)
     {
-        var response = await Page!.RunAndWaitForResponseAsync(action, regex);             
+        var response = await Page!.RunAndWaitForResponseAsync(action, regex);
         TestContext.Out.WriteLine("API request {0}", response.Url);
         Assert.That(response!.Ok, Is.True);
     }

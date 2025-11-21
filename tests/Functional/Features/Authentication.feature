@@ -22,12 +22,10 @@ Scenario: User registers for a new account
 Scenario: User logs into an existing account
     Given I have an existing account
     And I am on the login page
-    When I enter my existing credentials
+    When I enter my credentials
     And I click the login button
-    Then I should be successfully logged in
-    And I should see my profile page
-    And I should see my username on the profile page
-    And I should see my username in the header
+    Then I should see the home page
+    And I should be successfully logged in
 
 Scenario: User login fails with invalid credentials
     Given I am on the login page
