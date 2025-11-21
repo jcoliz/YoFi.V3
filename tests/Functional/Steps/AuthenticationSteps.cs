@@ -1,13 +1,15 @@
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
+using YoFi.V3.Tests.Functional.Generated;
+using NUnit.Framework.Internal;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
 public class TestUser(int id)
 {
-    public string Email { get; init; } = $"__TEST__{id:0000}@example.com";
-    public string Username { get; init; } = $"__TEST__{id:0000}";
+    public string Email { get; init; } = $"__TEST__{id:X8}@example.com";
+    public string Username { get; init; } = $"__TEST__{id:X8}";
     public string Password { get; init; } = "MyPassword123!";
 }
 
@@ -16,6 +18,23 @@ public class TestUser(int id)
 /// </summary>
 public abstract class AuthenticationSteps : FunctionalTest
 {
+    private TestControlClient? _testControlClient;
+    protected TestControlClient testControlClient
+    {
+        get
+        {
+            if (_testControlClient is null)
+            {
+                _testControlClient = new TestControlClient(
+                    baseUrl:
+                        TestContext.Parameters["apiBaseUrl"]
+                        ?? throw new NullReferenceException("apiBaseUrl test parameter not set"),
+                    httpClient: new HttpClient()
+                );
+            }
+            return _testControlClient;
+        }
+    }
     #region Steps: GIVEN
 
     /// <summary>
@@ -43,7 +62,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         await Page.GotoAsync("/register");
         var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");        
+        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");
 
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
@@ -62,7 +81,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// Given: I have an existing account
     /// </summary>
     protected async Task GivenIHaveAnExistingAccount()
-    {        
+    {
         // TODO: Implement account creation via Test Control API
 
         var testUser = new TestUser(1);
@@ -128,18 +147,17 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// When: I enter valid registration details
     /// </summary>
-    protected async Task WhenIEnterValidRegistrationDetails(DataTable registrationData)
+    protected async Task WhenIEnterValidRegistrationDetails()
     {
         var registerPage = GetOrCreateRegisterPage();
-        var email = GetTableValue(registrationData, "Email");
-        var username = GetTableValue(registrationData, "Username");
-        var password = GetTableValue(registrationData, "Password");
-        var confirmPassword = GetTableValue(registrationData, "Confirm Password");
 
-        _objectStore.Add("Email", email);
-        _objectStore.Add("Username", username);
-        
-        await registerPage.EnterRegistrationDetailsAsync(email, username, password, confirmPassword);
+        // First, clear existing test users via Test Control API
+        await testControlClient.DeleteUsersAsync();
+
+        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        _objectStore.Add(user);
+
+        await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
     }
 
     /// <summary>
@@ -171,7 +189,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var loginPage = GetOrCreateLoginPage();
         var email = GetTableValue(credentialsData, "Email");
         var password = GetTableValue(credentialsData, "Password");
-        
+
         await loginPage.EnterCredentialsAsync(email, password);
     }
 
@@ -199,7 +217,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var loginPage = GetOrCreateLoginPage();
         var email = GetTableValue(credentialsData, "Email");
         var password = GetTableValue(credentialsData, "Password");
-        
+
         await loginPage.EnterCredentialsAsync(email, password);
     }
 
@@ -248,7 +266,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var registerPage = GetOrCreateRegisterPage();
         var email = registrationData.GetValue("Email");
         var password = registrationData.GetValue("Password");
-        
+
         await registerPage.EnterWeakPasswordDetailsAsync(email, "newuser", password);
     }
 
@@ -261,7 +279,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var email = registrationData.GetValue("Email");
         var password = registrationData.GetValue("Password");
         var confirmPassword = registrationData.GetValue("Confirm Password");
-        
+
         await registerPage.EnterMismatchedPasswordDetailsAsync(email, "newuser", password, confirmPassword);
     }
 
@@ -299,20 +317,20 @@ public abstract class AuthenticationSteps : FunctionalTest
     #region Steps: THEN
 
     /// <summary>
-    /// Then: My registration request should be acklowledged
+    /// Then: My registration request should be acknowledged
     /// </summary>
-    protected async Task ThenMyRegistrationRequestShouldBeAcklowledged()
+    protected async Task ThenMyRegistrationRequestShouldBeAcknowledged()
     {
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
 
-        var email = _objectStore.Get<string>("Email");
-        var username = _objectStore.Get<string>("Username");
+        var user = It<TestUser>();
+
         var emailDisplayText = await registerPage.EmailDisplay.InnerTextAsync();
         var usernameDisplayText = await registerPage.UsernameDisplay.InnerTextAsync();
 
-        Assert.That(emailDisplayText, Is.EqualTo(email), "Displayed email should match registered email");
-        Assert.That(usernameDisplayText, Is.EqualTo(username), "Displayed username should match registered username");
+        Assert.That(emailDisplayText, Is.EqualTo(user.Email), "Displayed email should match registered email");
+        Assert.That(usernameDisplayText, Is.EqualTo(user.Username), "Displayed username should match registered username");
     }
 
     /// <summary>
@@ -397,7 +415,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeAnErrorMessage(string errorMessage)
     {
         var loginPage = GetOrCreateLoginPage();
-        Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True, 
+        Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True,
             $"Should display error message: {errorMessage}");
     }
 
@@ -425,7 +443,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeAValidationError(string errorMessage)
     {
         var loginPage = GetOrCreateLoginPage();
-        Assert.That(await loginPage.HasValidationErrorAsync(errorMessage), Is.True, 
+        Assert.That(await loginPage.HasValidationErrorAsync(errorMessage), Is.True,
             $"Should display validation error: {errorMessage}");
     }
 
@@ -437,7 +455,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var profilePage = GetOrCreateProfilePage();
         var expectedEmail = expectedData.GetValue("Email");
         var expectedUsername = expectedData.GetValue("Username");
-        
+
         Assert.That(await profilePage.HasAccountInformationAsync(expectedEmail, expectedUsername), Is.True,
             "Should display correct account information");
     }
@@ -448,7 +466,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeOptionsToUpdateMyProfile()
     {
         var profilePage = GetOrCreateProfilePage();
-        Assert.That(await profilePage.HasUpdateProfileOptionsAsync(), Is.True, 
+        Assert.That(await profilePage.HasUpdateProfileOptionsAsync(), Is.True,
             "Should see profile update options");
     }
 
@@ -458,7 +476,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeMyCurrentWorkspaceInformation()
     {
         var profilePage = GetOrCreateProfilePage();
-        Assert.That(await profilePage.HasWorkspaceInformationAsync(), Is.True, 
+        Assert.That(await profilePage.HasWorkspaceInformationAsync(), Is.True,
             "Should display workspace information");
     }
 
@@ -503,7 +521,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeAValidationErrorAboutPasswordRequirements()
     {
         var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.HasPasswordRequirementErrorAsync(), Is.True, 
+        Assert.That(await registerPage.HasPasswordRequirementErrorAsync(), Is.True,
             "Should display password requirement validation error");
     }
 

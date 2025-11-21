@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -19,7 +20,10 @@ public record TestUser(int Id)
 [Route("[controller]")]
 [ApiController]
 [Produces("application/json")]
-public partial class TestControlController(ILogger<TestControlController> logger) : ControllerBase
+public partial class TestControlController(
+    UserManager<IdentityUser> userManager,
+    ILogger<TestControlController> logger
+) : ControllerBase
 {
     /// <summary>
     /// Create a test user
@@ -57,7 +61,7 @@ public partial class TestControlController(ILogger<TestControlController> logger
     /// Approve a test user
     /// </summary>
     /// <remarks>
-    /// This simulates the email approval step. When a user is created, they have to be 
+    /// This simulates the email approval step. When a user is created, they have to be
     /// approved before they can log in. Only users with __TEST__ in their username can be approved
     /// via this method.
     /// </remarks>
@@ -98,9 +102,39 @@ public partial class TestControlController(ILogger<TestControlController> logger
         }
     }
 
+    [HttpDelete("users")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult DeleteUsers()
+    {
+        try
+        {
+            userManager
+                .Users
+                .Where(u => (u.UserName != null) && u.UserName.Contains("__TEST__"))
+                .ToList()
+                .ForEach(u => userManager.DeleteAsync(u));
+
+            LogOkUsername("all users");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            LogFailed(ex);
+            var result = new ProblemDetails
+            {
+                Title = "Failed to delete test users",
+                Detail = ex.Message,
+                Status = StatusCodes.Status500InternalServerError
+            };
+            return StatusCode(StatusCodes.Status500InternalServerError, result);
+        }
+    }
+
     [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
     private partial void LogFailed(Exception ex, [CallerMemberName] string location = "");
 
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK. User {Name}")]    
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK. User {Name}")]
     private partial void LogOkUsername(string name, [CallerMemberName] string location = "");
 }

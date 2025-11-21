@@ -15,14 +15,9 @@ Background:
 
 Scenario: User registers for a new account
     Given I am on the registration page
-    When I enter valid registration details:
-        | Field            | Value                    |
-        | Email            | newuser@example.com      |
-        | Username         | newuser                 |
-        | Password         | SecurePassword123!       |
-        | Confirm Password | SecurePassword123!       |
+    When I enter valid registration details
     And I submit the registration form
-    Then My registration request should be acklowledged
+    Then My registration request should be acknowledged
 
 Scenario: User logs into an existing account
     Given I have an existing account

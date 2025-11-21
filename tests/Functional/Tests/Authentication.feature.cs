@@ -32,12 +32,7 @@ public class UserAuthenticationTests : AuthenticationSteps
         await GivenIAmOnTheRegistrationPage();
 
         // When I enter valid registration details:
-        var table = new DataTable();
-        table.AddRow("Email", "newuser@example.com");
-        table.AddRow("Username", "newuser");
-        table.AddRow("Password", "SecurePassword123!");
-        table.AddRow("Confirm Password", "SecurePassword123!");
-        await WhenIEnterValidRegistrationDetails(table);
+        await WhenIEnterValidRegistrationDetails();
 
         // And I submit the registration form
         await WhenISubmitTheRegistrationForm();
@@ -45,8 +40,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
 
-        // Then My registration request should be acklowledged
-        await ThenMyRegistrationRequestShouldBeAcklowledged();
+        // Then My registration request should be acknowledged
+        await ThenMyRegistrationRequestShouldBeAcknowledged();
     }
 
     /// <summary>

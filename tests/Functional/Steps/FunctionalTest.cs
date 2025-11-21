@@ -22,7 +22,7 @@ public abstract class FunctionalTest : PageTest
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
 
-    protected Uri? baseUrl;
+    protected Uri? baseUrl { get; private set; }
 
     #endregion
 
