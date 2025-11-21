@@ -19,7 +19,7 @@ $ErrorActionPreference = "Stop"
 try {
     $Top = "$PSScriptRoot/.."
     $FrontEndPath = Join-Path $Top "src" "FrontEnd.Nuxt"
-    
+
     # Validate that the front-end directory exists
     if (-not (Test-Path $FrontEndPath)) {
         Write-Error "Front-end directory not found: $FrontEndPath"
@@ -29,8 +29,8 @@ try {
     Write-Verbose "Opening $FrontEndPath in VS Code"
 
     # Launch VS Code
-    code $FrontEndPath
-    
+    code "$FrontEndPath"
+
     exit 0
 }
 catch {
