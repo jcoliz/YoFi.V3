@@ -16,6 +16,7 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 // of the code was used to generate it.
 
 builder.AddNpmApp("frontend-nuxt", "../FrontEnd.Nuxt")
+    .WithEnvironment("NUXT_PUBLIC_API_BASE_URL", apiService.GetEndpoint("http"))
     .WithEnvironment("NUXT_PUBLIC_SOLUTION_VERSION", "Aspire")
     .WithEnvironment("NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
     .WithReference(apiService)

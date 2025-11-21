@@ -30,14 +30,14 @@ export default defineNuxtConfig({
     },
   },
   auth: {
-    baseURL: `${process.env.services__backend__http__0}/api/auth`, // Update this to your backend URL
+    originEnvKey: 'NUXT_PUBLIC_API_BASE_URL',
     provider: {
       type: 'local',
       endpoints: {
-        signIn: { path: '/login', method: 'post' }, // ADD THIS LINE
-        signOut: { path: '/logout', method: 'post' },
-        getSession: { path: '/user' },
-        signUp: { path: '/signup', method: 'post' },
+        signIn: { path: '/api/auth/login', method: 'post' }, // ADD THIS LINE
+        signOut: { path: '/api/auth/logout', method: 'post' },
+        getSession: { path: '/api/auth/user' },
+        signUp: { path: '/api/auth/signup', method: 'post' },
       },
       // not 'pages'??
       pages: {
