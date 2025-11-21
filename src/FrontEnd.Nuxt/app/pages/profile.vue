@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   title: 'Profile',
+  middleware: 'sidebase-auth'
 })
 
 const { data, status, signOut } = useAuth()
@@ -37,7 +38,7 @@ const cancelEditing = () => {
 
 const systemLogout = async () => {
   try {
-    await signOut( { redirect: true, callbackUrl: '/login' } )
+    await signOut( { redirect: true, callbackUrl: '/' } )
   } catch (error) {
     console.error('Logout error:', error)
   }

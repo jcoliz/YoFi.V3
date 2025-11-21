@@ -41,7 +41,7 @@ const handleSubmit = async () => {
       password: form.value.password
     },{
       redirect: true,
-      callbackUrl: '/profile'
+      callbackUrl: '/'
     })
   } catch (error: any) {
     console.error('*** Login error:')

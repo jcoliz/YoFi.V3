@@ -3,6 +3,7 @@ import * as api from '../utils/apiclient'
 definePageMeta({
   title: 'About',
   order: 4,
+  middleware: 'sidebase-auth'
 })
 
 /**

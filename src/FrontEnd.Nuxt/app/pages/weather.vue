@@ -4,6 +4,7 @@ import * as api from '../utils/apiclient'
 definePageMeta({
   title: 'Weather',
   order: 2,
+  middleware: 'sidebase-auth'
 })
 
 /**

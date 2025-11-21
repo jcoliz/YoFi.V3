@@ -76,7 +76,7 @@ export default defineNuxtConfig({
       // handler: './config/AuthRefreshHandler'
     },
     globalAppMiddleware: {
-      isEnabled: true,
+      isEnabled: false,
     },
   },
   runtimeConfig: {

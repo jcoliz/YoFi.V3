@@ -20,7 +20,7 @@ function systemLogin() {
 
 const systemLogout = async () => {
   try {
-    await signOut( { redirect: true, callbackUrl: '/login' } )
+    await signOut( { redirect: true, callbackUrl: '/' } )
   } catch (error) {
     console.error('Logout error:', error)
   }
@@ -90,16 +90,6 @@ const systemLogout = async () => {
               to="/register"
               data-test-id="CreateAccount"
               >Request Account</NuxtLink
-            >
-          </li>
-          <li><hr class="dropdown-divider" /></li>
-          <!-- Just for now! -->
-          <li>
-            <NuxtLink
-              class="dropdown-item"
-              to="/profile"
-              data-test-id="ProfileTemp"
-              >Profile</NuxtLink
             >
           </li>
         </template>
