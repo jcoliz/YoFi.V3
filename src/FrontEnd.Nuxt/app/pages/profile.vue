@@ -3,7 +3,7 @@ definePageMeta({
   title: 'Profile',
 })
 
-const { data, status } = useAuth()
+const { data, status, signOut } = useAuth()
 
 const workspace = ref({
   name: 'Default Workspace',
@@ -33,6 +33,14 @@ const startEditing = () => {
 const cancelEditing = () => {
   isEditing.value = false
   errors.value = []
+}
+
+const systemLogout = async () => {
+  try {
+    await signOut( { redirect: true, callbackUrl: '/login' } )
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
 }
 
 // Handle profile update
@@ -271,6 +279,7 @@ const handleUpdate = async () => {
             <button
               class="btn btn-outline-danger btn-sm"
               data-test-id="Logout"
+              @click="systemLogout"
             >
               <i class="bi bi-box-arrow-right me-1" />
               Sign Out

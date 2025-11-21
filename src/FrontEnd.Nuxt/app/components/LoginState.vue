@@ -20,11 +20,10 @@ function systemLogin() {
 
 const systemLogout = async () => {
   try {
-    await signOut()
+    await signOut( { redirect: true, callbackUrl: '/login' } )
   } catch (error) {
     console.error('Logout error:', error)
   }
-  navigateTo('/')
 }
 </script>
 
