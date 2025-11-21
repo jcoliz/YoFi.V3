@@ -13,7 +13,7 @@ public class BasePage(IPage? _page)
 
     public ILocator Header => Page!.Locator("h1");
 
-    public NavBar NavBar => new NavBar(Page!);
+    public SiteHeader SiteHeader => new SiteHeader(Page!, Page!.Locator("body"));
 
     public async Task<IResponse> LaunchSite()
     {

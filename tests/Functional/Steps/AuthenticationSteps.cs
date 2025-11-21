@@ -380,8 +380,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
     {
+        var basePage = new BasePage(Page);
         var testuser = It<Generated.TestUser>();
-        var usernameInHeader = await Page.GetByTestId("site-header").GetByTestId("login-state").GetByTestId("username").TextContentAsync();
+        var usernameInHeader = await basePage.SiteHeader.LoginState.GetUsernameAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
     }
 

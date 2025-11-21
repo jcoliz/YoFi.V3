@@ -121,7 +121,7 @@ public abstract class FunctionalTest : PageTest
     protected async Task VisitPage(string option)
     {
         var pageModel = It<BasePage>();
-        await pageModel.NavBar.SelectOptionAsync(option);
+        await pageModel.SiteHeader.Nav.SelectOptionAsync(option);
     }
 
     #endregion
