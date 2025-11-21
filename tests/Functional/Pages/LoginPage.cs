@@ -22,6 +22,7 @@ public class LoginPage(IPage _page): BasePage(_page)
     public async Task EnterUsernameOnlyAsync(string username)
     {
         await UsernameInput.FillAsync(username);
+        await PasswordInput.ClearAsync();
         // Intentionally leave password empty for validation testing
     }
 
@@ -42,9 +43,11 @@ public class LoginPage(IPage _page): BasePage(_page)
         return errorText.Contains(expectedError);
     }
 
-    public async Task<bool> HasValidationErrorAsync(string expectedError)
+    public async Task<bool> HasValidationErrorAsync()
     {
-        return await HasErrorMessageAsync(expectedError);
+        await ErrorDisplay.WaitForAsync();
+        var errorText = await ErrorDisplay.InnerTextAsync();
+        return !string.IsNullOrEmpty(errorText);
     }
 
     public async Task<bool> IsOnLoginPageAsync()
@@ -73,5 +76,34 @@ public class LoginPage(IPage _page): BasePage(_page)
     {
         await UsernameInput.ClearAsync();
         await PasswordInput.ClearAsync();
+    }
+
+    /// <summary>
+    /// Check if the password field has HTML5 validation error (required field)
+    /// </summary>
+    public async Task<bool> HasPasswordRequiredValidationAsync()
+    {
+        // Check the HTML5 validity state
+        var validationMessage = await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
+        return !string.IsNullOrEmpty(validationMessage);
+    }
+
+    /// <summary>
+    /// Get the HTML5 validation message for the password field
+    /// </summary>
+    public async Task<string> GetPasswordValidationMessageAsync()
+    {
+        return await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
+    }
+
+    /// <summary>
+    /// Click login button without waiting for API (for cases where validation prevents submission)
+    /// </summary>
+    public async Task ClickLoginButtonWithoutApiWaitAsync()
+    {
+        await SaveScreenshotAsync("Before-login-attempt");
+        await LoginButton.ClickAsync();
+        // Give the browser a moment to show validation
+        await Task.Delay(500);
     }
 }

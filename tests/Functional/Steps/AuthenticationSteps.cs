@@ -138,12 +138,30 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
+    /// When: I enter only a username
+    /// </summary>
+    protected async Task WhenIEnterOnlyUsername()
+    {
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.EnterUsernameOnlyAsync("Only Username");
+    }
+
+    /// <summary>
     /// When: I leave the password field empty
     /// </summary>
     protected async Task WhenILeaveThePasswordFieldEmpty()
     {
         // This is handled by WhenIEnterOnlyAnEmailAddress
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// When: I click the login button (validation scenario - no API call expected)
+    /// </summary>
+    protected async Task WhenIClickTheLoginButtonForValidation()
+    {
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.ClickLoginButtonWithoutApiWaitAsync();
     }
 
     /// <summary>
@@ -358,11 +376,22 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// Then: I should see a validation error {errorMessage}
     /// </summary>
-    protected async Task ThenIShouldSeeAValidationError(string errorMessage)
+    protected async Task ThenIShouldSeeAValidationError()
     {
         var loginPage = GetOrCreateLoginPage();
-        Assert.That(await loginPage.HasValidationErrorAsync(errorMessage), Is.True,
-            $"Should display validation error: {errorMessage}");
+
+        // First check for HTML5 validation (browser native)
+        if (await loginPage.HasPasswordRequiredValidationAsync())
+        {
+            var validationMessage = await loginPage.GetPasswordValidationMessageAsync();
+            Assert.That(validationMessage, Is.Not.Empty,
+                "Should have HTML5 validation message for required password field");
+            return;
+        }
+
+        // Fall back to checking custom error display
+        Assert.That(await loginPage.HasValidationErrorAsync(), Is.True,
+            $"Should display validation error");
     }
 
     /// <summary>

@@ -12,14 +12,6 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </summary>
 public class UserAuthenticationTests : AuthenticationSteps
 {
-
-    [OneTimeSetUp]
-    public async Task OneTimeSetup()
-    {
-        // Hook: One-time setup
-        
-    }
-
     [SetUp]
     public async Task Background()
     {
@@ -100,6 +92,34 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // Then I should see an error message "Invalid credentials"
         await ThenIShouldSeeAnErrorMessage("Invalid credentials");
+
+        // And I should remain on the login page
+        await ThenIShouldRemainOnTheLoginPage();
+    }
+
+    /// <summary>
+    /// User login fails with missing password
+    /// </summary>
+    [Test]
+    public async Task UserLoginFailsWithMissingPassword()
+    {
+        // Given I am on the login page
+        await GivenIAmOnTheLoginPage();
+
+        // When I enter only a username
+        await WhenIEnterOnlyUsername();
+
+        // And I leave the password field empty
+        await WhenILeaveThePasswordFieldEmpty();
+
+        // And I click the login button
+        await WhenIClickTheLoginButtonForValidation();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see a validation error
+        await ThenIShouldSeeAValidationError();
 
         // And I should remain on the login page
         await ThenIShouldRemainOnTheLoginPage();

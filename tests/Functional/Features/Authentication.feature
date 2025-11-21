@@ -35,7 +35,7 @@ Scenario: User login fails with invalid credentials
 
 Scenario: User login fails with missing password
     Given I am on the login page
-    When I enter only an email address "testuser@example.com"
+    When I enter only a username
     And I leave the password field empty
     And I click the login button
     Then I should see a validation error "Password is required"
