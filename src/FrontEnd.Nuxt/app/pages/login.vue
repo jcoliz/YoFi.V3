@@ -75,17 +75,21 @@ const handleSubmit = async () => {
             <!-- Error Display -->
             <div
               v-if="errors.length > 0"
-              class="alert alert-danger"
+              class="alert alert-danger alert-dismissible fade show"
+              role="alert"
               data-test-id="Errors"
             >
-              <ul class="mb-0">
-                <li
-                  v-for="error in errors"
-                  :key="error"
-                >
+              <strong>Please fix the following errors:</strong><br>
+                <span v-for="error in errors" :key="error">
                   {{ error }}
-                </li>
-              </ul>
+                </span>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Close"
+                @click="errors = []"
+              ></button>
             </div>
 
             <!-- Username Field -->
