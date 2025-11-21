@@ -5,196 +5,308 @@ definePageMeta({
   layout: 'chrome',
 })
 
-// Sample data - replace with actual API calls
-const quickStats = ref({
-  totalBalance: 12345.67,
-  monthlyIncome: 5200.00,
-  monthlyExpenses: 3850.25,
-  savingsRate: 26
-})
+/**
+ * Brochure page accessible to all
+ *
+ * This page is designed to advertise the features of the application.
+ * Currently, there aren't any actual application features. Instead,
+ * in its current form, the app is more of a reference implementation
+ * for a modern .NET 10 + Nuxt 4 stack with authentication, authorization,
+ * and a variety of best practices.
+ *
+ * Therefore, this brochure page serves to inform visitors about the
+ * technology stack. We want to show off all the various technology
+ * components which come together to make this application work.
+ *
+ * For each, we'd want: Name, logo (image), short explaanation of what
+ * we use it for, and a link to the official website.
+ *
+ * Technologies to highlight:
+ * - .NET 10
+ * - Nuxt 4
+ * - Vue 3
+ * - TypeScript
+ * - Bootstrap 5
+ * - Entity Framework Core
+ * - pnpm
+ * - Azure Static Web Apps
+ * - Azure App Services
+ * - Azure Application Insights
+ * - Azure Log Analytics
+ * - Azure Storage Accounts
+ * - Azure Pipelines
+ * - .NET Aspire
+ * - Docker
+ * - PostgreSQL
+ * - Sqlite
+ * - Playwright
+ *
+ * Links to my source code repos
+ * - YoFi.V3 (this project)
+ * - NuxtIdentity
+ * - @coliz/vue-base-controls
+ *
+ * Calls to action
+ * - Sign up for an account, and look around
+ * - Pull the docker compose project from Docker Hub and run locally
+ * - Check out the source code on GitHub
+ * - Give feedback via issues or discussions on GitHub
+ */
+interface Technology {
+  name: string
+  logo: string
+  description: string
+  link: string
+  category: string
+}
 
-const recentTransactions = ref([
-  { id: 1, description: 'Grocery Store', amount: -85.42, date: '2024-01-15', category: 'Food' },
-  { id: 2, description: 'Salary Deposit', amount: 2600.00, date: '2024-01-15', category: 'Income' },
-  { id: 3, description: 'Electric Bill', amount: -120.00, date: '2024-01-14', category: 'Utilities' }
-])
+const technologies: Technology[] = [
+  {
+    name: '.NET 10',
+    logo: '/images/dotnet-logo.svg',
+    description: 'Modern backend framework for building robust APIs and web applications',
+    link: 'https://dotnet.microsoft.com/',
+    category: 'Backend'
+  },
+  {
+    name: 'Nuxt 4',
+    logo: '/images/nuxt-icon-green.svg',
+    description: 'Full-stack Vue framework with SSR, file-based routing, and auto-imports',
+    link: 'https://nuxt.com/',
+    category: 'Frontend'
+  },
+  {
+    name: 'Vue 3',
+    logo: '/images/vue-logo.svg',
+    description: 'Progressive JavaScript framework for building user interfaces',
+    link: 'https://vuejs.org/',
+    category: 'Frontend'
+  },
+  {
+    name: 'TypeScript',
+    logo: '/images/ts-logo-512.svg',
+    description: 'Strongly typed programming language that builds on JavaScript',
+    link: 'https://www.typescriptlang.org/',
+    category: 'Language'
+  },
+  {
+    name: 'Bootstrap 5',
+    logo: '/images/bootstrap-logo.svg',
+    description: 'CSS framework for building responsive, mobile-first websites',
+    link: 'https://getbootstrap.com/',
+    category: 'Styling'
+  },
+  {
+    name: 'Entity Framework Core',
+    logo: '/images/ef-logo.svg',
+    description: 'Object-relational mapping framework for .NET applications',
+    link: 'https://docs.microsoft.com/en-us/ef/',
+    category: 'Database'
+  },
+  {
+    name: 'pnpm',
+    logo: '/images/pnpm-no-name-with-frame.svg',
+    description: 'Fast, disk space efficient package manager for Node.js',
+    link: 'https://pnpm.io/',
+    category: 'Tools'
+  },
+  {
+    name: 'Azure Static Web Apps',
+    logo: '/images/01007-icon-service-Static-Apps.svg',
+    description: 'Full-stack web app hosting with integrated CI/CD workflows',
+    link: 'https://azure.microsoft.com/en-us/services/app-service/static/',
+    category: 'Cloud'
+  },
+  {
+    name: 'Azure App Services',
+    logo: '/images/10035-icon-service-App-Services.svg',
+    description: 'Platform for hosting web applications and APIs in the cloud',
+    link: 'https://azure.microsoft.com/en-us/services/app-service/',
+    category: 'Cloud'
+  },
+  {
+    name: 'Azure Application Insights',
+    logo: '/images/00012-icon-service-Application-Insights.svg',
+    description: 'Application performance monitoring and analytics service',
+    link: 'https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview',
+    category: 'Monitoring'
+  },
+  {
+    name: 'Azure Pipelines',
+    logo: '/images/10261-icon-service-Azure-DevOps.svg',
+    description: 'Cloud-based CI/CD service for building, testing, and deploying code',
+    link: 'https://azure.microsoft.com/en-us/services/devops/pipelines/',
+    category: 'DevOps'
+  },
+  {
+    name: 'PostgreSQL',
+    logo: '/images/postgres-elephant.png',
+    description: 'Advanced open-source relational database system',
+    link: 'https://www.postgresql.org/',
+    category: 'Database'
+  },
+  {
+    name: 'SQLite',
+    logo: '/images/sqlite-logo.svg',
+    description: 'Lightweight, serverless database engine for development and testing',
+    link: 'https://www.sqlite.org/',
+    category: 'Database'
+  },
+  {
+    name: 'Docker',
+    logo: '/images/docker-mark-blue.svg',
+    description: 'Platform for developing, shipping, and running applications in containers',
+    link: 'https://www.docker.com/',
+    category: 'DevOps'
+  },
+  {
+    name: 'Playwright',
+    logo: '/images/playwright-logo.svg',
+    description: 'End-to-end testing framework for modern web applications',
+    link: 'https://playwright.dev/',
+    category: 'Testing'
+  }
+]
 
-const quickActions = [
-  { title: 'Add Transaction', icon: '💰', route: '/transactions/new', color: 'bg-green-500' },
-  { title: 'View Budget', icon: '📊', route: '/budget', color: 'bg-blue-500' },
-  { title: 'Reports', icon: '📈', route: '/reports', color: 'bg-purple-500' },
-  { title: 'Categories', icon: '🏷️', route: '/categories', color: 'bg-orange-500' }
+const sourceRepos = [
+  {
+    name: 'YoFi.V3',
+    description: 'This complete reference implementation project',
+    link: 'https://github.com/jcoliz/YoFi.V3'
+  },
+  {
+    name: 'NuxtIdentity',
+    description: 'Nuxt module for .NET Identity authentication',
+    link: 'https://github.com/jcoliz/NuxtIdentity'
+  },
+  {
+    name: '@coliz/vue-base-controls',
+    description: 'Reusable Vue components library',
+    link: 'https://github.com/jcoliz/vue-base-controls'
+  }
 ]
 </script>
 
 <template>
-  <div class="min-vh-100 bg-light">
+  <div class="container-fluid">
     <!-- Hero Section -->
-    <div class="bg-gradient-primary text-white">
-      <div class="container py-5">
-        <div class="text-center">
-          <h1 class="display-4 fw-bold mb-4">Welcome to YoFi! 🎉</h1>
-          <p class="lead">Take control of your financial future</p>
+    <div class="row bg-primary text-white py-5 mb-5">
+      <div class="col-12 text-center">
+        <div class="container">
+          <h1 class="display-4 fw-bold mb-3">YoFi.V3 Reference Implementation</h1>
+          <p class="lead mb-4">
+            A modern .NET 10 + Nuxt 4 stack with authentication, authorization, and best practices
+          </p>
+          <p class="mb-4">
+            This application serves as a comprehensive reference implementation showcasing
+            the integration of cutting-edge technologies for building robust, scalable web applications.
+          </p>
         </div>
       </div>
     </div>
 
-    <div class="container py-4">
-      <!-- Quick Stats -->
-      <div class="row g-4 mb-5">
-        <div class="col-12 col-md-6 col-lg-3">
-          <div class="card h-100 border-start border-success border-4">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="fs-1 me-3">💳</div>
-                <div>
-                  <p class="text-muted mb-1 small">Total Balance</p>
-                  <p class="h4 fw-bold text-success mb-0">${{ quickStats.totalBalance.toLocaleString() }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-          <div class="card h-100 border-start border-primary border-4">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="fs-1 me-3">📈</div>
-                <div>
-                  <p class="text-muted mb-1 small">Monthly Income</p>
-                  <p class="h4 fw-bold text-primary mb-0">${{ quickStats.monthlyIncome.toLocaleString() }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-          <div class="card h-100 border-start border-danger border-4">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="fs-1 me-3">📉</div>
-                <div>
-                  <p class="text-muted mb-1 small">Monthly Expenses</p>
-                  <p class="h4 fw-bold text-danger mb-0">${{ quickStats.monthlyExpenses.toLocaleString() }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6 col-lg-3">
-          <div class="card h-100 border-start border-info border-4">
-            <div class="card-body">
-              <div class="d-flex align-items-center">
-                <div class="fs-1 me-3">🎯</div>
-                <div>
-                  <p class="text-muted mb-1 small">Savings Rate</p>
-                  <p class="h4 fw-bold text-info mb-0">{{ quickStats.savingsRate }}%</p>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- Technology Showcase -->
+    <div class="container mb-5">
+      <div class="row mb-4">
+        <div class="col-12 text-center">
+          <h2 class="display-5 mb-3">Technology Stack</h2>
+          <p class="lead text-muted">
+            Explore the powerful technologies that make this application possible
+          </p>
         </div>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="mb-5">
-        <h2 class="h3 fw-bold text-dark mb-4">Quick Actions</h2>
-        <div class="row g-3">
-          <div class="col-6 col-md-3" v-for="action in quickActions" :key="action.title">
-            <NuxtLink
-              :to="action.route"
-              class="card h-100 text-decoration-none text-dark card-hover"
-            >
-              <div class="card-body text-center">
-                <div class="fs-1 mb-3">{{ action.icon }}</div>
-                <h3 class="h6 fw-semibold">{{ action.title }}</h3>
-              </div>
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
       <div class="row g-4">
-        <div class="col-12 col-lg-6">
-          <div class="card h-100">
-            <div class="card-body">
-              <h3 class="h5 fw-bold text-dark mb-4">Recent Transactions</h3>
-              <div class="vstack gap-3">
-                <div
-                  v-for="transaction in recentTransactions"
-                  :key="transaction.id"
-                  class="d-flex align-items-center justify-content-between p-3 bg-light rounded"
-                >
-                  <div>
-                    <p class="fw-medium text-dark mb-1">{{ transaction.description }}</p>
-                    <p class="small text-muted mb-0">{{ transaction.category }} • {{ transaction.date }}</p>
-                  </div>
-                  <span
-                    :class="transaction.amount > 0 ? 'text-success' : 'text-danger'"
-                    class="fw-bold"
-                  >
-                    {{ transaction.amount > 0 ? '+' : '' }}${{ transaction.amount.toLocaleString() }}
-                  </span>
-                </div>
+        <div v-for="tech in technologies" :key="tech.name" class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <img :src="tech.logo" :alt="tech.name + ' logo'" class="me-3" style="width: 40px; height: 40px; object-fit: contain;">
+                <h5 class="card-title mb-0">{{ tech.name }}</h5>
               </div>
-              <div class="mt-3">
-                <NuxtLink
-                  to="/transactions"
-                  class="text-primary text-decoration-none fw-medium"
-                >
-                  View all transactions →
-                </NuxtLink>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Financial Health Score -->
-        <div class="col-12 col-lg-6">
-          <div class="card h-100">
-            <div class="card-body">
-              <h3 class="h5 fw-bold text-dark mb-4">Financial Health</h3>
-              <div class="text-center">
-                <div class="display-1 mb-3">🏆</div>
-                <div class="h3 fw-bold text-success mb-2">Excellent</div>
-                <p class="text-muted mb-4">You're doing great with your finances!</p>
-                <div class="progress mb-3" style="height: 12px;">
-                  <div class="progress-bar bg-success" style="width: 85%"></div>
-                </div>
-                <p class="small text-muted">85% Financial Health Score</p>
+              <p class="card-text flex-grow-1">{{ tech.description }}</p>
+              <div class="mt-auto">
+                <span class="badge bg-secondary mb-2">{{ tech.category }}</span>
+                <br>
+                <a :href="tech.link" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                  Learn More <i class="bi bi-arrow-up-right"></i>
+                </a>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Motivational Message -->
-      <div class="mt-4 card bg-gradient-success text-white">
-        <div class="card-body text-center">
-          <h3 class="h5 fw-bold mb-2">💡 Financial Tip of the Day</h3>
-          <p class="mb-0 opacity-75">Small consistent savings today lead to big financial wins tomorrow!</p>
+    <!-- Source Code Repositories -->
+    <div class="bg-light py-5 mb-5">
+      <div class="container">
+        <div class="row mb-4">
+          <div class="col-12 text-center">
+            <h2 class="display-5 mb-3">Source Code</h2>
+            <p class="lead text-muted">
+              Explore the open-source repositories that power this project
+            </p>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div v-for="repo in sourceRepos" :key="repo.name" class="col-md-4">
+            <div class="card h-100">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                  <i class="bi bi-github me-2"></i>{{ repo.name }}
+                </h5>
+                <p class="card-text flex-grow-1">{{ repo.description }}</p>
+                <a :href="repo.link" target="_blank" rel="noopener" class="btn btn-primary mt-auto">
+                  View on GitHub <i class="bi bi-arrow-up-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="container mb-5">
+      <div class="row">
+        <div class="col-12 text-center">
+          <h2 class="display-5 mb-4">Get Started</h2>
+          <p class="lead mb-4">Ready to explore or contribute? Here are your next steps:</p>
+
+          <div class="row g-3 justify-content-center">
+            <div class="col-auto">
+              <NuxtLink to="/register" class="btn btn-primary btn-lg">
+                <i class="bi bi-person-plus me-2"></i>Sign Up & Explore
+              </NuxtLink>
+            </div>
+            <div class="col-auto">
+              <a href="https://hub.docker.com/r/jcoliz/yofi-v3" target="_blank" rel="noopener" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-download me-2"></i>Run Locally with Docker
+              </a>
+            </div>
+            <div class="col-auto">
+              <a href="https://github.com/jcoliz/YoFi.V3" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-code-slash me-2"></i>View Source Code
+              </a>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-muted">
+              Have feedback or questions?
+              <a href="https://github.com/jcoliz/YoFi.V3/issues" target="_blank" rel="noopener">
+                Open an issue
+              </a> or start a
+              <a href="https://github.com/jcoliz/YoFi.V3/discussions" target="_blank" rel="noopener">
+                discussion on GitHub
+              </a>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-.bg-gradient-primary {
-  background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);
-}
-
-.bg-gradient-success {
-  background: linear-gradient(135deg, #198754 0%, #20c997 100%);
-}
-
-.card-hover:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-  transition: box-shadow 0.15s ease-in-out;
-  color: #0d6efd !important;
-}
-</style>
