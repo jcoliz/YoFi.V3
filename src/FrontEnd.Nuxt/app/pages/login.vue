@@ -4,9 +4,11 @@ definePageMeta({
   layout: 'blank',
 })
 
+const { signIn, status } = useAuth()
+
 // Reactive form data
 const form = ref({
-  email: '',
+  username: '',
   password: '',
 })
 
@@ -19,8 +21,8 @@ const handleSubmit = async () => {
   errors.value = []
 
   // Client-side validation
-  if (!form.value.email) {
-    errors.value.push('Email is required')
+  if (!form.value.username) {
+    errors.value.push('Username is required')
   }
   if (!form.value.password) {
     errors.value.push('Password is required')
@@ -33,28 +35,25 @@ const handleSubmit = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Implement actual login API call
-    console.log('Login attempt:', {
-      email: form.value.email,
-      password: form.value.password,
+    isLoading.value = true
+    await signIn({
+      username: form.value.username,
+      password: form.value.password
+    },{
+      redirect: true,
+      callbackUrl: '/profile'
     })
+  } catch (error: any) {
+    console.error('*** Login error:')
+    console.log('- Status:', error.status)
+    console.log('- Message:', error.message)
+    console.log('- Data:', error.data)
+    console.log('- Full error object:', error)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // TODO: Handle successful login
-    // Should validate credentials, set authentication state, and redirect to workspace
-    // For now, simulate different responses based on email
-    if (form.value.email === 'baduser@example.com') {
-      errors.value.push('Invalid email or password')
-      return
-    }
-    // TODO: Navigate to workspace dashboard after successful login
-    await navigateTo('/profile')
-  } catch (error) {
-    errors.value.push(
-      `Login failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
-    )
+    // Handle ProblemDetails format
+    const title = error.data?.title ?? "Login failed"
+    const detail = error.data?.detail ?? error.message ?? 'Please check your credentials'
+    errors.value = [`${title}: ${detail}`]
   } finally {
     isLoading.value = false
   }
@@ -89,20 +88,20 @@ const handleSubmit = async () => {
               </ul>
             </div>
 
-            <!-- Email Field -->
+            <!-- Username Field -->
             <div class="mb-3">
               <label
-                for="email"
+                for="username"
                 class="form-label"
-                >Email Address</label
+                >Username</label
               >
               <input
-                id="email"
-                v-model="form.email"
-                type="email"
+                id="username"
+                v-model="form.username"
+                type="text"
                 class="form-control"
-                data-test-id="email"
-                placeholder="Enter your email"
+                data-test-id="username"
+                placeholder="Enter your username"
                 :disabled="isLoading"
                 required
               />
@@ -152,7 +151,7 @@ const handleSubmit = async () => {
                 <NuxtLink
                   to="/register"
                   class="text-decoration-none"
-                  >Create one here</NuxtLink
+                  >Request one here</NuxtLink
                 >
               </p>
             </div>

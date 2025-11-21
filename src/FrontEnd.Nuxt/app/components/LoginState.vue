@@ -6,7 +6,7 @@
  * and navigation to profile page.
  */
 
-console.log('[DEBUG] LoginState: Component loading')
+const { data, status, signOut } = useAuth()
 
 // Fake login state for demo purposes
 
@@ -14,17 +14,16 @@ const account = ref(true)
 const name = ref('__TEST__0001')
 const photo = ref('')
 
-console.log('[DEBUG] LoginState: Account state:', account.value)
-console.log('[DEBUG] LoginState: Will render FeatherIcon:', !account.value)
-
 function systemLogin() {
   navigateTo('/login')
 }
 
-function systemLogout() {
-  account.value = false
-  name.value = ''
-
+const systemLogout = async () => {
+  try {
+    await signOut()
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
   navigateTo('/')
 }
 </script>
@@ -40,19 +39,11 @@ function systemLogout() {
         data-bs-toggle="dropdown"
         aria-expanded="false"
       >
-        <template v-if="account">
-          <img
-            v-if="photo"
-            :src="photo"
-            alt=""
-            width="32"
-            height="32"
-            class="rounded-circle me-2"
-          />
+        <template v-if="data">
           <strong
             class="me-2"
             data-test-id="username"
-            >{{ name }}</strong
+            >{{ data.name }}</strong
           >
         </template>
         <FeatherIcon
@@ -65,7 +56,7 @@ function systemLogout() {
     <template #default>
       <!-- Note that popper is handling absolute positioning of the drop-down -->
       <ul class="dropdown-menu dropdown-menu-end text-small shadow">
-        <template v-if="account">
+        <template v-if="data">
           <li>
             <NuxtLink
               class="dropdown-item"
@@ -99,7 +90,7 @@ function systemLogout() {
               class="dropdown-item"
               to="/register"
               data-test-id="CreateAccount"
-              >Create Account</NuxtLink
+              >Request Account</NuxtLink
             >
           </li>
           <li><hr class="dropdown-divider" /></li>

@@ -3,13 +3,10 @@ definePageMeta({
   title: 'Profile',
 })
 
-// TODO: Replace with actual user data from authentication context
-const user = ref({
-  email: '__TEST__0001@example.com',
-  username: '__TEST__0001',
-  workspaceName: 'Personal Finance',
-  memberSince: '2024-01-15',
-  lastLogin: '2024-11-17',
+const { data, status } = useAuth()
+
+const workspace = ref({
+  name: 'Default Workspace',
 })
 
 // Edit mode state
@@ -19,15 +16,15 @@ const errors = ref<string[]>([])
 
 // Form data for editing
 const editForm = ref({
-  email: user.value.email,
-  username: user.value.username,
+  email: data.value?.email,
+  username: data.value?.name,
 })
 
 // Toggle edit mode
 const startEditing = () => {
   editForm.value = {
-    email: user.value.email,
-    username: user.value.username,
+    email: data.value?.email,
+    username: data.value?.name,
   }
   isEditing.value = true
   errors.value = []
@@ -63,9 +60,9 @@ const handleUpdate = async () => {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // Update local user data
-    user.value.email = editForm.value.email
-    user.value.username = editForm.value.username
+    // TODO: Implement editing Update local user data
+    //user.value.email = editForm.value.email
+    //user.value.username = editForm.value.username
 
     isEditing.value = false
   } catch (error) {
@@ -124,7 +121,7 @@ const handleUpdate = async () => {
                 class="col-sm-9"
                 data-test-id="Email"
               >
-                {{ user.email }}
+                {{ data?.email }}
               </div>
             </div>
             <div class="row mb-3">
@@ -135,23 +132,23 @@ const handleUpdate = async () => {
                 class="col-sm-9"
                 data-test-id="Username"
               >
-                {{ user.username }}
+                {{ data?.name }}
               </div>
             </div>
             <div class="row mb-3">
               <div class="col-sm-3">
-                <strong>Member Since:</strong>
+                <strong>ID:</strong>
               </div>
               <div class="col-sm-9">
-                {{ new Date(user.memberSince).toLocaleDateString() }}
+                {{ data?.id }}
               </div>
             </div>
             <div class="row mb-3">
               <div class="col-sm-3">
-                <strong>Last Login:</strong>
+                <strong>Roles:</strong>
               </div>
               <div class="col-sm-9">
-                {{ new Date(user.lastLogin).toLocaleDateString() }}
+                {{ data?.roles?.length ? data.roles.join(', ') : 'None' }}
               </div>
             </div>
           </div>
@@ -234,7 +231,7 @@ const handleUpdate = async () => {
           class="card-body"
           data-test-id="WorkspaceInfo"
         >
-          <h6 class="text-primary">{{ user.workspaceName }}</h6>
+          <h6 class="text-primary">{{ workspace.name }}</h6>
           <p class="text-muted mb-2">
             <small>Your default workspace for managing financial data</small>
           </p>

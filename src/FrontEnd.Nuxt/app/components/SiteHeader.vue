@@ -41,7 +41,7 @@ console.log('[DEBUG] SiteHeader: Will render FeatherIcon in header')
           >
         </ul>
       </nav>
-      <LoginState />
+      <LoginState class="ms-4" />
     </header>
   </div>
 </template>

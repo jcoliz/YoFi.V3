@@ -2,7 +2,13 @@
 definePageMeta({
   title: 'Register',
   layout: 'blank',
+  auth: {
+    unauthenticatedOnly: true,
+    navigateAuthenticatedTo: '/profile'
+  }
 })
+
+const { signUp } = useAuth()
 
 // Reactive form data
 const form = ref({
@@ -11,6 +17,7 @@ const form = ref({
   password: '',
   passwordAgain: '',
 })
+const response = ref()
 
 // Form validation and error handling
 const errors = ref<string[]>([])
@@ -42,22 +49,23 @@ const handleSubmit = async () => {
   isLoading.value = true
 
   try {
-    // TODO: Implement actual registration API call
-    console.log('Registration attempt:', {
-      email: form.value.email,
+    isLoading.value = true
+    response.value = await signUp({
       username: form.value.username,
-      password: form.value.password,
-    })
+      email: form.value.email,
+      password: form.value.password
+    }, { preventLoginFlow: true })
+  } catch (error: any) {
+    console.error('*** Registration error:')
+    console.log('- Status:', error.status)
+    console.log('- Message:', error.message)
+    console.log('- Data:', error.data)
+    console.log('- Full error object:', error)
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Set success state
-    isRegistered.value = true
-  } catch (error) {
-    errors.value.push(
-      `Registration failed: ${error instanceof Error ? error.message : 'Please try again.'}`,
-    )
+    // Handle ProblemDetails format
+    const title = error.data?.title ?? "Registration failed"
+    const detail = error.data?.detail ?? error.message ?? 'Please try again'
+    errors.value = [`${title}: ${detail}`]
   } finally {
     isLoading.value = false
   }
@@ -81,7 +89,7 @@ const isWeakPassword = computed(() => {
         <div class="card-body">
           <!-- Success Message -->
           <div
-            v-if="isRegistered"
+            v-if="response && !response.error"
             class="text-center"
             data-test-id="SuccessMessage"
           >
