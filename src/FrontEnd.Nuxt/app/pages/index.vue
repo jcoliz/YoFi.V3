@@ -61,6 +61,24 @@ interface Technology {
   category: string
 }
 
+const getCategoryStyle = (category: string) => {
+  const categoryColors: Record<string, { bg: string; text: string }> = {
+    Frontend: { bg: '#E8F4F8', text: '#4A7C8C' },
+    Backend: { bg: '#F0E8F4', text: '#6B5B7C' },
+    Database: { bg: '#E8F4E8', text: '#5B7C5B' },
+    Cloud: { bg: '#FFF4E8', text: '#8C7C5B' },
+    Language: { bg: '#F4E8E8', text: '#8C6B6B' },
+    Styling: { bg: '#F4F0E8', text: '#7C7560' },
+    Tools: { bg: '#E8EEF4', text: '#5B6B7C' },
+    Monitoring: { bg: '#F4E8F0', text: '#7C5B6B' },
+    DevOps: { bg: '#E8F0F4', text: '#5B6B7C' },
+    Testing: { bg: '#F4EEE8', text: '#7C715B' },
+  }
+
+  const colors = categoryColors[category] || { bg: '#E9ECEF', text: '#6C757D' }
+  return `background-color: ${colors.bg}; color: ${colors.text};`
+}
+
 const technologies: Technology[] = [
   {
     name: '.NET 10',
@@ -202,8 +220,7 @@ const sourceRepos = [
             A modern .NET 10 + Nuxt 4 stack with authentication, authorization, and best practices
           </p>
           <p class="mb-4">
-            This application serves as a comprehensive reference implementation showcasing the
-            integration of cutting-edge technologies for building robust, scalable web applications.
+            This reference implementation demonstrates integrating .NET 10, Nuxt 4, authentication, and best practices for building reliable, scalable web applications.
           </p>
         </div>
       </div>
@@ -215,12 +232,15 @@ const sourceRepos = [
         <div class="col-12 text-center">
           <h2 class="display-5 mb-3">Technology Stack</h2>
           <p class="lead text-muted">
-            Explore the powerful technologies that make this application possible
+            Explore the modern technologies that make this application possible
           </p>
         </div>
       </div>
 
-      <div class="row g-4">
+      <div
+        class="row g-4"
+        data-test-id="tech-card"
+      >
         <div
           v-for="tech in technologies"
           :key="tech.name"
@@ -238,9 +258,7 @@ const sourceRepos = [
                 <h5 class="card-title mb-0">{{ tech.name }}</h5>
               </div>
               <p class="card-text flex-grow-1">{{ tech.description }}</p>
-              <div class="mt-auto">
-                <span class="badge bg-secondary mb-2">{{ tech.category }}</span>
-                <br />
+              <div class="mt-auto d-flex justify-content-between align-items-end">
                 <a
                   :href="tech.link"
                   target="_blank"
@@ -249,6 +267,10 @@ const sourceRepos = [
                 >
                   Learn More <i class="bi bi-arrow-up-right"></i>
                 </a>
+                <span
+                  class="badge"
+                  :style="getCategoryStyle(tech.category)"
+                >{{ tech.category }}</span>
               </div>
             </div>
           </div>
