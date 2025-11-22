@@ -46,8 +46,8 @@ Map feature file content to template variables:
 
 When a feature file contains a `Background:` section:
 
-1. Create a `[SetUp]` method named `SetupAsync()`
-2. Signature: `[SetUp] public async Task SetupAsync()`
+1. Create a `[SetUp]` method named `Background()`
+2. Signature: `[SetUp] public async Task Background()`
 3. Process Background steps using the same step mapping rules as scenarios
 4. Background steps execute before each test scenario
 
@@ -61,7 +61,7 @@ Background:
 **Generated C#:**
 ```csharp
 [SetUp]
-public async Task SetupAsync()
+public async Task Background()
 {
     // Given the application is running
     await GivenTheApplicationIsRunning();

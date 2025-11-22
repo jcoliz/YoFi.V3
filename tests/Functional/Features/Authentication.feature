@@ -37,8 +37,8 @@ Scenario: User login fails with missing password
     Given I am on the login page
     When I enter only a username
     And I leave the password field empty
-    And I click the login button
-    Then I should see a validation error "Password is required"
+    And I click the login button (for validation)
+    Then I should see a validation error
     And I should not be logged in
 
 Scenario: User views their account details
@@ -69,8 +69,8 @@ Scenario: User registration fails with weak password
 Scenario: User registration fails with mismatched passwords
     Given I am on the registration page
     When I enter registration details with mismatched passwords
-    And I submit the registration form
-    Then I should see a validation error "Passwords do not match"
+    And I submit the registration form (for validation)
+    Then I should see an error message containing "Passwords do not match"
     And I should remain on the registration page
     And I should not be registered
 

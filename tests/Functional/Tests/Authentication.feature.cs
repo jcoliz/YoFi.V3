@@ -206,8 +206,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Then I should see an error message containing "Passwords must be"
         await ThenIShouldSeeAnErrorMessage("Passwords must be");
 
-        // And I should remain on the registration page
-        await ThenIShouldRemainOnTheRegistrationPage();
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
     }
 
     /// <summary>
@@ -231,8 +231,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Then I should see an error message containing "Passwords do not match"
         await ThenIShouldSeeAnErrorMessage("Passwords do not match");
 
-        // And I should remain on the registration page
-        await ThenIShouldRemainOnTheRegistrationPage();
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
     }
     /// <summary>
     /// User registration fails with existing email

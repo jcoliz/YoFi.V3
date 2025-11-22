@@ -357,24 +357,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// Then: I should be automatically logged in
-    /// </summary>
-    protected async Task ThenIShouldBeAutomaticallyLoggedIn()
-    {
-        // TODO: Verify login state - check for user info in navigation
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Then: I should be redirected to my default workspace
-    /// </summary>
-    protected async Task ThenIShouldBeRedirectedToMyDefaultWorkspace()
-    {
-        // TODO: Verify redirect to workspace dashboard
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
     /// Then: I should be successfully logged in
     /// </summary>
     protected async Task ThenIShouldBeSuccessfullyLoggedIn()
@@ -393,17 +375,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// Then: I should see my profile page
-    /// </summary>
-    protected async Task ThenIShouldSeeMyProfilePage()
-    {
-        var profilePage = GetOrCreateProfilePage();
-        await profilePage.WaitForOnProfilePageAsync();
-        Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
-    }
-
-
-    /// <summary>
     /// Then: I should see my username in the header
     /// </summary>
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
@@ -412,35 +383,6 @@ public abstract class AuthenticationSteps : FunctionalTest
         var testuser = It<Generated.TestUser>();
         var usernameInHeader = await basePage.SiteHeader.LoginState.GetUsernameAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
-    }
-
-    /// <summary>
-    /// Then: I should see my username on the profile page
-    /// </summary>
-    protected async Task ThenIShouldSeeMyUsernameOnTheProfilePage()
-    {
-        var testuser = It<Generated.TestUser>();
-        var profilePage = GetOrCreateProfilePage();
-        var usernameText = await profilePage.UsernameDisplay.TextContentAsync();
-        Assert.That(usernameText, Does.Contain(testuser.Username), "Username should be visible on the profile page");
-    }
-
-    /// <summary>
-    /// Then: I should see my workspace dashboard
-    /// </summary>
-    protected async Task ThenIShouldSeeMyWorkspaceDashboard()
-    {
-        // TODO: Verify workspace dashboard is displayed
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Then: I should see my email address in the navigation
-    /// </summary>
-    protected async Task ThenIShouldSeeMyEmailAddressInTheNavigation()
-    {
-        // TODO: Check navigation for user email display
-        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -485,15 +427,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         var loginPage = GetOrCreateLoginPage();
         Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should remain on login page");
-    }
-
-    /// <summary>
-    /// Then: I should not be logged in
-    /// </summary>
-    protected async Task ThenIShouldNotBeLoggedIn()
-    {
-        // TODO: Verify not logged in state
-        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -594,31 +527,12 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// Then: I should see a validation error about password requirements
-    /// </summary>
-    protected async Task ThenIShouldSeeAValidationErrorAboutPasswordRequirements()
-    {
-        var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.HasPasswordRequirementErrorAsync(), Is.True,
-            "Should display password requirement validation error");
-    }
-
-    /// <summary>
     /// Then: I should remain on the registration page
     /// </summary>
     protected async Task ThenIShouldRemainOnTheRegistrationPage()
     {
         var registerPage = GetOrCreateRegisterPage();
         Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True, "Should remain on registration page");
-    }
-
-    /// <summary>
-    /// Then: I should be automatically redirected to my workspace dashboard
-    /// </summary>
-    protected async Task ThenIShouldBeAutomaticallyRedirectedToMyWorkspaceDashboard()
-    {
-        // TODO: Verify redirect to workspace dashboard
-        await Task.CompletedTask;
     }
 
     /// <summary>
