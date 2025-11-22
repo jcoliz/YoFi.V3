@@ -189,7 +189,10 @@ const sourceRepos = [
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div
+    class="container-fluid"
+    data-test-id="brochure-section"
+  >
     <!-- Hero Section -->
     <div class="row bg-primary text-white py-5 mb-5">
       <div class="col-12 text-center">

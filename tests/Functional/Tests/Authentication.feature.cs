@@ -189,7 +189,6 @@ public class UserAuthenticationTests : AuthenticationSteps
     /// User registration fails with weak password
     /// </summary>
     [Test]
-    [Explicit("work in progress")]
     public async Task UserRegistrationFailsWithWeakPassword()
     {
         // Given I am on the registration page

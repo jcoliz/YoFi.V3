@@ -379,21 +379,35 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// Then: I should see an error message containing (.+)
     /// </summary>
+    /// <remarks>
+    /// Same step used for both login and registration error checks?
+    /// </remarks>
     protected async Task ThenIShouldSeeAnErrorMessage(string errorMessage)
     {
         // This method works for both login and registration pages
-        // Check if we're on login or registration page
-        var registerPage = GetOrCreateRegisterPage();
-        if (await registerPage.IsRegisterFormVisibleAsync())
+
+        // The way to tell which page we're on is to ask the object store.
+        if (_objectStore.Contains<RegisterPage>())
         {
-            Assert.That(await registerPage.HasErrorMessageAsync(errorMessage), Is.True,
-                $"Should display error message containing: {errorMessage}");
+            var registerPage = It<RegisterPage>();
+            if (await registerPage.IsRegisterFormVisibleAsync())
+            {
+                Assert.That(await registerPage.HasErrorMessageAsync(errorMessage), Is.True,
+                    $"Should display error message containing: {errorMessage}");
+            }
+        }
+        else if (_objectStore.Contains<LoginPage>())
+        {
+            var loginPage = It<LoginPage>();
+            if (await loginPage.IsOnLoginPageAsync())
+            {
+                Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True,
+                    $"Should display error message containing: {errorMessage}");
+            }
         }
         else
         {
-            var loginPage = GetOrCreateLoginPage();
-            Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True,
-                $"Should display error message containing: {errorMessage}");
+            throw new InvalidOperationException("No page object for login or registration found in object store");
         }
     }
 
@@ -483,7 +497,11 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldBeRedirectedToTheHomePage()
     {
-        Assert.That(Page.Url.EndsWith("/"), Is.True, "Should be redirected to home page");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var homePage = new HomePage(Page);
+        await homePage.BrochureSection.WaitForAsync(new LocatorWaitForOptions { Timeout = 3000 });
+        Assert.That(await homePage.BrochureSection.IsVisibleAsync(), Is.True, "Should be on home page");
     }
 
     /// <summary>
