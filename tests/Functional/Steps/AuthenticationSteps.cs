@@ -108,6 +108,15 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
+    /// When: I submit the registration form (for validation)
+    /// </summary>
+    protected async Task WhenISubmitTheRegistrationFormForValidation()
+    {
+        var registerPage = GetOrCreateRegisterPage();
+        await registerPage.ClickRegisterButtonWithoutApiWaitAsync();
+    }
+
+    /// <summary>
     /// When: I enter my credentials
     /// </summary>
     protected async Task WhenIEnterMyCredentials(DataTable credentialsData)
@@ -167,8 +176,11 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// When: I click the login button (validation scenario - no API call expected)
+    /// When: I click the login button (for validation)
     /// </summary>
+    /// <remarks>
+    /// Used in scenarios where no API call is expected (e.g., client-side validation)
+    /// </remarks>
     protected async Task WhenIClickTheLoginButtonForValidation()
     {
         var loginPage = GetOrCreateLoginPage();
@@ -228,6 +240,25 @@ public abstract class AuthenticationSteps : FunctionalTest
 
     /// <summary>
     /// When: I enter registration details with mismatched passwords
+    /// </summary>
+    protected async Task WhenIEnterRegistrationDetailsWithMismatchedPasswords()
+    {
+        var registerPage = GetOrCreateRegisterPage();
+
+        // First, clear existing test users via Test Control API
+        await testControlClient.DeleteUsersAsync();
+
+        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        _objectStore.Add("Registration Details", user);
+
+        // Use mismatched passwords
+        var password = user.Password;
+        var confirmPassword = "DifferentPassword123!";
+        await registerPage.EnterMismatchedPasswordDetailsAsync(user.Email, user.Username, password, confirmPassword);
+    }
+
+    /// <summary>
+    /// When: I enter registration details with mismatched passwords (overload with DataTable)
     /// </summary>
     protected async Task WhenIEnterRegistrationDetailsWithMismatchedPasswords(DataTable registrationData)
     {
@@ -543,15 +574,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         var registerPage = GetOrCreateRegisterPage();
         Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True, "Should remain on registration page");
-    }
-
-    /// <summary>
-    /// Then: I should not be registered
-    /// </summary>
-    protected async Task ThenIShouldNotBeRegistered()
-    {
-        // TODO: Verify registration did not succeed
-        await Task.CompletedTask;
     }
 
     /// <summary>

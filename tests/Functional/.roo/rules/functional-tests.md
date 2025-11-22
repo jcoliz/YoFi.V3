@@ -1,5 +1,17 @@
 # Functional Tests Rules
 
+## Important: Step Confirmation vs Test Implementation
+
+When asked to "confirm steps exist and create missing steps":
+- **DO**: Check if step methods exist in the `Steps/` directory
+- **DO**: Create any missing step method implementations
+- **DO NOT**: Generate or add test methods to `*.feature.cs` files in `Tests/` directory
+- **ONLY** generate test implementations when explicitly asked to "implement the test" or "generate the test"
+
+This distinction is important:
+- Step confirmation/creation = Work in `Steps/` directory only
+- Test implementation = Work in `Tests/` directory (generate from feature file)
+
 ## Generating Test Implementations from Feature Files
 
 When generating C# test files from Gherkin feature files (`.feature` → `.feature.cs`):

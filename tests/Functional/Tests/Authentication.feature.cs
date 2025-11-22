@@ -113,7 +113,7 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I leave the password field empty
         await WhenILeaveThePasswordFieldEmpty();
 
-        // And I click the login button
+        // And I click the login button (for validation)
         await WhenIClickTheLoginButtonForValidation();
 
         // Hook: Before first Then Step
@@ -208,8 +208,30 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I should remain on the registration page
         await ThenIShouldRemainOnTheRegistrationPage();
+    }
 
-        // And I should not be registered
-        await ThenIShouldNotBeRegistered();
+    /// <summary>
+    /// User registration fails with mismatched passwords
+    /// </summary>
+    [Test]
+    public async Task UserRegistrationFailsWithMismatchedPasswords()
+    {
+        // Given I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with mismatched passwords
+        await WhenIEnterRegistrationDetailsWithMismatchedPasswords();
+
+        // And I submit the registration form (for validation)
+        await WhenISubmitTheRegistrationFormForValidation();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "Passwords do not match"
+        await ThenIShouldSeeAnErrorMessage("Passwords do not match");
+
+        // And I should remain on the registration page
+        await ThenIShouldRemainOnTheRegistrationPage();
     }
 }

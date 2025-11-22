@@ -70,6 +70,14 @@ public class RegisterPage(IPage _page): BasePage(_page)
         }, RegisterApiRegex);
     }
 
+    public async Task ClickRegisterButtonWithoutApiWaitAsync()
+    {
+        await SaveScreenshotAsync("Before-registration-attempt");
+        await RegisterButton.ClickAsync();
+        // Give the browser a moment to show validation
+        await Task.Delay(500);
+    }
+
     public async Task<bool> HasErrorMessageAsync(string expectedError)
     {
         await ErrorDisplay.WaitForAsync();

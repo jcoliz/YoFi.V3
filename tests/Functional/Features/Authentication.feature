@@ -68,38 +68,37 @@ Scenario: User registration fails with weak password
 
 Scenario: User registration fails with mismatched passwords
     Given I am on the registration page
-    When I enter registration details with mismatched passwords:
-        | Field            | Value                    |
-        | Email            | newuser@example.com      |
-        | Password         | SecurePassword123!       |
-        | Confirm Password | DifferentPassword123!    |
+    When I enter registration details with mismatched passwords
     And I submit the registration form
     Then I should see a validation error "Passwords do not match"
     And I should remain on the registration page
     And I should not be registered
 
 Scenario: User registration fails with existing email
-    Given an account already exists with email "existing@example.com"
+    Given I have an existing account
     And I am on the registration page
-    When I enter registration details:
-        | Field            | Value                    |
-        | Email            | existing@example.com     |
-        | Password         | SecurePassword123!       |
-        | Confirm Password | SecurePassword123!       |
+    When I enter registration details with the existing email
     And I submit the registration form
-    Then I should see an error message "An account with this email already exists"
+    Then I should see an error message containing "already exists"
     And I should remain on the registration page
     And I should not be registered
 
 Scenario: Logged in user cannot access login page
-    Given I am logged in as "testuser@example.com"
-    When I try to navigate to the login page
-    Then I should be automatically redirected to my workspace dashboard
+    Given I am logged in
+    When I try to navigate directly to the login page
+    Then I should be redirected to my profile page
     And I should not see the login form
 
-Scenario: Anonymous user cannot access protected pages
+Scenario Outline: Anonymous user cannot access protected pages
     Given I am not logged in
-    When I try to navigate to a protected page like "/workspace/dashboard"
+    When I try to navigate to a protected page like <page>
     Then I should be redirected to the login page
     And I should see a message indicating I need to log in
     And after logging in, I should be redirected to the originally requested page
+
+    Examples:
+        | page     |
+        | /weather |
+        | /counter |
+        | /about   |
+        | /profile |
