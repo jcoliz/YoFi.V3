@@ -158,7 +158,6 @@ public class UserAuthenticationTests : AuthenticationSteps
     /// User logs out successfully
     /// </summary>
     [Test]
-    [Explicit("work in progress")]
     public async Task UserLogsOutSuccessfully()
     {
         // Given I am logged in
