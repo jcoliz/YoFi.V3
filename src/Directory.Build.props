@@ -4,5 +4,9 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Disable source revision tracking to prevent ENC0003 errors during dotnet watch -->
+    <!-- The SDK automatically includes git commit hash in AssemblyInformationalVersion, -->
+    <!-- which changes on every build with uncommitted changes, breaking Hot Reload -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 </Project>

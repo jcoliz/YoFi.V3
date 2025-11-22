@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- consider disabling automatic git info appending -->
-    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+    <!-- Source revision tracking disabled globally in Directory.Build.props -->
+    <!-- Keeping this comment for reference -->
   </PropertyGroup>
 
   <!-- Generate version using Get-Version.ps1 -->
