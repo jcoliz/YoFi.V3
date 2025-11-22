@@ -154,7 +154,7 @@ Documented in [Architecture Decision Records](adr/README.md):
 - [0004: Aspire Development](adr/0004-aspire-development.md) - .NET Aspire orchestration
 
 ### Infrastructure & Data
-- [0005: Database Backend](adr/0005-database-backend.md) - SQLite database choice
+- [0005: Database Backend](adr/0005-database-backend.md) - SQLite database, PostgreSql for scale
 - [0006: Production Infrastructure](adr/0006-production-infrastructure.md) - Azure deployment
 - [0007: Backend Integration](adr/0007-backend-proxy-or-direct.md) - Direct API calls
 
@@ -172,14 +172,14 @@ Documented in [Architecture Decision Records](adr/README.md):
 ### Current Test Coverage
 - ✅ **Weather feature** - Unit and functional tests implemented
 - ✅ **Database operations** - Integration test framework
-- 🚧 **Authentication flows** - Test stubs created (TODO: implementation)
+- 🚧 **Authentication flows** - Functional tests near completion
 - 📋 **Financial features** - Planned as features are developed
 
 ### Testing Tools
 - **Unit**: NUnit + FluentAssertions
 - **Integration**: Entity Framework in-memory provider
 - **Functional**: Playwright with C# bindings
-- **API**: Swagger/OpenAPI for contract validation
+- **API**: Swagger/OpenAPI for ad hoc contract validation
 
 ## Security Considerations
 
@@ -190,10 +190,10 @@ Documented in [Architecture Decision Records](adr/README.md):
 - **HTTPS**: Enforced in production environments
 
 ### Data Protection
-- **Database**: SQLite with Azure App Service persistent storage
+- **Database**: SQLite+Azure Storage, moving to PostgreSql for scale
 - **Secrets**: Azure Key Vault integration planned
 - **Logging**: Structured logging with PII filtering
-- **Monitoring**: Application Insights for security events
+- **Monitoring**: Application Insights for observability
 
 ## Scalability Considerations
 
@@ -203,10 +203,10 @@ Documented in [Architecture Decision Records](adr/README.md):
 - **Single App Service** instance
 
 ### Future Scaling Options
-- **Database**: Migration path to Azure SQL or PostgreSQL
+- **Database**: Migration path to PostgreSQL
 - **Caching**: Redis for session state and data caching
 - **CDN**: Azure Front Door for global distribution
-- **Compute**: App Service Plan scaling or container orchestration
+- **Compute**: App Service Plan scaling
 
 ## Development Workflow
 

@@ -54,10 +54,12 @@ This project follows Clean Architecture with clear separation:
 
 ### TypeScript/Vue
 
-- Use TypeScript for all new code
+- Use TypeScript for all code
 - Follow Vue 3 Composition API patterns
 - Use Nuxt auto-imports (avoid manual imports)
 - Keep components small and focused
+- Fix all linter warnings
+- Follow all prettier formatting guidelines
 
 ## Testing
 
