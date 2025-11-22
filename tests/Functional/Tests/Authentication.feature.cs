@@ -23,6 +23,9 @@ public class UserAuthenticationTests : AuthenticationSteps
         await GivenIAmNotLoggedIn();
     }
 
+    #region Rule: User Registration
+    // Users can create new accounts with valid credentials
+
     /// <summary>
     /// User registers for a new account
     /// </summary>
@@ -44,6 +47,92 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Then My registration request should be acknowledged
         await ThenMyRegistrationRequestShouldBeAcknowledged();
     }
+
+    /// <summary>
+    /// User registration fails with weak password
+    /// </summary>
+    [Test]
+    public async Task UserRegistrationFailsWithWeakPassword()
+    {
+        // Given I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with a weak password
+        await WhenIEnterRegistrationDetailsWithAWeakPassword();
+
+        // And I submit the registration form
+        await WhenISubmitTheRegistrationForm();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "Passwords must be"
+        await ThenIShouldSeeAnErrorMessage("Passwords must be");
+
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
+    }
+
+    /// <summary>
+    /// User registration fails with mismatched passwords
+    /// </summary>
+    [Test]
+    public async Task UserRegistrationFailsWithMismatchedPasswords()
+    {
+        // Given I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with mismatched passwords
+        await WhenIEnterRegistrationDetailsWithMismatchedPasswords();
+
+        // And I submit the registration form (for validation)
+        await WhenISubmitTheRegistrationFormForValidation();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "Passwords do not match"
+        await ThenIShouldSeeAnErrorMessage("Passwords do not match");
+
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
+    }
+
+    /// <summary>
+    /// User registration fails with existing email
+    /// </summary>
+    [Test]
+    public async Task UserRegistrationFailsWithExistingEmail()
+    {
+        // Given I have an existing account
+        await GivenIHaveAnExistingAccount();
+
+        // And I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with the existing email
+        await WhenIEnterRegistrationDetailsWithTheExistingEmail();
+
+        // And I submit the registration form
+        await WhenISubmitTheRegistrationForm();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "is already taken"
+        await ThenIShouldSeeAnErrorMessage("is already taken");
+
+        // And I should remain on the registration page
+        await ThenIShouldRemainOnTheRegistrationPage();
+
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
+    }
+
+    #endregion
+
+    #region Rule: User Login and Logout
+    // Users can authenticate and end their sessions
 
     /// <summary>
     /// User logs into an existing account
@@ -127,34 +216,6 @@ public class UserAuthenticationTests : AuthenticationSteps
     }
 
     /// <summary>
-    /// User views their account details
-    /// </summary>
-    [Test]
-    public async Task UserViewsTheirAccountDetails()
-    {
-        // Given I am logged in
-        await GivenIAmLoggedIn();
-
-        // And I am on any page in the application
-        await GivenIAmOnAnyPageInTheApplication();
-
-        // When I navigate to my profile page
-        await WhenINavigateToMyProfilePage();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
-        // Then I should see my account information
-        await ThenIShouldSeeMyAccountInformation();
-
-        // And I should see options to update my profile
-        await ThenIShouldSeeOptionsToUpdateMyProfile();
-
-        // And I should see my current workspace information
-        await ThenIShouldSeeMyCurrentWorkspaceInformation();
-    }
-
-    /// <summary>
     /// User logs out successfully
     /// </summary>
     [Test]
@@ -185,88 +246,52 @@ public class UserAuthenticationTests : AuthenticationSteps
         await ThenIShouldNotSeeAnyPersonalInformation();
     }
 
+    #endregion
+
+    #region Rule: Account Management
+    // Authenticated users can view and manage their profile
+
     /// <summary>
-    /// User registration fails with weak password
+    /// User views their account details
     /// </summary>
     [Test]
-    public async Task UserRegistrationFailsWithWeakPassword()
+    public async Task UserViewsTheirAccountDetails()
     {
-        // Given I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+        // Given I am logged in
+        await GivenIAmLoggedIn();
 
-        // When I enter registration details with a weak password
-        await WhenIEnterRegistrationDetailsWithAWeakPassword();
+        // And I am on any page in the application
+        await GivenIAmOnAnyPageInTheApplication();
 
-        // And I submit the registration form
-        await WhenISubmitTheRegistrationForm();
+        // When I navigate to my profile page
+        await WhenINavigateToMyProfilePage();
 
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
 
-        // Then I should see an error message containing "Passwords must be"
-        await ThenIShouldSeeAnErrorMessage("Passwords must be");
+        // Then I should see my account information
+        await ThenIShouldSeeMyAccountInformation();
 
-        // And I should not be registered
-        await ThenIShouldNotBeRegistered();
+        // And I should see options to update my profile
+        await ThenIShouldSeeOptionsToUpdateMyProfile();
+
+        // And I should see my current workspace information
+        await ThenIShouldSeeMyCurrentWorkspaceInformation();
     }
 
-    /// <summary>
-    /// User registration fails with mismatched passwords
-    /// </summary>
-    [Test]
-    public async Task UserRegistrationFailsWithMismatchedPasswords()
-    {
-        // Given I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+    #endregion
 
-        // When I enter registration details with mismatched passwords
-        await WhenIEnterRegistrationDetailsWithMismatchedPasswords();
+    #region Rule: Access Control
+    // The system enforces authentication requirements for protected resources
 
-        // And I submit the registration form (for validation)
-        await WhenISubmitTheRegistrationFormForValidation();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
-        // Then I should see an error message containing "Passwords do not match"
-        await ThenIShouldSeeAnErrorMessage("Passwords do not match");
-
-        // And I should not be registered
-        await ThenIShouldNotBeRegistered();
-    }
-    /// <summary>
-    /// User registration fails with existing email
-    /// </summary>
-    [Test]
-    public async Task UserRegistrationFailsWithExistingEmail()
-    {
-        // Given I have an existing account
-        await GivenIHaveAnExistingAccount();
-
-        // And I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
-
-        // When I enter registration details with the existing email
-        await WhenIEnterRegistrationDetailsWithTheExistingEmail();
-
-        // And I submit the registration form
-        await WhenISubmitTheRegistrationForm();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
-        // Then I should see an error message containing "is already taken"
-        await ThenIShouldSeeAnErrorMessage("is already taken");
-
-        // And I should remain on the registration page
-        await ThenIShouldRemainOnTheRegistrationPage();
-
-        // And I should not be registered
-        await ThenIShouldNotBeRegistered();
-    }
     /// <summary>
     /// Logged in user cannot access login page
     /// </summary>
+    /// <remarks>
+    /// This test is one failure away from getting an `Explicit` tag!
+    /// It seems the application doesn't always redirect logged-in users away from the login page.
+    /// This could be due to caching issues or session management quirks.
+    /// </remarks>
     [Test]
     public async Task LoggedInUserCannotAccessLoginPage()
     {
@@ -313,4 +338,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And after logging in, I should be redirected to the originally requested page
         await ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage();
     }
+
+    #endregion
 }
