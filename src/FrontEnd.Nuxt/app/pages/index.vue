@@ -67,13 +67,8 @@ const getCategoryStyle = (category: string) => {
     Backend: { bg: '#F0E8F4', text: '#6B5B7C' },
     Database: { bg: '#E8F4E8', text: '#5B7C5B' },
     Cloud: { bg: '#FFF4E8', text: '#8C7C5B' },
-    Language: { bg: '#F4E8E8', text: '#8C6B6B' },
-    Styling: { bg: '#F4F0E8', text: '#7C7560' },
-    Tools: { bg: '#E8EEF4', text: '#5B6B7C' },
-    Monitoring: { bg: '#F4E8F0', text: '#7C5B6B' },
-    DevOps: { bg: '#E8F0F4', text: '#5B6B7C' },
+    'Dev Tools': { bg: '#E8EEF4', text: '#5B6B7C' },
     Testing: { bg: '#F4EEE8', text: '#7C715B' },
-    Authentication: { bg: '#E8F4F8', text: '#4A7C8C' },
   }
 
   const colors = categoryColors[category] || { bg: '#E9ECEF', text: '#6C757D' }
@@ -107,21 +102,28 @@ const technologies: Technology[] = [
     logo: '/images/ts-logo-512.svg',
     description: 'Provides type safety across our frontend with auto-generated API client types from backend OpenAPI spec, ensuring compile-time contract validation',
     link: 'https://www.typescriptlang.org/',
-    category: 'Language',
+    category: 'Frontend',
   },
   {
     name: 'NuxtAuth',
     logo: '/images/nuxt-auth.png',
     description: 'Handles client-side authentication using local provider pattern, managing JWT tokens from our .NET Identity backend with automatic refresh and secure session storage',
     link: 'https://auth.sidebase.io/',
-    category: 'Authentication',
+    category: 'Frontend',
   },
   {
     name: 'Bootstrap 5',
     logo: '/images/bootstrap-logo.svg',
     description: 'Styles our responsive UI with utility classes and components, integrated via custom SCSS for theme customization and @coliz/vue-base-controls',
     link: 'https://getbootstrap.com/',
-    category: 'Styling',
+    category: 'Frontend',
+  },
+  {
+    name: 'pnpm',
+    logo: '/images/pnpm-no-name-with-frame.svg',
+    description: 'Manages our frontend dependencies with efficient disk usage and fast installs, integrated into development scripts and Azure Pipelines CI/CD',
+    link: 'https://pnpm.io/',
+    category: 'Frontend',
   },
   {
     name: 'Entity Framework Core',
@@ -131,18 +133,11 @@ const technologies: Technology[] = [
     category: 'Database',
   },
   {
-    name: 'pnpm',
-    logo: '/images/pnpm-no-name-with-frame.svg',
-    description: 'Manages our frontend dependencies with efficient disk usage and fast installs, integrated into development scripts and Azure Pipelines CI/CD',
-    link: 'https://pnpm.io/',
-    category: 'Tools',
-  },
-  {
     name: '.NET Aspire',
     logo: '/images/dotnet-logo.svg',
     description: 'Orchestrates our development environment with unified dashboard, service discovery between frontend and backend, and built-in observability during local development',
     link: 'https://learn.microsoft.com/en-us/dotnet/aspire/',
-    category: 'Tools',
+    category: 'Dev Tools',
   },
   {
     name: 'Azure Static Web Apps',
@@ -163,14 +158,14 @@ const technologies: Technology[] = [
     logo: '/images/00012-icon-service-Application-Insights.svg',
     description: 'Monitors our production application with distributed tracing, custom telemetry events, and real-time performance metrics integrated via .NET Service Defaults',
     link: 'https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview',
-    category: 'Monitoring',
+    category: 'Cloud',
   },
   {
     name: 'Azure Pipelines',
     logo: '/images/10261-icon-service-Azure-DevOps.svg',
     description: 'Automates our build, test, and deployment workflow with containerized functional tests, parallel frontend/backend deployments, and Bicep infrastructure provisioning',
     link: 'https://azure.microsoft.com/en-us/services/devops/pipelines/',
-    category: 'DevOps',
+    category: 'Dev Tools',
   },
   {
     name: 'PostgreSQL',
@@ -191,7 +186,7 @@ const technologies: Technology[] = [
     logo: '/images/docker-mark-blue.svg',
     description: 'Containerizes our application for functional testing in CI/CD pipelines, with docker-compose orchestration for running complete stack locally',
     link: 'https://www.docker.com/',
-    category: 'DevOps',
+    category: 'Dev Tools',
   },
   {
     name: 'Playwright',
