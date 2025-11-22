@@ -109,6 +109,13 @@ const technologies: Technology[] = [
     category: 'Language',
   },
   {
+    name: 'NuxtAuth',
+    logo: '/images/nuxt-auth.png',
+    description: 'Client-side authentication module for Nuxt with local provider support',
+    link: 'https://auth.sidebase.io/',
+    category: 'Authentication',
+  },
+  {
     name: 'Bootstrap 5',
     logo: '/images/bootstrap-logo.svg',
     description: 'Styles our responsive UI with utility classes and components, integrated via custom SCSS for theme customization and @coliz/vue-base-controls',
