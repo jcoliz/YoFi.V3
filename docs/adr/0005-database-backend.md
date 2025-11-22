@@ -12,10 +12,11 @@ Need a database backend to store persistent app data.
 
 ### Requirements
 
-1. Low-cost in production for low volumes
+1. Low-cost in production for low volumes initially
 2. Easy to use during development
 3. Can run in Azure Pipelines
 4. Easy to use from Azure App Services
+5. Scale-ready for higher volumes
 
 ### Previous solution
 
@@ -54,6 +55,33 @@ GitHub Copilot: Great ADR! Let me suggest some additional options to consider:
 
 **For your scenario:** This seems ideal - one codebase, works everywhere, perfect for low-volume personal finance app.
 
+**Analysis**
+- Really happy with this for development and CI.
+- Even better than Postgres for development, enabling development on machines where I might not have a container runtime installed.
+- No downside in CI and local container builds
+- Concerned about production. File locking issues, multiple write locking
+- Persistent shared storage is definitely not for this
+- Perhaps mounting Azure storage will work, but it doesn't seem like a well-worn path
+- Definitely would need to change at higher scale
+- Memory provider hasn't worked well in the running app. I'm still using it for integration tests, but I've found the in-memory storage gets reset surprisingly often.
+
+**Update**: I'm worried about the [limitations on migrations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations). Will this continue to work as more migrations are added in the future??
+
+**Update**: Using SQLite requires persistent shared storage in the App Service. The only docs
+I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
+
+Currently reviewing [Mount Azure Storage as a local share in App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage?wt.mc_id=knowledgesearch_inproduct_azure-agent-for-github-copilot&tabs=basic%2Cportal&pivots=container-linux). Although this is something different. This is mounting a storage volume! Not the shared storage mentioned above.
+
+Here's a good thread: [Shared persistent memory for Azure Web app](https://learn.microsoft.com/en-us/answers/questions/1411761/shared-persistent-memory-for-azure-web-app)
+
+By default, when you create an app service, each app service plan is allotted with some amount of storage based on their tier. Azure App service file system has three types of files Persistent, temporary and Machine level read-only files and each type have certain threshold as well refer to Github documentation to understand more about them.
+
+Azure Web Apps provide a limited amount of persistent storage that can be used to store files and data. However, this storage is not intended for long-term storage of large amounts of data, and it is not recommended to use it for storing data that needs to be frequently accessed or modified.
+
+In your case, since you want to store a JSON blob that will be shared by all users of your web app and accessed frequently, it is not recommended to use the Azure Web App storage for this purpose. The storage provided by Azure Web Apps is intended for temporary storage of application data, **such as session state and cache data**.
+
+Instead, you can mount Azure storage account as a local file share to store your JSON blob. Azure Blob storage is a cost-effective way to store large amounts of unstructured data, such as JSON files. Refer to this documentation on how to mount storage account in azure app service.
+
 #### 2. **PostgreSQL Everywhere (Simplify your previous approach)**
 
 **Pros:**
@@ -77,6 +105,11 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
     .WithReference(postgres);
 ```
 
+**Analysis**
+- No benefits over SQLite in development
+- Still need a container locally. SQLite enables local dev anywhere
+- Might be interesting to consolodate multiple apps into a single PostgreSQL Everywhere
+
 #### 3. **Azure Cosmos DB (NoSQL option)**
 
 **Pros:**
@@ -90,6 +123,9 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 - ❌ May be overkill for traditional finance data
 - ❌ Different query language (SQL-like but not SQL)
 
+**Decision**
+- Eliminating this for complexity, not outweighed by significant benefits
+
 #### 4. **SQL Server LocalDB/Express + Azure SQL**
 
 **Pros:**
@@ -102,6 +138,10 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 - ❌ Still multiple configurations
 - ❌ Container needed for CI
 
+**Decision**
+- Will keep this around as a fallback plan in production if above options don't work out
+- I know how to use this well
+-
 #### 5. **Turso/libSQL (Modern SQLite)**
 
 **Pros:**
@@ -114,7 +154,15 @@ var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
 - ❌ Newer/less mature
 - ❌ May need custom provider
 
-### My Recommendation
+**References**
+- https://dev.to/hermogenes/you-should-try-net-libsql-and-heres-why-173h
+- https://turso.tech/pricing
+-
+**Decision**
+- Eliminated; doesn't seem suitable for EF Core
+- No need to do something special in ORM layer
+
+### GitHub Copilot Recommendation
 
 Given your requirements, I'd suggest **one of two paths**:
 
@@ -134,56 +182,14 @@ This is your previous approach but **without SQL Server**, so one implementation
 
 ## Decision
 
-Investigate **SQLite** as the single database implementation across all environments. Proceed with this pathway for now, and keep an eye out for issues.
-
-- **Development**: SQLite file (`yofi.db`) in local App_Data folder
-- **CI/CD**: SQLite in-memory database (`:memory:`)
-- **Production**: SQLite file on Azure App Service persistent storage
-
-Use Entity Framework Core with the SQLite provider for a single, consistent data access layer.
-
-Secondly, have a look at "Turso/libSQL (Modern SQLite)" to learn more about this option.
-
-### Ongoing experience with SQLite for this use case
-
-Update: I'm worried about the [limitations on migrations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations). Will this continue to work as more migrations are added in the future??
-
-Update: Using SQLite requires persistent shared storage in the App Service. The only docs
-I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
-
-Currently reviewing [Mount Azure Storage as a local share in App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage?wt.mc_id=knowledgesearch_inproduct_azure-agent-for-github-copilot&tabs=basic%2Cportal&pivots=container-linux). Although this is something different. This is mounting a storage volume! Not the shared storage mentioned above.
-
-Here's a good thread: [Shared persistent memory for Azure Web app](https://learn.microsoft.com/en-us/answers/questions/1411761/shared-persistent-memory-for-azure-web-app)
-
-By default, when you create an app service, each app service plan is allotted with some amount of storage based on their tier. Azure App service file system has three types of files Persistent, temporary and Machine level read-only files and each type have certain threshold as well refer to Github documentation to understand more about them.
-
-Azure Web Apps provide a limited amount of persistent storage that can be used to store files and data. However, this storage is not intended for long-term storage of large amounts of data, and it is not recommended to use it for storing data that needs to be frequently accessed or modified.
-
-In your case, since you want to store a JSON blob that will be shared by all users of your web app and accessed frequently, it is not recommended to use the Azure Web App storage for this purpose. The storage provided by Azure Web Apps is intended for temporary storage of application data, **such as session state and cache data**.
-
-Instead, you can mount Azure storage account as a local file share to store your JSON blob. Azure Blob storage is a cost-effective way to store large amounts of unstructured data, such as JSON files. Refer to this documentation on how to mount storage account in azure app service.
+1. Use SQLite for local development and CI.
+2. Test SQLite via Azure Storage mounts in production.
+3. Explore Postres Everywhere in production. If I can consolate multiple apps in one cloud resource, this could be a win.
+4. Fall back to Azure SQL in production. It's a known quantity.
+5. Migrate CD and local container to prodction provider, to catch issues earlier.
+6. Accept multiple providers. This hasn't been a terrible problem in the past, and also promotes decoupling of layers.
 
 ## Consequences
-
-**Positive:**
-- Single data implementation to maintain
-- No configuration switching between environments
-- Zero cost for database infrastructure
-- Trivial setup in all environments
-- Fast integration tests (in-memory mode)
-- Easy backup (just copy the .db file)
-- Works great for Aspire development
-
-**Negative:**
-- Limited to single-server scenarios (acceptable for current scale)
-- May need migration path if app grows significantly
-- Fewer advanced SQL features (but EF Core abstracts most of this)
-
-**Mitigation:**
-- EF Core abstractions mean switching to PostgreSQL/SQL Server later is straightforward
-- Can use Azure Files for SQLite file to enable some multi-instance scenarios if needed
-
-What do you think? Does SQLite meet your needs, or do you need the scalability of PostgreSQL/SQL Server?
 
 ## Related Decisions
 
