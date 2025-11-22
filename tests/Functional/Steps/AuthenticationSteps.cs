@@ -47,7 +47,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task GivenIAmOnAnyPageInTheApplication()
     {
-        await Page.GotoAsync("/");
+        await Task.CompletedTask;
     }
 
     /// <summary>
@@ -170,6 +170,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenINavigateToMyProfilePage()
     {
         await Page.GotoAsync("/profile");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var profilePage = GetOrCreateProfilePage();
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
@@ -397,13 +398,12 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// Then: I should see my account information
     /// </summary>
-    protected async Task ThenIShouldSeeMyAccountInformation(DataTable expectedData)
+    protected async Task ThenIShouldSeeMyAccountInformation()
     {
         var profilePage = GetOrCreateProfilePage();
-        var expectedEmail = expectedData.GetValue("Email");
-        var expectedUsername = expectedData.GetValue("Username");
+        var testuser = It<Generated.TestUser>();
 
-        Assert.That(await profilePage.HasAccountInformationAsync(expectedEmail, expectedUsername), Is.True,
+        Assert.That(await profilePage.HasAccountInformationAsync(testuser.Email, testuser.Username), Is.True,
             "Should display correct account information");
     }
 

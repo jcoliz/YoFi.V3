@@ -42,18 +42,15 @@ Scenario: User login fails with missing password
     And I should not be logged in
 
 Scenario: User views their account details
-    Given I am logged in as "testuser@example.com"
+    Given I am logged in
     And I am on any page in the application
     When I navigate to my profile page
-    Then I should see my account information:
-        | Field    | Value                |
-        | Email    | testuser@example.com |
-        | Username | testuser             |
+    Then I should see my account information
     And I should see options to update my profile
     And I should see my current workspace information
 
 Scenario: User logs out successfully
-    Given I am logged in as "testuser@example.com"
+    Given I am logged in
     And I am viewing my workspace dashboard
     When I click the logout button
     Then I should be logged out

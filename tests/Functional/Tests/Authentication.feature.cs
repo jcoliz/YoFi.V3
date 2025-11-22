@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
 using YoFi.V3.Tests.Functional.Helpers;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -123,5 +124,33 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I should remain on the login page
         await ThenIShouldRemainOnTheLoginPage();
+    }
+
+    /// <summary>
+    /// User views their account details
+    /// </summary>
+    [Test]
+    public async Task UserViewsTheirAccountDetails()
+    {
+        // Given I am logged in
+        await GivenIAmLoggedIn();
+
+        // And I am on any page in the application
+        await GivenIAmOnAnyPageInTheApplication();
+
+        // When I navigate to my profile page
+        await WhenINavigateToMyProfilePage();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see my account information
+        await ThenIShouldSeeMyAccountInformation();
+
+        // And I should see options to update my profile
+        await ThenIShouldSeeOptionsToUpdateMyProfile();
+
+        // And I should see my current workspace information
+        await ThenIShouldSeeMyCurrentWorkspaceInformation();
     }
 }
