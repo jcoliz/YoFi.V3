@@ -169,19 +169,27 @@ When implementing or updating step methods in the `Steps/` directory:
    - ✅ CORRECT: Match against `/// <summary>Then: I should see an error message containing (.+)</summary>`
    - ❌ WRONG: Assume method must be named `ThenIShouldSeeAnErrorMessageContaining`
 
-2. **Method Names May Differ**: Method names can be shorter or different from the full XML comment pattern.
+2. **Exact Matching Required**: The XML comment must match the Gherkin step text exactly, including all words and adverbs.
+   - ✅ CORRECT: `When: I try to navigate directly to the login page` matches Gherkin step exactly
+   - ❌ WRONG: Assuming `When: I try to navigate to the login page` matches when Gherkin says "directly"
+   - **Why**: Words like "directly" may indicate different behavior (e.g., bypass redirects, force navigation)
+   - If similar steps exist with slightly different wording, create a new step method with the exact pattern
+
+3. **Method Names May Differ**: Method names can be shorter or different from the full XML comment pattern.
    - Example: XML comment says "containing (.+)" but method is `ThenIShouldSeeAnErrorMessage(string errorMessage)`
    - The regex pattern `(.+)` in the XML comment captures the parameter
 
-3. **Creating New Step Methods**:
-   - Write XML comment to match the exact Gherkin step pattern (e.g., `When: I enter registration details with a weak password`)
-   - Use regex patterns like `(.+)`, `{text}`, `{value}` for parameters
-   - Method name should be descriptive but doesn't need to include "Containing", "With", etc. if clear from context
+4. **Creating New Step Methods**:
+   - Write XML comment to match the **exact** Gherkin step pattern word-for-word
+   - Include all adverbs, adjectives, and qualifiers from the Gherkin step
+   - Use regex patterns like `(.+)`, `{text}`, `{value}` for parameters only
+   - Method name should be descriptive but doesn't need to include every word if clear from context
 
-4. **Finding Existing Steps**:
+5. **Finding Existing Steps**:
    - Always search for methods by their XML comment pattern first
    - Use `list_code_definition_names` or `search_files` to find methods by XML comment
    - Don't create duplicate methods just because the name doesn't match exactly
+   - **Do** create a new method if the XML comment doesn't match the Gherkin step exactly
 
 ### Examples
 

@@ -264,4 +264,25 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I should not be registered
         await ThenIShouldNotBeRegistered();
     }
+    /// <summary>
+    /// Logged in user cannot access login page
+    /// </summary>
+    [Test]
+    public async Task LoggedInUserCannotAccessLoginPage()
+    {
+        // Given I am logged in
+        await GivenIAmLoggedIn();
+
+        // When I try to navigate directly to the login page
+        await WhenITryToNavigateDirectlyToTheLoginPage();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should be redirected to my profile page
+        await ThenIShouldBeRedirectedToMyProfilePage();
+
+        // And I should not see the login form
+        await ThenIShouldNotSeeTheLoginForm();
+    }
 }

@@ -307,9 +307,23 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// <summary>
     /// When: I try to navigate to the login page
     /// </summary>
+    /// <remarks>
+    /// Note this step is distinct from "When I try to navigate directly to the login page".
+    /// TODO: This step should simulate navigation via in-app links/buttons.
+    /// </remarks>
     protected async Task WhenITryToNavigateToTheLoginPage()
     {
         await Page.GotoAsync("/login");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    /// <summary>
+    /// When: I try to navigate directly to the login page
+    /// </summary>
+    protected async Task WhenITryToNavigateDirectlyToTheLoginPage()
+    {
+        await Page.GotoAsync("/login");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -657,6 +671,17 @@ public abstract class AuthenticationSteps : FunctionalTest
         var hasSuccessMessage = await registerPage.SuccessMessage.IsVisibleAsync();
         Assert.That(hasSuccessMessage, Is.False,
             "Should not show success message for failed registration");
+    }
+
+    /// <summary>
+    /// Then: I should be redirected to my profile page
+    /// </summary>
+    protected async Task ThenIShouldBeRedirectedToMyProfilePage()
+    {
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var profilePage = GetOrCreateProfilePage();
+        Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True,
+            "Should be redirected to profile page");
     }
 
     #endregion
