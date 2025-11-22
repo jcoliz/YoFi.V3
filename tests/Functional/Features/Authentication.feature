@@ -79,7 +79,7 @@ Scenario: User registration fails with existing email
     And I am on the registration page
     When I enter registration details with the existing email
     And I submit the registration form
-    Then I should see an error message containing "already exists"
+    Then I should see an error message containing "is already taken"
     And I should remain on the registration page
     And I should not be registered
 

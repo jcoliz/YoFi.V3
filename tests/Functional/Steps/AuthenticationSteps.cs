@@ -284,6 +284,27 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
+    /// When: I enter registration details with the existing email
+    /// </summary>
+    protected async Task WhenIEnterRegistrationDetailsWithTheExistingEmail()
+    {
+        var registerPage = GetOrCreateRegisterPage();
+
+        // Get the existing user from object store
+        var existingUser = It<Generated.TestUser>();
+
+        // Create a new username but use the existing email
+        var newUsername = $"__DUPLICATE__{existingUser.Username}";
+
+        // Use existing email with different username and password
+        await registerPage.EnterRegistrationDetailsAsync(
+            existingUser.Email,
+            newUsername,
+            existingUser.Password,
+            existingUser.Password);
+    }
+
+    /// <summary>
     /// When: I try to navigate to the login page
     /// </summary>
     protected async Task WhenITryToNavigateToTheLoginPage()
@@ -619,6 +640,23 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         // TODO: Verify redirect after login works correctly
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Then: I should not be registered
+    /// </summary>
+    protected async Task ThenIShouldNotBeRegistered()
+    {
+        // Verify that registration did not succeed by checking we're still on registration page
+        // and no success message is shown
+        var registerPage = GetOrCreateRegisterPage();
+        Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True,
+            "Should still be on registration page");
+
+        // Verify no success confirmation is displayed
+        var hasSuccessMessage = await registerPage.SuccessMessage.IsVisibleAsync();
+        Assert.That(hasSuccessMessage, Is.False,
+            "Should not show success message for failed registration");
     }
 
     #endregion

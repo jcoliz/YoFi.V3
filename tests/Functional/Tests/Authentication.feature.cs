@@ -234,4 +234,34 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I should remain on the registration page
         await ThenIShouldRemainOnTheRegistrationPage();
     }
+    /// <summary>
+    /// User registration fails with existing email
+    /// </summary>
+    [Test]
+    public async Task UserRegistrationFailsWithExistingEmail()
+    {
+        // Given I have an existing account
+        await GivenIHaveAnExistingAccount();
+
+        // And I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with the existing email
+        await WhenIEnterRegistrationDetailsWithTheExistingEmail();
+
+        // And I submit the registration form
+        await WhenISubmitTheRegistrationForm();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "is already taken"
+        await ThenIShouldSeeAnErrorMessage("is already taken");
+
+        // And I should remain on the registration page
+        await ThenIShouldRemainOnTheRegistrationPage();
+
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
+    }
 }
