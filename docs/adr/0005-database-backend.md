@@ -4,7 +4,7 @@ Date: 2025-11-09
 
 ## Status
 
-Draft
+Accepted
 
 ## Context
 
@@ -20,176 +20,70 @@ Need a database backend to store persistent app data.
 
 ### Previous solution
 
-In my last project, here's what I did.
+In my last project, I used Azure SQL Server for production ($5/month) and Postgres in containers for development and CI/CD. This worked but required maintaining two separate data implementations and configuration to select the right data layer.
 
-For production, I used Azure SQL Server. The lowest possible cost tier is $5/month, which is totally reasonable.
+### Options Considered
 
-The big problem is that this did not work well for functional testing in Azure Pipelines. For that case, I used Postgres in a container. I could easily add a Postgres container to the
-docker compose project which is running in Azure Pipelines. This worked great.
-
-For local development, I decided to use the same Postgres setup. It's easy enough to run a container locally, and will be even easier with Aspire.
-
-The problem with this approach is I've got two separate data implementations, which requires configuration to select the right data layer at the right time. And it also requires maintaining two data layers.
-
-### Additional Options to Consider
-
-I asked GitHub Copilot, "Please review this in-progress ADR. Do you have any other suggestions to consider for my database backend which would meet my requirements?"
-
-GitHub Copilot: Great ADR! Let me suggest some additional options to consider:
-
-#### 1. **SQLite (Recommended for your use case)**
-
+#### 1. SQLite (Local development, initial production testing)
 **Pros:**
-- ✅ **Single implementation** - Works everywhere (dev, CI/CD, production)
-- ✅ **Zero cost** - File-based, no server needed
-- ✅ **Trivial in Azure Pipelines** - No container needed, just runs
-- ✅ **Easy in App Services** - Just a file on disk
-- ✅ **EF Core support** - Same migrations/LINQ as SQL Server
-- ✅ **Perfect for low volumes** - Handles millions of rows fine
-- ✅ **Aspire-ready** - No orchestration needed
+- Single implementation - works everywhere (dev, CI/CD, production)
+- Zero cost - file-based, no server needed
+- Trivial in Azure Pipelines - no container needed
+- EF Core support - same migrations/LINQ as SQL Server
+- Perfect for low volumes
 
 **Cons:**
-- ❌ No concurrent writes at scale (but fine for single-user/low traffic)
-- ❌ Limited for multi-server scenarios (but Azure App Service can use shared storage)
-- ❌ Fewer advanced SQL features
+- No concurrent writes at scale
+- Limited for multi-server scenarios
+- Requires persistent storage configuration in Azure App Service
+- [Migration limitations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations)
 
-**For your scenario:** This seems ideal - one codebase, works everywhere, perfect for low-volume personal finance app.
-
-**Analysis**
-- Really happy with this for development and CI.
-- Even better than Postgres for development, enabling development on machines where I might not have a container runtime installed.
-- No downside in CI and local container builds
-- Concerned about production. File locking issues, multiple write locking
-- Persistent shared storage is definitely not for this
-- Perhaps mounting Azure storage will work, but it doesn't seem like a well-worn path
-- Definitely would need to change at higher scale
-- Memory provider hasn't worked well in the running app. I'm still using it for integration tests, but I've found the in-memory storage gets reset surprisingly often.
-
-**Update**: I'm worried about the [limitations on migrations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations). Will this continue to work as more migrations are added in the future??
-
-**Update**: Using SQLite requires persistent shared storage in the App Service. The only docs
-I can find refer to shared storage in a *custom container*. See [Configure a custom container for Azure App Service: Use persistent shared storage](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container?pivots=container-linux&tabs=debian#use-persistent-shared-storage). It's not clear whether persistent app storage is available when deploying via [ZipDeploy](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip?tabs=cli).
-
-Currently reviewing [Mount Azure Storage as a local share in App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage?wt.mc_id=knowledgesearch_inproduct_azure-agent-for-github-copilot&tabs=basic%2Cportal&pivots=container-linux). Although this is something different. This is mounting a storage volume! Not the shared storage mentioned above.
-
-Here's a good thread: [Shared persistent memory for Azure Web app](https://learn.microsoft.com/en-us/answers/questions/1411761/shared-persistent-memory-for-azure-web-app)
-
-By default, when you create an app service, each app service plan is allotted with some amount of storage based on their tier. Azure App service file system has three types of files Persistent, temporary and Machine level read-only files and each type have certain threshold as well refer to Github documentation to understand more about them.
-
-Azure Web Apps provide a limited amount of persistent storage that can be used to store files and data. However, this storage is not intended for long-term storage of large amounts of data, and it is not recommended to use it for storing data that needs to be frequently accessed or modified.
-
-In your case, since you want to store a JSON blob that will be shared by all users of your web app and accessed frequently, it is not recommended to use the Azure Web App storage for this purpose. The storage provided by Azure Web Apps is intended for temporary storage of application data, **such as session state and cache data**.
-
-Instead, you can mount Azure storage account as a local file share to store your JSON blob. Azure Blob storage is a cost-effective way to store large amounts of unstructured data, such as JSON files. Refer to this documentation on how to mount storage account in azure app service.
-
-#### 2. **PostgreSQL Everywhere (Simplify your previous approach)**
-
+#### 2. PostgreSQL Everywhere (Scale-up plan)
 **Pros:**
-- ✅ **Single implementation**
-- ✅ **Free tier in Azure** - Azure Database for PostgreSQL Flexible Server has a burstable tier (~$12/month, sometimes free credits)
-- ✅ **Container in dev/CI** - Aspire can orchestrate this
-- ✅ **More features than SQL Server** for same/lower cost
+- Single implementation
+- Azure Database for PostgreSQL Flexible Server available
+- Container support via Aspire orchestration
+- More features than SQL Server for similar cost
 
 **Cons:**
-- ❌ Still need a container locally
-- ❌ Slightly more expensive than Azure SQL Basic tier
+- Requires containers for local development
+- Slightly more complex setup
 
-**Modern approach with Aspire:**
-```csharp
-// In AppHost.cs
-var postgres = builder.AddPostgres("postgres")
-    .WithPgAdmin()
-    .AddDatabase("yofidb");
-
-var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
-    .WithReference(postgres);
-```
-
-**Analysis**
-- No benefits over SQLite in development
-- Still need a container locally. SQLite enables local dev anywhere
-- Might be interesting to consolodate multiple apps into a single PostgreSQL Everywhere
-
-#### 3. **Azure Cosmos DB (NoSQL option)**
-
+#### 3. Azure SQL Server (Fallback)
 **Pros:**
-- ✅ **Free tier** - 1000 RU/s and 25GB storage free forever
-- ✅ **Serverless option** - Pay per request (could be nearly free at low volumes)
-- ✅ **Local emulator** - Great for dev/testing
-- ✅ **Works in CI** - Emulator in container
+- Known quantity from previous projects
+- Proven to work in Azure App Services
+- $5/month basic tier
 
 **Cons:**
-- ❌ Different data model (document-based)
-- ❌ May be overkill for traditional finance data
-- ❌ Different query language (SQL-like but not SQL)
-
-**Decision**
-- Eliminating this for complexity, not outweighed by significant benefits
-
-#### 4. **SQL Server LocalDB/Express + Azure SQL**
-
-**Pros:**
-- ✅ **LocalDB for dev** - Embedded, zero config
-- ✅ **SQL Server Express in container** for CI
-- ✅ **Azure SQL** for production - You already know this works
-- ✅ **Single EF Core provider**
-
-**Cons:**
-- ❌ Still multiple configurations
-- ❌ Container needed for CI
-
-**Decision**
-- Will keep this around as a fallback plan in production if above options don't work out
-- I know how to use this well
--
-#### 5. **Turso/libSQL (Modern SQLite)**
-
-**Pros:**
-- ✅ SQLite-compatible with edge replication
-- ✅ Free tier available
-- ✅ Distributed SQLite
-- ✅ Works everywhere SQLite works
-
-**Cons:**
-- ❌ Newer/less mature
-- ❌ May need custom provider
-
-**References**
-- https://dev.to/hermogenes/you-should-try-net-libsql-and-heres-why-173h
-- https://turso.tech/pricing
--
-**Decision**
-- Eliminated; doesn't seem suitable for EF Core
-- No need to do something special in ORM layer
-
-### GitHub Copilot Recommendation
-
-Given your requirements, I'd suggest **one of two paths**:
-
-#### **Option A: SQLite (Best fit)**
-- **Local dev**: SQLite file in bin or `App_Data/`
-- **CI/CD**: SQLite in-memory or file
-- **Production**: SQLite on App Service persistent storage or Azure Files
-
-This eliminates your "two implementations" problem entirely. For a personal finance app with low volume, SQLite is totally viable in production.
-
-#### **Option B: PostgreSQL Everywhere (If you need more power)**
-- **Local dev**: Aspire-orchestrated Postgres container
-- **CI/CD**: Postgres container in pipeline
-- **Production**: Azure Database for PostgreSQL Flexible Server (Burstable tier)
-
-This is your previous approach but **without SQL Server**, so one implementation.
+- Would still need separate solution for CI/CD
+- Multiple data layer implementations
 
 ## Decision
 
-1. Use SQLite for local development and CI.
-2. Test SQLite via Azure Storage mounts in production.
-3. Explore Postres Everywhere in production. If I can consolate multiple apps in one cloud resource, this could be a win.
-4. Fall back to Azure SQL in production. It's a known quantity.
-5. Migrate CD and local container to prodction provider, to catch issues earlier.
-6. Accept multiple providers. This hasn't been a terrible problem in the past, and also promotes decoupling of layers.
+1. **Primary approach**: Use SQLite for local development & CI.
+2. **Production deployment**: Test SQLite Azure App Service using Azure Storage mounts during intial pre-releases stages. Determine performance limits of this system.
+3. **Scale-up plan**: As scale grows beyond capability of SQlite in production, prepare to migrate to PostgreSQL Everywhere. If this presents too many hurdles,  fall back to proven capability of Azure SQL Server
+4. **Migration strategy**: Accept that we may need multiple providers as the application scales, as this promotes proper layer decoupling.
+5. **Container Matching**: Whatever backend we land on in production, migrate the containerized environment (including CI) to that technology, to catch issues early.
 
 ## Consequences
+
+### Positive
+- Single codebase for all environments
+- Simplified development setup - no containers required locally
+- Zero database costs in production initially
+- Easy CI/CD with no external dependencies
+
+### Negative
+- May need to migrate database provider as application scales
+- Requires careful management of SQLite limitations (migrations, concurrent access)
+- Need to explore and configure persistent storage mounting in Azure App Service
+
+### Mitigation
+- Monitor application performance and concurrent usage patterns
+- Plan for database provider migration if scaling requirements change
+- Document Azure Storage mount configuration for production deployment
 
 ## Related Decisions
 
