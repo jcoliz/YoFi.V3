@@ -4,12 +4,22 @@
 
 Functional tests need to control the system under test to set up test scenarios:
 - Create test accounts
-- Delete existing test accounts  
+- Delete existing test accounts
 - Clear data created by test accounts
 
 ## Solution: Environment-Aware Test Control API
 
 A dual-mode approach that enables safe testing in all environments, including production, using isolated test workspaces and environment-specific capabilities.
+
+### My initial notes
+
+- For local development and initial CI, no actual API key is needed. This is just added complexity. API key only needed for deployed code (staging, production, etc.)
+- Test control endpoints will be scoped to only allow access to users with `__TEST__` key in their username. (Or perhaps, require `__TEST__.com` domain?).
+- Test accounts will be regularly deleted
+- Ergo, even if the key leaks, the impact to real user data would be avoided.
+- Once all tests are complete I can review the usage to design a more locked down form, e.g. pre-seeded accounts only.
+- I am auto-generating an NSwag C# client against all controllers, so I can call this directly from my tests.
+- As always, when I *do* make changes to production environment, I will roll those into CD pipeline in order to catch issues early.
 
 ### Implementation Steps
 
@@ -36,33 +46,33 @@ A dual-mode approach that enables safe testing in all environments, including pr
 
 ### Key Design Decisions
 
-**API vs UI Control**  
+**API vs UI Control**
 API endpoint approach recommended — cleaner separation, faster execution, easier to secure. UI-based control (special admin user with privileged role) adds overhead and mixes concerns.
 
-**Database Direct Access**  
+**Database Direct Access**
 Not recommended — tightly couples tests to database schema, breaks on schema changes, requires exposing connection strings. Use API abstraction instead.
 
-**Production Safety**  
+**Production Safety**
 - Option A (safest): Completely disable `/api/testcontrol` in production; requires pre-created accounts
 - Option B: Allow read-only verification endpoints for test diagnostics
 - Option C (future): Allow reset operations scoped to test workspace only
 - Recommend starting with Option A, evolving to C as confidence grows
 
-**Data Isolation Strategy**  
+**Data Isolation Strategy**
 - If true multi-tenancy exists, workspace isolation may suffice
 - For shared tables (users, auth), consider:
   - Test account email domain filter (`*@test.example.com`)
   - Separate Azure App Service deployment slot for staging
   - Feature flags to route test users to isolated data stores
 
-**Security Hardening**  
+**Security Hardening**
 - API key authentication for all test control endpoints
 - Environment variable or Azure Key Vault for API key storage
 - Consider IP whitelist restrictions in shared environments
 - Document API key rotation process
 - Use conditional compilation (`#if DEBUG`) or runtime checks (`IsDevelopment()`, `IsStaging()`)
 
-**Production Monitoring**  
+**Production Monitoring**
 Integrate test results with production observability:
 - Send test failures to monitoring system (Application Insights, Datadog)
 - Set up alerts for consecutive failures
