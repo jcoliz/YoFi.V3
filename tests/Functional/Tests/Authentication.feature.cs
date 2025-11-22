@@ -153,4 +153,65 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I should see my current workspace information
         await ThenIShouldSeeMyCurrentWorkspaceInformation();
     }
+
+    /// <summary>
+    /// User logs out successfully
+    /// </summary>
+    [Test]
+    [Explicit("work in progress")]
+    public async Task UserLogsOutSuccessfully()
+    {
+        // Given I am logged in
+        await GivenIAmLoggedIn();
+
+        // And I am viewing my profile page
+        await GivenIAmViewingMyProfilePage();
+
+        // When I click the logout button
+        await WhenIClickTheLogoutButton();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should be logged out
+        await ThenIShouldBeLoggedOut();
+
+        // And I should be redirected to the home page
+        await ThenIShouldBeRedirectedToTheHomePage();
+
+        // And I should see the login option in the navigation
+        await ThenIShouldSeeTheLoginOptionInTheNavigation();
+
+        // And I should not see any personal information
+        await ThenIShouldNotSeeAnyPersonalInformation();
+    }
+
+    /// <summary>
+    /// User registration fails with weak password
+    /// </summary>
+    [Test]
+    [Explicit("work in progress")]
+    public async Task UserRegistrationFailsWithWeakPassword()
+    {
+        // Given I am on the registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // When I enter registration details with a weak password
+        await WhenIEnterRegistrationDetailsWithAWeakPassword();
+
+        // And I submit the registration form
+        await WhenISubmitTheRegistrationForm();
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should see an error message containing "Passwords must be"
+        await ThenIShouldSeeAnErrorMessage("Passwords must be");
+
+        // And I should remain on the registration page
+        await ThenIShouldRemainOnTheRegistrationPage();
+
+        // And I should not be registered
+        await ThenIShouldNotBeRegistered();
+    }
 }

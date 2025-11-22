@@ -30,7 +30,7 @@ Scenario: User login fails with invalid credentials
     Given I am on the login page
     When I enter invalid credentials
     And I click the login button
-    Then I should see an error message "Invalid credentials"
+    Then I should see an error message containing "Invalid credentials"
     And I should remain on the login page
 
 Scenario: User login fails with missing password
@@ -51,7 +51,7 @@ Scenario: User views their account details
 
 Scenario: User logs out successfully
     Given I am logged in
-    And I am viewing my workspace dashboard
+    And I am viewing my profile page
     When I click the logout button
     Then I should be logged out
     And I should be redirected to the home page
@@ -60,13 +60,9 @@ Scenario: User logs out successfully
 
 Scenario: User registration fails with weak password
     Given I am on the registration page
-    When I enter registration details with a weak password:
-        | Field            | Value               |
-        | Email            | newuser@example.com |
-        | Password         | 123                 |
-        | Confirm Password | 123                 |
+    When I enter registration details with a weak password
     And I submit the registration form
-    Then I should see a validation error about password requirements
+    Then I should see an error message containing "Passwords must be"
     And I should remain on the registration page
     And I should not be registered
 

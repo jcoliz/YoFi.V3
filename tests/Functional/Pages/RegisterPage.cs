@@ -7,13 +7,13 @@ public class RegisterPage(IPage _page): BasePage(_page)
 {
     private static readonly Regex RegisterApiRegex = new("/api/auth/signup", RegexOptions.Compiled);
 
-    public ILocator View => Page!.GetByTestId("RegisterForm");
-    public ILocator EmailInput => View.GetByTestId("email");
-    public ILocator UsernameInput =>  View.GetByTestId("username");
-    public ILocator PasswordInput => View.GetByTestId("password");
-    public ILocator PasswordAgainInput => View.GetByTestId("password-again");
-    public ILocator RegisterButton => View.GetByTestId("Register");
-    public ILocator ErrorDisplay => View.GetByTestId("Errors");
+    public ILocator RegisterForm => Page!.GetByTestId("RegisterForm");
+    public ILocator EmailInput => RegisterForm.GetByTestId("email");
+    public ILocator UsernameInput =>  RegisterForm.GetByTestId("username");
+    public ILocator PasswordInput => RegisterForm.GetByTestId("password");
+    public ILocator PasswordAgainInput => RegisterForm.GetByTestId("password-again");
+    public ILocator RegisterButton => RegisterForm.GetByTestId("Register");
+    public ILocator ErrorDisplay => RegisterForm.GetByTestId("Errors");
     public ILocator SuccessMessage => Page!.GetByTestId("SuccessMessage");
     public ILocator EmailDisplay => SuccessMessage.GetByTestId("display-email");
     public ILocator UsernameDisplay =>  SuccessMessage.GetByTestId("display-username");
@@ -98,10 +98,10 @@ public class RegisterPage(IPage _page): BasePage(_page)
         return hasInvalidClass?.Contains("is-invalid") ?? false;
     }
 
-    public async Task<bool> IsOnRegistrationPageAsync()
+    public async Task<bool> IsRegisterFormVisibleAsync()
     {
-        await View.WaitForAsync(new LocatorWaitForOptions { Timeout = 5000 });
-        return await View.IsVisibleAsync();
+        await RegisterForm.WaitForAsync(new LocatorWaitForOptions { Timeout = 5000 });
+        return await RegisterForm.IsVisibleAsync();
     }
 
     public async Task NavigateToSignInAsync()
@@ -112,6 +112,12 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public async Task<bool> IsRegisterButtonDisabledAsync()
     {
         return await RegisterButton.IsDisabledAsync();
+    }
+
+    public async Task<bool> IsRegisterButtonEnabledAsync()
+    {
+        var visible = await RegisterButton.IsVisibleAsync();
+        return visible && !await RegisterButton.IsDisabledAsync();
     }
 
     public async Task<bool> AreInputsDisabledAsync()

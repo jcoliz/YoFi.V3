@@ -27,7 +27,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         await Page.GotoAsync("/register");
         var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should be on registration page");
+        Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True, "Should be on registration page");
 
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
@@ -65,6 +65,17 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         // TODO: Implement account creation via API or database setup
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Given: I am viewing my profile page
+    /// </summary>
+    protected async Task GivenIAmViewingMyProfilePage()
+    {
+        await Page.GotoAsync("/profile");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var profilePage = GetOrCreateProfilePage();
+        Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
 
     #endregion
@@ -182,10 +193,29 @@ public abstract class AuthenticationSteps : FunctionalTest
     {
         var profilePage = GetOrCreateProfilePage();
         await profilePage.ClickLogoutAsync();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
     /// When: I enter registration details with a weak password
+    /// </summary>
+    protected async Task WhenIEnterRegistrationDetailsWithAWeakPassword()
+    {
+        var registerPage = GetOrCreateRegisterPage();
+
+        // First, clear existing test users via Test Control API
+        await testControlClient.DeleteUsersAsync();
+
+        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        _objectStore.Add("Registration Details", user);
+
+        // Use a weak password (too short, no special characters, etc.)
+        var weakPassword = "weak";
+        await registerPage.EnterWeakPasswordDetailsAsync(user.Email, user.Username, weakPassword);
+    }
+
+    /// <summary>
+    /// When: I enter registration details with a weak password (overload with DataTable)
     /// </summary>
     protected async Task WhenIEnterRegistrationDetailsWithAWeakPassword(DataTable registrationData)
     {
@@ -347,13 +377,24 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// Then: I should see an error message {errorMessage}
+    /// Then: I should see an error message containing (.+)
     /// </summary>
     protected async Task ThenIShouldSeeAnErrorMessage(string errorMessage)
     {
-        var loginPage = GetOrCreateLoginPage();
-        Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True,
-            $"Should display error message: {errorMessage}");
+        // This method works for both login and registration pages
+        // Check if we're on login or registration page
+        var registerPage = GetOrCreateRegisterPage();
+        if (await registerPage.IsRegisterFormVisibleAsync())
+        {
+            Assert.That(await registerPage.HasErrorMessageAsync(errorMessage), Is.True,
+                $"Should display error message containing: {errorMessage}");
+        }
+        else
+        {
+            var loginPage = GetOrCreateLoginPage();
+            Assert.That(await loginPage.HasErrorMessageAsync(errorMessage), Is.True,
+                $"Should display error message containing: {errorMessage}");
+        }
     }
 
     /// <summary>
@@ -432,8 +473,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldBeLoggedOut()
     {
-        // TODO: Verify logged out state
-        await Task.CompletedTask;
+        var basePage = new BasePage(Page);
+        Assert.That(await basePage.SiteHeader.LoginState.IsLoggedInAsync(), Is.False,
+            "User should be logged out");
     }
 
     /// <summary>
@@ -449,8 +491,10 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldSeeTheLoginOptionInTheNavigation()
     {
-        // TODO: Check navigation for login option
-        await Task.CompletedTask;
+        var basePage = new BasePage(Page);
+        await basePage.SiteHeader.LoginState.OpenMenuAsync();
+        Assert.That(await basePage.SiteHeader.LoginState.SignInMenuItem.IsVisibleAsync(), Is.True,
+            "Signin option should be visible in navigation");
     }
 
     /// <summary>
@@ -458,8 +502,10 @@ public abstract class AuthenticationSteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotSeeAnyPersonalInformation()
     {
-        // TODO: Verify personal info is not displayed
-        await Task.CompletedTask;
+        var basePage = new BasePage(Page);
+        var usernameInHeader = await basePage.SiteHeader.LoginState.GetUsernameAsync();
+        Assert.That(usernameInHeader, Is.Null, "Username should not be visible in the header");
+
     }
 
     /// <summary>
@@ -478,7 +524,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldRemainOnTheRegistrationPage()
     {
         var registerPage = GetOrCreateRegisterPage();
-        Assert.That(await registerPage.IsOnRegistrationPageAsync(), Is.True, "Should remain on registration page");
+        Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True, "Should remain on registration page");
     }
 
     /// <summary>
