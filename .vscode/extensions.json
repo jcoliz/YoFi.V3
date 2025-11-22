@@ -7,7 +7,6 @@
     "bierner.markdown-mermaid",
     "yzhang.markdown-all-in-one",
     "ms-azuretools.vscode-bicep",
-    "ms-playwright.playwright",
     "esbenp.prettier-vscode"
   ]
 }

@@ -6,4 +6,9 @@
 		<Parameter name="defaultTimeout" value="12000" />
 		<Parameter name="screenshotContext" value="Local" />
 	</TestRunParameters>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <PWDEBUG>0</PWDEBUG>
+    </EnvironmentVariables>
+  </RunConfiguration>
 </RunSettings>

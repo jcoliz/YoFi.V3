@@ -56,3 +56,17 @@ whenever the Playwright packages are updated to a new version.
 2. Ensure the steps are available in [FunctionalTest.cs](./Steps/FunctionalTest.cs)
 3. Write additional [Page](./Pages/) or [Component](./Components/) models if page functionality is new or changed.
 4. Write or update new C# test files in the [Feature](./Features/) directory, following the [Instructions](./INSTRUCTIONS.md) provided. GitHub Copilot is excellent at this!
+
+## Known issues
+
+Unfortunately, the [Playwright Test for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) does not support C# test runners. This request was made and rejected. See [Feature: Playwright Test for VSCode Support for C# Projects ](https://github.com/microsoft/playwright/issues/38045).
+
+To bring up the Playwright debugger, change the `PWDEBUG` environment variable using the `.runsettings` file.
+
+```xml
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <PWDEBUG>0</PWDEBUG>
+    </EnvironmentVariables>
+  </RunConfiguration>
+```
