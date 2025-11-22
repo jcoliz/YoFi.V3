@@ -462,15 +462,6 @@ public abstract class AuthenticationSteps : FunctionalTest
             "Should display correct account information");
     }
 
-    /// <summary>
-    /// Then: I should see options to update my profile
-    /// </summary>
-    protected async Task ThenIShouldSeeOptionsToUpdateMyProfile()
-    {
-        var profilePage = GetOrCreateProfilePage();
-        Assert.That(await profilePage.HasUpdateProfileOptionsAsync(), Is.True,
-            "Should see profile update options");
-    }
 
     /// <summary>
     /// Then: I should see my current workspace information

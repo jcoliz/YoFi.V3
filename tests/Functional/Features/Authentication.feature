@@ -82,14 +82,13 @@ Rule: User Login and Logout
         And I should not see any personal information
 
 Rule: Account Management
-    Authenticated users can view and manage their profile
+    Authenticated users can view their profile
 
     Scenario: User views their account details
         Given I am logged in
         And I am on any page in the application
         When I navigate to my profile page
         Then I should see my account information
-        And I should see options to update my profile
         And I should see my current workspace information
 
 Rule: Access Control

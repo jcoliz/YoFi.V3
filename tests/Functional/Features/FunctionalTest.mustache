@@ -13,6 +13,10 @@ namespace {{Namespace}};
 /// </remarks>
 public partial class {{FeatureName}}Feature_Tests : {{BaseClass}}
 {
+    {{#Rules}}
+    #region Rule: {{Name}}
+    // {{Description}}
+
     {{#Scenarios}}
     /// <summary>
     /// Scenario: {{Name}}
@@ -33,4 +37,7 @@ public partial class {{FeatureName}}Feature_Tests : {{BaseClass}}
     }
 
     {{/Scenarios}}
+
+    #endregion
+    {{/Rules}}
 }

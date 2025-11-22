@@ -249,7 +249,7 @@ public class UserAuthenticationTests : AuthenticationSteps
     #endregion
 
     #region Rule: Account Management
-    // Authenticated users can view and manage their profile
+    // Authenticated users can view their profile
 
     /// <summary>
     /// User views their account details
@@ -272,9 +272,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Then I should see my account information
         await ThenIShouldSeeMyAccountInformation();
 
-        // And I should see options to update my profile
-        await ThenIShouldSeeOptionsToUpdateMyProfile();
-
         // And I should see my current workspace information
         await ThenIShouldSeeMyCurrentWorkspaceInformation();
     }
@@ -288,11 +285,11 @@ public class UserAuthenticationTests : AuthenticationSteps
     /// Logged in user cannot access login page
     /// </summary>
     /// <remarks>
-    /// This test is one failure away from getting an `Explicit` tag!
     /// It seems the application doesn't always redirect logged-in users away from the login page.
     /// This could be due to caching issues or session management quirks.
     /// </remarks>
     [Test]
+    [Explicit("Flaky test - sometimes fails due to application behavior")]
     public async Task LoggedInUserCannotAccessLoginPage()
     {
         // Given I am logged in

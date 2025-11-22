@@ -41,6 +41,63 @@ Map feature file content to template variables:
 - Feature description lines (if multi-line) → `{{Description}}` array - Remarks
 - Scenario name → `{{Name}}` - Test method summary
 - Scenario name (camelCase, no spaces) → `{{Method}}` - Test method name
+- Rule name → `{{Name}}` - Region name for organizing scenarios
+- Rule description → `{{Description}}` - Comment explaining the rule's purpose
+
+### Rule Organization
+
+When a feature file contains `Rule:` sections:
+
+1. **Region Structure**: Each Rule becomes a `#region` in the generated test file
+2. **Region Name**: `#region Rule: {{RuleName}}`
+3. **Rule Description**: Added as a comment after the region start: `// {{RuleDescription}}`
+4. **Scenario Grouping**: All scenarios under a Rule are placed within that Rule's region
+5. **Region End**: Each Rule's region ends with `#endregion`
+
+**Example from [`Authentication.feature`](../Features/Authentication.feature:15-47):**
+```gherkin
+Rule: User Registration
+    Users can create new accounts with valid credentials
+
+    Scenario: User registers for a new account
+        Given I am on the registration page
+        When I enter valid registration details
+        And I submit the registration form
+        Then My registration request should be acknowledged
+```
+
+**Generated C# in [`Authentication.feature.cs`](../Tests/Authentication.feature.cs:26-49):**
+```csharp
+#region Rule: User Registration
+// Users can create new accounts with valid credentials
+
+/// <summary>
+/// User registers for a new account
+/// </summary>
+[Test]
+public async Task UserRegistersForANewAccount()
+{
+    // Given I am on the registration page
+    await GivenIAmOnTheRegistrationPage();
+
+    // When I enter valid registration details
+    await WhenIEnterValidRegistrationDetails();
+
+    // And I submit the registration form
+    await WhenISubmitTheRegistrationForm();
+
+    // Then My registration request should be acknowledged
+    await ThenMyRegistrationRequestShouldBeAcknowledged();
+}
+
+#endregion
+```
+
+**Benefits:**
+- Logical grouping of related test scenarios
+- Collapsible regions for easier navigation in IDE
+- Business context preserved through rule descriptions
+- Generated code structure mirrors Gherkin organization
 
 ### Background Steps
 
