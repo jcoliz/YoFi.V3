@@ -3,6 +3,7 @@ definePageMeta({
   title: 'Home',
   order: 1,
   layout: 'chrome',
+  auth: false,
 })
 
 /**

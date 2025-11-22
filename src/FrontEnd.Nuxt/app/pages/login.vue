@@ -2,6 +2,10 @@
 definePageMeta({
   title: 'Login',
   layout: 'blank',
+  auth: {
+    unauthenticatedOnly: true,
+    navigateAuthenticatedTo: '/profile',
+  },
 })
 
 const { signIn } = useAuth()

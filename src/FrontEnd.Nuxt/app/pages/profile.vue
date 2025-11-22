@@ -1,10 +1,10 @@
 <script setup lang="ts">
 definePageMeta({
   title: 'Profile',
-  middleware: 'sidebase-auth',
+  auth: true,
 })
 
-const { data, signOut } = useAuth()
+const { refreshToken, token, data, signOut } = useAuth()
 
 const workspace = ref({
   name: 'Default Workspace',
@@ -158,6 +158,22 @@ const handleUpdate = async () => {
               </div>
               <div class="col-sm-9">
                 {{ data?.roles?.length ? data.roles.join(', ') : 'None' }}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-sm-3">
+                <strong>Token:</strong>
+              </div>
+              <div class="col-sm-9">
+                <small class="text-break font-monospace">{{ token }}</small>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-sm-3">
+                <strong>Refresh Token:</strong>
+              </div>
+              <div class="col-sm-9">
+                <small class="text-break font-monospace">{{ refreshToken }}</small>
               </div>
             </div>
           </div>

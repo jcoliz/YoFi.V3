@@ -48,7 +48,7 @@ export default defineNuxtConfig({
       },
       refresh: {
         isEnabled: true,
-        endpoint: { path: '/refresh', method: 'post' },
+        endpoint: { path: '/api/auth/refresh', method: 'post' },
         refreshOnlyToken: false,
         token: {
           signInResponseRefreshTokenPointer: '/token/refreshToken',
@@ -76,7 +76,7 @@ export default defineNuxtConfig({
       // handler: './config/AuthRefreshHandler'
     },
     globalAppMiddleware: {
-      isEnabled: false,
+      isEnabled: true,
     },
   },
   runtimeConfig: {
