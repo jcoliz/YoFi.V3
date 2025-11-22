@@ -73,6 +73,7 @@ const getCategoryStyle = (category: string) => {
     Monitoring: { bg: '#F4E8F0', text: '#7C5B6B' },
     DevOps: { bg: '#E8F0F4', text: '#5B6B7C' },
     Testing: { bg: '#F4EEE8', text: '#7C715B' },
+    Authentication: { bg: '#E8F4F8', text: '#4A7C8C' },
   }
 
   const colors = categoryColors[category] || { bg: '#E9ECEF', text: '#6C757D' }
@@ -111,7 +112,7 @@ const technologies: Technology[] = [
   {
     name: 'NuxtAuth',
     logo: '/images/nuxt-auth.png',
-    description: 'Client-side authentication module for Nuxt with local provider support',
+    description: 'Handles client-side authentication using local provider pattern, managing JWT tokens from our .NET Identity backend with automatic refresh and secure session storage',
     link: 'https://auth.sidebase.io/',
     category: 'Authentication',
   },
