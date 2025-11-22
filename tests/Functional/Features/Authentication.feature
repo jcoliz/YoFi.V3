@@ -91,7 +91,7 @@ Scenario: Logged in user cannot access login page
 
 Scenario Outline: Anonymous user cannot access protected pages
     Given I am not logged in
-    When I try to navigate to a protected page like <page>
+    When I try to navigate directly to a protected page like <page>
     Then I should be redirected to the login page
     And I should see a message indicating I need to log in
     And after logging in, I should be redirected to the originally requested page

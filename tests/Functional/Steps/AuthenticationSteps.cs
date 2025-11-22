@@ -327,11 +327,12 @@ public abstract class AuthenticationSteps : FunctionalTest
     }
 
     /// <summary>
-    /// When: I try to navigate to a protected page like {page}
+    /// When: I try to navigate directly to a protected page like {page}
     /// </summary>
-    protected async Task WhenITryToNavigateToAProtectedPageLike(string page)
+    protected async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
     {
         await Page.GotoAsync(page);
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     #endregion

@@ -285,4 +285,32 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I should not see the login form
         await ThenIShouldNotSeeTheLoginForm();
     }
+
+    /// <summary>
+    /// Anonymous user cannot access protected pages
+    /// </summary>
+    [TestCase("/weather")]
+    [TestCase("/counter")]
+    [TestCase("/about")]
+    [TestCase("/profile")]
+    public async Task AnonymousUserCannotAccessProtectedPages(string page)
+    {
+        // Given I am not logged in
+        await GivenIAmNotLoggedIn();
+
+        // When I try to navigate directly to a protected page like <page>
+        await WhenITryToNavigateDirectlyToAProtectedPageLike(page);
+
+        // Hook: Before first Then Step
+        await SaveScreenshotAsync();
+
+        // Then I should be redirected to the login page
+        await ThenIShouldBeRedirectedToTheLoginPage();
+
+        // And I should see a message indicating I need to log in
+        await ThenIShouldSeeAMessageIndicatingINeedToLogIn();
+
+        // And after logging in, I should be redirected to the originally requested page
+        await ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage();
+    }
 }

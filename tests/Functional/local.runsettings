@@ -8,7 +8,7 @@
 	</TestRunParameters>
   <RunConfiguration>
     <EnvironmentVariables>
-      <PWDEBUG>0</PWDEBUG>
+      <PWDEBUG>1</PWDEBUG>
     </EnvironmentVariables>
   </RunConfiguration>
 </RunSettings>
