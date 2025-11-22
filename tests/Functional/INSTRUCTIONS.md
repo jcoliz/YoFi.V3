@@ -52,7 +52,7 @@ public async Task SetupAsync()
 {
     // Given the application is running
     await GivenTheApplicationIsRunning();
-    
+
     // And I am not logged in
     await GivenIAmNotLoggedIn();
 }
@@ -111,13 +111,17 @@ await ThenIShouldSeeMyAccountInformation(table);
 
 Each step in the feature file must be mapped to a corresponding method in the base class:
 
-1. **Locate the method**: Find the method in `@baseclass` file whose XML summary comment (e.g., `/// <summary>Given: I am on the home page</summary>`) matches the step text pattern. The XML comment format is `{Keyword}: {step text}`.
+1. **Locate the method BY XML COMMENT**: Find the method in `@baseclass` file whose XML summary comment (e.g., `/// <summary>Given: I am on the home page</summary>`) matches the step text pattern. The XML comment format is `{Keyword}: {step text}`.
+   - **CRITICAL**: The XML comment is the authoritative pattern matcher, NOT the method name
+   - **CRITICAL**: Match against the XML comment text, which may use regex patterns like `(.+)` for capturing groups
+   - The method name may differ from the step text (e.g., XML comment says "containing (.+)" but method is named `ThenIShouldSeeAnErrorMessage`)
+   - When creating new step methods, ensure the XML comment matches the Gherkin step pattern exactly
 2. **Handle `And` keyword correctly**: When a scenario step uses the `And` keyword, interpret this as the most recent non-`And` keyword encountered. For example:
    - If a `Then` step is followed by `And` steps, interpret those `And` steps as `Then` steps when searching for matching methods
    - If a `Given` step is followed by `And` steps, interpret those `And` steps as `Given` steps when searching for matching methods
    - When searching the base class, look for methods with XML comments like `/// <summary>Then: {step text}</summary>` even though the original step says `And`
 3. **Use exact method names**: Use the exact method name as it appears in the `@baseclass` file. Do NOT modify or infer method names.
-4. **Extract parameters**: Identify quoted strings (`"text"`) or placeholder values (`<variable>`) in the step text
+4. **Extract parameters**: Identify quoted strings (`"text"`) or placeholder values (`<variable>`) in the step text, matching capture groups in the XML comment pattern
 5. **Handle data tables**: If the step is followed by a table, create a `DataTable` object and pass it as a parameter
 6. **Generate method call**: Call the method with extracted parameters (including DataTable if present)
 7. **Add step comments**: Before each method call, add a comment with the original step text (keeping `And` as written in the feature file)
@@ -133,6 +137,9 @@ Each step in the feature file must be mapped to a corresponding method in the ba
 | `When user selects option "Weather" in nav bar` | `/// <summary>When: user selects option {option} in nav bar</summary>` | `SelectOptionInNavbar(string option)` | `// When user selects option "Weather" in nav bar`<br>`await SelectOptionInNavbar("Weather");`<br>(blank line) |
 | `Then page loaded ok` | `/// <summary>Then: page loaded ok</summary>` | `ThenPageLoadedOk()` | `// Then page loaded ok`<br>`await ThenPageLoadedOk();`<br>(blank line) |
 | `And page heading is "Home"` (after a `Then` step) | `/// <summary>Then: page heading is {text}</summary>` | `PageHeadingIs(string text)` | `// And page heading is "Home"`<br>`await PageHeadingIs("Home");`<br>(blank line) |
+| `Then I should see an error message containing "Invalid"` | `/// <summary>Then: I should see an error message containing (.+)</summary>` | `ThenIShouldSeeAnErrorMessage(string errorMessage)` | `// Then I should see an error message containing "Invalid"`<br>`await ThenIShouldSeeAnErrorMessage("Invalid");`<br>(blank line) |
+
+**Note**: In the last example, the XML comment uses the pattern "containing (.+)" while the method name is `ThenIShouldSeeAnErrorMessage`. Always match based on the XML comment pattern, not the method name.
 
 ### Handling Scenario Outlines
 
