@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as api from '../utils/apiclient'
+import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({
   title: 'About',
   order: 4,
@@ -10,7 +11,8 @@ definePageMeta({
  * Client for communicating with server
  */
 const { baseUrl } = useApiBaseUrl()
-const client = new api.VersionClient(baseUrl)
+const authFetch = useAuthFetch()
+const client = new api.VersionClient(baseUrl, authFetch)
 
 /**
  * Version data to display

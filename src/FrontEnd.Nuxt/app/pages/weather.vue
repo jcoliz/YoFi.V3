@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import * as api from '../utils/apiclient'
+import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({
   title: 'Weather',
   order: 2,
@@ -20,9 +21,11 @@ const isLoading = ref(false)
 
 /**
  * Client for communicating with server
+ * Using auth-aware fetch to automatically handle token refresh
  */
 const { baseUrl } = useApiBaseUrl()
-const client = new api.WeatherClient(baseUrl)
+const authFetch = useAuthFetch()
+const client = new api.WeatherClient(baseUrl, authFetch)
 
 /**
  * Get items from the server
