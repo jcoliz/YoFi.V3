@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+env:
+  SOLUTION_VERSION: 'github-${{ github.sha }}'
+
 jobs:
   build:
 
