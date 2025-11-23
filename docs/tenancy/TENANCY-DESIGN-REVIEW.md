@@ -588,7 +588,7 @@ public class TenantContextMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext)
     {
-        // Extract from route (already validated by authorization)
+        // Extract from route (already vhanalidated by authorization)
         if (context.Request.RouteValues.TryGetValue("tenantId", out var tenantIdValue) &&
             Guid.TryParse(tenantIdValue?.ToString(), out var tenantId))
         {

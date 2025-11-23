@@ -17,13 +17,18 @@
 - Tenant: Description of the tenant itself
 - UserTenantRoleAssignment: Assignments of roles to users on a certain tenant
 
+For both of these models, we are storing a minimum of data to get started. As the application evolves, we can add additional functionality to meet future needs.
+
 ```csharp
 public class Tenant
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime DeactivatedDate { get; set; }
+    public string? DeactivatedByUserId { get; set; }
 
     // Navigation properties
     public virtual ICollection<UserTenantRoleAssignment> UserAccess { get; set; } = new List<UserAccountAccess>();
@@ -34,7 +39,7 @@ public class UserTenantRoleAssignment
     public Guid Id { get; set; }
     public string UserId { get; set; } = string.Empty;
     public Guid TenantId { get; set; }
-    public AccountRole Role { get; set; }
+    public TenantRole Role { get; set; }
 
     // Navigation properties
     public virtual ApplicationUser User { get; set; } = null!;
@@ -74,7 +79,11 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
         entity.Property(a => a.Name)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(100);
+
+        entity.Property(a => a.Name)
+            .IsRequired()
+            .HasMaxLength(500);
 
         entity.Property(a => a.CreatedDate)
             .IsRequired();
@@ -105,28 +114,36 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
     });
 ```
 
-### User navigation properties [???]
+### User navigation properties
 
-**Question**: Do I need to make an application specific ApplicationUser with navigation property to the user's tenant roles? For example, something like:
+**Question**: Is an application specific ApplicationUser necessary with navigation property to the user's tenant roles?
 
+Yes, we will create an application user to add helpful navigation properties. This is always handled at the application level, so doesnt interfere with anything the libary is doing.
+
+**Rationale**:
+1. **EF Core best practice**: Bidirectional navigation helps with lazy loading and queries
+2. **Useful queries**: `user.TenantRoleAssignments.Where(t => t.Role == TenantRole.Owner)`
+3. **Cascade behavior**: Makes EF Core properly handle cascade deletes
+4. **No downside**: Even if not used directly, it doesn't hurt
+
+**Implementation**:
 ```csharp
-public class ApplicationUser: IdentityUser
+// Create custom ApplicationUser
+public class ApplicationUser : IdentityUser
 {
-    // ... other properties
-
-    // Navigation properties
-    public virtual ICollection<UserTenantRoleAssignment> TenantRoleAssignments { get; set; } = new List<UserTenantRoleAssignment>();
+    public virtual ICollection<UserTenantRoleAssignment> TenantRoleAssignments { get; set; }
+        = new List<UserTenantRoleAssignment>();
 }
 
-        // User relationship
-        entity.HasOne(uaa => uaa.User)
-            .WithMany(u => u.TenantRoleAssignments)
-            .HasForeignKey(uaa => uaa.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-```
+// Update DbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
-> [!WARNING]
-> This question is still open
+// Update OnModelCreating
+entity.HasOne(uaa => uaa.User)
+    .WithMany(u => u.TenantRoleAssignments)
+    .HasForeignKey(uaa => uaa.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
+```
 
 ### Correlating application data types
 
@@ -135,7 +152,12 @@ public class ApplicationUser: IdentityUser
 Each domain-specific tenant-constrained data type will have a `TenantId` property. For example, consider a `Transaction` entity:
 
 ```csharp
-public class Transaction
+public interface ITenantModel
+{
+    public Guid TenantId { get; set; }
+}
+
+public class Transaction: ITenantModel
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
@@ -160,12 +182,59 @@ modelBuilder.Entity<Transaction>(entity =>
 
 No. In order to add navigation properties to the tenant entity, it would couple `Tenant` to the specific application domain.
 
+**Rationale**:
+1. **Single Responsibility**: Core `Tenant` entity should be domain-agnostic
+2. **Reusability**: Keeps tenancy system portable across projects
+3. **Separation of Concerns**: Application-specific navigation properties belong in application-specific entities
+
+## Tenant management
+
+There are a number of user stories affecting tenants and tenant role assignments. These will all be handled the same way I handle application data: with a Tenant Feature, exposed to API via Tenant Controller.
+
+These endpoints generally take the form: `/tenant/{TenantId:guid}/user/{UserId}/role/{role}`
+
+In normal circumstances, all users are provisioned with a tenant they own when their user account is approved in the system. If user logs on and has no tenant, they'll need to contact a site administrator to solve this.
+
+```
+New User creates account → Verifies email → Approved by administrator → Auto-create Personal Tenant → Set as Default (in UI) → Redirect to Dashboard
+```
+
+Regular User can:
+- Add a role assignment at any level for another user on a tenant they own.
+- Remove a role assignment (except owner) for another user on a tenant they own
+- Remove a role assignment for themselves on any tenant.
+- Deactivate a tenant they own, as long as they're the only owner
+- Activate a tenant they own
+
+Power user can: (This is a site-wide user account role)
+- Create a new tenant, which they now own.
+
+Administator can: (This is a site-wide user account role)
+- Approve a new user
+- Deactivate/reactivate a user
+- Set any user account role on any user
+- Set any user any role on any tenant
+- Deactivate any tenant
+- Hard (permanantly) delete a tenant and its data. To avoid mishaps, we will require that it has been disabled for at least 1 week first.
+
 ## Communication to client
+
+### Methodology
 
 **Question**: How do available tenants & role assignments get to the client?
 
 NuxtIdentity returns claims both in the JWT access token, and in the user data structure. We will implement a tenant manager.
 It can implement `IUserClaimsProvider<TUser>`, providing tenant role assignments for the current user as claims.
+
+### Format
+
+**Question**: What is the exact structure of tenant role claims?
+
+For initial simplicity, each UserTenantRoleAssignment will be add as a single claim to both the front-end and JWT user tokwn.
+
+```csharp
+new Claim("tenant_role", "00000000-0000-0000-0000-000000000001:Owner")
+```
 
 ## Authentication
 
@@ -198,6 +267,22 @@ Tenant-scoped resources are served on `/api/tenant/` endpoints, e.g.
 ```csharp
 [Route("api/tenant/{tenantId:guid}/[controller]")]
 ```
+
+### Tenant permission errors
+
+**Question**: What error messages should users see for tenant violations?
+
+1. **No tenant access** → **404 Not Found**
+   - Hides tenant existence
+   - Prevents enumeration
+
+2. **Has access, insufficient role** → **403 Forbidden** with detailed message
+   - User already knows tenant exists
+   - Clear feedback helps legitimate users
+
+3. **Invalid tenant ID format** → **400 Bad Request**
+   - Not a security issue
+   - Invalid GUID format
 
 ### Policy attributes
 
@@ -318,32 +403,96 @@ builder.Services.AddAuthorization(options =>
 });
 ```
 
-## Data Provider tenant scope
+## Tenant-scoped data provider
 
 **Question**: How do we restrict application features to only the tenant and role assignment we've previously validated?
 
-We will extend the current `IDataProvider` design to add a scoped data provider, *e.g.* `ITenantDataProvider`. It will be restricted to only allow data from a specific tenant. If possible we will try to restrict it to the role level access as well, *e.g.* a read-only data provider if user only nas `Viewer` role assignment.
+1. Authorization middleware will leave the tenantid and highest claimed tenant role on the HTTP Context `Items`
+2. Create a new tenant-scoped data provider, `TenantDataProvider:ITenantDataProvider`, which takes `IHttpContextAccessor` as its constructor. It will pull the tenant and highest role from the context items, and craft a limited
+3. Tenant-scoped feature services use `ITenantDataProvider` instead of the more general-purpose `IDataProvider`.
 
-### Creation time/place
+### Setting Tenant Context on HTTP Context Items
 
-**Question**: When is this created?
+```csharp
+public class TenantRoleHandler : AuthorizationHandler<TenantRoleRequirement>
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-It would seem the best time to create this is in the Authorization middleware at the moment we have
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        TenantRoleRequirement requirement)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        var tenantId = httpContext?.Request.RouteValues["tenantId"]?.ToString();
 
-Alternately, I could create a separate middleware to live downstream from the authorization middleware, which would consume the
+        if (string.IsNullOrEmpty(tenantId))
+            return Task.CompletedTask;
 
-### Creation methodology
+        var claim = context.User.FindFirst(c =>
+            c.Type == "tenant_role" &&
+            c.Value.StartsWith($"{tenantId}:"));
 
-**Question**: Exactly how is the tenant data provider created?
+        if (claim != null)
+        {
+            var parts = claim.Value.Split(':');
+            if (parts.Length == 2 &&
+                Enum.TryParse<TenantRole>(parts[1], out var userRole) &&
+                userRole >= requirement.MinimumRole)
+            {
+                // STORE IT in HttpContext.Items for later use
+                httpContext.Items["TenantId"] = Guid.Parse(tenantId);
+                httpContext.Items["TenantRole"] = userRole;
 
-> [!WARNING]
-> This question is still open
+                context.Succeed(requirement);
+            }
+        }
 
-### Access
+        return Task.CompletedTask;
+    }
+}
+```
 
-**Question**: How does the Application Feature get access to this scoped tenant data provider?
+### Creating tenant-scoped data provider
 
-This is a big open question I have to figure out. The nearest I can imagine is that the middleware can place it on the context, and then the controller can pick it up from there and explicitly hand it off to the application feature.
+```csharp
+// 3. Create tenant-aware data provider
+public class TenantDataProvider : IDataProvider
+{
+    private readonly ApplicationDbContext _context;
+    private readonly Guid _tenantId;
+
+    public TenantDataProvider(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+    {
+        _context = context;
+        _tenantId = (Guid?)_httpContextAccessor.HttpContext?.Items["TenantId"];
+
+    }
+
+    public IQueryable<TEntity> Get<TEntity>() where TEntity : class, ITenantModel
+    {
+        var query = _context.Set<TEntity>();
+
+        query = query.Where(e => e.TenantId == _tenantId);
+
+        return query;
+    }
+
+    public void Add(ITenantModel item)
+    {
+        item.TenantId = _tenantId;
+        _context.Add(item);
+    }
+
+    // ... other methods
+}
+
+```
+
+## Migration of existing data
+
+**Question**: How will existing single-user YoFi data migrate to the multi-tenant model?
+
+Single-user YoFi will export their data using that application's exsiting export process, then import it using the coming import functionality in YoFi.V3.
 
 ## Invitation System
 
@@ -351,42 +500,40 @@ This is a big open question I have to figure out. The nearest I can imagine is t
 
 Invitations are out of scope for this feature. They will be a separate "Invitations" feature.
 
-## Additional Questions
+## Future Topics
 
-Roo code Architecture Review identified some additional questions I will have to think some more about.
+There are some questions which I'd consider in scope, but will think more about these once I have the initial design proven out.
 
-### 1.1 Migration and Onboarding
-
-**Question**: How will existing single-user YoFi data migrate to the multi-tenant model?
-
-### 1.2 Tenant Creation Workflow
-
-**Question**: What is the complete user journey for tenant creation?
-
-### 1.3 Claim Structure Format
-
-**Question**: What is the exact structure of tenant role claims?
-
-### 1.4 Performance and Scalability
+### Performance and Scalability
 
 **Question**: How will tenant queries perform at scale?
 
-### 1.5 Tenant Deletion and Soft Deletes
+**Missing considerations**:
+- Database indexing strategy (covered partially with unique constraint)
+- Query performance with many users per tenant
+- Caching strategy for tenant role lookups
+- Connection pooling with tenant-scoped DbContext
 
-**Question**: Should tenants support soft deletes?
+**Recommendation**: Add performance section addressing:
+- Index on `UserTenantRoleAssignment.UserId` and `TenantId`
+- Caching `IUserClaimsProvider` results
+- Query optimization for tenant data filtering
 
-### 1.7 Concurrency and Race Conditions
+### Concurrency and Race Conditions
 
 **Question**: How do we handle concurrent tenant operations?
 
-### 1.8 Error Handling and User Feedback
+**Missing considerations**:
+- Two owners simultaneously removing each other
+- Last owner attempting to leave/delete tenant
+- Concurrent role changes
+- Optimistic concurrency control
 
-**Question**: What error messages should users see for tenant violations?
-
-### 1.9 Testing Strategy
+### Testing Strategy
 
 **Question**: How will tenant isolation be tested?
 
-### 1.10 Tenant Metadata and Customization
-
-**Question**: What additional tenant properties might be needed?
+**Consideration**: While functional tests are specified, the design should specify:
+- Unit testing tenant-scoped data providers
+- Integration testing cross-tenant isolation
+- Security testing for tenant bypass attempts
