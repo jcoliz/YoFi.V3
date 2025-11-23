@@ -27,7 +27,7 @@ public class Tenant
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime DeactivatedDate { get; set; }
+    public DateTime? DeactivatedDate { get; set; }
     public string? DeactivatedByUserId { get; set; }
 
     // Navigation properties
@@ -81,7 +81,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
             .IsRequired()
             .HasMaxLength(100);
 
-        entity.Property(a => a.Name)
+        entity.Property(a => a.Description)
             .IsRequired()
             .HasMaxLength(500);
 
@@ -96,7 +96,6 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
         entity.Property(uaa => uaa.UserId)
             .IsRequired()
             .HasMaxLength(450); // Standard Identity user ID length
-            });
 
         // Tenant relationship
         entity.HasOne(uaa => uaa.Tenant)
@@ -217,6 +216,10 @@ Administator can: (This is a site-wide user account role)
 - Deactivate any tenant
 - Hard (permanantly) delete a tenant and its data. To avoid mishaps, we will require that it has been disabled for at least 1 week first.
 
+Inactive Tenant Access: Deactivating behaves as if the tenant is soft-deleted, so will start returning 404 to all tenant requests, except reactivating it.
+
+Tenant Creation Validation: Names are not required to be unique. Probably would be a good idea to enforce uniqueness across owners (e.g. can't create a tenant name with a name you're already an owner on.) "What prevents malicious users creating thousands of tenants?" Only highly trusted users can create tenants. This is the spirit of the "Power User" role. Could also be "Trusted user". Still, we'd need to prohibit creating excessive tenants.
+
 ## Communication to client
 
 ### Methodology
@@ -235,6 +238,8 @@ For initial simplicity, each UserTenantRoleAssignment will be add as a single cl
 ```csharp
 new Claim("tenant_role", "00000000-0000-0000-0000-000000000001:Owner")
 ```
+
+Number of tenants per user is expected to be small--no more than 10. If tenant count becomes very large, we will have to reconsider this method.
 
 ## Authentication
 
@@ -456,7 +461,7 @@ public class TenantRoleHandler : AuthorizationHandler<TenantRoleRequirement>
 
 ```csharp
 // 3. Create tenant-aware data provider
-public class TenantDataProvider : IDataProvider
+public class TenantDataProvider : ITenantDataProvider
 {
     private readonly ApplicationDbContext _context;
     private readonly Guid _tenantId;
@@ -519,6 +524,11 @@ There are some questions which I'd consider in scope, but will think more about 
 - Caching `IUserClaimsProvider` results
 - Query optimization for tenant data filtering
 
+**Recommendation**: Add to OnModelCreating:
+- Index on UserTenantRoleAssignment(UserId, TenantId) (already unique, automatically indexed)
+- Index on Tenant(IsActive) for filtering queries
+- Index on UserTenantRoleAssignment(TenantId) for reverse lookups
+
 ### Concurrency and Race Conditions
 
 **Question**: How do we handle concurrent tenant operations?
@@ -529,6 +539,9 @@ There are some questions which I'd consider in scope, but will think more about 
 - Concurrent role changes
 - Optimistic concurrency control
 
+**Recommendation**:
+- Move owner removal race condition to current scope. Add RowVersion to UserTenantRoleAssignment and check owner count in transaction.
+
 ### Testing Strategy
 
 **Question**: How will tenant isolation be tested?
@@ -537,3 +550,8 @@ There are some questions which I'd consider in scope, but will think more about 
 - Unit testing tenant-scoped data providers
 - Integration testing cross-tenant isolation
 - Security testing for tenant bypass attempts
+
+**Recommendation**: Move from "Future" to current plan. Specify:
+- Unit tests for TenantRoleHandler with mock claims
+- Integration tests with TestServer for cross-tenant isolation
+- Functional tests attempting tenant ID manipulation in routes vs body
