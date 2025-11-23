@@ -20,7 +20,7 @@ YoFi.V3 is a rewrite of the [YoFi personal finance application](https://github.c
 
 **Primary Use Cases:**
 - **Personal Finance**: Individual manages their own financial data
-- **Household Finance**: Family members share access to household financial data  
+- **Household Finance**: Family members share access to household financial data
 - **Small Business**: Business owner + bookkeeper access business financial data
 - **Multi-Workspace**: User manages both personal and business finances separately
 
@@ -45,7 +45,7 @@ A "Workspace" (UI) / "Tenant" (implementation) represents a complete set of fina
 
 Examples:
 - "Smith Family Finances" (household)
-- "John's Personal Finances" (individual)  
+- "John's Personal Finances" (individual)
 - "ABC Consulting Business" (business)
 
 ### Multi-Tenancy: Role-Based Access Control
@@ -65,64 +65,19 @@ Examples:
 - Each tenant must have at least one Owner
 - Financial data is completely isolated by tenant
 
-### Database Schema
+### Data Architecture
 
-```sql
--- Users (from ASP.NET Core Identity)
-Users (Id, Email, UserName)
+**Core Entities:**
+- **Tenants** - Container for financial data (called "Workspace" in UI)
+- **UserTenantRoles** - User-to-Tenant relationships with role assignments
+- **Financial Data** - All entities (Transactions, Categories, Budgets) are tenant-scoped
 
--- Tenant entity (called "Workspace" in UI)
-Tenants (Id, Name, IsActive)
+**Key Principles:**
+- Complete data isolation by tenant
+- All financial queries must be tenant-scoped
+- Role-based authorization on tenant resources
 
--- User-to-Tenant relationship with roles
-UserTenantRoles (Id, UserId, TenantId, Role)
-
--- All financial data is tenant-scoped
-Transactions (Id, TenantId, Date, Amount, Description, Source)
-Categories (Id, TenantId, Name)
-Budgets (Id, TenantId, Month, Amount)
-
--- User preferences (global, not tenant-scoped)
-UserPreferences (Id, UserId, DefaultTenantId, Theme)
-```
-
-### Authorization & APIs
-
-**JWT Claims:**
-```json
-{
-  "sub": "user123",
-  "email": "john@example.com", 
-  "entitlements": "tenant1_guid:owner,tenant2_guid:editor"
-}
-```
-
-**API Structure:**
-```
-/api/tenant/{tenantId}/transactions
-/api/tenant/{tenantId}/categories
-/api/tenant/{tenantId}/budgets
-```
-
-**Policies:**
-- **TenantView**: Viewer, Editor, or Owner role required
-- **TenantEdit**: Editor or Owner role required
-- **TenantOwn**: Owner role required
-
-### Transaction Source Tracking
-
-Each transaction includes a `Source` field identifying origin:
-- `"Chase Freedom Credit Card"`
-- `"Wells Fargo Checking"`
-- `"Cash"`, `"Venmo"`, `"Manual Entry"`
-
-Benefits: Simple implementation, natural language, import-friendly, flexible.
-
-## Implementation Phases
-
-**Phase 1 (MVP)**: Single-user tenants, full schema, all features tenant-scoped
-**Phase 2**: Multi-user tenants, invitation system, role management UI  
-**Phase 3**: Advanced features (transfer ownership, audit logging)
+**Implementation Details:** See [`TENANCY-DESIGN.md`](../tenancy/TENANCY-DESIGN.md) for database schema, API structure, JWT claims format, and authorization policies.
 
 ## Consequences
 
@@ -144,9 +99,11 @@ Benefits: Simple implementation, natural language, import-friendly, flexible.
 - [ADR 0008: Identity System](0008-identity.md) - Authentication foundation
 - [ADR 0005: Database Backend](0005-database-backend.md) - SQLite storage
 
-## Technical Details
+## Implementation Reference
 
-- **Current Tenant**: Active tenant user is interacting with (UI: "Current Workspace")
-- **Default Tenant**: Loaded on login, updated on switch (UI: "Default Workspace")  
-- **New User Flow**: Auto-create personal tenant → redirect to dashboard
-- **Migration**: Existing YoFi data migrates to single identified tenant
+For detailed implementation specifications, see [`docs/tenancy/TENANCY-DESIGN.md`](../tenancy/TENANCY-DESIGN.md), which covers:
+- Entity models and database configuration
+- Tenant management and user provisioning
+- Authorization policies and JWT claims
+- Tenant-scoped data providers
+- Migration strategies
