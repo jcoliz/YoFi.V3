@@ -7,7 +7,7 @@ using YoFi.V3.Entities.Providers;
 
 namespace YoFi.V3.Data;
 
-public static class ServiceCollectionExtensions
+public static partial class ServiceCollectionExtensions
 {
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
@@ -34,7 +34,7 @@ public static class ServiceCollectionExtensions
     public static void PrepareDatabaseAsync(this WebApplication app)
     {
         var logger = app.Services.GetRequiredService<ILogger<ApplicationDbContext>>();
-        logger.LogInformation("[DIAG] PrepareDatabaseAsync called - checking if migration needed");
+        LogPrepareDatabaseCalled(logger);
 
         using (var scope = app.Services.CreateScope())
         {
@@ -46,25 +46,46 @@ public static class ServiceCollectionExtensions
             var pendingMigrations = db.Database.GetPendingMigrations().ToList();
             if (pendingMigrations.Any())
             {
-                logger.LogWarning("[DIAG] Applying {Count} pending migrations: {Migrations}",
-                    pendingMigrations.Count, string.Join(", ", pendingMigrations));
+                LogApplyingPendingMigrations(logger, pendingMigrations.Count, string.Join(", ", pendingMigrations));
             }
             else
             {
-                logger.LogInformation("[DIAG] No pending migrations");
+                LogNoPendingMigrations(logger);
             }
 
             db.Database.Migrate();
-            logger.LogInformation("[DIAG] Database migration completed");
+            LogDatabaseMigrationCompleted(logger);
 
             // Explicitly close the connection after migration
             db.Database.CloseConnection();
-            logger.LogInformation("[DIAG] Database connection closed");
+            LogDatabaseConnectionClosed(logger);
         }
 
+// Enable this for debugging resource release issues
+#if false
         // Force garbage collection to ensure resources are released
-        logger.LogInformation("[DIAG] Forcing GC to release database resources");
+        LogForcingGC(logger);
         GC.Collect();
         GC.WaitForPendingFinalizers();
+#endif
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "PrepareDatabaseAsync called - checking if migration needed")]
+    private static partial void LogPrepareDatabaseCalled(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Applying {Count} pending migrations: {Migrations}")]
+    private static partial void LogApplyingPendingMigrations(ILogger logger, int count, string migrations);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "No pending migrations")]
+    private static partial void LogNoPendingMigrations(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Database migration completed")]
+    private static partial void LogDatabaseMigrationCompleted(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Database connection closed")]
+    private static partial void LogDatabaseConnectionClosed(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Forcing GC to release database resources")]
+    private static partial void LogForcingGC(ILogger logger);
+
 }
