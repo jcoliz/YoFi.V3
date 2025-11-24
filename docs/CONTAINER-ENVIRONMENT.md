@@ -1,0 +1,99 @@
+# Containerizing this app
+
+YoFi.V3 can be built and run in containers. This document will explain why and how.
+
+## Why?
+
+Running in containers supports these developer use cases.
+
+As a developer I can...
+- Run the app quickly in a near-production environment
+- Run all functional tests quickly, with assurance the same code will work as well in production
+- Run the functional tests in the CI pipeline, protecting the codebase from every commit
+- Lower the barrier to evaluation by colleagues
+
+### Near-production environment locally
+
+The container build generates the frontend as a static site. It runs the backend with production settings as a release build. Configuration is handled by environment variables, including CORS settings, in a production-like manner. All this without waiting for any cloud deployments, from the comfort of my desk, reliably and repeatably every time.
+
+### Fast functional tests
+
+If it takes too long to set up and run functional tests, or they're unreliable, we won't run them locally. This leads to the potential for
+decay in the functional tests or last-minute surprises when CI builds fail.
+
+Instead, with one script, we can quickly build the application into containers and run the entire suite of functional tests against it.
+
+```powershell
+./scripts/Run-FunctionalTestsInContainer.ps1
+```
+
+### Functional tests in CI build
+
+Rather than using additional cloud resources for a testing environment, and waiting for a deployment, we can build and run the entire functional
+tests in the same container on the CI machine. This gives us high confidence that any new changes aren't going to break anything in production.
+
+### Peer evaluation
+
+When I want to send the app to a colleague for review, the barrier of entry is much lower to run in a docker container. Rather than having to
+set up all the dependencies, they can simply run the docker compose
+project, and they have a full version of the app running locally.
+
+## How to run locally
+
+The simplest way to get started locally is to run the convenience scripts to build, and to run the compose project.
+
+To run `docker compose build`:
+
+```
+./scripts/Build-Container.ps1
+```
+
+To run `docker compose up --wait -d`, and bring up browser window:
+
+```
+./scripts/Start-Container.ps1
+```
+
+Finally, to run `docker compose down`:
+
+```
+./scripts/Stop-Container.ps1
+```
+
+## How it's built
+
+The [docker-compose-ci](../docker/docker-compose-ci.yml) project contains the orchestration needed to build, run, and (in the future) push and publish the containers. This project sets up the same build-time evironment variables that are used by the CD pipeline to deploy the production app. It runs them using a production-capable runtime configuration using environment variables.
+
+Using a docker compose project to manage building, running, pushing, and publishing centralizes configuration in a single file, clarifying how application containerizing works across all phases.
+
+> [!NOTE] In final production, secrets will come from an Azure Key Vault, so there is a little variance from the final production state, in that way.
+
+The [Backend.dockerfile](../docker/BackEnd.dockerfile) and the Frontend.Nuxt [Dockerfile](../src/FrontEnd.Nuxt/docker/Dockerfile) specify the needed build and run details.
+
+The database runs as an ephemeral SQLite file in the container file system. I have not found a need for persistence across container runs, although that is easily accomplished by mounting a local volume.
+
+Note that containers are not intended to replace a robust local development setup. To make this easy, we even have a script which checks all local development prerequisites so you can catch issues right away.
+
+```powershell
+./scripts/Start-LocalDev.ps1
+```
+
+In the future, I plan to take advantage of coming capability in docker compose to package the entire project in a single OCI unit. This will
+enable an evaluator to simply run one command to pull both containers locally and run the full project.
+
+```bash
+docker run jcoliz/yofi-v3:latest
+```
+
+## Troubleshooting
+
+If functional tests fail against the container, you have a few options:
+
+- Re-run one failed test at a time in Playwright debug mode. Change the `PWDEBUG` setting in [docker.runsettings](../tests/Functional/docker.runsettings) to `1`. This usually shows the problem.
+- Check the docker logs. The backend logs quite a bit of useful information to stdout, which is available in docker logs.
+- Consider rebuilding with higher log levels. Start by setting `YoFi.V3` logging level to `Debug`. The easiest way is to change [appsettings.json](../src/BackEnd/appsettings.json). Just remember to change it back!
+- Check the browser console logs. Occasionally some useful notes are dropped in there.
+
+## Benchmarking performance
+
+Both dockerfiles use intelligent layer caching. While the very first run can take 5+ minutes, it's much faster in subsequent iterations. In my experience, it takes about 60 seconds total to rebuild both containers in the worst case rebuilding all the backend projects and regenerating the frontend. This compares with about 5 minutes on the CI machine to clone, build, publish and deploy a new version. On larger apps, I have seen an even greater savings.
