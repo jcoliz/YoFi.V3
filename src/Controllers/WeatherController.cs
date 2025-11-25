@@ -15,23 +15,15 @@ public partial class WeatherController(WeatherFeature weatherFeature, ILogger<We
 {
     [HttpGet]
     [ProducesResponseType(typeof(WeatherForecast[]), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeatherForecasts()
     {
-        try
-        {
-            LogFetchingWeatherForecasts();
+        LogFetchingWeatherForecasts();
 
-            const int numberOfDays = 5;
-            var weather = await weatherFeature.GetWeatherForecasts(numberOfDays);
-            LogSuccessfullyFetchedWeatherForecasts(numberOfDays);
-            return Ok(weather);
-        }
-        catch (Exception ex)
-        {
-            LogErrorFetchingWeatherForecasts(ex);
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+        const int numberOfDays = 5;
+        var weather = await weatherFeature.GetWeatherForecasts(numberOfDays);
+        LogSuccessfullyFetchedWeatherForecasts(numberOfDays);
+        return Ok(weather);
     }
 
     [LoggerMessage(0, LogLevel.Debug, "{Location}: Fetching weather forecasts")]

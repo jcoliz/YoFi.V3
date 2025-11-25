@@ -39,42 +39,26 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateUser()
     {
-        try
+        var newUser = new TestUser(new Random().Next(1, 0x10000));
+
+        var result = await userManager.CreateAsync(new IdentityUser
         {
-            var newUser = new TestUser(new Random().Next(1, 0x10000));
+            UserName = newUser.Username,
+            Email = newUser.Email,
+            EmailConfirmed = false
+        }, newUser.Password);
 
-            var result = await userManager.CreateAsync(new IdentityUser
-            {
-                UserName = newUser.Username,
-                Email = newUser.Email,
-                EmailConfirmed = false
-            }, newUser.Password);
-
-            if (!result.Succeeded)
-            {
-                var resultDetails = new ProblemDetails
-                {
-                    Title = "Forbidden",
-                    Detail = string.Join("; ", result.Errors.Select(e => e.Description)),
-                    Status = StatusCodes.Status403Forbidden
-                };
-                return StatusCode(StatusCodes.Status403Forbidden, resultDetails);
-            }
-
-            LogOkUsername(newUser.Username);
-            return Created(nameof(CreateUser), newUser);
-        }
-        catch (Exception ex)
+        if (!result.Succeeded)
         {
-            LogFailed(ex);
-            var result = new ProblemDetails
-            {
-                Title = "Failed to create test user",
-                Detail = ex.Message,
-                Status = StatusCodes.Status500InternalServerError
-            };
-            return StatusCode(StatusCodes.Status500InternalServerError, result);
+            return Problem(
+                title: "Unable to create user",
+                detail: string.Join("; ", result.Errors.Select(e => e.Description)),
+                statusCode: StatusCodes.Status403Forbidden
+            );
         }
+
+        LogOkUsername(newUser.Username);
+        return Created(nameof(CreateUser), newUser);
     }
 
     /// <summary>
@@ -93,62 +77,72 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ApproveUser(string username)
     {
-        try
+        if (!username.Contains("__TEST__"))
         {
-            if (!username.Contains("__TEST__"))
-            {
-                var result = new ProblemDetails
-                {
-                    Title = "Forbidden",
-                    Detail = "Only test users can be approved via this method",
-                    Status = StatusCodes.Status403Forbidden
-                };
-                return StatusCode(StatusCodes.Status403Forbidden, result);
-            }
-            // TODO: Actually do the approval!!
-            LogOkUsername(username);
-            return NoContent();
+            return Problem(
+                detail: "Only test users can be approved via this method",
+                statusCode: StatusCodes.Status403Forbidden
+            );
         }
-        catch (Exception ex)
-        {
-            LogFailed(ex);
-            var result = new ProblemDetails
-            {
-                Title = "Failed to approve test user",
-                Detail = ex.Message,
-                Status = StatusCodes.Status500InternalServerError
-            };
-            return StatusCode(StatusCodes.Status500InternalServerError, result);
-        }
+
+        // TODO: Actually do the approval!!
+        LogOkUsername(username);
+        return NoContent();
     }
 
     [HttpDelete("users")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult DeleteUsers()
+    public async Task<IActionResult> DeleteUsers()
     {
-        try
-        {
-            userManager
-                .Users
-                .Where(u => (u.UserName != null) && u.UserName.Contains("__TEST__"))
-                .ToList()
-                .ForEach(u => userManager.DeleteAsync(u));
+        var testUsers = userManager.Users
+            .Where(u => u.UserName != null && u.UserName.Contains("__TEST__"))
+            .ToList();
 
-            LogOkUsername("all users");
-            return NoContent();
-        }
-        catch (Exception ex)
+        foreach (var user in testUsers)
         {
-            LogFailed(ex);
-            var result = new ProblemDetails
-            {
-                Title = "Failed to delete test users",
-                Detail = ex.Message,
-                Status = StatusCodes.Status500InternalServerError
-            };
-            return StatusCode(StatusCodes.Status500InternalServerError, result);
+            await userManager.DeleteAsync(user);
+        }
+
+        LogOkUsername("all users");
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Generate various error codes for testing purposes
+    /// </summary>
+    /// <param name="code">Kind of error desired</param>
+    /// <returns></returns>
+    [HttpGet("errors")]
+    public IActionResult Errors(string? code)
+    {
+        switch (code?.ToLowerInvariant())
+        {
+            case "400":
+                return BadRequest();
+            case "400m":
+                return BadRequest("This is a test 400 error with a message");
+            case "400p":
+                return Problem(
+                    detail: "This is a test 400 error with a message",
+                    statusCode: StatusCodes.Status400BadRequest
+                );
+            case "401":
+                return Unauthorized();
+            case "403":
+                return Forbid();
+            case "403p":
+                return Problem(
+                    detail: "This is a test 403 error with a message",
+                    statusCode: StatusCodes.Status403Forbidden
+                );
+            case "404":
+                return NotFound();
+            case "500":
+                throw new Exception("This is a test 500 error");
+            default:
+                throw new NotImplementedException();
         }
     }
 

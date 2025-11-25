@@ -14,42 +14,36 @@ public partial class VersionController(IOptions<ApplicationOptions> options, ILo
 {
     [HttpGet]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetVersion()
     {
-        try
+        var version = options.Value.Version;
+        if (version is null)
         {
-            var version = options.Value.Version;
-            if (version is null)
-            {
-                LogVersionNotFound();
-                return NotFound();
-            }
-            var environment = options.Value.Environment;
-            if (environment == EnvironmentType.Local)
-            {
-                version += " (Local)";
-            }
-            else if (environment == EnvironmentType.Container)
-            {
-                version += " (Container)";
-            }
+            LogVersionNotFound();
+            return Problem(
+                title: "Version not found",
+                detail: "Application version information is not available",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
 
-            LogOk(version);
-            return Ok(version);
-        }
-        catch (Exception ex)
+        var versionWithEnv = options.Value.Environment switch
         {
-            LogFailed(ex);
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-        }
+            EnvironmentType.Local => $"{version} (Local)",
+            EnvironmentType.Container => $"{version} (Container)",
+            _ => version
+        };
+
+        LogOk(versionWithEnv);
+        return Ok(versionWithEnv);
     }
 
     [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
     private partial void LogFailed(Exception ex, [CallerMemberName] string location = "");
 
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK. version {Version}")]    
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK. version {Version}")]
     private partial void LogOk(string version, [CallerMemberName] string location = "");
 
     [LoggerMessage(3, LogLevel.Warning, "{Location}: Version not found")]
