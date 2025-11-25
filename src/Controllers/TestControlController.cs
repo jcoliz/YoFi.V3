@@ -9,8 +9,16 @@ namespace YoFi.V3.Controllers;
 
 public record TestUser(int Id)
 {
-    public string Username { get; init; } = $"__TEST__{Id:X4}";
-    public string Email { get; init; } = $"__TEST__{Id:X4}@test.com";
+    /// <summary>
+    /// Prefix for test users
+    /// </summary>
+    /// <remarks>
+    /// A user with this value in their username is being used during functional testing.
+    /// </remarks>
+    internal const string Prefix = "__TEST__";
+
+    public string Username { get; init; } = $"{Prefix}{Id:X4}";
+    public string Email { get; init; } = $"{Prefix}{Id:X4}@test.com";
     public string Password { get; init; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
 }
 
@@ -26,13 +34,6 @@ public partial class TestControlController(
     ILogger<TestControlController> logger
 ) : ControllerBase
 {
-    /// <summary>
-    /// Prefix for test users
-    /// </summary>
-    /// <remarks>
-    /// A user with this value in their username is being used during functional testing.
-    /// </remarks>
-    const string TestUserPrefix = "__TEST__";
 
     /// <summary>
     /// Create a test user
@@ -85,7 +86,7 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ApproveUser(string username)
     {
-        if (!username.Contains(TestUserPrefix))
+        if (!username.Contains(TestUser.Prefix))
         {
             return Problem(
                 detail: "Only test users can be approved via this method",
@@ -105,7 +106,7 @@ public partial class TestControlController(
     public async Task<IActionResult> DeleteUsers()
     {
         var testUsers = userManager.Users
-            .Where(u => u.UserName != null && u.UserName.Contains(TestUserPrefix))
+            .Where(u => u.UserName != null && u.UserName.Contains(TestUser.Prefix))
             .ToList();
 
         foreach (var user in testUsers)
