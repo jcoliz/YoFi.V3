@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 defineProps<{
   show: boolean
   title?: string
@@ -10,8 +12,14 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
 }>()
 
+const showMore = ref(false)
+
 const close = () => {
   emit('update:show', false)
+}
+
+const toggleMore = () => {
+  showMore.value = !showMore.value
 }
 </script>
 <template>
@@ -26,6 +34,27 @@ const close = () => {
     <span>
       {{ details }}
     </span>
+    <div v-if="more" class="mt-2">
+      <a
+        href="#"
+        class="small text-danger text-decoration-none"
+        @click.prevent="toggleMore"
+      >
+        <FeatherIcon
+          :icon="showMore ? 'chevron-up' : 'chevron-down'"
+          size="16"
+          class="me-1"
+        />
+        {{ showMore ? 'Hide details' : 'Show details' }}
+      </a>
+      <div
+        v-if="showMore"
+        class="mt-2 small text-muted"
+        style="white-space: pre-wrap; word-break: break-word;"
+      >
+        {{ more }}
+      </div>
+    </div>
     <button
       type="button"
       class="btn-close"
