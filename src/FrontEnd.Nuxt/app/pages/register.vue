@@ -20,29 +20,35 @@ const form = ref({
 const response = ref()
 
 // Form validation and error handling
-const errors = ref<string[]>([])
+const showError = ref(false)
+const errorTitle = ref('')
+const errorDetails = ref('')
 const isLoading = ref(false)
 const isRegistered = ref(false)
 
 // Form submission handler
 const handleSubmit = async () => {
-  errors.value = []
+  showError.value = false
+  const validationErrors: string[] = []
 
   // Client-side validation
   if (!form.value.email) {
-    errors.value.push('Email is required')
+    validationErrors.push('Email is required')
   }
   if (!form.value.username) {
-    errors.value.push('Username is required')
+    validationErrors.push('Username is required')
   }
   if (!form.value.password) {
-    errors.value.push('Password is required')
+    validationErrors.push('Password is required')
   }
   if (form.value.password !== form.value.passwordAgain) {
-    errors.value.push('Passwords do not match')
+    validationErrors.push('Passwords do not match')
   }
 
-  if (errors.value.length > 0) {
+  if (validationErrors.length > 0) {
+    errorTitle.value = 'Please fix the following errors:'
+    errorDetails.value = validationErrors.join('; ')
+    showError.value = true
     return
   }
 
@@ -66,9 +72,9 @@ const handleSubmit = async () => {
     console.log('- Full error object:', error)
 
     // Handle ProblemDetails format
-    const title = error.data?.title ?? 'Registration failed'
-    const detail = error.data?.detail ?? error.message ?? 'Please try again'
-    errors.value = [`${title}: ${detail}`]
+    errorTitle.value = error.data?.title ?? 'Registration failed'
+    errorDetails.value = error.data?.detail ?? error.message ?? 'Please try again'
+    showError.value = true
   } finally {
     isLoading.value = false
   }
@@ -136,27 +142,12 @@ const isWeakPassword = computed(() => {
             @submit.prevent="handleSubmit"
           >
             <!-- Error Display -->
-            <div
-              v-if="errors.length > 0"
-              class="alert alert-danger alert-dismissible fade show"
-              role="alert"
+            <ErrorDisplay
+              v-model:show="showError"
+              :title="errorTitle"
+              :details="errorDetails"
               data-test-id="Errors"
-            >
-              <strong>Please fix the following errors:</strong><br />
-              <span
-                v-for="error in errors"
-                :key="error"
-              >
-                {{ error }}
-              </span>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close"
-                @click="errors = []"
-              ></button>
-            </div>
+            />
 
             <!-- Email Field -->
             <div class="mb-3">
