@@ -18,11 +18,13 @@ const form = ref({
 
 // Form validation and error handling
 const errors = ref<string[]>([])
+const showErrors = ref(false)
 const isLoading = ref(false)
 
 // Form submission handler
 const handleSubmit = async () => {
   errors.value = []
+  showErrors.value = false
 
   // Client-side validation
   if (!form.value.username) {
@@ -33,6 +35,7 @@ const handleSubmit = async () => {
   }
 
   if (errors.value.length > 0) {
+    showErrors.value = true
     return
   }
 
@@ -61,6 +64,7 @@ const handleSubmit = async () => {
     const title = error.data?.title ?? 'Login failed'
     const detail = error.data?.detail ?? error.message ?? 'Please check your credentials'
     errors.value = [`${title}: ${detail}`]
+    showErrors.value = true
   } finally {
     isLoading.value = false
   }
@@ -80,27 +84,10 @@ const handleSubmit = async () => {
             @submit.prevent="handleSubmit"
           >
             <!-- Error Display -->
-            <div
-              v-if="errors.length > 0"
-              class="alert alert-danger alert-dismissible fade show"
-              role="alert"
-              data-test-id="error-display"
-            >
-              <strong>Please fix the following errors:</strong><br />
-              <span
-                v-for="error in errors"
-                :key="error"
-              >
-                {{ error }}
-              </span>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close"
-                @click="errors = []"
-              ></button>
-            </div>
+            <ErrorDisplay
+              v-model:show="showErrors"
+              :details="errors.join(', ')"
+            />
 
             <!-- Username Field -->
             <div class="mb-3">
