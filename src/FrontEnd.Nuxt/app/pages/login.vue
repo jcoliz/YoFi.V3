@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * Login Page
+ *
+ * User authentication page with username/password login form.
+ * Handles client-side validation, displays error messages using RFC 7807 Problem Details,
+ * and redirects authenticated users to their profile.
+ */
+
+import type { IProblemDetails } from '~/utils/apiclient'
+
 definePageMeta({
   title: 'Login',
   layout: 'blank',
@@ -17,24 +27,30 @@ const form = ref({
 })
 
 // Form validation and error handling
-const errors = ref<string[]>([])
+const errorProblem = ref<IProblemDetails | undefined>()
 const showErrors = ref(false)
 const isLoading = ref(false)
 
 // Form submission handler
 const handleSubmit = async () => {
-  errors.value = []
+  errorProblem.value = undefined
   showErrors.value = false
 
   // Client-side validation
+  const validationErrors: string[] = []
   if (!form.value.username) {
-    errors.value.push('Username is required')
+    validationErrors.push('Username is required')
   }
   if (!form.value.password) {
-    errors.value.push('Password is required')
+    validationErrors.push('Password is required')
   }
 
-  if (errors.value.length > 0) {
+  if (validationErrors.length > 0) {
+    // Create ad-hoc problem details for validation errors
+    errorProblem.value = {
+      title: 'Please fix the following errors:',
+      detail: validationErrors.join(', '),
+    }
     showErrors.value = true
     return
   }
@@ -60,10 +76,19 @@ const handleSubmit = async () => {
     console.log('- Data:', error.data)
     console.log('- Full error object:', error)
 
-    // Handle ProblemDetails format
-    const title = error.data?.title ?? 'Login failed'
-    const detail = error.data?.detail ?? error.message ?? 'Please check your credentials'
-    errors.value = [`${title}: ${detail}`]
+    // TODO: Now that we are directly displaying the error details, need to soften the
+    // language a bit for end users.
+    // If the API returned a problem details object in error.data, use it
+    if (error.data && typeof error.data === 'object' && 'title' in error.data) {
+      errorProblem.value = error.data as IProblemDetails
+    } else {
+      // Otherwise, compose an ad-hoc problem details object
+      errorProblem.value = {
+        title: 'Login failed',
+        detail: error.message ?? 'Please check your credentials',
+        status: error.status,
+      }
+    }
     showErrors.value = true
   } finally {
     isLoading.value = false
@@ -86,7 +111,7 @@ const handleSubmit = async () => {
             <!-- Error Display -->
             <ErrorDisplay
               v-model:show="showErrors"
-              :details="errors.join(', ')"
+              :problem="errorProblem"
             />
 
             <!-- Username Field -->

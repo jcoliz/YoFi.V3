@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+/**
+ * Error Display Component
+ *
+ * Displays error messages in a Bootstrap alert with optional expandable details.
+ * Supports RFC 7807 Problem Details format and shows trace IDs for server errors.
+ */
 
+import { ref, computed } from 'vue'
+import type { IProblemDetails } from '~/utils/apiclient'
+
+/**
+ * Component props
+ * @property {boolean} show - Controls visibility of the error alert
+ * @property {IProblemDetails} [problem] - Error details in RFC 7807 Problem Details format
+ */
 const props = defineProps<{
   show: boolean
-  title?: string
-  details?: string
-  code?: number
-  traceId?: string
+  problem?: IProblemDetails
 }>()
 
 const emit = defineEmits<{
@@ -16,8 +26,11 @@ const emit = defineEmits<{
 const showMore = ref(false)
 
 const more = computed(() => {
-  if (props.code !== undefined && props.code >= 500 && props.traceId) {
-    return `Please contact support, and include this trace ID: ${props.traceId}`
+  const traceId = props.problem?.instance
+  const status = props.problem?.status
+
+  if (status !== undefined && status >= 500 && traceId) {
+    return traceId
   }
   return undefined
 })
@@ -37,10 +50,10 @@ const toggleMore = () => {
     role="alert"
     data-test-id="error-display"
   >
-    <strong>{{ title || 'Please fix the following errors:' }}</strong
+    <strong>{{ problem?.title || 'Please fix the following errors:' }}</strong
     ><br />
     <span>
-      {{ details }}
+      {{ problem?.detail }}
     </span>
     <div
       v-if="more"

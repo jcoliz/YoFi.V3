@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * Registration Page
+ *
+ * User account registration page with email, username, and password validation.
+ * Displays success message after registration and prevents already-authenticated users
+ * from accessing. Includes password strength validation and confirmation matching.
+ */
+
+import type { IProblemDetails } from '~/utils/apiclient'
+
 definePageMeta({
   title: 'Register',
   layout: 'blank',
@@ -20,14 +30,14 @@ const form = ref({
 const response = ref()
 
 // Form validation and error handling
+const errorProblem = ref<IProblemDetails | undefined>()
 const showError = ref(false)
-const errorTitle = ref('')
-const errorDetails = ref('')
 const isLoading = ref(false)
 const isRegistered = ref(false)
 
 // Form submission handler
 const handleSubmit = async () => {
+  errorProblem.value = undefined
   showError.value = false
   const validationErrors: string[] = []
 
@@ -46,8 +56,11 @@ const handleSubmit = async () => {
   }
 
   if (validationErrors.length > 0) {
-    errorTitle.value = 'Please fix the following errors:'
-    errorDetails.value = validationErrors.join('; ')
+    // Create ad-hoc problem details for validation errors
+    errorProblem.value = {
+      title: 'Please fix the following errors:',
+      detail: validationErrors.join(', '),
+    }
     showError.value = true
     return
   }
@@ -71,9 +84,17 @@ const handleSubmit = async () => {
     console.log('- Data:', error.data)
     console.log('- Full error object:', error)
 
-    // Handle ProblemDetails format
-    errorTitle.value = error.data?.title ?? 'Registration failed'
-    errorDetails.value = error.data?.detail ?? error.message ?? 'Please try again'
+    // If the API returned a problem details object in error.data, use it
+    if (error.data && typeof error.data === 'object' && 'title' in error.data) {
+      errorProblem.value = error.data as IProblemDetails
+    } else {
+      // Otherwise, compose an ad-hoc problem details object
+      errorProblem.value = {
+        title: 'Registration failed',
+        detail: error.message ?? 'Please try again',
+        status: error.status,
+      }
+    }
     showError.value = true
   } finally {
     isLoading.value = false
@@ -144,8 +165,7 @@ const isWeakPassword = computed(() => {
             <!-- Error Display -->
             <ErrorDisplay
               v-model:show="showError"
-              :title="errorTitle"
-              :details="errorDetails"
+              :problem="errorProblem"
               data-test-id="Errors"
             />
 
