@@ -27,6 +27,14 @@ public partial class TestControlController(
 ) : ControllerBase
 {
     /// <summary>
+    /// Prefix for test users
+    /// </summary>
+    /// <remarks>
+    /// A user with this value in their username is being used during functional testing.
+    /// </remarks>
+    const string TestUserPrefix = "__TEST__";
+
+    /// <summary>
     /// Create a test user
     /// </summary>
     /// <remarks>
@@ -77,7 +85,7 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ApproveUser(string username)
     {
-        if (!username.Contains("__TEST__"))
+        if (!username.Contains(TestUserPrefix))
         {
             return Problem(
                 detail: "Only test users can be approved via this method",
@@ -97,7 +105,7 @@ public partial class TestControlController(
     public async Task<IActionResult> DeleteUsers()
     {
         var testUsers = userManager.Users
-            .Where(u => u.UserName != null && u.UserName.Contains("__TEST__"))
+            .Where(u => u.UserName != null && u.UserName.Contains(TestUserPrefix))
             .ToList();
 
         foreach (var user in testUsers)
@@ -140,7 +148,12 @@ public partial class TestControlController(
             case "404":
                 return NotFound();
             case "500":
+#pragma warning disable CA2201 // Do not raise reserved exception types
+#pragma warning disable S112 // General exceptions should never be thrown
+                // This is only for testing purposes, it's OK here!
                 throw new Exception("This is a test 500 error");
+#pragma warning restore S112
+#pragma warning restore CA2201
             default:
                 throw new NotImplementedException();
         }
