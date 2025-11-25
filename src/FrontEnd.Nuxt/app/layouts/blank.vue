@@ -1,3 +1,9 @@
+<!--
+  Blank Layout
+
+  Minimal centered layout without header or navigation.
+  Used for login, registration, and other standalone pages.
+-->
 <template>
   <main
     data-test-id="blank-layout"

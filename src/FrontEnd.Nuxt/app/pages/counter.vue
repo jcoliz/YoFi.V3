@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * Counter Page
+ *
+ * Simple interactive counter demonstrating client-side state management
+ * and Application Insights telemetry integration. Each button click
+ * increments the counter and logs a custom event to Azure Application Insights.
+ */
+
 import { ref } from 'vue'
 import type { ApplicationInsights } from '@microsoft/applicationinsights-web'
 

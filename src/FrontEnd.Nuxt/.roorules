@@ -1,0 +1,9 @@
+# Project-specific rules for Roo AI assistant
+
+## Files to Never Edit
+
+### Auto-generated API Client
+
+- **NEVER** edit `app/utils/apiclient.ts` - this file is auto-generated using the NSwag toolchain from the backend API specification
+- Any changes to this file will be overwritten when the API client is regenerated
+- To modify API client behavior, update the backend API or NSwag configuration instead

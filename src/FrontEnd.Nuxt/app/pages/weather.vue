@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * Weather Page
+ *
+ * Displays weather forecast data fetched from the backend API.
+ * Demonstrates authenticated API calls with automatic token refresh
+ * and client-side data rendering with loading states.
+ */
+
 import { ref, onMounted } from 'vue'
 import * as api from '../utils/apiclient'
 import { useAuthFetch } from '../composables/useAuthFetch'

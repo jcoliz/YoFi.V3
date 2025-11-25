@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * About Page
+ *
+ * Displays version information for both frontend and backend, along with
+ * configuration details like API base URL and Application Insights connection.
+ * Demonstrates authenticated API calls to retrieve backend version.
+ */
+
 import * as api from '../utils/apiclient'
 import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({

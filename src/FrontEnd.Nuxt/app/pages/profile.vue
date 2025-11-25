@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * Profile Page
+ *
+ * User profile management page displaying account information, workspace details,
+ * and authentication tokens. Includes edit functionality (UI only, backend integration pending)
+ * and account actions like logout.
+ */
+
 definePageMeta({
   title: 'Profile',
   auth: true,

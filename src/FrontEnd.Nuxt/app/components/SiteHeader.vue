@@ -1,4 +1,12 @@
 <script setup lang="ts">
+/**
+ * Site Header Component
+ *
+ * Main navigation header displaying the application name, navigation links,
+ * and login state. Routes are dynamically generated from the router configuration
+ * based on meta.order property.
+ */
+
 console.log('[DEBUG] SiteHeader: Component loading')
 
 const appConfig = useAppConfig()
