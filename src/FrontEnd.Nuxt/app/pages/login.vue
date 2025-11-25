@@ -87,7 +87,6 @@ const handleSubmit = async () => {
             <ErrorDisplay
               v-model:show="showErrors"
               :details="errors.join(', ')"
-              more="this is a test of the more details section of the error display component."
             />
 
             <!-- Username Field -->

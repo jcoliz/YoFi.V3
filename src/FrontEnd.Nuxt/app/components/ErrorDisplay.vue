@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   show: boolean
   title?: string
   details?: string
-  more?: string
+  code?: number
+  traceId?: string
 }>()
 
 const emit = defineEmits<{
@@ -13,6 +14,13 @@ const emit = defineEmits<{
 }>()
 
 const showMore = ref(false)
+
+const more = computed(() => {
+  if (props.code !== undefined && props.code >= 500 && props.traceId) {
+    return `Please contact support, and include this trace ID: ${props.traceId}`
+  }
+  return undefined
+})
 
 const close = () => {
   emit('update:show', false)
@@ -34,7 +42,10 @@ const toggleMore = () => {
     <span>
       {{ details }}
     </span>
-    <div v-if="more" class="mt-2">
+    <div
+      v-if="more"
+      class="mt-2"
+    >
       <a
         href="#"
         class="small text-danger text-decoration-none"
@@ -50,7 +61,7 @@ const toggleMore = () => {
       <div
         v-if="showMore"
         class="mt-2 small text-muted"
-        style="white-space: pre-wrap; word-break: break-word;"
+        style="white-space: pre-wrap; word-break: break-word"
       >
         {{ more }}
       </div>
