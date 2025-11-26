@@ -30,7 +30,7 @@ Then open the Aspire Dashboard URL shown in the console.
 
 ## Container
 
-The application can be packaged into containers and orchestrated with a [Docker Compose project](../docker/docker-compose-ci.yml).
+The application can be packaged into containers and orchestrated with a [Docker Compose project](../docker/docker-compose-ci.yml). For more details on the container environment, please refer to [CONTAINER-ENVIRONMENT](./CONTAINER-ENVIRONMENT.md).
 
 **Use cases:**
 - Run functional tests in CI pipeline
