@@ -1,7 +1,5 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Identity;
-using NuxtIdentity.AspNetCore.Extensions;
-using NuxtIdentity.Core.Configuration;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
@@ -57,10 +55,6 @@ try
     // Add Identity services
     //
 
-    // Configure JWT options
-    builder.Services.Configure<JwtOptions>(
-        builder.Configuration.GetSection(JwtOptions.SectionName));
-
     // Add Identity
     builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     {
@@ -75,9 +69,7 @@ try
     .AddDefaultTokenProviders();
 
     // Add NuxtIdentity
-    builder.Services.AddNuxtIdentity<IdentityUser>();
-    builder.Services.AddNuxtIdentityEntityFramework<ApplicationDbContext>();
-    builder.Services.AddNuxtIdentityAuthentication();
+    builder.Services.AddNuxtIdentityWithEntityFramework<IdentityUser, ApplicationDbContext>(builder.Configuration);
 
     // See ADR 0007 for a disussion of CORS policies.
     builder.Services.AddCors(options =>

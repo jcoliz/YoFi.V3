@@ -9,6 +9,7 @@
     <ProjectReference Include="..\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
     <ProjectReference Include="..\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\..\submodules\NuxtIdentity\src\EntityFrameworkCore\NuxtIdentity.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
