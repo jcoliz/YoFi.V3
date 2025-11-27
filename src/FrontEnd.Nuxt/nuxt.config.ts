@@ -54,8 +54,6 @@ export default defineNuxtConfig({
           signInResponseRefreshTokenPointer: '/token/refreshToken',
           refreshResponseTokenPointer: '/token/accessToken',
           refreshRequestTokenPointer: '/refreshToken',
-          // CRITICAL: Tell auth module where to find the NEW refresh token in the refresh response
-          refreshResponseRefreshTokenPointer: '/token/refreshToken',
         },
       },
       session: {
@@ -71,7 +69,7 @@ export default defineNuxtConfig({
     },
     sessionRefresh: {
       // Whether to refresh the session every time the browser window is refocused.
-      enableOnWindowFocus: true,
+      enableOnWindowFocus: false,
       // Whether to refresh the session every `X` milliseconds. Set this to `false` to turn it off. The session will only be refreshed if a session already exists.
       // IMPORTANT: Disabled periodic refresh to prevent race conditions with token updates
       // The aggressive 5-second interval was causing multiple simultaneous refresh calls
