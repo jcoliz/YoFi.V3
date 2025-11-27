@@ -12,7 +12,7 @@ definePageMeta({
   auth: true,
 })
 
-const { refreshToken, token, data, signOut } = useAuth()
+const { refreshToken, token, data, signOut, refresh } = useAuth()
 
 const workspace = ref({
   name: 'Default Workspace',
@@ -49,6 +49,14 @@ const systemLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/' })
   } catch (error) {
     console.error('Logout error:', error)
+  }
+}
+
+const doRefreshToken = async () => {
+  try {
+    await refresh()
+  } catch (error) {
+    console.error('Token refresh error:', error)
   }
 }
 
@@ -286,6 +294,14 @@ const handleUpdate = async () => {
         </div>
         <div class="card-body">
           <div class="d-grid gap-2">
+            <button
+              class="btn btn-outline-primary btn-sm"
+              data-test-id="refresh-token"
+              @click="doRefreshToken"
+            >
+              <i class="bi bi-lock me-1" />
+              Refresah Token
+            </button>
             <button
               class="btn btn-outline-warning btn-sm"
               data-test-id="ChangePassword"
