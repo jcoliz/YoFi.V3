@@ -29,6 +29,11 @@ services:
       - APPLICATION__ENVIRONMENT=Container
       - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
       - APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+      - JWT__ISSUER=${JWT_ISSUER:-'http://localhost:5001'}
+      - JWT__AUDIENCE=${JWT_AUDIENCE:-'http://localhost:5001'}
+      # Warning: This key is for development / testing purposes only. Do not use in production!
+      - JWT__KEY=${JWT_KEY:-'YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14='}
+      - JWT__LIFESPAN=${JWT_LIFESPAN:-'00:10:00'}
     restart: always
     ports:
       - '5001:8080'
