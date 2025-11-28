@@ -14,46 +14,9 @@ definePageMeta({
  * in its current form, the app is more of a reference implementation
  * for a modern .NET 10 + Nuxt 4 stack with authentication, authorization,
  * and a variety of best practices.
- *
- * Therefore, this brochure page serves to inform visitors about the
- * technology stack. We want to show off all the various technology
- * components which come together to make this application work.
- *
- * For each, we'd want: Name, logo (image), short explaanation of what
- * we use it for, and a link to the official website.
- *
- * Technologies to highlight:
- * - .NET 10
- * - Nuxt 4
- * - Vue 3
- * - TypeScript
- * - Bootstrap 5
- * - Entity Framework Core
- * - pnpm
- * - Azure Static Web Apps
- * - Azure App Services
- * - Azure Application Insights
- * - Azure Log Analytics
- * - Azure Storage Accounts
- * - Azure Pipelines
- * - .NET Aspire
- * - Docker
- * - PostgreSQL
- * - Sqlite
- * - Playwright
- *
- * Links to my source code repos
- * - YoFi.V3 (this project)
- * - NuxtIdentity
- * - @coliz/vue-base-controls
- *
- * Calls to action
- * - Sign up for an account, and look around
- * - Pull the docker compose project from Docker Hub and run locally
- * - Check out the source code on GitHub
- * - Give feedback via issues or discussions on GitHub
  */
-interface Technology {
+
+ interface Technology {
   name: string
   logo: string
   description: string
@@ -127,7 +90,7 @@ const technologies: Technology[] = [
   },
   {
     name: 'Entity Framework Core',
-    logo: '/images/ef-logo.svg',
+    logo: '/images/dotnet-logo.svg',
     description: 'Manages our database access layer with code-first migrations, SQLite provider for development, and support for switching to PostgreSQL in production',
     link: 'https://docs.microsoft.com/en-us/ef/',
     category: 'Database',
@@ -176,7 +139,7 @@ const technologies: Technology[] = [
   },
   {
     name: 'SQLite',
-    logo: '/images/sqlite-logo.svg',
+    logo: '/images/SQLite-Logo-square.svg',
     description: 'Serves as our single database implementation across development, CI/CD, and production, eliminating environment-specific configuration with file-based storage',
     link: 'https://www.sqlite.org/',
     category: 'Database',
