@@ -19,7 +19,7 @@
         </template>
       </DropDownClientOnly>
       <template #fallback>
-        <div>
+        <div class="opacity-50">
           <slot name="trigger" />
         </div>
       </template>
