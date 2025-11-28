@@ -27,7 +27,7 @@ const systemLogout = async () => {
   <ClientOnly>
     <template #fallback>
       <div
-        class="ms-2 my-1 d-flex align-items-center"
+        class="ms-2 my-1 d-flex align-items-center opacity-50"
         data-test-id="login-state-loading"
       >
         <BaseSpinner />
