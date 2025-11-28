@@ -31,6 +31,7 @@ export default defineNuxtConfig({
   },
   auth: {
     originEnvKey: 'NUXT_PUBLIC_API_BASE_URL',
+    //disableServerSideAuth: true, // Is server side auth causing my multiple refresh token requests??
     provider: {
       type: 'local',
       endpoints: {
@@ -69,7 +70,7 @@ export default defineNuxtConfig({
     },
     sessionRefresh: {
       // Whether to refresh the session every time the browser window is refocused.
-      enableOnWindowFocus: false,
+      enableOnWindowFocus: true,
       // Whether to refresh the session every `X` milliseconds. Set this to `false` to turn it off. The session will only be refreshed if a session already exists.
       // IMPORTANT: Disabled periodic refresh to prevent race conditions with token updates
       // The aggressive 5-second interval was causing multiple simultaneous refresh calls
