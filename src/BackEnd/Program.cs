@@ -84,7 +84,8 @@ try
             {
                 policy.WithOrigins(applicationOptions.AllowedCorsOrigins)
                       .AllowAnyHeader()
-                      .AllowAnyMethod();
+                      .AllowAnyMethod()
+                      .AllowCredentials();
                 logger.LogInformation(4,"CORS configured with allowed origins: {Origins}", string.Join(", ", applicationOptions.AllowedCorsOrigins));
             }
         });
