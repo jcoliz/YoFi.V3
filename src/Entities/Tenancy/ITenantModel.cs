@@ -9,6 +9,7 @@ public interface ITenantModel
     /// Database identity for the tenant which owns this record
     /// </summary>
     /// <remarks>
+    /// Remember to create appropriate foreign key relationships, and an index on TenantId.
     /// Tenancy is designed to be application-independent, so we don't use IModel
     /// as a base interface here.
     /// </remarks>

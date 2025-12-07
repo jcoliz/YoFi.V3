@@ -56,6 +56,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .IsUnique();
         });
 
+        // Configure Transaction
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
+
+            // Index on TenantId for efficient tenant-scoped queries
+            entity.HasIndex(e => e.TenantId);
+
+            // Index on TenantId and date for common queries
+            entity.HasIndex(e => new { e.TenantId, e.Date });
+
+            entity.Property(a => a.Payee)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            // Foreign key relationship to Tenant
+            entity.HasOne(t => t.Tenant)
+                .WithMany()
+                .HasForeignKey(t => t.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // Tenant entity configuration
         modelBuilder.Entity<Tenant>(entity =>
         {
