@@ -5,6 +5,7 @@ using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Data;
 
@@ -13,6 +14,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     #region Data
 
     public DbSet<WeatherForecast> WeatherForecasts
+    {
+        get; set;
+    }
+
+    public DbSet<Tenant> Tenants
+    {
+        get; set;
+    }
+
+    public DbSet<UserTenantRoleAssignment> UserTenantRoleAssignments
     {
         get; set;
     }
@@ -38,6 +49,47 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasIndex(e => e.Key)
                 .IsUnique();
+        });
+
+    // Tenant entity configuration
+    modelBuilder.Entity<Tenant>(entity =>
+    {
+        entity.HasKey(a => a.Id);
+
+        entity.Property(a => a.Name)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        entity.Property(a => a.Description)
+            .IsRequired()
+            .HasMaxLength(500);
+
+        entity.Property(a => a.CreatedAt)
+            .IsRequired();
+        });
+
+        // UserTenantRoleAssignment entity configuration
+        modelBuilder.Entity<UserTenantRoleAssignment>(entity =>
+        {
+            entity.HasKey(uaa => uaa.Id);
+
+            entity.Property(uaa => uaa.UserId)
+                .IsRequired()
+                .HasMaxLength(450); // Standard Identity user ID length
+
+            // Tenant relationship
+            entity.HasOne(uaa => uaa.Tenant)
+                .WithMany(a => a.RoleAssignments)
+                .HasForeignKey(uaa => uaa.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique constraint: one user can have only one role per account
+            entity.HasIndex(uaa => new { uaa.UserId, uaa.TenantId })
+                .IsUnique();
+
+            // Convert enum to string in database
+            entity.Property(uaa => uaa.Role)
+                .HasConversion<string>();
         });
     }
 

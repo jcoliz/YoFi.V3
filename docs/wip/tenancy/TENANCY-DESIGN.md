@@ -117,7 +117,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 **Question**: Is an application specific ApplicationUser necessary with navigation property to the user's tenant roles?
 
-Yes, we will create an application user to add helpful navigation properties. This is always handled at the application level, so doesnt interfere with anything the libary is doing.
+Yes, we will create an application user to add helpful navigation properties. This is always handled at the application level, so doesn't interfere with anything the library is doing.
 
 **Rationale**:
 1. **EF Core best practice**: Bidirectional navigation helps with lazy loading and queries
