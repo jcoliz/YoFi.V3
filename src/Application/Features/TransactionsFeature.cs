@@ -1,4 +1,5 @@
 using YoFi.V3.Application.Dto;
+using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy;
@@ -36,7 +37,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         var dtoQuery = query.Select(t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee));
 
-        var result = await dataProvider.ToListAsync(dtoQuery);
+        var result = await dataProvider.ToListNoTrackingAsync(dtoQuery);
 
         return result;
     }
@@ -46,23 +47,12 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
     /// <returns>The requested transaction.</returns>
-    /// <exception cref="KeyNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task<TransactionResultDto> GetTransactionByKeyAsync(Guid key)
     {
-        var query = GetBaseTransactionQuery()
-            .Where(t => t.Key == key);
+        var transaction = await GetTransactionByKeyInternalAsync(key);
 
-        var dtoQuery = query.Select(t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee));
-
-        var result = await dataProvider.ToListAsync(dtoQuery);
-
-        if (result.Count == 0)
-        {
-            // FIX: Use an application-specific exception type.
-            throw new KeyNotFoundException("Transaction not found.");
-        }
-
-        return result[0];
+        return new TransactionResultDto(transaction.Key, transaction.Date, transaction.Amount, transaction.Payee);
     }
 
     /// <summary>
@@ -87,7 +77,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
     /// <param name="transaction">The updated transaction data.</param>
-    /// <exception cref="KeyNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task UpdateTransactionAsync(Guid key,TransactionEditDto transaction)
     {
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
@@ -105,7 +95,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// Deletes a transaction.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to delete.</param>
-    /// <exception cref="KeyNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task DeleteTransactionAsync(Guid key)
     {
         var transaction = await GetTransactionByKeyInternalAsync(key);
@@ -118,7 +108,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
     /// <returns>The transaction entity.</returns>
-    /// <exception cref="KeyNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     private async Task<Transaction> GetTransactionByKeyInternalAsync(Guid key)
     {
         var query = GetBaseTransactionQuery()
@@ -128,8 +118,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         if (result.Count == 0)
         {
-            // FIX: Use an application-specific exception type.
-            throw new KeyNotFoundException("Transaction not found.");
+            throw new TransactionNotFoundException(key);
         }
 
         return result[0];

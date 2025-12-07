@@ -83,4 +83,9 @@ public class InMemoryDataProvider : IDataProvider
     {
         return Task.FromResult(query.ToList());
     }
+
+    public void Remove(IModel item)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -117,27 +117,7 @@ var transaction = await dataProvider.FirstOrDefaultAsync(query)
 
 ---
 
-#### 4. **Potential Null Reference on Tenant** (High Priority)
-**Issue:** Line 15 assumes `tenantProvider.CurrentTenant` is never null.
-
-**Current Code:**
-```csharp
-private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
-```
-
-**Impact:**
-- Will throw `NullReferenceException` if no tenant context exists
-- Unclear error message for caller
-
-**Recommendation:** Add null check with clear exception
-```csharp
-private readonly Tenant _currentTenant = tenantProvider.CurrentTenant
-    ?? throw new InvalidOperationException("No tenant context available.");
-```
-
----
-
-#### 5. **Missing Input Validation** (Medium Priority)
+#### 4. **Missing Input Validation** (Medium Priority)
 **Issue:** No validation on input parameters.
 
 **Examples:**
@@ -171,7 +151,7 @@ Consider using FluentValidation or DataAnnotations for DTO validation.
 
 ---
 
-#### 6. **No Tracking Optimization** (Low Priority)
+#### 5. **No Tracking Optimization** (Low Priority)
 **Issue:** Read-only queries don't explicitly use no-tracking.
 
 **Current Code:**
@@ -194,7 +174,7 @@ var transaction = await dataProvider.ToListAsync(query);
 
 ---
 
-#### 7. **Single Update Item Using UpdateRange** (Low Priority)
+#### 6. **Single Update Item Using UpdateRange** (Low Priority)
 **Issue:** Line 100 uses `UpdateRange()` with a single-item array.
 
 **Current Code:**
@@ -210,7 +190,7 @@ dataProvider.UpdateRange([existingTransaction]);
 
 ---
 
-#### 8. **Missing Cancellation Token Support** (Low Priority)
+#### 7. **Missing Cancellation Token Support** (Low Priority)
 **Issue:** Public async methods don't accept `CancellationToken` parameters.
 
 **Impact:**
@@ -234,7 +214,7 @@ Note: This requires updating `IDataProvider` methods to accept `CancellationToke
 
 ---
 
-#### 9. **DTO Mapping Duplication** (Low Priority)
+#### 8. **DTO Mapping Duplication** (Low Priority)
 **Issue:** DTO projection appears in multiple places (lines 37, 55).
 
 **Current Code:**
@@ -263,24 +243,22 @@ var dtoQuery = query.Select(ToResultDto);
 ### Must Fix (High Priority)
 1. ✅ Add XML documentation comments (COMPLETED)
 2. 🔴 Replace `KeyNotFoundException` with custom exception
-3. 🔴 Add null check for `_currentTenant`
 
 ### Should Fix (Medium Priority)
-4. 🟡 Consolidate duplicate query logic
-5. 🟡 Add input validation
-6. 🟡 Use more efficient query methods (`FirstOrDefaultAsync`)
+3. 🟡 Consolidate duplicate query logic
+4. 🟡 Add input validation
+5. 🟡 Use more efficient query methods (`FirstOrDefaultAsync`)
 
 ### Nice to Have (Low Priority)
-7. 🟢 Use `ToListNoTrackingAsync()` for read-only queries
-8. 🟢 Add cancellation token support
-9. 🟢 Extract DTO mapping to reduce duplication
-10. 🟢 Review `UpdateRange()` usage
+6. 🟢 Use `ToListNoTrackingAsync()` for read-only queries
+7. 🟢 Add cancellation token support
+8. 🟢 Extract DTO mapping to reduce duplication
+9. 🟢 Review `UpdateRange()` usage
 
 ## Recommended Implementation Order
 
 1. **Phase 1: Critical Fixes**
    - Create custom exception types
-   - Add tenant null check
    - Add basic input validation
 
 2. **Phase 2: Refactoring**
@@ -296,7 +274,6 @@ var dtoQuery = query.Select(ToResultDto);
 ## Additional Considerations
 
 ### Testing
-- Ensure unit tests cover null tenant scenarios
 - Test validation logic
 - Test custom exception handling
 
