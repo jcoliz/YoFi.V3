@@ -51,21 +51,24 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .IsUnique();
         });
 
-    // Tenant entity configuration
-    modelBuilder.Entity<Tenant>(entity =>
-    {
-        entity.HasKey(a => a.Id);
+        // Tenant entity configuration
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            entity.HasKey(a => a.Id);
 
-        entity.Property(a => a.Name)
-            .IsRequired()
-            .HasMaxLength(100);
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
 
-        entity.Property(a => a.Description)
-            .IsRequired()
-            .HasMaxLength(500);
+            entity.Property(a => a.Name)
+                .IsRequired()
+                .HasMaxLength(100);
 
-        entity.Property(a => a.CreatedAt)
-            .IsRequired();
+            entity.Property(a => a.Description)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(a => a.CreatedAt)
+                .IsRequired();
         });
 
         // UserTenantRoleAssignment entity configuration
