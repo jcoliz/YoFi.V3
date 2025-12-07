@@ -144,8 +144,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public void UpdateRange(IEnumerable<IModel> items)
         => base.UpdateRange(items);
 
-    #endregion
+    void IDataProvider.Remove(IModel item)
+        => base.Remove(item);
 
+    #endregion
 
     #region Query Runners
 

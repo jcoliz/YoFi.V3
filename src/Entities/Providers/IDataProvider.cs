@@ -33,6 +33,12 @@ public interface IDataProvider
     void UpdateRange(IEnumerable<IModel> items);
 
     /// <summary>
+    /// Remove an item
+    /// </summary>
+    /// <param name="item">Item to remove</param>
+    void Remove(IModel item);
+
+    /// <summary>
     /// Save changes previously made
     /// </summary>
     /// <remarks>
@@ -47,6 +53,6 @@ public interface IDataProvider
     /// <typeparam name="T">Type of entities being queried</typeparam>
     /// <param name="query">Query to execute</param>
     /// <returns>List of items</returns>
-    Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : class, IModel;
-    Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : class, IModel;
+    Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : class;
+    Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : class;
 }
