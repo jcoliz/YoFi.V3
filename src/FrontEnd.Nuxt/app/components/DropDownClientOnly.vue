@@ -16,14 +16,28 @@ const dropdown = ref<Dropdown>()
 
 onMounted(() => {
   const tslot = slots.trigger
-  if (tslot) {
+
+  if (!tslot) {
+    console.warn('DropDownClientOnly: No trigger slot provided')
+    return
+  }
+
+  // Wait for DOM to fully render
+  nextTick(() => {
     const nodes = tslot()
-    const node = nodes[0]
-    if (!node?.el) {
-      console.error('DropDownClientOnly: No trigger element found')
+
+    if (!nodes || nodes.length === 0) {
+      console.error('DropDownClientOnly: Trigger slot is empty')
       return
     }
-    const el = node.el as HTMLElement
+
+    const node = nodes[0]
+    const el = node?.el as HTMLElement
+
+    if (!el) {
+      console.error('DropDownClientOnly: No trigger element found', node)
+      return
+    }
     toggleEl.value = el
 
     if (toggleEl.value && !Dropdown.getInstance(toggleEl.value)) {
@@ -31,7 +45,7 @@ onMounted(() => {
       // TODO: This is never fired??
       console.log('dropdown element:', el)
     }
-  }
+  })
 })
 </script>
 <template>

@@ -6,7 +6,7 @@
  * and navigation to profile page.
  */
 
-const { data, signOut } = useAuth()
+const { data, status, signOut } = useAuth()
 
 // Fake login state for demo purposes
 
@@ -51,7 +51,7 @@ const systemLogout = async () => {
     <template #default>
       <!-- Note that popper is handling absolute positioning of the drop-down -->
       <ul class="dropdown-menu dropdown-menu-end text-small shadow">
-        <template v-if="data">
+        <template v-if="status === 'authenticated'">
           <li>
             <NuxtLink
               class="dropdown-item"
