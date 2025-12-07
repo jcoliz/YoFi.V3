@@ -31,7 +31,7 @@ public class Tenant
     public string? DeactivatedByUserId { get; set; }
 
     // Navigation properties
-    public virtual ICollection<UserTenantRoleAssignment> UserAccess { get; set; } = new List<UserAccountAccess>();
+    public virtual ICollection<UserTenantRoleAssignment> UserAccess { get; set; } = new List<UserTenantRoleAssignment>();
 }
 
 public class UserTenantRoleAssignment

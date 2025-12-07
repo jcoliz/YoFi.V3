@@ -60,6 +60,7 @@ Use when changes are isolated to a single layer:
 Use when changes span multiple layers for a single feature:
 
 - **auth**: Authentication and authorization
+- **tenancy**: Managing tenants, user role assignments, invitations
 - **transactions**: Transaction management features
 - **reports**: Reporting functionality
 - **budget**: Budget tracking features
