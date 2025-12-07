@@ -12,13 +12,11 @@ import type { IProblemDetails } from '~/utils/apiclient'
 definePageMeta({
   title: 'Login',
   layout: 'blank',
-  auth: {
-    unauthenticatedOnly: true,
-    navigateAuthenticatedTo: '/profile',
-  },
+  auth: false, // Using login-redirect middleware instead
 })
 
 const { signIn } = useAuth()
+const route = useRoute()
 
 // Reactive form data
 const form = ref({
@@ -59,6 +57,10 @@ const handleSubmit = async () => {
 
   try {
     isLoading.value = true
+
+    // Use the redirect query param if available, otherwise default to '/'
+    const callbackUrl = (route.query.redirect as string) || '/'
+
     await signIn(
       {
         username: form.value.username,
@@ -66,7 +68,7 @@ const handleSubmit = async () => {
       },
       {
         redirect: true,
-        callbackUrl: '/',
+        callbackUrl: callbackUrl,
       },
     )
   } catch (error: any) {
