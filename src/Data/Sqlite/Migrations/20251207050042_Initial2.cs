@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace YoFi.V3.Data.Sqlite.Migrations
 {
     /// <inheritdoc />
-    public partial class AddIdentity : Migration
+    public partial class Initial2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -65,6 +65,22 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RefreshTokens", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "YoFi.V3.WeatherForecasts",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Key = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Date = table.Column<DateOnly>(type: "TEXT", nullable: false),
+                    TemperatureC = table.Column<int>(type: "INTEGER", nullable: false),
+                    Summary = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_YoFi.V3.WeatherForecasts", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -219,6 +235,12 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_YoFi.V3.WeatherForecasts_Key",
+                table: "YoFi.V3.WeatherForecasts",
+                column: "Key",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -241,6 +263,9 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
+
+            migrationBuilder.DropTable(
+                name: "YoFi.V3.WeatherForecasts");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

@@ -6,7 +6,7 @@ namespace YoFi.V3.Entities.Models;
 public record WeatherForecast : IModel
 {
     public long Id { get; set; }
-    public Guid Key { get; set; }
+    public Guid Key { get; set; } = Guid.NewGuid();
     public DateOnly Date { get; set; }
     public int TemperatureC { get; set; }
     public string? Summary { get; set; }

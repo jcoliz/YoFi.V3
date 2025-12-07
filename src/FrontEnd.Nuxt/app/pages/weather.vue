@@ -75,6 +75,7 @@ onMounted(() => {
             <th>Date</th>
             <th>Temp.</th>
             <th>Summary</th>
+            <th>ID</th>
           </tr>
         </thead>
         <tbody data-test-id="forecast-table-body">
@@ -83,10 +84,11 @@ onMounted(() => {
             :key="forecast.id"
           >
             <td>
-              {{ forecast.date?.toLocaleDateString() }} {{ forecast.date?.toLocaleTimeString() }}
+              {{ forecast.date?.toLocaleDateString() }}
             </td>
             <td>{{ forecast.temperatureC }}°C / {{ forecast.temperatureF }}°F</td>
             <td>{{ forecast.summary }}</td>
+            <td>{{ forecast.id }}</td>
           </tr>
         </tbody>
       </table>

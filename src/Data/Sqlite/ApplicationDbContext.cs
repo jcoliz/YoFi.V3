@@ -32,6 +32,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         // Use the extension method from the library
         modelBuilder.ConfigureNuxtIdentityRefreshTokens();
+
+        // Configure WeatherForecast
+        modelBuilder.Entity<WeatherForecast>(entity =>
+        {
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
+        });
     }
 
     #endregion

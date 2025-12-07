@@ -243,11 +243,14 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.WeatherForecast", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Key")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Summary")
@@ -257,6 +260,9 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
 
                     b.ToTable("YoFi.V3.WeatherForecasts");
                 });
