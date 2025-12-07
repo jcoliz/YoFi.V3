@@ -13,11 +13,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     #region Data
 
-    public DbSet<WeatherForecast> WeatherForecasts
-    {
-        get; set;
-    }
-
     public DbSet<Tenant> Tenants
     {
         get; set;
@@ -28,8 +23,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         get; set;
     }
 
+    public DbSet<WeatherForecast> WeatherForecasts
+    {
+        get; set;
+    }
+
+    public DbSet<Transaction> Transactions
+    {
+        get; set;
+    }
+
     /// <summary>
-    /// Referesh tokens for Nuxt Identity
+    /// Refresh tokens for Nuxt Identity
     /// </summary>
     public DbSet<RefreshTokenEntity> RefreshTokens => Set<RefreshTokenEntity>();
 

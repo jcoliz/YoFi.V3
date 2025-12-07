@@ -14,7 +14,7 @@ public interface IModel
     /// key with separate non-clustered index if we don't want to expose this
     /// ID to the public.
     /// </remarks>
-    long Id { get; set; }
+    long Id { get; }
 
     /// <summary>
     /// Public-facing unique identifier for this record
@@ -24,5 +24,5 @@ public interface IModel
     /// when creating a new record, rather than relying on the database
     /// to generate it.
     /// </remarks>
-    Guid Key { get; set; }
+    Guid Key { get; }
 }
