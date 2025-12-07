@@ -14,5 +14,15 @@ public interface IModel
     /// key with separate non-clustered index if we don't want to expose this
     /// ID to the public.
     /// </remarks>
-    int Id { get; set; }
+    long Id { get; set; }
+
+    /// <summary>
+    /// Public-facing unique identifier for this record
+    /// </summary>
+    /// <remarks>
+    /// For compatibility with Sqlite, remember to generate a GUID for the Key
+    /// when creating a new record, rather than relying on the database
+    /// to generate it.
+    /// </remarks>
+    Guid Key { get; set; }
 }
