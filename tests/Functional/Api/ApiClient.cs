@@ -1976,14 +1976,8 @@ namespace YoFi.V3.Tests.Functional.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class WeatherForecast
+    public partial class WeatherForecast : BaseModel
     {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public long Id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("key")]
-        public System.Guid Key { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("date")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -1997,6 +1991,18 @@ namespace YoFi.V3.Tests.Functional.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("temperatureF")]
         public int TemperatureF { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BaseModel
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public long Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public System.Guid Key { get; set; }
 
     }
 

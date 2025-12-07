@@ -10,15 +10,8 @@ namespace YoFi.V3.Entities.Models;
 /// This is a simple example model for bringing up tenancy.
 /// </remarks>
 [Table("YoFi.V3.Transactions")]
-public record Transaction : ITenantModel, IModel
+public record Transaction : BaseTenantModel
 {
-    /// <inheritdoc/>
-    public long Id { get; set; }
-    /// <inheritdoc/>
-    public Guid Key { get; set; } = Guid.NewGuid();
-    /// <inheritdoc/>
-    public long TenantId { get; set; }
-
     /// <summary>
     /// Date the transaction occurred
     /// </summary>

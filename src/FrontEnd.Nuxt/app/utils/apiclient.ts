@@ -1029,15 +1029,11 @@ export interface ITestUser {
     password?: string;
 }
 
-export class WeatherForecast implements IWeatherForecast {
+export class BaseModel implements IBaseModel {
     id?: number;
     key?: string;
-    date?: Date;
-    temperatureC?: number;
-    summary?: string | undefined;
-    temperatureF?: number;
 
-    constructor(data?: IWeatherForecast) {
+    constructor(data?: IBaseModel) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -1050,16 +1046,12 @@ export class WeatherForecast implements IWeatherForecast {
         if (_data) {
             this.id = _data["id"];
             this.key = _data["key"];
-            this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
-            this.temperatureC = _data["temperatureC"];
-            this.summary = _data["summary"];
-            this.temperatureF = _data["temperatureF"];
         }
     }
 
-    static fromJS(data: any): WeatherForecast {
+    static fromJS(data: any): BaseModel {
         data = typeof data === 'object' ? data : {};
-        let result = new WeatherForecast();
+        let result = new BaseModel();
         result.init(data);
         return result;
     }
@@ -1068,17 +1060,54 @@ export class WeatherForecast implements IWeatherForecast {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["key"] = this.key;
-        data["date"] = this.date ? formatDate(this.date) : undefined as any;
-        data["temperatureC"] = this.temperatureC;
-        data["summary"] = this.summary;
-        data["temperatureF"] = this.temperatureF;
         return data;
     }
 }
 
-export interface IWeatherForecast {
+export interface IBaseModel {
     id?: number;
     key?: string;
+}
+
+export class WeatherForecast extends BaseModel implements IWeatherForecast {
+    date?: Date;
+    temperatureC?: number;
+    summary?: string | undefined;
+    temperatureF?: number;
+
+    constructor(data?: IWeatherForecast) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
+            this.temperatureC = _data["temperatureC"];
+            this.summary = _data["summary"];
+            this.temperatureF = _data["temperatureF"];
+        }
+    }
+
+    static override fromJS(data: any): WeatherForecast {
+        data = typeof data === 'object' ? data : {};
+        let result = new WeatherForecast();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? formatDate(this.date) : undefined as any;
+        data["temperatureC"] = this.temperatureC;
+        data["summary"] = this.summary;
+        data["temperatureF"] = this.temperatureF;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IWeatherForecast extends IBaseModel {
     date?: Date;
     temperatureC?: number;
     summary?: string | undefined;
