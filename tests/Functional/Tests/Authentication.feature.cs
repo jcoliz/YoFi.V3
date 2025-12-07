@@ -287,9 +287,12 @@ public class UserAuthenticationTests : AuthenticationSteps
     /// <remarks>
     /// It seems the application doesn't always redirect logged-in users away from the login page.
     /// This could be due to caching issues or session management quirks.
+    ///
+    /// UPDATE: Have worked in this area, so it seems to be working now. Will try
+    /// removing the Explicit attribute to see if the test is stable.
     /// </remarks>
     [Test]
-    [Explicit("Flaky test - sometimes fails due to application behavior")]
+    //[Explicit("Flaky test - sometimes fails due to application behavior")]
     public async Task LoggedInUserCannotAccessLoginPage()
     {
         // Given I am logged in
