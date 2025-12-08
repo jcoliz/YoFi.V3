@@ -27,8 +27,23 @@ public class WeatherTests
         // Then: The result should be an array of WeatherForecast with the expected length
         Assert.That(result, Is.TypeOf<WeatherForecast[]>());
         Assert.That(result.Length, Is.EqualTo(5));
-        
+
         // Verify that forecasts were actually stored in the data provider
         Assert.That(_dataProvider.WeatherForecasts.Count(), Is.EqualTo(5));
+    }
+
+    [Test]
+    public async Task GetWeatherForecasts_TemperatureF_CalculatedCorrectly()
+    {
+        // Arrange: Get some forecasts
+        var result = await _weatherFeature.GetWeatherForecasts(1);
+        var forecast = result[0];
+
+        // Act: Access the calculated TemperatureF property
+        var temperatureF = forecast.TemperatureF;
+
+        // Assert: Verify the Fahrenheit conversion is correct
+        var expectedF = 32 + (forecast.TemperatureC * 9 / 5);
+        Assert.That(temperatureF, Is.EqualTo(expectedF));
     }
 }
