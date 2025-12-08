@@ -4,10 +4,10 @@
     <DataCollectors>
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
-          <!-- Include only Application Features and Entities -->
-          <Include>[YoFi.V3.Application]YoFi.V3.Application.Features.*,[YoFi.V3.Application]YoFi.V3.Application.Dto.*,[YoFi.V3.Entities]*</Include>
-          <!-- Exclude test assemblies, generated code, and program entry points -->
-          <Exclude>[*.Tests]*,[*]*Program,[*]*.Designer,[*]*.g.cs</Exclude>
+          <!-- Include assemblies -->
+          <Include>[YoFi.V3.Application]*,[YoFi.V3.Entities]*</Include>
+          <!-- Exclude specific types we don't want to measure -->
+          <Exclude>[*.Tests]*,[YoFi.V3.Application]YoFi.V3.Application.ServiceCollectionExtensions,[YoFi.V3.Entities]YoFi.V3.Entities.Options.ApplicationOptions,[*]*Program,[*]*.Designer,[*]*.g.cs</Exclude>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
         </Configuration>
       </DataCollector>
