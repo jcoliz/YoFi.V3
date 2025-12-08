@@ -16,7 +16,7 @@ definePageMeta({
  * and a variety of best practices.
  */
 
- interface Technology {
+interface Technology {
   name: string
   logo: string
   description: string
@@ -42,119 +42,136 @@ const technologies: Technology[] = [
   {
     name: '.NET 10',
     logo: '/images/dotnet-logo.svg',
-    description: 'Powers our REST API backend with ASP.NET Core, featuring Clean Architecture with dependency injection, Entity Framework Core for data access, and JWT-based authentication',
+    description:
+      'Powers our REST API backend with ASP.NET Core, featuring Clean Architecture with dependency injection, Entity Framework Core for data access, and JWT-based authentication',
     link: 'https://dotnet.microsoft.com/',
     category: 'Backend',
   },
   {
     name: 'Nuxt 4',
     logo: '/images/nuxt-icon-green.svg',
-    description: 'Orchestrates our Vue frontend with file-based routing, auto-imported composables, server-side rendering capabilities, and static site generation for Azure deployment',
+    description:
+      'Orchestrates our Vue frontend with file-based routing, auto-imported composables, server-side rendering capabilities, and static site generation for Azure deployment',
     link: 'https://nuxt.com/',
     category: 'Frontend',
   },
   {
     name: 'Vue 3',
     logo: '/images/vue-logo.svg',
-    description: 'Drives our reactive UI components using Composition API, with type-safe props and automatic component registration via Nuxt',
+    description:
+      'Drives our reactive UI components using Composition API, with type-safe props and automatic component registration via Nuxt',
     link: 'https://vuejs.org/',
     category: 'Frontend',
   },
   {
     name: 'TypeScript',
     logo: '/images/ts-logo-512.svg',
-    description: 'Provides type safety across our frontend with auto-generated API client types from backend OpenAPI spec, ensuring compile-time contract validation',
+    description:
+      'Provides type safety across our frontend with auto-generated API client types from backend OpenAPI spec, ensuring compile-time contract validation',
     link: 'https://www.typescriptlang.org/',
     category: 'Frontend',
   },
   {
     name: 'NuxtAuth',
     logo: '/images/nuxt-auth.png',
-    description: 'Handles client-side authentication using local provider pattern, managing JWT tokens from our .NET Identity backend with automatic refresh and secure session storage',
+    description:
+      'Handles client-side authentication using local provider pattern, managing JWT tokens from our .NET Identity backend with automatic refresh and secure session storage',
     link: 'https://auth.sidebase.io/',
     category: 'Frontend',
   },
   {
     name: 'Bootstrap 5',
     logo: '/images/bootstrap-logo.svg',
-    description: 'Styles our responsive UI with utility classes and components, integrated via custom SCSS for theme customization and @coliz/vue-base-controls',
+    description:
+      'Styles our responsive UI with utility classes and components, integrated via custom SCSS for theme customization and @coliz/vue-base-controls',
     link: 'https://getbootstrap.com/',
     category: 'Frontend',
   },
   {
     name: 'pnpm',
     logo: '/images/pnpm-no-name-with-frame.svg',
-    description: 'Manages our frontend dependencies with efficient disk usage and fast installs, integrated into development scripts and Azure Pipelines CI/CD',
+    description:
+      'Manages our frontend dependencies with efficient disk usage and fast installs, integrated into development scripts and Azure Pipelines CI/CD',
     link: 'https://pnpm.io/',
     category: 'Frontend',
   },
   {
     name: 'Entity Framework Core',
     logo: '/images/dotnet-logo.svg',
-    description: 'Manages our database access layer with code-first migrations, SQLite provider for development, and support for switching to PostgreSQL in production',
+    description:
+      'Manages our database access layer with code-first migrations, SQLite provider for development, and support for switching to PostgreSQL in production',
     link: 'https://docs.microsoft.com/en-us/ef/',
     category: 'Database',
   },
   {
     name: '.NET Aspire',
     logo: '/images/dotnet-logo.svg',
-    description: 'Orchestrates our development environment with unified dashboard, service discovery between frontend and backend, and built-in observability during local development',
+    description:
+      'Orchestrates our development environment with unified dashboard, service discovery between frontend and backend, and built-in observability during local development',
     link: 'https://learn.microsoft.com/en-us/dotnet/aspire/',
     category: 'Dev Tools',
   },
   {
     name: 'Azure Static Web Apps',
     logo: '/images/01007-icon-service-Static-Apps.svg',
-    description: 'Hosts our statically-generated Nuxt frontend with global CDN distribution, custom domain support, and direct integration with our App Service backend API',
+    description:
+      'Hosts our statically-generated Nuxt frontend with global CDN distribution, custom domain support, and direct integration with our App Service backend API',
     link: 'https://azure.microsoft.com/en-us/services/app-service/static/',
     category: 'Cloud',
   },
   {
     name: 'Azure App Services',
     logo: '/images/10035-icon-service-App-Services.svg',
-    description: 'Runs our .NET backend API with persistent storage for SQLite database, providing authentication endpoints and business logic for the static frontend',
+    description:
+      'Runs our .NET backend API with persistent storage for SQLite database, providing authentication endpoints and business logic for the static frontend',
     link: 'https://azure.microsoft.com/en-us/services/app-service/',
     category: 'Cloud',
   },
   {
     name: 'Azure Application Insights',
     logo: '/images/00012-icon-service-Application-Insights.svg',
-    description: 'Monitors our production application with distributed tracing, custom telemetry events, and real-time performance metrics integrated via .NET Service Defaults',
+    description:
+      'Monitors our production application with distributed tracing, custom telemetry events, and real-time performance metrics integrated via .NET Service Defaults',
     link: 'https://docs.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview',
     category: 'Cloud',
   },
   {
     name: 'Azure Pipelines',
     logo: '/images/10261-icon-service-Azure-DevOps.svg',
-    description: 'Automates our build, test, and deployment workflow with containerized functional tests, parallel frontend/backend deployments, and Bicep infrastructure provisioning',
+    description:
+      'Automates our build, test, and deployment workflow with containerized functional tests, parallel frontend/backend deployments, and Bicep infrastructure provisioning',
     link: 'https://azure.microsoft.com/en-us/services/devops/pipelines/',
     category: 'Dev Tools',
   },
   {
     name: 'PostgreSQL',
     logo: '/images/postgres-elephant.png',
-    description: 'Our planned database for scaled production deployments, leveraging Entity Framework Core\'s provider model to migrate from SQLite while maintaining identical data access code',
+    description:
+      "Our planned database for scaled production deployments, leveraging Entity Framework Core's provider model to migrate from SQLite while maintaining identical data access code",
     link: 'https://www.postgresql.org/',
     category: 'Database',
   },
   {
     name: 'SQLite',
     logo: '/images/SQLite-Logo-square.svg',
-    description: 'Serves as our single database implementation across development, CI/CD, and production, eliminating environment-specific configuration with file-based storage',
+    description:
+      'Serves as our single database implementation across development, CI/CD, and production, eliminating environment-specific configuration with file-based storage',
     link: 'https://www.sqlite.org/',
     category: 'Database',
   },
   {
     name: 'Docker',
     logo: '/images/docker-mark-blue.svg',
-    description: 'Containerizes our application for functional testing in CI/CD pipelines, with docker-compose orchestration for running complete stack locally',
+    description:
+      'Containerizes our application for functional testing in CI/CD pipelines, with docker-compose orchestration for running complete stack locally',
     link: 'https://www.docker.com/',
     category: 'Dev Tools',
   },
   {
     name: 'Playwright',
     logo: '/images/playwright-logo.svg',
-    description: 'Runs our end-to-end functional tests with C# bindings, validating user workflows against containerized application in CI/CD pipeline',
+    description:
+      'Runs our end-to-end functional tests with C# bindings, validating user workflows against containerized application in CI/CD pipeline',
     link: 'https://playwright.dev/',
     category: 'Testing',
   },
@@ -193,7 +210,8 @@ const sourceRepos = [
             A modern .NET 10 + Nuxt 4 stack with authentication, authorization, and best practices
           </p>
           <p class="mb-4">
-            This reference implementation demonstrates integrating .NET 10, Nuxt 4, authentication, and best practices for building reliable, scalable web applications.
+            This reference implementation demonstrates integrating .NET 10, Nuxt 4, authentication,
+            and best practices for building reliable, scalable web applications.
           </p>
         </div>
       </div>
@@ -243,7 +261,8 @@ const sourceRepos = [
                 <span
                   class="badge"
                   :style="getCategoryStyle(tech.category)"
-                >{{ tech.category }}</span>
+                  >{{ tech.category }}</span
+                >
               </div>
             </div>
           </div>
