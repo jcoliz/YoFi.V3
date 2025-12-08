@@ -653,6 +653,110 @@ export class WeatherClient {
     }
 }
 
+export class TenantClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    getTenants(): Promise<Tenant[]> {
+        let url_ = this.baseUrl + "/api/Tenant";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetTenants(_response);
+        });
+    }
+
+    protected processGetTenants(response: Response): Promise<Tenant[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(Tenant.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<Tenant[]>(null as any);
+    }
+
+    createTenant(tenant: Tenant): Promise<Tenant> {
+        let url_ = this.baseUrl + "/api/Tenant";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(tenant);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreateTenant(_response);
+        });
+    }
+
+    protected processCreateTenant(response: Response): Promise<Tenant> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = Tenant.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<Tenant>(null as any);
+    }
+}
+
 export class LoginResponse implements ILoginResponse {
     token?: TokenPair;
     user?: UserInfo;
@@ -1276,6 +1380,117 @@ export interface IWeatherForecast extends IBaseModel {
     temperatureC?: number;
     summary?: string | undefined;
     temperatureF?: number;
+}
+
+export class Tenant extends BaseModel implements ITenant {
+    name?: string;
+    description?: string;
+    createdAt?: Date;
+    roleAssignments?: UserTenantRoleAssignment[];
+
+    constructor(data?: ITenant) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
+            if (Array.isArray(_data["roleAssignments"])) {
+                this.roleAssignments = [] as any;
+                for (let item of _data["roleAssignments"])
+                    this.roleAssignments!.push(UserTenantRoleAssignment.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): Tenant {
+        data = typeof data === 'object' ? data : {};
+        let result = new Tenant();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
+        if (Array.isArray(this.roleAssignments)) {
+            data["roleAssignments"] = [];
+            for (let item of this.roleAssignments)
+                data["roleAssignments"].push(item ? item.toJSON() : undefined as any);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ITenant extends IBaseModel {
+    name?: string;
+    description?: string;
+    createdAt?: Date;
+    roleAssignments?: UserTenantRoleAssignment[];
+}
+
+export class UserTenantRoleAssignment implements IUserTenantRoleAssignment {
+    id?: number;
+    userId?: string;
+    tenantId?: number;
+    role?: TenantRole;
+    tenant?: Tenant | undefined;
+
+    constructor(data?: IUserTenantRoleAssignment) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.userId = _data["userId"];
+            this.tenantId = _data["tenantId"];
+            this.role = _data["role"];
+            this.tenant = _data["tenant"] ? Tenant.fromJS(_data["tenant"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): UserTenantRoleAssignment {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserTenantRoleAssignment();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["userId"] = this.userId;
+        data["tenantId"] = this.tenantId;
+        data["role"] = this.role;
+        data["tenant"] = this.tenant ? this.tenant.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IUserTenantRoleAssignment {
+    id?: number;
+    userId?: string;
+    tenantId?: number;
+    role?: TenantRole;
+    tenant?: Tenant | undefined;
+}
+
+export enum TenantRole {
+    Viewer = 1,
+    Editor = 2,
+    Owner = 3,
 }
 
 function formatDate(d: Date) {
