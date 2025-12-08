@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
@@ -23,6 +25,15 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <returns>Requested transactions for the current tenant.</returns>
     public async Task<ICollection<TransactionResultDto>> GetTransactionsAsync(DateOnly? fromDate = null, DateOnly? toDate = null)
     {
+        // Validate date range logic
+        if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
+        {
+            throw new ArgumentException(
+                "From date cannot be later than to date.",
+                nameof(fromDate)
+            );
+        }
+
         var query = GetBaseTransactionQuery();
 
         if (fromDate.HasValue)
@@ -35,7 +46,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             query = query.Where(t => t.Date <= toDate.Value);
         }
 
-        var dtoQuery = query.Select(t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee));
+        var dtoQuery = query.Select(ToResultDto);
 
         var result = await dataProvider.ToListNoTrackingAsync(dtoQuery);
 
@@ -61,6 +72,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <param name="transaction">The transaction data to add.</param>
     public async Task AddTransactionAsync(TransactionEditDto transaction)
     {
+        ValidateTransactionEditDto(transaction);
+
         var newTransaction = new Transaction
         {
             Date = transaction.Date,
@@ -78,8 +91,10 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <param name="key">The unique identifier of the transaction to update.</param>
     /// <param name="transaction">The updated transaction data.</param>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
-    public async Task UpdateTransactionAsync(Guid key,TransactionEditDto transaction)
+    public async Task UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
     {
+        ValidateTransactionEditDto(transaction);
+
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
         // Update properties
@@ -135,4 +150,25 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);
     }
+
+    private static void ValidateTransactionEditDto(TransactionEditDto transaction, [CallerArgumentExpression(nameof(transaction))] string? paramName = null)
+    {
+        if (transaction.Amount == 0)
+        {
+            throw new ArgumentException("Transaction amount cannot be zero.", paramName);
+        }
+
+        if (string.IsNullOrWhiteSpace(transaction.Payee))
+        {
+            throw new ArgumentException("Transaction payee cannot be empty.", paramName);
+        }
+
+        if (transaction.Payee.Length > 200)
+        {
+            throw new ArgumentException("Transaction payee cannot exceed 200 characters.", paramName);
+        }
+    }
+
+    private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
+        t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee);
 }
