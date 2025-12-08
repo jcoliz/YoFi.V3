@@ -114,14 +114,14 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         var query = GetBaseTransactionQuery()
             .Where(t => t.Key == key);
 
-        var result = await dataProvider.ToListAsync(query);
+        var result = await dataProvider.SingleOrDefaultAsync(query);
 
-        if (result.Count == 0)
+        if (result == null)
         {
             throw new TransactionNotFoundException(key);
         }
 
-        return result[0];
+        return result;
     }
 
     /// <summary>

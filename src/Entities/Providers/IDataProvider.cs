@@ -55,4 +55,12 @@ public interface IDataProvider
     /// <returns>List of items</returns>
     Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : class;
     Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : class;
+
+    /// <summary>
+    /// Execute SingleOrDefault query asynchronously
+    /// </summary>
+    /// <typeparam name="T">Type of entities being queried</typeparam>
+    /// <param name="query">Query to execute</param>
+    /// <returns>Single item or default</returns>
+    Task<T?> SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class;
 }

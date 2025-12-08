@@ -88,4 +88,9 @@ public class InMemoryDataProvider : IDataProvider
     {
         throw new NotImplementedException();
     }
+
+    public Task<T?> SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
+    {
+        throw new NotImplementedException();
+    }
 }

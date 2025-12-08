@@ -159,6 +159,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     Task<List<T>> IDataProvider.ToListAsync<T>(IQueryable<T> query)
         => query.ToListAsync();
 
+    Task<T?> IDataProvider.SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
+        => query.SingleOrDefaultAsync();
+
 #pragma warning restore S2325
 
     #endregion
