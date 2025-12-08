@@ -1,18 +1,21 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using YoFi.V3.Entities.Options;
 
 namespace YoFi.V3.Tests.Integration.Controller;
 
 [TestFixture]
 public class VersionControllerTests
 {
-    private WebApplicationFactory<Program> _factory = null!;
+    private CustomVersionWebApplicationFactory _factory = null!;
     private HttpClient _client = null!;
+    private const string TestVersion = "1.2.3-test";
+    private const EnvironmentType TestEnvironment = EnvironmentType.Local;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        _factory = new WebApplicationFactory<Program>();
+        _factory = new CustomVersionWebApplicationFactory(TestVersion, TestEnvironment);
         _client = _factory.CreateClient();
     }
 
@@ -38,16 +41,29 @@ public class VersionControllerTests
     }
 
     [Test]
+    public async Task GetVersion_ReturnsConfiguredVersion()
+    {
+        // Act
+        var response = await _client.GetAsync("/version");
+        var version = await response.Content.ReadFromJsonAsync<string>();
+
+        // Assert
+        Assert.That(response.IsSuccessStatusCode, Is.True);
+        Assert.That(version, Does.Contain(TestVersion));
+    }
+
+    [Test]
     public async Task GetVersion_ReturnsVersionWithEnvironment()
     {
         // Act
         var response = await _client.GetAsync("/version");
-        var version = await response.Content.ReadAsStringAsync();
+        var version = await response.Content.ReadFromJsonAsync<string>();
 
         // Assert
-        // Version should contain either (Local), (Container), or just the version number
         Assert.That(response.IsSuccessStatusCode, Is.True);
-        Assert.That(version, Does.Contain(".").Or.Contain("Local").Or.Contain("Container"));
+
+        // Should include the test version and environment suffix
+        Assert.That(version, Is.EqualTo($"{TestVersion} (Local)"));
     }
 
     [Test]
@@ -59,5 +75,33 @@ public class VersionControllerTests
         // Assert
         Assert.That(response.Content.Headers.ContentType?.MediaType,
             Is.EqualTo("application/json"));
+    }
+}
+
+/// <summary>
+/// Custom WebApplicationFactory that injects a specific version for testing
+/// </summary>
+public class CustomVersionWebApplicationFactory : WebApplicationFactory<Program>
+{
+    private readonly string _version;
+    private readonly EnvironmentType _environment;
+
+    public CustomVersionWebApplicationFactory(string version, EnvironmentType environment)
+    {
+        _version = version;
+        _environment = environment;
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            // Add in-memory configuration to override the application settings
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Application:Version"] = _version,
+                ["Application:Environment"] = _environment.ToString()
+            });
+        });
     }
 }
