@@ -53,7 +53,7 @@ public class VersionControllerTests
     }
 
     [Test]
-    public async Task GetVersion_ReturnsVersionWithEnvironment()
+    public async Task GetVersion_ReturnsVersionWithLocalEnvironment()
     {
         // Act
         var response = await _client.GetAsync("/version");
@@ -75,6 +75,29 @@ public class VersionControllerTests
         // Assert
         Assert.That(response.Content.Headers.ContentType?.MediaType,
             Is.EqualTo("application/json"));
+    }
+
+    [TestCase(EnvironmentType.Production, "1.2.3-test", ExpectedResult = "1.2.3-test")]
+    [TestCase(EnvironmentType.Local, "1.2.3-test", ExpectedResult = "1.2.3-test (Local)")]
+    [TestCase(EnvironmentType.Container, "1.2.3-test", ExpectedResult = "1.2.3-test (Container)")]
+    [TestCase(EnvironmentType.Production, "2.0.0", ExpectedResult = "2.0.0")]
+    [TestCase(EnvironmentType.Local, "2.0.0", ExpectedResult = "2.0.0 (Local)")]
+    [TestCase(EnvironmentType.Container, "2.0.0", ExpectedResult = "2.0.0 (Container)")]
+    public async Task<string> GetVersion_AllEnvironmentTypes_ReturnsCorrectFormat(
+        EnvironmentType environment,
+        string version)
+    {
+        // Arrange
+        using var factory = new CustomVersionWebApplicationFactory(version, environment);
+        using var client = factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/version");
+        var result = await response.Content.ReadFromJsonAsync<string>();
+
+        // Assert
+        Assert.That(response.IsSuccessStatusCode, Is.True);
+        return result ?? string.Empty;
     }
 }
 
