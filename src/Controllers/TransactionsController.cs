@@ -7,7 +7,7 @@ using YoFi.V3.Entities.Exceptions;
 
 namespace YoFi.V3.Controllers;
 
-[Route("api/tenant/{tenantKey}/[controller]")]
+[Route("api/tenant/{tenantKey:guid}/[controller]")]
 [ApiController]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Startup;
+using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;
 
@@ -71,6 +72,9 @@ try
     // Add NuxtIdentity
     builder.Services.AddNuxtIdentityWithEntityFramework<IdentityUser, ApplicationDbContext>(builder.Configuration);
 
+    // Add Tenancy
+    builder.Services.AddTenancy();
+
     // See ADR 0007 for a disussion of CORS policies.
     builder.Services.AddCors(options =>
     {
@@ -134,6 +138,7 @@ try
     }
 
     app.UseCors();
+    app.UseTenancy();
     app.MapDefaultEndpoints();
     app.MapControllers();
 

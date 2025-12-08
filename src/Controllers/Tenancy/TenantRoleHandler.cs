@@ -41,6 +41,8 @@ public class TenantRoleHandler(IHttpContextAccessor httpContextAccessor) : Autho
             }
         }
 #else
+
+
         // For now, just allow all if tenantKey is present
         httpContext?.Items["TenantKey"] = Guid.Parse(tenantKey);
         httpContext?.Items["TenantRole"] = TenantRole.Editor; // Default to Editor for now
