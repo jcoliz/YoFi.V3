@@ -4,8 +4,11 @@
     <DataCollectors>
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
-          <Include>[YoFi.V3.Application]YoFi.V3.Application.Features.*</Include> <!-- [Assembly-Filter]Type-Filter -->
-          <Exclude></Exclude> <!-- [Assembly-Filter]Type-Filter -->
+          <!-- Include only Application Features and Entities -->
+          <Include>[YoFi.V3.Application]YoFi.V3.Application.Features.*,[YoFi.V3.Application]YoFi.V3.Application.Dto.*,[YoFi.V3.Entities]*</Include>
+          <!-- Exclude test assemblies, generated code, and program entry points -->
+          <Exclude>[*.Tests]*,[*]*Program,[*]*.Designer,[*]*.g.cs</Exclude>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
         </Configuration>
       </DataCollector>
     </DataCollectors>
