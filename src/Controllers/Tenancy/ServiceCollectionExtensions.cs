@@ -13,8 +13,11 @@ public static class ServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection AddTenancy(this IServiceCollection services)
     {
-        services.AddScoped<ITenantProvider, TenantContext>();
+        // Register TenantContext as a single scoped service
         services.AddScoped<TenantContext>();
+
+        // Register ITenantProvider as an alias to the same TenantContext instance
+        services.AddScoped<ITenantProvider>(sp => sp.GetRequiredService<TenantContext>());
 
         return services;
     }

@@ -162,3 +162,6 @@ catch (Exception ex)
         Console.WriteLine(ex.ToString());
     }
 }
+
+// Make Program class accessible to WebApplicationFactory for testing
+public partial class Program { }
