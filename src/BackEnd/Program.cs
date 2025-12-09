@@ -51,8 +51,8 @@ try
     builder.Services.AddControllers();
     builder.Services.AddProblemDetails();
 
-    // Register custom exception handlers
-    builder.Services.AddExceptionHandler<ResourceNotFoundExceptionHandler>();
+    // Register custom exception handler for application-specific exceptions
+    builder.Services.AddExceptionHandler<CustomExceptionHandler>();
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration);

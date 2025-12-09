@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Data;
@@ -103,9 +104,11 @@ public class TenantContextMiddlewareTests
         var response = await _client.GetAsync($"/api/tenant/{nonExistentTenantKey}/transactions");
 
         // Then: 404 Not Found should be returned
-        // NOTE: Currently fails - returns 500 Internal Server Error because
-        // TenantContext.SetCurrentTenantAsync() throws InvalidOperationException
-        // when the tenant is not found.
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should be a problem details with title "Tenant not found"
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Title, Is.EqualTo("Tenant not found"));
     }
 }
