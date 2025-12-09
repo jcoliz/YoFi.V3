@@ -61,3 +61,146 @@ public partial class MyController(ILogger<MyController> logger) : ControllerBase
 - `LogOkKey(Guid key)` - Information level, with key parameter
 - `LogOkCount(int count)` - Information level, with count parameter
 - `LogNotFound()` - Warning level, no parameters
+
+## Test Documentation Pattern
+
+**Always use Gherkin-style comments (Given/When/Then/And) to document test scenarios. DO NOT use the traditional Arrange/Act/Assert pattern.**
+
+1. **Gherkin-style structure** - All tests (unit, integration, functional) must use Given/When/Then/And comments to describe the test flow.
+
+2. **Comment format** - Each step should be a single-line comment starting with the Gherkin keyword followed by a colon and descriptive text:
+   - `// Given:` - Describes the initial context or preconditions
+   - `// When:` - Describes the action being tested
+   - `// Then:` - Describes the expected outcome
+   - `// And:` - Continues or adds to the previous step type
+
+3. **Descriptive text** - Keep descriptions clear and focused on business/functional behavior rather than implementation details.
+
+4. **Blank lines** - Use blank lines between Gherkin steps to improve readability.
+
+### Example Pattern: Error Case with Invalid Input
+
+```csharp
+[Test]
+public async Task GetTransactions_InvalidTenantIdFormat_Returns404WithProblemDetails()
+{
+    // Given: A request with an invalid tenant ID format (not a valid GUID)
+
+    // When: API Client requests transactions with invalid tenant ID format
+    var response = await _client.GetAsync("/api/tenant/1/transactions");
+
+    // Then: 404 Not Found should be returned
+    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+    // And: Response should contain problem details (not empty body)
+    var content = await response.Content.ReadAsStringAsync();
+    Assert.That(content, Is.Not.Empty, "Response body should not be empty");
+
+    // And: Response should be valid problem details JSON
+    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+    Assert.That(problemDetails, Is.Not.Null, "Response should be deserializable as ProblemDetails");
+    Assert.That(problemDetails!.Status, Is.EqualTo(404));
+}
+```
+
+### Example Pattern: Success Case with Data Setup
+
+```csharp
+[Test]
+public async Task CreateTransaction_ValidData_ReturnsCreatedTransaction()
+{
+    // Given: A valid tenant exists
+    var tenantId = Guid.NewGuid();
+    await SeedTenant(tenantId);
+
+    // And: Valid transaction data is prepared
+    var newTransaction = new TransactionEditDto
+    {
+        Date = DateTime.UtcNow,
+        Payee = "Test Payee",
+        Amount = 100.50m
+    };
+
+    // When: API Client creates a new transaction
+    var response = await _client.PostAsJsonAsync($"/api/tenant/{tenantId}/transactions", newTransaction);
+
+    // Then: 201 Created should be returned
+    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+    // And: Response should contain the created transaction
+    var created = await response.Content.ReadFromJsonAsync<TransactionResultDto>();
+    Assert.That(created, Is.Not.Null);
+    Assert.That(created!.Payee, Is.EqualTo("Test Payee"));
+    Assert.That(created.Amount, Is.EqualTo(100.50m));
+}
+```
+
+### Example Pattern: Unit Test with Multiple Assertions
+
+```csharp
+[Test]
+public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
+{
+    // Given: A transaction with missing required fields
+    var transaction = new TransactionEditDto
+    {
+        Date = DateTime.UtcNow
+        // Payee and Amount are missing
+    };
+
+    // When: Transaction is validated
+    var validator = new TransactionValidator();
+    var result = validator.Validate(transaction);
+
+    // Then: Validation should fail
+    Assert.That(result.IsValid, Is.False);
+
+    // And: Should have errors for missing Payee
+    Assert.That(result.Errors.Any(e => e.PropertyName == nameof(TransactionEditDto.Payee)), Is.True);
+
+    // And: Should have errors for missing Amount
+    Assert.That(result.Errors.Any(e => e.PropertyName == nameof(TransactionEditDto.Amount)), Is.True);
+}
+```
+
+### Common Patterns
+
+- **Given** - Use for setup, preconditions, test data creation
+- **When** - Use for the single primary action being tested
+- **Then** - Use for the primary expected outcome
+- **And** - Use to chain multiple assertions or setups within the same category
+
+### Benefits Over Arrange/Act/Assert
+
+- More readable and business-focused
+- Better describes the scenario being tested
+- Aligns with behavior-driven development (BDD) practices
+- Makes test intent clearer to non-technical stakeholders
+- Natural progression through test flow
+
+**Source Example:** See `tests/Integration.Controller/TransactionsControllerTests.cs` for reference implementation.
+
+## Regex Pattern
+
+**Use source-generated regexes in production code for better performance.**
+
+1. **Source-generated regexes** - Use the `[GeneratedRegex]` attribute with partial methods to generate regex code at compile time:
+   ```csharp
+   using System.Text.RegularExpressions;
+
+   public partial class MyClass
+   {
+       [GeneratedRegex(@"\d{4}-\d{2}-\d{2}")]
+       private static partial Regex DatePattern();
+   }
+   ```
+
+2. **Test code exception** - Regexes in test code (unit, integration, functional) don't require source generation for simplicity and readability. Use whichever pattern is most convenient.
+
+3. **Performance rationale** - Source-generated regexes have zero runtime compilation cost and significantly better runtime performance for repeated use. Since production code regexes are typically reused many times, source generation is worthwhile.
+
+### Benefits
+
+- Zero runtime compilation cost, best performance
+- Compile-time validation of regex patterns
+- Generated code is optimized and cached for reuse
