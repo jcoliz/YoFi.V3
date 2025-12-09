@@ -11,6 +11,7 @@ public class TenantContext(IDataProvider dataProvider): ITenantProvider
         {
             if (_currentTenant == null)
             {
+                // Truly a 500 error if we try to access current tenant when not set
                 throw new InvalidOperationException("Current tenant is not set.");
             }
 
@@ -33,7 +34,8 @@ public class TenantContext(IDataProvider dataProvider): ITenantProvider
 
         if (tenant == null)
         {
-            throw new InvalidOperationException($"Tenant with key {tenantKey} not found.");
+            // Needs to return 404 (somehow)
+            throw new TenantNotFoundException(tenantKey);
         }
 
         CurrentTenant = tenant;

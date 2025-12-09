@@ -91,4 +91,21 @@ public class TenantContextMiddlewareTests
         Assert.That(transactions.All(t => t.Payee.StartsWith("Test Payee")), Is.True);
         Assert.That(transactions.All(t => t.Amount > 0), Is.True);
     }
+
+    [Test]
+    public async Task GetTransactions_NonExistentTenant_Returns404()
+    {
+        // Given: One tenant in the database
+        // (Setup already done in OneTimeSetUp)
+
+        // When: API Client requests transactions for a tenant that does not exist
+        var nonExistentTenantKey = Guid.NewGuid();
+        var response = await _client.GetAsync($"/api/tenant/{nonExistentTenantKey}/transactions");
+
+        // Then: 404 Not Found should be returned
+        // NOTE: Currently fails - returns 500 Internal Server Error because
+        // TenantContext.SetCurrentTenantAsync() throws InvalidOperationException
+        // when the tenant is not found.
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
 }

@@ -2,9 +2,11 @@ using System.Reflection;
 using Microsoft.AspNetCore.Identity;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
+using YoFi.V3.BackEnd.Middleware;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
+using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Options;
 
 
@@ -48,6 +50,9 @@ try
 
     builder.Services.AddControllers();
     builder.Services.AddProblemDetails();
+
+    // Register custom exception handlers
+    builder.Services.AddExceptionHandler<ResourceNotFoundExceptionHandler>();
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration);
@@ -120,7 +125,6 @@ try
     app.PrepareDatabaseAsync();
 
     // Configure the HTTP request pipeline.
-    app.UseExceptionHandler();
 
     if (applicationOptions.Environment == EnvironmentType.Production)
     {
@@ -138,6 +142,10 @@ try
     }
 
     app.UseCors();
+
+    // Exception handler must come BEFORE middleware that might throw exceptions
+    app.UseExceptionHandler();
+
     app.UseTenancy();
     app.MapDefaultEndpoints();
     app.MapControllers();
