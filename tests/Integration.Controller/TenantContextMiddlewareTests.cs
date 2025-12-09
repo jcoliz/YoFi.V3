@@ -16,6 +16,7 @@ public class TenantContextMiddlewareTests
     private BaseTestWebApplicationFactory _factory = null!;
     private HttpClient _client = null!;
     private Guid _testTenantKey;
+    private Guid _firstTransactionKey;
     private const int ExpectedTransactionCount = 5;
 
     [OneTimeSetUp]
@@ -47,14 +48,21 @@ public class TenantContextMiddlewareTests
             var transactions = new List<Transaction>();
             for (int i = 1; i <= ExpectedTransactionCount; i++)
             {
-                transactions.Add(new Transaction
+                var transaction = new Transaction
                 {
                     Key = Guid.NewGuid(),
                     TenantId = testTenant.Id,
                     Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
                     Payee = $"Test Payee {i}",
                     Amount = 100.00m * i
-                });
+                };
+                transactions.Add(transaction);
+
+                // Store the first transaction key for single transaction tests
+                if (i == 1)
+                {
+                    _firstTransactionKey = transaction.Key;
+                }
             }
 
             dbContext.Set<Transaction>().AddRange(transactions);
@@ -196,5 +204,111 @@ public class TenantContextMiddlewareTests
         // Then: Only tenant 2's transactions are returned
         Assert.That(transactions2, Has.Count.EqualTo(tenant2TransactionCount));
         Assert.That(transactions2.All(t => t.Payee.StartsWith("Tenant2 Payee")), Is.True);
+    }
+
+    [Test]
+    public async Task GetTransactionById_ValidTenantAndTransaction_ReturnsTransaction()
+    {
+        // Given: One tenant with multiple transactions in the database
+        // (Setup already done in OneTimeSetUp)
+
+        // When: API Client requests a specific transaction by key
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{_firstTransactionKey}");
+
+        // Then: Transaction is returned successfully
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var transaction = await response.Content.ReadFromJsonAsync<TransactionResultDto>();
+        Assert.That(transaction, Is.Not.Null);
+        Assert.That(transaction!.Payee, Is.EqualTo("Test Payee 1"));
+        Assert.That(transaction.Amount, Is.EqualTo(100.00m));
+    }
+
+    [Test]
+    public async Task GetTransactionById_NonExistentTransaction_Returns404()
+    {
+        // Given: One tenant in the database
+        // (Setup already done in OneTimeSetUp)
+
+        // When: API Client requests a transaction that does not exist
+        var nonExistentTransactionKey = Guid.NewGuid();
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{nonExistentTransactionKey}");
+
+        // Then: 404 Not Found should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should be a problem details with title "Transaction Not Found"
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction Not Found"));
+    }
+
+    [Test]
+    public async Task GetTransactionById_TransactionExistsInDifferentTenant_Returns404()
+    {
+        // Given: Two tenants, each with their own transactions
+        Guid tenant1Key, tenant2Key, tenant2TransactionKey;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Create first tenant with a transaction
+            var tenant1 = new Tenant
+            {
+                Key = Guid.NewGuid(),
+                Name = "Cross Tenant Test - Tenant 1",
+                Description = "First tenant for cross-tenant access test",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.Set<Tenant>().Add(tenant1);
+            await dbContext.SaveChangesAsync();
+            tenant1Key = tenant1.Key;
+
+            dbContext.Set<Transaction>().Add(new Transaction
+            {
+                Key = Guid.NewGuid(),
+                TenantId = tenant1.Id,
+                Date = DateOnly.FromDateTime(DateTime.UtcNow),
+                Payee = "Tenant1 Transaction",
+                Amount = 100.00m
+            });
+
+            // Create second tenant with a transaction
+            var tenant2 = new Tenant
+            {
+                Key = Guid.NewGuid(),
+                Name = "Cross Tenant Test - Tenant 2",
+                Description = "Second tenant for cross-tenant access test",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.Set<Tenant>().Add(tenant2);
+            await dbContext.SaveChangesAsync();
+            tenant2Key = tenant2.Key;
+
+            var tenant2Transaction = new Transaction
+            {
+                Key = Guid.NewGuid(),
+                TenantId = tenant2.Id,
+                Date = DateOnly.FromDateTime(DateTime.UtcNow),
+                Payee = "Tenant2 Transaction",
+                Amount = 200.00m
+            };
+            dbContext.Set<Transaction>().Add(tenant2Transaction);
+            await dbContext.SaveChangesAsync();
+
+            tenant2TransactionKey = tenant2Transaction.Key;
+        }
+
+        // When: API Client attempts to access Tenant 2's transaction using Tenant 1's context
+        var response = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions/{tenant2TransactionKey}");
+
+        // Then: 404 Not Found should be returned (transaction should not be accessible from wrong tenant)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should be a problem details with title "Transaction Not Found"
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction Not Found"));
     }
 }
