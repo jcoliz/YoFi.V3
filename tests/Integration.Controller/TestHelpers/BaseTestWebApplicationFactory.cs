@@ -1,6 +1,10 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
@@ -39,6 +43,53 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(_configurationOverrides);
         });
+
+        builder.ConfigureTestServices(services =>
+        {
+            // Register test authentication scheme
+            services.AddAuthentication(TestAuthenticationHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                    TestAuthenticationHandler.SchemeName,
+                    options => { });
+        });
+    }
+
+    /// <summary>
+    /// Creates an authenticated HTTP client with Editor role (default for most tests)
+    /// </summary>
+    public HttpClient CreateAuthenticatedClient(Guid tenantKey)
+        => CreateAuthenticatedClient(tenantKey, TenantRole.Editor);
+
+    /// <summary>
+    /// Creates an authenticated HTTP client with specified role
+    /// </summary>
+    public HttpClient CreateAuthenticatedClient(Guid tenantKey, TenantRole role,
+        string? userId = null, string? userName = null)
+    {
+        return CreateAuthenticatedClient(
+            new[] { (tenantKey, role) },
+            userId,
+            userName);
+    }
+
+    /// <summary>
+    /// Creates an authenticated HTTP client with multiple tenant roles (for cross-tenant tests)
+    /// </summary>
+    public HttpClient CreateAuthenticatedClient(
+        (Guid tenantKey, TenantRole role)[] tenantRoles,
+        string? userId = null,
+        string? userName = null)
+    {
+        var client = CreateClient();
+
+        // Store test user info in a way that will be accessible per-request
+        // We'll use a delegating handler to inject into HttpContext.Items
+        var handler = new TestUserDelegatingHandler(
+            tenantRoles.ToList(),
+            userId ?? "test-user-id",
+            userName ?? "test-user");
+
+        return CreateDefaultClient(handler);
     }
 
     protected override void Dispose(bool disposing)

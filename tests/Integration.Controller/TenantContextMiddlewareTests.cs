@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Models;
@@ -9,38 +10,28 @@ using YoFi.V3.Tests.Integration.Controller.TestHelpers;
 namespace YoFi.V3.Tests.Integration.Controller;
 
 [TestFixture]
-public class TenantContextMiddlewareTests
+public class TenantContextMiddlewareTests : AuthenticatedTestBase
 {
-    private BaseTestWebApplicationFactory _factory = null!;
-    private HttpClient _client = null!;
-    private Guid _testTenantKey;
     private Guid _firstTransactionKey;
     private const int ExpectedTransactionCount = 5;
 
     [OneTimeSetUp]
-    public async Task OneTimeSetUp()
+    public override async Task OneTimeSetUp()
     {
-        _factory = new BaseTestWebApplicationFactory();
+        // Call base to set up factory, tenant, and authenticated client
+        await base.OneTimeSetUp();
 
-        // Given: One tenant in the database
-        // And: Multiple transactions in the database which are in that tenant
+        // Given: Multiple transactions in the database which are in that tenant
         using (var scope = _factory.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Given: One tenant in the database
-            var testTenant = new Tenant
-            {
-                Key = Guid.NewGuid(),
-                Name = "Test Tenant",
-                Description = "Test tenant for middleware testing",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
+            // Get the tenant ID from the created tenant
+            var tenant = await dbContext.Set<Tenant>()
+                .FirstOrDefaultAsync(t => t.Key == _testTenantKey);
 
-            dbContext.Set<Tenant>().Add(testTenant);
-            await dbContext.SaveChangesAsync();
-
-            _testTenantKey = testTenant.Key;
+            if (tenant == null)
+                throw new InvalidOperationException("Test tenant not found");
 
             // And: Multiple transactions in the database which are in that tenant
             var transactions = new List<Transaction>();
@@ -49,7 +40,7 @@ public class TenantContextMiddlewareTests
                 var transaction = new Transaction
                 {
                     Key = Guid.NewGuid(),
-                    TenantId = testTenant.Id,
+                    TenantId = tenant.Id,
                     Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
                     Payee = $"Test Payee {i}",
                     Amount = 100.00m * i
@@ -66,15 +57,6 @@ public class TenantContextMiddlewareTests
             dbContext.Set<Transaction>().AddRange(transactions);
             await dbContext.SaveChangesAsync();
         }
-
-        _client = _factory.CreateClient();
-    }
-
-    [OneTimeTearDown]
-    public void OneTimeTearDown()
-    {
-        _client.Dispose();
-        _factory.Dispose();
     }
 
     #region Helper Methods
@@ -145,9 +127,8 @@ public class TenantContextMiddlewareTests
     [Test]
     public async Task GetTransactions_OneTenantWithMultipleTransactions_ReturnsAllExpectedTransactions()
     {
-        // Given: One tenant in the database
-        // And: Multiple transactions in the database which are in that tenant
-        // (Setup already done in OneTimeSetUp)
+        // Given: Authenticated as Editor (default)
+        // And: One tenant with multiple transactions (from OneTimeSetUp)
 
         // When: API Client requests transactions for that tenant
         var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions");
@@ -167,9 +148,7 @@ public class TenantContextMiddlewareTests
     [Test]
     public async Task GetTransactions_NonExistentTenant_Returns404()
     {
-        // Given: One tenant in the database
-        // (Setup already done in OneTimeSetUp)
-
+        // Given: Authenticated as Editor
         // When: API Client requests transactions for a tenant that does not exist
         var nonExistentTenantKey = Guid.NewGuid();
         var response = await _client.GetAsync($"/api/tenant/{nonExistentTenantKey}/transactions");
@@ -196,8 +175,12 @@ public class TenantContextMiddlewareTests
         var (tenant2Key, tenant2Id) = await CreateTenantAsync("Tenant 2", "Second test tenant");
         await CreateTransactionsAsync(tenant2Id, "Tenant2 Payee", tenant2TransactionCount, 75.00m);
 
-        // When: API Client requests transactions for tenant 1
-        var response1 = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions");
+        // And: User has Editor access to both tenants
+        var multiTenantClient = CreateMultiTenantClient(
+            (tenant1Key, TenantRole.Editor),
+            (tenant2Key, TenantRole.Editor));
+
+        var response1 = await multiTenantClient.GetAsync($"/api/tenant/{tenant1Key}/transactions");
         Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
         var transactions1 = await response1.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
@@ -207,8 +190,7 @@ public class TenantContextMiddlewareTests
         Assert.That(transactions1, Has.Count.EqualTo(tenant1TransactionCount));
         Assert.That(transactions1.All(t => t.Payee.StartsWith("Tenant1 Payee")), Is.True);
 
-        // When: API Client requests transactions for tenant 2
-        var response2 = await _client.GetAsync($"/api/tenant/{tenant2Key}/transactions");
+        var response2 = await multiTenantClient.GetAsync($"/api/tenant/{tenant2Key}/transactions");
         Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
         var transactions2 = await response2.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
@@ -222,8 +204,8 @@ public class TenantContextMiddlewareTests
     [Test]
     public async Task GetTransactionById_ValidTenantAndTransaction_ReturnsTransaction()
     {
-        // Given: One tenant with multiple transactions in the database
-        // (Setup already done in OneTimeSetUp)
+        // Given: Authenticated as Editor
+        // And: One tenant with multiple transactions (from OneTimeSetUp)
 
         // When: API Client requests a specific transaction by key
         var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{_firstTransactionKey}");
@@ -240,9 +222,7 @@ public class TenantContextMiddlewareTests
     [Test]
     public async Task GetTransactionById_NonExistentTransaction_Returns404()
     {
-        // Given: One tenant in the database
-        // (Setup already done in OneTimeSetUp)
-
+        // Given: Authenticated as Editor
         // When: API Client requests a transaction that does not exist
         var nonExistentTransactionKey = Guid.NewGuid();
         var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{nonExistentTransactionKey}");
@@ -266,8 +246,11 @@ public class TenantContextMiddlewareTests
         var (_, tenant2Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 2", "Second tenant for cross-tenant access test");
         var tenant2TransactionKey = await CreateTransactionAsync(tenant2Id, "Tenant2 Transaction", 200.00m);
 
+        // And: User only has access to Tenant 1
+        var tenant1Client = _factory.CreateAuthenticatedClient(tenant1Key, TenantRole.Editor);
+
         // When: API Client attempts to access Tenant 2's transaction using Tenant 1's context
-        var response = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions/{tenant2TransactionKey}");
+        var response = await tenant1Client.GetAsync($"/api/tenant/{tenant1Key}/transactions/{tenant2TransactionKey}");
 
         // Then: 404 Not Found should be returned (transaction should not be accessible from wrong tenant)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
@@ -276,5 +259,41 @@ public class TenantContextMiddlewareTests
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.That(problemDetails, Is.Not.Null);
         Assert.That(problemDetails!.Title, Is.EqualTo("Transaction not found"));
+    }
+
+    [Test]
+    [Explicit("WIP - Example of role-based access test")]
+    public async Task GetTransactions_AsViewer_CanReadTransactions()
+    {
+        // Given: Switch to Viewer role (read-only)
+        SwitchToViewer();
+
+        // When: Viewer requests transactions
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions");
+
+        // Then: Should succeed (Viewer can read)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var transactions = await response.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
+        Assert.That(transactions, Has.Count.EqualTo(ExpectedTransactionCount));
+    }
+
+    // Example of explicit Owner test
+    [Test]
+    [Explicit("WIP - Example of role-based access test")]
+    public async Task DeactivateTenant_AsOwner_Succeeds()
+    {
+        // Given: Switch to Owner role explicitly
+        SwitchToOwner();
+
+        // When: Owner attempts to deactivate tenant
+        // (This endpoint doesn't exist yet, but demonstrates pattern)
+        // var response = await _client.DeleteAsync($"/api/tenant/{_testTenantKey}");
+
+        // Then: Should succeed (only Owner can deactivate)
+        // Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        // Placeholder assertion for now
+        Assert.That(_currentRole, Is.EqualTo(TenantRole.Owner));
     }
 }
