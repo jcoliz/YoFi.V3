@@ -21,7 +21,7 @@ public partial class VersionController(IOptions<ApplicationOptions> options, ILo
         var version = options.Value.Version;
         if (version is null)
         {
-            LogVersionNotFound();
+            LogNotFound();
             return Problem(
                 title: "Version not found",
                 detail: "Application version information is not available",
@@ -36,16 +36,13 @@ public partial class VersionController(IOptions<ApplicationOptions> options, ILo
             _ => version
         };
 
-        LogOk(versionWithEnv);
+        LogOkVersion(versionWithEnv);
         return Ok(versionWithEnv);
     }
 
-    [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
-    private partial void LogFailed(Exception ex, [CallerMemberName] string location = "");
-
     [LoggerMessage(2, LogLevel.Information, "{Location}: OK. version {Version}")]
-    private partial void LogOk(string version, [CallerMemberName] string location = "");
+    private partial void LogOkVersion(string version, [CallerMemberName] string location = "");
 
     [LoggerMessage(3, LogLevel.Warning, "{Location}: Version not found")]
-    private partial void LogVersionNotFound([CallerMemberName] string location = "");
+    private partial void LogNotFound([CallerMemberName] string location = "");
 }

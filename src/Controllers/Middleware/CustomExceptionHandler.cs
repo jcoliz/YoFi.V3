@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using YoFi.V3.Entities.Exceptions;
 
-namespace YoFi.V3.BackEnd.Middleware;
+namespace YoFi.V3.Controllers.Middleware;
 
 /// <summary>
 /// Configurable exception handler that maps specific exception types to HTTP status codes and problem details.

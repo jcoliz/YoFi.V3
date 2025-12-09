@@ -18,20 +18,17 @@ public partial class WeatherController(WeatherFeature weatherFeature, ILogger<We
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeatherForecasts()
     {
-        LogFetchingWeatherForecasts();
+        LogStarting();
 
         const int numberOfDays = 5;
         var weather = await weatherFeature.GetWeatherForecasts(numberOfDays);
-        LogSuccessfullyFetchedWeatherForecasts(numberOfDays);
+        LogOkCount(weather.Length);
         return Ok(weather);
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Fetching weather forecasts")]
-    private partial void LogFetchingWeatherForecasts([CallerMemberName] string location = "");
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
+    private partial void LogStarting([CallerMemberName] string location = "");
 
-    [LoggerMessage(1, LogLevel.Error, "{Location}: Failed fetching weather forecasts")]
-    private partial void LogErrorFetchingWeatherForecasts(Exception ex, [CallerMemberName] string location = "");
-
-    [LoggerMessage(2, LogLevel.Information, "{Location}: Successfully fetched {Count} weather forecasts")]
-    private partial void LogSuccessfullyFetchedWeatherForecasts(int count, [CallerMemberName] string location = "");
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Count} items")]
+    private partial void LogOkCount(int count, [CallerMemberName] string location = "");
 }
