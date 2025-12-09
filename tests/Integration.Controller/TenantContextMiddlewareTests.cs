@@ -79,6 +79,71 @@ public class TenantContextMiddlewareTests
         _factory.Dispose();
     }
 
+    #region Helper Methods
+
+    private async Task<(Guid tenantKey, long tenantId)> CreateTenantAsync(string name, string description)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var tenant = new Tenant
+        {
+            Key = Guid.NewGuid(),
+            Name = name,
+            Description = description,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        dbContext.Set<Tenant>().Add(tenant);
+        await dbContext.SaveChangesAsync();
+
+        return (tenant.Key, tenant.Id);
+    }
+
+    private async Task<Guid> CreateTransactionAsync(long tenantId, string payee, decimal amount, int daysAgo = 0)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var transaction = new Transaction
+        {
+            Key = Guid.NewGuid(),
+            TenantId = tenantId,
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-daysAgo)),
+            Payee = payee,
+            Amount = amount
+        };
+
+        dbContext.Set<Transaction>().Add(transaction);
+        await dbContext.SaveChangesAsync();
+
+        return transaction.Key;
+    }
+
+    private async Task CreateTransactionsAsync(long tenantId, string payeePrefix, int count, decimal baseAmount = 100.00m)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var transactions = new List<Transaction>();
+        for (int i = 1; i <= count; i++)
+        {
+            transactions.Add(new Transaction
+            {
+                Key = Guid.NewGuid(),
+                TenantId = tenantId,
+                Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
+                Payee = $"{payeePrefix} {i}",
+                Amount = baseAmount * i
+            });
+        }
+
+        dbContext.Set<Transaction>().AddRange(transactions);
+        await dbContext.SaveChangesAsync();
+    }
+
+    #endregion
+
     [Test]
     public async Task GetTransactions_OneTenantWithMultipleTransactions_ReturnsAllExpectedTransactions()
     {
@@ -124,64 +189,14 @@ public class TenantContextMiddlewareTests
     public async Task GetTransactions_MultipleTenantsInDatabase_ReturnsOnlyRequestedTenantTransactions()
     {
         // Given: Multiple tenants in the database, each with their own transactions
-        Guid tenant1Key, tenant2Key;
         int tenant1TransactionCount = 3;
         int tenant2TransactionCount = 4;
 
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var (tenant1Key, tenant1Id) = await CreateTenantAsync("Tenant 1", "First test tenant");
+        await CreateTransactionsAsync(tenant1Id, "Tenant1 Payee", tenant1TransactionCount, 50.00m);
 
-            // Create first tenant with transactions
-            var tenant1 = new Tenant
-            {
-                Key = Guid.NewGuid(),
-                Name = "Tenant 1",
-                Description = "First test tenant",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            dbContext.Set<Tenant>().Add(tenant1);
-            await dbContext.SaveChangesAsync();
-            tenant1Key = tenant1.Key;
-
-            for (int i = 1; i <= tenant1TransactionCount; i++)
-            {
-                dbContext.Set<Transaction>().Add(new Transaction
-                {
-                    Key = Guid.NewGuid(),
-                    TenantId = tenant1.Id,
-                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
-                    Payee = $"Tenant1 Payee {i}",
-                    Amount = 50.00m * i
-                });
-            }
-
-            // Create second tenant with transactions
-            var tenant2 = new Tenant
-            {
-                Key = Guid.NewGuid(),
-                Name = "Tenant 2",
-                Description = "Second test tenant",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            dbContext.Set<Tenant>().Add(tenant2);
-            await dbContext.SaveChangesAsync();
-            tenant2Key = tenant2.Key;
-
-            for (int i = 1; i <= tenant2TransactionCount; i++)
-            {
-                dbContext.Set<Transaction>().Add(new Transaction
-                {
-                    Key = Guid.NewGuid(),
-                    TenantId = tenant2.Id,
-                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
-                    Payee = $"Tenant2 Payee {i}",
-                    Amount = 75.00m * i
-                });
-            }
-
-            await dbContext.SaveChangesAsync();
-        }
+        var (tenant2Key, tenant2Id) = await CreateTenantAsync("Tenant 2", "Second test tenant");
+        await CreateTransactionsAsync(tenant2Id, "Tenant2 Payee", tenant2TransactionCount, 75.00m);
 
         // When: API Client requests transactions for tenant 1
         var response1 = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions");
@@ -247,58 +262,11 @@ public class TenantContextMiddlewareTests
     public async Task GetTransactionById_TransactionExistsInDifferentTenant_Returns404()
     {
         // Given: Two tenants, each with their own transactions
-        Guid tenant1Key, tenant2Key, tenant2TransactionKey;
+        var (tenant1Key, tenant1Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 1", "First tenant for cross-tenant access test");
+        await CreateTransactionAsync(tenant1Id, "Tenant1 Transaction", 100.00m);
 
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            // Create first tenant with a transaction
-            var tenant1 = new Tenant
-            {
-                Key = Guid.NewGuid(),
-                Name = "Cross Tenant Test - Tenant 1",
-                Description = "First tenant for cross-tenant access test",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            dbContext.Set<Tenant>().Add(tenant1);
-            await dbContext.SaveChangesAsync();
-            tenant1Key = tenant1.Key;
-
-            dbContext.Set<Transaction>().Add(new Transaction
-            {
-                Key = Guid.NewGuid(),
-                TenantId = tenant1.Id,
-                Date = DateOnly.FromDateTime(DateTime.UtcNow),
-                Payee = "Tenant1 Transaction",
-                Amount = 100.00m
-            });
-
-            // Create second tenant with a transaction
-            var tenant2 = new Tenant
-            {
-                Key = Guid.NewGuid(),
-                Name = "Cross Tenant Test - Tenant 2",
-                Description = "Second tenant for cross-tenant access test",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-            dbContext.Set<Tenant>().Add(tenant2);
-            await dbContext.SaveChangesAsync();
-            tenant2Key = tenant2.Key;
-
-            var tenant2Transaction = new Transaction
-            {
-                Key = Guid.NewGuid(),
-                TenantId = tenant2.Id,
-                Date = DateOnly.FromDateTime(DateTime.UtcNow),
-                Payee = "Tenant2 Transaction",
-                Amount = 200.00m
-            };
-            dbContext.Set<Transaction>().Add(tenant2Transaction);
-            await dbContext.SaveChangesAsync();
-
-            tenant2TransactionKey = tenant2Transaction.Key;
-        }
+        var (tenant2Key, tenant2Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 2", "Second tenant for cross-tenant access test");
+        var tenant2TransactionKey = await CreateTransactionAsync(tenant2Id, "Tenant2 Transaction", 200.00m);
 
         // When: API Client attempts to access Tenant 2's transaction using Tenant 1's context
         var response = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions/{tenant2TransactionKey}");
