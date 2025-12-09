@@ -2,11 +2,49 @@
 
 This directory contains reusable helper classes and utilities for integration tests.
 
+## BaseTestWebApplicationFactory
+
+**File**: [`BaseTestWebApplicationFactory.cs`](BaseTestWebApplicationFactory.cs)
+
+A base `WebApplicationFactory` that provides common test configuration for all integration tests.
+
+### Features
+
+- Configures default application settings (version, environment, CORS)
+- Sets up a temporary SQLite database for test isolation
+- Automatically cleans up the temporary database after tests
+- Supports configuration overrides via constructor parameter
+
+### Usage
+
+```csharp
+// Use directly with custom configuration
+var factory = new BaseTestWebApplicationFactory(
+    configurationOverrides: new Dictionary<string, string?>
+    {
+        ["SomeSetting"] = "CustomValue"
+    }
+);
+
+// Or inherit to create specialized factories
+public class MyTestFactory : BaseTestWebApplicationFactory
+{
+    public MyTestFactory() : base(/* optional config */) { }
+}
+```
+
+### Why Use a Base Factory?
+
+The base factory eliminates code duplication by providing:
+- Consistent default configuration across all tests
+- Automatic database lifecycle management
+- A single place to update common test setup
+
 ## CustomVersionWebApplicationFactory
 
 **File**: [`CustomVersionWebApplicationFactory.cs`](CustomVersionWebApplicationFactory.cs)
 
-A custom `WebApplicationFactory` that demonstrates how to inject configuration values for testing.
+Extends [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs) to inject specific version and environment configuration for testing the [`VersionController`](../../../src/Controllers/VersionController.cs).
 
 ### Purpose
 
@@ -42,19 +80,19 @@ factory.Dispose();
 
 ### How It Works
 
-The factory overrides `ConfigureWebHost()` to inject configuration using in-memory configuration:
+The factory passes configuration overrides to the base class constructor:
 
 ```csharp
-protected override void ConfigureWebHost(IWebHostBuilder builder)
+public class CustomVersionWebApplicationFactory : BaseTestWebApplicationFactory
 {
-    builder.ConfigureAppConfiguration((context, config) =>
-    {
-        config.AddInMemoryCollection(new Dictionary<string, string?>
+    public CustomVersionWebApplicationFactory(string version, EnvironmentType environment)
+        : base(new Dictionary<string, string?>
         {
-            ["Application:Version"] = _version,
-            ["Application:Environment"] = _environment.ToString()
-        });
-    });
+            ["Application:Version"] = version,
+            ["Application:Environment"] = environment.ToString()
+        })
+    {
+    }
 }
 ```
 
@@ -79,6 +117,45 @@ public async Task<string> GetVersion_AllEnvironmentTypes_ReturnsCorrectFormat(
     return result ?? string.Empty;
 }
 ```
+
+## CustomTenantWebApplicationFactory
+
+**File**: [`CustomTenantWebApplicationFactory.cs`](CustomTenantWebApplicationFactory.cs)
+
+Extends [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs) to provide tenant and transaction test data for testing the [`TenantContextMiddleware`](../../../src/Controllers/Tenancy/TenantContextMiddleware.cs).
+
+### Features
+
+- Seeds one tenant with 5 transactions in the test database
+- Exposes `TestTenantKey` property for use in test assertions
+- Must call `SeedTestDataAsync()` before creating the HTTP client
+
+### Usage
+
+```csharp
+using YoFi.V3.Tests.Integration.Controller.TestHelpers;
+
+// Create factory and seed test data
+var factory = new CustomTenantWebApplicationFactory();
+await factory.SeedTestDataAsync();
+
+// Get the tenant key for requests
+var tenantKey = factory.TestTenantKey;
+
+// Create HTTP client
+var client = factory.CreateClient();
+
+// Make tenant-scoped requests
+var response = await client.GetAsync($"/api/tenant/{tenantKey}/transactions");
+
+// Clean up
+client.Dispose();
+factory.Dispose();
+```
+
+### Example Test
+
+See [`TenantContextMiddlewareTests.cs`](../TenantContextMiddlewareTests.cs) for complete examples.
 
 ## Creating New Test Helpers
 
