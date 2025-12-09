@@ -111,4 +111,90 @@ public class TenantContextMiddlewareTests
         Assert.That(problemDetails, Is.Not.Null);
         Assert.That(problemDetails!.Title, Is.EqualTo("Tenant not found"));
     }
+
+    [Test]
+    public async Task GetTransactions_MultipleTenantsInDatabase_ReturnsOnlyRequestedTenantTransactions()
+    {
+        // Given: Multiple tenants in the database, each with their own transactions
+        Guid tenant1Key, tenant2Key;
+        int tenant1TransactionCount = 3;
+        int tenant2TransactionCount = 4;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Create first tenant with transactions
+            var tenant1 = new Tenant
+            {
+                Key = Guid.NewGuid(),
+                Name = "Tenant 1",
+                Description = "First test tenant",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.Set<Tenant>().Add(tenant1);
+            await dbContext.SaveChangesAsync();
+            tenant1Key = tenant1.Key;
+
+            for (int i = 1; i <= tenant1TransactionCount; i++)
+            {
+                dbContext.Set<Transaction>().Add(new Transaction
+                {
+                    Key = Guid.NewGuid(),
+                    TenantId = tenant1.Id,
+                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
+                    Payee = $"Tenant1 Payee {i}",
+                    Amount = 50.00m * i
+                });
+            }
+
+            // Create second tenant with transactions
+            var tenant2 = new Tenant
+            {
+                Key = Guid.NewGuid(),
+                Name = "Tenant 2",
+                Description = "Second test tenant",
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.Set<Tenant>().Add(tenant2);
+            await dbContext.SaveChangesAsync();
+            tenant2Key = tenant2.Key;
+
+            for (int i = 1; i <= tenant2TransactionCount; i++)
+            {
+                dbContext.Set<Transaction>().Add(new Transaction
+                {
+                    Key = Guid.NewGuid(),
+                    TenantId = tenant2.Id,
+                    Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-i)),
+                    Payee = $"Tenant2 Payee {i}",
+                    Amount = 75.00m * i
+                });
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        // When: API Client requests transactions for tenant 1
+        var response1 = await _client.GetAsync($"/api/tenant/{tenant1Key}/transactions");
+        Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var transactions1 = await response1.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
+        Assert.That(transactions1, Is.Not.Null);
+
+        // Then: Only tenant 1's transactions are returned
+        Assert.That(transactions1, Has.Count.EqualTo(tenant1TransactionCount));
+        Assert.That(transactions1.All(t => t.Payee.StartsWith("Tenant1 Payee")), Is.True);
+
+        // When: API Client requests transactions for tenant 2
+        var response2 = await _client.GetAsync($"/api/tenant/{tenant2Key}/transactions");
+        Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var transactions2 = await response2.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
+        Assert.That(transactions2, Is.Not.Null);
+
+        // Then: Only tenant 2's transactions are returned
+        Assert.That(transactions2, Has.Count.EqualTo(tenant2TransactionCount));
+        Assert.That(transactions2.All(t => t.Payee.StartsWith("Tenant2 Payee")), Is.True);
+    }
 }
