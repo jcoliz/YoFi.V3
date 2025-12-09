@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
+using System.Reflection;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Application.Validation;
 
 namespace YoFi.V3.Application.Features;
 
@@ -153,20 +155,37 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
     private static void ValidateTransactionEditDto(TransactionEditDto transaction)
     {
-        // Use data annotations for validation
-        var validationContext = new ValidationContext(transaction);
-        var validationResults = new List<ValidationResult>();
-
-        if (!Validator.TryValidateObject(transaction, validationContext, validationResults, validateAllProperties: true))
+        // Validate Date using DateRangeAttribute
+        var dateProperty = typeof(TransactionEditDto).GetProperty(nameof(TransactionEditDto.Date))!;
+        var dateRangeAttr = dateProperty.GetCustomAttribute<DateRangeAttribute>();
+        if (dateRangeAttr != null)
         {
-            var errors = string.Join("; ", validationResults.Select(r => r.ErrorMessage));
-            throw new ArgumentException($"Validation failed: {errors}");
+            var dateValidationContext = new ValidationContext(transaction) { MemberName = nameof(TransactionEditDto.Date) };
+            var dateResult = dateRangeAttr.GetValidationResult(transaction.Date, dateValidationContext);
+            if (dateResult != ValidationResult.Success)
+            {
+                throw new ArgumentException(dateResult!.ErrorMessage!);
+            }
         }
 
-        // Additional business rule: Amount cannot be zero
+        // Validate Amount - must be non-zero
         if (transaction.Amount == 0)
         {
             throw new ArgumentException("Transaction amount cannot be zero.");
+        }
+
+        // Validate Payee max length first (before whitespace check)
+        var payeeProperty = typeof(TransactionEditDto).GetProperty(nameof(TransactionEditDto.Payee))!;
+        var maxLengthAttr = payeeProperty.GetCustomAttribute<MaxLengthAttribute>();
+        if (maxLengthAttr != null && transaction.Payee != null && transaction.Payee.Length > maxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction payee cannot exceed {maxLengthAttr.Length} characters.");
+        }
+
+        // Validate Payee - must not be empty or whitespace
+        if (string.IsNullOrWhiteSpace(transaction.Payee))
+        {
+            throw new ArgumentException("Transaction payee cannot be empty.");
         }
     }
 
