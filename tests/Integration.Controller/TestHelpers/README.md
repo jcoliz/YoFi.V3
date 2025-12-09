@@ -118,45 +118,6 @@ public async Task<string> GetVersion_AllEnvironmentTypes_ReturnsCorrectFormat(
 }
 ```
 
-## CustomTenantWebApplicationFactory
-
-**File**: [`CustomTenantWebApplicationFactory.cs`](CustomTenantWebApplicationFactory.cs)
-
-Extends [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs) to provide tenant and transaction test data for testing the [`TenantContextMiddleware`](../../../src/Controllers/Tenancy/TenantContextMiddleware.cs).
-
-### Features
-
-- Seeds one tenant with 5 transactions in the test database
-- Exposes `TestTenantKey` property for use in test assertions
-- Must call `SeedTestDataAsync()` before creating the HTTP client
-
-### Usage
-
-```csharp
-using YoFi.V3.Tests.Integration.Controller.TestHelpers;
-
-// Create factory and seed test data
-var factory = new CustomTenantWebApplicationFactory();
-await factory.SeedTestDataAsync();
-
-// Get the tenant key for requests
-var tenantKey = factory.TestTenantKey;
-
-// Create HTTP client
-var client = factory.CreateClient();
-
-// Make tenant-scoped requests
-var response = await client.GetAsync($"/api/tenant/{tenantKey}/transactions");
-
-// Clean up
-client.Dispose();
-factory.Dispose();
-```
-
-### Example Test
-
-See [`TenantContextMiddlewareTests.cs`](../TenantContextMiddlewareTests.cs) for complete examples.
-
 ## Creating New Test Helpers
 
 When creating new test helpers, follow these patterns:
