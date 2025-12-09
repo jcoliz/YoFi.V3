@@ -146,6 +146,10 @@ try
     // Exception handler must come BEFORE middleware that might throw exceptions
     app.UseExceptionHandler();
 
+    // Status code pages middleware to handle routing failures (e.g., invalid route constraints)
+    // This must come after UseExceptionHandler to generate problem details for 404s
+    app.UseStatusCodePages();
+
     app.UseTenancy();
     app.MapDefaultEndpoints();
     app.MapControllers();
