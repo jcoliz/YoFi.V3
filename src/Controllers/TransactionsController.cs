@@ -1,9 +1,9 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
-using YoFi.V3.Entities.Exceptions;
 
 namespace YoFi.V3.Controllers;
 
@@ -17,11 +17,11 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [ProducesResponseType(typeof(ICollection<TransactionResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions()
     {
-        LogFetchingAllTransactions();
+        LogStarting();
 
         var transactions = await transactionsFeature.GetTransactionsAsync();
 
-        LogSuccessfullyFetchedAllTransactions();
+        LogOkCount(transactions.Count);
         return Ok(transactions);
     }
 
@@ -30,47 +30,26 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTransactionById(Guid key)
     {
-        LogFetchingTransactionById(key);
+        LogStartingKey(key);
 
-        try
-        {
-            var transaction = await transactionsFeature.GetTransactionByKeyAsync(key);
+        var transaction = await transactionsFeature.GetTransactionByKeyAsync(key);
 
-            LogSuccessfullyFetchedTransactionById(key);
-            return Ok(transaction);
-        }
-        catch (TransactionNotFoundException ex)
-        {
-            LogTransactionNotFound(key);
-            return NotFound(new ProblemDetails
-            {
-                Title = "Transaction Not Found",
-                Detail = ex.Message,
-                Status = StatusCodes.Status404NotFound
-            });
-        }
-        catch (Exception ex)
-        {
-            LogErrorFetchingTransactionById(ex, key);
-            throw;
-        }
+        LogOkKey(key);
+        return Ok(transaction);
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "GetTransactions: Fetching all transactions")]
-    private partial void LogFetchingAllTransactions();
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
+    private partial void LogStarting([CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Information, "GetTransactions: Successfully fetched all transactions")]
-    private partial void LogSuccessfullyFetchedAllTransactions();
+    [LoggerMessage(1, LogLevel.Information, "{Location}: OK")]
+    private partial void LogOk([CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Debug, "GetTransactionById: Fetching transaction {TransactionId}")]
-    private partial void LogFetchingTransactionById(Guid transactionId);
+    [LoggerMessage(2, LogLevel.Debug, "{Location}: Starting {Key}")]
+    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Information, "GetTransactionById: Successfully fetched transaction {TransactionId}")]
-    private partial void LogSuccessfullyFetchedTransactionById(Guid transactionId);
+    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Key}")]
+    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(4, LogLevel.Warning, "GetTransactionById: Transaction not found {TransactionId}")]
-    private partial void LogTransactionNotFound(Guid transactionId);
-
-    [LoggerMessage(5, LogLevel.Error, "GetTransactionById: Failed fetching transaction {TransactionId}")]
-    private partial void LogErrorFetchingTransactionById(Exception ex, Guid transactionId);
+    [LoggerMessage(4, LogLevel.Information, "{Location}: OK {Count} items")]
+    private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
 }

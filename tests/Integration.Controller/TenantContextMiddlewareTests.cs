@@ -250,10 +250,10 @@ public class TenantContextMiddlewareTests
         // Then: 404 Not Found should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
 
-        // And: Response should be a problem details with title "Transaction Not Found"
+        // And: Response should be a problem details with title "Transaction not found"
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction Not Found"));
+        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction not found"));
     }
 
     [Test]
@@ -272,9 +272,9 @@ public class TenantContextMiddlewareTests
         // Then: 404 Not Found should be returned (transaction should not be accessible from wrong tenant)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
 
-        // And: Response should be a problem details with title "Transaction Not Found"
+        // And: Response should be a problem details with title "Transaction not found"
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction Not Found"));
+        Assert.That(problemDetails!.Title, Is.EqualTo("Transaction not found"));
     }
 }
