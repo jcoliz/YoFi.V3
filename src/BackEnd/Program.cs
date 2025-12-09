@@ -147,7 +147,8 @@ try
     app.UseExceptionHandler();
 
     // Status code pages middleware to handle routing failures (e.g., invalid route constraints)
-    // This must come after UseExceptionHandler to generate problem details for 404s
+    // AddProblemDetails() configures the serialization format, but UseStatusCodePages()
+    // intercepts status code responses and triggers the problem details generation
     app.UseStatusCodePages();
 
     app.UseTenancy();
