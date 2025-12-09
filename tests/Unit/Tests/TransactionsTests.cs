@@ -326,6 +326,76 @@ public class TransactionsTests
         Assert.That(transactions[0].Payee, Is.EqualTo(payee200));
     }
 
+    [Test]
+    public void AddTransactionAsync_DateOutOfRange_ThrowsArgumentException()
+    {
+        // Arrange - Date too far in the past (more than 50 years)
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
+            Amount: 100m,
+            Payee: "TestPayee"
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("must be within"));
+    }
+
+    [Test]
+    public void AddTransactionAsync_DateTooFarInFuture_ThrowsArgumentException()
+    {
+        // Arrange - Date too far in the future (more than 5 years)
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(6)),
+            Amount: 100m,
+            Payee: "TestPayee"
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("must be within"));
+    }
+
+    [Test]
+    public void AddTransactionAsync_NullPayee_ThrowsArgumentException()
+    {
+        // Arrange
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: null!
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_NegativeAmount_Succeeds()
+    {
+        // Arrange - Negative amounts are allowed (credits/refunds)
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: -100m,
+            Payee: "RefundPayee"
+        );
+
+        // Act
+        await _transactionsFeature.AddTransactionAsync(dto);
+
+        // Assert
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions, Has.Count.EqualTo(1));
+        Assert.That(transactions[0].Amount, Is.EqualTo(-100m));
+    }
+
     #endregion
 
     #region UpdateTransactionAsync Tests
@@ -427,6 +497,108 @@ public class TransactionsTests
         // Act & Assert
         Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _transactionsFeature.UpdateTransactionAsync(otherTenantTransaction.Key, updateDto));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_DateOutOfRange_ThrowsArgumentException()
+    {
+        // Arrange
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
+        _dataProvider.Add(transaction);
+
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
+            Amount: 100m,
+            Payee: "UpdatedPayee"
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("must be within"));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_PayeeTooLong_ThrowsArgumentException()
+    {
+        // Arrange
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
+        _dataProvider.Add(transaction);
+
+        var longPayee = new string('A', 201);
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: longPayee
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("cannot exceed 200 characters"));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_WhitespacePayee_ThrowsArgumentException()
+    {
+        // Arrange
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
+        _dataProvider.Add(transaction);
+
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "   "
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_NullPayee_ThrowsArgumentException()
+    {
+        // Arrange
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
+        _dataProvider.Add(transaction);
+
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: null!
+        );
+
+        // Act & Assert
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
+    }
+
+    [Test]
+    public async Task UpdateTransactionAsync_NegativeAmount_Succeeds()
+    {
+        // Arrange
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
+        _dataProvider.Add(transaction);
+
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: -150m,
+            Payee: "UpdatedPayee"
+        );
+
+        // Act
+        await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
+
+        // Assert
+        var updated = _dataProvider.Transactions.First(t => t.Key == transaction.Key);
+        Assert.That(updated.Amount, Is.EqualTo(-150m));
     }
 
     #endregion
