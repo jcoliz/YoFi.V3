@@ -1,7 +1,5 @@
 using System.Net;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Models;
@@ -265,7 +263,7 @@ public class TenantContextMiddlewareTests
         var (tenant1Key, tenant1Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 1", "First tenant for cross-tenant access test");
         await CreateTransactionAsync(tenant1Id, "Tenant1 Transaction", 100.00m);
 
-        var (tenant2Key, tenant2Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 2", "Second tenant for cross-tenant access test");
+        var (_, tenant2Id) = await CreateTenantAsync("Cross Tenant Test - Tenant 2", "Second tenant for cross-tenant access test");
         var tenant2TransactionKey = await CreateTransactionAsync(tenant2Id, "Tenant2 Transaction", 200.00m);
 
         // When: API Client attempts to access Tenant 2's transaction using Tenant 1's context
