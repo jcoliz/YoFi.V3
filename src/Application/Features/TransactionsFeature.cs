@@ -1,5 +1,5 @@
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
@@ -151,21 +151,22 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             .ThenByDescending(t => t.Id);
     }
 
-    private static void ValidateTransactionEditDto(TransactionEditDto transaction, [CallerArgumentExpression(nameof(transaction))] string? paramName = null)
+    private static void ValidateTransactionEditDto(TransactionEditDto transaction)
     {
+        // Use data annotations for validation
+        var validationContext = new ValidationContext(transaction);
+        var validationResults = new List<ValidationResult>();
+
+        if (!Validator.TryValidateObject(transaction, validationContext, validationResults, validateAllProperties: true))
+        {
+            var errors = string.Join("; ", validationResults.Select(r => r.ErrorMessage));
+            throw new ArgumentException($"Validation failed: {errors}");
+        }
+
+        // Additional business rule: Amount cannot be zero
         if (transaction.Amount == 0)
         {
-            throw new ArgumentException("Transaction amount cannot be zero.", paramName);
-        }
-
-        if (string.IsNullOrWhiteSpace(transaction.Payee))
-        {
-            throw new ArgumentException("Transaction payee cannot be empty.", paramName);
-        }
-
-        if (transaction.Payee.Length > 200)
-        {
-            throw new ArgumentException("Transaction payee cannot exceed 200 characters.", paramName);
+            throw new ArgumentException("Transaction amount cannot be zero.");
         }
     }
 

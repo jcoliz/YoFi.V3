@@ -30,14 +30,40 @@ entity.Property(a => a.Name)
 
 **Example from our codebase:**
 
-See [`TransactionsFeature.ValidateTransactionEditDto()`](../../Application/Features/TransactionsFeature.cs) for proper application-level validation:
+We use data annotations on DTOs to define validation rules in one place:
+
+[`TransactionEditDto`](../../Application/Dto/TransactionEditDto.cs):
+```csharp
+public record TransactionEditDto(
+    DateOnly Date,
+
+    [Range(typeof(decimal), "-999999999", "999999999")]
+    decimal Amount,
+
+    [Required]
+    [MaxLength(200)]  // This matches the EF Core configuration
+    string Payee
+);
+```
+
+Then validate using the built-in `Validator` class in [`TransactionsFeature.ValidateTransactionEditDto()`](../../Application/Features/TransactionsFeature.cs):
 
 ```csharp
-if (transaction.Payee.Length > 200)
+var validationContext = new ValidationContext(transaction);
+var validationResults = new List<ValidationResult>();
+
+if (!Validator.TryValidateObject(transaction, validationContext, validationResults, validateAllProperties: true))
 {
-    throw new ArgumentException("Transaction payee cannot exceed 200 characters.", paramName);
+    var errors = string.Join("; ", validationResults.Select(r => r.ErrorMessage));
+    throw new ArgumentException($"Validation failed: {errors}");
 }
 ```
+
+This approach:
+- ✅ Keeps validation rules with the data model (single source of truth)
+- ✅ Makes the max length visible to both developers and EF Core
+- ✅ Provides consistent validation regardless of database provider
+- ✅ Eliminates magic numbers scattered through validation code
 
 #### Integration Tests Document This Behavior
 
