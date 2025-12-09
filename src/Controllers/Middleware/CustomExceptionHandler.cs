@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,15 +10,8 @@ namespace YoFi.V3.Controllers.Middleware;
 /// <summary>
 /// Configurable exception handler that maps specific exception types to HTTP status codes and problem details.
 /// </summary>
-public class CustomExceptionHandler : IExceptionHandler
+public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : IExceptionHandler
 {
-    private readonly ILogger<CustomExceptionHandler> _logger;
-
-    public CustomExceptionHandler(ILogger<CustomExceptionHandler> logger)
-    {
-        _logger = logger;
-    }
-
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -42,10 +36,7 @@ public class CustomExceptionHandler : IExceptionHandler
 
         if (handled)
         {
-            _logger.LogInformation(
-                "Handled {ExceptionType} with status code {StatusCode}",
-                exception.GetType().Name,
-                httpContext.Response.StatusCode);
+            LogHandledException(exception.GetType().Name, httpContext.Response.StatusCode);
         }
 
         return handled;
@@ -55,7 +46,7 @@ public class CustomExceptionHandler : IExceptionHandler
     /// Handles ResourceNotFoundException and its derived types (e.g., TenantNotFoundException, TransactionNotFoundException).
     /// Returns HTTP 404 with problem details.
     /// </summary>
-    private static async ValueTask<bool> HandleResourceNotFoundAsync(
+    private async ValueTask<bool> HandleResourceNotFoundAsync(
         HttpContext httpContext,
         ResourceNotFoundException exception,
         CancellationToken cancellationToken)
@@ -98,4 +89,7 @@ public class CustomExceptionHandler : IExceptionHandler
     //     await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
     //     return true;
     // }
+
+    [LoggerMessage(0, LogLevel.Information, "{Location}: Handled {ExceptionType} with status code {StatusCode}")]
+    private partial void LogHandledException(string exceptionType, int statusCode, [CallerMemberName] string? location = null);
 }
