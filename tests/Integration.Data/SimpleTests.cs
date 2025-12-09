@@ -313,4 +313,110 @@ public class SimpleTests
         Assert.That(results[1].Date, Is.EqualTo(date1));
         Assert.That(results[2].Date, Is.EqualTo(date2));
     }
+
+    [Test]
+    public async Task SingleOrDefaultAsync_ReturnsSingleEntity()
+    {
+        // Given: A data provider with a single weather forecast
+        IDataProvider provider = _context;
+        var forecast = new WeatherForecast()
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            TemperatureC = 20,
+            Summary = "Sunny"
+        };
+        _context.WeatherForecasts.Add(forecast);
+        await _context.SaveChangesAsync();
+
+        // When: Querying for a single entity
+        var query = provider.Get<WeatherForecast>().Where(f => f.Id == forecast.Id);
+        var result = await provider.SingleOrDefaultAsync(query);
+
+        // Then: Should return the single entity
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Summary, Is.EqualTo("Sunny"));
+    }
+
+    [Test]
+    public async Task SingleOrDefaultAsync_ReturnsNullWhenNotFound()
+    {
+        // Given: An empty database
+        IDataProvider provider = _context;
+
+        // When: Querying for a non-existent entity
+        var query = provider.Get<WeatherForecast>().Where(f => f.Id == 999);
+        var result = await provider.SingleOrDefaultAsync(query);
+
+        // Then: Should return null
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void SingleOrDefaultAsync_ThrowsWhenMultipleEntitiesFound()
+    {
+        // Given: Multiple weather forecasts with the same summary
+        IDataProvider provider = _context;
+        _context.WeatherForecasts.AddRange(
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now), TemperatureC = 20, Summary = "Sunny" },
+            new WeatherForecast() { Date = DateOnly.FromDateTime(DateTime.Now.AddDays(1)), TemperatureC = 25, Summary = "Sunny" }
+        );
+        _context.SaveChangesAsync().Wait();
+
+        // When/Then: Querying for multiple entities should throw
+        var query = provider.Get<WeatherForecast>().Where(f => f.Summary == "Sunny");
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.SingleOrDefaultAsync(query));
+    }
+
+    [Test]
+    public async Task Remove_DeletesEntityFromDatabase()
+    {
+        // Given: A weather forecast in the database
+        IDataProvider provider = _context;
+        var forecast = new WeatherForecast()
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            TemperatureC = 20,
+            Summary = "Sunny"
+        };
+        _context.WeatherForecasts.Add(forecast);
+        await _context.SaveChangesAsync();
+        var id = forecast.Id;
+
+        // When: Removing the forecast
+        provider.Remove(forecast);
+        await _context.SaveChangesAsync();
+
+        // Then: The entity should be deleted from the database
+        var deleted = await _context.WeatherForecasts.FindAsync(id);
+        Assert.That(deleted, Is.Null);
+    }
+
+    [Test]
+    public async Task Remove_WithTrackedEntity_DeletesSuccessfully()
+    {
+        // Given: A tracked entity in the database
+        IDataProvider provider = _context;
+        var forecast = new WeatherForecast()
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            TemperatureC = 20,
+            Summary = "Sunny"
+        };
+        _context.WeatherForecasts.Add(forecast);
+        await _context.SaveChangesAsync();
+        var id = forecast.Id;
+
+        // Retrieve it as tracked entity
+        var trackedForecast = await _context.WeatherForecasts.FindAsync(id);
+
+        // When: Removing the tracked entity
+        provider.Remove(trackedForecast!);
+        await _context.SaveChangesAsync();
+
+        // Then: The entity should be deleted
+        var deleted = await _context.WeatherForecasts.FindAsync(id);
+        Assert.That(deleted, Is.Null);
+        var count = await _context.WeatherForecasts.CountAsync();
+        Assert.That(count, Is.EqualTo(0));
+    }
 }
