@@ -1,0 +1,63 @@
+# Project Rules for YoFi.V3
+
+## Logging Pattern
+
+**Always follow these logging conventions:**
+
+1. **Use LoggerMessage attribute** - Never use direct logger calls like `_logger.LogInformation()`. Always use the `[LoggerMessage]` attribute with partial methods.
+
+2. **CallerMemberName location pattern** - All log methods must include `[CallerMemberName] string? location = null` as the last parameter. The log message template should start with `{Location}:` to automatically capture the calling method name.
+
+3. **Concise log messages** - Keep messages brief. The `{Location}` parameter usually provides sufficient context about where the log originated. Format: `"{Location}: Brief description {Parameter}"`
+
+4. **Debug-level "Starting" messages** - Use `LogLevel.Debug` for "Starting" messages at the beginning of operations. Format: `"{Location}: Starting"` or `"{Location}: Starting {Key}"` if there's a parameter.
+
+5. **Information-level "OK" messages** - Prefer an "OK" message as the final log message in a method upon success. Use `LogLevel.Information`. Format: `"{Location}: OK"` or `"{Location}: OK {Parameter}"`.
+
+6. **One Information log per method** - Prefer only one Information-level log per method (typically the final "OK" message), unless there's a strong reason for multiple. Debug, Warning, and Error messages don't count toward this limit.
+
+7. **Unique parameter signatures** - Only create a new logger message method if the parameter combination is unique. Reuse existing log methods when the parameters match, even if the calling location is different.
+
+8. **Partial class requirement** - Classes using LoggerMessage must be declared as `partial class`.
+
+9. **Primary constructor pattern** - Use primary constructor syntax for dependency injection: `public partial class MyClass(ILogger<MyClass> logger)`
+
+10. **Required using statements**:
+    - `using System.Runtime.CompilerServices;` (for CallerMemberName)
+    - `using Microsoft.Extensions.Logging;` (for LoggerMessage)
+
+### Example Pattern
+
+```csharp
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
+
+public partial class MyController(ILogger<MyController> logger) : ControllerBase
+{
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        LogStartingKey(id);
+
+        var result = await GetData(id);
+
+        LogOkKey(id);
+        return Ok(result);
+    }
+
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Key}")]
+    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(1, LogLevel.Information, "{Location}: OK {Key}")]
+    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
+}
+```
+
+### Common Log Method Patterns
+
+- `LogStarting()` - Debug level, no parameters
+- `LogStartingKey(Guid key)` - Debug level, with key parameter
+- `LogOk()` - Information level, no parameters
+- `LogOkKey(Guid key)` - Information level, with key parameter
+- `LogOkCount(int count)` - Information level, with count parameter
+- `LogNotFound()` - Warning level, no parameters
