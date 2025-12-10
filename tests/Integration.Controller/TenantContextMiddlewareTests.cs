@@ -262,8 +262,8 @@ public class TenantContextMiddlewareTests : AuthenticatedTestBase
         Assert.That(problemDetails!.Title, Is.EqualTo("Transaction not found"));
     }
 
+    // NOTE: This is more of a Transactions test, and should be moved to TransactionsControllerTests later
     [Test]
-    [Explicit("WIP - Viewer role not yet implemented")]
     public async Task GetTransactions_AsViewer_CanReadTransactions()
     {
         // Given: Switch to Viewer role (read-only)
