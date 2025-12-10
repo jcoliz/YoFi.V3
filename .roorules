@@ -233,3 +233,34 @@ When adding new tests to `TenantRepositoryTests.cs`:
 7. Only then complete the task
 
 This ensures code quality and prevents introducing broken tests into the codebase.
+
+## Application Layer Change Pattern
+
+**Always review and update unit tests when making changes to the Application layer.**
+
+1. **Review unit tests** - Whenever you modify code in the `src/Application` project (features, services, DTOs, validation), you must check if corresponding unit tests in `tests/Unit` need to be updated.
+
+2. **Maintain code coverage** - When adding new code to the Application layer, you must add comprehensive unit tests to maintain code coverage at or near 100%. Every new method, validation rule, or code path should have corresponding test coverage.
+
+3. **Common scenarios requiring test updates**:
+   - Changing method signatures (return types, parameters)
+   - Adding or removing methods
+   - Modifying validation logic
+   - Changing DTOs or data structures
+   - Altering business logic behavior
+
+4. **Update and verify** - After updating unit tests:
+   - Run the unit test suite to verify changes: `dotnet test tests/Unit`
+   - Fix any failures before completing the task
+   - Ensure test coverage remains comprehensive
+
+### Example
+
+When changing `AddTransactionAsync()` from `Task` to `Task<TransactionResultDto>`:
+1. Identify affected tests (search for `AddTransactionAsync` in unit tests)
+2. Update tests to capture and verify the return value
+3. Add tests for any new code paths or validation rules
+4. Run `dotnet test tests/Unit` to verify all tests pass
+5. Only then mark the task as complete
+
+This ensures unit tests accurately reflect the current Application layer implementation and maintain comprehensive test coverage.

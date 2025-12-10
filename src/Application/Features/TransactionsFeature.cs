@@ -72,7 +72,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// Adds a new transaction for the current tenant.
     /// </summary>
     /// <param name="transaction">The transaction data to add.</param>
-    public async Task AddTransactionAsync(TransactionEditDto transaction)
+    /// <returns>The created transaction.</returns>
+    public async Task<TransactionResultDto> AddTransactionAsync(TransactionEditDto transaction)
     {
         ValidateTransactionEditDto(transaction);
 
@@ -85,6 +86,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         };
         dataProvider.Add(newTransaction);
         await dataProvider.SaveChangesAsync();
+
+        return new TransactionResultDto(newTransaction.Key, newTransaction.Date, newTransaction.Amount, newTransaction.Payee);
     }
 
     /// <summary>

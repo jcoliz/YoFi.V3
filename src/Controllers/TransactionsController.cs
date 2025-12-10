@@ -19,11 +19,12 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [HttpGet()]
     [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(ICollection<TransactionResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetTransactions()
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetTransactions([FromQuery] DateOnly? fromDate = null, [FromQuery] DateOnly? toDate = null)
     {
         LogStarting();
 
-        var transactions = await transactionsFeature.GetTransactionsAsync();
+        var transactions = await transactionsFeature.GetTransactionsAsync(fromDate, toDate);
 
         LogOkCount(transactions.Count);
         return Ok(transactions);
@@ -41,6 +42,49 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 
         LogOkKey(key);
         return Ok(transaction);
+    }
+
+    [HttpPost()]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateTransaction([FromBody] TransactionEditDto transaction)
+    {
+        LogStarting();
+
+        var created = await transactionsFeature.AddTransactionAsync(transaction);
+
+        LogOkKey(created.Key);
+        return CreatedAtAction(nameof(GetTransactionById), new { key = created.Key }, created);
+    }
+
+    [HttpPut("{key:guid}")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateTransaction(Guid key, [FromBody] TransactionEditDto transaction)
+    {
+        LogStartingKey(key);
+
+        await transactionsFeature.UpdateTransactionAsync(key, transaction);
+
+        LogOkKey(key);
+        return NoContent();
+    }
+
+    [HttpDelete("{key:guid}")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTransaction(Guid key)
+    {
+        LogStartingKey(key);
+
+        await transactionsFeature.DeleteTransactionAsync(key);
+
+        LogOkKey(key);
+        return NoContent();
     }
 
     [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]

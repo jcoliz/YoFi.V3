@@ -227,7 +227,7 @@ public class TransactionsTests
         );
 
         // Act
-        await _transactionsFeature.AddTransactionAsync(dto);
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
 
         // Assert
         var transactions = _dataProvider.Transactions.ToList();
@@ -235,6 +235,12 @@ public class TransactionsTests
         Assert.That(transactions[0].Payee, Is.EqualTo("NewPayee"));
         Assert.That(transactions[0].Amount, Is.EqualTo(150m));
         Assert.That(transactions[0].TenantId, Is.EqualTo(_testTenantId));
+
+        // And: Result should match the created transaction
+        Assert.That(result.Key, Is.EqualTo(transactions[0].Key));
+        Assert.That(result.Payee, Is.EqualTo("NewPayee"));
+        Assert.That(result.Amount, Is.EqualTo(150m));
+        Assert.That(result.Date, Is.EqualTo(dto.Date));
     }
 
     [Test]
@@ -318,12 +324,15 @@ public class TransactionsTests
         );
 
         // Act
-        await _transactionsFeature.AddTransactionAsync(dto);
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
 
         // Assert
         var transactions = _dataProvider.Transactions.ToList();
         Assert.That(transactions, Has.Count.EqualTo(1));
         Assert.That(transactions[0].Payee, Is.EqualTo(payee200));
+
+        // And: Result should contain the same payee
+        Assert.That(result.Payee, Is.EqualTo(payee200));
     }
 
     [Test]
@@ -388,12 +397,15 @@ public class TransactionsTests
         );
 
         // Act
-        await _transactionsFeature.AddTransactionAsync(dto);
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
 
         // Assert
         var transactions = _dataProvider.Transactions.ToList();
         Assert.That(transactions, Has.Count.EqualTo(1));
         Assert.That(transactions[0].Amount, Is.EqualTo(-100m));
+
+        // And: Result should contain the negative amount
+        Assert.That(result.Amount, Is.EqualTo(-100m));
     }
 
     #endregion
