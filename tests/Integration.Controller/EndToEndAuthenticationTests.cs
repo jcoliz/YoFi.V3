@@ -1,10 +1,5 @@
 using System.Net;
-using System.Net.Http.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Controllers.Tenancy;
 
@@ -154,21 +149,26 @@ public class EndToEndAuthenticationTests
         Assert.That(createdTenant!.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(createdTenant.Name, Is.EqualTo("My Test Tenant"));
 
-        // TODO: After creating a tenant, need to re-login to get updated JWT token with tenant claims.
+        // TODO: After creating a tenant, need to refresh the token to get updated JWT with tenant claims.
         // The initial login token doesn't include tenant roles since the tenant didn't exist yet.
-        // Consider implementing a more elegant solution such as:
-        // 1. Real-time token claim updates when tenant roles change, OR
-        // 2. A dedicated endpoint to refresh claims without full re-authentication
+        // The refresh endpoint should re-query custom claims and include them in the new token.
 
-        // When: User logs in again to get updated token with tenant role claims
-        var reloginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-        Assert.That(reloginResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var reloginResult = await reloginResponse.Content.ReadFromJsonAsync<LoginResponse>();
-        Assert.That(reloginResult, Is.Not.Null);
+        // Couple of possible approaches to consider:
+        // 1. Per design, registering a user should create a default tenant automatically.
+        //    This way, the initial token from signup/login would already have tenant claims.
+        // 2. After creating a tenant, the client should call the refresh endpoint to get updated claims.
+        //    This is what we're testing here for now.
 
-        // And: User updates authenticated client with the new token containing tenant claims
+        // When: User refreshes the token to get updated claims with tenant role
+        var refreshRequest = new { refreshToken = loginResult.Token.RefreshToken };
+        var refreshResponse = await authenticatedClient.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
+        Assert.That(refreshResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshResponse>();
+        Assert.That(refreshResult, Is.Not.Null);
+
+        // And: User updates authenticated client with the refreshed token containing tenant claims
         authenticatedClient.DefaultRequestHeaders.Remove("Authorization");
-        authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {reloginResult!.Token.AccessToken}");
+        authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {refreshResult!.Token.AccessToken}");
 
         // When: User adds transactions to the tenant
         var transaction1 = new TransactionEditDto(
