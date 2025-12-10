@@ -12,7 +12,6 @@ import type { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 definePageMeta({
   title: 'Counter',
-  order: 3,
   auth: true,
 })
 
