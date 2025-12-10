@@ -7,7 +7,12 @@
  * and manage workspace data.
  */
 
-import { TenantClient, TenantEditDto, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
+import {
+  TenantClient,
+  TenantEditDto,
+  TenantRole,
+  type TenantRoleResultDto,
+} from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 // Store
@@ -124,7 +129,6 @@ function onWorkspaceChange(event: Event) {
   }
 }
 
-
 async function createWorkspace() {
   if (!newWorkspaceName.value.trim()) {
     createError.value = 'Workspace name is required'
@@ -164,7 +168,6 @@ async function createWorkspace() {
     creating.value = false
   }
 }
-
 
 // Expose methods for parent component
 defineExpose({
@@ -212,162 +215,162 @@ defineExpose({
           />
         </button>
       </template>
-    <template #default>
-      <div class="dropdown-menu dropdown-menu-end shadow workspace-panel">
-        <!-- Error State -->
-        <div
-          v-if="error"
-          class="p-3 text-danger"
-        >
-          <small>{{ error }}</small>
-        </div>
-
-        <!-- Loading State -->
-        <div
-          v-else-if="loading"
-          class="p-3 text-center"
-        >
-          <BaseSpinner size="sm" />
-          <div class="mt-2">
-            <small class="text-muted">Loading workspaces...</small>
-          </div>
-        </div>
-
-        <!-- Main Content -->
-        <div
-          v-else
-          class="p-3"
-        >
-          <!-- Current Workspace Details -->
+      <template #default>
+        <div class="dropdown-menu dropdown-menu-end shadow workspace-panel">
+          <!-- Error State -->
           <div
-            v-if="currentTenant"
-            class="mb-3"
+            v-if="error"
+            class="p-3 text-danger"
           >
-            <label class="form-label mb-2">
-              <strong>Current Workspace</strong>
-            </label>
-            <div class="workspace-details">
-              <div class="mb-2">
-                <small class="text-muted d-block">Name:</small>
-                <div>{{ currentTenant.name }}</div>
-              </div>
-              <div
-                v-if="currentTenant.description"
-                class="mb-2"
-              >
-                <small class="text-muted d-block">Description:</small>
-                <div>{{ currentTenant.description }}</div>
-              </div>
-              <div
-                v-if="currentTenant.role"
-                class="mb-2"
-              >
-                <small class="text-muted d-block">Role:</small>
-                <div>
-                  <span class="badge bg-secondary">{{ getRoleName(currentTenant.role) }}</span>
-                </div>
-              </div>
-              <div v-if="currentTenant.createdAt">
-                <small class="text-muted d-block">Created:</small>
-                <div>{{ new Date(currentTenant.createdAt).toLocaleDateString() }}</div>
-              </div>
+            <small>{{ error }}</small>
+          </div>
+
+          <!-- Loading State -->
+          <div
+            v-else-if="loading"
+            class="p-3 text-center"
+          >
+            <BaseSpinner size="sm" />
+            <div class="mt-2">
+              <small class="text-muted">Loading workspaces...</small>
             </div>
           </div>
 
+          <!-- Main Content -->
           <div
             v-else
-            class="mb-3 text-muted text-center py-2"
+            class="p-3"
           >
-            <small>No workspace selected</small>
-          </div>
-
-          <hr class="my-3" />
-
-          <!-- Change Workspace Dropdown -->
-          <div class="mb-3">
-            <label
-              for="workspace-select"
-              class="form-label mb-2"
+            <!-- Current Workspace Details -->
+            <div
+              v-if="currentTenant"
+              class="mb-3"
             >
-              <strong>Change Workspace</strong>
-            </label>
-            <select
-              id="workspace-select"
-              class="form-select form-select-sm"
-              :value="userPreferencesStore.getCurrentTenantKey || ''"
-              :disabled="tenants.length === 0"
-              @change="onWorkspaceChange"
-            >
-              <option
-                value=""
-                disabled
-              >
-                {{ tenants.length === 0 ? 'No workspaces available' : 'Select a workspace' }}
-              </option>
-              <option
-                v-for="tenant in tenants"
-                :key="tenant.key"
-                :value="tenant.key"
-              >
-                {{ tenant.name }}
-              </option>
-            </select>
-          </div>
-
-          <hr class="my-3" />
-
-          <!-- Create New Workspace Form -->
-          <div>
-            <label class="form-label mb-2">
-              <strong>Create New Workspace</strong>
-            </label>
+              <label class="form-label mb-2">
+                <strong>Current Workspace</strong>
+              </label>
+              <div class="workspace-details">
+                <div class="mb-2">
+                  <small class="text-muted d-block">Name:</small>
+                  <div>{{ currentTenant.name }}</div>
+                </div>
+                <div
+                  v-if="currentTenant.description"
+                  class="mb-2"
+                >
+                  <small class="text-muted d-block">Description:</small>
+                  <div>{{ currentTenant.description }}</div>
+                </div>
+                <div
+                  v-if="currentTenant.role"
+                  class="mb-2"
+                >
+                  <small class="text-muted d-block">Role:</small>
+                  <div>
+                    <span class="badge bg-secondary">{{ getRoleName(currentTenant.role) }}</span>
+                  </div>
+                </div>
+                <div v-if="currentTenant.createdAt">
+                  <small class="text-muted d-block">Created:</small>
+                  <div>{{ new Date(currentTenant.createdAt).toLocaleDateString() }}</div>
+                </div>
+              </div>
+            </div>
 
             <div
-              v-if="createError"
-              class="alert alert-danger alert-sm mb-2 py-1 px-2"
+              v-else
+              class="mb-3 text-muted text-center py-2"
             >
-              <small>{{ createError }}</small>
+              <small>No workspace selected</small>
             </div>
 
-            <div class="mb-2">
-              <input
-                id="new-workspace-name"
-                v-model="newWorkspaceName"
-                type="text"
-                class="form-control form-control-sm"
-                placeholder="Workspace name"
-                :disabled="creating"
-                @keyup.enter="createWorkspace"
-              />
+            <hr class="my-3" />
+
+            <!-- Change Workspace Dropdown -->
+            <div class="mb-3">
+              <label
+                for="workspace-select"
+                class="form-label mb-2"
+              >
+                <strong>Change Workspace</strong>
+              </label>
+              <select
+                id="workspace-select"
+                class="form-select form-select-sm"
+                :value="userPreferencesStore.getCurrentTenantKey || ''"
+                :disabled="tenants.length === 0"
+                @change="onWorkspaceChange"
+              >
+                <option
+                  value=""
+                  disabled
+                >
+                  {{ tenants.length === 0 ? 'No workspaces available' : 'Select a workspace' }}
+                </option>
+                <option
+                  v-for="tenant in tenants"
+                  :key="tenant.key"
+                  :value="tenant.key"
+                >
+                  {{ tenant.name }}
+                </option>
+              </select>
             </div>
 
-            <div class="mb-2">
-              <textarea
-                id="new-workspace-description"
-                v-model="newWorkspaceDescription"
-                class="form-control form-control-sm"
-                rows="2"
-                placeholder="Description (optional)"
-                :disabled="creating"
-              />
-            </div>
+            <hr class="my-3" />
 
-            <button
-              class="btn btn-primary btn-sm w-100"
-              :disabled="creating || !newWorkspaceName.trim()"
-              data-test-id="create-workspace-submit"
-              @click="createWorkspace"
-            >
-              <BaseSpinner
-                v-if="creating"
-                size="sm"
-                class="me-1"
-              />
-              {{ creating ? 'Creating...' : 'Create' }}
-            </button>
+            <!-- Create New Workspace Form -->
+            <div>
+              <label class="form-label mb-2">
+                <strong>Create New Workspace</strong>
+              </label>
+
+              <div
+                v-if="createError"
+                class="alert alert-danger alert-sm mb-2 py-1 px-2"
+              >
+                <small>{{ createError }}</small>
+              </div>
+
+              <div class="mb-2">
+                <input
+                  id="new-workspace-name"
+                  v-model="newWorkspaceName"
+                  type="text"
+                  class="form-control form-control-sm"
+                  placeholder="Workspace name"
+                  :disabled="creating"
+                  @keyup.enter="createWorkspace"
+                />
+              </div>
+
+              <div class="mb-2">
+                <textarea
+                  id="new-workspace-description"
+                  v-model="newWorkspaceDescription"
+                  class="form-control form-control-sm"
+                  rows="2"
+                  placeholder="Description (optional)"
+                  :disabled="creating"
+                />
+              </div>
+
+              <button
+                class="btn btn-primary btn-sm w-100"
+                :disabled="creating || !newWorkspaceName.trim()"
+                data-test-id="create-workspace-submit"
+                @click="createWorkspace"
+              >
+                <BaseSpinner
+                  v-if="creating"
+                  size="sm"
+                  class="me-1"
+                />
+                {{ creating ? 'Creating...' : 'Create' }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
       </template>
     </DropDownPortable>
   </div>
