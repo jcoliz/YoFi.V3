@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using NuxtIdentity.Core.Abstractions;
 using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Tenancy;
@@ -22,6 +24,9 @@ public static class ServiceCollectionExtensions
 
         // Register TenantFeature
         services.AddScoped<TenantFeature>();
+
+        // Add claims to token
+        services.AddScoped<IUserClaimsProvider<IdentityUser>, TenantUserClaimsService<IdentityUser>>();
 
         // Register the authorization handler for tenant role requirements
         services.AddSingleton<IAuthorizationHandler, TenantRoleHandler>();
