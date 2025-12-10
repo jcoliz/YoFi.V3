@@ -10,12 +10,12 @@ namespace YoFi.V3.Controllers;
 [Route("[controller]")]
 [ApiController]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class VersionController(IOptions<ApplicationOptions> options, ILogger<VersionController> logger) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult GetVersion()
     {
         var version = options.Value.Version;

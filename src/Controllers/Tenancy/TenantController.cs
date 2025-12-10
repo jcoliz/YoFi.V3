@@ -25,6 +25,8 @@ namespace YoFi.V3.Controllers.Tenancy;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class TenantController(TenantFeature tenantFeature, ILogger<TenantController> logger) : ControllerBase
 {
@@ -70,6 +72,7 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     /// <returns>The created tenant's information</returns>
     [HttpPost()]
     [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateTenant([FromBody] TenantEditDto tenantDto)
     {
         LogStarting();

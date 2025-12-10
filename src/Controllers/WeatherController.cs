@@ -11,11 +11,11 @@ namespace YoFi.V3.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class WeatherController(WeatherFeature weatherFeature, ILogger<WeatherController> logger) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(WeatherForecast[]), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWeatherForecasts()
     {
         LogStarting();

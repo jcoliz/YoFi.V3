@@ -29,6 +29,7 @@ public record TestUser(int Id)
 [Route("[controller]")]
 [ApiController]
 [Produces("application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class TestControlController(
     UserManager<IdentityUser> userManager,
     ILogger<TestControlController> logger
@@ -45,7 +46,6 @@ public partial class TestControlController(
     [HttpPost("users")]
     [ProducesResponseType(typeof(TestUser), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateUser()
     {
         var newUser = new TestUser(new Random().Next(1, 0x10000));
@@ -83,7 +83,6 @@ public partial class TestControlController(
     [HttpPut("users/{username}/approve")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ApproveUser(string username)
     {
         if (!username.Contains(TestUser.Prefix))
@@ -102,7 +101,6 @@ public partial class TestControlController(
     [HttpDelete("users")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteUsers()
     {
         var testUsers = userManager.Users
@@ -124,6 +122,11 @@ public partial class TestControlController(
     /// <param name="code">Kind of error desired</param>
     /// <returns></returns>
     [HttpGet("errors")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult Errors(string? code)
     {
         switch (code?.ToLowerInvariant())
