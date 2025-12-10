@@ -2793,8 +2793,14 @@ namespace YoFi.V3.Tests.Functional.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.2.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class Tenant : BaseModel
+    public partial class Tenant
     {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public long Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public System.Guid Key { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }

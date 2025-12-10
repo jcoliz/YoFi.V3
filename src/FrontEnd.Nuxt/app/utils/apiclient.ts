@@ -1382,19 +1382,27 @@ export interface IWeatherForecast extends IBaseModel {
     temperatureF?: number;
 }
 
-export class Tenant extends BaseModel implements ITenant {
+export class Tenant implements ITenant {
+    id?: number;
+    key?: string;
     name?: string;
     description?: string;
     createdAt?: Date;
     roleAssignments?: UserTenantRoleAssignment[];
 
     constructor(data?: ITenant) {
-        super(data);
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
     }
 
-    override init(_data?: any) {
-        super.init(_data);
+    init(_data?: any) {
         if (_data) {
+            this.id = _data["id"];
+            this.key = _data["key"];
             this.name = _data["name"];
             this.description = _data["description"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
@@ -1406,15 +1414,17 @@ export class Tenant extends BaseModel implements ITenant {
         }
     }
 
-    static override fromJS(data: any): Tenant {
+    static fromJS(data: any): Tenant {
         data = typeof data === 'object' ? data : {};
         let result = new Tenant();
         result.init(data);
         return result;
     }
 
-    override toJSON(data?: any) {
+    toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["key"] = this.key;
         data["name"] = this.name;
         data["description"] = this.description;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
@@ -1423,12 +1433,13 @@ export class Tenant extends BaseModel implements ITenant {
             for (let item of this.roleAssignments)
                 data["roleAssignments"].push(item ? item.toJSON() : undefined as any);
         }
-        super.toJSON(data);
         return data;
     }
 }
 
-export interface ITenant extends IBaseModel {
+export interface ITenant {
+    id?: number;
+    key?: string;
     name?: string;
     description?: string;
     createdAt?: Date;

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
 using YoFi.V3.Entities.Providers;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Data;
 
@@ -27,6 +28,7 @@ public static partial class ServiceCollectionExtensions
         });
 
         services.AddScoped<IDataProvider, ApplicationDbContext>();
+        services.AddScoped<ITenantRepository, ApplicationDbContext>();
 
         return services;
     }

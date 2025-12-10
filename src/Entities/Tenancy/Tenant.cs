@@ -9,14 +9,19 @@ namespace YoFi.V3.Entities.Tenancy;
 /// <remarks>
 /// Entire tenancy feature is designed to be application-independent, so
 /// Tenant does not inherit from BaseModel or implement IModel directly.
-///
-/// FIX: This is actually broken. Is IModel application-independent?
-/// It has Key and Id, which are application-specific concepts. We need to
-/// rethink this.
 /// </remarks>
 [Table("YoFi.V3.Tenants")]
-public record Tenant : BaseModel
+public record Tenant
 {
+    /// <summary>
+    /// Database identity for this record
+    /// </summary>
+    public long Id { get; set; }
+
+    /// <summary>
+    /// Public-facing unique identifier for this record
+    /// </summary>
+    public Guid Key { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
