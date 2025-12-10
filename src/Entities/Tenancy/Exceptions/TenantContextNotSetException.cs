@@ -1,10 +1,11 @@
-namespace YoFi.V3.Entities.Tenancy;
+namespace YoFi.V3.Entities.Tenancy.Exceptions;
 
 /// <summary>
 /// Exception thrown when attempting to access the current tenant but the tenant context has not been set.
 /// This typically indicates that the tenant middleware has not run or has failed to resolve a tenant.
+/// This is a code error (500) rather than a client error.
 /// </summary>
-public class TenantContextNotSetException : InvalidOperationException
+public class TenantContextNotSetException : TenancyException
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TenantContextNotSetException"/> class.

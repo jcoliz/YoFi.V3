@@ -261,7 +261,7 @@ public class TenantControllerTests
     }
 
     [Test]
-    public async Task GetTenant_NonExistent_Returns404()
+    public async Task GetTenant_NonExistent_Returns403()
     {
         // Given: An authenticated user
         // And: A tenant key that doesn't exist
@@ -270,12 +270,12 @@ public class TenantControllerTests
         // When: User requests the non-existent tenant
         var response = await _client.GetAsync($"/api/tenant/{nonExistentKey}");
 
-        // Then: 404 Not Found should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        // Then: 403 Forbidden should be returned (anti-enumeration: same as access denied)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task GetTenant_WithoutAccess_Returns404()
+    public async Task GetTenant_WithoutAccess_Returns403()
     {
         // Given: Two different users
         var user1Id = Guid.NewGuid();
@@ -291,8 +291,8 @@ public class TenantControllerTests
             userName: "User 2");
         var response = await user2Client.GetAsync($"/api/tenant/{tenantKey}");
 
-        // Then: 404 Not Found should be returned (user doesn't have access)
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        // Then: 403 Forbidden should be returned (anti-enumeration: same as non-existent)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     #endregion

@@ -1,10 +1,13 @@
-namespace YoFi.V3.Entities.Tenancy;
+namespace YoFi.V3.Entities.Tenancy.Exceptions;
 
 /// <summary>
-/// Exception thrown when attempting to remove a user-tenant role assignment that doesn't exist.
+/// Exception thrown when attempting to access a user-tenant role assignment that doesn't exist.
 /// </summary>
-public class UserTenantRoleNotFoundException : Exception
+public class UserTenantRoleNotFoundException : TenancyResourceNotFoundException
 {
+    /// <inheritdoc/>
+    public override string ResourceType => "UserTenantRole";
+
     /// <summary>
     /// Gets the user identifier.
     /// </summary>
@@ -34,7 +37,7 @@ public class UserTenantRoleNotFoundException : Exception
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="innerException">The inner exception.</param>
     public UserTenantRoleNotFoundException(string userId, long tenantId, Exception innerException)
-        : base($"User '{userId}' does not have a role assignment for tenant '{tenantId}'.", innerException)
+        : base($"User '{userId}' does not have a role assignment for tenant '{tenantId}'.", null, innerException)
     {
         UserId = userId;
         TenantId = tenantId;

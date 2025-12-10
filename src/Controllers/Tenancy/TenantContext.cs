@@ -1,4 +1,5 @@
 using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Exceptions;
 
 namespace YoFi.V3.Controllers.Tenancy;
 

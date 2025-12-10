@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using YoFi.V3.Controllers.Tenancy.Exceptions;
 using YoFi.V3.Entities.Exceptions;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Exceptions;
 
 namespace YoFi.V3.Controllers.Middleware;
 
@@ -21,21 +22,21 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         // Try each registered exception handler
         var handled = exception switch
         {
+            // Tenancy exceptions - delegate to tenancy handler
+            TenancyException tenancyException => await HandleTenancyExceptionAsync(
+                httpContext, tenancyException, cancellationToken),
+
             // 404 Not Found - ResourceNotFoundException and derived types
             ResourceNotFoundException notFound => await HandleResourceNotFoundAsync(
                 httpContext, notFound, cancellationToken),
 
-            // 404 Not Found - KeyNotFoundException
+            // 404 Not Found - KeyNotFoundException (legacy, deprecated)
             KeyNotFoundException keyNotFound => await HandleKeyNotFoundExceptionAsync(
                 httpContext, keyNotFound, cancellationToken),
 
             // 400 Bad Request - ArgumentException (validation errors)
             ArgumentException argumentException => await HandleArgumentExceptionAsync(
                 httpContext, argumentException, cancellationToken),
-
-            // 500 Internal Server Error - TenantContextNotSetException
-            TenantContextNotSetException tenantContextError => await HandleTenantContextNotSetAsync(
-                httpContext, tenantContextError, cancellationToken),
 
             // Add more exception mappings here as needed, for example:
             // ValidationException validation => await HandleValidationExceptionAsync(
@@ -133,27 +134,14 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     }
 
     /// <summary>
-    /// Handles TenantContextNotSetException when tenant context is not properly initialized.
-    /// Returns HTTP 500 with problem details.
+    /// Handles TenancyException and its derived types by delegating to the tenancy-specific handler.
     /// </summary>
-    private async ValueTask<bool> HandleTenantContextNotSetAsync(
+    private static async ValueTask<bool> HandleTenancyExceptionAsync(
         HttpContext httpContext,
-        TenantContextNotSetException exception,
+        TenancyException exception,
         CancellationToken cancellationToken)
     {
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Tenant Context Error",
-            Detail = "The tenant context was not properly initialized. This is likely a configuration issue with the tenant middleware.",
-            Instance = httpContext.Request.Path
-        };
-
-        problemDetails.Extensions["error"] = exception.Message;
-
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await TenancyExceptionHandler.HandleAsync(httpContext, exception, cancellationToken);
         return true;
     }
 

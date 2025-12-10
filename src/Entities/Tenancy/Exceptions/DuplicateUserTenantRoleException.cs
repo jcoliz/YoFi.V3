@@ -1,10 +1,10 @@
-namespace YoFi.V3.Entities.Tenancy;
+namespace YoFi.V3.Entities.Tenancy.Exceptions;
 
 /// <summary>
 /// Exception thrown when attempting to add a user-tenant role assignment that already exists.
 /// A user can only have one role per tenant due to unique constraint.
 /// </summary>
-public class DuplicateUserTenantRoleException : Exception
+public class DuplicateUserTenantRoleException : TenancyException
 {
     /// <summary>
     /// Gets the user identifier.

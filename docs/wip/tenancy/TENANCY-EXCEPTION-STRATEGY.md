@@ -37,7 +37,7 @@ Exception
 | `TenantAccessDeniedException` (new) | 403 Forbidden | User doesn't have access to the requested tenant |
 | [`TenantContextNotSetException`](../../../src/Entities/Tenancy/TenantContextNotSetException.cs) | 500 Internal Server Error | Tenant middleware failed (code error) |
 
-**Security Note**: `TenantNotFoundException` returns 403 (not 404) to prevent tenant enumeration attacks. From the user's perspective, "tenant doesn't exist" and "tenant exists but you don't have access" should be indistinguishable.
+**Security Note**: Both `TenantNotFoundException` and `TenantAccessDeniedException` return 403 (not 404) to prevent tenant enumeration attacks. From the user's perspective, "tenant doesn't exist" and "tenant exists but you don't have access" should be indistinguishable. The [`TenancyExceptionHandler`](../../../src/Controllers/Tenancy/Exceptions/TenancyExceptionHandler.cs) ensures both exceptions return identical 403 responses.
 
 ## Exception Definitions
 

@@ -1,4 +1,5 @@
 using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Exceptions;
 
 namespace YoFi.V3.Controllers.Tenancy;
 
@@ -64,23 +65,22 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <param name="userId">The unique identifier of the user.</param>
     /// <param name="tenantKey">The unique key of the tenant to retrieve.</param>
     /// <returns>A <see cref="TenantRoleResultDto"/> containing tenant information and the user's role.</returns>
-    /// <exception cref="KeyNotFoundException">Thrown when the tenant is not found or the user doesn't have access to it.</exception>
+    /// <exception cref="TenantNotFoundException">Thrown when the tenant is not found.</exception>
+    /// <exception cref="TenantAccessDeniedException">Thrown when the user doesn't have access to the tenant.</exception>
     public async Task<TenantRoleResultDto> GetTenantForUserAsync(Guid userId, Guid tenantKey)
     {
         // First, get the tenant by key to get its ID
         var tenant = await tenantRepository.GetTenantByKeyAsync(tenantKey);
         if (tenant == null)
         {
-            // TODO: Domain-specific exception
-            throw new KeyNotFoundException($"Tenant with key {tenantKey} not found.");
+            throw new TenantNotFoundException(tenantKey);
         }
 
         // Then check if the user has access to this tenant
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            // TODO: Domain-specific exception
-            throw new KeyNotFoundException($"User does not have access to tenant {tenantKey}.");
+            throw new TenantAccessDeniedException(userId, tenantKey);
         }
 
         return new TenantRoleResultDto(
