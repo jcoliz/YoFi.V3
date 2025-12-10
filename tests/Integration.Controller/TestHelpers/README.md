@@ -100,12 +100,12 @@ var client = CreateMultiTenantClient(
 
 ## Design Decisions
 
-### Why HTTP Headers Instead of Middleware?
+### Why HTTP Headers?
 
-**Attempted Approaches**:
-1. ❌ **request.Properties** - Doesn't flow to `HttpContext.Items`
-2. ❌ **Scoped service + middleware** - Overly complex, requires middleware registration
-3. ✅ **HTTP headers** - Simple, reliable, works with `HttpClient` pipeline
+**Simple and Reliable**:
+- Works naturally with `HttpClient` delegating handlers
+- Standard HTTP mechanism for passing data through the pipeline
+- No complex middleware registration required
 
 ### Why Editor as Default Role?
 
@@ -118,20 +118,6 @@ var client = CreateMultiTenantClient(
 - **Real authorization flow** - Tests actual `TenantRoleHandler` logic
 - **No mocking complexity** - Uses ASP.NET Core's built-in auth system
 - **Production parity** - Authorization works identically in tests and production
-
-## Deprecated/Unused Components
-
-### [`TestUserContext`](TestUserContext.cs)
-
-**Status**: UNUSED
-
-Part of an earlier scoped-service + middleware approach that was replaced with the simpler header-based solution.
-
-### [`TestUserScopedHandler`](TestUserDelegatingHandler.cs)
-
-**Status**: DEPRECATED
-
-From an earlier implementation that attempted to use `request.Properties`. Kept for historical reference.
 
 ## Related Documentation
 
