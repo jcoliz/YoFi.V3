@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Entities.Exceptions;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Middleware;
 
@@ -28,9 +29,9 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             ArgumentException argumentException => await HandleArgumentExceptionAsync(
                 httpContext, argumentException, cancellationToken),
 
-            // 500 Internal Server Error - InvalidOperationException from TenantContext
-            InvalidOperationException invalidOp when invalidOp.Message.Contains("Current tenant is not set")
-                => await HandleTenantNotSetAsync(httpContext, invalidOp, cancellationToken),
+            // 500 Internal Server Error - TenantContextNotSetException
+            TenantContextNotSetException tenantContextError => await HandleTenantContextNotSetAsync(
+                httpContext, tenantContextError, cancellationToken),
 
             // Add more exception mappings here as needed, for example:
             // ValidationException validation => await HandleValidationExceptionAsync(
@@ -105,12 +106,12 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     }
 
     /// <summary>
-    /// Handles InvalidOperationException when tenant is not set.
+    /// Handles TenantContextNotSetException when tenant context is not properly initialized.
     /// Returns HTTP 500 with problem details.
     /// </summary>
-    private async ValueTask<bool> HandleTenantNotSetAsync(
+    private async ValueTask<bool> HandleTenantContextNotSetAsync(
         HttpContext httpContext,
-        InvalidOperationException exception,
+        TenantContextNotSetException exception,
         CancellationToken cancellationToken)
     {
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
