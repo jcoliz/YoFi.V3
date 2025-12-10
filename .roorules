@@ -204,3 +204,32 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 - Zero runtime compilation cost, best performance
 - Compile-time validation of regex patterns
 - Generated code is optimized and cached for reuse
+
+## Test Execution Pattern
+
+**Always run tests after creating or modifying them to verify they pass (except functional tests).**
+
+1. **Automatic test execution** - Whenever you add new tests or modify existing tests, you must run the relevant test suite to verify all tests pass before completing the task. This applies to unit tests, integration tests, but NOT functional tests (which require special setup).
+
+2. **Fix failures immediately** - If tests fail, you must analyze the failure, fix the issue, and re-run the tests until they all pass. Do not wait for user direction to fix test failures.
+
+3. **Test scope** - Run the specific test project that contains the modified tests:
+   - For Integration.Data tests: `dotnet test tests/Integration.Data`
+   - For Integration.Controller tests: `dotnet test tests/Integration.Controller`
+   - For Unit tests: `dotnet test tests/Unit`
+   - For Functional tests: DO NOT automatically run (requires special setup)
+
+4. **Iterate until green** - Continue the fix-test-verify cycle until all tests pass successfully.
+
+### Example Workflow
+
+When adding new tests to `TenantRepositoryTests.cs`:
+1. Create or modify the test methods
+2. Run `dotnet test tests/Integration.Data`
+3. If failures occur, analyze the error messages
+4. Fix the issues in the test code or implementation
+5. Re-run `dotnet test tests/Integration.Data`
+6. Repeat steps 3-5 until all tests pass
+7. Only then complete the task
+
+This ensures code quality and prevents introducing broken tests into the codebase.
