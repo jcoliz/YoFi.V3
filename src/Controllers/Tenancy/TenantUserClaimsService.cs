@@ -19,10 +19,12 @@ public class TenantUserClaimsService<TUser>(ITenantRepository tenantRepository)
         var userRoles = await tenantRepository.GetUserTenantRolesAsync(user.Id);
 
         // Convert user tenant roles to claims
-        var claims = userRoles.Select(ur => new Claim(
-            type: "tenant_role",
-            value: $"{ur.TenantId}:{ur.Role}"
-        ));
+        var claims = userRoles
+            .Where(ur => ur.Tenant != null)
+            .Select(ur => new Claim(
+                type: "tenant_role",
+                value: $"{ur.Tenant?.Key ?? Guid.Empty}:{ur.Role}"
+            ));
 
         return claims;
     }
