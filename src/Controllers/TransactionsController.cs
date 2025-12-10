@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Controllers.Tenancy;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers;
 
@@ -15,7 +17,7 @@ namespace YoFi.V3.Controllers;
 public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
 {
     [HttpGet()]
-    [Authorize(Policy = "TenantRole_Viewer")]
+    [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(ICollection<TransactionResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions()
     {
@@ -28,7 +30,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     [HttpGet("{key:guid}")]
-    [Authorize(Policy = "TenantRole_Viewer")]
+    [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTransactionById(Guid key)
