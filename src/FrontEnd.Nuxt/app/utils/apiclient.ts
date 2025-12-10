@@ -428,11 +428,15 @@ export class TransactionsClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getTransactions(tenantKey: string): Promise<TransactionResultDto[]> {
-        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions";
+    getTransactions(fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<TransactionResultDto[]> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -464,6 +468,13 @@ export class TransactionsClient {
             }
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
         } else if (status === 500) {
             return response.text().then((_responseText) => {
             let result500: any = null;
@@ -477,6 +488,61 @@ export class TransactionsClient {
             });
         }
         return Promise.resolve<TransactionResultDto[]>(null as any);
+    }
+
+    createTransaction(tenantKey: string, transaction: TransactionEditDto): Promise<TransactionResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(transaction);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreateTransaction(_response);
+        });
+    }
+
+    protected processCreateTransaction(response: Response): Promise<TransactionResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = TransactionResultDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TransactionResultDto>(null as any);
     }
 
     getTransactionById(key: string, tenantKey: string): Promise<TransactionResultDto> {
@@ -531,6 +597,117 @@ export class TransactionsClient {
             });
         }
         return Promise.resolve<TransactionResultDto>(null as any);
+    }
+
+    updateTransaction(key: string, tenantKey: string, transaction: TransactionEditDto): Promise<void> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(transaction);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processUpdateTransaction(_response);
+        });
+    }
+
+    protected processUpdateTransaction(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    deleteTransaction(key: string, tenantKey: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteTransaction(_response);
+        });
+    }
+
+    protected processDeleteTransaction(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
     }
 }
 
@@ -663,7 +840,7 @@ export class TenantClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    getTenants(): Promise<Tenant[]> {
+    getTenants(): Promise<TenantRoleResultDto[]> {
         let url_ = this.baseUrl + "/api/Tenant";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -679,7 +856,7 @@ export class TenantClient {
         });
     }
 
-    protected processGetTenants(response: Response): Promise<Tenant[]> {
+    protected processGetTenants(response: Response): Promise<TenantRoleResultDto[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
@@ -689,7 +866,7 @@ export class TenantClient {
             if (Array.isArray(resultData200)) {
                 result200 = [] as any;
                 for (let item of resultData200)
-                    result200!.push(Tenant.fromJS(item));
+                    result200!.push(TenantRoleResultDto.fromJS(item));
             }
             else {
                 result200 = null as any;
@@ -708,14 +885,14 @@ export class TenantClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<Tenant[]>(null as any);
+        return Promise.resolve<TenantRoleResultDto[]>(null as any);
     }
 
-    createTenant(tenant: Tenant): Promise<Tenant> {
+    createTenant(tenantDto: TenantEditDto): Promise<TenantResultDto> {
         let url_ = this.baseUrl + "/api/Tenant";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(tenant);
+        const content_ = JSON.stringify(tenantDto);
 
         let options_: RequestInit = {
             body: content_,
@@ -731,14 +908,14 @@ export class TenantClient {
         });
     }
 
-    protected processCreateTenant(response: Response): Promise<Tenant> {
+    protected processCreateTenant(response: Response): Promise<TenantResultDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = Tenant.fromJS(resultData201);
+            result201 = TenantResultDto.fromJS(resultData201);
             return result201;
             });
         } else if (status === 500) {
@@ -753,7 +930,58 @@ export class TenantClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<Tenant>(null as any);
+        return Promise.resolve<TenantResultDto>(null as any);
+    }
+
+    getTenant(key: string): Promise<TenantRoleResultDto> {
+        let url_ = this.baseUrl + "/api/Tenant/{key}";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetTenant(_response);
+        });
+    }
+
+    protected processGetTenant(response: Response): Promise<TenantRoleResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TenantRoleResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantRoleResultDto>(null as any);
     }
 }
 
@@ -1297,6 +1525,50 @@ export interface ITransactionResultDto {
     payee?: string;
 }
 
+export class TransactionEditDto implements ITransactionEditDto {
+    date?: Date;
+    amount?: number;
+    payee?: string;
+
+    constructor(data?: ITransactionEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
+            this.amount = _data["amount"];
+            this.payee = _data["payee"];
+        }
+    }
+
+    static fromJS(data: any): TransactionEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? formatDate(this.date) : undefined as any;
+        data["amount"] = this.amount;
+        data["payee"] = this.payee;
+        return data;
+    }
+}
+
+export interface ITransactionEditDto {
+    date?: Date;
+    amount?: number;
+    payee?: string;
+}
+
 export class BaseModel implements IBaseModel {
     id?: number;
     key?: string;
@@ -1382,15 +1654,14 @@ export interface IWeatherForecast extends IBaseModel {
     temperatureF?: number;
 }
 
-export class Tenant implements ITenant {
-    id?: number;
+export class TenantRoleResultDto implements ITenantRoleResultDto {
     key?: string;
     name?: string;
     description?: string;
+    role?: TenantRole;
     createdAt?: Date;
-    roleAssignments?: UserTenantRoleAssignment[];
 
-    constructor(data?: ITenant) {
+    constructor(data?: ITenantRoleResultDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -1401,107 +1672,132 @@ export class Tenant implements ITenant {
 
     init(_data?: any) {
         if (_data) {
-            this.id = _data["id"];
             this.key = _data["key"];
             this.name = _data["name"];
             this.description = _data["description"];
+            this.role = _data["role"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
-            if (Array.isArray(_data["roleAssignments"])) {
-                this.roleAssignments = [] as any;
-                for (let item of _data["roleAssignments"])
-                    this.roleAssignments!.push(UserTenantRoleAssignment.fromJS(item));
-            }
         }
     }
 
-    static fromJS(data: any): Tenant {
+    static fromJS(data: any): TenantRoleResultDto {
         data = typeof data === 'object' ? data : {};
-        let result = new Tenant();
+        let result = new TenantRoleResultDto();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
         data["key"] = this.key;
         data["name"] = this.name;
         data["description"] = this.description;
+        data["role"] = this.role;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
-        if (Array.isArray(this.roleAssignments)) {
-            data["roleAssignments"] = [];
-            for (let item of this.roleAssignments)
-                data["roleAssignments"].push(item ? item.toJSON() : undefined as any);
-        }
         return data;
     }
 }
 
-export interface ITenant {
-    id?: number;
+export interface ITenantRoleResultDto {
     key?: string;
     name?: string;
     description?: string;
+    role?: TenantRole;
     createdAt?: Date;
-    roleAssignments?: UserTenantRoleAssignment[];
-}
-
-export class UserTenantRoleAssignment implements IUserTenantRoleAssignment {
-    id?: number;
-    userId?: string;
-    tenantId?: number;
-    role?: TenantRole;
-    tenant?: Tenant | undefined;
-
-    constructor(data?: IUserTenantRoleAssignment) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.userId = _data["userId"];
-            this.tenantId = _data["tenantId"];
-            this.role = _data["role"];
-            this.tenant = _data["tenant"] ? Tenant.fromJS(_data["tenant"]) : undefined as any;
-        }
-    }
-
-    static fromJS(data: any): UserTenantRoleAssignment {
-        data = typeof data === 'object' ? data : {};
-        let result = new UserTenantRoleAssignment();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["userId"] = this.userId;
-        data["tenantId"] = this.tenantId;
-        data["role"] = this.role;
-        data["tenant"] = this.tenant ? this.tenant.toJSON() : undefined as any;
-        return data;
-    }
-}
-
-export interface IUserTenantRoleAssignment {
-    id?: number;
-    userId?: string;
-    tenantId?: number;
-    role?: TenantRole;
-    tenant?: Tenant | undefined;
 }
 
 export enum TenantRole {
     Viewer = 1,
     Editor = 2,
     Owner = 3,
+}
+
+export class TenantResultDto implements ITenantResultDto {
+    key?: string;
+    name?: string;
+    description?: string;
+    createdAt?: Date;
+
+    constructor(data?: ITenantResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): TenantResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITenantResultDto {
+    key?: string;
+    name?: string;
+    description?: string;
+    createdAt?: Date;
+}
+
+export class TenantEditDto implements ITenantEditDto {
+    name?: string;
+    description?: string;
+
+    constructor(data?: ITenantEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): TenantEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface ITenantEditDto {
+    name?: string;
+    description?: string;
 }
 
 function formatDate(d: Date) {

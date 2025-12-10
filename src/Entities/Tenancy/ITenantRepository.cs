@@ -7,6 +7,12 @@ namespace YoFi.V3.Entities.Tenancy;
 public interface ITenantRepository
 {
     /// <summary>
+    /// Adds a new tenant to the repository.
+    /// </summary>
+    /// <param name="tenant">The tenant entity to add.</param>
+    Task<Tenant> AddTenantAsync(Tenant tenant);
+
+    /// <summary>
     /// Retrieves all tenant role assignments for a specific user.
     /// </summary>
     /// <param name="userId">The user identifier.</param>

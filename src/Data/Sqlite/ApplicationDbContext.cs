@@ -169,6 +169,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     #region ITenantRepository Implementation
 
+    async Task<Tenant> ITenantRepository.AddTenantAsync(Tenant tenant)
+    {
+        Tenants.Add(tenant);
+        await SaveChangesAsync();
+        return tenant;
+    }
+
     async Task<ICollection<UserTenantRoleAssignment>> ITenantRepository.GetUserTenantRolesAsync(string userId)
     {
         var roles = await UserTenantRoleAssignments
