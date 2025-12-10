@@ -158,9 +158,13 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
     private static void ValidateTransactionEditDto(TransactionEditDto transaction)
     {
-        // Validate Date using DateRangeAttribute
-        var dateProperty = typeof(TransactionEditDto).GetProperty(nameof(TransactionEditDto.Date))!;
-        var dateRangeAttr = dateProperty.GetCustomAttribute<DateRangeAttribute>();
+        // Get constructor parameters for record type validation attributes
+        var constructor = typeof(TransactionEditDto).GetConstructors()[0];
+        var parameters = constructor.GetParameters();
+
+        // Validate Date using DateRangeAttribute (from constructor parameter)
+        var dateParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Date));
+        var dateRangeAttr = dateParameter.GetCustomAttribute<DateRangeAttribute>();
         if (dateRangeAttr != null)
         {
             var dateValidationContext = new ValidationContext(transaction) { MemberName = nameof(TransactionEditDto.Date) };
@@ -177,9 +181,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             throw new ArgumentException("Transaction amount cannot be zero.");
         }
 
-        // Validate Payee max length first (before whitespace check)
-        var payeeProperty = typeof(TransactionEditDto).GetProperty(nameof(TransactionEditDto.Payee))!;
-        var maxLengthAttr = payeeProperty.GetCustomAttribute<MaxLengthAttribute>();
+        // Validate Payee max length first (before whitespace check) - from constructor parameter
+        var payeeParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Payee));
+        var maxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
         if (maxLengthAttr != null && transaction.Payee != null && transaction.Payee.Length > maxLengthAttr.Length)
         {
             throw new ArgumentException($"Transaction payee cannot exceed {maxLengthAttr.Length} characters.");

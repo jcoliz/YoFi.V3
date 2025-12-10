@@ -9,9 +9,10 @@ public class ValidationDebugTest
     [Test]
     public void CanReadMaxLengthAttribute()
     {
-        // Check if we can read the MaxLength attribute from Payee property
-        var payeeProperty = typeof(TransactionEditDto).GetProperty(nameof(TransactionEditDto.Payee))!;
-        var maxLengthAttr = payeeProperty.GetCustomAttribute<MaxLengthAttribute>();
+        // Check if we can read the MaxLength attribute from Payee constructor parameter
+        var constructor = typeof(TransactionEditDto).GetConstructors()[0];
+        var payeeParameter = constructor.GetParameters().First(p => p.Name == nameof(TransactionEditDto.Payee));
+        var maxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
 
         Assert.That(maxLengthAttr, Is.Not.Null, "MaxLengthAttribute should be present");
         Assert.That(maxLengthAttr!.Length, Is.EqualTo(200), "Max length should be 200");

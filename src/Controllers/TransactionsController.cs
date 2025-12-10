@@ -48,14 +48,14 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [RequireTenantRole(TenantRole.Editor)]
     [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateTransaction([FromBody] TransactionEditDto transaction)
+    public async Task<IActionResult> CreateTransaction([FromRoute] Guid tenantKey, [FromBody] TransactionEditDto transaction)
     {
         LogStarting();
 
         var created = await transactionsFeature.AddTransactionAsync(transaction);
 
         LogOkKey(created.Key);
-        return CreatedAtAction(nameof(GetTransactionById), new { key = created.Key }, created);
+        return CreatedAtAction(nameof(GetTransactionById), new { tenantKey, key = created.Key }, created);
     }
 
     [HttpPut("{key:guid}")]

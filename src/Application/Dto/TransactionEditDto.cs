@@ -19,14 +19,14 @@ namespace YoFi.V3.Application.Dto;
 /// - Payee: Required, cannot be empty or whitespace, max 200 characters
 /// </remarks>
 public record TransactionEditDto(
-    [property: DateRange(50, 5, ErrorMessage = "Transaction date must be within 50 years in the past and 5 years in the future")]
+    [DateRange(50, 5, ErrorMessage = "Transaction date must be within 50 years in the past and 5 years in the future")]
     DateOnly Date,
 
-    [property: Range(typeof(decimal), "-999999999", "999999999", ErrorMessage = "Amount must be a valid value")]
+    [Range(typeof(decimal), "-999999999", "999999999", ErrorMessage = "Amount must be a valid value")]
     decimal Amount,
 
-    [property: Required(ErrorMessage = "Payee is required")]
-    [property: NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
-    [property: MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
+    [Required(ErrorMessage = "Payee is required")]
+    [NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
+    [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
     string Payee
 );

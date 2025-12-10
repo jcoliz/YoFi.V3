@@ -24,6 +24,14 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             ResourceNotFoundException notFound => await HandleResourceNotFoundAsync(
                 httpContext, notFound, cancellationToken),
 
+            // 400 Bad Request - ArgumentException (validation errors)
+            ArgumentException argumentException => await HandleArgumentExceptionAsync(
+                httpContext, argumentException, cancellationToken),
+
+            // 500 Internal Server Error - InvalidOperationException from TenantContext
+            InvalidOperationException invalidOp when invalidOp.Message.Contains("Current tenant is not set")
+                => await HandleTenantNotSetAsync(httpContext, invalidOp, cancellationToken),
+
             // Add more exception mappings here as needed, for example:
             // ValidationException validation => await HandleValidationExceptionAsync(
             //     httpContext, validation, cancellationToken),
@@ -63,6 +71,59 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
 
         problemDetails.Extensions["resourceType"] = exception.ResourceType;
         problemDetails.Extensions["resourceKey"] = exception.ResourceKey;
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Handles ArgumentException (validation errors).
+    /// Returns HTTP 400 with problem details.
+    /// </summary>
+    private async ValueTask<bool> HandleArgumentExceptionAsync(
+        HttpContext httpContext,
+        ArgumentException exception,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation Error",
+            Detail = exception.Message,
+            Instance = httpContext.Request.Path
+        };
+
+        if (!string.IsNullOrEmpty(exception.ParamName))
+        {
+            problemDetails.Extensions["paramName"] = exception.ParamName;
+        }
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Handles InvalidOperationException when tenant is not set.
+    /// Returns HTTP 500 with problem details.
+    /// </summary>
+    private async ValueTask<bool> HandleTenantNotSetAsync(
+        HttpContext httpContext,
+        InvalidOperationException exception,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "Tenant Context Error",
+            Detail = "The tenant context was not properly initialized. This is likely a configuration issue with the tenant middleware.",
+            Instance = httpContext.Request.Path
+        };
+
+        problemDetails.Extensions["error"] = exception.Message;
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;
