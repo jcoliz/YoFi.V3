@@ -291,20 +291,22 @@ This ensures unit tests accurately reflect the current Application layer impleme
 
 3. **Method documentation** - Document all public and internal methods with at minimum a `<summary>`. Include `<param>` tags for all parameters.
 
-4. **Returns documentation** - Do NOT include `<returns>` tags when a method returns ONLY `Task` or ONLY `Task<IActionResult>`. For other return types, document them with a `<returns>` tag.
+4. **Test method exception** - Individual test methods in test fixture classes (methods with `[Test]` attribute) do NOT require XML documentation comments. The test method names and Given/When/Then comments provide sufficient documentation. However, test fixture classes themselves still require class-level documentation, and test helper classes and methods still require full XML documentation.
 
-5. **Exception documentation** - Always document exceptions that are thrown directly by the method using `<exception>` tags.
+5. **Returns documentation** - Do NOT include `<returns>` tags when a method returns ONLY `Task` or ONLY `Task<IActionResult>`. For other return types, document them with a `<returns>` tag.
 
-6. **Record types and DTOs** - All record types must have class-level XML comments. For records that declare properties in the primary constructor, the properties themselves do not need separate comments.
+6. **Exception documentation** - Always document exceptions that are thrown directly by the method using `<exception>` tags.
 
-7. **Standard parameter descriptions** - Use standard descriptions for common parameters:
+7. **Record types and DTOs** - All record types must have class-level XML comments. For records that declare properties in the primary constructor, the properties themselves do not need separate comments.
+
+8. **Standard parameter descriptions** - Use standard descriptions for common parameters:
    - Logger parameters: "Logger for diagnostic output"
    - Repository parameters: "Repository for [entity] data operations"
    - Feature parameters: "Feature providing [capability] operations"
 
-8. **Private methods** - LoggerMessage methods do not need comments. Other private methods should be documented if they are doing anything non-obvious.
+9. **Private methods** - LoggerMessage methods do not need comments. Other private methods should be documented if they are doing anything non-obvious.
 
-9. **"Create class comments" directive** - When asked to "create class comments" for a file, this means provide comprehensive documentation including:
+10. **"Create class comments" directive** - When asked to "create class comments" for a file, this means provide comprehensive documentation including:
    - Class-level XML comments (with `<summary>`, `<remarks>`, and `<param>` for primary constructors)
    - Method-level XML comments for ALL public and internal methods (with `<summary>`, `<param>`, `<returns>` where appropriate, and `<exception>` tags)
    - This is NOT just adding comments to the class declaration itself, but full in-depth documentation as described in this pattern

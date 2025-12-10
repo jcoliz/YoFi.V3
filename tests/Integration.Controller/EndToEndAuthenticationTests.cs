@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NuxtIdentity.Core.Models;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Controllers.Tenancy;
 
@@ -104,7 +105,9 @@ public class EndToEndAuthenticationTests
         Assert.That(signupResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
         // And: Response should contain user information
-        var signupResult = await signupResponse.Content.ReadFromJsonAsync<SignupResponse>();
+        // TODO: NuxtIdentity signup endpoint returns LoginResponse instead of having a dedicated SignupResponse type.
+        // Consider adding a SignupResponse type to NuxtIdentity.Core.Models for better API semantics.
+        var signupResult = await signupResponse.Content.ReadFromJsonAsync<LoginResponse>();
         Assert.That(signupResult, Is.Not.Null);
         Assert.That(signupResult!.User, Is.Not.Null);
         Assert.That(signupResult.User.Email, Is.EqualTo(email));
@@ -227,32 +230,5 @@ public class EndToEndAuthenticationTests
         Assert.That(tx2.Key, Is.EqualTo(createdTx2.Key));
     }
 
-    #region DTOs for NuxtIdentity Responses
-
-    /// <summary>
-    /// Response from /api/auth/signup endpoint
-    /// </summary>
-    private record SignupResponse(TokenPair Token, UserInfo User);
-
-    /// <summary>
-    /// Token pair containing access and refresh tokens
-    /// </summary>
-    private record TokenPair(string AccessToken, string RefreshToken);
-
-    /// <summary>
-    /// Response from /api/auth/login endpoint
-    /// </summary>
-    private record LoginResponse(TokenPair Token, UserInfo User);
-
-    /// <summary>
-    /// Response from /api/auth/refresh endpoint
-    /// </summary>
-    private record RefreshResponse(TokenPair Token);
-
-    /// <summary>
-    /// User information returned from auth endpoints
-    /// </summary>
-    private record UserInfo(string Name, string Email);
-
-    #endregion
+    // Note: Using NuxtIdentity.Core.Models for LoginResponse, RefreshResponse, TokenPair, UserInfo, etc.
 }
