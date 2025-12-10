@@ -7,7 +7,7 @@
  * and manage workspace data.
  */
 
-import { TenantClient, TenantEditDto, type TenantRoleResultDto } from '~/utils/apiclient'
+import { TenantClient, TenantEditDto, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 // Store
@@ -23,7 +23,6 @@ const emit = defineEmits<{
 const tenants = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
-const showCreateForm = ref(false)
 const creating = ref(false)
 const createError = ref<string | null>(null)
 const newWorkspaceName = ref('')
@@ -39,6 +38,21 @@ const currentTenant = computed(() => {
   const key = userPreferencesStore.getCurrentTenantKey
   return tenants.value.find((t) => t.key === key) || null
 })
+
+// Helper function to get role name
+function getRoleName(role: TenantRole | undefined): string {
+  if (!role) return 'Unknown'
+  switch (role) {
+    case TenantRole.Owner:
+      return 'Owner'
+    case TenantRole.Editor:
+      return 'Editor'
+    case TenantRole.Viewer:
+      return 'Viewer'
+    default:
+      return 'Unknown'
+  }
+}
 
 // API Client
 const { baseUrl } = useApiBaseUrl()
@@ -98,15 +112,18 @@ function selectTenant(tenant: TenantRoleResultDto) {
   emit('change', tenant)
 }
 
-function toggleCreateForm() {
-  showCreateForm.value = !showCreateForm.value
-  if (!showCreateForm.value) {
-    // Reset form when hiding
-    newWorkspaceName.value = ''
-    newWorkspaceDescription.value = ''
-    createError.value = null
+function onWorkspaceChange(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const selectedKey = select.value
+
+  if (selectedKey) {
+    const tenant = tenants.value.find((t) => t.key === selectedKey)
+    if (tenant) {
+      selectTenant(tenant)
+    }
   }
 }
+
 
 async function createWorkspace() {
   if (!newWorkspaceName.value.trim()) {
@@ -137,10 +154,9 @@ async function createWorkspace() {
       emit('created', tenantWithRole)
     }
 
-    // Reset form and hide it
+    // Reset form
     newWorkspaceName.value = ''
     newWorkspaceDescription.value = ''
-    showCreateForm.value = false
   } catch (err: any) {
     console.error('Failed to create workspace:', err)
     createError.value = err.message || 'Failed to create workspace'
@@ -149,12 +165,6 @@ async function createWorkspace() {
   }
 }
 
-function cancelCreate() {
-  showCreateForm.value = false
-  newWorkspaceName.value = ''
-  newWorkspaceDescription.value = ''
-  createError.value = null
-}
 
 // Expose methods for parent component
 defineExpose({
@@ -164,246 +174,229 @@ defineExpose({
 </script>
 
 <template>
-  <DropDownPortable
-    class="workspace-selector d-flex align-items-center"
-    data-test-id="workspace-selector"
-  >
-    <template #trigger>
-      <a
-        class="d-flex align-items-center link-body-emphasis text-decoration-none p-0 dropdown-toggle"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
+  <div class="workspace-selector d-flex align-items-center justify-content-between w-100">
+    <div class="workspace-info d-flex align-items-center">
+      <h5 class="workspace-label mb-0 me-2">Workspace:</h5>
+      <h5
+        v-if="currentTenant"
+        class="workspace-current mb-0"
+        data-test-id="current-workspace"
       >
-        <FeatherIcon
-          icon="briefcase"
-          size="20"
-          class="me-2"
-        />
-        <span
-          v-if="currentTenant"
-          class="workspace-name"
-          data-test-id="current-workspace"
-          :title="currentTenant.name"
+        {{ currentTenant.name }}
+      </h5>
+      <h5
+        v-else-if="loading"
+        class="workspace-current text-muted mb-0"
+      >
+        Loading...
+      </h5>
+      <h5
+        v-else
+        class="workspace-current text-muted mb-0"
+      >
+        not selected
+      </h5>
+    </div>
+
+    <DropDownPortable data-test-id="workspace-selector-dropdown">
+      <template #trigger>
+        <button
+          class="btn btn-sm btn-outline-secondary workspace-menu-trigger"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          title="Workspace options"
         >
-          {{ currentTenant.name }}
-        </span>
-        <span
-          v-else-if="loading"
-          class="text-muted"
-        >
-          Loading...
-        </span>
-        <span
-          v-else
-          class="text-muted"
-        >
-          Select Workspace
-        </span>
-      </a>
-    </template>
+          <FeatherIcon
+            icon="more-vertical"
+            size="16"
+          />
+        </button>
+      </template>
     <template #default>
-      <ul class="dropdown-menu dropdown-menu-end text-small shadow">
-        <li
+      <div class="dropdown-menu dropdown-menu-end shadow workspace-panel">
+        <!-- Error State -->
+        <div
           v-if="error"
-          class="px-3 py-2 text-danger"
+          class="p-3 text-danger"
         >
           <small>{{ error }}</small>
-        </li>
-        <li
+        </div>
+
+        <!-- Loading State -->
+        <div
           v-else-if="loading"
-          class="px-3 py-2 text-muted"
+          class="p-3 text-center"
         >
           <BaseSpinner size="sm" />
-          <small class="ms-2">Loading workspaces...</small>
-        </li>
-        <template v-else>
-          <!-- Existing workspaces list -->
-          <template v-if="tenants.length > 0">
-            <li class="px-3 py-1">
-              <small class="text-muted">Switch Workspace</small>
-            </li>
-            <li><hr class="dropdown-divider" /></li>
-            <li
-              v-for="tenant in tenants"
-              :key="tenant.key"
-            >
-              <a
-                class="dropdown-item d-flex align-items-start"
-                :class="{ active: tenant.key === userPreferencesStore.getCurrentTenantKey }"
-                :data-test-id="`workspace-${tenant.key}`"
-                @click="selectTenant(tenant)"
-              >
-                <div class="flex-grow-1">
-                  <div class="fw-semibold">{{ tenant.name }}</div>
-                  <small
-                    v-if="tenant.description"
-                    class="text-muted d-block"
-                  >
-                    {{ tenant.description }}
-                  </small>
-                </div>
-                <FeatherIcon
-                  v-if="tenant.key === userPreferencesStore.getCurrentTenantKey"
-                  icon="check"
-                  size="16"
-                  class="ms-2 text-success"
-                />
-              </a>
-            </li>
-            <li><hr class="dropdown-divider" /></li>
-          </template>
+          <div class="mt-2">
+            <small class="text-muted">Loading workspaces...</small>
+          </div>
+        </div>
 
-          <!-- No workspaces message (only when not showing create form) -->
-          <template v-else-if="!showCreateForm">
-            <li class="px-3 py-2 text-muted text-center">
-              <small>No workspaces yet</small>
-            </li>
-            <li><hr class="dropdown-divider" /></li>
-          </template>
-
-          <!-- Create New Workspace Section -->
-          <li v-if="!showCreateForm">
-            <a
-              class="dropdown-item d-flex align-items-center text-primary"
-              data-test-id="create-workspace-button"
-              @click="toggleCreateForm"
-            >
-              <FeatherIcon
-                icon="plus-circle"
-                size="16"
-                class="me-2"
-              />
-              <span>Create New Workspace</span>
-            </a>
-          </li>
-
-          <!-- Create Workspace Form -->
-          <li
-            v-else
-            class="px-3 py-3"
+        <!-- Main Content -->
+        <div
+          v-else
+          class="p-3"
+        >
+          <!-- Current Workspace Details -->
+          <div
+            v-if="currentTenant"
+            class="mb-3"
           >
+            <label class="form-label mb-2">
+              <strong>Current Workspace</strong>
+            </label>
+            <div class="workspace-details">
+              <div class="mb-2">
+                <small class="text-muted d-block">Name:</small>
+                <div>{{ currentTenant.name }}</div>
+              </div>
+              <div
+                v-if="currentTenant.description"
+                class="mb-2"
+              >
+                <small class="text-muted d-block">Description:</small>
+                <div>{{ currentTenant.description }}</div>
+              </div>
+              <div
+                v-if="currentTenant.role"
+                class="mb-2"
+              >
+                <small class="text-muted d-block">Role:</small>
+                <div>
+                  <span class="badge bg-secondary">{{ getRoleName(currentTenant.role) }}</span>
+                </div>
+              </div>
+              <div v-if="currentTenant.createdAt">
+                <small class="text-muted d-block">Created:</small>
+                <div>{{ new Date(currentTenant.createdAt).toLocaleDateString() }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-else
+            class="mb-3 text-muted text-center py-2"
+          >
+            <small>No workspace selected</small>
+          </div>
+
+          <hr class="my-3" />
+
+          <!-- Change Workspace Dropdown -->
+          <div class="mb-3">
+            <label
+              for="workspace-select"
+              class="form-label mb-2"
+            >
+              <strong>Change Workspace</strong>
+            </label>
+            <select
+              id="workspace-select"
+              class="form-select form-select-sm"
+              :value="userPreferencesStore.getCurrentTenantKey || ''"
+              :disabled="tenants.length === 0"
+              @change="onWorkspaceChange"
+            >
+              <option
+                value=""
+                disabled
+              >
+                {{ tenants.length === 0 ? 'No workspaces available' : 'Select a workspace' }}
+              </option>
+              <option
+                v-for="tenant in tenants"
+                :key="tenant.key"
+                :value="tenant.key"
+              >
+                {{ tenant.name }}
+              </option>
+            </select>
+          </div>
+
+          <hr class="my-3" />
+
+          <!-- Create New Workspace Form -->
+          <div>
+            <label class="form-label mb-2">
+              <strong>Create New Workspace</strong>
+            </label>
+
             <div
               v-if="createError"
-              class="alert alert-danger alert-sm mb-2 py-1"
+              class="alert alert-danger alert-sm mb-2 py-1 px-2"
             >
               <small>{{ createError }}</small>
             </div>
+
             <div class="mb-2">
-              <label
-                for="workspace-name"
-                class="form-label form-label-sm mb-1"
-              >
-                <small>Workspace Name</small>
-              </label>
               <input
-                id="workspace-name"
+                id="new-workspace-name"
                 v-model="newWorkspaceName"
                 type="text"
                 class="form-control form-control-sm"
-                placeholder="My Workspace"
+                placeholder="Workspace name"
                 :disabled="creating"
                 @keyup.enter="createWorkspace"
-                @keyup.escape="cancelCreate"
               />
             </div>
+
             <div class="mb-2">
-              <label
-                for="workspace-description"
-                class="form-label form-label-sm mb-1"
-              >
-                <small>Description (optional)</small>
-              </label>
               <textarea
-                id="workspace-description"
+                id="new-workspace-description"
                 v-model="newWorkspaceDescription"
                 class="form-control form-control-sm"
                 rows="2"
-                placeholder="Brief description..."
+                placeholder="Description (optional)"
                 :disabled="creating"
               />
             </div>
-            <div class="d-flex gap-2">
-              <button
-                class="btn btn-primary btn-sm flex-grow-1"
-                :disabled="creating || !newWorkspaceName.trim()"
-                data-test-id="create-workspace-submit"
-                @click="createWorkspace"
-              >
-                <BaseSpinner
-                  v-if="creating"
-                  size="sm"
-                  class="me-1"
-                />
-                {{ creating ? 'Creating...' : 'Create' }}
-              </button>
-              <button
-                class="btn btn-secondary btn-sm"
-                :disabled="creating"
-                data-test-id="create-workspace-cancel"
-                @click="cancelCreate"
-              >
-                Cancel
-              </button>
-            </div>
-          </li>
-        </template>
-      </ul>
-    </template>
-  </DropDownPortable>
+
+            <button
+              class="btn btn-primary btn-sm w-100"
+              :disabled="creating || !newWorkspaceName.trim()"
+              data-test-id="create-workspace-submit"
+              @click="createWorkspace"
+            >
+              <BaseSpinner
+                v-if="creating"
+                size="sm"
+                class="me-1"
+              />
+              {{ creating ? 'Creating...' : 'Create' }}
+            </button>
+          </div>
+        </div>
+      </div>
+      </template>
+    </DropDownPortable>
+  </div>
 </template>
 
 <style scoped>
 .workspace-selector {
-  cursor: pointer;
+  font-size: 0.875rem;
 }
 
-.workspace-name {
-  font-weight: 500;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.workspace-label {
+  font-weight: 600;
 }
 
-.dropdown-menu {
-  min-width: 280px;
+.workspace-current {
+  font-weight: 400;
+}
+
+.workspace-menu-trigger {
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+.workspace-panel {
+  min-width: 320px;
   max-width: 400px;
-}
-
-.dropdown-item {
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-}
-
-.dropdown-item:hover {
-  background-color: var(--bs-dropdown-link-hover-bg);
-}
-
-.dropdown-item.active {
-  background-color: var(--bs-dropdown-link-active-bg);
-  color: var(--bs-dropdown-link-active-color);
-}
-
-.dropdown-item .fw-semibold {
-  font-size: 0.95rem;
-}
-
-.dropdown-item small {
-  font-size: 0.8rem;
-  line-height: 1.3;
-}
-
-.text-primary {
-  color: var(--bs-primary) !important;
-}
-
-.form-label-sm {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
 }
 
 .alert-sm {
   font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
 }
 </style>

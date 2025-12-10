@@ -6,7 +6,7 @@
  */
 
 import { useUserPreferencesStore } from '~/stores/userPreferences'
-import type { TenantRoleResultDto } from '~/utils/apiclient'
+import { TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
 
 const userPreferencesStore = useUserPreferencesStore()
 
@@ -22,6 +22,20 @@ function clearLog() {
   changeLog.value = []
 }
 
+function getRoleName(role: TenantRole | undefined): string {
+  if (!role) return 'N/A'
+  switch (role) {
+    case TenantRole.Owner:
+      return 'Owner'
+    case TenantRole.Editor:
+      return 'Editor'
+    case TenantRole.Viewer:
+      return 'Viewer'
+    default:
+      return 'Unknown'
+  }
+}
+
 definePageMeta({
   title: 'Workspace Demo',
   order: 99, // Show at end of nav
@@ -29,24 +43,18 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="container py-4">
-    <h1 class="mb-4">Workspace Selector Demo</h1>
+  <div>
+    <!-- Workspace Selector - Full Width -->
+    <div class="workspace-selector-container">
+      <WorkspaceSelector @change="handleWorkspaceChange" />
+    </div>
 
-    <div class="row">
-      <div class="col-md-6">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Workspace Selector</h5>
-          </div>
-          <div class="card-body">
-            <p class="text-muted mb-3">
-              Click the selector below to view and switch between available workspaces:
-            </p>
-            <div class="d-flex align-items-center p-3 bg-light rounded">
-              <WorkspaceSelector @change="handleWorkspaceChange" />
-            </div>
-          </div>
-        </div>
+    <!-- Demo Content -->
+    <div class="container py-4">
+      <h1 class="mb-4">Workspace Selector Demo</h1>
+
+      <div class="row">
+        <div class="col-md-6">
 
         <div class="card mb-4">
           <div class="card-header d-flex justify-content-between align-items-center">
@@ -81,7 +89,7 @@ definePageMeta({
                 </tr>
                 <tr>
                   <th>Role:</th>
-                  <td>{{ userPreferencesStore.getCurrentTenant?.role || 'N/A' }}</td>
+                  <td>{{ getRoleName(userPreferencesStore.getCurrentTenant?.role) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -136,12 +144,19 @@ definePageMeta({
             </ul>
           </div>
         </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.workspace-selector-container {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+}
+
 .list-group-item {
   border-left: none;
   border-right: none;
