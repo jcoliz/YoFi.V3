@@ -1,9 +1,8 @@
-
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Tenancy;
 
@@ -36,8 +35,12 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(ICollection<TenantRoleResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTenants()
     {
+        LogStarting();
+
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenants = await tenantFeature.GetTenantsForUserAsync(userId);
+
+        LogOkCount(tenants.Count);
         return Ok(tenants);
     }
 
@@ -51,8 +54,12 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTenant(Guid key)
     {
+        LogStartingKey(key);
+
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenant = await tenantFeature.GetTenantForUserAsync(userId, key);
+
+        LogOkKey(key);
         return Ok(tenant);
     }
 
@@ -65,8 +72,24 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateTenant([FromBody] TenantEditDto tenantDto)
     {
+        LogStarting();
+
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenantResult = await tenantFeature.CreateTenantForUserAsync(userId, tenantDto);
+
+        LogOkKey(tenantResult.Key);
         return CreatedAtAction(nameof(GetTenant), new { key = tenantResult.Key }, tenantResult);
     }
+
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
+    private partial void LogStarting([CallerMemberName] string? location = null);
+
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Key}")]
+    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Count}")]
+    private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Key}")]
+    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 }
