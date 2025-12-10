@@ -10,23 +10,23 @@ import type { TenantRoleResultDto } from '~/utils/apiclient'
 
 export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // State
-  const currentTenant = ref<TenantRoleResultDto | null>(null)
+  const currentTenant = ref<TenantRoleResultDto | undefined>(undefined)
 
   // Getters
-  const getCurrentTenantKey = computed((): string | null => {
-    return currentTenant.value?.key || null
+  const getCurrentTenantKey = computed((): string => {
+    return currentTenant.value?.key || ''
   })
 
-  const getCurrentTenant = computed((): TenantRoleResultDto | null => {
+  const getCurrentTenant = computed((): TenantRoleResultDto | undefined => {
     return currentTenant.value
   })
 
   const hasTenant = computed((): boolean => {
-    return currentTenant.value !== null
+    return currentTenant.value !== undefined
   })
 
   // Actions
-  function setCurrentTenant(tenant: TenantRoleResultDto | null) {
+  function setCurrentTenant(tenant: TenantRoleResultDto | undefined) {
     currentTenant.value = tenant
 
     // Persist to localStorage
@@ -54,7 +54,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
   }
 
   function clearPreferences() {
-    currentTenant.value = null
+    currentTenant.value = undefined
 
     if (import.meta.client) {
       localStorage.removeItem('userPreferences:tenant')

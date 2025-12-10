@@ -22,9 +22,9 @@ const emit = defineEmits<{
 // State
 const tenants = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
-const error = ref<string | null>(null)
+const error = ref<string>('')
 const creating = ref(false)
-const createError = ref<string | null>(null)
+const createError = ref<string>('')
 const newWorkspaceName = ref('')
 const newWorkspaceDescription = ref('')
 
@@ -36,7 +36,7 @@ const currentTenant = computed(() => {
   }
   // Otherwise find it in the loaded tenants list
   const key = userPreferencesStore.getCurrentTenantKey
-  return tenants.value.find((t) => t.key === key) || null
+  return tenants.value.find((t) => t.key === key)
 })
 
 // Helper function to get role name
@@ -71,7 +71,7 @@ onMounted(async () => {
 // Methods
 async function loadTenants() {
   loading.value = true
-  error.value = null
+  error.value = ''
 
   try {
     tenants.value = await tenantClient.getTenants()
@@ -132,7 +132,7 @@ async function createWorkspace() {
   }
 
   creating.value = true
-  createError.value = null
+  createError.value = ''
 
   try {
     const newTenant = new TenantEditDto({
