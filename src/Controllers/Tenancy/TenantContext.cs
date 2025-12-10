@@ -1,9 +1,8 @@
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Tenancy;
 
-public class TenantContext(IDataProvider dataProvider): ITenantProvider
+public class TenantContext(ITenantRepository tenantRepository): ITenantProvider
 {
     public Tenant CurrentTenant
     {
@@ -26,11 +25,7 @@ public class TenantContext(IDataProvider dataProvider): ITenantProvider
 
     public async Task SetCurrentTenantAsync(Guid tenantKey)
     {
-        var tenantQuery = dataProvider
-            .Get<Tenant>()
-            .Where(t => t.Key == tenantKey);
-
-        var tenant = await dataProvider.SingleOrDefaultAsync(tenantQuery);
+        var tenant = await tenantRepository.GetTenantByKeyAsync(tenantKey);
 
         if (tenant == null)
         {

@@ -362,6 +362,35 @@ public class TenantRepositoryTests
     }
 
     [Test]
+    public async Task GetTenantByKeyAsync_ExistingTenant_ReturnsTenant()
+    {
+        // Given: An existing tenant with a known key
+        var tenantKey = _tenant1.Key;
+
+        // When: Getting tenant by key
+        var result = await _repository.GetTenantByKeyAsync(tenantKey);
+
+        // Then: Should return the tenant
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(_tenant1.Id));
+        Assert.That(result.Key, Is.EqualTo(tenantKey));
+        Assert.That(result.Name, Is.EqualTo("Tenant 1"));
+    }
+
+    [Test]
+    public async Task GetTenantByKeyAsync_NonExistingKey_ReturnsNull()
+    {
+        // Given: A non-existing tenant key
+        var nonExistingKey = Guid.NewGuid();
+
+        // When: Getting tenant by non-existing key
+        var result = await _repository.GetTenantByKeyAsync(nonExistingKey);
+
+        // Then: Should return null
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
     public async Task RepositoryOperations_CompleteLifecycle()
     {
         // Given: A new tenant and user

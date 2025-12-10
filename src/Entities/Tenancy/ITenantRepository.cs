@@ -45,4 +45,11 @@ public interface ITenantRepository
     /// <param name="tenantId">The tenant identifier.</param>
     /// <returns>The tenant if found; otherwise, null.</returns>
     Task<Tenant?> GetTenantAsync(long tenantId);
+
+    /// <summary>
+    /// Retrieves a tenant by its unique key.
+    /// </summary>
+    /// <param name="tenantKey">The tenant unique key (GUID).</param>
+    /// <returns>The tenant if found; otherwise, null.</returns>
+    Task<Tenant?> GetTenantByKeyAsync(Guid tenantKey);
 }

@@ -216,6 +216,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     Task<Tenant?> ITenantRepository.GetTenantAsync(long tenantId)
         => Tenants.SingleOrDefaultAsync(t => t.Id == tenantId);
 
+    Task<Tenant?> ITenantRepository.GetTenantByKeyAsync(Guid tenantKey)
+        => Tenants.SingleOrDefaultAsync(t => t.Key == tenantKey);
+
     #endregion
 
 }
