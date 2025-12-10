@@ -1,226 +1,140 @@
-# Integration Test Helpers
+# Test Helpers
 
-This directory contains reusable helper classes and utilities for integration tests.
+This directory contains reusable test infrastructure including test authentication, base test classes, and custom factories for integration testing.
 
-## BaseTestWebApplicationFactory
+## Architecture Overview
 
-**File**: [`BaseTestWebApplicationFactory.cs`](BaseTestWebApplicationFactory.cs)
+The test authentication system replaces production authentication (ASP.NET Identity + NuxtIdentity JWT) with a programmatically-controlled test scheme while maintaining identical authorization behavior.
 
-A base `WebApplicationFactory` that provides common test configuration for all integration tests.
+### Component Flow
 
-### Features
+```
+Test Code
+    ↓ CreateAuthenticatedClient(tenantKey, role)
+BaseTestWebApplicationFactory
+    ↓ Creates TestUserInjectingHandler with tenant roles
+HTTP Request
+    ↓ Headers: X-Test-User-Id, X-Test-User-Name, X-Test-Tenant-Roles
+TestAuthenticationHandler
+    ↓ Reads headers, creates ClaimsPrincipal with tenant_role claims
+ASP.NET Core Authorization
+    ↓ Invokes TenantRoleHandler
+TenantRoleHandler
+    ↓ Validates user has required tenant role
+Authorized Request → Controller
+```
 
-- Configures default application settings (version, environment, CORS)
-- Sets up a temporary SQLite database for test isolation
-- Automatically cleans up the temporary database after tests
-- Supports configuration overrides via constructor parameter
+## Core Components
 
-### Usage
+### [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs)
 
+**Purpose**: Factory that configures the test application with test authentication.
+
+**Key Features**:
+- Replaces production auth with `TestAuthenticationHandler` as default scheme
+- Provides `CreateAuthenticatedClient()` methods for programmatic authentication
+- Manages temporary SQLite database (auto-created on construction, auto-deleted on disposal)
+- Supports configuration overrides via constructor
+
+**Usage**:
 ```csharp
-// Use directly with custom configuration
-var factory = new BaseTestWebApplicationFactory(
-    configurationOverrides: new Dictionary<string, string?>
-    {
-        ["SomeSetting"] = "CustomValue"
-    }
+var factory = new BaseTestWebApplicationFactory();
+var client = factory.CreateAuthenticatedClient(tenantKey, TenantRole.Editor);
+```
+
+### [`TestAuthenticationHandler`](TestAuthenticationHandler.cs)
+
+**Purpose**: Custom ASP.NET Core authentication handler that creates authenticated users from HTTP headers.
+
+**How It Works**:
+1. Registered as the default authentication scheme (`TestScheme`)
+2. Reads test user data from custom headers:
+   - `X-Test-User-Id` → `ClaimTypes.NameIdentifier` claim
+   - `X-Test-User-Name` → `ClaimTypes.Name` claim
+   - `X-Test-Tenant-Roles` → `tenant_role` claims (format: "tenantGuid:RoleName,...")
+3. Creates `ClaimsPrincipal` with appropriate claims
+4. Authorization handlers (like `TenantRoleHandler`) validate claims normally
+
+**Header Format Example**:
+```
+X-Test-User-Id: test-user-123
+X-Test-User-Name: Test User
+X-Test-Tenant-Roles: 123e4567-e89b-12d3-a456-426614174000:Editor,789abcde-f012-34g5-h678-901234567890:Viewer
+```
+
+### [`AuthenticatedTestBase`](AuthenticatedTestBase.cs)
+
+**Purpose**: Base class for integration tests requiring authenticated access.
+
+**Default Behavior**:
+- Creates factory and authenticated client in `OneTimeSetUp`
+- Default role: **Editor** (most common permission level)
+- Creates test tenant automatically
+- Provides helper methods for role switching and multi-tenant testing
+
+**Role Switching**:
+```csharp
+SwitchToViewer();  // Read-only access
+SwitchToEditor();  // Read/write access (default)
+SwitchToOwner();   // Full control (use explicitly)
+```
+
+**Multi-Tenant Support**:
+```csharp
+var client = CreateMultiTenantClient(
+    (tenant1Key, TenantRole.Editor),
+    (tenant2Key, TenantRole.Viewer)
 );
-
-// Or inherit to create specialized factories
-public class MyTestFactory : BaseTestWebApplicationFactory
-{
-    public MyTestFactory() : base(/* optional config */) { }
-}
 ```
 
-### Why Use a Base Factory?
+### `TestUserInjectingHandler` (private nested class)
 
-The base factory eliminates code duplication by providing:
-- Consistent default configuration across all tests
-- Automatic database lifecycle management
-- A single place to update common test setup
+**Purpose**: Delegating handler that adds test user data as HTTP headers.
 
-## CustomVersionWebApplicationFactory
+**Why Headers?**
+- `HttpClient` delegating handlers can't directly access `HttpContext.Items`
+- Headers provide reliable data transport through the HTTP pipeline
+- Simple, standard HTTP mechanism
 
-**File**: [`CustomVersionWebApplicationFactory.cs`](CustomVersionWebApplicationFactory.cs)
+**Location**: Private nested class in [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs#L142)
 
-Extends [`BaseTestWebApplicationFactory`](BaseTestWebApplicationFactory.cs) to inject specific version and environment configuration for testing the [`VersionController`](../../../src/Controllers/VersionController.cs).
+## Design Decisions
 
-### Purpose
+### Why HTTP Headers Instead of Middleware?
 
-Allows integration tests to inject specific configuration values without modifying `appsettings.json` files. This enables:
-- Deterministic testing with known values
-- Testing different configuration scenarios
-- Isolated test execution
+**Attempted Approaches**:
+1. ❌ **request.Properties** - Doesn't flow to `HttpContext.Items`
+2. ❌ **Scoped service + middleware** - Overly complex, requires middleware registration
+3. ✅ **HTTP headers** - Simple, reliable, works with `HttpClient` pipeline
 
-### Usage
+### Why Editor as Default Role?
 
-```csharp
-using YoFi.V3.Tests.Integration.Controller.TestHelpers;
+- **Principle of least privilege** - Tests need write access but not full ownership
+- **Most common scenario** - Majority of tests manipulate data (read/write)
+- **Explicit Owner tests** - `SwitchToOwner()` makes privileged operations obvious
 
-// Create factory with specific configuration
-var factory = new CustomVersionWebApplicationFactory(
-    version: "1.2.3-test",
-    environment: EnvironmentType.Local
-);
+### Why TestAuthenticationHandler Instead of Mocking?
 
-// Create HTTP client
-var client = factory.CreateClient();
+- **Real authorization flow** - Tests actual `TenantRoleHandler` logic
+- **No mocking complexity** - Uses ASP.NET Core's built-in auth system
+- **Production parity** - Authorization works identically in tests and production
 
-// Make requests and assert on results
-var response = await client.GetAsync("/version");
-var version = await response.Content.ReadFromJsonAsync<string>();
+## Deprecated/Unused Components
 
-Assert.That(version, Is.EqualTo("1.2.3-test (Local)"));
+### [`TestUserContext`](TestUserContext.cs)
 
-// Clean up
-client.Dispose();
-factory.Dispose();
-```
+**Status**: UNUSED
 
-### How It Works
+Part of an earlier scoped-service + middleware approach that was replaced with the simpler header-based solution.
 
-The factory passes configuration overrides to the base class constructor:
+### [`TestUserScopedHandler`](TestUserDelegatingHandler.cs)
 
-```csharp
-public class CustomVersionWebApplicationFactory : BaseTestWebApplicationFactory
-{
-    public CustomVersionWebApplicationFactory(string version, EnvironmentType environment)
-        : base(new Dictionary<string, string?>
-        {
-            ["Application:Version"] = version,
-            ["Application:Environment"] = environment.ToString()
-        })
-    {
-    }
-}
-```
+**Status**: DEPRECATED
 
-### Example Test
-
-See [`VersionControllerTests.cs`](../VersionControllerTests.cs) for complete examples:
-
-```csharp
-[TestCase(EnvironmentType.Production, "1.2.3-test", ExpectedResult = "1.2.3-test")]
-[TestCase(EnvironmentType.Local, "1.2.3-test", ExpectedResult = "1.2.3-test (Local)")]
-[TestCase(EnvironmentType.Container, "1.2.3-test", ExpectedResult = "1.2.3-test (Container)")]
-public async Task<string> GetVersion_AllEnvironmentTypes_ReturnsCorrectFormat(
-    EnvironmentType environment,
-    string version)
-{
-    using var factory = new CustomVersionWebApplicationFactory(version, environment);
-    using var client = factory.CreateClient();
-
-    var response = await client.GetAsync("/version");
-    var result = await response.Content.ReadFromJsonAsync<string>();
-
-    return result ?? string.Empty;
-}
-```
-
-## Creating New Test Helpers
-
-When creating new test helpers, follow these patterns:
-
-### 1. Custom WebApplicationFactory for Service Overrides
-
-```csharp
-public class CustomDatabaseWebApplicationFactory : WebApplicationFactory<Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.ConfigureServices(services =>
-        {
-            // Remove existing service
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-            if (descriptor != null)
-                services.Remove(descriptor);
-
-            // Add test service
-            services.AddDbContext<ApplicationDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("TestDb");
-            });
-        });
-    }
-}
-```
-
-### 2. Test Data Builders
-
-```csharp
-public class TenantTestDataBuilder
-{
-    private Guid _key = Guid.NewGuid();
-    private string _name = "Test Tenant";
-
-    public TenantTestDataBuilder WithKey(Guid key)
-    {
-        _key = key;
-        return this;
-    }
-
-    public TenantTestDataBuilder WithName(string name)
-    {
-        _name = name;
-        return this;
-    }
-
-    public Tenant Build()
-    {
-        return new Tenant
-        {
-            Key = _key,
-            Name = _name
-        };
-    }
-}
-```
-
-### 3. Test Fixtures
-
-```csharp
-public class DatabaseFixture : IDisposable
-{
-    public ApplicationDbContext DbContext { get; }
-
-    public DatabaseFixture()
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        DbContext = new ApplicationDbContext(options);
-        DbContext.Database.EnsureCreated();
-
-        // Seed test data
-        SeedTestData();
-    }
-
-    private void SeedTestData()
-    {
-        // Add test data
-    }
-
-    public void Dispose()
-    {
-        DbContext.Dispose();
-    }
-}
-```
-
-## Best Practices
-
-1. **Reusability** - Create helpers that can be used across multiple tests
-2. **Isolation** - Ensure each factory/fixture creates isolated test environments
-3. **Documentation** - Document parameters and expected behavior
-4. **Disposal** - Implement proper cleanup (IDisposable)
-5. **Naming** - Use descriptive names that indicate purpose
-6. **Defaults** - Provide sensible default values where appropriate
+From an earlier implementation that attempted to use `request.Properties`. Kept for historical reference.
 
 ## Related Documentation
 
-- [Integration Tests README](../README.md)
-- [WebApplicationFactory Documentation](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.testing.webapplicationfactory-1)
-- [Testing Best Practices](../../../docs/wip/TENANT-MIDDLEWARE-TESTING-PLAN.md)
+- [Main Testing README](../README.md) - Overview and quick start
+- [Testing Guide](../TESTING-GUIDE.md) - Implementation patterns and examples
+- [Project Rules](../../../.roorules) - Gherkin-style test documentation
