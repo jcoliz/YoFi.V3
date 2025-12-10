@@ -4,9 +4,36 @@ using YoFi.V3.Entities.Tenancy;
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 /// <summary>
-/// Delegating handler that populates the scoped TestUserContext before each request
-/// The middleware in BaseTestWebApplicationFactory will then transfer this to HttpContext.Items
+/// DEPRECATED: Delegating handler from an earlier middleware-based authentication approach.
 /// </summary>
+/// <remarks>
+/// <para><strong>This class is currently UNUSED and should be considered deprecated.</strong></para>
+///
+/// <para>
+/// This handler was part of an earlier implementation that attempted to use request.Properties
+/// to pass test user data through the HTTP pipeline. However, request.Properties don't automatically
+/// flow to HttpContext.Items, making this approach ineffective.
+/// </para>
+///
+/// <para><strong>Current Implementation:</strong></para>
+/// <para>
+/// The active authentication flow uses TestUserInjectingHandler (inside BaseTestWebApplicationFactory)
+/// which passes test user data via HTTP headers. This is simpler, more reliable, and requires no middleware.
+/// </para>
+///
+/// <para><strong>Why This Approach Didn't Work:</strong></para>
+/// <list type="bullet">
+/// <item>request.Properties are specific to HttpRequestMessage (client-side)</item>
+/// <item>HttpContext.Items are specific to the server-side request processing</item>
+/// <item>These two storage mechanisms don't automatically synchronize</item>
+/// <item>Would have required custom middleware to bridge the gap</item>
+/// </list>
+///
+/// <para>
+/// This class is retained for historical reference but should not be used in new tests.
+/// Use BaseTestWebApplicationFactory.CreateAuthenticatedClient() instead.
+/// </para>
+/// </remarks>
 public class TestUserScopedHandler : DelegatingHandler
 {
     private readonly BaseTestWebApplicationFactory _factory;

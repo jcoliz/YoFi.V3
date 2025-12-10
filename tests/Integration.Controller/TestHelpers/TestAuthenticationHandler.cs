@@ -7,8 +7,48 @@ using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
+/// <summary>
+/// Custom authentication handler for integration tests that creates authenticated users from HTTP headers.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This handler replaces production authentication (ASP.NET Identity + NuxtIdentity JWT) during integration testing.
+/// It reads test user data from custom HTTP headers and creates an authenticated ClaimsPrincipal with appropriate claims.
+/// </para>
+///
+/// <para><strong>Architecture:</strong></para>
+/// <list type="number">
+/// <item>TestUserInjectingHandler (in BaseTestWebApplicationFactory) adds headers to HTTP requests</item>
+/// <item>ASP.NET Core authentication middleware invokes this handler</item>
+/// <item>Handler reads headers and creates claims (including tenant_role claims for multi-tenancy)</item>
+/// <item>Authorization handlers (e.g., TenantRoleHandler) validate claims normally</item>
+/// </list>
+///
+/// <para><strong>Headers Read:</strong></para>
+/// <list type="bullet">
+/// <item><c>X-Test-User-Id</c>: Maps to ClaimTypes.NameIdentifier claim</item>
+/// <item><c>X-Test-User-Name</c>: Maps to ClaimTypes.Name claim</item>
+/// <item><c>X-Test-Tenant-Roles</c>: Parsed into tenant_role claims (format: "tenantGuid:RoleName,...")</item>
+/// </list>
+///
+/// <para><strong>Tenant Role Claims:</strong></para>
+/// <para>
+/// Each tenant role is stored as a claim with type "tenant_role" and value "{tenantKey}:{role}".
+/// This matches the production claim structure expected by TenantRoleHandler, ensuring authorization
+/// logic works identically in tests and production.
+/// </para>
+///
+/// <para><strong>Example:</strong></para>
+/// <code>
+/// // Header: X-Test-Tenant-Roles: "123e4567-e89b-12d3-a456-426614174000:Editor"
+/// // Results in claim: Type="tenant_role", Value="123e4567-e89b-12d3-a456-426614174000:Editor"
+/// </code>
+/// </remarks>
 public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
+    /// <summary>
+    /// The authentication scheme name used to register and identify this handler.
+    /// </summary>
     public const string SchemeName = "TestScheme";
 
     public TestAuthenticationHandler(

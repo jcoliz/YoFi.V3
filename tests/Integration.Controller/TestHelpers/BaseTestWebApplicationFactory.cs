@@ -9,8 +9,48 @@ using YoFi.V3.Entities.Tenancy;
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 /// <summary>
-/// Base WebApplicationFactory with common test configuration
+/// Base WebApplicationFactory for integration tests with test authentication support.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This factory configures a test instance of the web application with:
+/// - In-memory SQLite database (auto-created, auto-cleaned)
+/// - Test authentication scheme that bypasses production JWT authentication
+/// - Configurable application settings via constructor
+/// </para>
+///
+/// <para><strong>Authentication Architecture:</strong></para>
+/// <list type="bullet">
+/// <item>Overrides production authentication (ASP.NET Identity + NuxtIdentity) with TestAuthenticationHandler</item>
+/// <item>Test user data flows via HTTP headers: X-Test-User-Id, X-Test-User-Name, X-Test-Tenant-Roles</item>
+/// <item>TestAuthenticationHandler reads headers and creates claims (including tenant_role claims)</item>
+/// <item>Authorization handlers (like TenantRoleHandler) validate claims normally</item>
+/// </list>
+///
+/// <para><strong>Usage:</strong></para>
+/// <code>
+/// // Create unauthenticated client (for public endpoints)
+/// var client = factory.CreateClient();
+///
+/// // Create authenticated client with Editor role (default)
+/// var client = factory.CreateAuthenticatedClient(tenantKey);
+///
+/// // Create authenticated client with specific role
+/// var client = factory.CreateAuthenticatedClient(tenantKey, TenantRole.Owner);
+///
+/// // Create client with access to multiple tenants
+/// var client = factory.CreateAuthenticatedClient(new[]
+/// {
+///     (tenant1Key, TenantRole.Editor),
+///     (tenant2Key, TenantRole.Viewer)
+/// });
+/// </code>
+///
+/// <para>
+/// The factory automatically creates a temporary SQLite database and cleans it up on disposal.
+/// Default configuration values are provided for common settings (version, environment, CORS, connection string).
+/// </para>
+/// </remarks>
 public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbPath;
@@ -98,8 +138,27 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
     }
 
     /// <summary>
-    /// Custom delegating handler that ensures test user data is available in HttpContext.Items
+    /// Delegating handler that injects test user authentication data via HTTP headers.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This handler is part of the test authentication flow. It intercepts outgoing HTTP requests
+    /// and adds custom headers containing test user information. These headers are then read by
+    /// TestAuthenticationHandler to create an authenticated user with appropriate claims.
+    /// </para>
+    ///
+    /// <para><strong>Headers Added:</strong></para>
+    /// <list type="bullet">
+    /// <item><c>X-Test-User-Id</c>: The user's unique identifier</item>
+    /// <item><c>X-Test-User-Name</c>: The user's display name</item>
+    /// <item><c>X-Test-Tenant-Roles</c>: Comma-separated list of tenant:role pairs (e.g., "guid1:Editor,guid2:Viewer")</item>
+    /// </list>
+    ///
+    /// <para>
+    /// This approach was chosen because HttpClient delegating handlers can't directly access HttpContext.Items.
+    /// HTTP headers provide a reliable way to pass test data through the HTTP pipeline to the authentication handler.
+    /// </para>
+    /// </remarks>
     private class TestUserInjectingHandler : DelegatingHandler
     {
         private readonly List<(Guid tenantKey, TenantRole role)> _tenantRoles;
