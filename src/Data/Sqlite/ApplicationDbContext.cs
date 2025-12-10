@@ -9,7 +9,8 @@ using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<IdentityUser>(options), IDataProvider
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<IdentityUser>(options), IDataProvider, ITenantRepository
 {
     #region Data
 
@@ -163,6 +164,57 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         => query.SingleOrDefaultAsync();
 
 #pragma warning restore S2325
+
+    #endregion
+
+    #region ITenantRepository Implementation
+
+    async Task<ICollection<UserTenantRoleAssignment>> ITenantRepository.GetUserTenantRolesAsync(string userId)
+    {
+        var roles = await UserTenantRoleAssignments
+            .Include(utr => utr.Tenant)
+            .Where(utr => utr.UserId == userId)
+            .ToListAsync();
+        return roles;
+    }
+
+    Task<UserTenantRoleAssignment?> ITenantRepository.GetUserTenantRoleAsync(string userId, long tenantId)
+        => UserTenantRoleAssignments
+            .Include(utr => utr.Tenant)
+            .SingleOrDefaultAsync(utr => utr.UserId == userId && utr.TenantId == tenantId);
+
+    async Task ITenantRepository.AddUserTenantRoleAsync(UserTenantRoleAssignment assignment)
+    {
+        UserTenantRoleAssignments.Add(assignment);
+
+        try
+        {
+            await SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            // Check if this is a unique constraint violation
+            throw new DuplicateUserTenantRoleException(assignment.UserId, assignment.TenantId, ex);
+        }
+    }
+
+    async Task ITenantRepository.RemoveUserTenantRoleAsync(UserTenantRoleAssignment assignment)
+    {
+        // Verify the assignment exists in the database
+        var exists = await UserTenantRoleAssignments
+            .AnyAsync(utr => utr.UserId == assignment.UserId && utr.TenantId == assignment.TenantId);
+
+        if (!exists)
+        {
+            throw new UserTenantRoleNotFoundException(assignment.UserId, assignment.TenantId);
+        }
+
+        UserTenantRoleAssignments.Remove(assignment);
+        await SaveChangesAsync();
+    }
+
+    Task<Tenant?> ITenantRepository.GetTenantAsync(long tenantId)
+        => Tenants.SingleOrDefaultAsync(t => t.Id == tenantId);
 
     #endregion
 
