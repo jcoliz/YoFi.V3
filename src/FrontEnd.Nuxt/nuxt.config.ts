@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  modules: ['@nuxt/eslint', '@sidebase/nuxt-auth'],
+  modules: ['@nuxt/eslint', '@sidebase/nuxt-auth', '@pinia/nuxt'],
 
   devtools: { enabled: true },
   eslint: {
