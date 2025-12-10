@@ -1,22 +1,26 @@
+using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 /// <summary>
-/// Delegating handler that injects test user context into HttpContext.Items
-/// for TestAuthenticationHandler to consume
+/// Delegating handler that populates the scoped TestUserContext before each request
+/// The middleware in BaseTestWebApplicationFactory will then transfer this to HttpContext.Items
 /// </summary>
-public class TestUserDelegatingHandler : DelegatingHandler
+public class TestUserScopedHandler : DelegatingHandler
 {
+    private readonly BaseTestWebApplicationFactory _factory;
     private readonly List<(Guid tenantKey, TenantRole role)> _tenantRoles;
     private readonly string _userId;
     private readonly string _userName;
 
-    public TestUserDelegatingHandler(
+    public TestUserScopedHandler(
+        BaseTestWebApplicationFactory factory,
         List<(Guid tenantKey, TenantRole role)> tenantRoles,
         string userId,
         string userName)
     {
+        _factory = factory;
         _tenantRoles = tenantRoles;
         _userId = userId;
         _userName = userName;
@@ -26,10 +30,14 @@ public class TestUserDelegatingHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        // Store in request options (will be available in HttpContext)
-        request.Options.TryAdd("TestUser:TenantRoles", _tenantRoles);
-        request.Options.TryAdd("TestUser:UserId", _userId);
-        request.Options.TryAdd("TestUser:UserName", _userName);
+        // The request will create a new scope, and the middleware will populate HttpContext.Items
+        // from the TestUserContext service. We need to set properties on the request that the
+        // middleware can access to populate the context.
+
+        // Store test user data in request properties so middleware can access it
+        request.Properties["TestUser:TenantRoles"] = _tenantRoles;
+        request.Properties["TestUser:UserId"] = _userId;
+        request.Properties["TestUser:UserName"] = _userName;
 
         return await base.SendAsync(request, cancellationToken);
     }

@@ -21,12 +21,30 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // Retrieve test user configuration from HttpContext.Items
-        // (Set by BaseTestWebApplicationFactory before request)
-        var tenantRoles = Context.Items["TestUser:TenantRoles"]
-            as List<(Guid tenantKey, TenantRole role)>;
-        var userId = Context.Items["TestUser:UserId"] as string ?? "test-user-id";
-        var userName = Context.Items["TestUser:UserName"] as string ?? "test-user";
+        // Read test user data from custom headers (set by TestUserInjectingHandler)
+        var userId = Context.Request.Headers["X-Test-User-Id"].FirstOrDefault() ?? "test-user-id";
+        var userName = Context.Request.Headers["X-Test-User-Name"].FirstOrDefault() ?? "test-user";
+
+        // Parse tenant roles from header (format: "guid1:role1,guid2:role2")
+        var tenantRoles = new List<(Guid tenantKey, TenantRole role)>();
+        var rolesHeader = Context.Request.Headers["X-Test-Tenant-Roles"].FirstOrDefault();
+
+        if (!string.IsNullOrEmpty(rolesHeader))
+        {
+            foreach (var roleEntry in rolesHeader.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = roleEntry.Split(':', 2);
+                if (parts.Length == 2 &&
+                    Guid.TryParse(parts[0], out var tenantKey) &&
+                    Enum.TryParse<TenantRole>(parts[1], out var role))
+                {
+                    tenantRoles.Add((tenantKey, role));
+                }
+            }
+        }
+
+        Logger.LogDebug("TestAuthenticationHandler: tenantRoles={RoleCount}, userId={UserId}, userName={UserName}",
+            tenantRoles.Count, userId, userName);
 
         var claims = new List<Claim>
         {

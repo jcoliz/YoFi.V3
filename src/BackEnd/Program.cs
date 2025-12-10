@@ -100,21 +100,6 @@ try
         });
     });
 
-    #if false
-    // TODO: Add Authorization policies - Updated to match ADR 0009
-    builder.Services.AddAuthorization(options =>
-    {
-        options.AddPolicy("AccountView", policy =>
-            policy.Requirements.Add(new AccountAccessRequirement("viewer", "editor", "owner")));
-
-        options.AddPolicy("AccountEdit", policy =>
-            policy.Requirements.Add(new AccountAccessRequirement("editor", "owner")));
-
-        options.AddPolicy("AccountOwn", policy =>
-            policy.Requirements.Add(new AccountAccessRequirement("owner")));
-    });
-    #endif
-
     //
     // Build the app
     //
@@ -150,6 +135,10 @@ try
     // AddProblemDetails() configures the serialization format, but UseStatusCodePages()
     // intercepts status code responses and triggers the problem details generation
     app.UseStatusCodePages();
+
+    // Authentication and Authorization must come before authorization-protected endpoints
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.UseTenancy();
     app.MapDefaultEndpoints();

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Entities.Tenancy;
@@ -18,6 +19,21 @@ public static class ServiceCollectionExtensions
 
         // Register ITenantProvider as an alias to the same TenantContext instance
         services.AddScoped<ITenantProvider>(sp => sp.GetRequiredService<TenantContext>());
+
+        // Register the authorization handler for tenant role requirements
+        services.AddSingleton<IAuthorizationHandler, TenantRoleHandler>();
+
+        // Register each policy NAME that the attribute might create
+        services.AddAuthorization(options =>
+        {
+            // Register each policy NAME that the attribute might create
+            foreach (TenantRole role in Enum.GetValues<TenantRole>())
+            {
+                // This creates: "TenantRole_Viewer", "TenantRole_Editor", "TenantRole_Owner", etc
+                options.AddPolicy($"TenantRole_{role}", policy =>
+                    policy.Requirements.Add(new TenantRoleRequirement(role)));
+            }
+        });
 
         return services;
     }

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,7 @@ namespace YoFi.V3.Controllers;
 public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
 {
     [HttpGet()]
+    [Authorize(Policy = "TenantRole_Editor")]
     [ProducesResponseType(typeof(ICollection<TransactionResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions()
     {
@@ -26,6 +28,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     [HttpGet("{key:guid}")]
+    [Authorize(Policy = "TenantRole_Editor")]
     [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTransactionById(Guid key)

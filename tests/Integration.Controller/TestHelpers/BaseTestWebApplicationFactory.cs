@@ -46,11 +46,18 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
-            // Register test authentication scheme
-            services.AddAuthentication(TestAuthenticationHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                    TestAuthenticationHandler.SchemeName,
-                    options => { });
+            // Override the production authentication setup with test authentication
+            // We need to set the test scheme as the default for all authentication types
+            services.AddAuthentication(options =>
+            {
+                // Set test scheme as default for all authentication needs
+                options.DefaultAuthenticateScheme = TestAuthenticationHandler.SchemeName;
+                options.DefaultChallengeScheme = TestAuthenticationHandler.SchemeName;
+                options.DefaultScheme = TestAuthenticationHandler.SchemeName;
+            })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                TestAuthenticationHandler.SchemeName,
+                options => { });
         });
     }
 
@@ -80,16 +87,53 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
         string? userId = null,
         string? userName = null)
     {
-        var client = CreateClient();
+        var testUserId = userId ?? "test-user-id";
+        var testUserName = userName ?? "test-user";
+        var testTenantRoles = tenantRoles.ToList();
 
-        // Store test user info in a way that will be accessible per-request
-        // We'll use a delegating handler to inject into HttpContext.Items
-        var handler = new TestUserDelegatingHandler(
-            tenantRoles.ToList(),
-            userId ?? "test-user-id",
-            userName ?? "test-user");
+        // Create a client with a custom handler that injects test user data into HttpContext.Items
+        var handler = new TestUserInjectingHandler(testTenantRoles, testUserId, testUserName);
 
         return CreateDefaultClient(handler);
+    }
+
+    /// <summary>
+    /// Custom delegating handler that ensures test user data is available in HttpContext.Items
+    /// </summary>
+    private class TestUserInjectingHandler : DelegatingHandler
+    {
+        private readonly List<(Guid tenantKey, TenantRole role)> _tenantRoles;
+        private readonly string _userId;
+        private readonly string _userName;
+
+        public TestUserInjectingHandler(
+            List<(Guid tenantKey, TenantRole role)> tenantRoles,
+            string userId,
+            string userName)
+        {
+            _tenantRoles = tenantRoles;
+            _userId = userId;
+            _userName = userName;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            // Add custom header with serialized test user data
+            // The test auth handler will extract this
+            request.Headers.Add("X-Test-User-Id", _userId);
+            request.Headers.Add("X-Test-User-Name", _userName);
+
+            // Serialize tenant roles as header (format: "guid1:role1,guid2:role2")
+            if (_tenantRoles.Any())
+            {
+                var rolesHeader = string.Join(",", _tenantRoles.Select(tr => $"{tr.tenantKey}:{tr.role}"));
+                request.Headers.Add("X-Test-Tenant-Roles", rolesHeader);
+            }
+
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     protected override void Dispose(bool disposing)
