@@ -372,3 +372,217 @@ public async Task<TenantResultDto> CreateTenantForUserAsync(Guid userId, TenantE
 ```
 
 **Note:** The `[ProducesResponseType]` attributes on controller methods provide sufficient documentation for HTTP response codes, so no additional `<remarks>` are needed to describe them.
+
+## PowerShell Script Pattern
+
+**Follow these conventions when creating PowerShell scripts for this project.**
+
+1. **Comment-Based Help** - All scripts must include comprehensive comment-based help at the top with the following sections:
+   - `.SYNOPSIS` - Brief one-line description of what the script does
+   - `.DESCRIPTION` - Detailed explanation of the script's functionality and purpose
+   - `.PARAMETER` - Document each parameter with its purpose (if the script has parameters)
+   - `.EXAMPLE` - Provide at least one usage example; include multiple examples for complex scripts
+   - `.NOTES` - Include any prerequisites, dependencies, or important information
+   - `.LINK` - Include relevant documentation links (optional but recommended)
+
+2. **CmdletBinding** - Always use `[CmdletBinding()]` to enable cmdlet features and better error handling.
+
+3. **Parameter Validation** - Use PowerShell validation attributes for parameters:
+   - `[ValidateSet()]` for enumerated values
+   - `[Parameter()]` to mark parameters as required or optional
+   - Provide sensible defaults where appropriate
+
+4. **Error Handling** - Set `$ErrorActionPreference = "Stop"` at the script start and wrap main logic in try/catch/finally:
+   ```powershell
+   $ErrorActionPreference = "Stop"
+
+   try {
+       # Main script logic
+   }
+   catch {
+       Write-Error "Failed to [action]: $_"
+       Write-Error $_.ScriptStackTrace
+       exit 1
+   }
+   finally {
+       # Cleanup (e.g., Pop-Location)
+   }
+   ```
+
+5. **PSScriptRoot for Path Resolution** - Always use `$PSScriptRoot` for path resolution to allow scripts to run from any directory:
+   - Use `$PSScriptRoot/..` to reference the repository root
+   - Use `$PSScriptRoot/../src` to reference source files
+   - Use `$PSScriptRoot/../tests` to reference test files
+   - Store the repository root in a variable if used multiple times: `$repoRoot = Split-Path $PSScriptRoot -Parent`
+
+6. **Location Management** - Use `Push-Location`/`Pop-Location` for directory changes:
+   - Always use `try/finally` to ensure `Pop-Location` is called even on errors
+   - Prefer `Push-Location` over `cd` or `Set-Location` for proper cleanup
+
+7. **Colored Output** - Use Write-Host with colors for better user experience:
+   - **Cyan** (`-ForegroundColor Cyan`) - For informational messages and section headers
+   - **Green** (`-ForegroundColor Green`) - For success messages (e.g., "OK Build succeeded")
+   - **Yellow** (`-ForegroundColor Yellow`) - For warnings (e.g., "WARNING Some tests failed")
+   - **Red** (`-ForegroundColor Red`) - For errors (only via Write-Error, which is already red)
+
+8. **Exit Code Handling** - Check `$LASTEXITCODE` after external commands and throw errors on failure:
+   ```powershell
+   dotnet build
+   if ($LASTEXITCODE -ne 0) {
+       throw "Build failed with exit code $LASTEXITCODE"
+   }
+   ```
+
+9. **Naming Convention** - Use PascalCase with verb-noun format for script names:
+   - Use approved PowerShell verbs: Get-, Set-, New-, Remove-, Start-, Stop-, Build-, Run-, etc.
+   - Examples: `Build-Container.ps1`, `Run-Tests.ps1`, `Start-LocalDev.ps1`
+
+10. **Helper Functions** - Define reusable helper functions within scripts when needed:
+    - Use PascalCase for function names with verb-noun format
+    - Place helper functions before the main script logic
+    - Document functions with comment-based help if they're complex
+
+11. **Script Organization** - Structure scripts in this order:
+    1. Comment-based help block
+    2. `[CmdletBinding()]` and parameters
+    3. `$ErrorActionPreference = "Stop"`
+    4. Helper functions (if any)
+    5. Main logic in try/catch/finally
+
+12. **Update README** - When creating a new script, always add it to the [`scripts/README.md`](scripts/README.md) with a description of what it does and how to use it.
+
+### Example: Minimal Script Pattern
+
+```powershell
+<#
+.SYNOPSIS
+Builds the solution and runs unit tests.
+
+.DESCRIPTION
+This script performs a clean build of the solution and executes all unit tests
+to verify code quality. It's useful for quick verification during development.
+
+.EXAMPLE
+.\Build-AndTest.ps1
+Builds the solution and runs all unit tests.
+
+.NOTES
+Requires .NET SDK to be installed and available in PATH.
+#>
+
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+try {
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    Push-Location $repoRoot
+
+    Write-Host "Building solution..." -ForegroundColor Cyan
+    dotnet build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Build failed with exit code $LASTEXITCODE"
+    }
+    Write-Host "OK Build succeeded" -ForegroundColor Green
+
+    Write-Host "Running unit tests..." -ForegroundColor Cyan
+    dotnet test tests/Unit --no-build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tests failed with exit code $LASTEXITCODE"
+    }
+    Write-Host "OK All tests passed" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to build and test: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}
+finally {
+    Pop-Location
+}
+```
+
+### Example: Script with Parameters and Validation
+
+```powershell
+<#
+.SYNOPSIS
+Runs tests for a specific test category.
+
+.DESCRIPTION
+This script executes tests from the specified test category with optional
+code coverage collection. Supports both unit and integration tests.
+
+.PARAMETER Category
+The test category to run. Valid values: Unit, Integration.Data, Integration.Controller.
+
+.PARAMETER Coverage
+When specified, collects code coverage metrics during test execution.
+
+.EXAMPLE
+.\Run-TestCategory.ps1 -Category Unit
+Runs unit tests without code coverage.
+
+.EXAMPLE
+.\Run-TestCategory.ps1 -Category Integration.Data -Coverage
+Runs data integration tests with code coverage collection.
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("Unit", "Integration.Data", "Integration.Controller")]
+    [string]
+    $Category,
+
+    [Parameter()]
+    [switch]
+    $Coverage
+)
+
+$ErrorActionPreference = "Stop"
+
+try {
+    $TestPath = "$PSScriptRoot/../tests/$Category"
+
+    if (-not (Test-Path $TestPath)) {
+        throw "Test directory not found: $TestPath"
+    }
+
+    Push-Location $TestPath
+
+    Write-Host "Running $Category tests..." -ForegroundColor Cyan
+
+    if ($Coverage) {
+        dotnet test --collect:"XPlat Code Coverage"
+    }
+    else {
+        dotnet test
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tests failed with exit code $LASTEXITCODE"
+    }
+
+    Write-Host "OK All tests passed" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to run tests: $_"
+    Write-Error $_.ScriptStackTrace
+    exit 1
+}
+finally {
+    Pop-Location
+}
+```
+
+### Key Benefits
+
+- **Consistency** - All scripts follow the same structure and conventions
+- **Portability** - Scripts run from any directory using `$PSScriptRoot`
+- **Reliability** - Comprehensive error handling with proper cleanup
+- **Usability** - Clear help documentation and colored output for better UX
+- **Maintainability** - Well-organized code with proper documentation
+
+**Reference Examples:** See scripts in the [`scripts/`](scripts/) directory for production implementations.
