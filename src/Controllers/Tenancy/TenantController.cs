@@ -36,7 +36,7 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(ICollection<TenantRoleResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTenants()
     {
-        var userId = Guid.Parse(User.Identity!.Name!);
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenants = await tenantFeature.GetTenantsForUserAsync(userId);
         return Ok(tenants);
     }
@@ -51,7 +51,7 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTenant(Guid key)
     {
-        var userId = Guid.Parse(User.Identity!.Name!);
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenant = await tenantFeature.GetTenantForUserAsync(userId, key);
         return Ok(tenant);
     }
@@ -65,7 +65,7 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateTenant([FromBody] TenantEditDto tenantDto)
     {
-        var userId = Guid.Parse(User.Identity!.Name!);
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var tenantResult = await tenantFeature.CreateTenantForUserAsync(userId, tenantDto);
         return CreatedAtAction(nameof(GetTenant), new { key = tenantResult.Key }, tenantResult);
     }

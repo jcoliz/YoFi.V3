@@ -221,6 +221,22 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 
 4. **Iterate until green** - Continue the fix-test-verify cycle until all tests pass successfully.
 
+5. **Explicit attribute for intentionally skipped tests** - Use the `[Explicit]` attribute (NOT `[Ignore]`) for tests that should not run by default but can be run manually. Include a clear reason string explaining why the test is explicit. Common reasons include:
+   - Tests requiring special infrastructure setup
+   - Tests that depend on external services
+   - Tests that require manual verification
+   - Tests that expose limitations in the test infrastructure
+
+   Example:
+   ```csharp
+   [Test]
+   [Explicit("Requires test infrastructure enhancement to support truly unauthenticated requests.")]
+   public async Task GetResource_Unauthenticated_Returns401()
+   {
+       // Test implementation
+   }
+   ```
+
 ### Example Workflow
 
 When adding new tests to `TenantRepositoryTests.cs`:

@@ -20,6 +20,9 @@ public static class ServiceCollectionExtensions
         // Register ITenantProvider as an alias to the same TenantContext instance
         services.AddScoped<ITenantProvider>(sp => sp.GetRequiredService<TenantContext>());
 
+        // Register TenantFeature
+        services.AddScoped<TenantFeature>();
+
         // Register the authorization handler for tenant role requirements
         services.AddSingleton<IAuthorizationHandler, TenantRoleHandler>();
 

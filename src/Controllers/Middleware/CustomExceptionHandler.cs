@@ -25,6 +25,10 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             ResourceNotFoundException notFound => await HandleResourceNotFoundAsync(
                 httpContext, notFound, cancellationToken),
 
+            // 404 Not Found - KeyNotFoundException
+            KeyNotFoundException keyNotFound => await HandleKeyNotFoundExceptionAsync(
+                httpContext, keyNotFound, cancellationToken),
+
             // 400 Bad Request - ArgumentException (validation errors)
             ArgumentException argumentException => await HandleArgumentExceptionAsync(
                 httpContext, argumentException, cancellationToken),
@@ -72,6 +76,29 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
 
         problemDetails.Extensions["resourceType"] = exception.ResourceType;
         problemDetails.Extensions["resourceKey"] = exception.ResourceKey;
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Handles KeyNotFoundException.
+    /// Returns HTTP 404 with problem details.
+    /// </summary>
+    private async ValueTask<bool> HandleKeyNotFoundExceptionAsync(
+        HttpContext httpContext,
+        KeyNotFoundException exception,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status404NotFound,
+            Title = "Resource not found",
+            Detail = exception.Message,
+            Instance = httpContext.Request.Path
+        };
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;
