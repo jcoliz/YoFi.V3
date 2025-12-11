@@ -38,7 +38,6 @@ function getRoleName(role: TenantRole | undefined): string {
 
 definePageMeta({
   title: 'Workspace Demo',
-  order: 99, // Show at end of nav
 })
 </script>
 

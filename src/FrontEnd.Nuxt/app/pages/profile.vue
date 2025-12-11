@@ -14,10 +14,6 @@ definePageMeta({
 
 const { refreshToken, token, data, signOut, refresh } = useAuth()
 
-const workspace = ref({
-  name: 'Default Workspace',
-})
-
 // Edit mode state
 const isEditing = ref(false)
 const isLoading = ref(false)
@@ -263,30 +259,6 @@ const handleUpdate = async () => {
     </div>
 
     <div class="col-lg-4">
-      <!-- Workspace Information -->
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="card-title mb-0">Current Workspace</h5>
-        </div>
-        <div
-          class="card-body"
-          data-test-id="WorkspaceInfo"
-        >
-          <h6 class="text-primary">{{ workspace.name }}</h6>
-          <p class="text-muted mb-2">
-            <small>Your default workspace for managing financial data</small>
-          </p>
-          <div class="d-grid">
-            <NuxtLink
-              to="/"
-              class="btn btn-outline-primary btn-sm"
-            >
-              Go to Workspace
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-
       <!-- Account Actions -->
       <div class="card">
         <div class="card-header">
@@ -309,13 +281,14 @@ const handleUpdate = async () => {
               <i class="bi bi-lock me-1" />
               Change Password
             </button>
-            <button
+            <NuxtLink
+              to="/workspaces"
               class="btn btn-outline-info btn-sm"
               data-test-id="ManageWorkspaces"
             >
               <i class="bi bi-building me-1" />
               Manage Workspaces
-            </button>
+            </NuxtLink>
             <hr />
             <button
               class="btn btn-outline-danger btn-sm"

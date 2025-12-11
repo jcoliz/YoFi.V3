@@ -9,7 +9,6 @@
 
 import {
   TenantClient,
-  TenantEditDto,
   TenantRole,
   type TenantRoleResultDto,
 } from '~/utils/apiclient'
@@ -28,10 +27,6 @@ const emit = defineEmits<{
 const tenants = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
 const error = ref<string>('')
-const creating = ref(false)
-const createError = ref<string>('')
-const newWorkspaceName = ref('')
-const newWorkspaceDescription = ref('')
 
 // Computed
 const currentTenant = computed(() => {
@@ -126,46 +121,6 @@ function onWorkspaceChange(event: Event) {
     if (tenant) {
       selectTenant(tenant)
     }
-  }
-}
-
-async function createWorkspace() {
-  if (!newWorkspaceName.value.trim()) {
-    createError.value = 'Workspace name is required'
-    return
-  }
-
-  creating.value = true
-  createError.value = ''
-
-  try {
-    const newTenant = new TenantEditDto({
-      name: newWorkspaceName.value.trim(),
-      description: newWorkspaceDescription.value.trim() || undefined,
-    })
-
-    const createdTenant = await tenantClient.createTenant(newTenant)
-
-    // Reload tenants to get the full list including the new one
-    await loadTenants()
-
-    // Find the newly created tenant with role info
-    const tenantWithRole = tenants.value.find((t) => t.key === createdTenant.key)
-
-    if (tenantWithRole) {
-      // Select the newly created workspace
-      selectTenant(tenantWithRole)
-      emit('created', tenantWithRole)
-    }
-
-    // Reset form
-    newWorkspaceName.value = ''
-    newWorkspaceDescription.value = ''
-  } catch (err: any) {
-    console.error('Failed to create workspace:', err)
-    createError.value = err.message || 'Failed to create workspace'
-  } finally {
-    creating.value = false
   }
 }
 
@@ -319,55 +274,19 @@ defineExpose({
 
             <hr class="my-3" />
 
-            <!-- Create New Workspace Form -->
-            <div>
-              <label class="form-label mb-2">
-                <strong>Create New Workspace</strong>
-              </label>
-
-              <div
-                v-if="createError"
-                class="alert alert-danger alert-sm mb-2 py-1 px-2"
+            <!-- Manage Workspaces Link -->
+            <div class="text-center">
+              <NuxtLink
+                to="/workspaces"
+                class="btn btn-outline-primary btn-sm w-100"
               >
-                <small>{{ createError }}</small>
-              </div>
-
-              <div class="mb-2">
-                <input
-                  id="new-workspace-name"
-                  v-model="newWorkspaceName"
-                  type="text"
-                  class="form-control form-control-sm"
-                  placeholder="Workspace name"
-                  :disabled="creating"
-                  @keyup.enter="createWorkspace"
-                />
-              </div>
-
-              <div class="mb-2">
-                <textarea
-                  id="new-workspace-description"
-                  v-model="newWorkspaceDescription"
-                  class="form-control form-control-sm"
-                  rows="2"
-                  placeholder="Description (optional)"
-                  :disabled="creating"
-                />
-              </div>
-
-              <button
-                class="btn btn-primary btn-sm w-100"
-                :disabled="creating || !newWorkspaceName.trim()"
-                data-test-id="create-workspace-submit"
-                @click="createWorkspace"
-              >
-                <BaseSpinner
-                  v-if="creating"
-                  size="sm"
+                <FeatherIcon
+                  icon="settings"
+                  size="14"
                   class="me-1"
                 />
-                {{ creating ? 'Creating...' : 'Create' }}
-              </button>
+                Manage Workspaces
+              </NuxtLink>
             </div>
           </div>
         </div>
