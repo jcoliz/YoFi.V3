@@ -411,9 +411,9 @@ public class TenantControllerTests
             .Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
 
         Assert.That(user1Tenants!.Any(t => t.Key == created1!.Key), Is.True);
-        Assert.That(user1Tenants.Any(t => t.Key == created2!.Key), Is.False);
+        Assert.That(user1Tenants!.Any(t => t.Key == created2!.Key), Is.False);
         Assert.That(user2Tenants!.Any(t => t.Key == created2!.Key), Is.True);
-        Assert.That(user2Tenants.Any(t => t.Key == created1!.Key), Is.False);
+        Assert.That(user2Tenants!.Any(t => t.Key == created1!.Key), Is.False);
     }
 
     #endregion
