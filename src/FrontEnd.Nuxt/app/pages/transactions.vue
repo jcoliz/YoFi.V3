@@ -9,6 +9,8 @@ import {
   TransactionsClient,
   TransactionEditDto,
   type TransactionResultDto,
+  type IProblemDetails,
+  ApiException,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
@@ -29,7 +31,8 @@ const transactionsClient = new TransactionsClient(baseUrl, authFetch)
 // State
 const transactions = ref<TransactionResultDto[]>([])
 const loading = ref(false)
-const error = ref<string>('')
+const error = ref<IProblemDetails | undefined>(undefined)
+const showError = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
@@ -76,21 +79,36 @@ onMounted(async () => {
 // Methods
 async function loadTransactions() {
   if (!currentTenantKey.value) {
-    error.value = 'No workspace selected'
+    error.value = {
+      title: 'No workspace selected',
+      detail: 'Please select a workspace to view transactions',
+    }
+    showError.value = true
     return
   }
 
   loading.value = true
-  error.value = ''
+  error.value = undefined
+  showError.value = false
 
   try {
     const from = fromDate.value ? new Date(fromDate.value) : undefined
     const to = toDate.value ? new Date(toDate.value) : undefined
 
     transactions.value = await transactionsClient.getTransactions(from, to, currentTenantKey.value)
-  } catch (err: any) {
-    console.error('Failed to load transactions:', err)
-    error.value = err.message || 'Failed to load transactions'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to load transactions:', err)
+      error.value = err.result
+      showError.value = true
+    } else {
+      console.error('Unexpected error loading transactions:', err)
+      error.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while loading transactions',
+      }
+      showError.value = true
+    }
   } finally {
     loading.value = false
   }
@@ -146,7 +164,8 @@ async function createTransaction() {
   if (!currentTenantKey.value) return
 
   loading.value = true
-  error.value = ''
+  error.value = undefined
+  showError.value = false
 
   try {
     const dto = new TransactionEditDto({
@@ -158,9 +177,19 @@ async function createTransaction() {
     await transactionsClient.createTransaction(currentTenantKey.value, dto)
     await loadTransactions()
     showCreateModal.value = false
-  } catch (err: any) {
-    console.error('Failed to create transaction:', err)
-    error.value = err.message || 'Failed to create transaction'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to create transaction:', err)
+      error.value = err.result
+      showError.value = true
+    } else {
+      console.error('Unexpected error creating transaction:', err)
+      error.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while creating the transaction',
+      }
+      showError.value = true
+    }
   } finally {
     loading.value = false
   }
@@ -171,7 +200,8 @@ async function updateTransaction() {
   if (!selectedTransaction.value?.key || !currentTenantKey.value) return
 
   loading.value = true
-  error.value = ''
+  error.value = undefined
+  showError.value = false
 
   try {
     const dto = new TransactionEditDto({
@@ -187,9 +217,19 @@ async function updateTransaction() {
     )
     await loadTransactions()
     showEditModal.value = false
-  } catch (err: any) {
-    console.error('Failed to update transaction:', err)
-    error.value = err.message || 'Failed to update transaction'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to update transaction:', err)
+      error.value = err.result
+      showError.value = true
+    } else {
+      console.error('Unexpected error updating transaction:', err)
+      error.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while updating the transaction',
+      }
+      showError.value = true
+    }
   } finally {
     loading.value = false
   }
@@ -199,7 +239,8 @@ async function deleteTransaction() {
   if (!selectedTransaction.value?.key || !currentTenantKey.value) return
 
   loading.value = true
-  error.value = ''
+  error.value = undefined
+  showError.value = false
 
   try {
     await transactionsClient.deleteTransaction(
@@ -208,9 +249,19 @@ async function deleteTransaction() {
     )
     await loadTransactions()
     showDeleteModal.value = false
-  } catch (err: any) {
-    console.error('Failed to delete transaction:', err)
-    error.value = err.message || 'Failed to delete transaction'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to delete transaction:', err)
+      error.value = err.result
+      showError.value = true
+    } else {
+      console.error('Unexpected error deleting transaction:', err)
+      error.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while deleting the transaction',
+      }
+      showError.value = true
+    }
   } finally {
     loading.value = false
   }
@@ -275,20 +326,11 @@ function formatCurrency(amount: number | undefined): string {
       </div>
 
       <!-- Error Display -->
-      <div
-        v-if="error"
-        class="alert alert-danger alert-dismissible fade show"
-        role="alert"
-      >
-        <strong>Error</strong><br />
-        {{ error }}
-        <button
-          type="button"
-          class="btn-close"
-          aria-label="Close"
-          @click="error = ''"
-        />
-      </div>
+      <ErrorDisplay
+        v-model:show="showError"
+        :problem="error"
+        class="mb-4"
+      />
 
       <!-- Date Range Filters -->
       <div

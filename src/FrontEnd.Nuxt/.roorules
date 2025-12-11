@@ -7,3 +7,89 @@
 - **NEVER** edit `app/utils/apiclient.ts` - this file is auto-generated using the NSwag toolchain from the backend API specification
 - Any changes to this file will be overwritten when the API client is regenerated
 - To modify API client behavior, update the backend API or NSwag configuration instead
+
+## Error Handling Patterns
+
+### API Exception Handling
+
+When working with API clients, always use proper error handling with type guards:
+
+```typescript
+import {
+  ApiException,
+  type IProblemDetails,
+} from '~/utils/apiclient'
+
+// State
+const error = ref<IProblemDetails | undefined>(undefined)
+const showError = ref(false)
+
+// API call with proper error handling
+try {
+  await apiClient.someMethod()
+} catch (err) {
+  if (ApiException.isApiException(err)) {
+    // API exception with problem details
+    console.error('API error:', err)
+    error.value = err.result
+    showError.value = true
+  } else {
+    // Unexpected error (network failure, etc.)
+    console.error('Unexpected error:', err)
+    error.value = {
+      title: 'Unexpected Error',
+      detail: 'An unexpected error occurred while performing the operation',
+    }
+    showError.value = true
+  }
+}
+```
+
+**Rules:**
+- **NEVER** use `catch (err: any)` - use `catch (err)` with type guards instead
+- **ALWAYS** check `ApiException.isApiException(err)` before accessing `err.result`
+- **ALWAYS** use `err.result` directly for API exceptions (already contains RFC 7807 Problem Details)
+- **NEVER** create fallback error messages for API exceptions - trust the API's problem details
+- **DO** create custom problem details for unexpected errors or client-side validation errors
+- **DO** have separate console.error logs for API vs unexpected errors for better debugging
+
+### ErrorDisplay Component
+
+Use the `ErrorDisplay` component for all error messages:
+
+```vue
+<ErrorDisplay
+  v-model:show="showError"
+  :problem="error"
+  class="mb-4"
+/>
+```
+
+**Benefits:**
+- Consistent error display across the application
+- Supports RFC 7807 Problem Details format
+- Shows trace IDs for server errors (500+)
+- Dismissible by users
+- Handles expandable details automatically
+
+### Client-Side Validation Errors
+
+For validation errors that don't involve API calls:
+
+```typescript
+if (!formData.value.trim()) {
+  error.value = {
+    title: 'Validation Error',
+    detail: 'Field name is required',
+  }
+  showError.value = true
+  return
+}
+```
+
+### Error State Management
+
+**Always:**
+- Clear errors before making API calls: `error.value = undefined` and `showError.value = false`
+- Store errors as `IProblemDetails | undefined`, not strings
+- Use a separate `showError` boolean to control `ErrorDisplay` visibility

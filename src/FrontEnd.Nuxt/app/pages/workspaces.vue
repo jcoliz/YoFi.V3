@@ -12,6 +12,8 @@ import {
   TenantEditDto,
   TenantRole,
   type TenantRoleResultDto,
+  type IProblemDetails,
+  ApiException,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
@@ -21,26 +23,30 @@ const userPreferencesStore = useUserPreferencesStore()
 // State
 const tenants = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
-const error = ref<string>('')
+const error = ref<IProblemDetails | undefined>(undefined)
+const showError = ref(false)
 
 // Create state
 const showCreateForm = ref(false)
 const creating = ref(false)
-const createError = ref<string>('')
+const createError = ref<IProblemDetails | undefined>(undefined)
+const showCreateError = ref(false)
 const newWorkspaceName = ref('')
 const newWorkspaceDescription = ref('')
 
 // Edit state
 const editingTenant = ref<TenantRoleResultDto | null>(null)
 const updating = ref(false)
-const updateError = ref<string>('')
+const updateError = ref<IProblemDetails | undefined>(undefined)
+const showUpdateError = ref(false)
 const editName = ref('')
 const editDescription = ref('')
 
 // Delete state
 const deletingTenant = ref<TenantRoleResultDto | null>(null)
 const deleting = ref(false)
-const deleteError = ref<string>('')
+const deleteError = ref<IProblemDetails | undefined>(undefined)
+const showDeleteError = ref(false)
 
 // API Client
 const { baseUrl } = useApiBaseUrl()
@@ -91,7 +97,8 @@ onMounted(async () => {
 // Methods
 async function loadTenants() {
   loading.value = true
-  error.value = ''
+  error.value = undefined
+  showError.value = false
 
   try {
     tenants.value = await tenantClient.getTenants()
@@ -111,9 +118,19 @@ async function loadTenants() {
     if (!userPreferencesStore.hasTenant && tenants.value.length > 0 && tenants.value[0]) {
       userPreferencesStore.setCurrentTenant(tenants.value[0])
     }
-  } catch (err: any) {
-    console.error('Failed to load tenants:', err)
-    error.value = err.message || 'Failed to load workspaces'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to load tenants:', err)
+      error.value = err.result
+      showError.value = true
+    } else {
+      console.error('Unexpected error loading tenants:', err)
+      error.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while loading workspaces',
+      }
+      showError.value = true
+    }
   } finally {
     loading.value = false
   }
@@ -127,7 +144,8 @@ function handleWorkspaceChange() {
 // Create operations
 function openCreateForm() {
   showCreateForm.value = true
-  createError.value = ''
+  createError.value = undefined
+  showCreateError.value = false
   newWorkspaceName.value = ''
   newWorkspaceDescription.value = ''
 }
@@ -136,17 +154,23 @@ function cancelCreate() {
   showCreateForm.value = false
   newWorkspaceName.value = ''
   newWorkspaceDescription.value = ''
-  createError.value = ''
+  createError.value = undefined
+  showCreateError.value = false
 }
 
 async function createWorkspace() {
   if (!newWorkspaceName.value.trim()) {
-    createError.value = 'Workspace name is required'
+    createError.value = {
+      title: 'Validation Error',
+      detail: 'Workspace name is required',
+    }
+    showCreateError.value = true
     return
   }
 
   creating.value = true
-  createError.value = ''
+  createError.value = undefined
+  showCreateError.value = false
 
   try {
     const newTenant = new TenantEditDto({
@@ -158,9 +182,19 @@ async function createWorkspace() {
     await loadTenants()
 
     cancelCreate()
-  } catch (err: any) {
-    console.error('Failed to create workspace:', err)
-    createError.value = err.message || 'Failed to create workspace'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to create workspace:', err)
+      createError.value = err.result
+      showCreateError.value = true
+    } else {
+      console.error('Unexpected error creating workspace:', err)
+      createError.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while creating the workspace',
+      }
+      showCreateError.value = true
+    }
   } finally {
     creating.value = false
   }
@@ -171,24 +205,31 @@ function startEdit(tenant: TenantRoleResultDto) {
   editingTenant.value = tenant
   editName.value = tenant.name || ''
   editDescription.value = tenant.description || ''
-  updateError.value = ''
+  updateError.value = undefined
+  showUpdateError.value = false
 }
 
 function cancelEdit() {
   editingTenant.value = null
   editName.value = ''
   editDescription.value = ''
-  updateError.value = ''
+  updateError.value = undefined
+  showUpdateError.value = false
 }
 
 async function updateWorkspace() {
   if (!editingTenant.value || !editName.value.trim()) {
-    updateError.value = 'Workspace name is required'
+    updateError.value = {
+      title: 'Validation Error',
+      detail: 'Workspace name is required',
+    }
+    showUpdateError.value = true
     return
   }
 
   updating.value = true
-  updateError.value = ''
+  updateError.value = undefined
+  showUpdateError.value = false
 
   try {
     const updateDto = new TenantEditDto({
@@ -200,9 +241,19 @@ async function updateWorkspace() {
     await loadTenants()
 
     cancelEdit()
-  } catch (err: any) {
-    console.error('Failed to update workspace:', err)
-    updateError.value = err.message || 'Failed to update workspace'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to update workspace:', err)
+      updateError.value = err.result
+      showUpdateError.value = true
+    } else {
+      console.error('Unexpected error updating workspace:', err)
+      updateError.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while updating the workspace',
+      }
+      showUpdateError.value = true
+    }
   } finally {
     updating.value = false
   }
@@ -211,19 +262,22 @@ async function updateWorkspace() {
 // Delete operations
 function startDelete(tenant: TenantRoleResultDto) {
   deletingTenant.value = tenant
-  deleteError.value = ''
+  deleteError.value = undefined
+  showDeleteError.value = false
 }
 
 function cancelDelete() {
   deletingTenant.value = null
-  deleteError.value = ''
+  deleteError.value = undefined
+  showDeleteError.value = false
 }
 
 async function deleteWorkspace() {
   if (!deletingTenant.value) return
 
   deleting.value = true
-  deleteError.value = ''
+  deleteError.value = undefined
+  showDeleteError.value = false
 
   try {
     await tenantClient.deleteTenant(deletingTenant.value.key!)
@@ -235,9 +289,19 @@ async function deleteWorkspace() {
 
     await loadTenants()
     cancelDelete()
-  } catch (err: any) {
-    console.error('Failed to delete workspace:', err)
-    deleteError.value = err.message || 'Failed to delete workspace'
+  } catch (err) {
+    if (ApiException.isApiException(err)) {
+      console.error('Failed to delete workspace:', err)
+      deleteError.value = err.result
+      showDeleteError.value = true
+    } else {
+      console.error('Unexpected error deleting workspace:', err)
+      deleteError.value = {
+        title: 'Unexpected Error',
+        detail: 'An unexpected error occurred while deleting the workspace',
+      }
+      showDeleteError.value = true
+    }
   } finally {
     deleting.value = false
   }
@@ -275,13 +339,11 @@ definePageMeta({
       </div>
 
       <!-- Error State -->
-      <div
-        v-if="error"
-        class="alert alert-danger mb-4"
-        role="alert"
-      >
-        <strong>Error:</strong> {{ error }}
-      </div>
+      <ErrorDisplay
+        v-model:show="showError"
+        :problem="error"
+        class="mb-4"
+      />
 
       <!-- Create Form -->
       <div
@@ -292,12 +354,10 @@ definePageMeta({
           <h5 class="mb-0">Create New Workspace</h5>
         </div>
         <div class="card-body">
-          <div
-            v-if="createError"
-            class="alert alert-danger"
-          >
-            {{ createError }}
-          </div>
+          <ErrorDisplay
+            v-model:show="showCreateError"
+            :problem="createError"
+          />
 
           <div class="mb-3">
             <label
@@ -382,12 +442,11 @@ definePageMeta({
             <div class="card-body">
               <!-- Edit Form -->
               <div v-if="editingTenant?.key === tenant.key">
-                <div
-                  v-if="updateError"
-                  class="alert alert-danger alert-sm mb-3"
-                >
-                  {{ updateError }}
-                </div>
+                <ErrorDisplay
+                  v-model:show="showUpdateError"
+                  :problem="updateError"
+                  class="mb-3"
+                />
 
                 <div class="mb-3">
                   <label class="form-label">Name <span class="text-danger">*</span></label>
@@ -559,12 +618,10 @@ definePageMeta({
             />
           </div>
           <div class="modal-body">
-            <div
-              v-if="deleteError"
-              class="alert alert-danger"
-            >
-              {{ deleteError }}
-            </div>
+            <ErrorDisplay
+              v-model:show="showDeleteError"
+              :problem="deleteError"
+            />
 
             <p>
               Are you sure you want to delete the workspace
