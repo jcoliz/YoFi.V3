@@ -13,6 +13,18 @@ public interface ITenantRepository
     Task<Tenant> AddTenantAsync(Tenant tenant);
 
     /// <summary>
+    /// Updates an existing tenant in the repository.
+    /// </summary>
+    /// <param name="tenant">The tenant entity to update.</param>
+    Task UpdateTenantAsync(Tenant tenant);
+
+    /// <summary>
+    /// Deletes a tenant from the repository.
+    /// </summary>
+    /// <param name="tenant">The tenant entity to delete.</param>
+    Task DeleteTenantAsync(Tenant tenant);
+
+    /// <summary>
     /// Retrieves all tenant role assignments for a specific user.
     /// </summary>
     /// <param name="userId">The user identifier.</param>

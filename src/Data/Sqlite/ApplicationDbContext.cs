@@ -177,6 +177,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         return tenant;
     }
 
+    async Task ITenantRepository.UpdateTenantAsync(Tenant tenant)
+    {
+        Tenants.Update(tenant);
+        await SaveChangesAsync();
+    }
+
+    async Task ITenantRepository.DeleteTenantAsync(Tenant tenant)
+    {
+        Tenants.Remove(tenant);
+        await SaveChangesAsync();
+    }
+
     async Task<ICollection<UserTenantRoleAssignment>> ITenantRepository.GetUserTenantRolesAsync(string userId)
     {
         var roles = await UserTenantRoleAssignments
