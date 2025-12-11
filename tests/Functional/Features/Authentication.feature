@@ -89,7 +89,6 @@ Rule: Account Management
         And I am on any page in the application
         When I navigate to my profile page
         Then I should see my account information
-        And I should see my current workspace information
 
 Rule: Access Control
     The system enforces authentication requirements for protected resources

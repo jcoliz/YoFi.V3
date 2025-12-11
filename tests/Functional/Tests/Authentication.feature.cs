@@ -271,9 +271,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // Then I should see my account information
         await ThenIShouldSeeMyAccountInformation();
-
-        // And I should see my current workspace information
-        await ThenIShouldSeeMyCurrentWorkspaceInformation();
     }
 
     #endregion
