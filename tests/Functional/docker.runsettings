@@ -6,9 +6,13 @@
 		<Parameter name="defaultTimeout" value="6000" />
 		<Parameter name="screenshotContext" value="Docker" />
 	</TestRunParameters>
-  <RunConfiguration>
-    <EnvironmentVariables>
-      <PWDEBUG>0</PWDEBUG>
-    </EnvironmentVariables>
-  </RunConfiguration>
+	 <RunConfiguration>
+	   <MaxCpuCount>1</MaxCpuCount>
+	   <EnvironmentVariables>
+	     <PWDEBUG>0</PWDEBUG>
+	   </EnvironmentVariables>
+	 </RunConfiguration>
+	 <NUnit>
+	   <NumberOfTestWorkers>1</NumberOfTestWorkers>
+	 </NUnit>
 </RunSettings>
