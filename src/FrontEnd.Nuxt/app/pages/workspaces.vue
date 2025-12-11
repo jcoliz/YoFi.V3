@@ -44,6 +44,7 @@ const editDescription = ref('')
 
 // Delete state
 const deletingTenant = ref<TenantRoleResultDto | null>(null)
+const showDeleteModal = ref(false)
 const deleting = ref(false)
 const deleteError = ref<IProblemDetails | undefined>(undefined)
 const showDeleteError = ref(false)
@@ -264,12 +265,7 @@ function startDelete(tenant: TenantRoleResultDto) {
   deletingTenant.value = tenant
   deleteError.value = undefined
   showDeleteError.value = false
-}
-
-function cancelDelete() {
-  deletingTenant.value = null
-  deleteError.value = undefined
-  showDeleteError.value = false
+  showDeleteModal.value = true
 }
 
 async function deleteWorkspace() {
@@ -288,7 +284,8 @@ async function deleteWorkspace() {
     }
 
     await loadTenants()
-    cancelDelete()
+    showDeleteModal.value = false
+    deletingTenant.value = null
   } catch (err) {
     if (ApiException.isApiException(err)) {
       console.error('Failed to delete workspace:', err)
@@ -600,65 +597,29 @@ definePageMeta({
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div
-      v-if="deletingTenant"
-      class="modal show d-block"
-      tabindex="-1"
-      style="background-color: rgba(0, 0, 0, 0.5)"
+    <ModalDialog
+      v-model:show="showDeleteModal"
+      title="Delete Workspace"
+      :loading="deleting"
+      primary-button-variant="danger"
+      :primary-button-text="deleting ? 'Deleting...' : 'Delete'"
+      @primary="deleteWorkspace"
     >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Delete Workspace</h5>
-            <button
-              type="button"
-              class="btn-close"
-              :disabled="deleting"
-              @click="cancelDelete"
-            />
-          </div>
-          <div class="modal-body">
-            <ErrorDisplay
-              v-model:show="showDeleteError"
-              :problem="deleteError"
-            />
+      <ErrorDisplay
+        v-model:show="showDeleteError"
+        :problem="deleteError"
+      />
 
-            <p>
-              Are you sure you want to delete the workspace
-              <strong>{{ deletingTenant.name }}</strong
-              >?
-            </p>
-            <p class="text-danger">
-              <strong>Warning:</strong> This action cannot be undone. All data associated with this
-              workspace will be permanently deleted.
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="deleting"
-              @click="cancelDelete"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger"
-              :disabled="deleting"
-              @click="deleteWorkspace"
-            >
-              <BaseSpinner
-                v-if="deleting"
-                size="sm"
-                class="me-1"
-              />
-              {{ deleting ? 'Deleting...' : 'Delete' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <p>
+        Are you sure you want to delete the workspace
+        <strong>{{ deletingTenant?.name }}</strong
+        >?
+      </p>
+      <p class="text-danger">
+        <strong>Warning:</strong> This action cannot be undone. All data associated with this
+        workspace will be permanently deleted.
+      </p>
+    </ModalDialog>
   </div>
 </template>
 

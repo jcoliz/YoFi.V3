@@ -466,284 +466,171 @@ function formatCurrency(amount: number | undefined): string {
     </div>
 
     <!-- Create Modal -->
-    <div
-      v-if="showCreateModal"
-      class="modal fade show d-block"
-      tabindex="-1"
-      @click.self="showCreateModal = false"
+    <ModalDialog
+      v-model:show="showCreateModal"
+      title="Create Transaction"
+      :loading="loading"
+      :primary-button-text="loading ? 'Creating...' : 'Create'"
+      @primary="createTransaction"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Create Transaction</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="showCreateModal = false"
-            />
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label
-                for="createDate"
-                class="form-label"
-                >Date</label
-              >
-              <input
-                id="createDate"
-                v-model="formData.date"
-                type="date"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.date }"
-              />
-              <div
-                v-if="formErrors.date"
-                class="invalid-feedback"
-              >
-                {{ formErrors.date }}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label
-                for="createPayee"
-                class="form-label"
-                >Payee</label
-              >
-              <input
-                id="createPayee"
-                v-model="formData.payee"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.payee }"
-                placeholder="Enter payee name"
-              />
-              <div
-                v-if="formErrors.payee"
-                class="invalid-feedback"
-              >
-                {{ formErrors.payee }}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label
-                for="createAmount"
-                class="form-label"
-                >Amount</label
-              >
-              <input
-                id="createAmount"
-                v-model.number="formData.amount"
-                type="number"
-                step="0.01"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.amount }"
-                placeholder="0.00"
-              />
-              <div
-                v-if="formErrors.amount"
-                class="invalid-feedback"
-              >
-                {{ formErrors.amount }}
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="loading"
-              @click="showCreateModal = false"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="loading"
-              @click="createTransaction"
-            >
-              <BaseSpinner
-                v-if="loading"
-                size="sm"
-                class="me-1"
-              />
-              {{ loading ? 'Creating...' : 'Create' }}
-            </button>
-          </div>
+      <div class="mb-3">
+        <label
+          for="createDate"
+          class="form-label"
+          >Date</label
+        >
+        <input
+          id="createDate"
+          v-model="formData.date"
+          type="date"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.date }"
+        />
+        <div
+          v-if="formErrors.date"
+          class="invalid-feedback"
+        >
+          {{ formErrors.date }}
         </div>
       </div>
-    </div>
+      <div class="mb-3">
+        <label
+          for="createPayee"
+          class="form-label"
+          >Payee</label
+        >
+        <input
+          id="createPayee"
+          v-model="formData.payee"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.payee }"
+          placeholder="Enter payee name"
+        />
+        <div
+          v-if="formErrors.payee"
+          class="invalid-feedback"
+        >
+          {{ formErrors.payee }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="createAmount"
+          class="form-label"
+          >Amount</label
+        >
+        <input
+          id="createAmount"
+          v-model.number="formData.amount"
+          type="number"
+          step="0.01"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.amount }"
+          placeholder="0.00"
+        />
+        <div
+          v-if="formErrors.amount"
+          class="invalid-feedback"
+        >
+          {{ formErrors.amount }}
+        </div>
+      </div>
+    </ModalDialog>
 
     <!-- Edit Modal -->
-    <div
-      v-if="showEditModal"
-      class="modal fade show d-block"
-      tabindex="-1"
-      @click.self="showEditModal = false"
+    <ModalDialog
+      v-model:show="showEditModal"
+      title="Edit Transaction"
+      :loading="loading"
+      :primary-button-text="loading ? 'Updating...' : 'Update'"
+      @primary="updateTransaction"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Edit Transaction</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="showEditModal = false"
-            />
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label
-                for="editDate"
-                class="form-label"
-                >Date</label
-              >
-              <input
-                id="editDate"
-                v-model="formData.date"
-                type="date"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.date }"
-              />
-              <div
-                v-if="formErrors.date"
-                class="invalid-feedback"
-              >
-                {{ formErrors.date }}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label
-                for="editPayee"
-                class="form-label"
-                >Payee</label
-              >
-              <input
-                id="editPayee"
-                v-model="formData.payee"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.payee }"
-                placeholder="Enter payee name"
-              />
-              <div
-                v-if="formErrors.payee"
-                class="invalid-feedback"
-              >
-                {{ formErrors.payee }}
-              </div>
-            </div>
-            <div class="mb-3">
-              <label
-                for="editAmount"
-                class="form-label"
-                >Amount</label
-              >
-              <input
-                id="editAmount"
-                v-model.number="formData.amount"
-                type="number"
-                step="0.01"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.amount }"
-                placeholder="0.00"
-              />
-              <div
-                v-if="formErrors.amount"
-                class="invalid-feedback"
-              >
-                {{ formErrors.amount }}
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="loading"
-              @click="showEditModal = false"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="loading"
-              @click="updateTransaction"
-            >
-              <BaseSpinner
-                v-if="loading"
-                size="sm"
-                class="me-1"
-              />
-              {{ loading ? 'Updating...' : 'Update' }}
-            </button>
-          </div>
+      <div class="mb-3">
+        <label
+          for="editDate"
+          class="form-label"
+          >Date</label
+        >
+        <input
+          id="editDate"
+          v-model="formData.date"
+          type="date"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.date }"
+        />
+        <div
+          v-if="formErrors.date"
+          class="invalid-feedback"
+        >
+          {{ formErrors.date }}
         </div>
       </div>
-    </div>
+      <div class="mb-3">
+        <label
+          for="editPayee"
+          class="form-label"
+          >Payee</label
+        >
+        <input
+          id="editPayee"
+          v-model="formData.payee"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.payee }"
+          placeholder="Enter payee name"
+        />
+        <div
+          v-if="formErrors.payee"
+          class="invalid-feedback"
+        >
+          {{ formErrors.payee }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="editAmount"
+          class="form-label"
+          >Amount</label
+        >
+        <input
+          id="editAmount"
+          v-model.number="formData.amount"
+          type="number"
+          step="0.01"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.amount }"
+          placeholder="0.00"
+        />
+        <div
+          v-if="formErrors.amount"
+          class="invalid-feedback"
+        >
+          {{ formErrors.amount }}
+        </div>
+      </div>
+    </ModalDialog>
 
     <!-- Delete Modal -->
-    <div
-      v-if="showDeleteModal"
-      class="modal fade show d-block"
-      tabindex="-1"
-      @click.self="showDeleteModal = false"
+    <ModalDialog
+      v-model:show="showDeleteModal"
+      title="Delete Transaction"
+      :loading="loading"
+      primary-button-variant="danger"
+      :primary-button-text="loading ? 'Deleting...' : 'Delete'"
+      @primary="deleteTransaction"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Delete Transaction</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="showDeleteModal = false"
-            />
-          </div>
-          <div class="modal-body">
-            <p>Are you sure you want to delete this transaction?</p>
-            <div
-              v-if="selectedTransaction"
-              class="alert alert-warning"
-            >
-              <strong>{{ selectedTransaction.payee }}</strong
-              ><br />
-              {{ formatDate(selectedTransaction.date) }} -
-              {{ formatCurrency(selectedTransaction.amount) }}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="loading"
-              @click="showDeleteModal = false"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger"
-              :disabled="loading"
-              @click="deleteTransaction"
-            >
-              <BaseSpinner
-                v-if="loading"
-                size="sm"
-                class="me-1"
-              />
-              {{ loading ? 'Deleting...' : 'Delete' }}
-            </button>
-          </div>
-        </div>
+      <p>Are you sure you want to delete this transaction?</p>
+      <div
+        v-if="selectedTransaction"
+        class="alert alert-warning"
+      >
+        <strong>{{ selectedTransaction.payee }}</strong
+        ><br />
+        {{ formatDate(selectedTransaction.date) }} -
+        {{ formatCurrency(selectedTransaction.amount) }}
       </div>
-    </div>
-
-    <!-- Modal Backdrop -->
-    <div
-      v-if="showCreateModal || showEditModal || showDeleteModal"
-      class="modal-backdrop fade show"
-    />
+    </ModalDialog>
   </div>
 </template>
 
@@ -752,10 +639,6 @@ function formatCurrency(amount: number | undefined): string {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   padding: 0.75rem 1rem;
-}
-
-.modal {
-  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .table th {
