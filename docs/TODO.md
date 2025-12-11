@@ -283,20 +283,23 @@ public class ApplicationOptionsValidator : IValidateOptions<ApplicationOptions>
 - ✅ Code coverage published to Azure DevOps with Cobertura format
 - ✅ Comprehensive authentication functional tests
 - ✅ Comprehensive integration tests for tenancy and transactions
+- ✅ NSwag generates TypeScript clients providing compile-time type safety
 - No coverage gates (minimum threshold enforcement)
 - No performance/load testing
 - No security testing (SAST/DAST)
 - No unit tests for authorization logic
 
-**Implement:**
+**High Priority:**
 - Add code coverage gates to CI/CD with minimum threshold (e.g., 80%)
 - Expand functional tests for tenant management workflows (see High Priority #4)
-- Add API contract tests to ensure frontend/backend compatibility
-- Implement mutation testing with Stryker.NET (optional)
 - Add security scanning (SAST/DAST) to CI pipeline
-- Create load tests for critical paths using k6 or NBomber
 - Add unit tests for [`TenantRoleHandler`](../src/Controllers/Tenancy/TenantRoleHandler.cs)
 - Test edge cases (invalid GUIDs, malformed claims, missing claims)
+
+**Optional/Low Priority:**
+- API contract tests (see [`API-CONTRACT-TESTS.md`](../docs/wip/API-CONTRACT-TESTS.md)) - Low priority given NSwag type generation + integration tests already provide most benefits
+- Performance/load tests for critical paths using k6 or NBomber
+- Mutation testing with Stryker.NET
 
 ### 10. Security Hardening
 
