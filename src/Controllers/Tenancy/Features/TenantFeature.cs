@@ -1,7 +1,8 @@
+using YoFi.V3.Controllers.Tenancy.Api.Dto;
 using YoFi.V3.Entities.Tenancy;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 
-namespace YoFi.V3.Controllers.Tenancy;
+namespace YoFi.V3.Controllers.Tenancy.Features;
 
 /// <summary>
 /// Provides tenant management operations including tenant creation and user-tenant role retrieval.
@@ -157,43 +158,3 @@ public class TenantFeature(ITenantRepository tenantRepository)
         await tenantRepository.DeleteTenantAsync(tenant);
     }
 }
-
-/// <summary>
-/// Data transfer object for creating or editing a tenant.
-/// </summary>
-/// <param name="Name">The name of the tenant.</param>
-/// <param name="Description">A description of the tenant.</param>
-public record TenantEditDto(
-    string Name,
-    string Description
-);
-
-/// <summary>
-/// Data transfer object representing a tenant in API responses.
-/// </summary>
-/// <param name="Key">The unique identifier for the tenant.</param>
-/// <param name="Name">The name of the tenant.</param>
-/// <param name="Description">A description of the tenant.</param>
-/// <param name="CreatedAt">The timestamp when the tenant was created.</param>
-public record TenantResultDto(
-    Guid Key,
-    string Name,
-    string Description,
-    DateTimeOffset CreatedAt
-);
-
-/// <summary>
-/// Data transfer object representing a tenant with the user's role assignment.
-/// </summary>
-/// <param name="Key">The unique identifier for the tenant.</param>
-/// <param name="Name">The name of the tenant.</param>
-/// <param name="Description">A description of the tenant.</param>
-/// <param name="Role">The user's role within this tenant.</param>
-/// <param name="CreatedAt">The timestamp when the tenant was created.</param>
-public record TenantRoleResultDto(
-    Guid Key,
-    string Name,
-    string Description,
-    TenantRole Role,
-    DateTimeOffset CreatedAt
-);

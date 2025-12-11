@@ -586,3 +586,43 @@ finally {
 - **Maintainability** - Well-organized code with proper documentation
 
 **Reference Examples:** See scripts in the [`scripts/`](scripts/) directory for production implementations.
+
+## Documentation and Planning Pattern
+
+**Always place planning documents and work-in-progress documentation in the correct location.**
+
+1. **Planning documents location** - All architecture plans, design documents, and work-in-progress documentation MUST be placed in the `docs/wip/` directory, NOT in a top-level `plans/` directory or any other location.
+
+2. **Never create top-level directories without asking** - Do not create new top-level directories in the solution (at the same level as `src/`, `docs/`, `tests/`) without explicitly asking the user first. This includes directories like `plans/`, `design/`, or similar.
+
+3. **Work-in-progress documents** - Documents that are still being refined, proposals, and analysis work should go in `docs/wip/`:
+   - Architecture proposals
+   - Refactoring plans
+   - Design analysis documents
+   - TODO lists for complex features
+   - Investigation notes
+
+4. **Established documentation** - Once a document is finalized and represents the current state of the system, it should be moved to the appropriate location:
+   - `docs/` - For general project documentation
+   - `docs/adr/` - For Architecture Decision Records
+   - Project-specific README files in relevant directories
+
+### Examples
+
+**Correct locations:**
+- `docs/wip/TENANCY-DIRECTORY-RESTRUCTURE.md` - Planning document
+- `docs/wip/API-CONTRACT-TESTS.md` - Work in progress
+- `docs/ARCHITECTURE.md` - Established documentation
+- `docs/adr/0001-spa-web-app.md` - Architecture decision record
+
+**Incorrect locations:**
+- `plans/tenancy-restructure.md` - ❌ Wrong directory
+- `design/api-design.md` - ❌ Unauthorized top-level directory
+- `tenancy-plan.md` - ❌ Wrong location (solution root)
+
+### Benefits
+
+- **Consistent organization** - Everyone knows where to find planning documents
+- **Clear distinction** - Separates work-in-progress from established documentation
+- **No clutter** - Prevents proliferation of top-level directories
+- **Standard structure** - Follows established project conventions

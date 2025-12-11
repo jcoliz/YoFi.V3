@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using YoFi.V3.Entities.Tenancy;
 
-namespace YoFi.V3.Controllers.Tenancy;
+namespace YoFi.V3.Controllers.Tenancy.Authorization;
 
 /// <summary>
 /// Authorization attribute that requires the user to have a minimum tenant role.

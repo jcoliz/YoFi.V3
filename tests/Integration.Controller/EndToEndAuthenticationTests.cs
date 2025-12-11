@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NuxtIdentity.Core.Models;
 using YoFi.V3.Application.Dto;
-using YoFi.V3.Controllers.Tenancy;
+using YoFi.V3.Controllers.Tenancy.Api.Dto;
 
 namespace YoFi.V3.Tests.Integration.Controller;
 

@@ -3,17 +3,23 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using NuxtIdentity.Core.Abstractions;
+using YoFi.V3.Controllers.Tenancy.Authorization;
+using YoFi.V3.Controllers.Tenancy.Context;
+using YoFi.V3.Controllers.Tenancy.Features;
 using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Tenancy;
 
+/// <summary>
+/// Extension methods for configuring tenancy services and middleware.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Adds tenancy services to the service collection.
     /// </summary>
-    /// <param name="services"></param>
-    /// <returns></returns>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddTenancy(this IServiceCollection services)
     {
         // Register TenantContext as a single scoped service
@@ -49,11 +55,11 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Adds the TenantContextMiddleware to the application pipeline.
     /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <returns>The application builder for chaining.</returns>
     /// <remarks>
     /// Be sure to add this middleware after authentication and authorization middlewares!!
     /// </remarks>
-    /// <param name="app"></param>
-    /// <returns></returns>
     public static IApplicationBuilder UseTenancy(this IApplicationBuilder app)
     {
         app.UseMiddleware<TenantContextMiddleware>();

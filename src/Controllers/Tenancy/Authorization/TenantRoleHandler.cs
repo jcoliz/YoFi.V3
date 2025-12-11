@@ -4,12 +4,27 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Entities.Tenancy;
 
-namespace YoFi.V3.Controllers.Tenancy;
+namespace YoFi.V3.Controllers.Tenancy.Authorization;
 
+/// <summary>
+/// Authorization handler that validates tenant role requirements for protected resources.
+/// </summary>
+/// <param name="httpContextAccessor">Accessor for the current HTTP context.</param>
+/// <param name="logger">Logger for diagnostic output.</param>
+/// <remarks>
+/// This handler extracts the tenant key from the route, validates the user has appropriate
+/// tenant role claims, and stores the validated tenant key and role in <see cref="HttpContext.Items"/>
+/// for downstream middleware to use.
+/// </remarks>
 public partial class TenantRoleHandler(
     IHttpContextAccessor httpContextAccessor,
     ILogger<TenantRoleHandler> logger) : AuthorizationHandler<TenantRoleRequirement>
 {
+    /// <summary>
+    /// Handles the authorization requirement by validating the user's tenant role.
+    /// </summary>
+    /// <param name="context">The authorization context.</param>
+    /// <param name="requirement">The tenant role requirement to validate.</param>
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         TenantRoleRequirement requirement)

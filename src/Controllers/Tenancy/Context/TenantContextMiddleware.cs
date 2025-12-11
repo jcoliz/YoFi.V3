@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace YoFi.V3.Controllers.Tenancy;
+namespace YoFi.V3.Controllers.Tenancy.Context;
 
 /// <summary>
 /// Middleware that sets the current tenant context for tenant-scoped requests.
 /// </summary>
+/// <param name="next">The next middleware in the pipeline.</param>
 /// <remarks>
 /// This middleware must be added AFTER authentication and authorization middlewares in the pipeline.
 /// It extracts the tenant key from <see cref="HttpContext.Items"/> (where it's placed by
-/// <see cref="TenantRoleHandler"/> during authorization) and uses it to set the current tenant
+/// the authorization handler during authorization) and uses it to set the current tenant
 /// in <see cref="TenantContext"/>.
 ///
 /// <para><strong>Behavior:</strong></para>
@@ -31,7 +32,7 @@ namespace YoFi.V3.Controllers.Tenancy;
 /// <para><strong>Pipeline Order:</strong></para>
 /// <code>
 /// app.UseAuthentication();     // 1. Authenticate user
-/// app.UseAuthorization();      // 2. Run TenantRoleHandler (sets Items["TenantKey"])
+/// app.UseAuthorization();      // 2. Run authorization handlers (sets Items["TenantKey"])
 /// app.UseTenancy();            // 3. THIS MIDDLEWARE - uses Items["TenantKey"]
 /// app.MapControllers();        // 4. Route to controllers/features
 /// </code>
@@ -48,7 +49,7 @@ public class TenantContextMiddleware(RequestDelegate next)
         // Check if the route expects a tenant key parameter
         var hasTenantRoute = context.Request.RouteValues.ContainsKey("tenantKey");
 
-        // Extract tenant key from HttpContext.Items (placed there by TenantRoleHandler during authorization)
+        // Extract tenant key from HttpContext.Items (placed there by authorization handler)
         if (context.Items.TryGetValue("TenantKey", out var tenantKeyObj) &&
             tenantKeyObj is Guid tenantKey)
         {
