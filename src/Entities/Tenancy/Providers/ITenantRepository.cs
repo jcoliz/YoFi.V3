@@ -1,4 +1,6 @@
-namespace YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
+
+namespace YoFi.V3.Entities.Tenancy.Providers;
 
 /// <summary>
 /// Repository interface for managing tenant-related data operations.
@@ -43,7 +45,7 @@ public interface ITenantRepository
     /// Adds a new user-tenant role assignment.
     /// </summary>
     /// <param name="assignment">The user-tenant role assignment to add.</param>
-    /// <exception cref="DuplicateUserTenantRoleException">
+    /// <exception cref="Exceptions.DuplicateUserTenantRoleException">
     /// Thrown when a role assignment already exists for the specified user and tenant.
     /// </exception>
     Task AddUserTenantRoleAsync(UserTenantRoleAssignment assignment);
@@ -52,7 +54,7 @@ public interface ITenantRepository
     /// Removes an existing user-tenant role assignment.
     /// </summary>
     /// <param name="assignment">The user-tenant role assignment to remove.</param>
-    /// <exception cref="UserTenantRoleNotFoundException">
+    /// <exception cref="Exceptions.UserTenantRoleNotFoundException">
     /// Thrown when the specified user-tenant role assignment does not exist.
     /// </exception>
     Task RemoveUserTenantRoleAsync(UserTenantRoleAssignment assignment);

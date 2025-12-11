@@ -5,7 +5,8 @@ using YoFi.V3.Application.Dto;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
+using YoFi.V3.Entities.Tenancy.Providers;
 using YoFi.V3.Application.Validation;
 
 namespace YoFi.V3.Application.Features;

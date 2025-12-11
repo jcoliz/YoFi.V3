@@ -6,7 +6,8 @@ using NuxtIdentity.Core.Abstractions;
 using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Controllers.Tenancy.Context;
 using YoFi.V3.Controllers.Tenancy.Features;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
+using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Controllers.Tenancy;
 

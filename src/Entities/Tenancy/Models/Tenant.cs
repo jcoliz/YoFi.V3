@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using YoFi.V3.Entities.Models;
 
-namespace YoFi.V3.Entities.Tenancy;
+namespace YoFi.V3.Entities.Tenancy.Models;
 
 /// <summary>
 /// A tenant (i.e., customer, organization, etc.) in a multi-tenant application

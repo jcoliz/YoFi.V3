@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using YoFi.V3.Controllers.Tenancy.Api.Dto;
 using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Controllers.Tenancy.Features;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers.Tenancy.Api;
 

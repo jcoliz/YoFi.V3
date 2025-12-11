@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
 using YoFi.V3.Entities.Providers;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Data;
 

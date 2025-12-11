@@ -1,4 +1,4 @@
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Entities.Models;
 

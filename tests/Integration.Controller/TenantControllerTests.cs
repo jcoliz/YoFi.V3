@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Controllers.Tenancy.Api.Dto;
 using YoFi.V3.Data;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Controller;

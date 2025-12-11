@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using NuxtIdentity.Core.Abstractions;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Controllers.Tenancy.Authorization;
 

@@ -5,8 +5,9 @@ using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
-using YoFi.V3.Entities.Tenancy;
 using YoFi.V3.Entities.Tenancy.Exceptions;
+using YoFi.V3.Entities.Tenancy.Models;
+using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Data;
 

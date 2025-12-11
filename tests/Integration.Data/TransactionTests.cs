@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Tenancy;
+using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Tests.Integration.Data;
 

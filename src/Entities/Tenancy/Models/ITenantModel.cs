@@ -1,4 +1,4 @@
-namespace YoFi.V3.Entities.Tenancy;
+namespace YoFi.V3.Entities.Tenancy.Models;
 
 /// <summary>
 /// Identifies an object as a model which is tied to a specific tenant
