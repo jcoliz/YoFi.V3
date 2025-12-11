@@ -36,6 +36,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 | Script | Synopsis |
 |--------|----------|
 | [`Build-Container.ps1`](Build-Container.ps1) | Builds the Docker CI containers locally for testing |
+| [`Push-Container.ps1`](Push-Container.ps1) | Pushes Docker CI containers to DockerHub |
 | [`Start-Container.ps1`](Start-Container.ps1) | Starts the Docker CI containers locally and opens the application in browser |
 | [`Stop-Container.ps1`](Stop-Container.ps1) | Stops the Docker CI containers locally |
 
@@ -81,6 +82,15 @@ This folder contains scripts of many different kinds. Often these would be scatt
 ```powershell
 # Build containers
 .\Build-Container.ps1
+
+# Push containers to DockerHub (requires docker login)
+.\Push-Container.ps1
+
+# Or build and push in one step
+.\Push-Container.ps1 -Build
+
+# Push with a custom tag
+.\Push-Container.ps1 -Tag "latest"
 
 # Start containers
 .\Start-Container.ps1

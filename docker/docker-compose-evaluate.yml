@@ -1,0 +1,33 @@
+#
+# Evaluation docker-compose file for YoFi V3
+#
+# To publish:
+#   docker compose -f .\docker\docker-compose-evaluate.yml publish --app jcoliz/yofi-v3:latest --with-env
+#
+# To execute:
+#   docker compose -f oci://docker.io/jcoliz/yofi-v3:latest up
+#
+
+name: yofi-v3
+services:
+  frontend:
+    image: jcoliz/yofi-v3-frontend:latest
+    restart: always
+    ports:
+      - '5000:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+  backend:
+    image: jcoliz/yofi-v3-backend:latest
+    environment:
+      - APPLICATION__ENVIRONMENT=Container
+      - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
+      - JWT__ISSUER=http://localhost:5001
+      - JWT__AUDIENCE=http://localhost:5001
+      # Warning: This key is for development / testing purposes only. Do not use in production!
+      - JWT__KEY=YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14=
+      - JWT__LIFESPAN=00:10:00
+    restart: always
+    ports:
+      - '5001:8080'
