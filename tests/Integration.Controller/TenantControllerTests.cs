@@ -32,6 +32,8 @@ namespace YoFi.V3.Tests.Integration.Controller;
 /// <item>GET /api/tenant - Retrieve all tenants for authenticated user</item>
 /// <item>GET /api/tenant/{key} - Retrieve specific tenant with role verification</item>
 /// <item>POST /api/tenant - Create new tenant with user as owner</item>
+/// <item>PUT /api/tenant/{tenantKey} - Update tenant (requires Owner role)</item>
+/// <item>DELETE /api/tenant/{tenantKey} - Delete tenant (requires Owner role)</item>
 /// </list>
 /// </remarks>
 [TestFixture]
@@ -412,6 +414,273 @@ public class TenantControllerTests
         Assert.That(user1Tenants.Any(t => t.Key == created2!.Key), Is.False);
         Assert.That(user2Tenants!.Any(t => t.Key == created2!.Key), Is.True);
         Assert.That(user2Tenants.Any(t => t.Key == created1!.Key), Is.False);
+    }
+
+    #endregion
+
+    #region PUT /api/tenant/{tenantKey} Tests
+
+    [Test]
+    public async Task UpdateTenant_AsOwner_UpdatesSuccessfully()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Updated tenant data
+        var updateDto = new TenantEditDto(
+            Name: "Updated Name",
+            Description: "Updated Description"
+        );
+
+        // When: User updates the tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain the updated tenant
+        var updated = await response.Content.ReadFromJsonAsync<TenantResultDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Key, Is.EqualTo(tenantKey));
+        Assert.That(updated.Name, Is.EqualTo("Updated Name"));
+        Assert.That(updated.Description, Is.EqualTo("Updated Description"));
+
+        // And: Changes should be persisted in database
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant, Is.Not.Null);
+        Assert.That(tenant!.Name, Is.EqualTo("Updated Name"));
+        Assert.That(tenant.Description, Is.EqualTo("Updated Description"));
+    }
+
+    [Test]
+    public async Task UpdateTenant_AsEditor_Returns403()
+    {
+        // Given: A tenant with an owner and an editor
+        var ownerId = Guid.NewGuid();
+        var editorId = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(ownerId, "Test Tenant", TenantRole.Owner);
+
+        // And: Add editor role for different user
+        using (var scope2 = _factory.Services.CreateScope())
+        {
+            var dbContext2 = scope2.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var tenant2 = await dbContext2.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+            var editorAssignment = new UserTenantRoleAssignment
+            {
+                UserId = editorId.ToString(),
+                TenantId = tenant2!.Id,
+                Role = TenantRole.Editor
+            };
+            dbContext2.UserTenantRoleAssignments.Add(editorAssignment);
+            await dbContext2.SaveChangesAsync();
+        }
+
+        // And: Client authenticated as editor
+        using var editorClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Editor) },
+            userId: editorId.ToString(),
+            userName: "Editor User");
+
+        // And: Updated tenant data
+        var updateDto = new TenantEditDto("Unauthorized Update", "Should not work");
+
+        // When: Editor attempts to update the tenant
+        var response = await editorClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 403 Forbidden should be returned (insufficient permissions)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+
+        // And: Tenant should remain unchanged
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant!.Name, Is.EqualTo("Test Tenant"));
+    }
+
+    [Test]
+    public async Task UpdateTenant_NonExistent_Returns403()
+    {
+        // Given: An authenticated user with Owner role claims for a non-existent tenant
+        var userIdForTest = Guid.NewGuid();
+        var nonExistentKey = Guid.NewGuid();
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (nonExistentKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Update data
+        var updateDto = new TenantEditDto("Name", "Description");
+
+        // When: User attempts to update non-existent tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{nonExistentKey}", updateDto);
+
+        // Then: 403 Forbidden should be returned (anti-enumeration)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task UpdateTenant_WithoutAccess_Returns403()
+    {
+        // Given: Two different users
+        var ownerId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+
+        // And: Owner creates a tenant
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(ownerId, "Owner's Tenant", TenantRole.Owner);
+
+        // And: Other user attempts to update with fake Owner claims
+        using var otherUserClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },  // Claims Owner but not in database
+            userId: otherUserId.ToString(),
+            userName: "Other User");
+
+        // And: Update data
+        var updateDto = new TenantEditDto("Hacked Name", "Should not work");
+
+        // When: Other user attempts to update the tenant
+        var response = await otherUserClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+
+        // And: Tenant should remain unchanged
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant!.Name, Is.EqualTo("Owner's Tenant"));
+    }
+
+    #endregion
+
+    #region DELETE /api/tenant/{tenantKey} Tests
+
+    [Test]
+    public async Task DeleteTenant_AsOwner_DeletesSuccessfully()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Tenant To Delete", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // When: User deletes the tenant
+        var response = await testClient.DeleteAsync($"/api/tenant/{tenantKey}");
+
+        // Then: 204 No Content should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        // And: Tenant should be removed from database
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant, Is.Null, "Tenant should be deleted from database");
+
+        // And: User tenant role assignment should also be deleted (cascade)
+        var roleAssignment = await dbContext.UserTenantRoleAssignments
+            .FirstOrDefaultAsync(utr => utr.UserId == userIdForTest.ToString());
+        Assert.That(roleAssignment, Is.Null, "Role assignment should be cascade deleted");
+    }
+
+    [Test]
+    public async Task DeleteTenant_AsEditor_Returns403()
+    {
+        // Given: A tenant with an owner and an editor
+        var ownerId = Guid.NewGuid();
+        var editorId = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(ownerId, "Test Tenant", TenantRole.Owner);
+
+        // And: Add editor role for different user
+        using (var scope3 = _factory.Services.CreateScope())
+        {
+            var dbContext3 = scope3.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var tenant3 = await dbContext3.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+            var editorAssignment = new UserTenantRoleAssignment
+            {
+                UserId = editorId.ToString(),
+                TenantId = tenant3!.Id,
+                Role = TenantRole.Editor
+            };
+            dbContext3.UserTenantRoleAssignments.Add(editorAssignment);
+            await dbContext3.SaveChangesAsync();
+        }
+
+        // And: Client authenticated as editor
+        using var editorClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Editor) },
+            userId: editorId.ToString(),
+            userName: "Editor User");
+
+        // When: Editor attempts to delete the tenant
+        var response = await editorClient.DeleteAsync($"/api/tenant/{tenantKey}");
+
+        // Then: 403 Forbidden should be returned (insufficient permissions)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+
+        // And: Tenant should still exist
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant, Is.Not.Null, "Tenant should still exist");
+    }
+
+    [Test]
+    public async Task DeleteTenant_NonExistent_Returns403()
+    {
+        // Given: An authenticated user with Owner role claims for a non-existent tenant
+        var userIdForTest = Guid.NewGuid();
+        var nonExistentKey = Guid.NewGuid();
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (nonExistentKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // When: User attempts to delete non-existent tenant
+        var response = await testClient.DeleteAsync($"/api/tenant/{nonExistentKey}");
+
+        // Then: 403 Forbidden should be returned (anti-enumeration)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task DeleteTenant_WithoutAccess_Returns403()
+    {
+        // Given: Two different users
+        var ownerId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+
+        // And: Owner creates a tenant
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(ownerId, "Owner's Tenant", TenantRole.Owner);
+
+        // And: Other user attempts to delete with fake Owner claims
+        using var otherUserClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },  // Claims Owner but not in database
+            userId: otherUserId.ToString(),
+            userName: "Other User");
+
+        // When: Other user attempts to delete the tenant
+        var response = await otherUserClient.DeleteAsync($"/api/tenant/{tenantKey}");
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+
+        // And: Tenant should still exist
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
+        Assert.That(tenant, Is.Not.Null, "Tenant should still exist");
     }
 
     #endregion

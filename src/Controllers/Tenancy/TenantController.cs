@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using YoFi.V3.Entities.Tenancy;
 
 namespace YoFi.V3.Controllers.Tenancy;
 
@@ -15,8 +16,10 @@ namespace YoFi.V3.Controllers.Tenancy;
 ///
 /// Routes:
 /// - GET /api/tenant - Retrieve all tenants the user has access to
-/// - GET /api/tenant/{key} - Retrieve a specific tenant (verifies user access)
+/// - GET /api/tenant/{tenantKey} - Retrieve a specific tenant (verifies user access)
 /// - POST /api/tenant - Create a new tenant with the user as owner
+/// - PUT /api/tenant/{tenantKey} - Update an existing tenant (requires Owner role)
+/// - DELETE /api/tenant/{tenantKey} - Delete a tenant (requires Owner role)
 ///
 /// Note: This controller operates at the user level (managing tenant memberships),
 /// whereas tenant-scoped operations (like transactions) use routes like /api/tenant/{tenantKey}/resource.
@@ -51,6 +54,10 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     /// </summary>
     /// <param name="key">The unique key of the tenant</param>
     /// <returns>The tenant with the user's role if they have access</returns>
+    /// <remarks>
+    /// Uses 'key' parameter instead of 'tenantKey' to avoid triggering tenant-scoped authorization middleware.
+    /// Authorization is handled in the feature layer via GetTenantForUserAsync.
+    /// </remarks>
     [HttpGet("{key:guid}")]
     [ProducesResponseType(typeof(TenantRoleResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -82,6 +89,48 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
 
         LogOkKey(tenantResult.Key);
         return CreatedAtAction(nameof(GetTenant), new { key = tenantResult.Key }, tenantResult);
+    }
+
+    /// <summary>
+    /// Update an existing tenant (requires Owner role)
+    /// </summary>
+    /// <param name="tenantKey">The unique key of the tenant to update</param>
+    /// <param name="tenantDto">The updated tenant data including name and description</param>
+    /// <returns>The updated tenant's information</returns>
+    [HttpPut("{tenantKey:guid}")]
+    [RequireTenantRole(TenantRole.Owner)]
+    [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateTenant(Guid tenantKey, [FromBody] TenantEditDto tenantDto)
+    {
+        LogStartingKey(tenantKey);
+
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var tenantResult = await tenantFeature.UpdateTenantForUserAsync(userId, tenantKey, tenantDto);
+
+        LogOkKey(tenantKey);
+        return Ok(tenantResult);
+    }
+
+    /// <summary>
+    /// Delete a tenant (requires Owner role)
+    /// </summary>
+    /// <param name="tenantKey">The unique key of the tenant to delete</param>
+    /// <returns>No content on successful deletion</returns>
+    [HttpDelete("{tenantKey:guid}")]
+    [RequireTenantRole(TenantRole.Owner)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTenant(Guid tenantKey)
+    {
+        LogStartingKey(tenantKey);
+
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        await tenantFeature.DeleteTenantForUserAsync(userId, tenantKey);
+
+        LogOkKey(tenantKey);
+        return NoContent();
     }
 
     [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
