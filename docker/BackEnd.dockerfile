@@ -30,7 +30,7 @@ WORKDIR /source/src/BackEnd
 RUN dotnet publish --self-contained false -o /app
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.0-rc.2
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.0
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
