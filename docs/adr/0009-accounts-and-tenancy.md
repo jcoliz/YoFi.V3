@@ -77,7 +77,7 @@ Examples:
 - All financial queries must be tenant-scoped
 - Role-based authorization on tenant resources
 
-**Implementation Details:** See [`TENANCY-DESIGN.md`](../tenancy/TENANCY-DESIGN.md) for database schema, API structure, JWT claims format, and authorization policies.
+**Implementation Details:** See [`TENANCY.md`](../TENANCY.md) for complete implementation documentation including database schema, API structure, JWT claims format, authorization policies, and usage patterns.
 
 ## Consequences
 
@@ -99,11 +99,23 @@ Examples:
 - [ADR 0008: Identity System](0008-identity.md) - Authentication foundation
 - [ADR 0005: Database Backend](0005-database-backend.md) - SQLite storage
 
-## Implementation Reference
+## Implementation
 
-For detailed implementation specifications, see [`docs/tenancy/TENANCY-DESIGN.md`](../tenancy/TENANCY-DESIGN.md), which covers:
-- Entity models and database configuration
-- Tenant management and user provisioning
-- Authorization policies and JWT claims
-- Tenant-scoped data providers
-- Migration strategies
+The tenancy system has been implemented using a lightweight pattern that provides superior security and maintainability compared to the original design. Key implementation highlights:
+
+- **Single Enforcement Point:** All tenant-scoped queries use a base query pattern that automatically filters by tenant
+- **Security-First Authorization:** Returns 403 for both "tenant not found" and "access denied" to prevent tenant enumeration
+- **Claims-Based Access:** JWT tokens contain `tenant_role` claims in format `"{tenantKey}:{role}"`
+- **Middleware Pipeline:** Authorization → Tenant Context → Controller flow ensures proper isolation
+- **Production-Ready:** Comprehensive integration test coverage validates cross-tenant isolation
+
+**Complete Documentation:** See [`TENANCY.md`](../TENANCY.md) for:
+- Architecture and component overview
+- Data model and database configuration
+- Authorization policies and role-based access
+- Tenant context management and isolation patterns
+- Exception handling and security strategy
+- Implementation examples and usage patterns
+- Testing strategy and key file references
+
+**Outstanding Work:** See [`wip/TENANCY-TODO.md`](../wip/TENANCY-TODO.md) for remaining features and enhancements.
