@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using NuxtIdentity.Core.Models;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Controllers.Tenancy.Api.Dto;
+using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Tests.Integration.Controller;
 
@@ -83,7 +84,7 @@ public class EndToEndAuthenticationTests
     }
 
     [Test]
-    public async Task CompleteWorkflow_RegisterLoginCreateTenantAddTransactions_Success()
+    public async Task CompleteWorkflow_RegisterLoginAddTransactions_AutomaticTenantProvisioning()
     {
         // Given: A new user with unique credentials
         var testId = Guid.NewGuid().ToString("N")[..8];
@@ -132,48 +133,28 @@ public class EndToEndAuthenticationTests
         Assert.That(loginResult.User, Is.Not.Null);
         Assert.That(loginResult.User.Name, Is.EqualTo(username));
 
-        // When: User creates an authenticated client with access token
+        // When: User creates an authenticated client with access token from initial login
         using var authenticatedClient = _factory.CreateClient();
         authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {loginResult.Token.AccessToken}");
 
-        // And: User creates a new tenant
-        var tenantDto = new TenantEditDto(
-            Name: "My Test Tenant",
-            Description: "End-to-end test tenant"
-        );
-        var createTenantResponse = await authenticatedClient.PostAsJsonAsync("/api/tenant", tenantDto);
+        // And: User retrieves their tenant list
+        var getTenantsResponse = await authenticatedClient.GetAsync("/api/tenant");
 
-        // Then: Tenant creation should succeed
-        Assert.That(createTenantResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        // Then: Request should succeed
+        Assert.That(getTenantsResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Response should contain tenant information
-        var createdTenant = await createTenantResponse.Content.ReadFromJsonAsync<TenantResultDto>();
-        Assert.That(createdTenant, Is.Not.Null);
-        Assert.That(createdTenant!.Key, Is.Not.EqualTo(Guid.Empty));
-        Assert.That(createdTenant.Name, Is.EqualTo("My Test Tenant"));
+        // And: User should have exactly one automatically provisioned tenant
+        var tenants = await getTenantsResponse.Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
+        Assert.That(tenants, Is.Not.Null);
+        Assert.That(tenants!.Count, Is.EqualTo(1), "User should have exactly one auto-provisioned tenant");
 
-        // TODO: After creating a tenant, need to refresh the token to get updated JWT with tenant claims.
-        // The initial login token doesn't include tenant roles since the tenant didn't exist yet.
-        // The refresh endpoint should re-query custom claims and include them in the new token.
+        // And: The tenant should have expected properties
+        var autoTenant = tenants.First();
+        Assert.That(autoTenant.Key, Is.Not.EqualTo(Guid.Empty));
+        Assert.That(autoTenant.Name, Does.Contain(username), "Auto-provisioned tenant name should contain username");
+        Assert.That(autoTenant.Role, Is.EqualTo(TenantRole.Owner), "User should be Owner of auto-provisioned tenant");
 
-        // Couple of possible approaches to consider:
-        // 1. Per design, registering a user should create a default tenant automatically.
-        //    This way, the initial token from signup/login would already have tenant claims.
-        // 2. After creating a tenant, the client should call the refresh endpoint to get updated claims.
-        //    This is what we're testing here for now.
-
-        // When: User refreshes the token to get updated claims with tenant role
-        var refreshRequest = new { refreshToken = loginResult.Token.RefreshToken };
-        var refreshResponse = await authenticatedClient.PostAsJsonAsync("/api/auth/refresh", refreshRequest);
-        Assert.That(refreshResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var refreshResult = await refreshResponse.Content.ReadFromJsonAsync<RefreshResponse>();
-        Assert.That(refreshResult, Is.Not.Null);
-
-        // And: User updates authenticated client with the refreshed token containing tenant claims
-        authenticatedClient.DefaultRequestHeaders.Remove("Authorization");
-        authenticatedClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {refreshResult!.Token.AccessToken}");
-
-        // When: User adds transactions to the tenant
+        // When: User adds transactions to the auto-provisioned tenant (without needing to refresh token)
         var transaction1 = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100.50m,
@@ -186,10 +167,10 @@ public class EndToEndAuthenticationTests
         );
 
         var addTx1Response = await authenticatedClient.PostAsJsonAsync(
-            $"/api/tenant/{createdTenant.Key}/transactions",
+            $"/api/tenant/{autoTenant.Key}/transactions",
             transaction1);
         var addTx2Response = await authenticatedClient.PostAsJsonAsync(
-            $"/api/tenant/{createdTenant.Key}/transactions",
+            $"/api/tenant/{autoTenant.Key}/transactions",
             transaction2);
 
         // Then: Both transactions should be created successfully
@@ -206,9 +187,9 @@ public class EndToEndAuthenticationTests
         Assert.That(createdTx2!.Payee, Is.EqualTo("Test Payee 2"));
         Assert.That(createdTx2.Amount, Is.EqualTo(250.75m));
 
-        // When: User retrieves all transactions for the tenant
+        // When: User retrieves all transactions for the auto-provisioned tenant
         var getTransactionsResponse = await authenticatedClient.GetAsync(
-            $"/api/tenant/{createdTenant.Key}/transactions");
+            $"/api/tenant/{autoTenant.Key}/transactions");
 
         // Then: Request should succeed
         Assert.That(getTransactionsResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NuxtIdentity.AspNetCore.Controllers;
 using NuxtIdentity.Core.Abstractions;
+using YoFi.V3.Controllers.Tenancy.Api.Dto;
+using YoFi.V3.Controllers.Tenancy.Features;
 
 namespace YoFi.V3.Controllers;
 
@@ -24,6 +26,7 @@ namespace YoFi.V3.Controllers;
 /// work well for most ASP.NET Core Identity scenarios.
 /// </remarks>
 public class AuthController(
+    TenantFeature tenantFeature,
     IJwtTokenService<IdentityUser> jwtTokenService,
     IRefreshTokenService refreshTokenService,
     UserManager<IdentityUser> userManager,
@@ -36,5 +39,20 @@ public class AuthController(
         signInManager,
         logger)
 {
-    // No additional implementation needed; all functionality is in the base class.
+    /// <summary>
+    /// Called after a new user has been created.
+    /// </summary>
+    /// <remarks>
+    /// Provision a tenant for this new user
+    /// </remarks>
+    protected override async Task OnUserCreatedAsync(IdentityUser user)
+    {
+        // Create a tenant for the new user
+        await tenantFeature.CreateTenantForUserAsync(
+            Guid.Parse(user.Id),
+            new TenantEditDto(
+                $"Default workspace for {user.UserName}",
+                "A personal financial management workspace"
+        ));
+    }
 }

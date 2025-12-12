@@ -38,7 +38,19 @@ export function useAuthFetch() {
         // Handle fetch errors and convert to Response for NSwag client
         const status = error.response?.status || 500
         const statusText = error.response?.statusText || 'Internal Server Error'
-        const body = error.response?._data || error.data || { message: error.message }
+
+        // If there's a response body, use it; otherwise create RFC 7807 Problem Details
+        let body = error.response?._data || error.data
+        if (!body) {
+          // Network error or no response - create proper Problem Details
+          body = {
+            type: 'about:blank',
+            title: 'Network Error',
+            status,
+            detail: error.message || 'Failed to connect to the server',
+            instance: urlString,
+          }
+        }
 
         return new Response(JSON.stringify(body), {
           status,
