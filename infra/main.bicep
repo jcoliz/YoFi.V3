@@ -17,6 +17,13 @@ param staticWebAppLocation string = resourceGroup().location
 @description('Unique suffix for all resources in this deployment')
 param suffix string = uniqueString(subscription().id,resourceGroup().id)
 
+@description('JWT signing key for authentication (base64-encoded string, 256-bit minimum)')
+@secure()
+param jwtKey string
+
+@description('JWT token lifespan')
+param jwtLifespan string = '00:20:00'
+
 // Provision Static Web App for front-end
 module frontend './AzDeploy.Bicep/Web/staticapp.bicep' = {
   name: 'frontend'
@@ -25,6 +32,9 @@ module frontend './AzDeploy.Bicep/Web/staticapp.bicep' = {
     location: staticWebAppLocation
   }
 }
+
+// Construct backend URL for JWT issuer/audience
+var backendUrl = 'https://web-${suffix}.azurewebsites.net'
 
 // Provision Web App with App Insights and Log Analytics for backend API
 module backend './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
@@ -41,6 +51,22 @@ module backend './AzDeploy.Bicep/Web/webapp-appinsights.bicep' = {
       {
         name: 'Application__AllowedCorsOrigins__0'
         value: 'https://${frontend.outputs.defaultHostname}'
+      }
+      {
+        name: 'Jwt__Issuer'
+        value: backendUrl
+      }
+      {
+        name: 'Jwt__Audience'
+        value: backendUrl
+      }
+      {
+        name: 'Jwt__Key'
+        value: jwtKey
+      }
+      {
+        name: 'Jwt__Lifespan'
+        value: jwtLifespan
       }
     ]
   }

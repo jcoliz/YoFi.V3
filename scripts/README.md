@@ -45,6 +45,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 | Script | Synopsis |
 |--------|----------|
 | [`Provision-Resources.ps1`](Provision-Resources.ps1) | Provisions Azure resources for the YoFi.V3 application using Bicep templates |
+| [`Rotate-JwtKey.ps1`](Rotate-JwtKey.ps1) | Rotates the JWT signing key for a deployed application (invalidates all tokens) |
 
 ### Build Utilities
 
@@ -97,6 +98,19 @@ This folder contains scripts of many different kinds. Often these would be scatt
 
 # Stop containers
 .\Stop-Container.ps1
+```
+
+### Azure Deployment
+
+```powershell
+# Provision Azure resources (includes JWT key generation)
+.\Provision-Resources.ps1 -ResourceGroup "yofi-rg" -Location "eastus2" -StaticWebAppLocation "eastus2"
+
+# Rotate JWT key for existing deployment (with confirmation)
+.\Rotate-JwtKey.ps1 -ResourceGroup "yofi-rg" -AppServiceName "web-abc123"
+
+# Rotate JWT key without confirmation prompt
+.\Rotate-JwtKey.ps1 -ResourceGroup "yofi-rg" -AppServiceName "web-abc123" -Confirm:$false
 ```
 
 ## Prerequisites

@@ -41,6 +41,8 @@ These must be configured as pipeline variables in Azure DevOps:
 | `dockerRegistryEndpoint` | Docker registry service connection | `docker-hub-connection` | Created in Azure DevOps |
 | `dockerUserName` | Docker registry username | `your-username` | Your Docker Hub account |
 
+**Note:** JWT authentication settings (Issuer, Audience, Key, Lifespan) are **automatically configured** during resource provisioning and stored as App Service application settings. They do **not** need to be added as pipeline variables.
+
 ### Step 1: Create Azure Service Connection
 
 1. Go to **Project Settings** → **Service connections**
@@ -161,10 +163,24 @@ az webapp deploy --resource-group <rg> --name <app-name> --src-path <zip-file>
 
 ## Security Considerations
 
+### Pipeline Security
 - **Pipeline variables** marked as secret are encrypted
 - **Service connections** use managed identities when possible
 - **API tokens** have minimal required permissions
 - **Deployment artifacts** are automatically cleaned up
+
+### JWT Authentication Security
+- **JWT keys** are generated during provisioning with cryptographically secure random generation
+- **Keys are encrypted** at rest in Azure App Service application settings
+- **Keys persist** across deployments (not overwritten by CD pipeline)
+- **Keys are never** stored in source control, container images, or pipeline variables
+- **Key rotation** requires manual update of App Service settings (see [PROVISION-RESOURCES.md](PROVISION-RESOURCES.md))
+
+### Configuration Management
+- **Environment variables** are used for all configuration (12-factor app methodology)
+- **Secrets** are stored in Azure services, not in code or configuration files
+- **App Service settings** are encrypted at rest and in transit
+- **Access control** managed through Azure RBAC
 
 ## Next Steps
 

@@ -57,40 +57,47 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to create resource group with exit code $LASTEXITCODE"
     }
-    
+
+    Write-Host "Generating JWT signing key..." -ForegroundColor Cyan
+    # Generate cryptographically secure 256-bit (32 bytes) random key
+    $jwtKeyBytes = New-Object byte[] 32
+    [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($jwtKeyBytes)
+    $jwtKey = [Convert]::ToBase64String($jwtKeyBytes)
+    Write-Verbose "Generated JWT key: $jwtKey"
+
     Write-Host "Deploying to Resource Group $ResourceGroup..." -ForegroundColor Cyan
     $Top = "$PSScriptRoot/.."
     $TemplatePath = "$Top/infra/main.bicep"
-    
+
     if (-not (Test-Path $TemplatePath)) {
         throw "Bicep template not found: $TemplatePath"
     }
-    
+
     $DeploymentName = "Deploy-$(Get-Random)"
     Write-Verbose "Deployment name: $DeploymentName"
-    
-    $result = az deployment group create --name $DeploymentName --resource-group $ResourceGroup --template-file $TemplatePath --parameter staticWebAppLocation=$StaticWebAppLocation | ConvertFrom-Json
+
+    $result = az deployment group create --name $DeploymentName --resource-group $ResourceGroup --template-file $TemplatePath --parameter staticWebAppLocation=$StaticWebAppLocation --parameter jwtKey=$jwtKey | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0) {
         throw "Deployment failed with exit code $LASTEXITCODE"
     }
-    
+
     $staticWebAppName = $result.properties.outputs.staticWebAppName.value
     $webAppName = $result.properties.outputs.webAppName.value
     $webAppDefaultHostName = $result.properties.outputs.webAppDefaultHostName.value
     $appInsightsName = $result.properties.outputs.appInsightsName.value
-    
+
     Write-Verbose "Retrieving deployment token for Static Web App..."
     $deploymentToken = az staticwebapp secrets list --name $staticWebAppName --resource-group $ResourceGroup --query "properties.apiKey" -o tsv
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to retrieve Static Web App token with exit code $LASTEXITCODE"
     }
-    
+
     Write-Verbose "Retrieving Application Insights connection string..."
     $insightsConnectionString = az monitor app-insights component show --app $appInsightsName --resource-group $ResourceGroup --query connectionString --output tsv
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to retrieve App Insights connection string with exit code $LASTEXITCODE"
     }
-    
+
     Write-Host ""
     Write-Host "Deployment completed successfully!" -ForegroundColor Green
     Write-Host ""
@@ -109,6 +116,16 @@ try {
     Write-Output "  azureAppServiceName: $webAppName"
     Write-Output "  backendBaseUrl: https://$webAppDefaultHostName"
     Write-Output "  appInsightsConnectionString: $insightsConnectionString"
+    Write-Host ""
+    Write-Host "JWT Configuration:" -ForegroundColor Cyan
+    Write-Output "  JWT Issuer: https://$webAppDefaultHostName"
+    Write-Output "  JWT Audience: https://$webAppDefaultHostName"
+    Write-Output "  JWT Key: $jwtKey"
+    Write-Output "  JWT Lifespan: 00:20:00"
+    Write-Host ""
+    Write-Host "IMPORTANT: Store the JWT key securely! It will not be displayed again." -ForegroundColor Yellow
+    Write-Host "The JWT key is configured as an App Service application setting and does not need to be" -ForegroundColor Yellow
+    Write-Host "added to pipeline variables. Save it only for backup/recovery purposes." -ForegroundColor Yellow
 }
 catch {
     Write-Error "Failed to provision resources: $_"
