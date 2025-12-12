@@ -306,14 +306,15 @@ public class ApplicationOptionsValidator : IValidateOptions<ApplicationOptions>
 **Implement:**
 - Security scanning in CI/CD (Dependabot, CodeQL, OWASP)
 - HTTPS enforcement in production (partially done)
-- Content Security Policy headers
+- **Content Security Policy headers** - Implement CSP to prevent inline script execution and restrict script sources (primary XSS defense)
 - Dependency vulnerability scanning
 - Rate limiting per tenant/user
 - Input sanitization for all user inputs
 - SQL injection prevention verification (EF Core provides this)
-- XSS prevention in frontend
-- CSRF protection (if needed beyond JWT)
+- **XSS prevention in frontend** - Add ESLint rules (`vue/no-v-html`), verify Vue.js template escaping usage, implement CSP headers. See [`wip/XSS-PREVENTION-VERIFICATION.md`](wip/XSS-PREVENTION-VERIFICATION.md)
 - Audit logging for sensitive operations
+
+**Note on CSRF:** Current JWT-in-localStorage with Authorization headers is inherently CSRF-resistant (no automatic credential sending). No additional CSRF protection needed. See [`wip/JWT-STORAGE-SECURITY-ANALYSIS.md`](wip/JWT-STORAGE-SECURITY-ANALYSIS.md) for token storage security analysis.
 
 ---
 
