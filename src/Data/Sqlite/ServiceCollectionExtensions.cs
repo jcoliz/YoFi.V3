@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
+using NuxtIdentity.Core.Abstractions;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Providers;
 
@@ -29,6 +30,7 @@ public static partial class ServiceCollectionExtensions
 
         services.AddScoped<IDataProvider, ApplicationDbContext>();
         services.AddScoped<ITenantRepository, ApplicationDbContext>();
+        services.AddScoped<IDbContextCleaner, ApplicationDbContext>();
 
         return services;
     }

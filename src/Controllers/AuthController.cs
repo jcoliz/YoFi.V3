@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NuxtIdentity.AspNetCore.Controllers;
@@ -25,8 +26,9 @@ namespace YoFi.V3.Controllers;
 /// All endpoints can be overridden if custom behavior is needed, but the defaults
 /// work well for most ASP.NET Core Identity scenarios.
 /// </remarks>
-public class AuthController(
+public partial class AuthController(
     TenantFeature tenantFeature,
+    IDbContextCleaner dbContextCleaner,
     IJwtTokenService<IdentityUser> jwtTokenService,
     IRefreshTokenService refreshTokenService,
     UserManager<IdentityUser> userManager,
@@ -37,7 +39,8 @@ public class AuthController(
         refreshTokenService,
         userManager,
         signInManager,
-        logger)
+        logger,
+        dbContextCleaner)
 {
     /// <summary>
     /// Called after a new user has been created.
@@ -47,6 +50,8 @@ public class AuthController(
     /// </remarks>
     protected override async Task OnUserCreatedAsync(IdentityUser user)
     {
+        LogStartingKey(Guid.Parse(user.Id));
+
         // Create a tenant for the new user
         await tenantFeature.CreateTenantForUserAsync(
             Guid.Parse(user.Id),
@@ -54,5 +59,13 @@ public class AuthController(
                 $"Default workspace for {user.UserName}",
                 "A personal financial management workspace"
         ));
+
+        LogOkKey(Guid.Parse(user.Id));
     }
+
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Key}")]
+    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(1, LogLevel.Information, "{Location}: OK {Key}")]
+    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 }

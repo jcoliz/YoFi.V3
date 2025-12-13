@@ -84,6 +84,8 @@ public class EndToEndAuthenticationTests
     }
 
     [Test]
+    // WARNING: This test is flaky, due to DbContext concurrency issues.
+    // Investigate and fix root cause to improve reliability.
     public async Task CompleteWorkflow_RegisterLoginAddTransactions_AutomaticTenantProvisioning()
     {
         // Given: A new user with unique credentials
