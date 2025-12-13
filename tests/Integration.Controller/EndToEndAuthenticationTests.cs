@@ -84,7 +84,6 @@ public class EndToEndAuthenticationTests
     }
 
     [Test]
-    [Explicit("*** FAILING TEST *** This is a blocking issue that must be fixed.")]
     public async Task CompleteWorkflow_RegisterLoginAddTransactions_AutomaticTenantProvisioning()
     {
         // Given: A new user with unique credentials
@@ -121,11 +120,6 @@ public class EndToEndAuthenticationTests
             password = password
         };
         var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-
-        // *** FAILING TEST: Concurrency issue during login after registration ***
-        // Below line causes a concurrency exception in EF Core when trying to log in
-        // right after registering a new user. Suspect there is a deeper bug in the
-        // authentication stack causing this.
 
         // Then: Login should succeed
         Assert.That(loginResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
