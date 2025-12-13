@@ -107,7 +107,10 @@ async function loadTransactions() {
     } else {
       error.value = {
         title: 'Unexpected Error',
-        detail: err instanceof Error ? err.message : 'An unexpected error occurred while loading transactions',
+        detail:
+          err instanceof Error
+            ? err.message
+            : 'An unexpected error occurred while loading transactions',
       }
     }
     showError.value = true
@@ -189,7 +192,10 @@ async function createTransaction() {
     } else {
       error.value = {
         title: 'Unexpected Error',
-        detail: err instanceof Error ? err.message : 'An unexpected error occurred while creating the transaction',
+        detail:
+          err instanceof Error
+            ? err.message
+            : 'An unexpected error occurred while creating the transaction',
       }
     }
     showError.value = true
@@ -230,7 +236,10 @@ async function updateTransaction() {
     } else {
       error.value = {
         title: 'Unexpected Error',
-        detail: err instanceof Error ? err.message : 'An unexpected error occurred while updating the transaction',
+        detail:
+          err instanceof Error
+            ? err.message
+            : 'An unexpected error occurred while updating the transaction',
       }
     }
     showError.value = true
@@ -263,7 +272,10 @@ async function deleteTransaction() {
     } else {
       error.value = {
         title: 'Unexpected Error',
-        detail: err instanceof Error ? err.message : 'An unexpected error occurred while deleting the transaction',
+        detail:
+          err instanceof Error
+            ? err.message
+            : 'An unexpected error occurred while deleting the transaction',
       }
     }
     showError.value = true
@@ -394,7 +406,11 @@ function formatCurrency(amount: number | undefined): string {
       >
         <BaseSpinner />
         <div class="mt-2">
-          <small class="text-muted" data-test-id="loading-transactions-text">Loading transactions...</small>
+          <small
+            class="text-muted"
+            data-test-id="loading-transactions-text"
+            >Loading transactions...</small
+          >
         </div>
       </div>
 
@@ -428,7 +444,10 @@ function formatCurrency(amount: number | undefined): string {
             v-else
             class="table-responsive"
           >
-            <table class="table table-hover" data-test-id="transactions-table">
+            <table
+              class="table table-hover"
+              data-test-id="transactions-table"
+            >
               <thead>
                 <tr>
                   <th>Date</th>

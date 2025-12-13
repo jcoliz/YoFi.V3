@@ -423,7 +423,12 @@ definePageMeta({
         data-test-id="loading-state"
       >
         <BaseSpinner size="lg" />
-        <div class="mt-3 text-muted" data-test-id="loading-workspaces-text">Loading workspaces...</div>
+        <div
+          class="mt-3 text-muted"
+          data-test-id="loading-workspaces-text"
+        >
+          Loading workspaces...
+        </div>
       </div>
 
       <!-- Workspaces List -->
@@ -501,7 +506,10 @@ definePageMeta({
               <!-- View Mode -->
               <div v-else>
                 <div class="d-flex justify-content-between align-items-start mb-3">
-                  <h5 class="card-title mb-0" data-test-id="workspace-name">
+                  <h5
+                    class="card-title mb-0"
+                    data-test-id="workspace-name"
+                  >
                     {{ tenant.name }}
                     <span
                       v-if="tenant.key === userPreferencesStore.getCurrentTenantKey"

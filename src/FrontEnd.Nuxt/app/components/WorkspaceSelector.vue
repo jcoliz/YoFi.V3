@@ -7,11 +7,7 @@
  * and manage workspace data.
  */
 
-import {
-  TenantClient,
-  TenantRole,
-  type TenantRoleResultDto,
-} from '~/utils/apiclient'
+import { TenantClient, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 // Store
@@ -187,7 +183,11 @@ defineExpose({
           >
             <BaseSpinner size="sm" />
             <div class="mt-2">
-              <small class="text-muted" data-test-id="loading-workspaces-text">Loading workspaces...</small>
+              <small
+                class="text-muted"
+                data-test-id="loading-workspaces-text"
+                >Loading workspaces...</small
+              >
             </div>
           </div>
 
