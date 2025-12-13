@@ -25,14 +25,13 @@ const emit = defineEmits<{
 
 const showMore = ref(false)
 
-const more = computed(() => {
-  const traceId = props.problem?.instance
-  const status = props.problem?.status
+const additionalFields = computed(() => {
+  if (!props.problem) return undefined
 
-  if (status !== undefined && status >= 500 && traceId) {
-    return traceId
-  }
-  return undefined
+  const standardFields = ['type', 'title', 'status', 'detail', 'instance']
+  const entries = Object.entries(props.problem).filter(([key]) => !standardFields.includes(key))
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
 })
 
 const close = () => {
@@ -50,13 +49,15 @@ const toggleMore = () => {
     role="alert"
     data-test-id="error-display"
   >
-    <strong data-test-id="title-display">{{ problem?.title || 'Please fix the following errors:' }}</strong
+    <strong data-test-id="title-display">{{
+      problem?.title || 'Please fix the following errors:'
+    }}</strong
     ><br />
     <span data-test-id="detail-display">
       {{ problem?.detail }}
     </span>
     <div
-      v-if="more"
+      v-if="additionalFields"
       class="mt-2"
     >
       <a
@@ -74,11 +75,20 @@ const toggleMore = () => {
       </a>
       <div
         v-if="showMore"
-        class="mt-2 small text-muted"
-        style="white-space: pre-wrap; word-break: break-word"
+        class="mt-2 small"
         data-test-id="more-text"
       >
-        {{ more }}
+        <p class="mb-2 text-muted">
+          Error details (provide this information if contacting support):
+        </p>
+        <div
+          v-for="[key, value] in Object.entries(additionalFields)"
+          :key="key"
+          class="mb-1"
+        >
+          <strong>{{ key }}:</strong>
+          <span class="ms-1">{{ typeof value === 'object' ? JSON.stringify(value) : value }}</span>
+        </div>
       </div>
     </div>
     <button
