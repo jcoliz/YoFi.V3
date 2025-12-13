@@ -25,6 +25,11 @@ const emit = defineEmits<{
 
 const showMore = ref(false)
 
+const isServerError = computed(() => {
+  const status = props.problem?.status
+  return status !== undefined && status >= 500
+})
+
 const additionalFields = computed(() => {
   if (!props.problem) return undefined
 
@@ -32,6 +37,44 @@ const additionalFields = computed(() => {
   const entries = Object.entries(props.problem).filter(([key]) => !standardFields.includes(key))
 
   return entries.length > 0 ? Object.fromEntries(entries) : undefined
+})
+
+// Auto-expand for server errors when there are additional fields
+// Reset when switching from server error to non-server error
+watch(
+  () => [props.problem, additionalFields.value, isServerError.value],
+  () => {
+    if (isServerError.value && additionalFields.value) {
+      showMore.value = true
+    } else if (!isServerError.value) {
+      showMore.value = false
+    }
+  },
+  { immediate: true },
+)
+
+const friendlyDetail = computed(() => {
+  // If detail is provided, use it
+  if (props.problem?.detail) {
+    return props.problem.detail
+  }
+
+  // Otherwise, provide friendly message based on status code
+  const status = props.problem?.status
+  if (!status) return undefined
+
+  const friendlyMessages: Record<number, string> = {
+    400: 'Please check the information you provided and try again.',
+    401: 'You need to be logged in to access this resource.',
+    403: 'You do not have permission to access this resource.',
+    404: 'The requested resource could not be found.',
+    409: 'This operation conflicts with the current state of the resource.',
+    500: 'An internal server error occurred. Please try again later.',
+    502: 'The server received an invalid response from an upstream server.',
+    503: 'The service is temporarily unavailable. Please try again later.',
+  }
+
+  return friendlyMessages[status] || 'An error occurred while processing your request.'
 })
 
 const close = () => {
@@ -53,8 +96,11 @@ const toggleMore = () => {
       problem?.title || 'Please fix the following errors:'
     }}</strong
     ><br />
-    <span data-test-id="detail-display">
-      {{ problem?.detail }}
+    <span
+      v-if="friendlyDetail"
+      data-test-id="detail-display"
+    >
+      {{ friendlyDetail }}
     </span>
     <div
       v-if="additionalFields"
@@ -78,8 +124,15 @@ const toggleMore = () => {
         class="mt-2 small"
         data-test-id="more-text"
       >
-        <p class="mb-2 text-muted">
-          Error details (provide this information if contacting support):
+        <p class="mb-2">
+          <strong v-if="isServerError"
+            >Please contact support immediately so we can resolve this issue.</strong
+          >
+          <span
+            v-else
+            class="text-muted"
+            >Error details (provide this information if contacting support):</span
+          >
         </p>
         <div
           v-for="[key, value] in Object.entries(additionalFields)"
