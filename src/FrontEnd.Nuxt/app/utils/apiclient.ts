@@ -377,10 +377,59 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
-    errors(code: string | null | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/TestControl/errors?";
-        if (code !== undefined && code !== null)
-            url_ += "code=" + encodeURIComponent("" + code) + "&";
+    listErrors(): Promise<ErrorCodeInfo[]> {
+        let url_ = this.baseUrl + "/TestControl/errors";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processListErrors(_response);
+        });
+    }
+
+    protected processListErrors(response: Response): Promise<ErrorCodeInfo[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ErrorCodeInfo.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ErrorCodeInfo[]>(null as any);
+    }
+
+    returnError(code: string): Promise<void> {
+        let url_ = this.baseUrl + "/TestControl/errors/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -390,14 +439,14 @@ export class TestControlClient {
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processErrors(_response);
+            return this.processReturnError(_response);
         });
     }
 
-    protected processErrors(response: Response): Promise<void> {
+    protected processReturnError(response: Response): Promise<void> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
+        if (status === 204) {
             return response.text().then((_responseText) => {
             return;
             });
@@ -428,6 +477,13 @@ export class TestControlClient {
             let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result404 = ProblemDetails.fromJS(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
             });
         } else if (status === 500) {
             return response.text().then((_responseText) => {
@@ -1758,6 +1814,46 @@ export interface ITestUser {
     username?: string;
     email?: string;
     password?: string;
+}
+
+export class ErrorCodeInfo implements IErrorCodeInfo {
+    code?: string;
+    description?: string;
+
+    constructor(data?: IErrorCodeInfo) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): ErrorCodeInfo {
+        data = typeof data === 'object' ? data : {};
+        let result = new ErrorCodeInfo();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IErrorCodeInfo {
+    code?: string;
+    description?: string;
 }
 
 export class TransactionResultDto implements ITransactionResultDto {

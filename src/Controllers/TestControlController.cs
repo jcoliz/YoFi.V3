@@ -4,8 +4,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using YoFi.V3.Entities.Tenancy.Exceptions;
 
 namespace YoFi.V3.Controllers;
+
+/// <summary>
+/// Information about an error code available for testing
+/// </summary>
+/// <param name="Code">The error code to use in the query parameter</param>
+/// <param name="Description">Description of what error will be generated</param>
+public record ErrorCodeInfo(string Code, string Description);
 
 public record TestUser(int Id)
 {
@@ -117,17 +125,50 @@ public partial class TestControlController(
     }
 
     /// <summary>
+    /// List available error codes that can be generated for testing
+    /// </summary>
+    /// <returns>A collection of error code descriptions</returns>
+    [HttpGet("errors")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<ErrorCodeInfo>), StatusCodes.Status200OK)]
+    public IActionResult ListErrors()
+    {
+        var errorCodes = new[]
+        {
+            new ErrorCodeInfo("400", "Bad Request (empty body)"),
+            new ErrorCodeInfo("400m", "Bad Request with message"),
+            new ErrorCodeInfo("400p", "Bad Request with Problem Details"),
+            new ErrorCodeInfo("400a", "Bad Request from ArgumentException"),
+            new ErrorCodeInfo("401", "Unauthorized"),
+            new ErrorCodeInfo("403", "Forbidden"),
+            new ErrorCodeInfo("403p", "Forbidden with Problem Details"),
+            new ErrorCodeInfo("403etnf", "Forbidden from TenantNotFoundException"),
+            new ErrorCodeInfo("403etad", "Forbidden from TenantAccessDeniedException"),
+            new ErrorCodeInfo("404", "Not Found"),
+            new ErrorCodeInfo("404etr", "Not Found from TransactionNotFoundException"),
+            new ErrorCodeInfo("404etrnf", "Not Found from UserTenantRoleNotFoundException"),
+            new ErrorCodeInfo("409", "Conflict"),
+            new ErrorCodeInfo("409edur", "Conflict from DuplicateUserTenantRoleException"),
+            new ErrorCodeInfo("500", "Internal Server Error (throws exception)"),
+            new ErrorCodeInfo("500etcns", "Internal Server Error from TenantContextNotSetException")
+        };
+
+        LogOkCount(errorCodes.Length);
+        return Ok(errorCodes);
+    }
+
+    /// <summary>
     /// Generate various error codes for testing purposes
     /// </summary>
     /// <param name="code">Kind of error desired</param>
     /// <returns></returns>
-    [HttpGet("errors")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [HttpGet("errors/{code}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public IActionResult Errors(string? code)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public IActionResult ReturnError(string code)
     {
         switch (code?.ToLowerInvariant())
         {
@@ -140,6 +181,8 @@ public partial class TestControlController(
                     detail: "This is a test 400 error with a message",
                     statusCode: StatusCodes.Status400BadRequest
                 );
+            case "400a": // ArgumentException
+                throw new ArgumentException("This is a test 400 error from an ArgumentException", nameof(code));
             case "401":
                 return Unauthorized();
             case "403":
@@ -149,8 +192,20 @@ public partial class TestControlController(
                     detail: "This is a test 403 error with a message",
                     statusCode: StatusCodes.Status403Forbidden
                 );
+            case "403etnf": // TenantNotFoundException
+                throw new TenantNotFoundException(Guid.NewGuid());
+            case "403etad": // TenantAccessDeniedException
+                throw new TenantAccessDeniedException(Guid.NewGuid(), Guid.NewGuid());
             case "404":
                 return NotFound();
+            case "404etr":
+                throw new Entities.Exceptions.TransactionNotFoundException(Guid.NewGuid());
+            case "404etrnf": // UserTenantRoleNotFoundException
+                throw new UserTenantRoleNotFoundException("test-user-id", 12345);
+            case "409":
+                return Conflict();
+            case "409edur": // DuplicateUserTenantRoleException
+                throw new DuplicateUserTenantRoleException("test-user-id", 12345);
             case "500":
 #pragma warning disable CA2201 // Do not raise reserved exception types
 #pragma warning disable S112 // General exceptions should never be thrown
@@ -158,14 +213,19 @@ public partial class TestControlController(
                 throw new Exception("This is a test 500 error");
 #pragma warning restore S112
 #pragma warning restore CA2201
+            case "500etcns": // TenantContextNotSetException
+                throw new TenantContextNotSetException();
             default:
                 throw new NotImplementedException();
         }
     }
 
     [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
-    private partial void LogFailed(Exception ex, [CallerMemberName] string location = "");
+    private partial void LogFailed(Exception ex, [CallerMemberName] string? location = null);
 
     [LoggerMessage(2, LogLevel.Information, "{Location}: OK. User {Name}")]
-    private partial void LogOkUsername(string name, [CallerMemberName] string location = "");
+    private partial void LogOkUsername(string name, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Count}")]
+    private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
 }
