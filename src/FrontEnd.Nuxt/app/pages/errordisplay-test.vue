@@ -77,7 +77,7 @@ async function triggerError() {
     }
     showError.value = true
   } catch (err) {
-    error.value = handleApiError(err)
+    error.value = handleApiError(err, 'Error Triggered', 'An error was triggered as expected')
     showError.value = true
   } finally {
     loading.value = false

@@ -53,30 +53,6 @@ watch(
   { immediate: true },
 )
 
-const friendlyDetail = computed(() => {
-  // If detail is provided, use it
-  if (props.problem?.detail) {
-    return props.problem.detail
-  }
-
-  // Otherwise, provide friendly message based on status code
-  const status = props.problem?.status
-  if (!status) return undefined
-
-  const friendlyMessages: Record<number, string> = {
-    400: 'Please check the information you provided and try again.',
-    401: 'You need to be logged in to access this resource.',
-    403: 'You do not have permission to access this resource.',
-    404: 'The requested resource could not be found.',
-    409: 'This operation conflicts with the current state of the resource.',
-    500: 'An internal server error occurred. Please try again later.',
-    502: 'The server received an invalid response from an upstream server.',
-    503: 'The service is temporarily unavailable. Please try again later.',
-  }
-
-  return friendlyMessages[status] || 'An error occurred while processing your request.'
-})
-
 const close = () => {
   emit('update:show', false)
 }
@@ -97,10 +73,10 @@ const toggleMore = () => {
     }}</strong
     ><br />
     <span
-      v-if="friendlyDetail"
+      v-if="problem?.detail"
       data-test-id="detail-display"
     >
-      {{ friendlyDetail }}
+      {{ problem.detail }}
     </span>
     <div
       v-if="additionalFields"
