@@ -12,13 +12,11 @@
 
 ### API Exception Handling
 
-When working with API clients, always use proper error handling with type guards:
+When working with API clients, always use the `handleApiError` helper from the error handler utility:
 
 ```typescript
-import {
-  ApiException,
-  type IProblemDetails,
-} from '~/utils/apiclient'
+import { handleApiError } from '~/utils/errorHandler'
+import type { IProblemDetails } from '~/utils/apiclient'
 
 // State
 const error = ref<IProblemDetails | undefined>(undefined)
@@ -28,44 +26,40 @@ const showError = ref(false)
 try {
   await apiClient.someMethod()
 } catch (err) {
-  if (ApiException.isApiException(err)) {
-    // API exception with problem details
-    console.error('API error:', err)
-    error.value = err.result
-    showError.value = true
-  } else {
-    // Unexpected error (network failure, etc.)
-    console.error('Unexpected error:', err)
-    error.value = {
-      title: 'Unexpected Error',
-      detail: 'An unexpected error occurred while performing the operation',
-    }
-    showError.value = true
-  }
+  error.value = handleApiError(err)
+  showError.value = true
+}
+```
+
+**With custom fallback messages:**
+
+```typescript
+try {
+  await apiClient.deleteItem(id)
+} catch (err) {
+  error.value = handleApiError(err, 'Delete Failed', 'Could not delete the item')
+  showError.value = true
 }
 ```
 
 **Rules:**
-- **NEVER** use `catch (err: any)` - use `catch (err)` with type guards instead
-- **ALWAYS** check `ApiException.isApiException(err)` before accessing `err.result`
-- **ALWAYS** use `err.result` directly for API exceptions (already contains RFC 7807 Problem Details)
-- **NEVER** create fallback error messages for API exceptions - trust the API's problem details
-- **DO** create custom problem details for unexpected errors or client-side validation errors
-- **DO** have separate console.error logs for API vs unexpected errors for better debugging
+
+- **ALWAYS** use `handleApiError()` helper for API client error handling - it's DRY and consistent
+- **NEVER** use `catch (err: any)` - use `catch (err)` instead
+- **NEVER** manually check `ApiException.isApiException(err)` - the helper handles this
+- **DO** provide custom fallback title/detail for better UX when appropriate
+- **DO** clear errors before API calls: `error.value = undefined` and `showError.value = false`
 
 ### ErrorDisplay Component
 
 Use the `ErrorDisplay` component for all error messages:
 
 ```vue
-<ErrorDisplay
-  v-model:show="showError"
-  :problem="error"
-  class="mb-4"
-/>
+<ErrorDisplay v-model:show="showError" :problem="error" class="mb-4" />
 ```
 
 **Benefits:**
+
 - Consistent error display across the application
 - Supports RFC 7807 Problem Details format
 - Shows trace IDs for server errors (500+)
@@ -90,6 +84,7 @@ if (!formData.value.trim()) {
 ### Error State Management
 
 **Always:**
+
 - Clear errors before making API calls: `error.value = undefined` and `showError.value = false`
 - Store errors as `IProblemDetails | undefined`, not strings
 - Use a separate `showError` boolean to control `ErrorDisplay` visibility

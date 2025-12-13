@@ -13,9 +13,9 @@ import {
   TenantRole,
   type TenantRoleResultDto,
   type IProblemDetails,
-  ApiException,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { handleApiError } from '~/utils/errorHandler'
 
 // Store
 const userPreferencesStore = useUserPreferencesStore()
@@ -120,18 +120,8 @@ async function loadTenants() {
       userPreferencesStore.setCurrentTenant(tenants.value[0])
     }
   } catch (err) {
-    if (ApiException.isApiException(err)) {
-      console.error('Failed to load tenants:', err)
-      error.value = err.result
-      showError.value = true
-    } else {
-      console.error('Unexpected error loading tenants:', err)
-      error.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while loading workspaces',
-      }
-      showError.value = true
-    }
+    error.value = handleApiError(err, 'Load Failed', 'Failed to load workspaces')
+    showError.value = true
   } finally {
     loading.value = false
   }
@@ -184,18 +174,8 @@ async function createWorkspace() {
 
     cancelCreate()
   } catch (err) {
-    if (ApiException.isApiException(err)) {
-      console.error('Failed to create workspace:', err)
-      createError.value = err.result
-      showCreateError.value = true
-    } else {
-      console.error('Unexpected error creating workspace:', err)
-      createError.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while creating the workspace',
-      }
-      showCreateError.value = true
-    }
+    createError.value = handleApiError(err, 'Create Failed', 'Failed to create workspace')
+    showCreateError.value = true
   } finally {
     creating.value = false
   }
@@ -243,18 +223,8 @@ async function updateWorkspace() {
 
     cancelEdit()
   } catch (err) {
-    if (ApiException.isApiException(err)) {
-      console.error('Failed to update workspace:', err)
-      updateError.value = err.result
-      showUpdateError.value = true
-    } else {
-      console.error('Unexpected error updating workspace:', err)
-      updateError.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while updating the workspace',
-      }
-      showUpdateError.value = true
-    }
+    updateError.value = handleApiError(err, 'Update Failed', 'Failed to update workspace')
+    showUpdateError.value = true
   } finally {
     updating.value = false
   }
@@ -287,18 +257,8 @@ async function deleteWorkspace() {
     showDeleteModal.value = false
     deletingTenant.value = null
   } catch (err) {
-    if (ApiException.isApiException(err)) {
-      console.error('Failed to delete workspace:', err)
-      deleteError.value = err.result
-      showDeleteError.value = true
-    } else {
-      console.error('Unexpected error deleting workspace:', err)
-      deleteError.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while deleting the workspace',
-      }
-      showDeleteError.value = true
-    }
+    deleteError.value = handleApiError(err, 'Delete Failed', 'Failed to delete workspace')
+    showDeleteError.value = true
   } finally {
     deleting.value = false
   }

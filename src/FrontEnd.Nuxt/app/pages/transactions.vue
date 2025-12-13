@@ -10,10 +10,9 @@ import {
   TransactionEditDto,
   type TransactionResultDto,
   type IProblemDetails,
-  ApiException,
-  ProblemDetails,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
   title: 'Transactions',
@@ -98,21 +97,7 @@ async function loadTransactions() {
 
     transactions.value = await transactionsClient.getTransactions(from, to, currentTenantKey.value)
   } catch (err) {
-    console.error('Failed to load transactions:', err)
-    if (ApiException.isApiException(err)) {
-      error.value = err.result
-    } else if (err instanceof ProblemDetails) {
-      // Direct ProblemDetails response
-      error.value = err
-    } else {
-      error.value = {
-        title: 'Unexpected Error',
-        detail:
-          err instanceof Error
-            ? err.message
-            : 'An unexpected error occurred while loading transactions',
-      }
-    }
+    error.value = handleApiError(err, 'Load Failed', 'Failed to load transactions')
     showError.value = true
   } finally {
     loading.value = false
@@ -183,21 +168,7 @@ async function createTransaction() {
     await loadTransactions()
     showCreateModal.value = false
   } catch (err) {
-    console.error('Failed to create transaction:', err)
-    if (ApiException.isApiException(err)) {
-      error.value = err.result
-    } else if (err instanceof ProblemDetails) {
-      // Direct ProblemDetails response
-      error.value = err
-    } else {
-      error.value = {
-        title: 'Unexpected Error',
-        detail:
-          err instanceof Error
-            ? err.message
-            : 'An unexpected error occurred while creating the transaction',
-      }
-    }
+    error.value = handleApiError(err, 'Create Failed', 'Failed to create transaction')
     showError.value = true
   } finally {
     loading.value = false
@@ -227,21 +198,7 @@ async function updateTransaction() {
     await loadTransactions()
     showEditModal.value = false
   } catch (err) {
-    console.error('Failed to update transaction:', err)
-    if (ApiException.isApiException(err)) {
-      error.value = err.result
-    } else if (err instanceof ProblemDetails) {
-      // Direct ProblemDetails response
-      error.value = err
-    } else {
-      error.value = {
-        title: 'Unexpected Error',
-        detail:
-          err instanceof Error
-            ? err.message
-            : 'An unexpected error occurred while updating the transaction',
-      }
-    }
+    error.value = handleApiError(err, 'Update Failed', 'Failed to update transaction')
     showError.value = true
   } finally {
     loading.value = false
@@ -263,21 +220,7 @@ async function deleteTransaction() {
     await loadTransactions()
     showDeleteModal.value = false
   } catch (err) {
-    console.error('Failed to delete transaction:', err)
-    if (ApiException.isApiException(err)) {
-      error.value = err.result
-    } else if (err instanceof ProblemDetails) {
-      // Direct ProblemDetails response
-      error.value = err
-    } else {
-      error.value = {
-        title: 'Unexpected Error',
-        detail:
-          err instanceof Error
-            ? err.message
-            : 'An unexpected error occurred while deleting the transaction',
-      }
-    }
+    error.value = handleApiError(err, 'Delete Failed', 'Failed to delete transaction')
     showError.value = true
   } finally {
     loading.value = false

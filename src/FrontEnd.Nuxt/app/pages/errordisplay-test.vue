@@ -6,13 +6,8 @@
  * from the backend TestControl API. This page is for development/testing purposes only.
  */
 
-import {
-  TestControlClient,
-  type ErrorCodeInfo,
-  type IProblemDetails,
-  ApiException,
-  ProblemDetails,
-} from '~/utils/apiclient'
+import { TestControlClient, type ErrorCodeInfo, type IProblemDetails } from '~/utils/apiclient'
+import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
   title: 'Error Display Test',
@@ -51,15 +46,7 @@ async function loadErrorTypes() {
       selectedErrorCode.value = errorTypes.value[0].code ?? ''
     }
   } catch (err) {
-    console.error('Failed to load error types:', err)
-    if (ApiException.isApiException(err)) {
-      error.value = err.result
-    } else {
-      error.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while loading error types',
-      }
-    }
+    error.value = handleApiError(err, 'Load Failed', 'Failed to load error types')
     showError.value = true
   } finally {
     loadingErrors.value = false
@@ -90,21 +77,7 @@ async function triggerError() {
     }
     showError.value = true
   } catch (err) {
-    console.error('API error:', err)
-    if (ApiException.isApiException(err)) {
-      // API exception with problem details
-      error.value = err.result
-    } else if (err instanceof ProblemDetails) {
-      // Direct ProblemDetails response
-      error.value = err
-    } else {
-      // Unexpected error (network failure, etc.)
-      console.error('Unexpected error:', err)
-      error.value = {
-        title: 'Unexpected Error',
-        detail: 'An unexpected error occurred while performing the operation',
-      }
-    }
+    error.value = handleApiError(err)
     showError.value = true
   } finally {
     loading.value = false
