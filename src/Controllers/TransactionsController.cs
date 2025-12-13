@@ -20,7 +20,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 {
     [HttpGet()]
     [RequireTenantRole(TenantRole.Viewer)]
-    [ProducesResponseType(typeof(ICollection<TransactionResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetTransactions([FromQuery] DateOnly? fromDate = null, [FromQuery] DateOnly? toDate = null)
     {

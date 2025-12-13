@@ -15,14 +15,14 @@ namespace YoFi.V3.Controllers;
 public partial class WeatherController(WeatherFeature weatherFeature, ILogger<WeatherController> logger) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(WeatherForecast[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<WeatherForecast>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWeatherForecasts()
     {
         LogStarting();
 
         const int numberOfDays = 5;
         var weather = await weatherFeature.GetWeatherForecasts(numberOfDays);
-        LogOkCount(weather.Length);
+        LogOkCount(weather.Count);
         return Ok(weather);
     }
 

@@ -48,7 +48,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// </summary>
     /// <param name="userId">The unique identifier of the user.</param>
     /// <returns>A collection of <see cref="TenantRoleResultDto"/> containing tenant information and the user's role.</returns>
-    public async Task<ICollection<TenantRoleResultDto>> GetTenantsForUserAsync(Guid userId)
+    public async Task<IReadOnlyCollection<TenantRoleResultDto>> GetTenantsForUserAsync(Guid userId)
     {
         var roles = await tenantRepository.GetUserTenantRolesAsync(userId.ToString());
 

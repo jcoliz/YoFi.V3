@@ -24,9 +24,9 @@ public class WeatherTests
         // When: Retrieving weather forecasts
         var result = await _weatherFeature.GetWeatherForecasts(5);
 
-        // Then: The result should be an array of WeatherForecast with the expected length
-        Assert.That(result, Is.TypeOf<WeatherForecast[]>());
-        Assert.That(result.Length, Is.EqualTo(5));
+        // Then: The result should be an IReadOnlyCollection of WeatherForecast with the expected count
+        Assert.That(result, Is.InstanceOf<IReadOnlyCollection<WeatherForecast>>());
+        Assert.That(result.Count, Is.EqualTo(5));
 
         // Verify that forecasts were actually stored in the data provider
         Assert.That(_dataProvider.WeatherForecasts.Count(), Is.EqualTo(5));
@@ -37,7 +37,7 @@ public class WeatherTests
     {
         // Arrange: Get some forecasts
         var result = await _weatherFeature.GetWeatherForecasts(1);
-        var forecast = result[0];
+        var forecast = result.First();
 
         // Act: Access the calculated TemperatureF property
         var temperatureF = forecast.TemperatureF;

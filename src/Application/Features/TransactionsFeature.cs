@@ -26,7 +26,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <param name="fromDate">Optional start date for filtering transactions (inclusive).</param>
     /// <param name="toDate">Optional end date for filtering transactions (inclusive).</param>
     /// <returns>Requested transactions for the current tenant.</returns>
-    public async Task<ICollection<TransactionResultDto>> GetTransactionsAsync(DateOnly? fromDate = null, DateOnly? toDate = null)
+    public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsync(DateOnly? fromDate = null, DateOnly? toDate = null)
     {
         // Validate date range logic
         if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)

@@ -40,7 +40,7 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
     /// Get all tenants for current user
     /// </summary>
     [HttpGet()]
-    [ProducesResponseType(typeof(ICollection<TenantRoleResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TenantRoleResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTenants()
     {
         LogStarting();

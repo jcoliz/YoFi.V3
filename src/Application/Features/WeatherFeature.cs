@@ -18,8 +18,8 @@ public class WeatherFeature(IDataProvider dataProvider)
     /// The earliest forecast is for today.
     /// </remarks>
     /// <param name="days">Number of days into the future for which to generate forecasts.</param>
-    /// <returns></returns>
-    public async Task<WeatherForecast[]> GetWeatherForecasts(int days)
+    /// <returns>A collection of weather forecasts.</returns>
+    public async Task<IReadOnlyCollection<WeatherForecast>> GetWeatherForecasts(int days)
     {
         var today = DateOnly.FromDateTime(DateTime.Now);
         var endDate = today.AddDays(days - 1);
@@ -65,6 +65,6 @@ public class WeatherFeature(IDataProvider dataProvider)
         }
 
         // Step 3: Return the forecasts.
-        return existingForecasts.ToArray();
+        return existingForecasts;
     }
 }

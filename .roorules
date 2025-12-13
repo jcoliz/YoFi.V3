@@ -213,11 +213,10 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 
 2. **Fix failures immediately** - If tests fail, you must analyze the failure, fix the issue, and re-run the tests until they all pass. Do not wait for user direction to fix test failures.
 
-3. **Test scope** - Run the specific test project that contains the modified tests:
-   - For Integration.Data tests: `dotnet test tests/Integration.Data`
-   - For Integration.Controller tests: `dotnet test tests/Integration.Controller`
-   - For Unit tests: `dotnet test tests/Unit`
-   - For Functional tests: DO NOT automatically run (requires special setup)
+3. **Use project scripts for testing** - Always use `./scripts/Run-Tests.ps1` to run tests. DO NOT use `dotnet test` directly on the solution root, as it will include functional tests that require special setup.
+   - For all unit and integration tests: `pwsh -File ./scripts/Run-Tests.ps1`
+   - For specific test projects (when needed): `dotnet test tests/Unit`, `dotnet test tests/Integration.Data`, or `dotnet test tests/Integration.Controller`
+   - For Functional tests: DO NOT automatically run (use `./scripts/Run-FunctionalTestsVsContainer.ps1` only when specifically requested)
 
 4. **Iterate until green** - Continue the fix-test-verify cycle until all tests pass successfully.
 
@@ -241,10 +240,10 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 
 When adding new tests to `TenantRepositoryTests.cs`:
 1. Create or modify the test methods
-2. Run `dotnet test tests/Integration.Data`
+2. Run `pwsh -File ./scripts/Run-Tests.ps1` (for all tests) OR `dotnet test tests/Integration.Data` (for specific project)
 3. If failures occur, analyze the error messages
 4. Fix the issues in the test code or implementation
-5. Re-run `dotnet test tests/Integration.Data`
+5. Re-run the test command
 6. Repeat steps 3-5 until all tests pass
 7. Only then complete the task
 
@@ -626,3 +625,100 @@ finally {
 - **Clear distinction** - Separates work-in-progress from established documentation
 - **No clutter** - Prevents proliferation of top-level directories
 - **Standard structure** - Follows established project conventions
+
+## Collection Return Types Pattern
+
+**Use `IReadOnlyCollection<T>` for collection return values in Application Features and Controller ProducesResponseType attributes.**
+
+1. **Feature output (return values)** - Application Features that return collections MUST use `Task<IReadOnlyCollection<TDto>>`:
+   ```csharp
+   public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsync(...)
+   {
+       var result = await dataProvider.ToListNoTrackingAsync(query);
+       return result; // List<T> implements IReadOnlyCollection<T>
+   }
+   ```
+
+2. **Controller ProducesResponseType** - Controllers MUST use `IReadOnlyCollection<TDto>` in `[ProducesResponseType]` attributes to match Feature return types:
+   ```csharp
+   [HttpGet()]
+   [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status200OK)]
+   public async Task<IActionResult> GetTransactions(...)
+   {
+       var transactions = await transactionsFeature.GetTransactionsAsync(...);
+       return Ok(transactions); // No changes needed in method body
+   }
+   ```
+
+3. **Feature input (parameters)** - Application Features that accept collections SHOULD use `IReadOnlyCollection<TDto>` for input parameters (NOT `IEnumerable<T>`):
+   ```csharp
+   public async Task BulkOperationAsync(IReadOnlyCollection<TransactionEditDto> items)
+   {
+       // No need for defensive .ToList() - already materialized by caller
+       if (items.Count > 1000)
+       {
+           throw new ArgumentException("Too many items");
+       }
+
+       foreach (var item in items)
+       {
+           ValidateItem(item);
+       }
+       // ... process
+   }
+   ```
+
+4. **Controller input (FromBody)** - Controllers receive concrete types from JSON deserialization and pass them to Features:
+   ```csharp
+   [HttpPost("bulk")]
+   public async Task<IActionResult> BulkCreate([FromBody] TransactionEditDto[] items)
+   {
+       await feature.BulkOperationAsync(items); // Array → IReadOnlyCollection<T>
+       return NoContent();
+   }
+   ```
+
+### Why IReadOnlyCollection<T>?
+
+**For outputs:**
+- ✅ **Semantic accuracy** - Query results shouldn't be modified by callers
+- ✅ **Includes `.Count`** - Efficient count access without enumeration
+- ✅ **Zero overhead** - `List<T>` already implements it, no conversion needed
+- ✅ **Flexibility** - Can change internal implementation without breaking callers
+
+**For inputs:**
+- ✅ **Caller materializes** - No defensive `.ToList()` needed in every method
+- ✅ **Clear contract** - Signals "this is materialized, can enumerate multiple times"
+- ✅ **No double allocation** - Avoids creating `List<T>` from an `Array`
+- ✅ **Includes `.Count`** - Can validate size before processing
+
+### What NOT to Use
+
+**❌ Don't use for Feature returns:**
+- `ICollection<T>` - Allows Add/Remove (wrong semantics for query results)
+- `List<T>` - Too specific, couples callers to implementation
+- `T[]` - Inflexible, unusual for modern APIs
+- `IEnumerable<T>` - No `.Count`, misleading (suggests lazy evaluation)
+
+**❌ Don't use for Feature inputs:**
+- `IEnumerable<T>` - Forces defensive `.ToList()` in every method, wastes allocations
+- `List<T>` - Too specific, couples to implementation
+- `ICollection<T>` - Rarely need Add/Remove on inputs
+
+### JSON Serialization Compatibility
+
+All these types serialize identically to JSON arrays - no breaking changes:
+- `IReadOnlyCollection<T>` → `[{...}, {...}]`
+- `ICollection<T>` → `[{...}, {...}]`
+- `List<T>` → `[{...}, {...}]`
+- `T[]` → `[{...}, {...}]`
+
+OpenAPI/Swagger schemas are also identical.
+
+### Reference Documentation
+
+See [`docs/wip/APPLICATION-FEATURE-RETURN-VALUES.md`](docs/wip/APPLICATION-FEATURE-RETURN-VALUES.md) for comprehensive analysis including:
+- Detailed comparison of all collection types
+- Performance benchmarks
+- Multiple enumeration risks with `IEnumerable<T>`
+- Complete before/after examples
