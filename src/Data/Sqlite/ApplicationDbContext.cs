@@ -283,7 +283,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .Select(t => t.Key)
                 .SingleOrDefaultAsync();
 
-            throw new DuplicateUserTenantRoleException(assignment.UserId, tenantKey, ex);
+            // Look up user name
+            var userName = await Users
+                .Where(u => u.Id == assignment.UserId)
+                .Select(u => u.UserName)
+                .SingleOrDefaultAsync() ?? assignment.UserId;
+
+            throw new DuplicateUserTenantRoleException(assignment.UserId, userName, tenantKey, ex);
         }
     }
 
@@ -304,7 +310,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .Select(t => t.Key)
                 .SingleOrDefaultAsync();
 
-            throw new UserTenantRoleNotFoundException(assignment.UserId, tenantKey);
+            // Look up user name
+            var userName = await Users
+                .Where(u => u.Id == assignment.UserId)
+                .Select(u => u.UserName)
+                .SingleOrDefaultAsync() ?? assignment.UserId;
+
+            throw new UserTenantRoleNotFoundException(assignment.UserId, userName, tenantKey);
         }
 
         UserTenantRoleAssignments.Remove(assignment);

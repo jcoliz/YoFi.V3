@@ -12,6 +12,11 @@ public class DuplicateUserTenantRoleException : TenancyException
     public string UserId { get; }
 
     /// <summary>
+    /// Gets the user name.
+    /// </summary>
+    public string UserName { get; }
+
+    /// <summary>
     /// Gets the tenant key.
     /// </summary>
     public Guid TenantKey { get; }
@@ -20,11 +25,13 @@ public class DuplicateUserTenantRoleException : TenancyException
     /// Initializes a new instance of the <see cref="DuplicateUserTenantRoleException"/> class.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
+    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key.</param>
-    public DuplicateUserTenantRoleException(string userId, Guid tenantKey)
-        : base($"User '{userId}' already has a role assignment for tenant '{tenantKey}'.")
+    public DuplicateUserTenantRoleException(string userId, string userName, Guid tenantKey)
+        : base($"User '{userName}' already has a role assignment for tenant '{tenantKey}'.")
     {
         UserId = userId;
+        UserName = userName;
         TenantKey = tenantKey;
     }
 
@@ -32,12 +39,14 @@ public class DuplicateUserTenantRoleException : TenancyException
     /// Initializes a new instance of the <see cref="DuplicateUserTenantRoleException"/> class with an inner exception.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
+    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key.</param>
     /// <param name="innerException">The inner exception.</param>
-    public DuplicateUserTenantRoleException(string userId, Guid tenantKey, Exception innerException)
-        : base($"User '{userId}' already has a role assignment for tenant '{tenantKey}'.", innerException)
+    public DuplicateUserTenantRoleException(string userId, string userName, Guid tenantKey, Exception innerException)
+        : base($"User '{userName}' already has a role assignment for tenant '{tenantKey}'.", innerException)
     {
         UserId = userId;
+        UserName = userName;
         TenantKey = tenantKey;
     }
 }

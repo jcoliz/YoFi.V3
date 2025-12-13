@@ -96,6 +96,7 @@ public static class TenancyExceptionHandler
             case UserTenantRoleNotFoundException roleNotFound:
                 problemDetails.Extensions["resourceType"] = roleNotFound.ResourceType;
                 problemDetails.Extensions["userId"] = roleNotFound.UserId;
+                problemDetails.Extensions["userName"] = roleNotFound.UserName;
                 problemDetails.Extensions["tenantKey"] = roleNotFound.TenantKey;
                 break;
 
@@ -106,11 +107,13 @@ public static class TenancyExceptionHandler
 
             case TenantAccess accessDenied:
                 problemDetails.Extensions["userId"] = accessDenied.UserId;
+                problemDetails.Extensions["userName"] = accessDenied.UserName;
                 problemDetails.Extensions["tenantKey"] = accessDenied.TenantKey;
                 break;
 
             case DuplicateUserTenantRoleException duplicate:
                 problemDetails.Extensions["userId"] = duplicate.UserId;
+                problemDetails.Extensions["userName"] = duplicate.UserName;
                 problemDetails.Extensions["tenantKey"] = duplicate.TenantKey;
                 break;
 

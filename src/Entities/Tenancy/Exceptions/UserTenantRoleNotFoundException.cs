@@ -14,6 +14,11 @@ public class UserTenantRoleNotFoundException : TenancyResourceNotFoundException
     public string UserId { get; }
 
     /// <summary>
+    /// Gets the user name.
+    /// </summary>
+    public string UserName { get; }
+
+    /// <summary>
     /// Gets the tenant key.
     /// </summary>
     public Guid TenantKey { get; }
@@ -22,11 +27,13 @@ public class UserTenantRoleNotFoundException : TenancyResourceNotFoundException
     /// Initializes a new instance of the <see cref="UserTenantRoleNotFoundException"/> class.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
+    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key.</param>
-    public UserTenantRoleNotFoundException(string userId, Guid tenantKey)
-        : base($"User '{userId}' does not have a role assignment for tenant '{tenantKey}'.")
+    public UserTenantRoleNotFoundException(string userId, string userName, Guid tenantKey)
+        : base($"User '{userName}' does not have a role assignment for tenant '{tenantKey}'.")
     {
         UserId = userId;
+        UserName = userName;
         TenantKey = tenantKey;
     }
 
@@ -34,12 +41,14 @@ public class UserTenantRoleNotFoundException : TenancyResourceNotFoundException
     /// Initializes a new instance of the <see cref="UserTenantRoleNotFoundException"/> class with an inner exception.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
+    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key.</param>
     /// <param name="innerException">The inner exception.</param>
-    public UserTenantRoleNotFoundException(string userId, Guid tenantKey, Exception innerException)
-        : base($"User '{userId}' does not have a role assignment for tenant '{tenantKey}'.", null, innerException)
+    public UserTenantRoleNotFoundException(string userId, string userName, Guid tenantKey, Exception innerException)
+        : base($"User '{userName}' does not have a role assignment for tenant '{tenantKey}'.", null, innerException)
     {
         UserId = userId;
+        UserName = userName;
         TenantKey = tenantKey;
     }
 }
