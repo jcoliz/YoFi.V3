@@ -201,11 +201,11 @@ public partial class TestControlController(
             case "404etr":
                 throw new Entities.Exceptions.TransactionNotFoundException(Guid.NewGuid());
             case "404etrnf": // UserTenantRoleNotFoundException
-                throw new UserTenantRoleNotFoundException("test-user-id", 12345);
+                throw new UserTenantRoleNotFoundException("test-user-id", Guid.NewGuid());
             case "409":
                 return Conflict();
             case "409edur": // DuplicateUserTenantRoleException
-                throw new DuplicateUserTenantRoleException("test-user-id", 12345);
+                throw new DuplicateUserTenantRoleException("test-user-id", Guid.NewGuid());
             case "500":
 #pragma warning disable CA2201 // Do not raise reserved exception types
 #pragma warning disable S112 // General exceptions should never be thrown

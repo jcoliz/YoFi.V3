@@ -12,32 +12,32 @@ public class DuplicateUserTenantRoleException : TenancyException
     public string UserId { get; }
 
     /// <summary>
-    /// Gets the tenant identifier.
+    /// Gets the tenant key.
     /// </summary>
-    public long TenantId { get; }
+    public Guid TenantKey { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DuplicateUserTenantRoleException"/> class.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="tenantId">The tenant identifier.</param>
-    public DuplicateUserTenantRoleException(string userId, long tenantId)
-        : base($"User '{userId}' already has a role assignment for tenant '{tenantId}'.")
+    /// <param name="tenantKey">The tenant key.</param>
+    public DuplicateUserTenantRoleException(string userId, Guid tenantKey)
+        : base($"User '{userId}' already has a role assignment for tenant '{tenantKey}'.")
     {
         UserId = userId;
-        TenantId = tenantId;
+        TenantKey = tenantKey;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DuplicateUserTenantRoleException"/> class with an inner exception.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="tenantKey">The tenant key.</param>
     /// <param name="innerException">The inner exception.</param>
-    public DuplicateUserTenantRoleException(string userId, long tenantId, Exception innerException)
-        : base($"User '{userId}' already has a role assignment for tenant '{tenantId}'.", innerException)
+    public DuplicateUserTenantRoleException(string userId, Guid tenantKey, Exception innerException)
+        : base($"User '{userId}' already has a role assignment for tenant '{tenantKey}'.", innerException)
     {
         UserId = userId;
-        TenantId = tenantId;
+        TenantKey = tenantKey;
     }
 }

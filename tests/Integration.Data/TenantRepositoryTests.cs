@@ -227,7 +227,7 @@ public class TenantRepositoryTests
 
         // And: Exception should contain correct information
         Assert.That(ex!.UserId, Is.EqualTo("user123"));
-        Assert.That(ex.TenantId, Is.EqualTo(_tenant1.Id));
+        Assert.That(ex.TenantKey, Is.EqualTo(_tenant1.Key));
     }
 
     [Test]
@@ -270,7 +270,7 @@ public class TenantRepositoryTests
 
         // And: Exception should contain correct information
         Assert.That(ex!.UserId, Is.EqualTo("user-not-exists"));
-        Assert.That(ex.TenantId, Is.EqualTo(_tenant1.Id));
+        Assert.That(ex.TenantKey, Is.EqualTo(_tenant1.Key));
     }
 
     [Test]

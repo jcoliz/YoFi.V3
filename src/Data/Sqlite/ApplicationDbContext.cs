@@ -277,20 +277,34 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         catch (DbUpdateException ex)
         {
             // Check if this is a unique constraint violation
-            throw new DuplicateUserTenantRoleException(assignment.UserId, assignment.TenantId, ex);
+            // Look up tenant key from database since assignment.Tenant may not be loaded
+            var tenantKey = await Tenants
+                .Where(t => t.Id == assignment.TenantId)
+                .Select(t => t.Key)
+                .SingleOrDefaultAsync();
+
+            throw new DuplicateUserTenantRoleException(assignment.UserId, tenantKey, ex);
         }
     }
 
     /// <inheritdoc />
     async Task ITenantRepository.RemoveUserTenantRoleAsync(UserTenantRoleAssignment assignment)
     {
-        // Verify the assignment exists in the database
-        var exists = await UserTenantRoleAssignments
-            .AnyAsync(utr => utr.UserId == assignment.UserId && utr.TenantId == assignment.TenantId);
+        // Verify the assignment exists in the database and get tenant key
+        var tenantKey = await UserTenantRoleAssignments
+            .Where(utr => utr.UserId == assignment.UserId && utr.TenantId == assignment.TenantId)
+            .Select(utr => utr.Tenant!.Key)
+            .SingleOrDefaultAsync();
 
-        if (!exists)
+        if (tenantKey == Guid.Empty)
         {
-            throw new UserTenantRoleNotFoundException(assignment.UserId, assignment.TenantId);
+            // Look up tenant key from Tenants table as fallback
+            tenantKey = await Tenants
+                .Where(t => t.Id == assignment.TenantId)
+                .Select(t => t.Key)
+                .SingleOrDefaultAsync();
+
+            throw new UserTenantRoleNotFoundException(assignment.UserId, tenantKey);
         }
 
         UserTenantRoleAssignments.Remove(assignment);

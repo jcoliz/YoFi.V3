@@ -14,32 +14,32 @@ public class UserTenantRoleNotFoundException : TenancyResourceNotFoundException
     public string UserId { get; }
 
     /// <summary>
-    /// Gets the tenant identifier.
+    /// Gets the tenant key.
     /// </summary>
-    public long TenantId { get; }
+    public Guid TenantKey { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserTenantRoleNotFoundException"/> class.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="tenantId">The tenant identifier.</param>
-    public UserTenantRoleNotFoundException(string userId, long tenantId)
-        : base($"User '{userId}' does not have a role assignment for tenant '{tenantId}'.")
+    /// <param name="tenantKey">The tenant key.</param>
+    public UserTenantRoleNotFoundException(string userId, Guid tenantKey)
+        : base($"User '{userId}' does not have a role assignment for tenant '{tenantKey}'.")
     {
         UserId = userId;
-        TenantId = tenantId;
+        TenantKey = tenantKey;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserTenantRoleNotFoundException"/> class with an inner exception.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="tenantKey">The tenant key.</param>
     /// <param name="innerException">The inner exception.</param>
-    public UserTenantRoleNotFoundException(string userId, long tenantId, Exception innerException)
-        : base($"User '{userId}' does not have a role assignment for tenant '{tenantId}'.", null, innerException)
+    public UserTenantRoleNotFoundException(string userId, Guid tenantKey, Exception innerException)
+        : base($"User '{userId}' does not have a role assignment for tenant '{tenantKey}'.", null, innerException)
     {
         UserId = userId;
-        TenantId = tenantId;
+        TenantKey = tenantKey;
     }
 }
