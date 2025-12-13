@@ -3,10 +3,10 @@
 @baseclass:WorkspaceTenancySteps
 @template:Features/FunctionalTest.mustache
 @hook:before-first-then:SaveScreenshot
-Feature: Workspace Tenancy and Sharing
+Feature: Workspace Management
     As a YoFi user
-    I want to manage shared financial workspaces with different access levels
-    So that I can collaborate with family members while maintaining appropriate permissions
+    I want to create and manage separate financial workspaces
+    So that I can organize my finances by purpose and share them with others
 
 Background:
     Given the application is running
@@ -16,132 +16,147 @@ Background:
         | bob      |
         | charlie  |
 
-Rule: Workspace Creation and Access Control
-    Users must have appropriate permissions to access workspace data
+Rule: Getting Started
+    New users automatically receive their own workspace to begin tracking finances
 
-    Scenario: User creates their first personal workspace
+    Scenario: New user automatically has a personal workspace
+        Given the application is running
+        When a new user "david" registers and logs in
+        Then "david" should have a workspace ready to use
+        And the workspace should be personalized with the name "david"
+
+Rule: Creating Workspaces
+    Users can create multiple workspaces for different purposes
+
+    Scenario: User creates a workspace for a specific purpose
         Given I am logged in as "alice"
-        And I have no existing workspaces
-        When I create my first workspace named "Alice's Finances"
-        Then I should be the owner of "Alice's Finances"
-        And "Alice's Finances" should be set as my default workspace
-        And I should see "Alice's Finances" in my workspace list
+        When I create a new workspace called "Alice's Finances" for "My personal finances"
+        Then I should see "Alice's Finances" in my workspace list
+        And I should be able to manage that workspace
 
-    Scenario: User cannot access workspace without permission
+    Scenario: User organizes finances across multiple workspaces
+        Given I am logged in as "bob"
+        When I create a workspace called "Personal Budget"
+        And I create a workspace called "Side Business"
+        Then I should have 2 workspaces available
+        And I can work with either workspace independently
+
+Rule: Viewing Workspaces
+    Users can see all workspaces they have access to
+
+    Scenario: User views all their workspaces
+        Given I am logged in as "alice"
+        And I have access to these workspaces:
+            | Workspace Name | My Role |
+            | Personal       | Owner   |
+            | Family Budget  | Editor  |
+            | Tax Records    | Viewer  |
+        When I view my workspace list
+        Then I should see all 3 workspaces
+        And I should see what I can do in each workspace
+
+    Scenario: User views workspace details
+        Given I am logged in as "bob"
+        And I have a workspace called "My Finances"
+        When I view the details of "My Finances"
+        Then I should see the workspace information
+        And I should see when it was created
+
+Rule: Managing Workspace Settings
+    Workspace owners can customize their workspace settings
+
+    Scenario: Owner updates workspace information
+        Given I am logged in as "alice"
+        And I own a workspace called "Old Name"
+        When I rename it to "New Name"
+        And I update the description to "Updated description text"
+        Then the workspace should reflect the changes
+        And I should see "New Name" in my workspace list
+
+    Scenario: Non-owner cannot change workspace settings
+        Given I am logged in as "bob"
+        And I can edit data in "Family Budget"
+        When I try to change the workspace name or description
+        Then I should not be able to make those changes
+
+Rule: Removing Workspaces
+    Workspace owners can permanently delete workspaces they no longer need
+
+    Scenario: Owner removes an unused workspace
+        Given I am logged in as "alice"
+        And I own a workspace called "Test Workspace"
+        When I delete "Test Workspace"
+        Then "Test Workspace" should no longer appear in my list
+
+    Scenario: Non-owner cannot delete a workspace
         Given I am logged in as "charlie"
-        And a workspace named "Family Budget" exists
-        But I do not have access to "Family Budget"
-        When I try to directly access "Family Budget" data
-        Then I should be denied access
-        And I should see an appropriate error message
-        And I should not see any financial data from that workspace
+        And I can view data in "Shared Workspace"
+        When I try to delete "Shared Workspace"
+        Then the workspace should remain intact
 
-Rule: Role-Based Permissions
-    Different user roles have different capabilities within workspaces
+Rule: Data Isolation Between Workspaces
+    Each workspace maintains its own separate financial data
 
-    Scenario: Editor can modify financial data but cannot manage users
+    Scenario: User views transactions in a specific workspace
+        Given I am logged in as "alice"
+        And I have two workspaces:
+            | Workspace Name | My Role |
+            | Personal       | Owner   |
+            | Business       | Owner   |
+        And "Personal" contains 5 transactions
+        And "Business" contains 3 transactions
+        When I view transactions in "Personal"
+        Then I should see exactly 5 transactions
+        And they should all be from "Personal" workspace
+        And I should not see any transactions from "Business"
+
+    Scenario: User cannot access data in workspaces they don't have access to
         Given I am logged in as "bob"
-        And I have editor access to "Family Budget"
-        When I view "Family Budget"
-        Then I can add new transactions
-        And I can edit existing transactions
-        And I can create budget categories
-        But I cannot invite other users
-        And I cannot change user permissions
-        And I cannot delete the workspace
+        And I have access to "Family Budget"
+        And there is a workspace called "Private Finances" that I don't have access to
+        When I try to view transactions in "Private Finances"
+        Then I should not be able to access that data
 
-    Scenario: Workspace owner grants viewer-only access to external consultant
-        Given I am logged in as "alice"
-        And I own a workspace named "Family Budget"
-        When I invite "charlie" to access "Family Budget" as a viewer
-        And "charlie" accepts the invitation
-        Then "charlie" should have viewer access to "Family Budget"
-        And when "charlie" views "Family Budget"
-        Then they can see all transactions and reports
-        But they cannot add or modify any data
-        And they cannot see user management options
+Rule: Permission Levels
+    Different permission levels control what users can do in a workspace
 
-Rule: Workspace Navigation and Context
-    Users can switch between multiple workspaces and set preferences
+    Scenario: Viewer can see but not change data
+        Given I am logged in as "charlie"
+        And I can view data in "Family Budget"
+        When I view transactions in "Family Budget"
+        Then I should see the transactions
+        But when I try to add or edit transactions
+        Then I should not be able to make those changes
 
-    Scenario: User switches between multiple workspaces
+    Scenario: Editor can view and modify data
         Given I am logged in as "bob"
-        And I have access to multiple workspaces:
-            | Workspace Name   | My Role |
-            | Bob's Personal   | Owner   |
-            | Family Budget    | Editor  |
-            | Shared Vacation  | Viewer  |
-        When I view my workspace selector
-        Then I should see all accessible workspaces with my role indicated
-        And when I switch to "Family Budget"
-        Then my current workspace context should change to "Family Budget"
-        And I should see editor-appropriate options
+        And I can edit data in "Family Budget"
+        When I add a transaction to "Family Budget"
+        Then the transaction should be saved successfully
+        And when I update that transaction
+        Then my changes should be saved
+        And when I delete that transaction
+        Then it should be removed
 
-    Scenario: User sets preferred default workspace
+    Scenario: Owner can do everything including managing the workspace
+        Given I am logged in as "alice"
+        And I own "My Workspace"
+        Then I can add, edit, and delete transactions
+        And I can change workspace settings
+        And I can remove the workspace if needed
+
+Rule: Privacy and Security
+    Users cannot discover or access workspaces they don't have permission to use
+
+    Scenario: User cannot discover workspaces they don't have access to
         Given I am logged in as "bob"
-        And I have access to multiple workspaces
-        And my current default workspace is "Bob's Personal"
-        When I change my default workspace to "Family Budget"
-        Then "Family Budget" should be selected when I log in
-        And "Family Budget" should be marked as default in my preferences
+        When I try to access a workspace I don't have permission to use
+        Then I should not be able to see or access any data
+        And I should not be able to tell if that workspace exists or not
 
-Rule: User Management and Invitations
-    Workspace owners can invite users and manage their access levels
-
-    Scenario: Workspace owner invites family member with editor access
-        Given I am logged in as "alice"
-        And I own a workspace named "Family Budget"
-        When I invite "bob" to access "Family Budget" as an editor
-        Then "bob" should receive an invitation
-        And when "bob" accepts the invitation
-        Then "bob" should have editor access to "Family Budget"
-        And "bob" should see "Family Budget" in their workspace list
-
-    Scenario: Workspace owner removes user access
-        Given I am logged in as "alice"
-        And I own a workspace named "Family Budget"
-        And "bob" has editor access to "Family Budget"
-        When I remove "bob" from "Family Budget"
-        Then "bob" should no longer see "Family Budget" in their workspace list
-        And "bob" should not be able to access "Family Budget" data
-        And "bob" should be notified of the access removal
-
-    Scenario: Workspace owner transfers ownership
-        Given I am logged in as "alice"
-        And I own a workspace named "Family Budget"
-        And "bob" has editor access to "Family Budget"
-        When I transfer ownership of "Family Budget" to "bob"
-        Then "bob" should become the owner of "Family Budget"
-        And I should have editor access to "Family Budget"
-        And "bob" should be able to manage user permissions
-
-    Scenario: Invitation expires after reasonable time
-        Given I am logged in as "alice"
-        And I invited "charlie" to access "Family Budget"
-        But "charlie" has not responded for 30 days
-        When the invitation expires
-        Then "charlie" should no longer be able to accept the invitation
-        And I should be able to send a new invitation if needed
-
-Rule: Workspace Lifecycle Management
-    Workspaces can be deleted or left by users with appropriate consequences
-
-    Scenario: User deletes workspace they own
-        Given I am logged in as "alice"
-        And I own a workspace named "Old Workspace"
-        And "Old Workspace" contains financial data
-        When I request to delete "Old Workspace"
-        Then I should be warned about permanent data loss
-        And when I confirm the deletion
-        Then "Old Workspace" should be permanently removed
-        And all users should lose access to "Old Workspace"
-        And all financial data in "Old Workspace" should be deleted
-
-    Scenario: User leaves shared workspace
-        Given I am logged in as "bob"
-        And I have editor access to "Family Budget"
-        But I am not the owner of "Family Budget"
-        When I choose to leave "Family Budget"
-        Then I should be removed from "Family Budget"
-        And I should no longer see "Family Budget" in my workspace list
-        And the workspace owner should be notified of my departure
+    Scenario: Workspace access is strictly controlled
+        Given I am logged in as "charlie"
+        And there is a workspace called "Private Data" that I don't have access to
+        When I try to access "Private Data"
+        Then I should be prevented from accessing it
+        And the response should not reveal whether the workspace exists
