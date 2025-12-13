@@ -50,9 +50,9 @@ const toggleMore = () => {
     role="alert"
     data-test-id="error-display"
   >
-    <strong>{{ problem?.title || 'Please fix the following errors:' }}</strong
+    <strong data-test-id="title-display">{{ problem?.title || 'Please fix the following errors:' }}</strong
     ><br />
-    <span>
+    <span data-test-id="detail-display">
       {{ problem?.detail }}
     </span>
     <div
@@ -62,6 +62,7 @@ const toggleMore = () => {
       <a
         href="#"
         class="small text-danger text-decoration-none"
+        data-test-id="more-button"
         @click.prevent="toggleMore"
       >
         <FeatherIcon
@@ -75,6 +76,7 @@ const toggleMore = () => {
         v-if="showMore"
         class="mt-2 small text-muted"
         style="white-space: pre-wrap; word-break: break-word"
+        data-test-id="more-text"
       >
         {{ more }}
       </div>
@@ -83,6 +85,7 @@ const toggleMore = () => {
       type="button"
       class="btn-close"
       aria-label="Close"
+      data-test-id="close-button"
       @click="close"
     ></button>
   </div>

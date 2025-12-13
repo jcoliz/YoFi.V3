@@ -346,6 +346,7 @@ definePageMeta({
       <div
         v-if="showCreateForm"
         class="card mb-4"
+        data-test-id="create-form-card"
       >
         <div class="card-header bg-primary text-white">
           <h5 class="mb-0">Create New Workspace</h5>
@@ -393,6 +394,7 @@ definePageMeta({
             <button
               class="btn btn-primary"
               :disabled="creating || !newWorkspaceName.trim()"
+              data-test-id="create-workspace-submit"
               @click="createWorkspace"
             >
               <BaseSpinner
@@ -405,6 +407,7 @@ definePageMeta({
             <button
               class="btn btn-secondary"
               :disabled="creating"
+              data-test-id="create-workspace-cancel"
               @click="cancelCreate"
             >
               Cancel
@@ -417,15 +420,17 @@ definePageMeta({
       <div
         v-if="loading"
         class="text-center py-5"
+        data-test-id="loading-state"
       >
         <BaseSpinner size="lg" />
-        <div class="mt-3 text-muted">Loading workspaces...</div>
+        <div class="mt-3 text-muted" data-test-id="loading-workspaces-text">Loading workspaces...</div>
       </div>
 
       <!-- Workspaces List -->
       <div
         v-else-if="tenants.length > 0"
         class="row"
+        data-test-id="workspaces-list"
       >
         <div
           v-for="tenant in tenants"
@@ -435,6 +440,7 @@ definePageMeta({
           <div
             class="card h-100"
             :class="{ 'border-primary': tenant.key === userPreferencesStore.getCurrentTenantKey }"
+            :data-test-id="`workspace-card-${tenant.key}`"
           >
             <div class="card-body">
               <!-- Edit Form -->
@@ -452,6 +458,7 @@ definePageMeta({
                     type="text"
                     class="form-control form-control-sm"
                     :disabled="updating"
+                    data-test-id="edit-workspace-name"
                   />
                 </div>
 
@@ -462,6 +469,7 @@ definePageMeta({
                     class="form-control form-control-sm"
                     rows="2"
                     :disabled="updating"
+                    data-test-id="edit-workspace-description"
                   />
                 </div>
 
@@ -469,6 +477,7 @@ definePageMeta({
                   <button
                     class="btn btn-sm btn-primary"
                     :disabled="updating || !editName.trim()"
+                    data-test-id="edit-workspace-submit"
                     @click="updateWorkspace"
                   >
                     <BaseSpinner
@@ -481,6 +490,7 @@ definePageMeta({
                   <button
                     class="btn btn-sm btn-secondary"
                     :disabled="updating"
+                    data-test-id="edit-workspace-cancel"
                     @click="cancelEdit"
                   >
                     Cancel
@@ -491,11 +501,12 @@ definePageMeta({
               <!-- View Mode -->
               <div v-else>
                 <div class="d-flex justify-content-between align-items-start mb-3">
-                  <h5 class="card-title mb-0">
+                  <h5 class="card-title mb-0" data-test-id="workspace-name">
                     {{ tenant.name }}
                     <span
                       v-if="tenant.key === userPreferencesStore.getCurrentTenantKey"
                       class="badge bg-success ms-2"
+                      data-test-id="current-workspace-badge"
                     >
                       Current
                     </span>
@@ -503,6 +514,7 @@ definePageMeta({
                   <span
                     class="badge"
                     :class="getRoleBadgeClass(tenant.role)"
+                    data-test-id="workspace-role-badge"
                   >
                     {{ getRoleName(tenant.role) }}
                   </span>
@@ -523,7 +535,7 @@ definePageMeta({
 
                 <div class="mb-3">
                   <small class="text-muted">
-                    <strong>Key:</strong> <code>{{ tenant.key }}</code>
+                    <strong>Key:</strong> <code data-test-id="workspace-key">{{ tenant.key }}</code>
                   </small>
                 </div>
 
@@ -541,6 +553,7 @@ definePageMeta({
                   <button
                     v-if="canManageTenant(tenant)"
                     class="btn btn-sm btn-outline-primary"
+                    data-test-id="edit-workspace-button"
                     @click="startEdit(tenant)"
                   >
                     <FeatherIcon
@@ -553,6 +566,7 @@ definePageMeta({
                   <button
                     v-if="canManageTenant(tenant)"
                     class="btn btn-sm btn-outline-danger"
+                    data-test-id="delete-workspace-button"
                     @click="startDelete(tenant)"
                   >
                     <FeatherIcon
@@ -573,6 +587,7 @@ definePageMeta({
       <div
         v-else
         class="text-center py-5"
+        data-test-id="empty-state"
       >
         <FeatherIcon
           icon="folder"
@@ -612,7 +627,7 @@ definePageMeta({
 
       <p>
         Are you sure you want to delete the workspace
-        <strong>{{ deletingTenant?.name }}</strong
+        <strong data-test-id="deleting-workspace-name">{{ deletingTenant?.name }}</strong
         >?
       </p>
       <p class="text-danger">

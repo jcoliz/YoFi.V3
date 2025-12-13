@@ -321,6 +321,7 @@ function formatCurrency(amount: number | undefined): string {
       <div
         v-if="!hasWorkspace"
         class="alert alert-warning"
+        data-test-id="no-workspace-warning"
       >
         <FeatherIcon
           icon="alert-circle"
@@ -341,6 +342,7 @@ function formatCurrency(amount: number | undefined): string {
       <div
         v-if="hasWorkspace"
         class="card mb-4"
+        data-test-id="date-range-filters"
       >
         <div class="card-body">
           <div class="row g-3">
@@ -388,10 +390,11 @@ function formatCurrency(amount: number | undefined): string {
       <div
         v-if="loading"
         class="text-center py-5"
+        data-test-id="loading-state"
       >
         <BaseSpinner />
         <div class="mt-2">
-          <small class="text-muted">Loading transactions...</small>
+          <small class="text-muted" data-test-id="loading-transactions-text">Loading transactions...</small>
         </div>
       </div>
 
@@ -399,11 +402,13 @@ function formatCurrency(amount: number | undefined): string {
       <div
         v-else-if="hasWorkspace"
         class="card"
+        data-test-id="transactions-card"
       >
         <div class="card-body">
           <div
             v-if="transactions.length === 0"
             class="text-center py-5 text-muted"
+            data-test-id="empty-state"
           >
             <FeatherIcon
               icon="inbox"
@@ -423,7 +428,7 @@ function formatCurrency(amount: number | undefined): string {
             v-else
             class="table-responsive"
           >
-            <table class="table table-hover">
+            <table class="table table-hover" data-test-id="transactions-table">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -436,6 +441,7 @@ function formatCurrency(amount: number | undefined): string {
                 <tr
                   v-for="transaction in transactions"
                   :key="transaction.key"
+                  :data-test-id="`transaction-row-${transaction.key}`"
                 >
                   <td>{{ formatDate(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
@@ -444,6 +450,7 @@ function formatCurrency(amount: number | undefined): string {
                     <button
                       class="btn btn-sm btn-outline-primary me-1"
                       title="Edit"
+                      data-test-id="edit-transaction-button"
                       @click="openEditModal(transaction)"
                     >
                       <FeatherIcon
@@ -454,6 +461,7 @@ function formatCurrency(amount: number | undefined): string {
                     <button
                       class="btn btn-sm btn-outline-danger"
                       title="Delete"
+                      data-test-id="delete-transaction-button"
                       @click="openDeleteModal(transaction)"
                     >
                       <FeatherIcon
@@ -476,6 +484,7 @@ function formatCurrency(amount: number | undefined): string {
       title="Create Transaction"
       :loading="loading"
       :primary-button-text="loading ? 'Creating...' : 'Create'"
+      data-test-id="create-transaction-modal"
       @primary="createTransaction"
     >
       <div class="mb-3">
@@ -490,6 +499,7 @@ function formatCurrency(amount: number | undefined): string {
           type="date"
           class="form-control"
           :class="{ 'is-invalid': formErrors.date }"
+          data-test-id="create-transaction-date"
         />
         <div
           v-if="formErrors.date"
@@ -511,6 +521,7 @@ function formatCurrency(amount: number | undefined): string {
           class="form-control"
           :class="{ 'is-invalid': formErrors.payee }"
           placeholder="Enter payee name"
+          data-test-id="create-transaction-payee"
         />
         <div
           v-if="formErrors.payee"
@@ -533,6 +544,7 @@ function formatCurrency(amount: number | undefined): string {
           class="form-control"
           :class="{ 'is-invalid': formErrors.amount }"
           placeholder="0.00"
+          data-test-id="create-transaction-amount"
         />
         <div
           v-if="formErrors.amount"
@@ -549,6 +561,7 @@ function formatCurrency(amount: number | undefined): string {
       title="Edit Transaction"
       :loading="loading"
       :primary-button-text="loading ? 'Updating...' : 'Update'"
+      data-test-id="edit-transaction-modal"
       @primary="updateTransaction"
     >
       <div class="mb-3">
@@ -563,6 +576,7 @@ function formatCurrency(amount: number | undefined): string {
           type="date"
           class="form-control"
           :class="{ 'is-invalid': formErrors.date }"
+          data-test-id="edit-transaction-date"
         />
         <div
           v-if="formErrors.date"
@@ -584,6 +598,7 @@ function formatCurrency(amount: number | undefined): string {
           class="form-control"
           :class="{ 'is-invalid': formErrors.payee }"
           placeholder="Enter payee name"
+          data-test-id="edit-transaction-payee"
         />
         <div
           v-if="formErrors.payee"
@@ -606,6 +621,7 @@ function formatCurrency(amount: number | undefined): string {
           class="form-control"
           :class="{ 'is-invalid': formErrors.amount }"
           placeholder="0.00"
+          data-test-id="edit-transaction-amount"
         />
         <div
           v-if="formErrors.amount"
@@ -623,12 +639,14 @@ function formatCurrency(amount: number | undefined): string {
       :loading="loading"
       primary-button-variant="danger"
       :primary-button-text="loading ? 'Deleting...' : 'Delete'"
+      data-test-id="delete-transaction-modal"
       @primary="deleteTransaction"
     >
       <p>Are you sure you want to delete this transaction?</p>
       <div
         v-if="selectedTransaction"
         class="alert alert-warning"
+        data-test-id="delete-transaction-details"
       >
         <strong>{{ selectedTransaction.payee }}</strong
         ><br />

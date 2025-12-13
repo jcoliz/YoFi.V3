@@ -187,7 +187,7 @@ defineExpose({
           >
             <BaseSpinner size="sm" />
             <div class="mt-2">
-              <small class="text-muted">Loading workspaces...</small>
+              <small class="text-muted" data-test-id="loading-workspaces-text">Loading workspaces...</small>
             </div>
           </div>
 
@@ -235,6 +235,7 @@ defineExpose({
             <div
               v-else
               class="mb-3 text-muted text-center py-2"
+              data-test-id="no-workspace-message"
             >
               <small>No workspace selected</small>
             </div>
@@ -279,6 +280,7 @@ defineExpose({
               <NuxtLink
                 to="/workspaces"
                 class="btn btn-outline-primary btn-sm w-100"
+                data-test-id="manage-workspaces-button"
               >
                 <FeatherIcon
                   icon="settings"
