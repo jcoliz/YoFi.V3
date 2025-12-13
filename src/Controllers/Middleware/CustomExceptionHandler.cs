@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -57,6 +58,30 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     }
 
     /// <summary>
+    /// Creates a ProblemDetails object with trace ID and common fields populated.
+    /// </summary>
+    private static ProblemDetails CreateProblemDetails(
+        HttpContext httpContext,
+        int statusCode,
+        string title,
+        string detail)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = detail,
+            Instance = httpContext.Request.Path
+        };
+
+        // Use Activity.Current?.Id for W3C trace context format, matching built-in ASP.NET Core behavior
+        var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+        problemDetails.Extensions["traceId"] = traceId;
+
+        return problemDetails;
+    }
+
+    /// <summary>
     /// Handles ResourceNotFoundException and its derived types (e.g., TenantNotFoundException, TransactionNotFoundException).
     /// Returns HTTP 404 with problem details.
     /// </summary>
@@ -67,13 +92,11 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     {
         httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status404NotFound,
-            Title = $"{exception.ResourceType} not found",
-            Detail = exception.Message,
-            Instance = httpContext.Request.Path
-        };
+        var problemDetails = CreateProblemDetails(
+            httpContext,
+            StatusCodes.Status404NotFound,
+            $"{exception.ResourceType} not found",
+            exception.Message);
 
         problemDetails.Extensions["resourceType"] = exception.ResourceType;
         problemDetails.Extensions["resourceKey"] = exception.ResourceKey;
@@ -93,13 +116,11 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     {
         httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status404NotFound,
-            Title = "Resource not found",
-            Detail = exception.Message,
-            Instance = httpContext.Request.Path
-        };
+        var problemDetails = CreateProblemDetails(
+            httpContext,
+            StatusCodes.Status404NotFound,
+            "Resource not found",
+            exception.Message);
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;
@@ -116,13 +137,11 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     {
         httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Validation Error",
-            Detail = exception.Message,
-            Instance = httpContext.Request.Path
-        };
+        var problemDetails = CreateProblemDetails(
+            httpContext,
+            StatusCodes.Status400BadRequest,
+            "Validation Error",
+            exception.Message);
 
         if (!string.IsNullOrEmpty(exception.ParamName))
         {

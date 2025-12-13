@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using YoFi.V3.Entities.Tenancy.Exceptions;
@@ -28,18 +29,36 @@ public static class TenancyExceptionHandler
 
         httpContext.Response.StatusCode = statusCode;
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = exception.Message,
-            Instance = httpContext.Request.Path
-        };
+        var problemDetails = CreateProblemDetails(httpContext, statusCode, title, exception.Message);
 
         // Add type-specific extensions
         AddExceptionExtensions(problemDetails, exception);
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a ProblemDetails object with trace ID and common fields populated.
+    /// </summary>
+    private static ProblemDetails CreateProblemDetails(
+        HttpContext httpContext,
+        int statusCode,
+        string title,
+        string detail)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = detail,
+            Instance = httpContext.Request.Path
+        };
+
+        // Use Activity.Current?.Id for W3C trace context format, matching built-in ASP.NET Core behavior
+        var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+        problemDetails.Extensions["traceId"] = traceId;
+
+        return problemDetails;
     }
 
     /// <summary>
