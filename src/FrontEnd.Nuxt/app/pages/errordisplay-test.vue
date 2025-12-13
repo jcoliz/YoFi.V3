@@ -116,8 +116,6 @@ async function triggerError() {
   <div class="container py-4">
     <div class="row justify-content-center">
       <div class="col-lg-8">
-        <h1 class="mb-4">Error Display Test</h1>
-
         <div class="alert alert-info mb-4">
           <FeatherIcon
             icon="info"
@@ -134,6 +132,22 @@ async function triggerError() {
           :problem="error"
           class="mb-4"
         />
+
+        <!-- Raw Problem Details Display -->
+        <div
+          v-if="error"
+          class="card mb-4"
+        >
+          <div class="card-header">
+            <h5 class="mb-0">Raw Problem Details</h5>
+          </div>
+          <div class="card-body">
+            <pre
+              class="mb-0"
+              data-test-id="raw-problem-details"
+            ><code>{{ JSON.stringify(error, null, 2) }}</code></pre>
+          </div>
+        </div>
 
         <!-- Test Controls -->
         <div class="card">
