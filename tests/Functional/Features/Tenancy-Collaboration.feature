@@ -47,6 +47,29 @@ Rule: Inviting People to Workspaces
         Then "charlie" can no longer accept that invitation
         And I can send a new invitation if needed
 
+    Scenario: User views pending invitations
+        Given I am logged in as "charlie"
+        And I have a pending invitation to "Family Budget"
+        When I view my invitations
+        Then I should see the invitation from "alice"
+        And I should have options to accept or decline
+
+    Scenario: User declines workspace invitation
+        Given I am logged in as "charlie"
+        And I have a pending invitation to "Family Budget"
+        When I decline the invitation
+        Then the invitation should be marked as declined
+        And I should not have access to "Family Budget"
+        And "alice" should be notified of the decline
+
+    Scenario: Owner cancels pending invitation
+        Given I am logged in as "alice"
+        And I invited "charlie" to "Family Budget"
+        But "charlie" has not responded yet
+        When I cancel the invitation
+        Then "charlie" should no longer see the invitation
+        And I should be able to send a new invitation if needed
+
 Rule: Removing Workspace Access
     Workspace owners can remove people when collaboration ends
 
@@ -85,6 +108,26 @@ Rule: Adjusting Permission Levels
         When I change "bob" to view-only access
         Then "bob" can still see the data
         But "bob" can no longer make changes
+
+Rule: Workspace Ownership Constraints
+    The system enforces rules to maintain workspace integrity
+
+    Scenario: Cannot remove last owner from workspace
+        Given I am logged in as "alice"
+        And I own a workspace called "Family Budget"
+        And I am the only owner of "Family Budget"
+        When I attempt to remove myself without assigning another owner
+        Then I should see an error message
+        And the removal should be prevented
+        And I should remain the owner
+
+    Scenario: Cannot delete workspace with active users without confirmation
+        Given I am logged in as "alice"
+        And I own a workspace called "Family Budget"
+        And "bob" and "charlie" have access to "Family Budget"
+        When I request to delete "Family Budget"
+        Then I should be warned that 2 other users will lose access
+        And I should need to acknowledge this before proceeding
 
 Rule: Transferring Workspace Ownership
     Workspace owners can hand off ownership to someone else
@@ -184,3 +227,19 @@ Rule: Deleting Shared Workspaces
         And "bob" and "charlie" should lose access
         And all the financial data should be deleted
         And everyone affected should be notified
+
+Rule: Workspace Naming Rules
+    The system ensures workspace names are valid and unique
+
+    Scenario: Cannot create duplicate workspace names
+        Given I am logged in as "alice"
+        And I own a workspace called "Family Budget"
+        When I try to create another workspace called "Family Budget"
+        Then I should see an error message about duplicate names
+        And the duplicate workspace should not be created
+
+    Scenario: Workspace names must be reasonable length
+        Given I am logged in as "alice"
+        When I try to create a workspace with an extremely long name
+        Then I should see a validation error
+        And the workspace should not be created
