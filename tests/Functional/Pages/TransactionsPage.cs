@@ -13,6 +13,8 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// </remarks>
 public class TransactionsPage(IPage page) : BasePage(page)
 {
+    #region Components
+
     /// <summary>
     /// Workspace selector component at the top of the page
     /// </summary>
@@ -22,6 +24,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// Error display component for page-level errors
     /// </summary>
     public ErrorDisplay ErrorDisplay => new ErrorDisplay(Page!.Locator("body"));
+
+    #endregion
+
+    #region Page Elements
 
     /// <summary>
     /// Main page heading
@@ -53,12 +59,15 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator LoadingState => Page!.GetByTestId("loading-state");
 
+    #endregion
+
+    #region Date Range Filter Elements
+
     /// <summary>
     /// Date range filters card
     /// </summary>
     public ILocator DateRangeFilters => Page!.GetByTestId("date-range-filters");
 
-    // Date Range Filter Elements
     /// <summary>
     /// From date filter input
     /// </summary>
@@ -74,7 +83,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator ClearFiltersButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Clear Filters" });
 
-    // Transactions Table Elements
+    #endregion
+
+    #region Transactions Table Elements
+
     /// <summary>
     /// Transactions card container
     /// </summary>
@@ -100,7 +112,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator EmptyStateCreateButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Create your first transaction" });
 
-    // Create Modal Elements
+    #endregion
+
+    #region Create Modal Elements
+
     /// <summary>
     /// Create transaction modal
     /// </summary>
@@ -136,7 +151,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator CreateCancelButton => CreateModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
-    // Edit Modal Elements
+    #endregion
+
+    #region Edit Modal Elements
+
     /// <summary>
     /// Edit transaction modal
     /// </summary>
@@ -172,7 +190,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator EditCancelButton => EditModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
-    // Delete Modal Elements
+    #endregion
+
+    #region Delete Modal Elements
+
     /// <summary>
     /// Delete confirmation modal
     /// </summary>
@@ -198,6 +219,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator DeleteCancelButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
+    #endregion
+
+    #region Navigation
+
     /// <summary>
     /// Navigates to the transactions page
     /// </summary>
@@ -206,6 +231,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await Page!.GotoAsync("/transactions");
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
+
+    #endregion
+
+    #region Create Operations
 
     /// <summary>
     /// Opens the create transaction modal
@@ -240,6 +269,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await CreateCancelButton.ClickAsync();
         await CreateModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
+
+    #region Transaction Row Helpers
 
     /// <summary>
     /// Gets a transaction row by transaction key
@@ -291,6 +324,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         return GetTransactionRowByPayee(payeeName).GetByTestId("delete-transaction-button");
     }
 
+    #endregion
+
+    #region Edit Operations
+
     /// <summary>
     /// Opens the edit modal for a specific transaction
     /// </summary>
@@ -327,6 +364,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await EditModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
 
+    #endregion
+
+    #region Delete Operations
+
     /// <summary>
     /// Deletes a transaction
     /// </summary>
@@ -357,6 +398,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await DeleteCancelButton.ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
+
+    #region Filter Operations
 
     /// <summary>
     /// Sets the from date filter
@@ -398,6 +443,10 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await ClearFiltersButton.ClickAsync();
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
+
+    #endregion
+
+    #region Query Methods
 
     /// <summary>
     /// Gets the count of transaction rows displayed
@@ -466,4 +515,42 @@ public class TransactionsPage(IPage page) : BasePage(page)
     {
         return await EmptyState.IsVisibleAsync();
     }
+
+    #endregion
+
+    #region Role-based Permission Checks
+
+    /// <summary>
+    /// Checks if the New Transaction button is available for interaction.
+    /// </summary>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This button should only be available to users with Editor or Owner roles.
+    /// Viewers should not have access to create transactions.
+    /// </remarks>
+    public Task<bool> IsNewTransactionAvailableAsync() => IsAvailableAsync(NewTransactionButton);
+
+    /// <summary>
+    /// Checks if the Edit button for a specific transaction is available for interaction.
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction</param>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This button should only be available to users with Editor or Owner roles.
+    /// Viewers should not have access to edit transactions.
+    /// </remarks>
+    public Task<bool> IsEditAvailableAsync(string payeeName) => IsAvailableAsync(GetEditButton(payeeName));
+
+    /// <summary>
+    /// Checks if the Delete button for a specific transaction is available for interaction.
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction</param>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This button should only be available to users with Owner role.
+    /// Editors and Viewers should not have access to delete transactions.
+    /// </remarks>
+    public Task<bool> IsDeleteAvailableAsync(string payeeName) => IsAvailableAsync(GetDeleteButton(payeeName));
+
+    #endregion
 }

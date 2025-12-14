@@ -13,6 +13,8 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// </remarks>
 public class WorkspacesPage(IPage page) : BasePage(page)
 {
+    #region Components
+
     /// <summary>
     /// Workspace selector component at the top of the page
     /// </summary>
@@ -22,6 +24,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// Error display component for page-level errors
     /// </summary>
     public ErrorDisplay ErrorDisplay => new ErrorDisplay(Page!.Locator("body"));
+
+    #endregion
+
+    #region Page Elements
 
     /// <summary>
     /// Main page heading
@@ -48,7 +54,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator LoadingState => Page!.GetByTestId("loading-state");
 
-    // Create Form Elements
+    #endregion
+
+    #region Create Form Elements
+
     /// <summary>
     /// Create form card container
     /// </summary>
@@ -79,7 +88,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator CreateCancelButton => CreateFormCard.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
-    // Workspace Cards
+    #endregion
+
+    #region Workspace List Elements
+
     /// <summary>
     /// Workspaces list container
     /// </summary>
@@ -95,7 +107,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator EmptyStateCreateButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Create Workspace" }).Last;
 
-    // Delete Modal
+    #endregion
+
+    #region Delete Modal Elements
+
     /// <summary>
     /// Delete confirmation modal
     /// </summary>
@@ -116,6 +131,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator DeleteModalCancelButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
 
+    #endregion
+
+    #region Navigation
+
     /// <summary>
     /// Navigates to the workspaces page
     /// </summary>
@@ -124,6 +143,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await Page!.GotoAsync("/workspaces");
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
+
+    #endregion
+
+    #region Create Operations
 
     /// <summary>
     /// Opens the create workspace form
@@ -159,6 +182,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await CreateCancelButton.ClickAsync();
         await CreateFormCard.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
+
+    #region Workspace Card Helpers
 
     /// <summary>
     /// Gets a workspace card by workspace key
@@ -210,6 +237,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         return GetWorkspaceCardByName(workspaceName).GetByTestId("delete-workspace-button");
     }
 
+    #endregion
+
+    #region Edit Operations
+
     /// <summary>
     /// Starts editing a workspace
     /// </summary>
@@ -254,6 +285,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await card.GetByTestId("edit-workspace-cancel").ClickAsync();
     }
 
+    #endregion
+
+    #region Delete Operations
+
     /// <summary>
     /// Deletes a workspace
     /// </summary>
@@ -284,6 +319,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await DeleteModalCancelButton.ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
+
+    #region Query Methods
 
     /// <summary>
     /// Gets the role badge text for a specific workspace
@@ -332,4 +371,41 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     {
         await LoadingSpinner.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
+
+    #region Role-based Permission Checks
+
+    /// <summary>
+    /// Checks if the Create Workspace button is available for interaction.
+    /// </summary>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// All authenticated users should be able to create workspaces.
+    /// </remarks>
+    public Task<bool> IsCreateWorkspaceAvailableAsync() => IsAvailableAsync(CreateWorkspaceButton);
+
+    /// <summary>
+    /// Checks if the Edit button for a specific workspace is available for interaction.
+    /// </summary>
+    /// <param name="workspaceName">The name of the workspace</param>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This button should only be available to users with Editor or Owner roles.
+    /// Viewers should not have access to edit workspace details.
+    /// </remarks>
+    public Task<bool> IsEditAvailableAsync(string workspaceName) => IsAvailableAsync(GetEditButton(workspaceName));
+
+    /// <summary>
+    /// Checks if the Delete button for a specific workspace is available for interaction.
+    /// </summary>
+    /// <param name="workspaceName">The name of the workspace</param>
+    /// <returns>True if the button is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This button should only be available to users with Owner role.
+    /// Editors and Viewers should not have access to delete workspaces.
+    /// </remarks>
+    public Task<bool> IsDeleteAvailableAsync(string workspaceName) => IsAvailableAsync(GetDeleteButton(workspaceName));
+
+    #endregion
 }

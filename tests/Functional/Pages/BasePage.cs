@@ -70,6 +70,24 @@ public class BasePage(IPage? _page)
         TestContext.AddTestAttachment(filename);
     }
 
+    /// <summary>
+    /// Checks if a control is available for interaction (both visible and enabled).
+    /// </summary>
+    /// <param name="locator">The locator for the control to check</param>
+    /// <returns>True if the control is visible and enabled, false otherwise</returns>
+    /// <remarks>
+    /// This method abstracts the implementation detail of whether a control is unavailable
+    /// due to being hidden or disabled. It provides a unified way to check if a control
+    /// can be interacted with, which is particularly useful for permission-based scenarios
+    /// where controls may be hidden or disabled based on user roles.
+    /// </remarks>
+    public async Task<bool> IsAvailableAsync(ILocator locator)
+    {
+        var isVisible = await locator.IsVisibleAsync();
+        if (!isVisible) return false;
+        return await locator.IsEnabledAsync();
+    }
+
     // https://stackoverflow.com/questions/309485/c-sharp-sanitize-file-name
     private static string MakeValidFileName( string name )
     {
