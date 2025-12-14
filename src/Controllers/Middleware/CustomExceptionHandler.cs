@@ -51,7 +51,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
 
         if (handled)
         {
-            LogHandledException(exception.GetType().Name, httpContext.Response.StatusCode);
+            LogHandledException(exception,exception.GetType().Name, httpContext.Response.StatusCode);
         }
 
         return handled;
@@ -187,5 +187,5 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     // }
 
     [LoggerMessage(0, LogLevel.Information, "{Location}: Handled {ExceptionType} with status code {StatusCode}")]
-    private partial void LogHandledException(string exceptionType, int statusCode, [CallerMemberName] string? location = null);
+    private partial void LogHandledException(Exception ex, string exceptionType, int statusCode, [CallerMemberName] string? location = null);
 }

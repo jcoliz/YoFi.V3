@@ -566,14 +566,14 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
-    seedTransactions(username: string, workspaceKey: string, request: TransactionSeedRequest): Promise<TransactionResultDto[]> {
-        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{workspaceKey}/transactions/seed";
+    seedTransactions(username: string, tenantKey: string, request: TransactionSeedRequest): Promise<TransactionResultDto[]> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed";
         if (username === undefined || username === null)
             throw new globalThis.Error("The parameter 'username' must be defined.");
         url_ = url_.replace("{username}", encodeURIComponent("" + username));
-        if (workspaceKey === undefined || workspaceKey === null)
-            throw new globalThis.Error("The parameter 'workspaceKey' must be defined.");
-        url_ = url_.replace("{workspaceKey}", encodeURIComponent("" + workspaceKey));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(request);

@@ -729,11 +729,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         System.Threading.Tasks.Task AssignUserToWorkspaceAsync(string username, System.Guid workspaceKey, UserRoleAssignment assignment, System.Threading.CancellationToken cancellationToken);
 
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid workspaceKey, TransactionSeedRequest request);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid workspaceKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken);
 
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAllTestDataAsync();
@@ -1445,20 +1445,20 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid workspaceKey, TransactionSeedRequest request)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request)
         {
-            return SeedTransactionsAsync(username, workspaceKey, request, System.Threading.CancellationToken.None);
+            return SeedTransactionsAsync(username, tenantKey, request, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid workspaceKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken)
         {
             if (username == null)
                 throw new System.ArgumentNullException("username");
 
-            if (workspaceKey == null)
-                throw new System.ArgumentNullException("workspaceKey");
+            if (tenantKey == null)
+                throw new System.ArgumentNullException("tenantKey");
 
             if (request == null)
                 throw new System.ArgumentNullException("request");
@@ -1478,11 +1478,11 @@ namespace YoFi.V3.Tests.Functional.Generated
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
-                    // Operation Path: "TestControl/users/{username}/workspaces/{workspaceKey}/transactions/seed"
+                    // Operation Path: "TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed"
                     urlBuilder_.Append("TestControl/users/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(username, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/workspaces/");
-                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workspaceKey, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(tenantKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/transactions/seed");
 
                     PrepareRequest(client_, request_, urlBuilder_);

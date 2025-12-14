@@ -93,8 +93,6 @@ public record TestUser(int Id)
 public partial class TestControlController(
     UserManager<IdentityUser> userManager,
     TenantFeature tenantFeature,
-    TransactionsFeature transactionsFeature,
-    TenantContext tenantContext,
     ILogger<TestControlController> logger
 ) : ControllerBase
 {
@@ -400,14 +398,16 @@ public partial class TestControlController(
     /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
     /// Creates the specified number of transactions with realistic test data.
     /// </remarks>
-    [HttpPost("users/{username}/workspaces/{workspaceKey:guid}/transactions/seed")]
+    [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed")]
     [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SeedTransactions(
         string username,
-        Guid workspaceKey,
-        [FromBody] TransactionSeedRequest request)
+        Guid tenantKey,
+        [FromBody] TransactionSeedRequest request,
+        [FromServices] TenantContext tenantContext,
+        [FromServices] TransactionsFeature transactionsFeature)
     {
         LogStartingCount(request.Count);
 
@@ -424,12 +424,12 @@ public partial class TestControlController(
         }
 
         // Get workspace and validate it has __TEST__ prefix
-        var tenant = await tenantFeature.GetTenantByKeyAsync(workspaceKey);
+        var tenant = await tenantFeature.GetTenantByKeyAsync(tenantKey);
         if (tenant == null)
         {
             return Problem(
                 title: "Workspace not found",
-                detail: $"Workspace with key '{workspaceKey}' not found",
+                detail: $"Workspace with key '{tenantKey}' not found",
                 statusCode: StatusCodes.Status404NotFound
             );
         }
@@ -456,8 +456,7 @@ public partial class TestControlController(
             );
         }
 
-        // Set tenant context for transaction creation
-        await tenantContext.SetCurrentTenantAsync(workspaceKey);
+        await tenantContext.SetCurrentTenantAsync(tenantKey);
 
         // Create transactions with realistic test data
         var random = new Random();
@@ -477,7 +476,7 @@ public partial class TestControlController(
         }
 
         LogOkCount(createdTransactions.Count);
-        return Created($"/TestControl/users/{username}/workspaces/{workspaceKey}/transactions", createdTransactions);
+        return Created($"/TestControl/users/{username}/workspaces/{tenantKey}/transactions", createdTransactions);
     }
 
     /// <summary>
