@@ -11,6 +11,8 @@ namespace YoFi.V3.Application.Tenancy.Features;
 /// <param name="tenantRepository">The repository for tenant data operations.</param>
 public class TenantFeature(ITenantRepository tenantRepository)
 {
+    #region USER Functionality
+
     /// <summary>
     /// Creates a new tenant and assigns the specified user as the owner.
     /// </summary>
@@ -159,6 +161,10 @@ public class TenantFeature(ITenantRepository tenantRepository)
         await tenantRepository.DeleteTenantAsync(tenant);
     }
 
+    #endregion
+
+    #region ADMIN Functionality
+
     /// <summary>
     /// Retrieves a tenant by its unique key without user access checks.
     /// </summary>
@@ -241,4 +247,6 @@ public class TenantFeature(ITenantRepository tenantRepository)
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenantId);
         return role != null;
     }
+
+    #endregion
 }
