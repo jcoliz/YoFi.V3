@@ -128,6 +128,9 @@ try
 
     app.UseCors();
 
+    // Test correlation middleware must come early to capture all requests
+    app.UseMiddleware<TestCorrelationMiddleware>();
+
     // Exception handler must come BEFORE middleware that might throw exceptions
     app.UseExceptionHandler();
 

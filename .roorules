@@ -287,7 +287,7 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 3. **Use project scripts for testing** - Always use `./scripts/Run-Tests.ps1` to run tests. DO NOT use `dotnet test` directly on the solution root, as it will include functional tests that require special setup.
    - For all unit and integration tests: `pwsh -File ./scripts/Run-Tests.ps1`
    - For specific test projects (when needed): `dotnet test tests/Unit`, `dotnet test tests/Integration.Data`, or `dotnet test tests/Integration.Controller`
-   - For Functional tests: DO NOT automatically run (use `./scripts/Run-FunctionalTestsVsContainer.ps1` only when specifically requested)
+   - For Functional tests: NEVER run automatically. Instead, ask the user to run `./scripts/Run-FunctionalTestsVsContainer.ps1` and report back the results.
 
 4. **Iterate until green** - Continue the fix-test-verify cycle until all tests pass successfully.
 

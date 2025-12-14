@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Playwright;
@@ -23,6 +24,7 @@ public abstract class FunctionalTest : PageTest
     private static string? _prerequisiteFailureMessage = null;
 
     protected ObjectStore _objectStore = new();
+    protected Activity? _testActivity;
 
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
@@ -86,18 +88,42 @@ public abstract class FunctionalTest : PageTest
         // Add a basepage object to the object store
         _objectStore.Add(new BasePage(Page));
 
-        // Add x-test-name cookie, which will insert test name into logs for easy
-        // correlation (in the future)
-        await this.Context.AddCookiesAsync(
-        [
-            new Cookie()
-            {
-                Name = "x-test-name",
-                Value = HttpUtility.UrlEncode(TestContext.CurrentContext.Test.Name),
-                Domain = baseUrl!.Host,
-                Path = "/"
-            }
-        ]);
+        //
+        // Create test activity for distributed tracing
+        //
+        var testName = TestContext.CurrentContext.Test.Name;
+        var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
+        var testId = Guid.NewGuid().ToString();
+
+        _testActivity = new Activity("FunctionalTest");
+        _testActivity.SetTag("test.name", testName);
+        _testActivity.SetTag("test.class", testClass);
+        _testActivity.SetTag("test.id", testId);
+        _testActivity.SetTag("test.framework", "NUnit");
+        _testActivity.Start();
+
+        //
+        // Set headers for both W3C trace propagation and direct correlation
+        //
+        var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
+
+        await Context.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+        {
+            // W3C Trace Context standard
+            ["traceparent"] = traceParent,
+
+            // Direct test correlation (fallback and convenience)
+            ["X-Test-Name"] = HttpUtility.UrlEncode(testName),
+            ["X-Test-Id"] = testId,
+            ["X-Test-Class"] = testClass
+        });
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _testActivity?.Stop();
+        _testActivity?.Dispose();
     }
 
     [OneTimeSetUp]
