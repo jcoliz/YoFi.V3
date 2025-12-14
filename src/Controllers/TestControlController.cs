@@ -262,7 +262,7 @@ public partial class TestControlController(
             case "403etnf": // TenantNotFoundException
                 throw new TenantNotFoundException(Guid.NewGuid());
             case "403etad": // TenantAccessDeniedException
-                throw new TenantAccessDeniedException(Guid.NewGuid(), "test-user", Guid.NewGuid());
+                throw new TenantAccessDeniedException(Guid.NewGuid(), Guid.NewGuid());
             case "404":
                 return NotFound();
             case "404etr":

@@ -13,11 +13,6 @@ public class TenantAccessDeniedException : TenancyAccessDeniedException
     public Guid UserId { get; }
 
     /// <summary>
-    /// Gets the user name.
-    /// </summary>
-    public string UserName { get; }
-
-    /// <summary>
     /// Gets the tenant key that access was denied for.
     /// </summary>
     public Guid TenantKey { get; }
@@ -26,13 +21,11 @@ public class TenantAccessDeniedException : TenancyAccessDeniedException
     /// Initializes a new instance of the <see cref="TenantAccessDeniedException"/> class.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key that access was denied for.</param>
-    public TenantAccessDeniedException(Guid userId, string userName, Guid tenantKey)
-        : base($"User '{userName}' does not have access to tenant '{tenantKey}'.")
+    public TenantAccessDeniedException(Guid userId, Guid tenantKey)
+        : base($"User does not have access to tenant '{tenantKey}'.")
     {
         UserId = userId;
-        UserName = userName;
         TenantKey = tenantKey;
     }
 
@@ -40,14 +33,12 @@ public class TenantAccessDeniedException : TenancyAccessDeniedException
     /// Initializes a new instance of the <see cref="TenantAccessDeniedException"/> class with a custom message.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key that access was denied for.</param>
     /// <param name="message">The custom error message.</param>
-    public TenantAccessDeniedException(Guid userId, string userName, Guid tenantKey, string message)
+    public TenantAccessDeniedException(Guid userId, Guid tenantKey, string message)
         : base(message)
     {
         UserId = userId;
-        UserName = userName;
         TenantKey = tenantKey;
     }
 
@@ -55,15 +46,13 @@ public class TenantAccessDeniedException : TenancyAccessDeniedException
     /// Initializes a new instance of the <see cref="TenantAccessDeniedException"/> class with an inner exception.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
-    /// <param name="userName">The user name.</param>
     /// <param name="tenantKey">The tenant key that access was denied for.</param>
     /// <param name="message">The error message.</param>
     /// <param name="innerException">The inner exception.</param>
-    public TenantAccessDeniedException(Guid userId, string userName, Guid tenantKey, string message, Exception innerException)
+    public TenantAccessDeniedException(Guid userId, Guid tenantKey, string message, Exception innerException)
         : base(message, innerException)
     {
         UserId = userId;
-        UserName = userName;
         TenantKey = tenantKey;
     }
 }

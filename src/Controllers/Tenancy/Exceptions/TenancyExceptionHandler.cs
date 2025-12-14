@@ -107,7 +107,6 @@ public static class TenancyExceptionHandler
 
             case TenantAccess accessDenied:
                 problemDetails.Extensions["userId"] = accessDenied.UserId;
-                problemDetails.Extensions["userName"] = accessDenied.UserName;
                 problemDetails.Extensions["tenantKey"] = accessDenied.TenantKey;
                 break;
 

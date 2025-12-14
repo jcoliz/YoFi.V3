@@ -82,8 +82,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            // Username will be resolved downstream by exception handler if needed
-            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
+            throw new TenantAccessDeniedException(userId, tenantKey);
         }
 
         return new TenantRoleResultDto(
@@ -117,8 +116,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            // Username will be resolved downstream by exception handler if needed
-            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
+            throw new TenantAccessDeniedException(userId, tenantKey);
         }
 
         // Update the tenant properties
@@ -155,8 +153,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            // Username will be resolved downstream by exception handler if needed
-            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
+            throw new TenantAccessDeniedException(userId, tenantKey);
         }
 
         await tenantRepository.DeleteTenantAsync(tenant);
