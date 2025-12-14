@@ -41,7 +41,7 @@ Dependencies point inward. Inner layers know nothing about outer layers.
   - Dependency injection setup in `Program.cs`
   - CORS configuration for frontend integration
   - Application Insights and monitoring setup
-  - Authentication/Authorization (planned)
+  - Authentication and authorization with multi-tenancy
 
 - **Data** (`src/Data/`) - Data Access Layer
   - SQLite implementation (`Sqlite/` folder)
@@ -127,7 +127,7 @@ Budgets (Id, TenantId, Month, Amount)
 ### Backend (.NET 10)
 - **Framework**: ASP.NET Core with minimal APIs
 - **Database**: SQLite with Entity Framework Core
-- **Authentication**: ASP.NET Core Identity (planned)
+- **Authentication**: ASP.NET Core Identity with JWT tokens
 - **Monitoring**: Application Insights + Log Analytics
 - **Development**: .NET Aspire for orchestration
 
@@ -166,28 +166,38 @@ Documented in [Architecture Decision Records](adr/README.md):
 
 ### Test Organization
 - **Unit Tests** (`tests/Unit/`) - Application layer business logic isolation
-- **Integration Tests** (`tests/Integration.Data/`) - Database and data layer testing
+- **Integration.Data Tests** (`tests/Integration.Data/`) - Database and data layer testing
+- **Integration.Controller Tests** (`tests/Integration.Controller/`) - API controllers with authentication and authorization
 - **Functional Tests** (`tests/Functional/`) - End-to-end user workflows with Playwright
 
+All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenario descriptions.
+
 ### Current Test Coverage
-- ✅ **Weather feature** - Unit and functional tests implemented
-- ✅ **Database operations** - Integration test framework
-- 🚧 **Authentication flows** - Functional tests near completion
-- 📋 **Financial features** - Planned as features are developed
+- ✅ **Application layer** - Comprehensive unit tests approaching 100% coverage
+- ✅ **Database operations** - Integration tests for all repository operations
+- ✅ **API controllers** - Integration tests with authentication and multi-tenancy
+- ✅ **Authentication & authorization** - End-to-end authentication implemented with functional tests in progress
+- ✅ **Multi-tenancy** - Complete security and isolation testing
+- 📋 **Additional features** - Test coverage expands as features are developed
 
 ### Testing Tools
-- **Unit**: NUnit + FluentAssertions
-- **Integration**: Entity Framework in-memory provider
-- **Functional**: Playwright with C# bindings
-- **API**: Swagger/OpenAPI for ad hoc contract validation
+- **Unit**: NUnit with constraint-based assertions
+- **Integration.Data**: NUnit with SQLite in-memory database
+- **Integration.Controller**: NUnit with WebApplicationFactory and test authentication
+- **Functional**: Playwright with C# bindings and SpecFlow-style Gherkin
+- **API Client**: NSwag-generated TypeScript client for type-safe frontend integration
 
 ## Security Considerations
 
-### Authentication & Authorization (Planned)
-- **Identity**: ASP.NET Core Identity with JWT tokens
-- **Multi-Tenancy**: Tenant-scoped authorization policies
-- **CORS**: Frontend domain automatically configured via Bicep
-- **HTTPS**: Enforced in production environments
+### Authentication & Authorization
+- ✅ **Identity**: ASP.NET Core Identity with JWT tokens (implemented)
+- ✅ **Multi-Tenancy**: Role-based authorization with claims (Owner/Editor/Viewer)
+- ✅ **Tenant Isolation**: Middleware-enforced tenant context with authorization policies
+- ✅ **Security**: 403 responses prevent tenant enumeration attacks
+- ✅ **CORS**: Frontend domain configured for cross-origin requests
+- ✅ **HTTPS**: Enforced in production environments
+
+See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 
 ### Data Protection
 - **Database**: SQLite+Azure Storage, moving to PostgreSql for scale
