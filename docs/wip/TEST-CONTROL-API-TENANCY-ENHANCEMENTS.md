@@ -79,6 +79,7 @@ public record TestUserCredentials(Guid Id, string Username, string Email, string
 [HttpPost("users/{username}/workspaces")]
 [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 public async Task<IActionResult> CreateWorkspaceForUser(
     string username,
     [FromBody] WorkspaceCreateRequest request)
@@ -89,7 +90,7 @@ public record WorkspaceCreateRequest(string Name, string Description, string Rol
 **Request Body:**
 ```json
 {
-  "Name": "Personal",
+  "Name": "__TEST__Personal",
   "Description": "My personal workspace",
   "Role": "Owner"
 }
@@ -106,10 +107,13 @@ public record WorkspaceCreateRequest(string Name, string Description, string Rol
 ```
 
 **Implementation Notes:**
+- **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
+- **Validates workspace name has test prefix** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
 - Looks up user by `__TEST__{username}` format
 - Calls [`TenantFeature.CreateTenantForUserAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L22)
 - Sets specified role via [`ITenantRepository.AddUserTenantRoleAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L51)
 - Returns 404 if user not found
+- Returns 403 if username doesn't have `__TEST__` prefix OR workspace name doesn't have `__TEST__` prefix
 
 ---
 
@@ -119,22 +123,23 @@ public record WorkspaceCreateRequest(string Name, string Description, string Rol
 
 **Endpoint:**
 ```csharp
-// POST /TestControl/workspaces/{workspaceKey}/users
-[HttpPost("workspaces/{workspaceKey:guid}/users")]
+// POST /TestControl/users/{username}/workspaces/{workspaceKey}/assign
+[HttpPost("users/{username}/workspaces/{workspaceKey:guid}/assign")]
 [ProducesResponseType(StatusCodes.Status204NoContent)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
 public async Task<IActionResult> AssignUserToWorkspace(
+    string username,
     Guid workspaceKey,
     [FromBody] UserRoleAssignment assignment)
 
-public record UserRoleAssignment(string Username, string Role);
+public record UserRoleAssignment(string Role);
 ```
 
 **Request Body:**
 ```json
 {
-  "Username": "alice",
   "Role": "Editor"
 }
 ```
@@ -142,10 +147,13 @@ public record UserRoleAssignment(string Username, string Role);
 **Response:** 204 No Content on success
 
 **Implementation Notes:**
+- **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
+- **Validates workspace is a test workspace** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
 - Looks up workspace by Key via [`ITenantRepository.GetTenantByKeyAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L74)
-- Looks up user by `__TEST__{username}`
+- Looks up user by `__TEST__{username}` (from path parameter)
 - Calls [`ITenantRepository.AddUserTenantRoleAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L51) with specified role
 - Returns 404 if workspace or user not found
+- Returns 403 if username doesn't have `__TEST__` prefix OR workspace name doesn't have `__TEST__` prefix
 - Returns 409 if user already has a role in that workspace
 
 ---
@@ -156,11 +164,13 @@ public record UserRoleAssignment(string Username, string Role);
 
 **Endpoint:**
 ```csharp
-// POST /TestControl/workspaces/{workspaceKey}/transactions/seed
-[HttpPost("workspaces/{workspaceKey:guid}/transactions/seed")]
+// POST /TestControl/users/{username}/workspaces/{workspaceKey}/transactions/seed
+[HttpPost("users/{username}/workspaces/{workspaceKey:guid}/transactions/seed")]
 [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 public async Task<IActionResult> SeedTransactions(
+    string username,
     Guid workspaceKey,
     [FromBody] TransactionSeedRequest request)
 
@@ -195,14 +205,19 @@ public record TransactionSeedRequest(int Count, string PayeePrefix = "Test Trans
 ```
 
 **Implementation Notes:**
+- **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
+- **Validates workspace is a test workspace** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
+- **Validates user has a role on the workspace** - User must have some role assignment on the workspace (returns 403 if not)
 - Looks up workspace via [`ITenantRepository.GetTenantByKeyAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L74)
+- Looks up user by `__TEST__{username}` and verifies role on workspace
 - Sets [`TenantContext`](../../src/Controllers/Tenancy/Context/TenantContext.cs) to specified workspace
 - Creates `Count` transactions with auto-generated realistic data:
   - **Payee format:** `"{PayeePrefix} {i}"` (e.g., "Personal Expense 1", "Personal Expense 2")
   - **Amount:** Random between $10.00 and $500.00
   - **Date:** Distributed over last 30 days
 - Uses [`TransactionsFeature.AddTransactionAsync()`](../../src/Application/Features/TransactionsFeature.cs) for each transaction
-- Returns 404 if workspace not found
+- Returns 404 if workspace or user not found
+- Returns 403 if username doesn't have `__TEST__` prefix OR workspace name doesn't have `__TEST__` prefix OR user has no role on workspace
 
 ---
 
@@ -221,12 +236,13 @@ public async Task<IActionResult> DeleteAllTestData()
 **Response:** 204 No Content
 
 **Implementation Notes:**
-- Deletes all workspaces where owner has `__TEST__` prefix in username
+- Deletes all workspaces where name has `__TEST__` prefix
 - Deletes all test users (leverages existing [`DeleteUsersAsync()`](../../src/Controllers/TestControlController.cs#L109) functionality)
 - Relies on cascade delete configuration to remove:
   - User-tenant role assignments
   - Transactions belonging to test workspaces
 - More comprehensive than just deleting users
+- Double-safe: Deletes by workspace name prefix AND by user prefix
 
 ---
 
@@ -242,6 +258,7 @@ public async Task<IActionResult> DeleteAllTestData()
 [HttpPost("users/{username}/workspaces/bulk")]
 [ProducesResponseType(typeof(IReadOnlyCollection<WorkspaceSetupResult>), StatusCodes.Status201Created)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 public async Task<IActionResult> BulkWorkspaceSetup(
     string username,
     [FromBody] WorkspaceSetupRequest[] workspaces)
@@ -253,26 +270,29 @@ public record WorkspaceSetupResult(Guid Key, string Name, string Role);
 **Request Body:**
 ```json
 [
-  { "Name": "Personal", "Description": "My workspace", "Role": "Owner" },
-  { "Name": "Family Budget", "Description": "Shared workspace", "Role": "Editor" },
-  { "Name": "Tax Records", "Description": "Read-only access", "Role": "Viewer" }
+  { "Name": "__TEST__Personal", "Description": "My workspace", "Role": "Owner" },
+  { "Name": "__TEST__Family Budget", "Description": "Shared workspace", "Role": "Editor" },
+  { "Name": "__TEST__Tax Records", "Description": "Read-only access", "Role": "Viewer" }
 ]
 ```
 
 **Response:**
 ```json
 [
-  { "Key": "abc-123-def", "Name": "Personal", "Role": "Owner" },
-  { "Key": "xyz-789-ghi", "Name": "Family Budget", "Role": "Editor" },
-  { "Key": "mno-456-pqr", "Name": "Tax Records", "Role": "Viewer" }
+  { "Key": "abc-123-def", "Name": "__TEST__Personal", "Role": "Owner" },
+  { "Key": "xyz-789-ghi", "Name": "__TEST__Family Budget", "Role": "Editor" },
+  { "Key": "mno-456-pqr", "Name": "__TEST__Tax Records", "Role": "Viewer" }
 ]
 ```
 
 **Implementation Notes:**
+- **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
+- **Validates all workspace names have test prefix** - All workspace names must start with `__TEST__` prefix (returns 403 if any don't)
 - Convenience endpoint that combines multiple operations
 - For "Owner" role: Creates workspace with user as owner
 - For other roles: Creates workspace owned by a system user, then assigns specified role to target user
 - Returns keys for all created workspaces
+- Returns 403 if username doesn't have `__TEST__` prefix OR any workspace name doesn't have `__TEST__` prefix
 - Transactional: Either all succeed or all fail (rollback on error)
 
 ---
@@ -295,8 +315,8 @@ cd ../../tests/Functional
 The generated [`ApiClient.cs`](../../tests/Functional/Api/ApiClient.cs) will include:
 - `ITestControlClient.CreateBulkUsersAsync(string[] usernames)` → Returns `IReadOnlyCollection<TestUserCredentials>`
 - `ITestControlClient.CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request)`
-- `ITestControlClient.AssignUserToWorkspaceAsync(Guid workspaceKey, UserRoleAssignment assignment)`
-- `ITestControlClient.SeedTransactionsAsync(Guid workspaceKey, TransactionSeedRequest request)`
+- `ITestControlClient.AssignUserToWorkspaceAsync(string username, Guid workspaceKey, UserRoleAssignment assignment)`
+- `ITestControlClient.SeedTransactionsAsync(string username, Guid workspaceKey, TransactionSeedRequest request)`
 - `ITestControlClient.DeleteAllTestDataAsync()`
 - `ITestControlClient.BulkWorkspaceSetupAsync(string username, WorkspaceSetupRequest[] workspaces)`
 
@@ -412,15 +432,31 @@ protected async Task GivenIHaveAccessToTheseWorkspaces(DataTable workspaces)
 
 ## Security Considerations
 
-1. **Test-only restriction** - All endpoints only work with users/data containing `__TEST__` prefix
-2. **Development environment only** - Test Control API should be disabled in production via:
+1. **Test-only restriction** - All workspace-related endpoints validate that:
+   - Username contains `__TEST__` prefix (returns 403 Forbidden if not)
+   - Workspace name contains `__TEST__` prefix (returns 403 Forbidden if not)
+   - For workspace data operations (seed transactions): User must have an existing role on the workspace (returns 403 if not)
+   - This dual-prefix validation prevents accidental modification of production workspaces or data via Test Control API
+
+2. **Production tenant name validation** - The regular tenant management API (TenantController/TenantFeature) MUST reject tenant names starting with `__TEST__`:
+   - Add validation rule to prevent users from creating production tenants with `__TEST__` prefix
+   - This prevents users from accidentally creating tenants that could be deleted by Test Control cleanup
+   - Validation should return 400 Bad Request with clear error message: "Tenant names cannot start with '__TEST__' as this prefix is reserved for automated testing"
+   - Implementation location: Add to TenantEditDto validation or TenantFeature business logic
+   - **Important:** This creates intentional coupling between test infrastructure and production code for user safety
+
+3. **Development environment only** - Test Control API should be disabled in production via:
    ```csharp
    #if DEBUG
    builder.Services.AddControllers().AddApplicationPart(typeof(TestControlController).Assembly);
    #endif
    ```
-3. **No authentication required** - Test Control API bypasses authentication for convenience
-4. **Separate port/route** - Consider hosting on different port or under `/internal/test/` route
+
+4. **No authentication required** - Test Control API bypasses authentication for convenience in tests
+
+5. **Separate port/route** - Consider hosting on different port or under `/internal/test/` route
+
+6. **Role validation** - Workspace operations require user to already have a role assignment, preventing unauthorized access to arbitrary workspaces
 
 ---
 
