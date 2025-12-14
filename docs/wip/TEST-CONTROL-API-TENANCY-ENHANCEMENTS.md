@@ -109,9 +109,9 @@ public record WorkspaceCreateRequest(string Name, string Description, string Rol
 **Implementation Notes:**
 - **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
 - **Validates workspace name has test prefix** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
-- Looks up user by `__TEST__{username}` format
+- Looks up user by `__TEST__{username}` format via `UserManager.FindByNameAsync()`
 - Calls [`TenantFeature.CreateTenantForUserAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L22)
-- Sets specified role via [`ITenantRepository.AddUserTenantRoleAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L51)
+- Sets specified role via [`TenantFeature.AddUserTenantRoleAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L188)
 - Returns 404 if user not found
 - Returns 403 if username doesn't have `__TEST__` prefix OR workspace name doesn't have `__TEST__` prefix
 
@@ -149,12 +149,12 @@ public record UserRoleAssignment(string Role);
 **Implementation Notes:**
 - **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
 - **Validates workspace is a test workspace** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
-- Looks up workspace by Key via [`ITenantRepository.GetTenantByKeyAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L74)
-- Looks up user by `__TEST__{username}` (from path parameter)
-- Calls [`ITenantRepository.AddUserTenantRoleAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L51) with specified role
+- Looks up workspace by Key via [`TenantFeature.GetTenantByKeyAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L176)
+- Looks up user by `__TEST__{username}` via `UserManager.FindByNameAsync()`
+- Calls [`TenantFeature.AddUserTenantRoleAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L188) with specified role
 - Returns 404 if workspace or user not found
 - Returns 403 if username doesn't have `__TEST__` prefix OR workspace name doesn't have `__TEST__` prefix
-- Returns 409 if user already has a role in that workspace
+- Returns 409 if user already has a role in that workspace (DuplicateUserTenantRoleException)
 
 ---
 
@@ -208,8 +208,9 @@ public record TransactionSeedRequest(int Count, string PayeePrefix = "Test Trans
 - **Validates user is a test user** - Username must start with `__TEST__` prefix (returns 403 if not)
 - **Validates workspace is a test workspace** - Workspace name must start with `__TEST__` prefix (returns 403 if not)
 - **Validates user has a role on the workspace** - User must have some role assignment on the workspace (returns 403 if not)
-- Looks up workspace via [`ITenantRepository.GetTenantByKeyAsync()`](../../src/Entities/Tenancy/Providers/ITenantRepository.cs#L74)
-- Looks up user by `__TEST__{username}` and verifies role on workspace
+- Looks up workspace via [`TenantFeature.GetTenantByKeyAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L176)
+- Looks up user by `__TEST__{username}` via `UserManager.FindByNameAsync()`
+- Verifies user has role on workspace via [`TenantFeature.HasUserTenantRoleAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L244)
 - Sets [`TenantContext`](../../src/Controllers/Tenancy/Context/TenantContext.cs) to specified workspace
 - Creates `Count` transactions with auto-generated realistic data:
   - **Payee format:** `"{PayeePrefix} {i}"` (e.g., "Personal Expense 1", "Personal Expense 2")
@@ -236,7 +237,7 @@ public async Task<IActionResult> DeleteAllTestData()
 **Response:** 204 No Content
 
 **Implementation Notes:**
-- Deletes all workspaces where name has `__TEST__` prefix
+- Deletes all workspaces where name has `__TEST__` prefix via [`TenantFeature.GetTenantsByNamePrefixAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L217) and [`TenantFeature.DeleteTenantsByKeysAsync()`](../../src/Controllers/Tenancy/Features/TenantFeature.cs#L236)
 - Deletes all test users (leverages existing [`DeleteUsersAsync()`](../../src/Controllers/TestControlController.cs#L109) functionality)
 - Relies on cascade delete configuration to remove:
   - User-tenant role assignments

@@ -165,6 +165,89 @@ public class TenantFeature(ITenantRepository tenantRepository, UserManager<Ident
     }
 
     /// <summary>
+    /// Retrieves a tenant by its unique key without user access checks.
+    /// </summary>
+    /// <param name="tenantKey">The unique key of the tenant to retrieve.</param>
+    /// <returns>The tenant if found; otherwise, null.</returns>
+    /// <remarks>
+    /// This method bypasses user access validation and is intended for administrative
+    /// or test control scenarios. For user-facing operations, use GetTenantForUserAsync instead.
+    /// </remarks>
+    public async Task<Tenant?> GetTenantByKeyAsync(Guid tenantKey)
+    {
+        return await tenantRepository.GetTenantByKeyAsync(tenantKey);
+    }
+
+    /// <summary>
+    /// Assigns a role to a user for a specific tenant.
+    /// </summary>
+    /// <param name="userId">The unique identifier of the user to assign the role to.</param>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="role">The role to assign to the user.</param>
+    /// <exception cref="DuplicateUserTenantRoleException">Thrown when the user already has a role in the tenant.</exception>
+    public async Task AddUserTenantRoleAsync(Guid userId, long tenantId, TenantRole role)
+    {
+        await tenantRepository.AddUserTenantRoleAsync(new UserTenantRoleAssignment
+        {
+            UserId = userId.ToString(),
+            TenantId = tenantId,
+            Role = role
+        });
+    }
+
+    /// <summary>
+    /// Retrieves all tenants whose names start with the specified prefix.
+    /// </summary>
+    /// <param name="namePrefix">The prefix to filter tenant names by.</param>
+    /// <returns>A collection of tenants matching the prefix.</returns>
+    /// <remarks>
+    /// This method is useful for bulk operations on test data or administrative tasks
+    /// where tenants are identified by naming conventions.
+    /// </remarks>
+    public async Task<IReadOnlyCollection<Tenant>> GetTenantsByNamePrefixAsync(string namePrefix)
+    {
+        var allRoles = await tenantRepository.GetUserTenantRolesAsync(string.Empty);
+        var matchingTenants = allRoles
+            .Where(r => r.Tenant != null && r.Tenant.Name.StartsWith(namePrefix, StringComparison.Ordinal))
+            .Select(r => r.Tenant!)
+            .DistinctBy(t => t.Id)
+            .ToList();
+        return matchingTenants;
+    }
+
+    /// <summary>
+    /// Deletes multiple tenants by their unique keys.
+    /// </summary>
+    /// <param name="tenantKeys">The collection of tenant keys to delete.</param>
+    /// <remarks>
+    /// This method is intended for bulk cleanup operations such as removing test data.
+    /// Each tenant is deleted individually without user access validation.
+    /// </remarks>
+    public async Task DeleteTenantsByKeysAsync(IReadOnlyCollection<Guid> tenantKeys)
+    {
+        foreach (var key in tenantKeys)
+        {
+            var tenant = await tenantRepository.GetTenantByKeyAsync(key);
+            if (tenant != null)
+            {
+                await tenantRepository.DeleteTenantAsync(tenant);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies if a user has any role assignment for a specific tenant.
+    /// </summary>
+    /// <param name="userId">The user identifier.</param>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <returns>True if the user has a role in the tenant; otherwise, false.</returns>
+    public async Task<bool> HasUserTenantRoleAsync(Guid userId, long tenantId)
+    {
+        var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenantId);
+        return role != null;
+    }
+
+    /// <summary>
     /// Gets the user name for the specified user ID.
     /// </summary>
     /// <param name="userId">The user identifier.</param>
