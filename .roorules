@@ -1,5 +1,76 @@
 # Project Rules for YoFi.V3
 
+## Testing Framework Pattern
+
+**Always use NUnit for all testing recommendations and examples.**
+
+1. **NUnit is the standard** - This project uses NUnit as its testing framework. All test recommendations, examples, and new test projects must use NUnit, NOT xUnit or MSTest.
+
+2. **Test attributes** - Use NUnit attributes:
+   - `[Test]` for test methods
+   - `[TestFixture]` for test classes
+   - `[SetUp]` and `[TearDown]` for test lifecycle
+   - `[OneTimeSetUp]` and `[OneTimeTearDown]` for fixture lifecycle
+   - `[TestCase]` for parameterized tests
+   - `[Explicit]` for tests that should not run by default
+
+3. **Assertions** - Use NUnit's constraint-based assertion syntax:
+   ```csharp
+   Assert.That(actual, Is.EqualTo(expected));
+   Assert.That(collection, Is.Not.Empty);
+   Assert.That(result, Is.Null);
+   ```
+
+4. **Creating new test projects** - When recommending creation of new test projects, use:
+   ```bash
+   dotnet new nunit -n ProjectName
+   ```
+   NOT `dotnet new xunit` or `dotnet new mstest`.
+
+5. **Package references** - New test projects should reference:
+   - `NUnit` (test framework)
+   - `NUnit3TestAdapter` (test adapter for test runners)
+   - `Microsoft.NET.Test.Sdk` (test platform)
+
+### Example: NUnit Test Structure
+
+```csharp
+using NUnit.Framework;
+
+[TestFixture]
+public class MyServiceTests
+{
+    private MyService _service;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _service = new MyService();
+    }
+
+    [Test]
+    public void MyMethod_ValidInput_ReturnsExpectedResult()
+    {
+        // Given: Valid input data
+        var input = "test";
+
+        // When: Method is called
+        var result = _service.MyMethod(input);
+
+        // Then: Expected result is returned
+        Assert.That(result, Is.EqualTo("TEST"));
+    }
+
+    [TestCase("hello", "HELLO")]
+    [TestCase("world", "WORLD")]
+    public void MyMethod_VariousInputs_ReturnsUpperCase(string input, string expected)
+    {
+        var result = _service.MyMethod(input);
+        Assert.That(result, Is.EqualTo(expected));
+    }
+}
+```
+
 ## Logging Pattern
 
 **Always follow these logging conventions:**
