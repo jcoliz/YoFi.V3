@@ -291,7 +291,7 @@ public abstract class AuthenticationSteps : FunctionalTest
         var registerPage = GetOrCreateRegisterPage();
 
         // Get the existing user from object store
-        var existingUser = It<Generated.TestUser>();
+        var existingUser = It<Generated.TestUserCredentials>();
 
         // Create a new username but use the existing email
         var newUsername = $"__DUPLICATE__{existingUser.Username}";
@@ -380,7 +380,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
     {
         var basePage = new BasePage(Page);
-        var testuser = It<Generated.TestUser>();
+        var testuser = It<Generated.TestUserCredentials>();
         var usernameInHeader = await basePage.SiteHeader.LoginState.GetUsernameAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
     }
@@ -456,7 +456,7 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task ThenIShouldSeeMyAccountInformation()
     {
         var profilePage = GetOrCreateProfilePage();
-        var testuser = It<Generated.TestUser>();
+        var testuser = It<Generated.TestUserCredentials>();
 
         Assert.That(await profilePage.HasAccountInformationAsync(testuser.Email, testuser.Username), Is.True,
             "Should display correct account information");

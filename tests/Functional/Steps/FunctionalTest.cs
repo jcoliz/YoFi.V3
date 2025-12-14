@@ -142,7 +142,7 @@ public abstract class FunctionalTest : PageTest
     /// </summary>
     protected async Task GivenIHaveAnExistingAccount()
     {
-        if (_objectStore.Contains<Generated.TestUser>())
+        if (_objectStore.Contains<Generated.TestUserCredentials>())
             return;
         await testControlClient.DeleteUsersAsync();
         var user = await testControlClient.CreateUserAsync();
@@ -206,7 +206,7 @@ public abstract class FunctionalTest : PageTest
     {
         var loginPage = GetOrCreateLoginPage();
 
-        var testuser = It<Generated.TestUser>();
+        var testuser = It<Generated.TestUserCredentials>();
 
         await loginPage.EnterCredentialsAsync(testuser.Username, testuser.Password);
     }
