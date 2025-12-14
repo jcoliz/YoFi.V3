@@ -7,12 +7,51 @@
 
 YoFi.V3 implements a role-based multi-tenancy system where users can access multiple "workspaces" (tenants in implementation terms), each representing an isolated set of financial data. The implementation uses a lightweight pattern that provides complete data isolation while maintaining excellent performance.
 
+### Design Goal: Microsoft Multi-Tenant Pattern Compliance
+
+**Our goal is 100% compliance with Microsoft's official multi-tenancy architectural guidance**, specifically the [Multi-tenant SaaS database tenancy patterns](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/tenancy-models) and [Multi-tenant application architecture](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/overview) recommendations. Within the constraint of using the **Shared Database, Shared Schema** tenancy model, we follow Microsoft's best practices for security, authorization, and tenant isolation.
+
+**Why Microsoft Patterns?**
+- Industry-standard architectural guidance
+- Battle-tested patterns for SaaS applications
+- Clear security and scalability recommendations
+- Well-documented best practices for multi-tenant systems
+
+For detailed analysis of our compliance with Microsoft patterns, see [TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md](wip/tenancy/TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md).
+
 **Key Features:**
 - Complete tenant data isolation with single enforcement point
 - Role-based access control (Viewer, Editor, Owner)
 - Security-first design preventing tenant enumeration
 - JWT claims-based authorization
 - Middleware-driven tenant context management
+
+### Microsoft Pattern Compliance
+
+YoFi.V3 implements the following Microsoft-recommended patterns:
+
+**Database Architecture:**
+- ✅ **Shared Database, Shared Schema with Tenant Discriminator** - Microsoft's recommended approach for cost-effective SaaS applications with many small-to-medium tenants
+- ✅ **Foreign Key Constraints** - Tenant relationship integrity enforced at database level
+- ✅ **Indexed Discriminator Columns** - Performance-optimized queries with indexes on [`TenantId`](../src/Entities/Tenancy/ITenantModel.cs)
+
+**Security & Authorization:**
+- ✅ **Claims-Based Authorization** - JWT tokens with tenant role claims following Microsoft's OAuth/OIDC patterns
+- ✅ **Tenant Enumeration Prevention** - Both "not found" and "no access" return 403 Forbidden (exceeds typical 404/403 patterns)
+- ✅ **Row-Level Security** - Automatic tenant filtering at SQL level via discriminator pattern
+- ✅ **Authentication/Authorization Separation** - Proper middleware pipeline ordering
+
+**Architecture Patterns:**
+- ✅ **Single Enforcement Point** - All queries filtered through [`GetBaseTransactionQuery()`](../src/Application/Features/TransactionsFeature.cs:151-157) pattern
+- ✅ **Early Tenant Context Establishment** - Tenant validated during authorization, context set before business logic
+- ✅ **Scoped Tenant Context** - [`ITenantProvider`](../src/Entities/Tenancy/ITenantProvider.cs) with request-scoped lifetime
+- ✅ **Declarative Authorization** - [`[RequireTenantRole]`](../src/Controllers/Tenancy/RequireTenantRoleAttribute.cs) attributes on controllers
+
+**Data Management:**
+- ✅ **Cascade Delete** - Tenant deletion properly removes all associated data
+- ✅ **Role Hierarchy** - Owner > Editor > Viewer permissions following RBAC best practices
+
+For comprehensive analysis and comparison matrix, see [TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md](wip/tenancy/TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md).
 
 ## Architecture
 

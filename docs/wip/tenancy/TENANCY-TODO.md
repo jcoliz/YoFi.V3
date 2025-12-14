@@ -1,11 +1,136 @@
 # Tenancy Remaining Work
 
-**Last Updated:** 2025-12-10
-**Status:** Core tenancy features production-ready; enhancements and management features remain
+**Last Updated:** 2025-12-14
+**Status:** Core tenancy features production-ready; working toward 100% Microsoft pattern compliance
+**Goal:** Achieve full compliance with [Microsoft Multi-tenant SaaS patterns](https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/considerations/tenancy-models)
 
 ## Overview
 
-The core tenancy implementation (isolation, authorization, security) is complete and production-ready. Remaining work focuses on tenant management operations and optional enhancements.
+The core tenancy implementation (isolation, authorization, security) is complete and production-ready with excellent alignment to Microsoft patterns. Remaining work focuses on achieving 100% compliance with Microsoft's multi-tenancy recommendations, particularly in lifecycle management, audit logging, and documentation.
+
+For detailed compliance analysis, see [TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md](TENANCY-MICROSOFT-PATTERNS-ANALYSIS.md).
+
+## Microsoft Pattern Compliance Items
+
+These items are required to achieve 100% compliance with Microsoft's multi-tenancy architectural guidance.
+
+### Critical for Microsoft Compliance
+
+#### 1. Tenant Lifecycle Management (Soft Delete)
+
+**Microsoft Guidance:** "Plan for tenant onboarding, suspension, reactivation, and deletion. Implement soft delete where appropriate."
+
+**Current State:** Properties scaffolded but commented out in [`Tenant.cs`](../../../src/Entities/Tenancy/Tenant.cs:30-34)
+
+**Required Implementation:**
+- [ ] Activate `IsActive`, `DeactivatedAt`, `DeactivatedByUserId` properties in [`Tenant`](../../../src/Entities/Tenancy/Tenant.cs)
+- [ ] Add database migration for new columns
+- [ ] Add index on `Tenant.IsActive` for query performance
+- [ ] Update all tenant queries to filter by `IsActive = true`
+- [ ] Implement `POST /api/tenant/{tenantKey}/deactivate` endpoint
+- [ ] Implement `POST /api/tenant/{tenantKey}/reactivate` endpoint
+- [ ] Add business rules:
+  - Only Owners can deactivate/reactivate
+  - Cannot deactivate if user's only tenant (prevent lock-out)
+  - Deactivated tenants return 403 Forbidden (maintain enumeration prevention)
+- [ ] Add functional tests for activation lifecycle
+- [ ] Document soft delete behavior in [`TENANCY.md`](../../TENANCY.md)
+
+**Priority:** High (required for full Microsoft compliance)
+
+#### 2. Audit Logging for Tenant Access
+
+**Microsoft Guidance:** "Document isolation boundaries. Implement audit logging. Support data export/deletion for GDPR compliance."
+
+**Current State:** Basic structured logging exists, no tenant-specific audit trail
+
+**Required Implementation:**
+- [ ] Create `ITenantAuditLogger` interface
+- [ ] Create audit log entity with:
+  - Tenant ID, User ID, Action, Timestamp, IP Address, Details
+- [ ] Add database migration for audit table
+- [ ] Implement audit logging for:
+  - Tenant access (successful and failed)
+  - Tenant CRUD operations
+  - User role changes
+  - Tenant activation/deactivation
+- [ ] Add `GET /api/tenant/{tenantKey}/audit-log` endpoint (Owner-only)
+- [ ] Add retention policy configuration for audit logs
+- [ ] Add unit tests for audit logger
+- [ ] Add integration tests for audit log API
+- [ ] Document audit logging in [`TENANCY.md`](../../TENANCY.md)
+
+**Priority:** High (compliance and security requirement)
+
+#### 3. Document Scalability Migration Path
+
+**Microsoft Guidance:** "For shared schema, monitor database size. Plan for vertical scaling, read replicas, or sharding if tenant growth is unbounded."
+
+**Current State:** SQLite suitable for development/small scale, no documented migration path
+
+**Required Documentation:**
+- [ ] Create `docs/wip/tenancy/TENANCY-SCALABILITY-GUIDE.md` covering:
+  - SQLite → PostgreSQL migration steps
+  - SQLite → SQL Server migration steps
+  - Connection pooling configuration
+  - Read replica setup patterns
+  - Caching strategies (tenant metadata)
+  - Performance monitoring guidance
+  - When to consider database-per-tenant model
+- [ ] Add scalability section to [`TENANCY.md`](../../TENANCY.md)
+- [ ] Document composite index recommendations for common query patterns
+- [ ] Provide example `CachedTenantRepository` implementation
+
+**Priority:** High (documentation requirement for production use)
+
+#### 4. Caching Pattern Documentation
+
+**Microsoft Guidance:** "Use caching for tenant metadata. Consider distributed cache for multi-instance deployments. Cache per tenant, not globally."
+
+**Current State:** No caching layer (appropriate for library), but patterns not documented
+
+**Required Documentation:**
+- [ ] Add caching patterns section to [`TENANCY.md`](../../TENANCY.md)
+- [ ] Provide example `CachedTenantRepository` wrapper implementation
+- [ ] Document distributed cache considerations (Redis, Azure Cache)
+- [ ] Document cache key patterns (e.g., `tenant:{key}`)
+- [ ] Document cache invalidation strategies
+- [ ] Provide example integration with `IMemoryCache` and `IDistributedCache`
+
+**Priority:** Medium (documentation for users to implement)
+
+### Compliance Enhancements
+
+#### 5. Data Export for GDPR Compliance
+
+**Microsoft Guidance:** "Support tenant data export (GDPR Article 20). Implement complete data deletion (GDPR Article 17)."
+
+**Current State:** Deletion supported via cascade, no export functionality
+
+**Required Implementation:**
+- [ ] Document data export pattern in [`TENANCY.md`](../../TENANCY.md)
+- [ ] Provide example `ExportTenantDataAsync()` implementation
+- [ ] Document data retention policies
+- [ ] Add guidance for implementing GDPR-compliant export (JSON, CSV formats)
+- [ ] Document complete deletion verification process
+
+**Priority:** Medium (application-level concern, provide guidance)
+
+#### 6. Tenant Configuration System
+
+**Microsoft Guidance:** "Support per-tenant configuration where needed. Store tenant settings separately from shared configuration."
+
+**Current State:** Minimal tenant metadata (name, description only)
+
+**Required Implementation (if needed):**
+- [ ] Design tenant configuration schema (JSON column vs separate table)
+- [ ] Implement `TenantConfiguration` entity/table
+- [ ] Add configuration CRUD endpoints
+- [ ] Add validation for configuration keys/values
+- [ ] Document configuration patterns
+- [ ] Consider separate package: `JColiz.MultiTenant.Configuration`
+
+**Priority:** Low (implement when specific per-tenant settings needed)
 
 ## High Priority
 
@@ -69,25 +194,6 @@ The core tenancy implementation (isolation, authorization, security) is complete
 
 ## Medium Priority
 
-### 4. Tenant Deactivation/Soft Delete
-
-**Current State:** Deactivation properties commented out in [`Tenant`](../../src/Entities/Tenancy/Tenant.cs:30-34)
-
-**When Implemented:**
-```csharp
-public bool IsActive { get; set; } = true;
-public DateTimeOffset? DeactivatedAt { get; set; }
-public string? DeactivatedByUserId { get; set; }
-```
-
-**Requirements:**
-- Soft-delete behavior (inactive tenants return 403)
-- Reactivation endpoint (only for inactive tenants)
-- Index on `Tenant.IsActive` for performance
-- Hard delete with safety checks (must be inactive for 1+ week)
-- Only Owners can deactivate/reactivate
-- Cannot deactivate if user's only tenant (prevent lock-out)
-
 ### 5. Tenant Quotas and Limits
 
 **Future Consideration:** Rate limiting or resource quotas per tenant
@@ -98,20 +204,7 @@ public string? DeactivatedByUserId { get; set; }
 - API rate limiting per tenant
 - Concurrent user limits
 
-### 6. Audit Logging for Tenant Operations
-
-**Track:**
-- Tenant creation/deletion
-- User role assignments/changes
-- Tenant configuration changes
-- Access attempts (successful and failed)
-
-**Implementation:**
-- Separate audit log table
-- Log entries with timestamp, user, action, tenant
-- Read-only audit API for Owners
-
-### 7. Tenant Invitation System
+### 6. Tenant Invitation System
 
 **Current State:** Out of scope for initial tenancy feature
 
@@ -210,6 +303,48 @@ If extracting tenancy into a reusable NuGet package:
 - Default tenant creation for existing data
 - User-to-tenant assignment script
 - Backward compatibility considerations
+
+## Microsoft Compliance Checklist
+
+Track progress toward 100% Microsoft pattern compliance:
+
+| Pattern/Practice | Status | Priority | Notes |
+|------------------|--------|----------|-------|
+| **Core Architecture** | | | |
+| Shared DB, Shared Schema | ✅ Complete | - | Production-ready |
+| Tenant Discriminator | ✅ Complete | - | `TenantId` with FK |
+| Query Filtering | ✅ Complete | - | Single enforcement point |
+| Foreign Keys & Indexes | ✅ Complete | - | Proper constraints |
+| **Security & Authorization** | | | |
+| Claims-Based RBAC | ✅ Complete | - | JWT with tenant roles |
+| Enumeration Prevention | ✅ Complete | - | 403 for not-found/denied |
+| Pipeline Ordering | ✅ Complete | - | Auth → Context → Business |
+| Tenant Context | ✅ Complete | - | Scoped per request |
+| **Lifecycle Management** | | | |
+| Tenant Onboarding | ✅ Complete | - | Create endpoint |
+| Tenant Deletion | ✅ Complete | - | Cascade delete |
+| Soft Delete/Suspension | ⚠️ Partial | High | Properties scaffolded |
+| Reactivation | ❌ Missing | High | Needs implementation |
+| **Compliance & Audit** | | | |
+| Audit Logging | ⚠️ Partial | High | Basic logging only |
+| Tenant Access Tracking | ❌ Missing | High | Needs implementation |
+| Data Export (GDPR) | ⚠️ Guidance | Medium | Document pattern |
+| Data Deletion | ✅ Complete | - | Cascade delete |
+| **Scalability** | | | |
+| Abstraction for Scaling | ✅ Complete | - | Repository pattern |
+| Scalability Documentation | ❌ Missing | High | Needs creation |
+| Caching Patterns | ❌ Missing | Medium | Document for users |
+| Resource Limits | ⚠️ N/A | - | Application concern |
+| **Configuration** | | | |
+| Per-Tenant Settings | ⚠️ Optional | Low | Future enhancement |
+
+**Legend:**
+- ✅ Complete - Fully implemented
+- ⚠️ Partial - Partially implemented, needs completion
+- ⚠️ N/A - Not applicable to library (application concern)
+- ⚠️ Guidance - Document pattern for users
+- ⚠️ Optional - Not critical for current scope
+- ❌ Missing - Needs implementation
 
 ## Notes
 

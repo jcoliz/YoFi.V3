@@ -84,22 +84,41 @@ graph TB
 
 ### Package Structure
 
-**Package 1: `JColiz.MultiTenant.Core`** (Framework-agnostic)
+**Following Microsoft.Extensions.Logging pattern with 3 packages:**
+
+**Package 1: `JColiz.MultiTenant.Abstractions`** (Minimal interfaces)
 ```
-JColiz.MultiTenant.Core/
+JColiz.MultiTenant.Abstractions/
+├── ITenantModel.cs          # Interface for tenant-scoped entities
+├── ITenantProvider.cs       # Interface for accessing current tenant
+└── ITenantRepository.cs     # Interface for tenant data operations
+
+Dependencies: None (zero dependencies for maximum compatibility)
+Purpose: Allow other projects (like Entities) to depend on tenant concepts
+         without pulling in implementations or ASP.NET Core
+```
+
+**Package 2: `JColiz.MultiTenant`** (Domain models and exceptions)
+```
+JColiz.MultiTenant/
 ├── Models/
 │   ├── Tenant.cs
 │   ├── UserTenantRoleAssignment.cs
-│   ├── TenantRole.cs
-│   └── ITenantModel.cs
-├── Providers/
-│   ├── ITenantProvider.cs
-│   └── ITenantRepository.cs
+│   └── TenantRole.cs
 └── Exceptions/
-    └── [8 exception types]
+    ├── TenancyException.cs (base)
+    ├── TenantNotFoundException.cs
+    ├── TenantAccessDeniedException.cs
+    ├── UserTenantRoleNotFoundException.cs
+    ├── DuplicateUserTenantRoleException.cs
+    ├── TenantContextNotSetException.cs
+    └── TenancyResourceNotFoundException.cs
+
+Dependencies: JColiz.MultiTenant.Abstractions
+Purpose: Provides concrete domain models and business exceptions
 ```
 
-**Package 2: `JColiz.MultiTenant.AspNetCore`** (ASP.NET Core integration)
+**Package 3: `JColiz.MultiTenant.AspNetCore`** (ASP.NET Core integration)
 ```
 JColiz.MultiTenant.AspNetCore/
 ├── Authorization/
@@ -118,7 +137,17 @@ JColiz.MultiTenant.AspNetCore/
 ├── Exceptions/
 │   └── TenancyExceptionHandler.cs
 └── ServiceCollectionExtensions.cs
+
+Dependencies: JColiz.MultiTenant.Abstractions, JColiz.MultiTenant, ASP.NET Core packages
+Purpose: Complete ASP.NET Core integration with middleware, authorization, and API
 ```
+
+**Why 3 packages?**
+- ✅ **Abstractions package** - Allows Entities project to depend on `ITenantModel` without AspNetCore
+- ✅ **Base package** - Domain models and exceptions that don't need web infrastructure
+- ✅ **AspNetCore package** - Web-specific implementations and middleware
+- ✅ **Follows Microsoft pattern** - Same structure as Microsoft.Extensions.Logging
+- ✅ **Minimal dependencies** - Each package has exactly what it needs
 
 ### Claims Provider Abstraction
 
