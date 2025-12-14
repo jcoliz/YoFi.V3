@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using NuxtIdentity.Core.Abstractions;
+using YoFi.V3.Application.Tenancy.Features;
 using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Controllers.Tenancy.Context;
-using YoFi.V3.Controllers.Tenancy.Features;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 

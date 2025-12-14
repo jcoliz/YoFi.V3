@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using YoFi.V3.Controllers.Tenancy.Api.Dto;
+using YoFi.V3.Application.Tenancy.Dto;
+using YoFi.V3.Application.Tenancy.Features;
 using YoFi.V3.Controllers.Tenancy.Authorization;
-using YoFi.V3.Controllers.Tenancy.Features;
 using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers.Tenancy.Api;

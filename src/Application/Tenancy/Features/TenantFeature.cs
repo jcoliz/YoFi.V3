@@ -1,17 +1,15 @@
-using Microsoft.AspNetCore.Identity;
-using YoFi.V3.Controllers.Tenancy.Api.Dto;
+using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
-namespace YoFi.V3.Controllers.Tenancy.Features;
+namespace YoFi.V3.Application.Tenancy.Features;
 
 /// <summary>
 /// Provides tenant management operations including tenant creation and user-tenant role retrieval.
 /// </summary>
 /// <param name="tenantRepository">The repository for tenant data operations.</param>
-/// <param name="userManager">Manager for user operations.</param>
-public class TenantFeature(ITenantRepository tenantRepository, UserManager<IdentityUser> userManager)
+public class TenantFeature(ITenantRepository tenantRepository)
 {
     /// <summary>
     /// Creates a new tenant and assigns the specified user as the owner.
@@ -84,8 +82,8 @@ public class TenantFeature(ITenantRepository tenantRepository, UserManager<Ident
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            var userName = await GetUserNameAsync(userId);
-            throw new TenantAccessDeniedException(userId, userName, tenantKey);
+            // Username will be resolved downstream by exception handler if needed
+            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
         }
 
         return new TenantRoleResultDto(
@@ -119,8 +117,8 @@ public class TenantFeature(ITenantRepository tenantRepository, UserManager<Ident
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            var userName = await GetUserNameAsync(userId);
-            throw new TenantAccessDeniedException(userId, userName, tenantKey);
+            // Username will be resolved downstream by exception handler if needed
+            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
         }
 
         // Update the tenant properties
@@ -157,8 +155,8 @@ public class TenantFeature(ITenantRepository tenantRepository, UserManager<Ident
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenant.Id);
         if (role == null)
         {
-            var userName = await GetUserNameAsync(userId);
-            throw new TenantAccessDeniedException(userId, userName, tenantKey);
+            // Username will be resolved downstream by exception handler if needed
+            throw new TenantAccessDeniedException(userId, string.Empty, tenantKey);
         }
 
         await tenantRepository.DeleteTenantAsync(tenant);
@@ -245,16 +243,5 @@ public class TenantFeature(ITenantRepository tenantRepository, UserManager<Ident
     {
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenantId);
         return role != null;
-    }
-
-    /// <summary>
-    /// Gets the user name for the specified user ID.
-    /// </summary>
-    /// <param name="userId">The user identifier.</param>
-    /// <returns>The user name, or the user ID as a string if user not found.</returns>
-    private async Task<string> GetUserNameAsync(Guid userId)
-    {
-        var user = await userManager.FindByIdAsync(userId.ToString());
-        return user?.UserName ?? userId.ToString();
     }
 }

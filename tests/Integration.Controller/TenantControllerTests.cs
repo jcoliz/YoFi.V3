@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using YoFi.V3.Controllers.Tenancy.Api.Dto;
+using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Tests.Integration.Controller.TestHelpers;

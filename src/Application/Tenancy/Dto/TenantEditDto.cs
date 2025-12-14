@@ -1,4 +1,4 @@
-namespace YoFi.V3.Controllers.Tenancy.Api.Dto;
+namespace YoFi.V3.Application.Tenancy.Dto;
 
 /// <summary>
 /// Data transfer object for creating or editing a tenant.

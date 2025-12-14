@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NuxtIdentity.AspNetCore.Controllers;
 using NuxtIdentity.Core.Abstractions;
-using YoFi.V3.Controllers.Tenancy.Api.Dto;
-using YoFi.V3.Controllers.Tenancy.Features;
+using YoFi.V3.Application.Tenancy.Dto;
+using YoFi.V3.Application.Tenancy.Features;
 
 namespace YoFi.V3.Controllers;
 
