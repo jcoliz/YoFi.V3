@@ -146,17 +146,17 @@ Rule: Permission Levels
         And I can remove the workspace if needed
 
 Rule: Privacy and Security
-    Users cannot discover or access workspaces they don't have permission to use
+    Users can only see and access workspaces they have permission to use
 
-    Scenario: User cannot discover workspaces they don't have access to
+    Scenario: Workspace list shows only accessible workspaces
         Given I am logged in as "bob"
-        When I try to access a workspace I don't have permission to use
-        Then I should not be able to see or access any data
-        And I should not be able to tell if that workspace exists or not
-
-    Scenario: Workspace access is strictly controlled
-        Given I am logged in as "charlie"
-        And there is a workspace called "Private Data" that I don't have access to
-        When I try to access "Private Data"
-        Then I should be prevented from accessing it
-        And the response should not reveal whether the workspace exists
+        And I have access to "Family Budget"
+        And there are other workspaces in the system:
+            | Workspace Name  | Owner   |
+            | Private Data    | alice   |
+            | Charlie's Taxes | charlie |
+        When I view my workspace list
+        Then I should see only "Family Budget" in my list
+        And I should not see "Private Data" in my list
+        And I should not see "Charlie's Taxes" in my list
+        And the workspace count should be 1

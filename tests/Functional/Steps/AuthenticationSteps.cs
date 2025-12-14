@@ -122,8 +122,8 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenIEnterMyCredentials(DataTable credentialsData)
     {
         var loginPage = GetOrCreateLoginPage();
-        var email = GetTableValue(credentialsData, "Email");
-        var password = GetTableValue(credentialsData, "Password");
+        var email = credentialsData.GetKeyValue("Email");
+        var password = credentialsData.GetKeyValue("Password");
 
         await loginPage.EnterCredentialsAsync(email, password);
     }
@@ -142,8 +142,8 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenIEnterInvalidCredentials(DataTable credentialsData)
     {
         var loginPage = GetOrCreateLoginPage();
-        var email = GetTableValue(credentialsData, "Email");
-        var password = GetTableValue(credentialsData, "Password");
+        var email = credentialsData.GetKeyValue("Email");
+        var password = credentialsData.GetKeyValue("Password");
 
         await loginPage.EnterCredentialsAsync(email, password);
     }
@@ -232,8 +232,8 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenIEnterRegistrationDetailsWithAWeakPassword(DataTable registrationData)
     {
         var registerPage = GetOrCreateRegisterPage();
-        var email = registrationData.GetValue("Email");
-        var password = registrationData.GetValue("Password");
+        var email = registrationData.GetKeyValue("Email");
+        var password = registrationData.GetKeyValue("Password");
 
         await registerPage.EnterWeakPasswordDetailsAsync(email, "newuser", password);
     }
@@ -263,9 +263,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenIEnterRegistrationDetailsWithMismatchedPasswords(DataTable registrationData)
     {
         var registerPage = GetOrCreateRegisterPage();
-        var email = registrationData.GetValue("Email");
-        var password = registrationData.GetValue("Password");
-        var confirmPassword = registrationData.GetValue("Confirm Password");
+        var email = registrationData.GetKeyValue("Email");
+        var password = registrationData.GetKeyValue("Password");
+        var confirmPassword = registrationData.GetKeyValue("Confirm Password");
 
         await registerPage.EnterMismatchedPasswordDetailsAsync(email, "newuser", password, confirmPassword);
     }
@@ -276,9 +276,9 @@ public abstract class AuthenticationSteps : FunctionalTest
     protected async Task WhenIEnterRegistrationDetails(DataTable registrationData)
     {
         var registerPage = GetOrCreateRegisterPage();
-        var email = registrationData.GetValue("Email");
-        var password = registrationData.GetValue("Password");
-        var confirmPassword = registrationData.GetValue("Confirm Password");
+        var email = registrationData.GetKeyValue("Email");
+        var password = registrationData.GetKeyValue("Password");
+        var confirmPassword = registrationData.GetKeyValue("Confirm Password");
 
         await registerPage.EnterRegistrationDetailsAsync(email, "existinguser", password, confirmPassword);
     }
@@ -593,21 +593,6 @@ public abstract class AuthenticationSteps : FunctionalTest
     #endregion
 
     #region Helpers
-
-    /// <summary>
-    /// Extract a value from a data table by field name
-    /// </summary>
-    private string GetTableValue(DataTable table, string fieldName)
-    {
-        foreach (var row in table.Rows)
-        {
-            if (row["Field"] == fieldName)
-            {
-                return row["Value"];
-            }
-        }
-        throw new ArgumentException($"Field '{fieldName}' not found in table data");
-    }
 
     /// <summary>
     /// Get or create RegisterPage and store it in the object store
