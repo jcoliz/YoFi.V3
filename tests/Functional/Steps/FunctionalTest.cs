@@ -117,6 +117,29 @@ public abstract class FunctionalTest : PageTest
             ["X-Test-Id"] = testId,
             ["X-Test-Class"] = testClass
         });
+
+        //
+        // Also set cookie for test correlation - this will be sent with ALL requests
+        // including frontend-initiated requests like auth refresh
+        //
+        var testMetadata = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            name = testName,
+            id = testId,
+            @class = testClass,
+            traceparent = traceParent
+        });
+
+        await Context.AddCookiesAsync(
+        [
+            new Cookie()
+            {
+                Name = "x-test-correlation",
+                Value = HttpUtility.UrlEncode(testMetadata),
+                Domain = baseUrl!.Host,
+                Path = "/"
+            }
+        ]);
     }
 
     [TearDown]

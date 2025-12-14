@@ -126,7 +126,7 @@ using System.Web;
 public abstract class FunctionalTest : PageTest
 {
     // ... existing fields ...
-    
+
     protected Activity? _testActivity;
 
     [SetUp]
@@ -138,8 +138,8 @@ public abstract class FunctionalTest : PageTest
             Context.SetDefaultTimeout(val);
 
         _objectStore = new ObjectStore();
-        
-        _objectStore.Add("Tester", new UserDetails() 
+
+        _objectStore.Add("Tester", new UserDetails()
         {
             Email = checkEnvironment(TestContext.Parameters["userName"]!),
             Password = checkEnvironment(TestContext.Parameters["userPassword"]!)
@@ -151,7 +151,7 @@ public abstract class FunctionalTest : PageTest
         var testName = TestContext.CurrentContext.Test.Name;
         var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
         var testId = Guid.NewGuid().ToString();
-        
+
         _testActivity = new Activity("FunctionalTest");
         _testActivity.SetTag("test.name", testName);
         _testActivity.SetTag("test.class", testClass);
@@ -163,12 +163,12 @@ public abstract class FunctionalTest : PageTest
         // Set headers for both W3C trace propagation and direct correlation
         //
         var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
-        
+
         await Context.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
         {
             // W3C Trace Context standard
             ["traceparent"] = traceParent,
-            
+
             // Direct test correlation (fallback and convenience)
             ["X-Test-Name"] = HttpUtility.UrlEncode(testName),
             ["X-Test-Id"] = testId,
@@ -248,19 +248,19 @@ public class TestCorrelationMiddleware
                 activity.SetTag("test.name", testName);
                 scope["TestName"] = testName;
             }
-            
+
             if (testId != null)
             {
                 activity.SetTag("test.id", testId);
                 scope["TestId"] = testId;
             }
-            
+
             if (testClass != null)
             {
                 activity.SetTag("test.class", testClass);
                 scope["TestClass"] = testClass;
             }
-            
+
             // Add TraceId to scope for local logging
             scope["TraceId"] = activity.TraceId.ToString();
         }
@@ -306,7 +306,7 @@ public sealed class TerseConsoleLogFormatter : ConsoleFormatter
     var traceId = default(string);
     var collectedScopes = new List<KeyValuePair<string, object>>();
 
-    scopeProvider?.ForEachScope((x, t) => 
+    scopeProvider?.ForEachScope((x, t) =>
     {
         if (x is IEnumerable<KeyValuePair<string, object>> values)
         {
@@ -324,13 +324,13 @@ public sealed class TerseConsoleLogFormatter : ConsoleFormatter
                     category = string.Join('.', chosen).Replace("Controller", "");
                 }
             }
-            
+
             found = values.Where(y => y.Key == "TestName");
             if (found.Any())
             {
                 testName = found.FirstOrDefault().Value?.ToString();
             }
-            
+
             found = values.Where(y => y.Key == "TraceId");
             if (found.Any())
             {
@@ -401,7 +401,7 @@ traces
 union traces, exceptions
 | where customDimensions.["test.id"] != ""
 | where severityLevel >= 3 or itemType == "exception"
-| project 
+| project
     timestamp,
     testName = customDimensions.["test.name"],
     testId = customDimensions.["test.id"],
@@ -416,7 +416,7 @@ union traces, exceptions
 ```kql
 requests
 | where customDimensions.["test.name"] != ""
-| summarize 
+| summarize
     avgDuration = avg(duration),
     p95Duration = percentile(duration, 95),
     count = count()
@@ -459,7 +459,7 @@ For Option 2 (Activity approach), ensure you have:
 <ItemGroup>
   <!-- Already in Tests.Functional -->
   <PackageReference Include="Microsoft.Playwright.NUnit" Version="..." />
-  
+
   <!-- Already in Main.Vue via Azure.Monitor.OpenTelemetry.AspNetCore -->
   <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="..." />
 </ItemGroup>
@@ -487,3 +487,158 @@ Both approaches are production-ready. Choose based on:
 - **Option 2 (Activity + Headers)**: Leverages your OpenTelemetry investment, enables powerful Application Insights queries, industry standard
 
 Given your existing OpenTelemetry + Application Insights setup, **Option 2 is recommended** for the new project.
+
+## YoFi.V3 Implementation Notes
+
+### Current Implementation Status
+
+This project has implemented Option 2 (Activity + Headers) with cookie fallback for frontend-initiated requests.
+
+**Files Modified:**
+- [`src/Controllers/Middleware/TestCorrelationMiddleware.cs`](../../src/Controllers/Middleware/TestCorrelationMiddleware.cs) - Middleware to extract test correlation from headers or cookies
+- [`tests/Functional/Steps/FunctionalTest.cs`](../../tests/Functional/Steps/FunctionalTest.cs) - Base test class that sets headers and cookies
+- [`src/BackEnd/Program.cs`](../../src/BackEnd/Program.cs) - Registers the middleware
+
+### What Works
+
+✅ **Playwright-controlled requests** - Full correlation via headers
+- Test metadata (`X-Test-Name`, `X-Test-Id`, `X-Test-Class`)
+- W3C trace context (`traceparent` header)
+- All requests grouped under same TraceId
+- Activity tags and logging scopes populated
+
+✅ **Frontend-initiated requests** - Partial correlation via cookies
+- Test metadata extracted from `x-test-correlation` cookie (JSON payload)
+- Activity tags set (`test.name`, `test.id`, `test.class`)
+- Logging scopes include test context
+- Can filter in Aspire Dashboard by test metadata tags
+
+### Known Limitations
+
+#### 1. Frontend Requests Not Linked to Test Trace
+
+**Problem:** Frontend-initiated HTTP requests (e.g., automatic auth refresh calls from NuxtIdentity) appear as separate traces in Aspire Dashboard, not linked to the test's trace.
+
+**Root Cause:**
+- Frontend uses Nuxt's `$fetch` which makes its own HTTP requests
+- Cookies are automatically sent (test metadata works ✅)
+- Custom headers are NOT automatically sent (traceparent missing ❌)
+- ASP.NET Core creates Activities based on `traceparent` **header** only, not cookies
+- Once Activity is started, parent relationship cannot be changed
+
+**Current Behavior:**
+```
+Test: UserViewsTheirAccountDetails
+├─ Trace ID: abc123 (Playwright requests)
+│  ├─ Call #1: POST /api/auth/login ✅ linked
+│  └─ Call #2: GET /api/auth/user ✅ linked
+│
+├─ Trace ID: xyz789 (Frontend request - SEPARATE TRACE)
+│  └─ Call #4: GET /api/auth/user
+│     ⚠️ Has test.name tag but different TraceId
+│
+└─ Call #3: POST /api/auth/refresh
+   ❌ No correlation (NuxtIdentity server-side call)
+```
+
+**Workaround for Filtering:**
+Use Aspire Dashboard filters to find all requests for a test:
+```kql
+customDimensions.["test.name"] == "UserViewsTheirAccountDetails"
+```
+
+#### 2. Solution: Frontend Code Changes Required
+
+To achieve full trace linkage for frontend-initiated requests, modify [`src/FrontEnd.Nuxt/app/composables/useAuthFetch.ts`](../../src/FrontEnd.Nuxt/app/composables/useAuthFetch.ts):
+
+```typescript
+// Add at the top of useAuthFetch
+const getTestHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {}
+
+  // Read from cookie since we can't access Playwright headers directly
+  if (typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';')
+    const testCookie = cookies.find(c => c.trim().startsWith('x-test-correlation='))
+
+    if (testCookie) {
+      try {
+        const value = decodeURIComponent(testCookie.split('=')[1])
+        const metadata = JSON.parse(value)
+
+        // Add test metadata as headers
+        if (metadata.name) headers['X-Test-Name'] = metadata.name
+        if (metadata.id) headers['X-Test-Id'] = metadata.id
+        if (metadata.class) headers['X-Test-Class'] = metadata.class
+
+        // CRITICAL: Add traceparent header for trace linking
+        if (metadata.traceparent) headers['traceparent'] = metadata.traceparent
+      }
+      catch (e) {
+        // Ignore parsing errors
+      }
+    }
+  }
+
+  return headers
+}
+
+// In the fetch wrapper:
+const response = await $fetch.raw(urlString, {
+  method: (init?.method || 'GET') as any,
+  headers: {
+    ...init?.headers,
+    ...getTestHeaders(), // Add test headers including traceparent
+  },
+  // ... rest of options
+})
+```
+
+**Benefits of Frontend Changes:**
+- ✅ All frontend requests will include `traceparent` header
+- ✅ ASP.NET Core will link Activities correctly
+- ✅ Complete distributed trace in Aspire Dashboard
+- ✅ All test requests under single TraceId
+
+**Trade-offs:**
+- Requires frontend code modification
+- Adds small overhead to parse cookie on every request
+- Only needed for functional testing (no impact on production)
+
+### Cookie vs Headers Strategy
+
+The current implementation uses both:
+
+1. **Headers (preferred)** - Set by Playwright via `Context.SetExtraHTTPHeadersAsync()`
+   - Fast, no parsing needed
+   - Works for all Playwright-controlled requests
+   - Includes `traceparent` for trace linking
+
+2. **Cookies (fallback)** - Set by Playwright via `Context.AddCookiesAsync()`
+   - Automatically sent by browser on ALL requests
+   - Works for frontend-initiated requests
+   - JSON payload: `{"name":"TestName","id":"guid","class":"ClassName","traceparent":"00-..."}`
+   - Middleware parses cookie with case-insensitive JSON deserialization
+
+### Debug Logging
+
+The middleware includes comprehensive debug logging:
+```
+DBG TestCorrelationMiddleware: Request headers: X-Test-Name=..., traceparent=...
+DBG TestCorrelationMiddleware: Request cookies: x-test-correlation=%7B%22name%22...
+DBG TestCorrelationMiddleware: Attempting to parse cookie value: {"name":"TestName",...}
+DBG TestCorrelationMiddleware: Test correlation from cookie: TestName=TestName, TestId=guid
+```
+
+### Future Considerations
+
+1. **Remove debug logs** - Once stable, consider reducing log verbosity to only warnings/errors
+2. **Frontend integration** - Implement the `useAuthFetch` changes for full trace linking
+3. **NuxtIdentity server calls** - Investigate if NuxtIdentity refresh calls can include test context
+4. **Performance** - Cookie parsing adds minimal overhead, but could be optimized if needed
+
+### References
+
+- [OpenTelemetry Trace Context Specification](https://www.w3.org/TR/trace-context/)
+- [ASP.NET Core Distributed Tracing](https://learn.microsoft.com/en-us/aspnet/core/diagnostics/distributed-tracing)
+- [.NET Activity API](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.activity)
