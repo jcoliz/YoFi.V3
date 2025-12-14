@@ -98,13 +98,54 @@ public abstract class FunctionalTest : PageTest
     }
 
     [OneTimeSetUp]
-    public void OneTimeSetup()
+    public async Task OneTimeSetup()
     {
         var url = checkEnvironment(
                 TestContext.Parameters["webAppUrl"]
                 ?? throw new ArgumentNullException("webAppUrl test parameter not set")
             );
         baseUrl = new(url);
+
+        // Check if Playwright browsers are installed before running any tests
+        await CheckPlaywrightBrowsersInstalled();
+    }
+
+    /// <summary>
+    /// Verifies that Playwright browsers are installed.
+    /// </summary>
+    /// <remarks>
+    /// This check runs once per test fixture to fail fast if browsers aren't installed,
+    /// rather than failing every single test with the same error.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when Playwright browsers are not installed.</exception>
+    private async Task CheckPlaywrightBrowsersInstalled()
+    {
+        try
+        {
+            // Attempt to create a simple browser instance to verify installation
+            var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+            var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+            await browser.CloseAsync();
+            playwright.Dispose();
+        }
+        catch (Microsoft.Playwright.PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist"))
+        {
+            // Fail fast with a clear message
+            var message = $"""
+                Playwright browsers are not installed.
+
+                Please run the following command to install browsers:
+                    pwsh bin/Debug/net10.0/playwright.ps1 install chromium
+
+                Or build and install in one step:
+                    dotnet build tests/Functional
+                    pwsh tests/Functional/bin/Debug/net10.0/playwright.ps1 install chromium
+
+                Original error: {ex.Message}
+                """;
+
+            Assert.Fail(message);
+        }
     }
     #endregion
 
