@@ -30,7 +30,6 @@ public static partial class ServiceCollectionExtensions
 
         services.AddScoped<IDataProvider, ApplicationDbContext>();
         services.AddScoped<ITenantRepository, ApplicationDbContext>();
-        services.AddScoped<IDbContextCleaner, ApplicationDbContext>();
 
         return services;
     }

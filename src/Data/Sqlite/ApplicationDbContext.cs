@@ -52,7 +52,7 @@ namespace YoFi.V3.Data;
 /// </para>
 /// </remarks>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : IdentityDbContext<IdentityUser>(options), IDataProvider, ITenantRepository, IDbContextCleaner
+    : IdentityDbContext<IdentityUser>(options), IDataProvider, ITenantRepository
 {
     #region Data
 
@@ -216,10 +216,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     Task<T?> IDataProvider.SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
         => query.SingleOrDefaultAsync();
-
-    /// <inheritdoc />
-    void IDbContextCleaner.ClearChangeTracker()
-        => ChangeTracker.Clear();
 
 #pragma warning restore S2325
 

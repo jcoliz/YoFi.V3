@@ -28,7 +28,6 @@ namespace YoFi.V3.Controllers;
 /// </remarks>
 public partial class AuthController(
     TenantFeature tenantFeature,
-    IDbContextCleaner dbContextCleaner,
     IJwtTokenService<IdentityUser> jwtTokenService,
     IRefreshTokenService refreshTokenService,
     UserManager<IdentityUser> userManager,
@@ -39,8 +38,7 @@ public partial class AuthController(
         refreshTokenService,
         userManager,
         signInManager,
-        logger,
-        dbContextCleaner)
+        logger)
 {
     /// <summary>
     /// Called after a new user has been created.
