@@ -17,16 +17,18 @@ This document outlines required enhancements to the Test Control API to support 
 
 ## Required New Endpoints
 
-### 1. Bulk User Creation
+### 1. Bulk User Creation with Credentials
 
-**Problem:** Background section in [`Tenancy.feature:13-17`](../../tests/Functional/Features/Tenancy.feature#L13-L17) needs to create multiple named users (alice, bob, charlie).
+**Problem:** Background section in [`Tenancy.feature:13-17`](../../tests/Functional/Features/Tenancy.feature#L13-L17) needs to create multiple named users (alice, bob, charlie). Tests need credentials immediately for login steps.
 
 **Endpoint:**
 ```csharp
 // POST /TestControl/users/bulk
 [HttpPost("users/bulk")]
-[ProducesResponseType(typeof(IReadOnlyCollection<TestUser>), StatusCodes.Status201Created)]
+[ProducesResponseType(typeof(IReadOnlyCollection<TestUserCredentials>), StatusCodes.Status201Created)]
 public async Task<IActionResult> CreateBulkUsers([FromBody] string[] usernames)
+
+public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
 ```
 
 **Request Body:**
@@ -37,17 +39,33 @@ public async Task<IActionResult> CreateBulkUsers([FromBody] string[] usernames)
 **Response:**
 ```json
 [
-  { "Id": 1, "Username": "__TEST__alice", "Email": "__TEST__alice@test.com", "Password": "..." },
-  { "Id": 2, "Username": "__TEST__bob", "Email": "__TEST__bob@test.com", "Password": "..." },
-  { "Id": 3, "Username": "__TEST__charlie", "Email": "__TEST__charlie@test.com", "Password": "..." }
+  {
+    "Id": "abc-123-def-456",
+    "Username": "__TEST__alice",
+    "Email": "__TEST__alice@test.com",
+    "Password": "SecurePass123!"
+  },
+  {
+    "Id": "xyz-789-ghi-012",
+    "Username": "__TEST__bob",
+    "Email": "__TEST__bob@test.com",
+    "Password": "SecurePass456!"
+  },
+  {
+    "Id": "mno-345-pqr-678",
+    "Username": "__TEST__charlie",
+    "Email": "__TEST__charlie@test.com",
+    "Password": "SecurePass789!"
+  }
 ]
 ```
 
 **Implementation Notes:**
 - Prefix usernames with `__TEST__` for consistency with existing pattern
 - Generate secure random passwords for each user
-- Return created users with credentials for later login
+- **Return ALL credentials immediately** - Test remembers them for later login steps
 - Users are automatically approved (no email confirmation required for tests)
+- **No separate "get credentials" endpoint needed** - All data returned at creation time
 
 ---
 
@@ -188,39 +206,7 @@ public record TransactionSeedRequest(int Count, string PayeePrefix = "Test Trans
 
 ---
 
-### 5. Get User Credentials
-
-**Problem:** Steps need to log in as specific users created in Background.
-
-**Endpoint:**
-```csharp
-// GET /TestControl/users/{username}/credentials
-[HttpGet("users/{username}/credentials")]
-[ProducesResponseType(typeof(TestUser), StatusCodes.Status200OK)]
-[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-public IActionResult GetUserCredentials(string username)
-```
-
-**Response:**
-```json
-{
-  "Id": 1,
-  "Username": "__TEST__alice",
-  "Email": "__TEST__alice@test.com",
-  "Password": "SecurePass123!"
-}
-```
-
-**Implementation Notes:**
-- Looks up test user from in-memory cache or database
-- Returns credentials for test user created via bulk endpoint
-- Required for "Given I am logged in as {username}" step implementations
-- Returns 404 if user not found
-- **Security Note:** Only works for users with `__TEST__` prefix
-
----
-
-### 6. Delete All Test Data
+### 5. Delete All Test Data
 
 **Problem:** Need clean slate between test runs, including workspaces and transactions.
 
@@ -307,11 +293,10 @@ cd ../../tests/Functional
 ```
 
 The generated [`ApiClient.cs`](../../tests/Functional/Api/ApiClient.cs) will include:
-- `ITestControlClient.CreateBulkUsersAsync(string[] usernames)`
+- `ITestControlClient.CreateBulkUsersAsync(string[] usernames)` → Returns `IReadOnlyCollection<TestUserCredentials>`
 - `ITestControlClient.CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request)`
 - `ITestControlClient.AssignUserToWorkspaceAsync(Guid workspaceKey, UserRoleAssignment assignment)`
 - `ITestControlClient.SeedTransactionsAsync(Guid workspaceKey, TransactionSeedRequest request)`
-- `ITestControlClient.GetUserCredentialsAsync(string username)`
 - `ITestControlClient.DeleteAllTestDataAsync()`
 - `ITestControlClient.BulkWorkspaceSetupAsync(string username, WorkspaceSetupRequest[] workspaces)`
 
@@ -320,21 +305,61 @@ The generated [`ApiClient.cs`](../../tests/Functional/Api/ApiClient.cs) will inc
 ## Implementation Priority
 
 ### Phase 1: Essential Infrastructure (Blocking)
-1. **Bulk user creation** (#1) - Required by Background section
-2. **Get user credentials** (#5) - Required for login steps
-3. **Create workspace for user** (#2) - Required for basic workspace scenarios
-4. **Delete all test data** (#6) - Required for test isolation
+1. **Bulk user creation with credentials** (#1) - Required by Background section, returns all credentials
+2. **Create workspace for user** (#2) - Required for basic workspace scenarios
+3. **Delete all test data** (#5) - Required for test isolation
 
 ### Phase 2: Multi-User Scenarios
-5. **Assign user to workspace** (#3) - Required for shared workspace tests
-6. **Bulk workspace setup** (#7) - Convenience for complex setups
+4. **Assign user to workspace** (#3) - Required for shared workspace tests
+5. **Bulk workspace setup** (#6) - Convenience for complex setups
 
 ### Phase 3: Data Seeding
-7. **Seed transactions** (#4) - Required for data isolation tests
+6. **Seed transactions** (#4) - Required for data isolation tests
 
 ---
 
 ## Usage Example in Test Steps
+
+### Example 1: Background Section - Bulk User Creation
+
+**Gherkin:**
+```gherkin
+Background:
+  Given these test users exist:
+    | Username |
+    | alice    |
+    | bob      |
+    | charlie  |
+```
+
+**Step Implementation:**
+```csharp
+[Given(@"these test users exist:")]
+protected async Task GivenTheseTestUsersExist(DataTable usersTable)
+{
+    var usernames = usersTable.Rows.Select(row => row["Username"]).ToArray();
+
+    // Single API call creates all users AND returns credentials
+    var credentials = await _testControlClient.CreateBulkUsersAsync(usernames);
+
+    // Store credentials in test context for later login steps
+    foreach (var cred in credentials)
+    {
+        var shortUsername = cred.Username.Replace("__TEST__", "");
+        _userCredentials[shortUsername] = cred;
+    }
+}
+
+[Given(@"I am logged in as (.*)")]
+protected async Task GivenIAmLoggedInAs(string username)
+{
+    // Retrieve stored credentials - no API call needed!
+    var cred = _userCredentials[username];
+    await _authPage.LoginAsync(cred.Email, cred.Password);
+}
+```
+
+### Example 2: Workspace Setup
 
 **Before (Complex UI automation):**
 ```csharp

@@ -15,6 +15,15 @@ namespace YoFi.V3.Controllers;
 /// <param name="Description">Description of what error will be generated</param>
 public record ErrorCodeInfo(string Code, string Description);
 
+/// <summary>
+/// Data transfer object for test user credentials including unique identifier
+/// </summary>
+/// <param name="Id">The unique identifier (GUID) of the created user</param>
+/// <param name="Username">The username for authentication</param>
+/// <param name="Email">The email address for authentication</param>
+/// <param name="Password">The generated password for authentication</param>
+public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
+
 public record TestUser(int Id)
 {
     /// <summary>
@@ -45,37 +54,95 @@ public partial class TestControlController(
 {
 
     /// <summary>
-    /// Create a test user
+    /// Create a test user with auto-generated username
     /// </summary>
+    /// <returns>Created user credentials including ID and password</returns>
     /// <remarks>
-    /// Also will delete any existing test users.
+    /// User is automatically approved (email confirmed) for immediate use in tests.
+    /// Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
     /// </remarks>
-    /// <returns></returns>
     [HttpPost("users")]
-    [ProducesResponseType(typeof(TestUser), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(TestUserCredentials), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser()
     {
-        var newUser = new TestUser(new Random().Next(1, 0x10000));
+        // Generate random username and delegate to bulk creation
+        var randomId = new Random().Next(1, 0x10000);
+        var username = $"{randomId:X4}";
 
-        var result = await userManager.CreateAsync(new IdentityUser
-        {
-            UserName = newUser.Username,
-            Email = newUser.Email,
-            EmailConfirmed = false
-        }, newUser.Password);
+        var result = await CreateBulkUsers(new[] { username });
 
-        if (!result.Succeeded)
+        if (result is CreatedResult createdResult && createdResult.Value is IReadOnlyCollection<TestUserCredentials> credentials)
         {
-            return Problem(
-                title: "Unable to create user",
-                detail: string.Join("; ", result.Errors.Select(e => e.Description)),
-                statusCode: StatusCodes.Status403Forbidden
-            );
+            return Created(nameof(CreateUser), credentials.First());
         }
 
-        LogOkUsername(newUser.Username);
-        return Created(nameof(CreateUser), newUser);
+        return result;
+    }
+
+    /// <summary>
+    /// Create multiple test users in bulk with credentials
+    /// </summary>
+    /// <param name="usernames">Collection of usernames to create (will be prefixed with __TEST__)</param>
+    /// <returns>Collection of created user credentials including IDs and passwords</returns>
+    /// <remarks>
+    /// All users are automatically approved (email confirmed) for immediate use in tests.
+    /// Usernames are automatically prefixed with __TEST__ for consistency.
+    /// Each user receives a unique, secure random password.
+    /// </remarks>
+    [HttpPost("users/bulk")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TestUserCredentials>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateBulkUsers([FromBody] IReadOnlyCollection<string> usernames)
+    {
+        LogStartingCount(usernames.Count);
+
+        var credentials = new List<TestUserCredentials>();
+
+        foreach (var username in usernames)
+        {
+            var fullUsername = $"{TestUser.Prefix}{username}";
+            var email = $"{TestUser.Prefix}{username}@test.com";
+            var password = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
+
+            var identityUser = new IdentityUser
+            {
+                UserName = fullUsername,
+                Email = email,
+                EmailConfirmed = true // Auto-approve for test users
+            };
+
+            var result = await userManager.CreateAsync(identityUser, password);
+
+            if (!result.Succeeded)
+            {
+                return Problem(
+                    title: $"Unable to create user {fullUsername}",
+                    detail: string.Join("; ", result.Errors.Select(e => e.Description)),
+                    statusCode: StatusCodes.Status403Forbidden
+                );
+            }
+
+            // Get the created user to obtain the GUID
+            var createdUser = await userManager.FindByNameAsync(fullUsername);
+            if (createdUser?.Id == null)
+            {
+                return Problem(
+                    title: $"Unable to retrieve created user {fullUsername}",
+                    statusCode: StatusCodes.Status500InternalServerError
+                );
+            }
+
+            credentials.Add(new TestUserCredentials(
+                Id: Guid.Parse(createdUser.Id),
+                Username: fullUsername,
+                Email: email,
+                Password: password
+            ));
+        }
+
+        LogOkCount(credentials.Count);
+        return Created(nameof(CreateBulkUsers), credentials);
     }
 
     /// <summary>
@@ -219,6 +286,9 @@ public partial class TestControlController(
                 throw new NotImplementedException();
         }
     }
+
+    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Count}")]
+    private partial void LogStartingCount(int count, [CallerMemberName] string? location = null);
 
     [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
     private partial void LogFailed(Exception ex, [CallerMemberName] string? location = null);

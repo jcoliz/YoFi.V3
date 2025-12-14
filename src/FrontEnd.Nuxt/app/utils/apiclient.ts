@@ -238,7 +238,7 @@ export class TestControlClient {
         this.baseUrl = baseUrl ?? "";
     }
 
-    createUser(): Promise<TestUser> {
+    createUser(): Promise<TestUserCredentials> {
         let url_ = this.baseUrl + "/TestControl/users";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -254,14 +254,14 @@ export class TestControlClient {
         });
     }
 
-    protected processCreateUser(response: Response): Promise<TestUser> {
+    protected processCreateUser(response: Response): Promise<TestUserCredentials> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = TestUser.fromJS(resultData201);
+            result201 = TestUserCredentials.fromJS(resultData201);
             return result201;
             });
         } else if (status === 403) {
@@ -283,7 +283,7 @@ export class TestControlClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<TestUser>(null as any);
+        return Promise.resolve<TestUserCredentials>(null as any);
     }
 
     deleteUsers(): Promise<void> {
@@ -328,6 +328,65 @@ export class TestControlClient {
             });
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    createBulkUsers(usernames: string[]): Promise<TestUserCredentials[]> {
+        let url_ = this.baseUrl + "/TestControl/users/bulk";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(usernames);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreateBulkUsers(_response);
+        });
+    }
+
+    protected processCreateBulkUsers(response: Response): Promise<TestUserCredentials[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(TestUserCredentials.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TestUserCredentials[]>(null as any);
     }
 
     approveUser(username: string): Promise<void> {
@@ -1768,13 +1827,13 @@ export interface IRefreshRequest {
     refreshToken?: string;
 }
 
-export class TestUser implements ITestUser {
-    id?: number;
+export class TestUserCredentials implements ITestUserCredentials {
+    id?: string;
     username?: string;
     email?: string;
     password?: string;
 
-    constructor(data?: ITestUser) {
+    constructor(data?: ITestUserCredentials) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -1792,9 +1851,9 @@ export class TestUser implements ITestUser {
         }
     }
 
-    static fromJS(data: any): TestUser {
+    static fromJS(data: any): TestUserCredentials {
         data = typeof data === 'object' ? data : {};
-        let result = new TestUser();
+        let result = new TestUserCredentials();
         result.init(data);
         return result;
     }
@@ -1809,8 +1868,8 @@ export class TestUser implements ITestUser {
     }
 }
 
-export interface ITestUser {
-    id?: number;
+export interface ITestUserCredentials {
+    id?: string;
     username?: string;
     email?: string;
     password?: string;
