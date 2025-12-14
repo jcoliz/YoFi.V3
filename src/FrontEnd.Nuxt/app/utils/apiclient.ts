@@ -436,6 +436,314 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
+    createWorkspaceForUser(username: string, request: WorkspaceCreateRequest): Promise<TenantResultDto> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreateWorkspaceForUser(_response);
+        });
+    }
+
+    protected processCreateWorkspaceForUser(response: Response): Promise<TenantResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = TenantResultDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantResultDto>(null as any);
+    }
+
+    assignUserToWorkspace(username: string, workspaceKey: string, assignment: UserRoleAssignment): Promise<void> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{workspaceKey}/assign";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (workspaceKey === undefined || workspaceKey === null)
+            throw new globalThis.Error("The parameter 'workspaceKey' must be defined.");
+        url_ = url_.replace("{workspaceKey}", encodeURIComponent("" + workspaceKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(assignment);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAssignUserToWorkspace(_response);
+        });
+    }
+
+    protected processAssignUserToWorkspace(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    seedTransactions(username: string, workspaceKey: string, request: TransactionSeedRequest): Promise<TransactionResultDto[]> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{workspaceKey}/transactions/seed";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (workspaceKey === undefined || workspaceKey === null)
+            throw new globalThis.Error("The parameter 'workspaceKey' must be defined.");
+        url_ = url_.replace("{workspaceKey}", encodeURIComponent("" + workspaceKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSeedTransactions(_response);
+        });
+    }
+
+    protected processSeedTransactions(response: Response): Promise<TransactionResultDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(TransactionResultDto.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TransactionResultDto[]>(null as any);
+    }
+
+    deleteAllTestData(): Promise<void> {
+        let url_ = this.baseUrl + "/TestControl/data";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteAllTestData(_response);
+        });
+    }
+
+    protected processDeleteAllTestData(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    bulkWorkspaceSetup(username: string, workspaces: WorkspaceSetupRequest[]): Promise<WorkspaceSetupResult[]> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/bulk";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(workspaces);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processBulkWorkspaceSetup(_response);
+        });
+    }
+
+    protected processBulkWorkspaceSetup(response: Response): Promise<WorkspaceSetupResult[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(WorkspaceSetupResult.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<WorkspaceSetupResult[]>(null as any);
+    }
+
     listErrors(): Promise<ErrorCodeInfo[]> {
         let url_ = this.baseUrl + "/TestControl/errors";
         url_ = url_.replace(/[?&]$/, "");
@@ -1875,11 +2183,13 @@ export interface ITestUserCredentials {
     password?: string;
 }
 
-export class ErrorCodeInfo implements IErrorCodeInfo {
-    code?: string;
+export class TenantResultDto implements ITenantResultDto {
+    key?: string;
+    name?: string;
     description?: string;
+    createdAt?: Date;
 
-    constructor(data?: IErrorCodeInfo) {
+    constructor(data?: ITenantResultDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -1890,29 +2200,115 @@ export class ErrorCodeInfo implements IErrorCodeInfo {
 
     init(_data?: any) {
         if (_data) {
-            this.code = _data["code"];
+            this.key = _data["key"];
+            this.name = _data["name"];
             this.description = _data["description"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
         }
     }
 
-    static fromJS(data: any): ErrorCodeInfo {
+    static fromJS(data: any): TenantResultDto {
         data = typeof data === 'object' ? data : {};
-        let result = new ErrorCodeInfo();
+        let result = new TenantResultDto();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["code"] = this.code;
+        data["key"] = this.key;
+        data["name"] = this.name;
         data["description"] = this.description;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
         return data;
     }
 }
 
-export interface IErrorCodeInfo {
-    code?: string;
+export interface ITenantResultDto {
+    key?: string;
+    name?: string;
     description?: string;
+    createdAt?: Date;
+}
+
+export class WorkspaceCreateRequest implements IWorkspaceCreateRequest {
+    name?: string;
+    description?: string;
+    role?: string;
+
+    constructor(data?: IWorkspaceCreateRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.role = _data["role"];
+        }
+    }
+
+    static fromJS(data: any): WorkspaceCreateRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new WorkspaceCreateRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["role"] = this.role;
+        return data;
+    }
+}
+
+export interface IWorkspaceCreateRequest {
+    name?: string;
+    description?: string;
+    role?: string;
+}
+
+export class UserRoleAssignment implements IUserRoleAssignment {
+    role?: string;
+
+    constructor(data?: IUserRoleAssignment) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.role = _data["role"];
+        }
+    }
+
+    static fromJS(data: any): UserRoleAssignment {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserRoleAssignment();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["role"] = this.role;
+        return data;
+    }
+}
+
+export interface IUserRoleAssignment {
+    role?: string;
 }
 
 export class TransactionResultDto implements ITransactionResultDto {
@@ -1961,6 +2357,174 @@ export interface ITransactionResultDto {
     date?: Date;
     amount?: number;
     payee?: string;
+}
+
+export class TransactionSeedRequest implements ITransactionSeedRequest {
+    count?: number;
+    payeePrefix?: string;
+
+    constructor(data?: ITransactionSeedRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.count = _data["count"];
+            this.payeePrefix = _data["payeePrefix"];
+        }
+    }
+
+    static fromJS(data: any): TransactionSeedRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionSeedRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["count"] = this.count;
+        data["payeePrefix"] = this.payeePrefix;
+        return data;
+    }
+}
+
+export interface ITransactionSeedRequest {
+    count?: number;
+    payeePrefix?: string;
+}
+
+export class WorkspaceSetupResult implements IWorkspaceSetupResult {
+    key?: string;
+    name?: string;
+    role?: string;
+
+    constructor(data?: IWorkspaceSetupResult) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.name = _data["name"];
+            this.role = _data["role"];
+        }
+    }
+
+    static fromJS(data: any): WorkspaceSetupResult {
+        data = typeof data === 'object' ? data : {};
+        let result = new WorkspaceSetupResult();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["name"] = this.name;
+        data["role"] = this.role;
+        return data;
+    }
+}
+
+export interface IWorkspaceSetupResult {
+    key?: string;
+    name?: string;
+    role?: string;
+}
+
+export class WorkspaceSetupRequest implements IWorkspaceSetupRequest {
+    name?: string;
+    description?: string;
+    role?: string;
+
+    constructor(data?: IWorkspaceSetupRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.description = _data["description"];
+            this.role = _data["role"];
+        }
+    }
+
+    static fromJS(data: any): WorkspaceSetupRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new WorkspaceSetupRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["description"] = this.description;
+        data["role"] = this.role;
+        return data;
+    }
+}
+
+export interface IWorkspaceSetupRequest {
+    name?: string;
+    description?: string;
+    role?: string;
+}
+
+export class ErrorCodeInfo implements IErrorCodeInfo {
+    code?: string;
+    description?: string;
+
+    constructor(data?: IErrorCodeInfo) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.description = _data["description"];
+        }
+    }
+
+    static fromJS(data: any): ErrorCodeInfo {
+        data = typeof data === 'object' ? data : {};
+        let result = new ErrorCodeInfo();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["description"] = this.description;
+        return data;
+    }
+}
+
+export interface IErrorCodeInfo {
+    code?: string;
+    description?: string;
 }
 
 export class TransactionEditDto implements ITransactionEditDto {
@@ -2148,54 +2712,6 @@ export enum TenantRole {
     Viewer = 1,
     Editor = 2,
     Owner = 3,
-}
-
-export class TenantResultDto implements ITenantResultDto {
-    key?: string;
-    name?: string;
-    description?: string;
-    createdAt?: Date;
-
-    constructor(data?: ITenantResultDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.key = _data["key"];
-            this.name = _data["name"];
-            this.description = _data["description"];
-            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : undefined as any;
-        }
-    }
-
-    static fromJS(data: any): TenantResultDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new TenantResultDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["key"] = this.key;
-        data["name"] = this.name;
-        data["description"] = this.description;
-        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : undefined as any;
-        return data;
-    }
-}
-
-export interface ITenantResultDto {
-    key?: string;
-    name?: string;
-    description?: string;
-    createdAt?: Date;
 }
 
 export class TenantEditDto implements ITenantEditDto {

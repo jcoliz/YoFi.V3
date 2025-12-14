@@ -166,6 +166,34 @@ public class TenantFeature(ITenantRepository tenantRepository)
     #region ADMIN Functionality
 
     /// <summary>
+    /// Creates a new tenant without assigning any user roles.
+    /// </summary>
+    /// <param name="tenantDto">The tenant data including name and description.</param>
+    /// <returns>A <see cref="TenantResultDto"/> containing the created tenant's information.</returns>
+    /// <remarks>
+    /// This method is intended for administrative or test control scenarios where roles
+    /// will be assigned separately. For user-facing operations, use CreateTenantForUserAsync instead.
+    /// </remarks>
+    public async Task<TenantResultDto> CreateTenantAsync(TenantEditDto tenantDto)
+    {
+        var tenant = new Tenant
+        {
+            Name = tenantDto.Name,
+            Description = tenantDto.Description,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        await tenantRepository.AddTenantAsync(tenant);
+
+        return new TenantResultDto(
+            Key: tenant.Key,
+            Name: tenant.Name,
+            Description: tenant.Description,
+            CreatedAt: tenant.CreatedAt
+        );
+    }
+
+    /// <summary>
     /// Retrieves a tenant by its unique key without user access checks.
     /// </summary>
     /// <param name="tenantKey">The unique key of the tenant to retrieve.</param>

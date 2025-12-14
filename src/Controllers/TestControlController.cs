@@ -4,7 +4,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using YoFi.V3.Application.Dto;
+using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Tenancy.Dto;
+using YoFi.V3.Application.Tenancy.Features;
+using YoFi.V3.Controllers.Tenancy.Context;
 using YoFi.V3.Entities.Tenancy.Exceptions;
+using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers;
 
@@ -23,6 +29,43 @@ public record ErrorCodeInfo(string Code, string Description);
 /// <param name="Email">The email address for authentication</param>
 /// <param name="Password">The generated password for authentication</param>
 public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
+
+/// <summary>
+/// Request to create a workspace for a test user.
+/// </summary>
+/// <param name="Name">The name of the workspace (will be prefixed with __TEST__).</param>
+/// <param name="Description">A description of the workspace.</param>
+/// <param name="Role">The role to assign to the user (default: Owner).</param>
+public record WorkspaceCreateRequest(string Name, string Description, string Role = "Owner");
+
+/// <summary>
+/// Request to assign a user to an existing workspace.
+/// </summary>
+/// <param name="Role">The role to assign to the user in the workspace.</param>
+public record UserRoleAssignment(string Role);
+
+/// <summary>
+/// Request to seed transactions in a workspace.
+/// </summary>
+/// <param name="Count">Number of transactions to create.</param>
+/// <param name="PayeePrefix">Prefix for payee names (default: "Test Transaction").</param>
+public record TransactionSeedRequest(int Count, string PayeePrefix = "Test Transaction");
+
+/// <summary>
+/// Request for setting up a workspace with a specific role.
+/// </summary>
+/// <param name="Name">The name of the workspace.</param>
+/// <param name="Description">A description of the workspace.</param>
+/// <param name="Role">The role to assign to the user.</param>
+public record WorkspaceSetupRequest(string Name, string Description, string Role);
+
+/// <summary>
+/// Result of workspace setup including key, name, and assigned role.
+/// </summary>
+/// <param name="Key">The unique identifier of the created workspace.</param>
+/// <param name="Name">The name of the workspace.</param>
+/// <param name="Role">The role assigned to the user.</param>
+public record WorkspaceSetupResult(Guid Key, string Name, string Role);
 
 public record TestUser(int Id)
 {
@@ -49,6 +92,9 @@ public record TestUser(int Id)
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class TestControlController(
     UserManager<IdentityUser> userManager,
+    TenantFeature tenantFeature,
+    TransactionsFeature transactionsFeature,
+    TenantContext tenantContext,
     ILogger<TestControlController> logger
 ) : ControllerBase
 {
@@ -192,6 +238,353 @@ public partial class TestControlController(
     }
 
     /// <summary>
+    /// Create a workspace for a test user with specified role.
+    /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="request">The workspace creation details.</param>
+    /// <returns>The created workspace information.</returns>
+    /// <remarks>
+    /// Validates that both username and workspace name have __TEST__ prefix for safety.
+    /// User must exist and workspace name must start with __TEST__.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces")]
+    [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateWorkspaceForUser(
+        string username,
+        [FromBody] WorkspaceCreateRequest request)
+    {
+        LogStartingKey(username);
+
+        // Validate workspace name has test prefix
+        if (!request.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return Problem(
+                title: "Workspace name must have __TEST__ prefix",
+                detail: $"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        // Find user with __TEST__ prefix
+        var fullUsername = $"{TestUser.Prefix}{username}";
+        var user = await userManager.FindByNameAsync(fullUsername);
+        if (user == null)
+        {
+            return Problem(
+                title: "User not found",
+                detail: $"Test user '{fullUsername}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        // Parse role
+        if (!Enum.TryParse<TenantRole>(request.Role, ignoreCase: true, out var role))
+        {
+            return Problem(
+                title: "Invalid role",
+                detail: $"Role '{request.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var userId = Guid.Parse(user.Id);
+        var tenantDto = new TenantEditDto(request.Name, request.Description);
+
+        // Create tenant without any role assignments (administrative creation)
+        var result = await tenantFeature.CreateTenantAsync(tenantDto);
+
+        // Get the created tenant to obtain its ID for role assignment
+        var tenant = await tenantFeature.GetTenantByKeyAsync(result.Key);
+
+        // Assign the requested role to the user
+        await tenantFeature.AddUserTenantRoleAsync(userId, tenant!.Id, role);
+
+        LogOkKey(result.Key);
+        return Created($"/TestControl/users/{username}/workspaces", result);
+    }
+
+    /// <summary>
+    /// Assign a user to an existing workspace with a specific role.
+    /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="workspaceKey">The unique key of the workspace.</param>
+    /// <param name="assignment">The role assignment details.</param>
+    /// <returns>204 No Content on success.</returns>
+    /// <remarks>
+    /// Validates that both user and workspace have __TEST__ prefix for safety.
+    /// Workspace must exist and user must not already have a role in the workspace.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/{workspaceKey:guid}/assign")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AssignUserToWorkspace(
+        string username,
+        Guid workspaceKey,
+        [FromBody] UserRoleAssignment assignment)
+    {
+        LogStartingKey(workspaceKey);
+
+        // Find user with __TEST__ prefix
+        var fullUsername = $"{TestUser.Prefix}{username}";
+        var user = await userManager.FindByNameAsync(fullUsername);
+        if (user == null)
+        {
+            return Problem(
+                title: "User not found",
+                detail: $"Test user '{fullUsername}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        // Get workspace and validate it has __TEST__ prefix
+        var tenant = await tenantFeature.GetTenantByKeyAsync(workspaceKey);
+        if (tenant == null)
+        {
+            return Problem(
+                title: "Workspace not found",
+                detail: $"Workspace with key '{workspaceKey}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return Problem(
+                title: "Workspace is not a test workspace",
+                detail: $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        // Parse role
+        if (!Enum.TryParse<TenantRole>(assignment.Role, ignoreCase: true, out var role))
+        {
+            return Problem(
+                title: "Invalid role",
+                detail: $"Role '{assignment.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var userId = Guid.Parse(user.Id);
+
+        try
+        {
+            await tenantFeature.AddUserTenantRoleAsync(userId, tenant.Id, role);
+        }
+        catch (DuplicateUserTenantRoleException ex)
+        {
+            return Problem(
+                title: "User already has role in workspace",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        LogOk();
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Seed test transactions in a workspace for a user.
+    /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="workspaceKey">The unique key of the workspace.</param>
+    /// <param name="request">The transaction seeding details.</param>
+    /// <returns>The collection of created transactions.</returns>
+    /// <remarks>
+    /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Creates the specified number of transactions with realistic test data.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/{workspaceKey:guid}/transactions/seed")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SeedTransactions(
+        string username,
+        Guid workspaceKey,
+        [FromBody] TransactionSeedRequest request)
+    {
+        LogStartingCount(request.Count);
+
+        // Find user with __TEST__ prefix
+        var fullUsername = $"{TestUser.Prefix}{username}";
+        var user = await userManager.FindByNameAsync(fullUsername);
+        if (user == null)
+        {
+            return Problem(
+                title: "User not found",
+                detail: $"Test user '{fullUsername}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        // Get workspace and validate it has __TEST__ prefix
+        var tenant = await tenantFeature.GetTenantByKeyAsync(workspaceKey);
+        if (tenant == null)
+        {
+            return Problem(
+                title: "Workspace not found",
+                detail: $"Workspace with key '{workspaceKey}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return Problem(
+                title: "Workspace is not a test workspace",
+                detail: $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        var userId = Guid.Parse(user.Id);
+
+        // Verify user has access to this workspace
+        var hasAccess = await tenantFeature.HasUserTenantRoleAsync(userId, tenant.Id);
+        if (!hasAccess)
+        {
+            return Problem(
+                title: "User does not have access to workspace",
+                detail: $"User '{fullUsername}' must have a role in workspace '{tenant.Name}' to seed transactions",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        // Set tenant context for transaction creation
+        await tenantContext.SetCurrentTenantAsync(workspaceKey);
+
+        // Create transactions with realistic test data
+        var random = new Random();
+        var createdTransactions = new List<TransactionResultDto>();
+        var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+
+        for (int i = 1; i <= request.Count; i++)
+        {
+            var transaction = new TransactionEditDto(
+                Date: baseDate.AddDays(random.Next(0, 30)),
+                Amount: Math.Round((decimal)(random.NextDouble() * 490 + 10), 2),
+                Payee: $"{request.PayeePrefix} {i}"
+            );
+
+            var result = await transactionsFeature.AddTransactionAsync(transaction);
+            createdTransactions.Add(result);
+        }
+
+        LogOkCount(createdTransactions.Count);
+        return Created($"/TestControl/users/{username}/workspaces/{workspaceKey}/transactions", createdTransactions);
+    }
+
+    /// <summary>
+    /// Delete all test data including test users and test workspaces.
+    /// </summary>
+    /// <returns>204 No Content on success.</returns>
+    /// <remarks>
+    /// Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.
+    /// Cascade deletes will remove associated role assignments and transactions.
+    /// </remarks>
+    [HttpDelete("data")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteAllTestData()
+    {
+        LogStarting();
+
+        // Delete all test workspaces
+        var testTenants = await tenantFeature.GetTenantsByNamePrefixAsync(TestUser.Prefix);
+        var tenantKeys = testTenants.Select(t => t.Key).ToList();
+        if (tenantKeys.Count > 0)
+        {
+            await tenantFeature.DeleteTenantsByKeysAsync(tenantKeys);
+        }
+
+        // Delete all test users (reuse existing functionality)
+        var testUsers = userManager.Users
+            .Where(u => u.UserName != null && u.UserName.Contains(TestUser.Prefix))
+            .ToList();
+
+        foreach (var user in testUsers)
+        {
+            await userManager.DeleteAsync(user);
+        }
+
+        LogOk();
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Create multiple workspaces for a user in a single request.
+    /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="workspaces">The collection of workspace setup requests.</param>
+    /// <returns>The collection of created workspace results with keys and roles.</returns>
+    /// <remarks>
+    /// Validates all workspace names have __TEST__ prefix before creating any.
+    /// Creates workspaces transactionally - all succeed or all fail.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/bulk")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<WorkspaceSetupResult>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> BulkWorkspaceSetup(
+        string username,
+        [FromBody] IReadOnlyCollection<WorkspaceSetupRequest> workspaces)
+    {
+        LogStartingCount(workspaces.Count);
+
+        // Find user with __TEST__ prefix
+        var fullUsername = $"{TestUser.Prefix}{username}";
+        var user = await userManager.FindByNameAsync(fullUsername);
+        if (user == null)
+        {
+            return Problem(
+                title: "User not found",
+                detail: $"Test user '{fullUsername}' not found",
+                statusCode: StatusCodes.Status404NotFound
+            );
+        }
+
+        // Validate all workspace names have test prefix
+        var invalidWorkspaces = workspaces.Where(w => !w.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
+        if (invalidWorkspaces.Count > 0)
+        {
+            return Problem(
+                title: "Invalid workspace names",
+                detail: $"All workspace names must start with '{TestUser.Prefix}'. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        var userId = Guid.Parse(user.Id);
+        var results = new List<WorkspaceSetupResult>();
+
+        foreach (var workspace in workspaces)
+        {
+            // Parse role
+            if (!Enum.TryParse<TenantRole>(workspace.Role, ignoreCase: true, out var role))
+            {
+                return Problem(
+                    title: "Invalid role",
+                    detail: $"Role '{workspace.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
+                    statusCode: StatusCodes.Status400BadRequest
+                );
+            }
+
+            var tenantDto = new TenantEditDto(workspace.Name, workspace.Description);
+            var created = await tenantFeature.CreateTenantForUserAsync(userId, tenantDto);
+
+            results.Add(new WorkspaceSetupResult(created.Key, created.Name, workspace.Role));
+        }
+
+        LogOkCount(results.Count);
+        return Created($"/TestControl/users/{username}/workspaces/bulk", results);
+    }
+
+    /// <summary>
     /// List available error codes that can be generated for testing
     /// </summary>
     /// <returns>A collection of error code descriptions</returns>
@@ -298,4 +691,16 @@ public partial class TestControlController(
 
     [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Count}")]
     private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(4, LogLevel.Debug, "{Location}: Starting {Key}")]
+    private partial void LogStartingKey(object key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(5, LogLevel.Information, "{Location}: OK {Key}")]
+    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(6, LogLevel.Debug, "{Location}: Starting")]
+    private partial void LogStarting([CallerMemberName] string? location = null);
+
+    [LoggerMessage(7, LogLevel.Information, "{Location}: OK")]
+    private partial void LogOk([CallerMemberName] string? location = null);
 }

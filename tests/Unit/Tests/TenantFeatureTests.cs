@@ -357,4 +357,66 @@ public class TenantFeatureTests
     }
 
     #endregion
+
+    #region CreateTenantAsync Tests
+
+    [Test]
+    public async Task CreateTenantAsync_ValidData_CreatesTenantWithoutRoles()
+    {
+        // Given: Valid tenant data
+        var tenantDto = new TenantEditDto("__TEST__TestWorkspace", "Administrative test workspace");
+
+        Tenant? capturedTenant = null;
+
+        _mockRepository.Setup(r => r.AddTenantAsync(It.IsAny<Tenant>()))
+            .Callback<Tenant>(t => capturedTenant = t)
+            .ReturnsAsync((Tenant t) => t);
+
+        // When: CreateTenantAsync is called
+        var result = await _tenantFeature.CreateTenantAsync(tenantDto);
+
+        // Then: Tenant should be created
+        Assert.That(capturedTenant, Is.Not.Null);
+        Assert.That(capturedTenant!.Name, Is.EqualTo("__TEST__TestWorkspace"));
+        Assert.That(capturedTenant.Description, Is.EqualTo("Administrative test workspace"));
+        Assert.That(capturedTenant.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
+
+        // And: No role assignments should be made
+        _mockRepository.Verify(r => r.AddUserTenantRoleAsync(It.IsAny<UserTenantRoleAssignment>()), Times.Never);
+
+        // And: Result should match created tenant
+        Assert.That(result.Name, Is.EqualTo("__TEST__TestWorkspace"));
+        Assert.That(result.Description, Is.EqualTo("Administrative test workspace"));
+        Assert.That(result.Key, Is.EqualTo(capturedTenant.Key));
+    }
+
+    [Test]
+    public async Task CreateTenantAsync_CreatesDistinctKey()
+    {
+        // Given: Multiple tenants are created
+        var tenantDto1 = new TenantEditDto("__TEST__Workspace1", "First workspace");
+        var tenantDto2 = new TenantEditDto("__TEST__Workspace2", "Second workspace");
+
+        var capturedTenants = new List<Tenant>();
+
+        _mockRepository.Setup(r => r.AddTenantAsync(It.IsAny<Tenant>()))
+            .Callback<Tenant>(t => capturedTenants.Add(t))
+            .ReturnsAsync((Tenant t) => t);
+
+        // When: CreateTenantAsync is called multiple times
+        var result1 = await _tenantFeature.CreateTenantAsync(tenantDto1);
+        var result2 = await _tenantFeature.CreateTenantAsync(tenantDto2);
+
+        // Then: Each tenant should have a unique key
+        Assert.That(result1.Key, Is.Not.EqualTo(Guid.Empty));
+        Assert.That(result2.Key, Is.Not.EqualTo(Guid.Empty));
+        Assert.That(result1.Key, Is.Not.EqualTo(result2.Key));
+
+        // And: Keys should match the captured tenants
+        Assert.That(capturedTenants, Has.Count.EqualTo(2));
+        Assert.That(capturedTenants[0].Key, Is.EqualTo(result1.Key));
+        Assert.That(capturedTenants[1].Key, Is.EqualTo(result2.Key));
+    }
+
+    #endregion
 }
