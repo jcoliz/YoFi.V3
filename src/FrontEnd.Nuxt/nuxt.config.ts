@@ -31,7 +31,7 @@ export default defineNuxtConfig({
   },
   auth: {
     originEnvKey: 'NUXT_PUBLIC_API_BASE_URL',
-    //disableServerSideAuth: true, // Is server side auth causing my multiple refresh token requests??
+    // disableServerSideAuth: true, // enabling this helps correlation, but fails UserViewsTheirAccountDetails test :(
     provider: {
       type: 'local',
       endpoints: {
