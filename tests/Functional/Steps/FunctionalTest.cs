@@ -220,7 +220,8 @@ public abstract class FunctionalTest : PageTest
             var apiBaseUrl = TestContext.Parameters["apiBaseUrl"]
                 ?? throw new NullReferenceException("apiBaseUrl test parameter not set");
 
-            var healthUrl = $"{checkEnvironment(apiBaseUrl)}/health";
+            var normalizedBaseUrl = checkEnvironment(apiBaseUrl).TrimEnd('/');
+            var healthUrl = $"{normalizedBaseUrl}/health";
 
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(5);
