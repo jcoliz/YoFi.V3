@@ -386,12 +386,15 @@ Create `tests/Functional/Steps/WorkspaceTenancySteps.cs` with:
 
 **Pattern to Follow:**
 ```csharp
+using YoFi.V3.Tests.Functional.Helpers;
+
 public partial class WorkspaceTenancySteps : FunctionalTest
 {
     // Given: these users exist
     protected async Task GivenTheseUsersExist(DataTable users)
     {
-        var usernames = users.Rows.Select(r => r["Username"]).ToArray();
+        // Use extension method for cleaner single-column table access
+        var usernames = users.ToSingleColumnList();
         var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
         foreach (var cred in credentials)
         {
