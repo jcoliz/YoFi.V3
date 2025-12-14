@@ -19,6 +19,9 @@ public abstract class FunctionalTest : PageTest
 {
     #region Fields
 
+    private static bool _prerequisiteCheckFailed = false;
+    private static string? _prerequisiteFailureMessage = null;
+
     protected ObjectStore _objectStore = new();
 
     protected T It<T>() where T : class => _objectStore.Get<T>();
@@ -100,14 +103,48 @@ public abstract class FunctionalTest : PageTest
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {
+        // If prerequisites already failed in another fixture, skip silently
+        if (_prerequisiteCheckFailed)
+        {
+            Assert.Inconclusive("Prerequisites check failed (see error message from first test fixture)");
+            return;
+        }
+
         var url = checkEnvironment(
                 TestContext.Parameters["webAppUrl"]
                 ?? throw new ArgumentNullException("webAppUrl test parameter not set")
             );
         baseUrl = new(url);
 
-        // Check if Playwright browsers are installed before running any tests
-        await CheckPlaywrightBrowsersInstalled();
+        // Check prerequisites before running any tests - fail with clear message if they're not met
+        try
+        {
+            await CheckPlaywrightBrowsersInstalled();
+            await CheckBackendHealthAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            var message = $"""
+                ================================================================================
+                PREREQUISITE CHECK FAILED
+                ================================================================================
+
+                {ex.Message}
+
+                ================================================================================
+                """;
+
+            // Print detailed message to console (only happens once)
+            Console.Error.WriteLine(message);
+            TestContext.Error.WriteLine(message);
+
+            // Cache the failure for other fixtures
+            _prerequisiteCheckFailed = true;
+            _prerequisiteFailureMessage = "Prerequisites check failed";
+
+            // Mark tests as inconclusive with brief message
+            Assert.Inconclusive("Prerequisites check failed (see error output above)");
+        }
     }
 
     /// <summary>
@@ -130,7 +167,7 @@ public abstract class FunctionalTest : PageTest
         }
         catch (Microsoft.Playwright.PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist"))
         {
-            // Fail fast with a clear message
+            // Throw exception to stop all tests from running
             var message = $"""
                 Playwright browsers are not installed.
 
@@ -144,7 +181,7 @@ public abstract class FunctionalTest : PageTest
                 Original error: {ex.Message}
                 """;
 
-            Assert.Fail(message);
+            throw new InvalidOperationException(message, ex);
         }
     }
     #endregion
@@ -166,6 +203,76 @@ public abstract class FunctionalTest : PageTest
     protected async Task GivenTheApplicationIsRunning()
     {
         await GivenLaunchedSite();
+    }
+
+    /// <summary>
+    /// Verifies that the backend API is responding to health checks.
+    /// </summary>
+    /// <remarks>
+    /// This check runs once per test fixture to fail fast if the backend is down,
+    /// rather than failing every single test with connection errors.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the backend is not responding.</exception>
+    private async Task CheckBackendHealthAsync()
+    {
+        try
+        {
+            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"]
+                ?? throw new NullReferenceException("apiBaseUrl test parameter not set");
+
+            var healthUrl = $"{checkEnvironment(apiBaseUrl)}/health";
+
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
+
+            var response = await httpClient.GetAsync(healthUrl);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = $"""
+                    Backend API health check failed with status {(int)response.StatusCode} {response.StatusCode}.
+
+                    Health endpoint: {healthUrl}
+
+                    Please ensure the backend is running:
+                    - For local development: Start the backend with 'pwsh scripts/Start-LocalDev.ps1'
+                    - For container: Start with 'pwsh scripts/Start-Container.ps1'
+
+                    Response: {await response.Content.ReadAsStringAsync()}
+                    """;
+
+                throw new InvalidOperationException(message);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? "unknown";
+            var message = $"""
+                Cannot connect to backend API at {apiBaseUrl}/health
+
+                Please ensure the backend is running:
+                - For local development: Start the backend with 'pwsh scripts/Start-LocalDev.ps1'
+                - For container: Start with 'pwsh scripts/Start-Container.ps1'
+
+                Original error: {ex.Message}
+                """;
+
+            throw new InvalidOperationException(message, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? "unknown";
+            var message = $"""
+                Backend API health check timed out (5 seconds) at {apiBaseUrl}/health
+
+                The backend may be starting up or experiencing issues.
+                Please ensure the backend is running and responsive:
+                - For local development: Start the backend with 'pwsh scripts/Start-LocalDev.ps1'
+                - For container: Start with 'pwsh scripts/Start-Container.ps1'
+                """;
+
+            throw new InvalidOperationException(message, ex);
+        }
     }
 
     /// <summary>
