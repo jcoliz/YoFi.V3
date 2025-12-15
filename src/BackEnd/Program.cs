@@ -1,13 +1,11 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Identity;
-using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Logging;
+using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.BackEnd.Startup;
-using YoFi.V3.Controllers.Middleware;
+using YoFi.V3.Controllers;
 using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
-using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Options;
 
 
@@ -18,20 +16,7 @@ try
     // Set up Startup logger
     //
 
-    using var loggerFactory = LoggerFactory.Create(builder =>
-    {
-        builder.SetMinimumLevel(LogLevel.Debug);
-        builder.AddCustomConsole(options =>
-        {
-            options.IncludeScopes = true;
-#if DEBUG
-            options.TimestampFormat = "MM-dd'T'HH:mm:ss ";
-            options.UseUtcTimestamp = false;
-#endif
-       });
-        builder.AddEventSourceLogger();
-    });
-    logger = loggerFactory.CreateLogger("Startup");
+    logger = YoFi.V3.BackEnd.Logging.LoggingBuilderExtensions.CreateStartupLogger();
     logger.LogInformation("Starting {App} Process ID: {ProcessId}, Thread ID: {ThreadId}",
         Assembly.GetExecutingAssembly().FullName,
         Environment.ProcessId,
@@ -42,16 +27,8 @@ try
     //
     var builder = WebApplication.CreateBuilder(args);
 
-    // Clear default logging providers and use only our custom console logger
-    builder.Logging.ClearProviders();
-    builder.Logging.AddCustomConsole(options =>
-    {
-        options.IncludeScopes = true;
-#if DEBUG
-        options.TimestampFormat = "MM-dd'T'HH:mm:ss ";
-        options.UseUtcTimestamp = false;
-#endif
-    });
+    // Configure application logging
+    builder.Logging.AddApplicationLogging();
 
     // Get application options, which can be used during startup configuration
     ApplicationOptions applicationOptions = new();
@@ -64,63 +41,21 @@ try
     builder.AddApplicationOptions(logger);
 
     //
-    // Add services to the container.
+    // Add services to the container
     //
 
     builder.Services.AddControllers();
     builder.Services.AddProblemDetails();
-
-    // Register custom exception handler for application-specific exceptions
-    builder.Services.AddExceptionHandler<CustomExceptionHandler>();
+    builder.Services.AddControllerServices();
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration);
-
-    //
-    // Add Identity services
-    //
-
-    // Add Identity
-    builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
-    {
-        options.Password.RequireDigit = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequiredLength = 6;
-        options.User.RequireUniqueEmail = true;
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
-
-    // Add NuxtIdentity
-    builder.Services.AddNuxtIdentityWithEntityFramework<IdentityUser, ApplicationDbContext>(builder.Configuration);
-
-    // Add Tenancy
+    builder.Services.AddIdentityConfiguration(builder.Configuration);
     builder.Services.AddTenancy();
-
-    // See ADR 0007 for a disussion of CORS policies.
-    builder.Services.AddCors(options =>
-    {
-        options.AddDefaultPolicy(policy =>
-        {
-            if ( applicationOptions.AllowedCorsOrigins.Length == 0)
-            {
-                logger.LogError("No allowed CORS origins configured. Please set Application:AllowedCorsOrigins in configuration.");
-            }
-            else
-            {
-                policy.WithOrigins(applicationOptions.AllowedCorsOrigins)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
-                logger.LogInformation(4,"CORS configured with allowed origins: {Origins}", string.Join(", ", applicationOptions.AllowedCorsOrigins));
-            }
-        });
-    });
+    builder.Services.AddCorsServices(applicationOptions, logger);
 
     //
-    // Build the app
+    // Build and configure the app
     //
 
     var app = builder.Build();
@@ -128,50 +63,14 @@ try
     // Prepare the database
     app.PrepareDatabaseAsync();
 
-    // Configure the HTTP request pipeline.
-
-    if (applicationOptions.Environment == EnvironmentType.Production)
-    {
-        app.UseHsts();
-        app.UseHttpsRedirection();
-    }
-
-// During development phase, we'll keep swagger up even in non-development environments.
-#if false
-    if (applicationOptions.Environment != EnvironmentType.Production)
-#endif
-    {
-        logger.LogInformation(8,"Enabling Swagger UI");
-        app.UseSwagger();
-    }
-
-    app.UseCors();
-
-    // Test correlation middleware must come early to capture all requests
-    app.UseMiddleware<TestCorrelationMiddleware>();
-
-    // Exception handler must come BEFORE middleware that might throw exceptions
-    app.UseExceptionHandler();
-
-    // Status code pages middleware to handle routing failures (e.g., invalid route constraints)
-    // AddProblemDetails() configures the serialization format, but UseStatusCodePages()
-    // intercepts status code responses and triggers the problem details generation
-    app.UseStatusCodePages();
-
-    // Authentication and Authorization must come before authorization-protected endpoints
-    app.UseAuthentication();
-    app.UseAuthorization();
-
-    app.UseTenancy();
-    app.MapDefaultEndpoints();
-    app.MapControllers();
+    // Configure the HTTP request pipeline
+    app.ConfigureMiddlewarePipeline(applicationOptions, logger);
 
     logger.LogInformation(10, "OK. Environment: {Environment}", applicationOptions.Environment);
-    logger.LogInformation("[DIAG] ==================== APP READY ====================");
 
     app.Run();
 
-    logger.LogInformation("[DIAG] ==================== APP STOPPED ====================");
+    logger.LogInformation(11, "Application Stopped Normally");
 
 }
 catch (Exception ex)
