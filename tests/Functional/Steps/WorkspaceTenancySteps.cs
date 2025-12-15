@@ -54,8 +54,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         var loginPage = new LoginPage(Page);
-        await loginPage.EnterCredentialsAsync(cred.Email, cred.Password);
-        await loginPage.ClickLoginButtonAsync();
+        await loginPage.LoginAsync(cred.Username, cred.Password);
 
         // Wait for redirect after successful login
         await Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });

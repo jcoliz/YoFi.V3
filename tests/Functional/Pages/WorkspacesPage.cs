@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Components;
 
@@ -13,6 +14,8 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// </remarks>
 public class WorkspacesPage(IPage page) : BasePage(page)
 {
+    private static readonly Regex CreateTenantApiRegex = new("/api/Tenant", RegexOptions.Compiled);
+
     #region Components
 
     /// <summary>
@@ -32,12 +35,12 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Main page heading
     /// </summary>
-    public ILocator PageHeading => Page!.GetByRole(AriaRole.Heading, new() { Name = "Workspace Management" });
+    public ILocator PageHeading => Page!.GetByTestId("page-heading");
 
     /// <summary>
     /// Create Workspace button in the header
     /// </summary>
-    public ILocator CreateWorkspaceButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Create Workspace" });
+    public ILocator CreateWorkspaceButton => PageHeading.GetByTestId("create-workspace-button");
 
     /// <summary>
     /// Loading spinner
@@ -105,7 +108,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Empty state create button
     /// </summary>
-    public ILocator EmptyStateCreateButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Create Workspace" }).Last;
+    public ILocator EmptyStateCreateButton => EmptyState.GetByTestId("create-workspace-button");
 
     #endregion
 
@@ -170,8 +173,16 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         {
             await CreateDescriptionInput.FillAsync(description);
         }
-        await CreateButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await ClickCreateButtonAsync();
+    }
+
+    public async Task ClickCreateButtonAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await CreateButton.ClickAsync();
+        }, CreateTenantApiRegex);
+        //?await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>

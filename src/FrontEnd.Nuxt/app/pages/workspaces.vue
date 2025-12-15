@@ -279,11 +279,15 @@ definePageMeta({
 
     <!-- Main Content -->
     <div class="container py-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div
+        class="d-flex justify-content-between align-items-center mb-4"
+        data-test-id="page-heading"
+      >
         <h1>Workspace Management</h1>
         <button
           class="btn btn-primary"
           :disabled="showCreateForm"
+          data-test-id="create-workspace-button"
           @click="openCreateForm"
         >
           <FeatherIcon
@@ -567,6 +571,7 @@ definePageMeta({
         <button
           v-if="!showCreateForm"
           class="btn btn-primary"
+          data-test-id="create-workspace-button"
           @click="openCreateForm"
         >
           <FeatherIcon
