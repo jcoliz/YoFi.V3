@@ -19,7 +19,10 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public ILocator UsernameDisplay =>  SuccessMessage.GetByTestId("display-username");
     public ILocator ContinueButton => SuccessMessage.GetByTestId("ContinueButton");
 
-    public ILocator SignInLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Sign in here" });
+    /// <summary>
+    /// Link to navigate to the login page
+    /// </summary>
+    public ILocator SignInLink => Page!.GetByTestId("sign-in-link");
 
     public async Task RegisterAsync(string email, string username, string password)
     {

@@ -88,3 +88,121 @@ if (!formData.value.trim()) {
 - Clear errors before making API calls: `error.value = undefined` and `showError.value = false`
 - Store errors as `IProblemDetails | undefined`, not strings
 - Use a separate `showError` boolean to control `ErrorDisplay` visibility
+
+## Testing Patterns
+
+### Data Test IDs for Functional Tests
+
+**ALWAYS** add `data-test-id` attributes to elements that:
+- Users interact with (buttons, links, inputs, form fields)
+- Display important state or data (error messages, success messages, loading indicators, headings)
+- Are used in automated functional tests
+
+**Rules:**
+
+- **ALWAYS** add `data-test-id` to interactive elements:
+  - Buttons: `data-test-id="action-button"` (e.g., `"create-submit-button"`, `"edit-cancel-button"`)
+  - Links: `data-test-id="navigation-link"` (e.g., `"create-account-link"`, `"sign-in-link"`)
+  - Form inputs: `data-test-id="field-name"` (e.g., `"username"`, `"email"`, `"password"`)
+  - Form containers: `data-test-id="FormName"` (e.g., `"LoginForm"`, `"RegisterForm"`)
+
+- **ALWAYS** add `data-test-id` to state display elements:
+  - Page headings: `data-test-id="page-heading"`
+  - Error displays: `data-test-id="error-display"` or `data-test-id="Errors"`
+  - Success messages: `data-test-id="SuccessMessage"`
+  - Loading indicators: `data-test-id="loading-state"`, `data-test-id="BaseSpinner"`
+  - Empty states: `data-test-id="empty-state"`
+  - Status badges: `data-test-id="status-badge"`, `data-test-id="role-badge"`
+
+- **ALWAYS** add `data-test-id` to list items and cards:
+  - Use unique identifiers: `data-test-id="item-row-{key}"` or `data-test-id="item-card-{key}"`
+  - Examples: `"transaction-row-{transactionKey}"`, `"workspace-card-{workspaceKey}"`
+
+- **Naming Conventions:**
+  - Use kebab-case: `data-test-id="create-submit-button"` (NOT camelCase or PascalCase)
+  - Be descriptive and specific: `"new-transaction-button"` not just `"button"`
+  - Use consistent patterns: `"{action}-submit-button"`, `"{action}-cancel-button"`
+  - For forms: Use the field name: `"username"`, `"email"`, `"password"`, NOT `"username-input"`
+
+### Loading State Pattern
+
+**ALWAYS** implement the loading state pattern for async operations (form submissions, API calls):
+
+```vue
+<button
+  type="submit"
+  data-test-id="create-submit-button"
+  :disabled="isSubmitting"
+>
+  <BaseSpinner v-if="isSubmitting" size="sm" class="me-1" />
+  {{ isSubmitting ? 'Creating...' : 'Create' }}
+</button>
+```
+
+**Rules:**
+
+- **ALWAYS** use `:disabled` binding tied to loading state (e.g., `isLoading`, `isSubmitting`, `creating`)
+- **ALWAYS** show a spinner during loading: `<BaseSpinner v-if="isLoading" size="sm" />`
+- **ALWAYS** change button text to show loading state: `{{ isLoading ? 'Loading...' : 'Load' }}`
+- **NEVER** create separate buttons/locators for loading vs. non-loading states
+- **NEVER** rely on button text for test locators - use stable `data-test-id` instead
+
+**Benefits:**
+- ✅ Tests detect loading state via `.IsDisabledAsync()` on the button
+- ✅ Button text can change without breaking tests
+- ✅ Supports internationalization (text in any language)
+- ✅ No race conditions catching transitional states
+- ✅ Consistent UX across all forms
+
+### Reusable Components with Test IDs
+
+When creating reusable components (like `ModalDialog`), **ALWAYS** support `data-test-id` props:
+
+```vue
+<script setup lang="ts">
+interface Props {
+  // ... other props
+  primaryButtonTestId?: string
+  secondaryButtonTestId?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  // ... defaults
+  primaryButtonTestId: '',
+  secondaryButtonTestId: '',
+})
+</script>
+
+<template>
+  <button :data-test-id="primaryButtonTestId">
+    {{ primaryButtonText }}
+  </button>
+  <button :data-test-id="secondaryButtonTestId">
+    {{ secondaryButtonText }}
+  </button>
+</template>
+```
+
+**Usage:**
+
+```vue
+<ModalDialog
+  v-model:show="showModal"
+  title="Create Item"
+  :loading="creating"
+  :primary-button-text="creating ? 'Creating...' : 'Create'"
+  primary-button-test-id="create-submit-button"
+  secondary-button-test-id="create-cancel-button"
+  @primary="createItem"
+/>
+```
+
+### Testing Best Practices
+
+- **DO** add `data-test-id` during initial development, not as an afterthought
+- **DO** use the same `data-test-id` values that functional tests expect (check `tests/Functional/Pages/`)
+- **DO** keep test IDs stable - never change them without updating tests
+- **DON'T** use generated IDs like `id="input-1234"` for test locators
+- **DON'T** rely on CSS classes for test locators (they change with styling)
+- **DON'T** rely on text content for locators (changes with i18n, copy updates)
+- **DON'T** use ARIA roles alone (not stable enough for automation)

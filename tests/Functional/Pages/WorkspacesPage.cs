@@ -79,17 +79,12 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Create button in create form
     /// </summary>
-    public ILocator CreateButton => CreateFormCard.GetByRole(AriaRole.Button, new() { Name = "Create" });
-
-    /// <summary>
-    /// Creating button text (when loading)
-    /// </summary>
-    public ILocator CreatingButton => CreateFormCard.GetByRole(AriaRole.Button, new() { Name = "Creating..." });
+    public ILocator CreateButton => CreateFormCard.GetByTestId("create-submit-button");
 
     /// <summary>
     /// Cancel button in create form
     /// </summary>
-    public ILocator CreateCancelButton => CreateFormCard.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+    public ILocator CreateCancelButton => CreateFormCard.GetByTestId("create-cancel-button");
 
     #endregion
 
@@ -117,22 +112,17 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Delete confirmation modal
     /// </summary>
-    public ILocator DeleteModal => Page!.GetByTestId("delete-transaction-modal").Or(Page!.Locator(".modal").Filter(new() { Has = Page!.GetByRole(AriaRole.Heading, new() { Name = "Delete Workspace" }) }));
+    public ILocator DeleteModal => Page!.GetByTestId("delete-modal");
 
     /// <summary>
     /// Delete button in modal
     /// </summary>
-    public ILocator DeleteModalButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Delete" });
-
-    /// <summary>
-    /// Deleting button text in modal (when loading)
-    /// </summary>
-    public ILocator DeletingModalButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Deleting..." });
+    public ILocator DeleteModalButton => DeleteModal.GetByTestId("delete-submit-button");
 
     /// <summary>
     /// Cancel button in delete modal
     /// </summary>
-    public ILocator DeleteModalCancelButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+    public ILocator DeleteModalCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
 
     #endregion
 

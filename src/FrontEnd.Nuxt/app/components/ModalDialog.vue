@@ -16,6 +16,8 @@ interface Props {
   hideFooter?: boolean
   hidePrimaryButton?: boolean
   hideSecondaryButton?: boolean
+  primaryButtonTestId?: string
+  secondaryButtonTestId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -27,6 +29,8 @@ const props = withDefaults(defineProps<Props>(), {
   hideFooter: false,
   hidePrimaryButton: false,
   hideSecondaryButton: false,
+  primaryButtonTestId: '',
+  secondaryButtonTestId: '',
 })
 
 const emit = defineEmits<{
@@ -98,6 +102,7 @@ const modalDialogClass = computed(() => {
                 v-if="!hideSecondaryButton"
                 type="button"
                 class="btn btn-secondary"
+                :data-test-id="secondaryButtonTestId"
                 :disabled="loading"
                 @click="handleSecondary"
               >
@@ -108,6 +113,7 @@ const modalDialogClass = computed(() => {
                 type="button"
                 class="btn"
                 :class="`btn-${primaryButtonVariant}`"
+                :data-test-id="primaryButtonTestId"
                 :disabled="loading"
                 @click="handlePrimary"
               >

@@ -358,7 +358,7 @@ definePageMeta({
             <button
               class="btn btn-primary"
               :disabled="creating || !newWorkspaceName.trim()"
-              data-test-id="create-workspace-submit"
+              data-test-id="create-submit-button"
               @click="createWorkspace"
             >
               <BaseSpinner
@@ -371,7 +371,7 @@ definePageMeta({
             <button
               class="btn btn-secondary"
               :disabled="creating"
-              data-test-id="create-workspace-cancel"
+              data-test-id="create-cancel-button"
               @click="cancelCreate"
             >
               Cancel
@@ -591,6 +591,9 @@ definePageMeta({
       :loading="deleting"
       primary-button-variant="danger"
       :primary-button-text="deleting ? 'Deleting...' : 'Delete'"
+      primary-button-test-id="delete-submit-button"
+      secondary-button-test-id="delete-cancel-button"
+      data-test-id="delete-modal"
       @primary="deleteWorkspace"
     >
       <ErrorDisplay

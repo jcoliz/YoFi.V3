@@ -32,12 +32,12 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Main page heading
     /// </summary>
-    public ILocator PageHeading => Page!.GetByRole(AriaRole.Heading, new() { Name = "Transactions" });
+    public ILocator PageHeading => Page!.GetByTestId("page-heading");
 
     /// <summary>
     /// New Transaction button in the header
     /// </summary>
-    public ILocator NewTransactionButton => Page!.GetByRole(AriaRole.Button, new() { Name = "New Transaction" });
+    public ILocator NewTransactionButton => Page!.GetByTestId("new-transaction-button");
 
     /// <summary>
     /// Warning message when no workspace is selected
@@ -81,7 +81,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Clear Filters button
     /// </summary>
-    public ILocator ClearFiltersButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Clear Filters" });
+    public ILocator ClearFiltersButton => Page!.GetByTestId("clear-filters-button");
 
     #endregion
 
@@ -110,7 +110,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Create first transaction button in empty state
     /// </summary>
-    public ILocator EmptyStateCreateButton => Page!.GetByRole(AriaRole.Button, new() { Name = "Create your first transaction" });
+    public ILocator EmptyStateCreateButton => Page!.GetByTestId("empty-state-create-button");
 
     #endregion
 
@@ -139,17 +139,12 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Create button in modal
     /// </summary>
-    public ILocator CreateButton => CreateModal.GetByRole(AriaRole.Button, new() { Name = "Create" });
-
-    /// <summary>
-    /// Creating button text in modal (when loading)
-    /// </summary>
-    public ILocator CreatingButton => CreateModal.GetByRole(AriaRole.Button, new() { Name = "Creating..." });
+    public ILocator CreateButton => CreateModal.GetByTestId("create-submit-button");
 
     /// <summary>
     /// Cancel button in create modal
     /// </summary>
-    public ILocator CreateCancelButton => CreateModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+    public ILocator CreateCancelButton => CreateModal.GetByTestId("create-cancel-button");
 
     #endregion
 
@@ -178,17 +173,12 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Update button in edit modal
     /// </summary>
-    public ILocator UpdateButton => EditModal.GetByRole(AriaRole.Button, new() { Name = "Update" });
-
-    /// <summary>
-    /// Updating button text in modal (when loading)
-    /// </summary>
-    public ILocator UpdatingButton => EditModal.GetByRole(AriaRole.Button, new() { Name = "Updating..." });
+    public ILocator UpdateButton => EditModal.GetByTestId("edit-submit-button");
 
     /// <summary>
     /// Cancel button in edit modal
     /// </summary>
-    public ILocator EditCancelButton => EditModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+    public ILocator EditCancelButton => EditModal.GetByTestId("edit-cancel-button");
 
     #endregion
 
@@ -207,17 +197,12 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Delete button in modal
     /// </summary>
-    public ILocator DeleteButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Delete" });
-
-    /// <summary>
-    /// Deleting button text in modal (when loading)
-    /// </summary>
-    public ILocator DeletingButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Deleting..." });
+    public ILocator DeleteButton => DeleteModal.GetByTestId("delete-submit-button");
 
     /// <summary>
     /// Cancel button in delete modal
     /// </summary>
-    public ILocator DeleteCancelButton => DeleteModal.GetByRole(AriaRole.Button, new() { Name = "Cancel" });
+    public ILocator DeleteCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
 
     #endregion
 

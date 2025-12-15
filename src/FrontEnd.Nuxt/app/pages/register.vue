@@ -285,6 +285,7 @@ const isWeakPassword = computed(() => {
                 <NuxtLink
                   to="/login"
                   class="text-decoration-none"
+                  data-test-id="sign-in-link"
                   >Sign in here</NuxtLink
                 >
               </p>

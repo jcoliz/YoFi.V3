@@ -257,9 +257,10 @@ function formatCurrency(amount: number | undefined): string {
     <!-- Main Content -->
     <div class="container py-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Transactions</h1>
+        <h1 data-test-id="page-heading">Transactions</h1>
         <button
           class="btn btn-primary"
+          data-test-id="new-transaction-button"
           :disabled="!hasWorkspace || loading"
           @click="openCreateModal"
         >
@@ -332,6 +333,7 @@ function formatCurrency(amount: number | undefined): string {
             <div class="col-md-4 d-flex align-items-end">
               <button
                 class="btn btn-secondary"
+                data-test-id="clear-filters-button"
                 @click="clearFilters"
               >
                 Clear Filters
@@ -377,6 +379,7 @@ function formatCurrency(amount: number | undefined): string {
             <p>No transactions found</p>
             <button
               class="btn btn-primary btn-sm"
+              data-test-id="empty-state-create-button"
               @click="openCreateModal"
             >
               Create your first transaction
@@ -446,6 +449,8 @@ function formatCurrency(amount: number | undefined): string {
       title="Create Transaction"
       :loading="loading"
       :primary-button-text="loading ? 'Creating...' : 'Create'"
+      primary-button-test-id="create-submit-button"
+      secondary-button-test-id="create-cancel-button"
       data-test-id="create-transaction-modal"
       @primary="createTransaction"
     >
@@ -523,6 +528,8 @@ function formatCurrency(amount: number | undefined): string {
       title="Edit Transaction"
       :loading="loading"
       :primary-button-text="loading ? 'Updating...' : 'Update'"
+      primary-button-test-id="edit-submit-button"
+      secondary-button-test-id="edit-cancel-button"
       data-test-id="edit-transaction-modal"
       @primary="updateTransaction"
     >
@@ -601,6 +608,8 @@ function formatCurrency(amount: number | undefined): string {
       :loading="loading"
       primary-button-variant="danger"
       :primary-button-text="loading ? 'Deleting...' : 'Delete'"
+      primary-button-test-id="delete-submit-button"
+      secondary-button-test-id="delete-cancel-button"
       data-test-id="delete-transaction-modal"
       @primary="deleteTransaction"
     >

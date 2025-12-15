@@ -17,10 +17,11 @@ Page Object Models MUST use reliable, maintainable selectors that are resistant 
    - Stable and unique identifiers
    - Only when `data-test-id` is not available
 
-3. **ARIA roles with accessible names** - ACCEPTABLE
-   - ✅ Use: `Page!.GetByRole(AriaRole.Button, new() { Name = "Submit" })`
-   - Semantic HTML, supports accessibility
-   - Only when ID or test ID is not practical
+3. **ARIA roles WITHOUT names** - ACCEPTABLE FOR STRUCTURAL ELEMENTS
+   - ⚠️ Use sparingly: `Page!.GetByRole(AriaRole.Navigation)`
+   - Only for unique structural elements (navigation, main, banner, etc.)
+   - Must be truly unique on the page
+   - **DO NOT** use with `Name` parameter
 
 4. **Element tags** - LAST RESORT
    - ⚠️ Use sparingly: `Page!.Locator("button")`
@@ -36,12 +37,19 @@ Page Object Models MUST use reliable, maintainable selectors that are resistant 
    - Fragile and maintenance-intensive
    - **Solution**: Add `data-test-id` to the element instead
 
-2. **Class-based selectors** - `Locator(".css-class")`
+2. **ARIA roles WITH accessible names** - `GetByRole(AriaRole.Button, new() { Name = "Submit" })`
+   - **Just as bad as text-based selectors!**
+   - Breaks when button text changes (translations, copy updates)
+   - The `Name` parameter matches against text content
+   - **Solution**: Add `data-test-id` to the element instead
+   - **Exception**: ARIA roles WITHOUT names are acceptable for structural elements
+
+3. **Class-based selectors** - `Locator(".css-class")`
    - Breaks when styling changes
    - Classes are for styling, not testing
    - **Solution**: Add `data-test-id` to the element instead
 
-3. **XPath selectors** - `Locator("//div[@class='foo']/span[2]")`
+4. **XPath selectors** - `Locator("//div[@class='foo']/span[2]")`
    - Extremely fragile
    - Difficult to read and maintain
    - **Solution**: Add `data-test-id` to the target element

@@ -1,5 +1,107 @@
 # Project Rules for YoFi.V3
 
+## Project Structure
+
+**Understanding the codebase layout for efficient navigation and development.**
+
+### Directory Organization
+
+```
+YoFi.V3/
+├── src/                          # All source code
+│   ├── FrontEnd.Nuxt/           # Frontend Vue/Nuxt application
+│   │   ├── app/                 # Nuxt app directory
+│   │   │   ├── pages/          # Vue pages (login.vue, register.vue, transactions.vue, etc.)
+│   │   │   ├── components/     # Reusable Vue components
+│   │   │   ├── composables/    # Vue composables
+│   │   │   ├── utils/          # Frontend utilities (apiclient.ts, errorHandler.ts)
+│   │   │   └── stores/         # Pinia stores
+│   │   ├── .roorules           # Frontend-specific Roo rules
+│   │   ├── nuxt.config.ts      # Nuxt configuration
+│   │   └── package.json        # Frontend dependencies
+│   │
+│   ├── BackEnd/                 # ASP.NET Core backend API
+│   ├── Controllers/             # API Controllers layer
+│   ├── Application/             # Application Features layer
+│   ├── Entities/                # Domain entities and exceptions
+│   ├── WireApiHost/            # NSwag API client generation
+│   └── ServiceDefaults/        # Shared service configuration
+│
+├── tests/                       # All test projects
+│   ├── Functional/             # End-to-end Playwright tests
+│   │   ├── Pages/              # Page Object Models
+│   │   ├── Features/           # Gherkin feature files
+│   │   └── Steps/              # Step definitions
+│   ├── Integration.Controller/ # Controller integration tests
+│   ├── Integration.Data/       # Data layer integration tests
+│   └── Unit/                   # Unit tests
+│
+├── docs/                        # Documentation
+│   ├── wip/                    # Work-in-progress documents
+│   └── adr/                    # Architecture Decision Records
+│
+├── scripts/                     # PowerShell automation scripts
+│   ├── Run-Tests.ps1           # Run backend tests
+│   ├── Run-FunctionalTestsVsContainer.ps1  # Run functional tests
+│   ├── Start-LocalDev.ps1      # Start local development
+│   └── Edit-FrontEnd.ps1       # Navigate to frontend
+│
+├── docker/                      # Docker configurations
+├── infra/                       # Infrastructure as Code (Bicep)
+└── submodules/                  # Git submodules (NuxtIdentity)
+```
+
+### Key Locations
+
+**Frontend Development:**
+- **Location**: `src/FrontEnd.Nuxt/`
+- **Vue Pages**: `src/FrontEnd.Nuxt/app/pages/` - login.vue, register.vue, transactions.vue, workspaces.vue
+- **Vue Components**: `src/FrontEnd.Nuxt/app/components/` - Reusable components like ModalDialog.vue, ErrorDisplay.vue
+- **API Client**: `src/FrontEnd.Nuxt/app/utils/apiclient.ts` - Auto-generated, DO NOT edit manually
+- **Frontend Rules**: `src/FrontEnd.Nuxt/.roorules` - Frontend-specific patterns and testing guidelines
+
+**Backend Development:**
+- **Controllers**: `src/Controllers/` - API endpoints
+- **Features**: `src/Application/` - Business logic
+- **Tests**: `tests/Unit/`, `tests/Integration.Controller/`, `tests/Integration.Data/`
+
+**Functional Tests:**
+- **Location**: `tests/Functional/`
+- **Page Objects**: `tests/Functional/Pages/` - LoginPage.cs, TransactionsPage.cs, etc.
+- **Feature Files**: `tests/Functional/Features/` - Gherkin scenarios
+- **Requirements**: `tests/Functional/FRONTEND-CHANGES-REQUIRED.md` - Frontend test requirements
+
+### Navigation Tips
+
+1. **Finding Frontend Code**: Always look in `src/FrontEnd.Nuxt/app/` directory
+   - Pages: `app/pages/*.vue`
+   - Components: `app/components/*.vue`
+   - Utilities: `app/utils/*.ts`
+
+2. **Finding Backend Code**: Look in `src/` subdirectories
+   - API: `src/Controllers/`
+   - Logic: `src/Application/`
+   - Data: Entity Framework configurations are in respective project contexts
+
+3. **Finding Tests**: Look in `tests/` subdirectories
+   - Frontend tests: `tests/Functional/`
+   - Backend tests: `tests/Unit/`, `tests/Integration.*/`
+
+4. **Quick Start Scripts**:
+   - Edit frontend: `.\scripts\Edit-FrontEnd.ps1`
+   - Run backend tests: `.\scripts\Run-Tests.ps1`
+   - Run functional tests: `.\scripts\Run-FunctionalTestsVsContainer.ps1`
+
+### Common Confusion Points
+
+❌ **Don't look for frontend in**:
+- `submodules/NuxtIdentity/` - This is a separate library project
+- Root directory - No Vue files at root level
+- `src/` root - Frontend is specifically in `src/FrontEnd.Nuxt/`
+
+✅ **Always find frontend in**:
+- `src/FrontEnd.Nuxt/app/` - All Vue application code
+
 ## Testing Framework Pattern
 
 **Always use NUnit for all testing recommendations and examples.**

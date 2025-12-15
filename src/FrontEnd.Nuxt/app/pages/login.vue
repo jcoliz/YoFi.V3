@@ -179,6 +179,7 @@ const handleSubmit = async () => {
                 <NuxtLink
                   to="/register"
                   class="text-decoration-none"
+                  data-test-id="create-account-link"
                   >Request one here</NuxtLink
                 >
               </p>
