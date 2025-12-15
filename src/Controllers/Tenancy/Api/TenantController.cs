@@ -136,15 +136,15 @@ public partial class TenantController(TenantFeature tenantFeature, ILogger<Tenan
         return NoContent();
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
     private partial void LogStarting([CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Key}")]
+    [LoggerMessage(2, LogLevel.Debug, "{Location}: Starting {Key}")]
     private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Count}")]
+    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Count}")]
     private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Key}")]
+    [LoggerMessage(4, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 }

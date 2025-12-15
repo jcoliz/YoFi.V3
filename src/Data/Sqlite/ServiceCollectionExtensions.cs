@@ -73,22 +73,22 @@ public static partial class ServiceCollectionExtensions
 #endif
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "PrepareDatabaseAsync called - checking if migration needed")]
+    [LoggerMessage(1, LogLevel.Debug, "PrepareDatabaseAsync called - checking if migration needed")]
     private static partial void LogPrepareDatabaseCalled(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Applying {Count} pending migrations: {Migrations}")]
+    [LoggerMessage(2, LogLevel.Debug, "Applying {Count} pending migrations: {Migrations}")]
     private static partial void LogApplyingPendingMigrations(ILogger logger, int count, string migrations);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "No pending migrations")]
+    [LoggerMessage(3, LogLevel.Debug, "No pending migrations")]
     private static partial void LogNoPendingMigrations(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Database migration completed")]
+    [LoggerMessage(4, LogLevel.Debug, "Database migration completed")]
     private static partial void LogDatabaseMigrationCompleted(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Database connection closed")]
+    [LoggerMessage(5, LogLevel.Debug, "Database connection closed")]
     private static partial void LogDatabaseConnectionClosed(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Forcing GC to release database resources")]
+    [LoggerMessage(6, LogLevel.Debug, "Forcing GC to release database resources")]
     private static partial void LogForcingGC(ILogger logger);
 
 }

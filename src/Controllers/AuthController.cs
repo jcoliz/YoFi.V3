@@ -61,9 +61,9 @@ public partial class AuthController(
         LogOkKey(Guid.Parse(user.Id));
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Key}")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Key}")]
     private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Information, "{Location}: OK {Key}")]
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 }

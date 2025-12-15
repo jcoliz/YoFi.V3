@@ -91,30 +91,30 @@ public partial class TenantRoleHandler(
         return Task.CompletedTask;
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Handler called. MinimumRole={MinimumRole}, IsAuthenticated={IsAuthenticated}")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Handler called. MinimumRole={MinimumRole}, IsAuthenticated={IsAuthenticated}")]
     private partial void LogHandlerCalled(TenantRole minimumRole, bool isAuthenticated, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Warning, "{Location}: No HttpContext available")]
+    [LoggerMessage(2, LogLevel.Warning, "{Location}: No HttpContext available")]
     private partial void LogNoHttpContext([CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Warning, "{Location}: No tenant key in route")]
+    [LoggerMessage(3, LogLevel.Warning, "{Location}: No tenant key in route")]
     private partial void LogNoTenantKey([CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Debug, "{Location}: Checking tenant key {TenantKey}")]
+    [LoggerMessage(4, LogLevel.Debug, "{Location}: Checking tenant key {TenantKey}")]
     private partial void LogCheckingTenantKey(string tenantKey, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(4, LogLevel.Debug, "{Location}: All claims: {Claims}")]
+    [LoggerMessage(5, LogLevel.Debug, "{Location}: All claims: {Claims}")]
     private partial void LogAllClaims(string claims, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(5, LogLevel.Debug, "{Location}: Found matching claim: {ClaimValue}")]
+    [LoggerMessage(6, LogLevel.Debug, "{Location}: Found matching claim: {ClaimValue}")]
     private partial void LogFoundClaim(string claimValue, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(6, LogLevel.Information, "{Location}: Authorization success for tenant {TenantKey} with role {UserRole}")]
+    [LoggerMessage(7, LogLevel.Information, "{Location}: Authorization success for tenant {TenantKey} with role {UserRole}")]
     private partial void LogAuthorizationSuccess(string tenantKey, TenantRole userRole, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(7, LogLevel.Warning, "{Location}: Insufficient role. User has {UserRole}, requires {MinimumRole}")]
+    [LoggerMessage(8, LogLevel.Warning, "{Location}: Insufficient role. User has {UserRole}, requires {MinimumRole}")]
     private partial void LogInsufficientRole(string userRole, TenantRole minimumRole, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(8, LogLevel.Warning, "{Location}: No matching tenant_role claim for tenant {TenantKey}")]
+    [LoggerMessage(9, LogLevel.Warning, "{Location}: No matching tenant_role claim for tenant {TenantKey}")]
     private partial void LogNoMatchingClaim(string tenantKey, [CallerMemberName] string? location = null);
 }

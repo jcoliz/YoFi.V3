@@ -679,27 +679,27 @@ public partial class TestControlController(
         }
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Count}")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Count}")]
     private partial void LogStartingCount(int count, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Error, "{Location}: Failed")]
+    [LoggerMessage(2, LogLevel.Error, "{Location}: Failed")]
     private partial void LogFailed(Exception ex, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK. User {Name}")]
+    [LoggerMessage(3, LogLevel.Information, "{Location}: OK. User {Name}")]
     private partial void LogOkUsername(string name, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Information, "{Location}: OK {Count}")]
+    [LoggerMessage(4, LogLevel.Information, "{Location}: OK {Count}")]
     private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(4, LogLevel.Debug, "{Location}: Starting {Key}")]
+    [LoggerMessage(5, LogLevel.Debug, "{Location}: Starting {Key}")]
     private partial void LogStartingKey(object key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(5, LogLevel.Information, "{Location}: OK {Key}")]
+    [LoggerMessage(6, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(6, LogLevel.Debug, "{Location}: Starting")]
+    [LoggerMessage(7, LogLevel.Debug, "{Location}: Starting")]
     private partial void LogStarting([CallerMemberName] string? location = null);
 
-    [LoggerMessage(7, LogLevel.Information, "{Location}: OK")]
+    [LoggerMessage(8, LogLevel.Information, "{Location}: OK")]
     private partial void LogOk([CallerMemberName] string? location = null);
 }

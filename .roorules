@@ -77,23 +77,31 @@ public class MyServiceTests
 
 1. **Use LoggerMessage attribute** - Never use direct logger calls like `_logger.LogInformation()`. Always use the `[LoggerMessage]` attribute with partial methods.
 
-2. **CallerMemberName location pattern** - All log methods must include `[CallerMemberName] string? location = null` as the last parameter. The log message template should start with `{Location}:` to automatically capture the calling method name.
+2. **Explicit event IDs** - All logger message methods MUST include an explicit event ID as the first parameter to `[LoggerMessage]`:
+   - Event IDs must be numeric integers in the range 1-9999 (1-4 digits)
+   - Event IDs must be unique within each logging category (class)
+   - Event IDs should be assigned sequentially starting from 1 within each class
+   - Event IDs are forever tied to their logger method name and should NEVER be reused for a different method, even if the original method is removed
+   - When adding new log methods, always use the next available number (highest existing ID + 1)
+   - If the highest-numbered method is removed and no new method is added, simply leave that number unused
 
-3. **Concise log messages** - Keep messages brief. The `{Location}` parameter usually provides sufficient context about where the log originated. Format: `"{Location}: Brief description {Parameter}"`
+3. **CallerMemberName location pattern** - All log methods must include `[CallerMemberName] string? location = null` as the last parameter. The log message template should start with `{Location}:` to automatically capture the calling method name.
 
-4. **Debug-level "Starting" messages** - Use `LogLevel.Debug` for "Starting" messages at the beginning of operations. Format: `"{Location}: Starting"` or `"{Location}: Starting {Key}"` if there's a parameter.
+4. **Concise log messages** - Keep messages brief. The `{Location}` parameter usually provides sufficient context about where the log originated. Format: `"{Location}: Brief description {Parameter}"`
 
-5. **Information-level "OK" messages** - Prefer an "OK" message as the final log message in a method upon success. Use `LogLevel.Information`. Format: `"{Location}: OK"` or `"{Location}: OK {Parameter}"`.
+5. **Debug-level "Starting" messages** - Use `LogLevel.Debug` for "Starting" messages at the beginning of operations. Format: `"{Location}: Starting"` or `"{Location}: Starting {Key}"` if there's a parameter.
 
-6. **One Information log per method** - Prefer only one Information-level log per method (typically the final "OK" message), unless there's a strong reason for multiple. Debug, Warning, and Error messages don't count toward this limit.
+6. **Information-level "OK" messages** - Prefer an "OK" message as the final log message in a method upon success. Use `LogLevel.Information`. Format: `"{Location}: OK"` or `"{Location}: OK {Parameter}"`.
 
-7. **Unique parameter signatures** - Only create a new logger message method if the parameter combination is unique. Reuse existing log methods when the parameters match, even if the calling location is different.
+7. **One Information log per method** - Prefer only one Information-level log per method (typically the final "OK" message), unless there's a strong reason for multiple. Debug, Warning, and Error messages don't count toward this limit.
 
-8. **Partial class requirement** - Classes using LoggerMessage must be declared as `partial class`.
+8. **Unique parameter signatures** - Only create a new logger message method if the parameter combination is unique. Reuse existing log methods when the parameters match, even if the calling location is different.
 
-9. **Primary constructor pattern** - Use primary constructor syntax for dependency injection: `public partial class MyClass(ILogger<MyClass> logger)`
+9. **Partial class requirement** - Classes using LoggerMessage must be declared as `partial class`.
 
-10. **Required using statements**:
+10. **Primary constructor pattern** - Use primary constructor syntax for dependency injection: `public partial class MyClass(ILogger<MyClass> logger)`
+
+11. **Required using statements**:
     - `using System.Runtime.CompilerServices;` (for CallerMemberName)
     - `using Microsoft.Extensions.Logging;` (for LoggerMessage)
 
@@ -116,13 +124,46 @@ public partial class MyController(ILogger<MyController> logger) : ControllerBase
         return Ok(result);
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting {Key}")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Key}")]
     private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Information, "{Location}: OK {Key}")]
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
 }
 ```
+
+### Event ID Assignment Example
+
+When evolving a class over time, event IDs remain stable:
+
+```csharp
+// Initial version - IDs 1, 2, 3
+[LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
+private partial void LogStarting([CallerMemberName] string? location = null);
+
+[LoggerMessage(2, LogLevel.Debug, "{Location}: Starting {Email}")]
+private partial void LogStartingEmail(string email, [CallerMemberName] string? location = null);
+
+[LoggerMessage(3, LogLevel.Debug, "{Location}: Starting {Key}")]
+private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+
+// Later: Replace LogStartingEmail with LogStartingUsername
+// ID 2 is retired (never reuse it), and we assign ID 4 to the new method
+[LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
+private partial void LogStarting([CallerMemberName] string? location = null);
+
+// ID 2 - RETIRED (was LogStartingEmail) - do not reuse
+
+[LoggerMessage(3, LogLevel.Debug, "{Location}: Starting {Key}")]
+private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+
+[LoggerMessage(4, LogLevel.Debug, "{Location}: Starting {Username}")]
+private partial void LogStartingUsername(string username, [CallerMemberName] string? location = null);
+
+// Next new method would use ID 5
+```
+
+**Key principle:** Event IDs are permanent markers that provide stable references for log analysis, alerting, and monitoring. Never renumber existing IDs or reuse retired ones.
 
 ### Common Log Method Patterns
 

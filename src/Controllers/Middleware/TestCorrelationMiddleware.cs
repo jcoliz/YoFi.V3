@@ -128,28 +128,28 @@ public partial class TestCorrelationMiddleware(
         }
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Request headers: {Headers}")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Request headers: {Headers}")]
     private partial void LogRequestHeaders(string headers, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(1, LogLevel.Debug, "{Location}: Request cookies: {Cookies}")]
+    [LoggerMessage(2, LogLevel.Debug, "{Location}: Request cookies: {Cookies}")]
     private partial void LogRequestCookies(string cookies, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Debug, "{Location}: Attempting to parse cookie value: {DecodedValue}")]
+    [LoggerMessage(3, LogLevel.Debug, "{Location}: Attempting to parse cookie value: {DecodedValue}")]
     private partial void LogAttemptingCookieParse(string decodedValue, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Debug, "{Location}: Test correlation from cookie: TestName={TestName}, TestId={TestId}")]
+    [LoggerMessage(4, LogLevel.Debug, "{Location}: Test correlation from cookie: TestName={TestName}, TestId={TestId}")]
     private partial void LogTestCorrelationFromCookie(string testName, string testId, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(4, LogLevel.Warning, "{Location}: Failed to parse test correlation cookie. Cookie value: {CookieValue}")]
+    [LoggerMessage(5, LogLevel.Warning, "{Location}: Failed to parse test correlation cookie. Cookie value: {CookieValue}")]
     private partial void LogFailedToParseTestCorrelationCookie(JsonException ex, string cookieValue, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(5, LogLevel.Warning, "{Location}: Test correlation cookie deserialized to null. Cookie value: {CookieValue}")]
+    [LoggerMessage(6, LogLevel.Warning, "{Location}: Test correlation cookie deserialized to null. Cookie value: {CookieValue}")]
     private partial void LogTestCorrelationCookieDeserializedNull(string cookieValue, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(6, LogLevel.Debug, "{Location}: Linked activity to test trace: {TraceId}")]
+    [LoggerMessage(7, LogLevel.Debug, "{Location}: Linked activity to test trace: {TraceId}")]
     private partial void LogLinkedActivityToTestTrace(string traceId, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(7, LogLevel.Trace, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
+    [LoggerMessage(8, LogLevel.Trace, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
     private partial void LogAddedTestMetadataToActivity(string testName, string testId, string testClass, string traceId, [CallerMemberName] string? location = null);
 
     /// <summary>

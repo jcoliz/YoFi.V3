@@ -186,6 +186,6 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     //     return true;
     // }
 
-    [LoggerMessage(0, LogLevel.Information, "{Location}: Handled {ExceptionType} with status code {StatusCode}")]
+    [LoggerMessage(1, LogLevel.Information, "{Location}: Handled {ExceptionType} with status code {StatusCode}")]
     private partial void LogHandledException(Exception ex, string exceptionType, int statusCode, [CallerMemberName] string? location = null);
 }

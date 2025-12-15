@@ -26,7 +26,7 @@ public partial class WeatherController(WeatherFeature weatherFeature, ILogger<We
         return Ok(weather);
     }
 
-    [LoggerMessage(0, LogLevel.Debug, "{Location}: Starting")]
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
     private partial void LogStarting([CallerMemberName] string location = "");
 
     [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Count} items")]
