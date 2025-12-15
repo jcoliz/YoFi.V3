@@ -22,7 +22,7 @@ Rule: Getting Started
     Scenario: New user automatically has a personal workspace
         Given the application is running
         When a new user "david" registers and logs in
-        Then "david" should have a workspace ready to use
+        Then user should have a workspace ready to use
         And the workspace should be personalized with the name "david"
 
 Rule: Creating Workspaces

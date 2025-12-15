@@ -35,7 +35,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// New user automatically has a personal workspace
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task NewUserAutomaticallyHasAPersonalWorkspace()
     {
         // Given the application is running
@@ -47,8 +46,8 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
 
-        // Then "david" should have a workspace ready to use
-        await ThenUserShouldHaveAWorkspaceReadyToUse("david");
+        // Then user should have a workspace ready to use
+        await ThenUserShouldHaveAWorkspaceReadyToUse();
 
         // And the workspace should be personalized with the name "david"
         await ThenTheWorkspaceShouldBePersonalizedWithTheName("david");

@@ -13,6 +13,14 @@ public class LoginPage(IPage _page): BasePage(_page)
     public ILocator ErrorDisplay => View.GetByTestId("error-display");
     public ILocator CreateAccountLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Create one here" });
 
+    public async Task LoginAsync(string email, string password)
+    {
+        await UsernameInput.FillAsync(email);
+        await PasswordInput.FillAsync(password);
+
+        await ClickLoginButtonAsync();
+    }
+
     public async Task EnterCredentialsAsync(string email, string password)
     {
         await UsernameInput.FillAsync(email);

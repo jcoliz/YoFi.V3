@@ -27,6 +27,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenTheseUsersExist(DataTable usersTable)
     {
+        // Clear existing users to avoid conflicts
+        await testControlClient.DeleteUsersAsync();
+
         var usernames = usersTable.ToSingleColumnList();
         var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
 
@@ -260,6 +263,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenANewUserRegistersAndLogsIn(string username)
     {
+        // Update username with test prefix
+        username = $"__TEST__{username}";
+
         // Generate a unique email and password for the new user
         var email = $"{username}@test.local";
         var password = "Test123!";
@@ -270,19 +276,18 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         var registerPage = new RegisterPage(Page);
 
-        // TODO: Need RegisterPage.RegisterAsync(email, password, confirmPassword) method
-        // For now, use individual field fills
-        await registerPage.EmailInput.FillAsync(email);
-        await registerPage.PasswordInput.FillAsync(password);
-        await registerPage.PasswordAgainInput.FillAsync(password);
-        await registerPage.RegisterButton.ClickAsync();
-
-        // Wait for redirect after registration (should auto-login)
-        await Page.WaitForURLAsync(url => !url.Contains("/register"), new() { Timeout = 10000 });
+        await registerPage.RegisterAsync(email, username, password);
 
         // Store credentials for future reference
         _userCredentials[username] = new TestUserCredentials { Email = email, Password = password };
         _objectStore.Add("CurrentWorkspaceName", username); // New users get a workspace with their name
+
+        // Click the "Continue" button to proceed after registration
+        await registerPage.ContinueButton.ClickAsync();
+
+        // Now we are on the login button and we should login
+        var loginPage = new LoginPage(Page);
+        await loginPage.LoginAsync(username, password);
     }
 
     /// <summary>
@@ -500,16 +505,17 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     #region Steps: THEN
 
     /// <summary>
-    /// Then: {username} should have a workspace ready to use
+    /// Then: user should have a workspace ready to use
     /// </summary>
-    protected async Task ThenUserShouldHaveAWorkspaceReadyToUse(string username)
+    protected async Task ThenUserShouldHaveAWorkspaceReadyToUse()
     {
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
-        // Check that a workspace is selected
-        var hasWorkspace = await transactionsPage.WorkspaceSelector.HasWorkspaceSelectedAsync();
-        Assert.That(hasWorkspace, Is.True, $"User {username} should have a workspace selected");
+        // Get the current workspace name
+        var noWorkspaceMessage = await transactionsPage.WorkspaceSelector.NoWorkspaceMessage.IsVisibleAsync();
+
+        Assert.That(noWorkspaceMessage, Is.False, "User should have at least one workspace available");
     }
 
     /// <summary>
@@ -518,8 +524,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task ThenTheWorkspaceShouldBePersonalizedWithTheName(string expectedName)
     {
         var transactionsPage = GetOrCreateTransactionsPage();
-        var workspaceName = await transactionsPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
+        await transactionsPage.NavigateAsync();
 
+        var workspaceName = await transactionsPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
         Assert.That(workspaceName, Does.Contain(expectedName), $"Workspace name should contain '{expectedName}'");
     }
 

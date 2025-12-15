@@ -9,7 +9,7 @@
 	 <RunConfiguration>
 	   <MaxCpuCount>1</MaxCpuCount>
 	   <EnvironmentVariables>
-	     <PWDEBUG>0</PWDEBUG>
+	     <PWDEBUG>1</PWDEBUG>
 	   </EnvironmentVariables>
 	 </RunConfiguration>
 	 <NUnit>

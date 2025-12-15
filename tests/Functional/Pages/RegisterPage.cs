@@ -17,6 +17,8 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public ILocator SuccessMessage => Page!.GetByTestId("SuccessMessage");
     public ILocator EmailDisplay => SuccessMessage.GetByTestId("display-email");
     public ILocator UsernameDisplay =>  SuccessMessage.GetByTestId("display-username");
+    public ILocator ContinueButton => SuccessMessage.GetByTestId("ContinueButton");
+
     public ILocator SignInLink => Page!.GetByRole(AriaRole.Link, new() { Name = "Sign in here" });
 
     public async Task RegisterAsync(string email, string username, string password)
@@ -28,10 +30,7 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
         await SaveScreenshotAsync("Registering");
 
-        await WaitForApi(async () =>
-        {
-            await RegisterButton.ClickAsync();
-        }, "/api/auth/register*");
+        await ClickRegisterButtonAsync();
     }
 
     public async Task EnterRegistrationDetailsAsync(string email, string username, string password, string confirmPassword)
