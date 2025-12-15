@@ -27,7 +27,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenTheseUsersExist(DataTable usersTable)
     {
-        var usernames = usersTable.GetColumn("Username").ToArray();
+        var usernames = usersTable.ToSingleColumnList();
         var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
 
         foreach (var cred in credentials)
@@ -179,8 +179,17 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenIHaveAccessTo(string workspaceName)
     {
-        // TODO: Create workspace and assign current user with any role
-        await Task.CompletedTask;
+        var currentUsername = GetCurrentTestUsername();
+        var request = new WorkspaceSetupRequest
+        {
+            Name = workspaceName,
+            Description = $"Test workspace: {workspaceName}",
+            Role = "Viewer" // Default to minimum access level
+        };
+
+        var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
+        var result = results.First();
+        _workspaceKeys[workspaceName] = result.Key;
     }
 
     /// <summary>
@@ -188,10 +197,24 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenThereIsAWorkspaceCalledThatIDontHaveAccessTo(string workspaceName)
     {
-        // TODO: Create workspace for a different user (not current user)
-        // Use Test Control API to create workspace owned by another test user
+        // Get a different user from the credentials dictionary (not the current user)
+        var currentUsername = GetCurrentTestUsername();
+        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Value.Username != currentUsername);
 
-        await Task.CompletedTask;
+        if (otherUser.Key == null)
+        {
+            throw new InvalidOperationException("No other test users available. Need at least one user besides the current user.");
+        }
+
+        // Create workspace for the other user
+        var request = new WorkspaceCreateRequest
+        {
+            Name = workspaceName,
+            Description = $"Test workspace (no access): {workspaceName}"
+        };
+
+        var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
+        _workspaceKeys[workspaceName] = result.Key;
     }
 
     /// <summary>
@@ -572,8 +595,16 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
-        // Verify that role badges are displayed
-        // TODO: Need to get workspace names from previous step to check their roles
+        // Verify that role badges are displayed for each workspace we created
+        foreach (var workspaceName in _workspaceKeys.Keys)
+        {
+            var role = await workspacesPage.GetWorkspaceRoleAsync(workspaceName);
+            Assert.That(role, Is.Not.Null.And.Not.Empty,
+                $"Workspace '{workspaceName}' should display a role badge");
+            Assert.That(role, Is.AnyOf("Owner", "Editor", "Viewer"),
+                $"Workspace '{workspaceName}' should have a valid role (Owner, Editor, or Viewer), but got: {role}");
+        }
+
         var workspaceCount = await workspacesPage.GetWorkspaceCountAsync();
         Assert.That(workspaceCount, Is.GreaterThan(0), "Should have at least one workspace");
     }
