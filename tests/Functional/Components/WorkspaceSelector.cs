@@ -108,6 +108,15 @@ public class WorkspaceSelector(IPage page, ILocator parent)
     }
 
     /// <summary>
+    /// Closes the workspace dropdown menu
+    /// </summary>
+    public async Task CloseMenuAsync()
+    {
+        await MenuTrigger.ClickAsync();
+        await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
     /// Gets the currently displayed workspace name
     /// </summary>
     /// <returns>The workspace name text, or null if not visible</returns>

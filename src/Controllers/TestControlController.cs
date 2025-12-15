@@ -258,6 +258,7 @@ public partial class TestControlController(
         // Validate workspace name has test prefix
         if (!request.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
+            LogError($"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety");
             return Problem(
                 title: "Workspace name must have __TEST__ prefix",
                 detail: $"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety",
@@ -266,10 +267,15 @@ public partial class TestControlController(
         }
 
         // Find user with __TEST__ prefix
-        var fullUsername = $"{TestUser.Prefix}{username}";
+        var fullUsername = username;
+        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            fullUsername = $"{TestUser.Prefix}{username}";
+        }
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
+            LogError($"Test user '{fullUsername}' not found");
             return Problem(
                 title: "User not found",
                 detail: $"Test user '{fullUsername}' not found",
@@ -706,4 +712,7 @@ public partial class TestControlController(
 
     [LoggerMessage(8, LogLevel.Information, "{Location}: OK")]
     private partial void LogOk([CallerMemberName] string? location = null);
+
+    [LoggerMessage(9, LogLevel.Warning, "{Location}: Failed. {Error}")]
+    private partial void LogError(string error, [CallerMemberName] string? location = null);
 }

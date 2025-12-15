@@ -238,6 +238,17 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         return GetWorkspaceCardByName(workspaceName).GetByTestId("delete-workspace-button");
     }
 
+    /// <summary>
+    /// Gets the Delete button for a specific workspace by name
+    /// </summary>
+    /// <param name="workspaceName">The name of the workspace</param>
+    /// <returns>Locator for the Delete button</returns>
+    public Task<string> GetWorkspaceCardCreatedDate(string workspaceName)
+    {
+        return GetWorkspaceCardByName(workspaceName).GetByTestId("created-date").InnerTextAsync();
+    }
+
+
     #endregion
 
     #region Edit Operations

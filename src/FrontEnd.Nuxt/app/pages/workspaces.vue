@@ -516,7 +516,10 @@ definePageMeta({
                   class="mb-3"
                 >
                   <small class="text-muted">
-                    <strong>Created:</strong> {{ new Date(tenant.createdAt).toLocaleDateString() }}
+                    <strong>Created:</strong>
+                    <span data-test-id="created-date">
+                      {{ new Date(tenant.createdAt).toLocaleDateString() }}
+                    </span>
                   </small>
                 </div>
 

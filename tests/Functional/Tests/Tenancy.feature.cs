@@ -114,7 +114,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User views all their workspaces
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserViewsAllTheirWorkspaces()
     {
         // Given I am logged in as "alice"
@@ -149,7 +148,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User views workspace details
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserViewsWorkspaceDetails()
     {
         // Given I am logged in as "bob"

@@ -58,6 +58,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Wait for redirect after successful login
         await Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
+
+        _objectStore.Add("LoggedInAs", username);
     }
 
     /// <summary>
@@ -88,15 +90,26 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
     {
-        var currentUsername = GetCurrentTestUsername();
+        var currentUsername = _objectStore.Get<string>("LoggedInAs");
+
         var request = new WorkspaceCreateRequest
         {
-            Name = workspaceName,
-            Description = $"__TEST__ Test workspace: {workspaceName}"
+            Name = $"__TEST__ {workspaceName}",
+            Description = $"__TEST__ Test workspace: {workspaceName}",
+            Role = "Owner"
         };
 
-        var result = await testControlClient.CreateWorkspaceForUserAsync(currentUsername, request);
-        _workspaceKeys[workspaceName] = result.Key;
+        TenantResultDto? result;
+        try
+        {
+            result = await testControlClient.CreateWorkspaceForUserAsync(currentUsername, request);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating workspace '{workspaceName}': {ex.Message}");
+            throw;
+        }
+        _workspaceKeys[workspaceName] = result!.Key;
     }
 
     /// <summary>
@@ -324,10 +337,10 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await workspacesPage.NavigateAsync();
 
         // Open workspace selector dropdown to view details
-        await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
-        await workspacesPage.WorkspaceSelector.OpenMenuAsync();
+        await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync($"__TEST__ {workspaceName}");
+        await workspacesPage.WorkspaceSelector.CloseMenuAsync();
 
-        _objectStore.Add("CurrentWorkspaceName", workspaceName);
+        _objectStore.Add("CurrentWorkspaceName", $"__TEST__ {workspaceName}");
     }
 
     /// <summary>
@@ -612,13 +625,18 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// <summary>
     /// Then: I should see the workspace information
     /// </summary>
+    /// <remarks>
+    /// ...for the expected workspace!
+    /// </remarks>
     protected async Task ThenIShouldSeeTheWorkspaceInformation()
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
 
-        // Verify workspace selector shows information
+        var expected = _objectStore.Get<string>("CurrentWorkspaceName");
+
+        // Verify workspace selector shows expected information
         var workspaceName = await workspacesPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
-        Assert.That(workspaceName, Is.Not.Null.And.Not.Empty, "Workspace information should be visible");
+        Assert.That(workspaceName, Is.EqualTo(expected), "Workspace information should be visible");
     }
 
     /// <summary>
@@ -627,11 +645,15 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task ThenIShouldSeeWhenItWasCreated()
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
+        await workspacesPage.NavigateAsync();
 
-        // TODO: Need WorkspaceSelector component method to check if created date is displayed
-        // For now, just verify workspace details are visible
-        await workspacesPage.WorkspaceSelector.OpenMenuAsync();
-        // Menu should show workspace details including created date
+        var currentWorkspaceName = _objectStore.Get<string>("CurrentWorkspaceName");
+        var createdDate = await workspacesPage.GetWorkspaceCardCreatedDate(currentWorkspaceName);
+
+        // Can I verify that it looks like a date?
+        DateTime parsedDate;
+        bool isValidDate = DateTime.TryParse(createdDate, out parsedDate);
+        Assert.That(isValidDate, Is.True, "Workspace created date should be a valid date");
     }
 
     /// <summary>
