@@ -20,7 +20,14 @@ try
     using var loggerFactory = LoggerFactory.Create(builder =>
     {
         builder.SetMinimumLevel(LogLevel.Debug);
-        builder.AddConsole();
+        builder.AddSystemdConsole(options =>
+        {
+            options.IncludeScopes = true;
+#if DEBUG
+            options.TimestampFormat = "MM-ddTHH:mm:ss ";
+            options.UseUtcTimestamp = false;
+#endif
+       });
         builder.AddEventSourceLogger();
     });
     logger = loggerFactory.CreateLogger("Startup");
@@ -33,6 +40,16 @@ try
     // Set up Web application
     //
     var builder = WebApplication.CreateBuilder(args);
+
+    // Configure logging to use systemd format
+    builder.Logging.AddSystemdConsole(options =>
+    {
+        options.IncludeScopes = true;
+#if DEBUG
+        options.TimestampFormat = "MM-ddTHH:mm:ss ";
+        options.UseUtcTimestamp = false;
+#endif
+    });
 
     // Get application options, which can be used during startup configuration
     ApplicationOptions applicationOptions = new();
