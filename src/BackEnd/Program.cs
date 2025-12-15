@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Identity;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Application;
+using YoFi.V3.BackEnd.Logging;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers.Middleware;
 using YoFi.V3.Controllers.Tenancy;
@@ -20,11 +21,11 @@ try
     using var loggerFactory = LoggerFactory.Create(builder =>
     {
         builder.SetMinimumLevel(LogLevel.Debug);
-        builder.AddSystemdConsole(options =>
+        builder.AddCustomConsole(options =>
         {
             options.IncludeScopes = true;
 #if DEBUG
-            options.TimestampFormat = "MM-ddTHH:mm:ss ";
+            options.TimestampFormat = "MM-dd'T'HH:mm:ss ";
             options.UseUtcTimestamp = false;
 #endif
        });
@@ -41,12 +42,13 @@ try
     //
     var builder = WebApplication.CreateBuilder(args);
 
-    // Configure logging to use systemd format
-    builder.Logging.AddSystemdConsole(options =>
+    // Clear default logging providers and use only our custom console logger
+    builder.Logging.ClearProviders();
+    builder.Logging.AddCustomConsole(options =>
     {
         options.IncludeScopes = true;
 #if DEBUG
-        options.TimestampFormat = "MM-ddTHH:mm:ss ";
+        options.TimestampFormat = "MM-dd'T'HH:mm:ss ";
         options.UseUtcTimestamp = false;
 #endif
     });
