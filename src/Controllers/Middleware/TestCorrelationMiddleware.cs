@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -21,11 +20,6 @@ public partial class TestCorrelationMiddleware(
     RequestDelegate next,
     ILogger<TestCorrelationMiddleware> logger)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     /// <summary>
     /// Processes the HTTP request and enriches it with test correlation data.
     /// </summary>
@@ -33,113 +27,104 @@ public partial class TestCorrelationMiddleware(
     public async Task InvokeAsync(HttpContext context)
     {
         var scope = new Dictionary<string, object>();
-        var activity = Activity.Current; // ASP.NET Core auto-creates this from traceparent header
 
-        //
-        // Log all request headers and cookies for debugging
-        //
-        var allHeaders = string.Join(", ", context.Request.Headers.Select(h => $"{h.Key}={h.Value}"));
-        LogRequestHeaders(allHeaders);
+        // Extract query parameters for logging
+        AddQueryToScope(context, scope);
 
-        var allCookies = string.Join(", ", context.Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
-        LogRequestCookies(allCookies);
+        // Extract test correlation headers
+        var (testName, testId, testClass) = ExtractTestCorrelationHeaders(context);
 
-        //
-        // Extract Query
-        //
-        var query = context.Request.Query;
-        if (query.Count > 0)
-        {
-            scope["Query"] = JsonSerializer.Serialize(query);
-        }
-
-        //
-        // Extract test correlation from headers (preferred) or cookie (fallback)
-        //
-        string? testName = null;
-        string? testId = null;
-        string? testClass = null;
-
-        // Try headers first (faster, used by Playwright-controlled requests)
-        if (context.Request.Headers.TryGetValue("X-Test-Name", out var testNameValue))
-        {
-            testName = testNameValue.ToString();
-            testId = context.Request.Headers.TryGetValue("X-Test-Id", out var testIdValue) ? testIdValue.ToString() : null;
-            testClass = context.Request.Headers.TryGetValue("X-Test-Class", out var testClassValue) ? testClassValue.ToString() : null;
-        }
-        // Fall back to cookie (used by frontend-initiated requests)
-        else if (context.Request.Cookies.TryGetValue("x-test-correlation", out var cookieValue))
-        {
-            try
-            {
-                // ASP.NET Core auto-decodes cookies, but we double-encoded, so decode again
-                var decoded = HttpUtility.UrlDecode(cookieValue);
-                LogAttemptingCookieParse(decoded);
-
-                // Use case-insensitive deserialization to match lowercase JSON property names
-                var testMetadata = JsonSerializer.Deserialize<TestCorrelationMetadata>(decoded, JsonOptions);
-                if (testMetadata != null)
-                {
-                    testName = testMetadata.Name;
-                    testId = testMetadata.Id;
-                    testClass = testMetadata.Class;
-
-                    // If traceparent is in cookie, manually set it on the current activity to link traces
-                    if (testMetadata.Traceparent != null && activity != null)
-                    {
-                        // Parse traceparent: 00-{trace-id}-{parent-span-id}-{flags}
-                        var parts = testMetadata.Traceparent.Split('-');
-                        if (parts.Length == 4 && parts[0] == "00")
-                        {
-                            activity.SetParentId(ActivityTraceId.CreateFromString(parts[1]), ActivitySpanId.CreateFromString(parts[2]));
-                            LogLinkedActivityToTestTrace(parts[1]);
-                        }
-                    }
-
-                    LogTestCorrelationFromCookie(testName ?? "null", testId ?? "null");
-                }
-                else
-                {
-                    LogTestCorrelationCookieDeserializedNull(decoded);
-                }
-            }
-            catch (JsonException ex)
-            {
-                LogFailedToParseTestCorrelationCookie(ex, cookieValue);
-            }
-        }
-
-        //
-        // Add test metadata to both Activity (for OpenTelemetry) and Scope (for logging)
-        //
+        // Add metadata to Activity (OpenTelemetry) and logging scope
+        var activity = Activity.Current;
         if (activity != null)
         {
-            // Add standard OpenTelemetry semantic conventions
-            if (testName != null)
-            {
-                activity.SetTag("test.name", testName);
-                scope["TestName"] = testName;
-            }
-
-            if (testId != null)
-            {
-                activity.SetTag("test.id", testId);
-                scope["TestId"] = testId;
-            }
-
-            if (testClass != null)
-            {
-                activity.SetTag("test.class", testClass);
-                scope["TestClass"] = testClass;
-            }
-
-            // Add TraceId to scope for local logging
-            scope["TraceId"] = activity.TraceId.ToString();
+            AddTestMetadataToActivityAndScope(activity, testName, testId, testClass, scope);
         }
 
         using (logger.BeginScope(scope))
         {
             await next(context);
+        }
+    }
+
+    /// <summary>
+    /// Extracts query parameters from the request and adds them to the logging scope.
+    /// </summary>
+    private static void AddQueryToScope(HttpContext context, Dictionary<string, object> scope)
+    {
+        var query = context.Request.Query;
+        if (query.Count > 0)
+        {
+            scope["Query"] = JsonSerializer.Serialize(query);
+        }
+    }
+
+    /// <summary>
+    /// Extracts test correlation headers (X-Test-Name, X-Test-Id, X-Test-Class) from the request.
+    /// </summary>
+    /// <returns>A tuple containing the test name, test ID, and test class (all nullable).</returns>
+    private static (string? TestName, string? TestId, string? TestClass) ExtractTestCorrelationHeaders(HttpContext context)
+    {
+        var headers = context.Request.Headers;
+
+        var testName = headers.TryGetValue("X-Test-Name", out var testNameValue)
+            ? testNameValue.ToString()
+            : null;
+
+        var testId = headers.TryGetValue("X-Test-Id", out var testIdValue)
+            ? testIdValue.ToString()
+            : null;
+
+        var testClass = headers.TryGetValue("X-Test-Class", out var testClassValue)
+            ? testClassValue.ToString()
+            : null;
+
+        return (testName, testId, testClass);
+    }
+
+    /// <summary>
+    /// Adds test correlation metadata to both Activity tags (for OpenTelemetry) and logging scope.
+    /// </summary>
+    private void AddTestMetadataToActivityAndScope(
+        Activity activity,
+        string? testName,
+        string? testId,
+        string? testClass,
+        Dictionary<string, object> scope)
+    {
+        var hasTestMetadata = false;
+
+        if (testName != null)
+        {
+            activity.SetTag("test.name", testName);
+            scope["TestName"] = testName;
+            hasTestMetadata = true;
+        }
+
+        if (testId != null)
+        {
+            activity.SetTag("test.id", testId);
+            scope["TestId"] = testId;
+            hasTestMetadata = true;
+        }
+
+        if (testClass != null)
+        {
+            activity.SetTag("test.class", testClass);
+            scope["TestClass"] = testClass;
+            hasTestMetadata = true;
+        }
+
+        // Add TraceId to scope for local logging
+        scope["TraceId"] = activity.TraceId.ToString();
+
+        if (hasTestMetadata)
+        {
+            LogAddedTestMetadataToActivity(
+                testName ?? "null",
+                testId ?? "null",
+                testClass ?? "null",
+                activity.TraceId.ToString());
         }
     }
 
@@ -163,6 +148,9 @@ public partial class TestCorrelationMiddleware(
 
     [LoggerMessage(6, LogLevel.Debug, "{Location}: Linked activity to test trace: {TraceId}")]
     private partial void LogLinkedActivityToTestTrace(string traceId, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(7, LogLevel.Debug, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
+    private partial void LogAddedTestMetadataToActivity(string testName, string testId, string testClass, string traceId, [CallerMemberName] string? location = null);
 
     /// <summary>
     /// Simple DTO for deserializing test correlation metadata from cookie.

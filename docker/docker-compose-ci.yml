@@ -34,6 +34,7 @@ services:
       # Warning: This key is for development / testing purposes only. Do not use in production!
       - JWT__KEY=${JWT_KEY:-YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14=}
       - JWT__LIFESPAN=${JWT_LIFESPAN:-00:10:00}
+      - LOGGING__LOGLEVEL__YOFI=Debug
     restart: always
     ports:
       - '5001:8080'

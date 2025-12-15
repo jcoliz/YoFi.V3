@@ -41,11 +41,23 @@ public abstract class FunctionalTest : PageTest
         {
             if (_testControlClient is null)
             {
+                var httpClient = new HttpClient();
+
+                // Add test correlation headers if test activity exists
+                if (_testActivity is not null)
+                {
+                    var headers = BuildTestCorrelationHeaders();
+                    foreach (var header in headers)
+                    {
+                        httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    }
+                }
+
                 _testControlClient = new TestControlClient(
                     baseUrl:
                         TestContext.Parameters["apiBaseUrl"]
                         ?? throw new NullReferenceException("apiBaseUrl test parameter not set"),
-                    httpClient: new HttpClient()
+                    httpClient: httpClient
                 );
             }
             return _testControlClient;
@@ -99,47 +111,12 @@ public abstract class FunctionalTest : PageTest
         _testActivity.SetTag("test.name", testName);
         _testActivity.SetTag("test.class", testClass);
         _testActivity.SetTag("test.id", testId);
-        _testActivity.SetTag("test.framework", "NUnit");
         _testActivity.Start();
 
         //
         // Set headers for both W3C trace propagation and direct correlation
         //
-        var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
-
-        await Context.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
-        {
-            // W3C Trace Context standard
-            ["traceparent"] = traceParent,
-
-            // Direct test correlation (fallback and convenience)
-            ["X-Test-Name"] = HttpUtility.UrlEncode(testName),
-            ["X-Test-Id"] = testId,
-            ["X-Test-Class"] = testClass
-        });
-
-        //
-        // Also set cookie for test correlation - this will be sent with ALL requests
-        // including frontend-initiated requests like auth refresh
-        //
-        var testMetadata = System.Text.Json.JsonSerializer.Serialize(new
-        {
-            name = testName,
-            id = testId,
-            @class = testClass,
-            traceparent = traceParent
-        });
-
-        await Context.AddCookiesAsync(
-        [
-            new Cookie()
-            {
-                Name = "x-test-correlation",
-                Value = HttpUtility.UrlEncode(testMetadata),
-                Domain = baseUrl!.Host,
-                Path = "/"
-            }
-        ]);
+        await Context.SetExtraHTTPHeadersAsync(BuildTestCorrelationHeaders());
     }
 
     [TearDown]
@@ -532,6 +509,33 @@ public abstract class FunctionalTest : PageTest
             _objectStore.Add(weatherPage);
         }
         return It<WeatherPage>();
+    }
+
+    /// <summary>
+    /// Builds test correlation headers for distributed tracing
+    /// </summary>
+    private Dictionary<string, string> BuildTestCorrelationHeaders()
+    {
+        if (_testActivity is null)
+        {
+            return new Dictionary<string, string>();
+        }
+
+        var testName = TestContext.CurrentContext.Test.Name;
+        var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
+        var testId = _testActivity.GetTagItem("test.id")?.ToString() ?? Guid.NewGuid().ToString();
+        var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
+
+        return new Dictionary<string, string>
+        {
+            // W3C Trace Context standard
+            ["traceparent"] = traceParent,
+
+            // Direct test correlation (fallback and convenience)
+            ["X-Test-Name"] = HttpUtility.UrlEncode(testName),
+            ["X-Test-Id"] = testId,
+            ["X-Test-Class"] = testClass
+        };
     }
 
     #endregion
