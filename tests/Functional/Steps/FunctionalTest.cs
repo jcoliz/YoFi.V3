@@ -21,7 +21,6 @@ public abstract class FunctionalTest : PageTest
     #region Fields
 
     private static bool _prerequisiteCheckFailed = false;
-    private static string? _prerequisiteFailureMessage = null;
 
     protected ObjectStore _objectStore = new();
     protected Activity? _testActivity;
@@ -163,10 +162,6 @@ public abstract class FunctionalTest : PageTest
             // Print detailed message to console (only happens once)
             Console.Error.WriteLine(message);
             TestContext.Error.WriteLine(message);
-
-            // Cache the failure for other fixtures
-            _prerequisiteCheckFailed = true;
-            _prerequisiteFailureMessage = "Prerequisites check failed";
 
             // Mark tests as inconclusive with brief message
             Assert.Inconclusive("Prerequisites check failed (see error output above)");
