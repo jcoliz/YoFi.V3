@@ -84,17 +84,44 @@ public sealed class CustomConsoleLogger : ILogger
             builder.Append(']');
         }
 
-        // Scopes
+        // Scopes - extract TraceId and TestName
         if (_options.IncludeScopes)
         {
             var scopes = CustomConsoleLoggerScope.GetScopes();
-            if (scopes.Count > 0)
+            string? traceId = null;
+            string? testName = null;
+
+            foreach (var scope in scopes)
             {
-                foreach (var scope in scopes)
+                if (scope is IEnumerable<KeyValuePair<string, object>> dictionary)
                 {
-                    builder.Append(" => ");
-                    builder.Append(FormatScope(scope));
+                    foreach (var kvp in dictionary)
+                    {
+                        if (kvp.Key == "TraceId" && traceId == null)
+                        {
+                            traceId = kvp.Value?.ToString();
+                        }
+                        else if (kvp.Key == "TestName" && testName == null)
+                        {
+                            testName = kvp.Value?.ToString();
+                        }
+                    }
                 }
+            }
+
+            // Append TraceId if found
+            if (!string.IsNullOrEmpty(traceId))
+            {
+                builder.Append(' ');
+                builder.Append(traceId);
+            }
+
+            // Append TestName if found (wrapped in slashes)
+            if (!string.IsNullOrEmpty(testName))
+            {
+                builder.Append(" /");
+                builder.Append(testName);
+                builder.Append('/');
             }
         }
 
@@ -177,28 +204,4 @@ public sealed class CustomConsoleLogger : ILogger
         return string.Join('\n', lines);
     }
 
-    /// <summary>
-    /// Formats a scope object for display, expanding dictionaries to show their contents.
-    /// </summary>
-    /// <param name="scope">The scope object to format.</param>
-    /// <returns>Formatted scope text.</returns>
-    private static string FormatScope(object scope)
-    {
-        if (scope == null)
-        {
-            return string.Empty;
-        }
-
-        // Check if it's a dictionary (IEnumerable<KeyValuePair<string, object>>)
-        if (scope is IEnumerable<KeyValuePair<string, object>> dictionary)
-        {
-            var items = dictionary
-                .Select(kvp => $"{kvp.Key}:{kvp.Value}")
-                .ToArray();
-
-            return items.Length > 0 ? string.Join(", ", items) : string.Empty;
-        }
-
-        return scope.ToString() ?? string.Empty;
-    }
 }

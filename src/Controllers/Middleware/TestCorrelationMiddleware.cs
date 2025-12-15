@@ -149,7 +149,7 @@ public partial class TestCorrelationMiddleware(
     [LoggerMessage(6, LogLevel.Debug, "{Location}: Linked activity to test trace: {TraceId}")]
     private partial void LogLinkedActivityToTestTrace(string traceId, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(7, LogLevel.Debug, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
+    [LoggerMessage(7, LogLevel.Trace, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
     private partial void LogAddedTestMetadataToActivity(string testName, string testId, string testClass, string traceId, [CallerMemberName] string? location = null);
 
     /// <summary>
