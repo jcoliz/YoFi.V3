@@ -46,7 +46,7 @@ public static class SetupMiddleware
         // Swagger (enabled in all environments during development phase)
         if (ShouldEnableSwagger(applicationOptions))
         {
-            logger.LogInformation(8, "Enabling Swagger UI");
+            logger.LogEnablingSwagger();
             app.UseSwagger();
         }
 

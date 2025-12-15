@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.Entities.Options;
 
 namespace YoFi.V3.BackEnd.Startup;
@@ -17,9 +18,9 @@ public static class __SetupApplicationOptions
         var version = assembly?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? "unknown";
-            
+
         builder.Configuration["Application:Version"] = version;
-        logger.LogInformation(21, "Version: {version}", version);
+        logger.LogVersion(version);
 
         return builder;
     }

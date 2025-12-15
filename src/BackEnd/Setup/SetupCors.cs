@@ -27,7 +27,7 @@ public static class SetupCors
             {
                 if (applicationOptions.AllowedCorsOrigins.Length == 0)
                 {
-                    logger.LogError("No allowed CORS origins configured. Please set Application:AllowedCorsOrigins in configuration.");
+                    logger.LogCorsNotConfigured();
                 }
                 else
                 {
@@ -35,8 +35,7 @@ public static class SetupCors
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials();
-                    logger.LogInformation(4, "CORS configured with allowed origins: {Origins}",
-                        string.Join(", ", applicationOptions.AllowedCorsOrigins));
+                    logger.LogCorsConfigured(string.Join(", ", applicationOptions.AllowedCorsOrigins));
                 }
             });
         });

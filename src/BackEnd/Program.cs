@@ -17,8 +17,8 @@ try
     //
 
     logger = YoFi.V3.BackEnd.Logging.LoggingBuilderExtensions.CreateStartupLogger();
-    logger.LogInformation("Starting {App} Process ID: {ProcessId}, Thread ID: {ThreadId}",
-        Assembly.GetExecutingAssembly().FullName,
+    logger.LogStarting(
+        Assembly.GetExecutingAssembly().FullName ?? "Unknown",
         Environment.ProcessId,
         Environment.CurrentManagedThreadId);
 
@@ -66,18 +66,18 @@ try
     // Configure the HTTP request pipeline
     app.ConfigureMiddlewarePipeline(applicationOptions, logger);
 
-    logger.LogInformation(10, "OK. Environment: {Environment}", applicationOptions.Environment);
+    logger.LogOkEnvironment(applicationOptions.Environment);
 
     app.Run();
 
-    logger.LogInformation(11, "Application Stopped Normally");
+    logger.LogApplicationStopped();
 
 }
 catch (Exception ex)
 {
     if (logger is not null)
     {
-        logger?.LogCritical(ex, "Failed to start {App}", Assembly.GetExecutingAssembly().FullName);
+        logger.LogStartupFailed(ex, Assembly.GetExecutingAssembly().FullName ?? "Unknown");
     }
     else
     {
