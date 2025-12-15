@@ -37,7 +37,7 @@
     "eslint-plugin-vue": "^10.6.2",
     "nuxi": "^3.30.0",
     "prettier": "^3.7.4",
-    "sass": "1.94.2",
+    "sass": "1.96.0",
     "typescript-eslint": "^8.47.0",
     "vue-eslint-parser": "^10.2.0"
   }
