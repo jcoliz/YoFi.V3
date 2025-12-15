@@ -27,8 +27,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenTheseUsersExist(DataTable usersTable)
     {
-        // Clear existing users to avoid conflicts
-        await testControlClient.DeleteUsersAsync();
+        // Clear existing users and workspaces to avoid conflicts
+        await testControlClient.DeleteAllTestDataAsync();
 
         var usernames = usersTable.ToSingleColumnList();
         var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
@@ -98,7 +98,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var request = new WorkspaceCreateRequest
         {
             Name = workspaceName,
-            Description = $"Test workspace: {workspaceName}"
+            Description = $"__TEST__ Test workspace: {workspaceName}"
         };
 
         var result = await testControlClient.CreateWorkspaceForUserAsync(currentUsername, request);
@@ -185,7 +185,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var request = new WorkspaceSetupRequest
         {
             Name = workspaceName,
-            Description = $"Test workspace: {workspaceName}",
+            Description = $"__TEST__ Test workspace: {workspaceName}",
             Role = "Viewer" // Default to minimum access level
         };
 
@@ -212,7 +212,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var request = new WorkspaceCreateRequest
         {
             Name = workspaceName,
-            Description = $"Test workspace (no access): {workspaceName}"
+            Description = $"__TEST__ Test workspace (no access): {workspaceName}"
         };
 
         var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
@@ -245,7 +245,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
             var request = new WorkspaceCreateRequest
             {
                 Name = workspaceName,
-                Description = $"Test workspace for {owner}: {workspaceName}"
+                Description = $"__TEST__ Test workspace for {owner}: {workspaceName}"
             };
 
             var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[owner].Username, request);
@@ -308,7 +308,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenICreateAWorkspaceCalled(string name)
     {
-        await WhenICreateANewWorkspaceCalledFor(name, $"Test workspace: {name}");
+        await WhenICreateANewWorkspaceCalledFor(name, $"__TEST__ Test workspace: {name}");
     }
 
     /// <summary>

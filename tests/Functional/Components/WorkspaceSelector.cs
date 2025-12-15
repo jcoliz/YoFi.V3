@@ -219,18 +219,22 @@ public class WorkspaceSelector(IPage page, ILocator parent)
     /// Gets the list of available workspace options from the select dropdown
     /// </summary>
     /// <returns>Array of workspace names available for selection</returns>
+    /// <remarks>
+    /// Only returns enabled options, filtering out disabled placeholder options
+    /// </remarks>
     public async Task<string[]> GetAvailableWorkspacesAsync()
     {
         await OpenMenuAsync();
-        var options = await WorkspaceSelect.Locator("option").AllTextContentsAsync();
-        // Filter out the disabled placeholder option
-        var workspaces = options.Where(o => !string.IsNullOrEmpty(o) &&
-                                           !o.Contains("Select a workspace") &&
-                                           !o.Contains("No workspaces available"))
-                               .ToArray();
+
+        // Get all enabled option elements using locator filtering
+        var enabledOptions = WorkspaceSelect.Locator("option:not([disabled])");
+        var workspaces = await enabledOptions.AllTextContentsAsync();
+
         // Close menu after getting workspaces
         await MenuTrigger.ClickAsync();
-        return workspaces;
+
+        // Filter out any empty strings
+        return workspaces.Where(w => !string.IsNullOrEmpty(w)).ToArray();
     }
 
     /// <summary>

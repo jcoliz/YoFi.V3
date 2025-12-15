@@ -62,7 +62,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User creates a workspace for a specific purpose
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserCreatesAWorkspaceForASpecificPurpose()
     {
         // Given I am logged in as "alice"
@@ -85,7 +84,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User organizes finances across multiple workspaces
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserOrganizesFinancesAcrossMultipleWorkspaces()
     {
         // Given I am logged in as "bob"
