@@ -66,20 +66,14 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task GivenIHaveAccessToTheseWorkspaces(DataTable workspacesTable)
     {
         var currentUsername = GetCurrentTestUsername();
-        var requests = new List<WorkspaceSetupRequest>();
 
-        foreach (var row in workspacesTable)
+        // Convert table rows directly to workspace setup requests
+        var requests = workspacesTable.Select(row => new WorkspaceSetupRequest
         {
-            var workspaceName = row["Workspace Name"];
-            var role = row["My Role"];
-
-            requests.Add(new WorkspaceSetupRequest
-            {
-                Name = workspaceName,
-                Description = $"Test workspace: {workspaceName}",
-                Role = role
-            });
-        }
+            Name = $"__TEST__ {row["Workspace Name"]}",
+            Description = $"__TEST__ Test workspace: {row["Workspace Name"]}",
+            Role = row["My Role"]
+        }).ToList();
 
         var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, requests);
 

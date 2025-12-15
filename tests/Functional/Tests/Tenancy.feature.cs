@@ -139,6 +139,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await ThenIShouldSeeAllWorkspaces(3);
 
         // And I should see what I can do in each workspace
+        // FIXME: This step should ensure I have the CORRECT permissions shown per workspace
+        // right now, it literally checks that I have some role. Currently the bulk
+        // upload only sets roles.
         await ThenIShouldSeeWhatICanDoInEachWorkspace();
     }
 

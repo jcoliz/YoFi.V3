@@ -536,7 +536,11 @@ public partial class TestControlController(
         LogStartingCount(workspaces.Count);
 
         // Find user with __TEST__ prefix
-        var fullUsername = $"{TestUser.Prefix}{username}";
+        var fullUsername = username;
+        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            fullUsername = $"{TestUser.Prefix}{username}";
+        }
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
