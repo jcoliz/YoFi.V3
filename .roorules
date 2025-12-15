@@ -73,7 +73,7 @@ public class MyServiceTests
 
 ## Logging Pattern
 
-**Always follow these logging conventions:**
+**Always follow these logging conventions. See [`docs/LOGGING-POLICY.md`](docs/LOGGING-POLICY.md) for complete policy.**
 
 1. **Use LoggerMessage attribute** - Never use direct logger calls like `_logger.LogInformation()`. Always use the `[LoggerMessage]` attribute with partial methods.
 
@@ -104,6 +104,12 @@ public class MyServiceTests
 11. **Required using statements**:
     - `using System.Runtime.CompilerServices;` (for CallerMemberName)
     - `using Microsoft.Extensions.Logging;` (for LoggerMessage)
+
+12. **API-layer logging only** - Log at Controllers (API boundary) only. Application Features and Data Repositories should remain logging-free to maintain Clean Architecture principles. Add logging to lower layers only for specific scenarios (long-running operations, external service calls, complex workflows).
+
+13. **Sensitive data rules** - NEVER log: email addresses, passwords, JWT tokens, refresh tokens (except first 8 chars in dev/container), tenant names, transaction amounts, payee names. CAN log: User GUIDs, Tenant GUIDs, TraceIds/SpanIds. Users provide TraceId or GUID when reporting issues.
+
+14. **Logging scope for context** - Push UserId and TenantId to logging scope via middleware/filters when available. This makes them available in structured logging (Application Insights). However, if you want UserId or TenantId to appear in the console/container log MESSAGE itself (not just as structured properties), you must still include them as parameters in the log method and message template (e.g., `"{Location}: OK {TenantId}"`).
 
 ### Example Pattern
 
