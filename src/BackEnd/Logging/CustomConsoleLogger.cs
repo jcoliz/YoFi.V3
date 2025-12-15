@@ -27,7 +27,7 @@ public sealed class CustomConsoleLogger : ILogger
     /// <param name="options">Configuration options for the logger.</param>
     public CustomConsoleLogger(string categoryName, CustomConsoleLoggerOptions options)
     {
-        _categoryName = categoryName;
+        _categoryName = GetShortCategoryName(categoryName);
         _options = options;
     }
 
@@ -93,20 +93,20 @@ public sealed class CustomConsoleLogger : ILogger
                 foreach (var scope in scopes)
                 {
                     builder.Append(" => ");
-                    builder.Append(scope);
+                    builder.Append(FormatScope(scope));
                 }
             }
         }
 
-        // Message
+        // Message (indent continuation lines with tab)
         builder.Append(' ');
-        builder.Append(message);
+        builder.Append(IndentContinuationLines(message));
 
         // Exception (if present)
         if (exception != null)
         {
             builder.AppendLine();
-            builder.Append(exception);
+            builder.Append(IndentContinuationLines(exception.ToString()));
         }
 
         // Write to console
@@ -131,5 +131,74 @@ public sealed class CustomConsoleLogger : ILogger
             LogLevel.Critical => 2,     // Critical
             _ => 6                      // Default to Informational
         };
+    }
+
+    /// <summary>
+    /// Extracts the last two dot-separated components from a category name.
+    /// </summary>
+    /// <param name="categoryName">The full category name (e.g., "Microsoft.AspNetCore.Hosting.Diagnostics").</param>
+    /// <returns>The shortened category name (e.g., "Hosting.Diagnostics").</returns>
+    /// <remarks>
+    /// If the category name has fewer than two components, returns the full name.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string GetShortCategoryName(string categoryName)
+    {
+        var parts = categoryName.Split('.');
+
+        if (parts.Length <= 2)
+        {
+            return categoryName; // Already short enough
+        }
+
+        // Return last two components joined with '.'
+        return $"{parts[^2]}.{parts[^1]}";
+    }
+
+    /// <summary>
+    /// Indents continuation lines (lines after the first) with a tab character.
+    /// </summary>
+    /// <param name="text">The text to process.</param>
+    /// <returns>The text with continuation lines indented.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string IndentContinuationLines(string text)
+    {
+        if (string.IsNullOrEmpty(text) || !text.Contains('\n'))
+        {
+            return text; // Single line or empty, no indentation needed
+        }
+
+        var lines = text.Split('\n');
+        for (int i = 1; i < lines.Length; i++)
+        {
+            lines[i] = '\t' + lines[i];
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>
+    /// Formats a scope object for display, expanding dictionaries to show their contents.
+    /// </summary>
+    /// <param name="scope">The scope object to format.</param>
+    /// <returns>Formatted scope text.</returns>
+    private static string FormatScope(object scope)
+    {
+        if (scope == null)
+        {
+            return string.Empty;
+        }
+
+        // Check if it's a dictionary (IEnumerable<KeyValuePair<string, object>>)
+        if (scope is IEnumerable<KeyValuePair<string, object>> dictionary)
+        {
+            var items = dictionary
+                .Select(kvp => $"{kvp.Key}:{kvp.Value}")
+                .ToArray();
+
+            return items.Length > 0 ? string.Join(", ", items) : string.Empty;
+        }
+
+        return scope.ToString() ?? string.Empty;
     }
 }
