@@ -123,7 +123,7 @@ public partial class TestControlController(
 
         if (result is CreatedResult createdResult && createdResult.Value is IReadOnlyCollection<TestUserCredentials> credentials)
         {
-            return Created(nameof(CreateUser), credentials.First());
+            return CreatedAtAction(nameof(CreateUser), credentials.First());
         }
 
         return result;
@@ -201,7 +201,7 @@ public partial class TestControlController(
         }
 
         LogOkCount(credentials.Count);
-        return Created(nameof(CreateBulkUsers), credentials);
+        return CreatedAtAction(nameof(CreateBulkUsers), credentials);
     }
 
     /// <summary>
@@ -329,7 +329,7 @@ public partial class TestControlController(
         await tenantFeature.AddUserTenantRoleAsync(userId, tenant!.Id, role);
 
         LogOkKey(result.Key);
-        return Created($"/TestControl/users/{username}/workspaces", result);
+        return CreatedAtAction(nameof(CreateWorkspaceForUser), new { username }, result);
     }
 
     /// <summary>
@@ -523,7 +523,7 @@ public partial class TestControlController(
         }
 
         LogOkCount(createdTransactions.Count);
-        return Created($"/TestControl/users/{username}/workspaces/{tenantKey}/transactions", createdTransactions);
+        return CreatedAtAction(nameof(SeedTransactions), new { username, tenantKey }, createdTransactions);
     }
 
     /// <summary>
@@ -636,7 +636,7 @@ public partial class TestControlController(
         }
 
         LogOkCount(results.Count);
-        return Created($"/TestControl/users/{username}/workspaces/bulk", results);
+        return CreatedAtAction(nameof(BulkWorkspaceSetup), new { username }, results);
     }
 
     #endregion
