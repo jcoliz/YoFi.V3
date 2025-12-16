@@ -16,6 +16,7 @@ interface Props {
   hideFooter?: boolean
   hidePrimaryButton?: boolean
   hideSecondaryButton?: boolean
+  testId?: string
   primaryButtonTestId?: string
   secondaryButtonTestId?: string
 }
@@ -29,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   hideFooter: false,
   hidePrimaryButton: false,
   hideSecondaryButton: false,
+  testId: '',
   primaryButtonTestId: '',
   secondaryButtonTestId: '',
 })
@@ -72,6 +74,7 @@ const modalDialogClass = computed(() => {
       v-if="show"
       class="modal fade show d-block"
       tabindex="-1"
+      :data-test-id="testId"
       @click.self="handleBackdropClick"
     >
       <div :class="modalDialogClass">

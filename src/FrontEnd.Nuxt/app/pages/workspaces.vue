@@ -599,7 +599,7 @@ definePageMeta({
       :primary-button-text="deleting ? 'Deleting...' : 'Delete'"
       primary-button-test-id="delete-submit-button"
       secondary-button-test-id="delete-cancel-button"
-      data-test-id="delete-modal"
+      test-id="delete-modal"
       @primary="deleteWorkspace"
     >
       <ErrorDisplay
