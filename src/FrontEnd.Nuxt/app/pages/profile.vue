@@ -271,7 +271,7 @@ const handleUpdate = async () => {
             @click="doRefreshToken"
           >
             <i class="bi bi-lock me-1" />
-            Refresah Token
+            Refresh Token
           </button>
           <button
             class="btn btn-outline-warning btn-sm"
