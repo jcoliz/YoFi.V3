@@ -467,7 +467,7 @@ function formatCurrency(amount: number | undefined): string {
       :primary-button-text="loading ? 'Creating...' : 'Create'"
       primary-button-test-id="create-submit-button"
       secondary-button-test-id="create-cancel-button"
-      data-test-id="create-transaction-modal"
+      test-id="create-transaction-modal"
       @primary="createTransaction"
     >
       <div class="mb-3">
@@ -546,7 +546,7 @@ function formatCurrency(amount: number | undefined): string {
       :primary-button-text="loading ? 'Updating...' : 'Update'"
       primary-button-test-id="edit-submit-button"
       secondary-button-test-id="edit-cancel-button"
-      data-test-id="edit-transaction-modal"
+      test-id="edit-transaction-modal"
       @primary="updateTransaction"
     >
       <div class="mb-3">
@@ -626,7 +626,7 @@ function formatCurrency(amount: number | undefined): string {
       :primary-button-text="loading ? 'Deleting...' : 'Delete'"
       primary-button-test-id="delete-submit-button"
       secondary-button-test-id="delete-cancel-button"
-      data-test-id="delete-transaction-modal"
+      test-id="delete-transaction-modal"
       @primary="deleteTransaction"
     >
       <p>Are you sure you want to delete this transaction?</p>
