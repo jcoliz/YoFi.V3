@@ -224,11 +224,15 @@ public class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Create Operations
+    #region Create Operations - Single Actions
 
     /// <summary>
     /// Opens the create transaction modal
     /// </summary>
+    /// <remarks>
+    /// Single action method. Use this when you need fine-grained control over the create workflow,
+    /// such as testing form validation or cancellation flows.
+    /// </remarks>
     public async Task OpenCreateModalAsync()
     {
         await NewTransactionButton.ClickAsync();
@@ -236,25 +240,49 @@ public class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Creates a new transaction
+    /// Fills the date field in the create transaction modal
     /// </summary>
     /// <param name="date">Transaction date in YYYY-MM-DD format</param>
-    /// <param name="payee">Payee name</param>
-    /// <param name="amount">Transaction amount</param>
-    public async Task CreateTransactionAsync(string date, string payee, decimal amount)
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateDateAsync(string date)
     {
-        await OpenCreateModalAsync();
         await CreateDateInput.FillAsync(date);
-        await CreatePayeeInput.FillAsync(payee);
-        await CreateAmountInput.FillAsync(amount.ToString("F2"));
+    }
 
-        await ClickCreateButtonAsync();
+    /// <summary>
+    /// Fills the payee field in the create transaction modal
+    /// </summary>
+    /// <param name="payee">Payee name</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreatePayeeAsync(string payee)
+    {
+        await CreatePayeeInput.FillAsync(payee);
+    }
+
+    /// <summary>
+    /// Fills the amount field in the create transaction modal
+    /// </summary>
+    /// <param name="amount">Transaction amount</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateAmountAsync(decimal amount)
+    {
+        await CreateAmountInput.FillAsync(amount.ToString("F2"));
     }
 
     /// <summary>
     /// Clicks the create button and waits for the create transaction API call
     /// </summary>
-    private async Task ClickCreateButtonAsync()
+    /// <remarks>
+    /// Single action method. Use this when you need to control when the form is submitted,
+    /// such as after taking a screenshot or checking form state.
+    /// </remarks>
+    public async Task SubmitCreateFormAsync()
     {
         await WaitForApi(async () =>
         {
@@ -265,10 +293,38 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Cancels the create transaction modal
     /// </summary>
+    /// <remarks>
+    /// Single action method. Use this when testing cancel workflows.
+    /// </remarks>
     public async Task CancelCreateAsync()
     {
         await CreateCancelButton.ClickAsync();
         await CreateModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    #endregion
+
+    #region Create Operations - Common Workflows
+
+    /// <summary>
+    /// Creates a new transaction
+    /// </summary>
+    /// <param name="date">Transaction date in YYYY-MM-DD format</param>
+    /// <param name="payee">Payee name</param>
+    /// <param name="amount">Transaction amount</param>
+    /// <remarks>
+    /// High-level workflow method for the common "happy path" create scenario.
+    /// For fine-grained control (e.g., testing validation, cancellation, or taking screenshots mid-flow),
+    /// use the individual action methods: OpenCreateModalAsync, FillCreateDateAsync,
+    /// FillCreatePayeeAsync, FillCreateAmountAsync, and SubmitCreateFormAsync.
+    /// </remarks>
+    public async Task CreateTransactionAsync(string date, string payee, decimal amount)
+    {
+        await OpenCreateModalAsync();
+        await FillCreateDateAsync(date);
+        await FillCreatePayeeAsync(payee);
+        await FillCreateAmountAsync(amount);
+        await SubmitCreateFormAsync();
     }
 
     #endregion
@@ -327,12 +383,16 @@ public class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Edit Operations
+    #region Edit Operations - Single Actions
 
     /// <summary>
     /// Opens the edit modal for a specific transaction
     /// </summary>
     /// <param name="payeeName">The payee name of the transaction to edit</param>
+    /// <remarks>
+    /// Single action method. Use this when you need fine-grained control over the edit workflow,
+    /// such as testing form validation, checking intermediate states, or cancellation flows.
+    /// </remarks>
     public async Task OpenEditModalAsync(string payeeName)
     {
         await GetEditButton(payeeName).ClickAsync();
@@ -340,26 +400,53 @@ public class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Updates a transaction
+    /// Fills the date field in the edit transaction modal
     /// </summary>
-    /// <param name="originalPayeeName">The original payee name to identify the transaction</param>
     /// <param name="newDate">New transaction date in YYYY-MM-DD format</param>
-    /// <param name="newPayee">New payee name</param>
-    /// <param name="newAmount">New transaction amount</param>
-    public async Task UpdateTransactionAsync(string originalPayeeName, string newDate, string newPayee, decimal newAmount)
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form updates or validation.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task FillEditDateAsync(string newDate)
     {
-        await OpenEditModalAsync(originalPayeeName);
         await EditDateInput.FillAsync(newDate);
-        await EditPayeeInput.FillAsync(newPayee);
-        await EditAmountInput.FillAsync(newAmount.ToString("F2"));
+    }
 
-        await ClickUpdateButtonAsync();
+    /// <summary>
+    /// Fills the payee field in the edit transaction modal
+    /// </summary>
+    /// <param name="newPayee">New payee name</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form updates or validation.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task FillEditPayeeAsync(string newPayee)
+    {
+        await EditPayeeInput.FillAsync(newPayee);
+    }
+
+    /// <summary>
+    /// Fills the amount field in the edit transaction modal
+    /// </summary>
+    /// <param name="newAmount">New transaction amount</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form updates or validation.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task FillEditAmountAsync(decimal newAmount)
+    {
+        await EditAmountInput.FillAsync(newAmount.ToString("F2"));
     }
 
     /// <summary>
     /// Clicks the update button and waits for the update transaction API call
     /// </summary>
-    private async Task ClickUpdateButtonAsync()
+    /// <remarks>
+    /// Single action method. Use this when you need to control when the form is submitted,
+    /// such as after taking a screenshot or simulating network conditions.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task SubmitEditFormAsync()
     {
         await WaitForApi(async () =>
         {
@@ -370,6 +457,9 @@ public class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Cancels the edit transaction modal
     /// </summary>
+    /// <remarks>
+    /// Single action method. Use this when testing cancel workflows.
+    /// </remarks>
     public async Task CancelEditAsync()
     {
         await EditCancelButton.ClickAsync();
@@ -378,24 +468,57 @@ public class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Delete Operations
+    #region Edit Operations - Common Workflows
 
     /// <summary>
-    /// Deletes a transaction
+    /// Updates a transaction
+    /// </summary>
+    /// <param name="originalPayeeName">The original payee name to identify the transaction</param>
+    /// <param name="newDate">New transaction date in YYYY-MM-DD format</param>
+    /// <param name="newPayee">New payee name</param>
+    /// <param name="newAmount">New transaction amount</param>
+    /// <remarks>
+    /// High-level workflow method for the common "happy path" update scenario.
+    /// For fine-grained control (e.g., testing validation, cancellation, network errors, or taking screenshots mid-flow),
+    /// use the individual action methods: OpenEditModalAsync, FillEditDateAsync,
+    /// FillEditPayeeAsync, FillEditAmountAsync, and SubmitEditFormAsync.
+    /// </remarks>
+    public async Task UpdateTransactionAsync(string originalPayeeName, string newDate, string newPayee, decimal newAmount)
+    {
+        await OpenEditModalAsync(originalPayeeName);
+        await FillEditDateAsync(newDate);
+        await FillEditPayeeAsync(newPayee);
+        await FillEditAmountAsync(newAmount);
+        await SubmitEditFormAsync();
+    }
+
+    #endregion
+
+    #region Delete Operations - Single Actions
+
+    /// <summary>
+    /// Opens the delete confirmation modal for a transaction
     /// </summary>
     /// <param name="payeeName">The payee name of the transaction to delete</param>
-    public async Task DeleteTransactionAsync(string payeeName)
+    /// <remarks>
+    /// Single action method. Use this when you need fine-grained control over the delete workflow,
+    /// such as testing modal display, reading deletion warnings, or cancellation flows.
+    /// </remarks>
+    public async Task OpenDeleteModalAsync(string payeeName)
     {
         await GetDeleteButton(payeeName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-
-        await ClickDeleteButtonAsync();
     }
 
     /// <summary>
-    /// Clicks the delete button and waits for the delete transaction API call
+    /// Clicks the delete button in the modal and waits for the delete transaction API call
     /// </summary>
-    private async Task ClickDeleteButtonAsync()
+    /// <remarks>
+    /// Single action method. Use this when you need to control when the deletion is confirmed,
+    /// such as after taking a screenshot or checking modal content.
+    /// Must be called after OpenDeleteModalAsync.
+    /// </remarks>
+    public async Task ConfirmDeleteAsync()
     {
         await WaitForApi(async () =>
         {
@@ -404,22 +527,34 @@ public class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Opens the delete modal but doesn't confirm
+    /// Cancels the delete operation by closing the modal
     /// </summary>
-    /// <param name="payeeName">The payee name of the transaction to delete</param>
-    public async Task OpenDeleteModalAsync(string payeeName)
-    {
-        await GetDeleteButton(payeeName).ClickAsync();
-        await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Cancels the delete operation
-    /// </summary>
+    /// <remarks>
+    /// Single action method. Use this when testing cancel workflows.
+    /// </remarks>
     public async Task CancelDeleteAsync()
     {
         await DeleteCancelButton.ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    #endregion
+
+    #region Delete Operations - Common Workflows
+
+    /// <summary>
+    /// Deletes a transaction
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction to delete</param>
+    /// <remarks>
+    /// High-level workflow method for the common "happy path" delete scenario.
+    /// For fine-grained control (e.g., testing confirmation modal, cancellation, or taking screenshots),
+    /// use the individual action methods: OpenDeleteModalAsync, ConfirmDeleteAsync, and CancelDeleteAsync.
+    /// </remarks>
+    public async Task DeleteTransactionAsync(string payeeName)
+    {
+        await OpenDeleteModalAsync(payeeName);
+        await ConfirmDeleteAsync();
     }
 
     #endregion
