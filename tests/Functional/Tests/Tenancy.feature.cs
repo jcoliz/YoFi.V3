@@ -321,7 +321,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User cannot access data in workspaces they don't have access to
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserCannotAccessDataInWorkspacesTheyDontHaveAccessTo()
     {
         // Given I am logged in as "bob"
@@ -352,7 +351,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Viewer can see but not change data
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task ViewerCanSeeButNotChangeData()
     {
         // Given I am logged in as "charlie"
@@ -360,6 +358,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // And I can view data in "Family Budget"
         await GivenICanViewDataIn("Family Budget");
+
+        // And "Family Budget" contains 3 transactions
+        await GivenWorkspaceContainsTransactions("Family Budget", 3);
 
         // When I view transactions in "Family Budget"
         await WhenIViewTransactionsIn("Family Budget");
@@ -381,7 +382,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Editor can view and modify data
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task EditorCanViewAndModifyData()
     {
         // Given I am logged in as "bob"
@@ -416,7 +416,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Owner can do everything including managing the workspace
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task OwnerCanDoEverythingIncludingManagingTheWorkspace()
     {
         // Given I am logged in as "alice"
@@ -424,6 +423,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // And I own "My Workspace"
         await GivenIOwn("My Workspace");
+
+        // And "My Workspace" contains 3 transactions
+        await GivenWorkspaceContainsTransactions("My Workspace", 3);
 
         // Hook: Before first Then Step
         await SaveScreenshotAsync();

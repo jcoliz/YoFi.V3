@@ -123,6 +123,7 @@ Rule: Permission Levels
     Scenario: Viewer can see but not change data
         Given I am logged in as "charlie"
         And I can view data in "Family Budget"
+        And "Family Budget" contains 3 transactions
         When I view transactions in "Family Budget"
         Then I should see the transactions
         But when I try to add or edit transactions
@@ -141,6 +142,7 @@ Rule: Permission Levels
     Scenario: Owner can do everything including managing the workspace
         Given I am logged in as "alice"
         And I own "My Workspace"
+        And "My Workspace" contains 3 transactions
         Then I can add, edit, and delete transactions
         And I can change workspace settings
         And I can remove the workspace if needed

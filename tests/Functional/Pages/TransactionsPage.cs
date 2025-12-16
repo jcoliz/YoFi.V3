@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Components;
 
@@ -13,6 +14,10 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// </remarks>
 public class TransactionsPage(IPage page) : BasePage(page)
 {
+    // POST api/tenant/{tenantKey:guid}/Transactions
+    private static readonly Regex CreateTransactionApiRegex = new(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions", RegexOptions.Compiled);
+    private static readonly Regex UpdateTransactionApiRegex = new(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.Compiled);
+
     #region Components
 
     /// <summary>
@@ -242,8 +247,11 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await CreateDateInput.FillAsync(date);
         await CreatePayeeInput.FillAsync(payee);
         await CreateAmountInput.FillAsync(amount.ToString("F2"));
-        await CreateButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await WaitForApi(async () =>
+        {
+            await CreateButton.ClickAsync();
+        }, CreateTransactionApiRegex);
     }
 
     /// <summary>
@@ -336,8 +344,11 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await EditDateInput.FillAsync(newDate);
         await EditPayeeInput.FillAsync(newPayee);
         await EditAmountInput.FillAsync(newAmount.ToString("F2"));
-        await UpdateButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await WaitForApi(async () =>
+        {
+            await UpdateButton.ClickAsync();
+        }, UpdateTransactionApiRegex);
     }
 
     /// <summary>
@@ -361,8 +372,11 @@ public class TransactionsPage(IPage page) : BasePage(page)
     {
         await GetDeleteButton(payeeName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-        await DeleteButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await WaitForApi(async () =>
+        {
+            await DeleteButton.ClickAsync();
+        }, UpdateTransactionApiRegex);
     }
 
     /// <summary>

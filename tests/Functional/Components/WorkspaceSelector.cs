@@ -212,6 +212,7 @@ public class WorkspaceSelector(IPage page, ILocator parent)
         await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
         // Wait for any navigation or state changes
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await CloseMenuAsync();
     }
 
     /// <summary>

@@ -299,7 +299,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var request = new WorkspaceCreateRequest
         {
             Name = fullWorkspaceName,
-            Description = $"Test workspace (no access): {workspaceName}"
+            Description = $"Test workspace (no access): {workspaceName}",
+            Role = "Owner"
         };
 
         var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
@@ -558,6 +559,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Check if New Transaction button is available
         var canCreate = await transactionsPage.IsNewTransactionAvailableAsync();
         _objectStore.Add("CanCreateTransaction", (object)canCreate);
+        _objectStore.Add("CanMakeDesiredChanges", (object)canCreate);
 
         // TODO: Check if edit buttons are available on existing transactions
         // This would require knowing which transactions exist
@@ -781,8 +783,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
-        var canEdit = _objectStore.Get<object>("CanEditWorkspace") as bool? ?? throw new InvalidOperationException("Edit permission not checked");
-        Assert.That(canEdit, Is.False, "User should not be able to edit workspace settings");
+        var canEdit = _objectStore.Get<object>("CanMakeDesiredChanges") as bool? ?? throw new InvalidOperationException("Edit permission not checked");
+        Assert.That(canEdit, Is.False, "User should not be able to make desired changes");
     }
 
     /// <summary>
@@ -903,13 +905,46 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenICanAddEditAndDeleteTransactions()
     {
+        var workspaceName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
+        // Select the workspace
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // Check if New Transaction button is available
         var canCreate = await transactionsPage.IsNewTransactionAvailableAsync();
         Assert.That(canCreate, Is.True, "Owner should be able to create transactions");
 
-        // TODO: Check edit and delete permissions once transactions exist
+        // Get the first transaction to check edit and delete permissions
+        var transactionCount = await transactionsPage.GetTransactionCountAsync();
+        Assert.That(transactionCount, Is.GreaterThan(0), "Should have at least one transaction to check permissions");
+
+        // Get the first transaction row
+        var firstTransaction = await transactionsPage.TransactionRows.First.GetAttributeAsync("data-test-id");
+        if (firstTransaction != null)
+        {
+            // Extract the transaction key from data-test-id (format: transaction-row-{guid})
+            var transactionKey = firstTransaction.Replace("transaction-row-", "");
+            var row = transactionsPage.GetTransactionRow(transactionKey);
+
+            // Get payee name from the row to use for checking permissions
+            var payeeCell = row.Locator("td").Nth(1); // Second column is payee
+            var payeeName = await payeeCell.TextContentAsync();
+
+            if (!string.IsNullOrEmpty(payeeName))
+            {
+                // Check if Edit button is available
+                var canEdit = await transactionsPage.IsEditAvailableAsync(payeeName);
+                Assert.That(canEdit, Is.True, "Owner should be able to edit transactions");
+
+                // Check if Delete button is available
+                var canDelete = await transactionsPage.IsDeleteAvailableAsync(payeeName);
+                Assert.That(canDelete, Is.True, "Owner should be able to delete transactions");
+            }
+        }
     }
 
     /// <summary>
