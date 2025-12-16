@@ -515,6 +515,21 @@ public class TransactionsPage(IPage page) : BasePage(page)
         return await EmptyState.IsVisibleAsync();
     }
 
+    /// <summary>
+    /// Gets the payee name from the first transaction in the table
+    /// </summary>
+    /// <returns>The payee name of the first transaction, or null if no transactions exist</returns>
+    public async Task<string?> GetFirstTransactionPayeeAsync()
+    {
+        var count = await GetTransactionCountAsync();
+        if (count == 0)
+            return null;
+
+        var firstRow = TransactionRows.First;
+        var payeeCell = firstRow.Locator("td").Nth(1); // Second column is payee
+        return await payeeCell.TextContentAsync();
+    }
+
     #endregion
 
     #region Role-based Permission Checks

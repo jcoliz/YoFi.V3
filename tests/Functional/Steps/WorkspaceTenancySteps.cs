@@ -922,29 +922,17 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var transactionCount = await transactionsPage.GetTransactionCountAsync();
         Assert.That(transactionCount, Is.GreaterThan(0), "Should have at least one transaction to check permissions");
 
-        // Get the first transaction row
-        var firstTransaction = await transactionsPage.TransactionRows.First.GetAttributeAsync("data-test-id");
-        if (firstTransaction != null)
-        {
-            // Extract the transaction key from data-test-id (format: transaction-row-{guid})
-            var transactionKey = firstTransaction.Replace("transaction-row-", "");
-            var row = transactionsPage.GetTransactionRow(transactionKey);
+        // Get the payee name of the first transaction
+        var payeeName = await transactionsPage.GetFirstTransactionPayeeAsync();
+        Assert.That(payeeName, Is.Not.Null.And.Not.Empty, "First transaction should have a payee name");
 
-            // Get payee name from the row to use for checking permissions
-            var payeeCell = row.Locator("td").Nth(1); // Second column is payee
-            var payeeName = await payeeCell.TextContentAsync();
+        // Check if Edit button is available
+        var canEdit = await transactionsPage.IsEditAvailableAsync(payeeName!);
+        Assert.That(canEdit, Is.True, "Owner should be able to edit transactions");
 
-            if (!string.IsNullOrEmpty(payeeName))
-            {
-                // Check if Edit button is available
-                var canEdit = await transactionsPage.IsEditAvailableAsync(payeeName);
-                Assert.That(canEdit, Is.True, "Owner should be able to edit transactions");
-
-                // Check if Delete button is available
-                var canDelete = await transactionsPage.IsDeleteAvailableAsync(payeeName);
-                Assert.That(canDelete, Is.True, "Owner should be able to delete transactions");
-            }
-        }
+        // Check if Delete button is available
+        var canDelete = await transactionsPage.IsDeleteAvailableAsync(payeeName!);
+        Assert.That(canDelete, Is.True, "Owner should be able to delete transactions");
     }
 
     /// <summary>
