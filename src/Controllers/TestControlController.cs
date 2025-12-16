@@ -43,7 +43,7 @@ public record TestUser(int Id)
 /// <summary>
 /// Request to create a workspace for a test user.
 /// </summary>
-/// <param name="Name">The name of the workspace (will be prefixed with __TEST__).</param>
+/// <param name="Name">The name of the workspace (must include __TEST__ prefix).</param>
 /// <param name="Description">A description of the workspace.</param>
 /// <param name="Role">The role to assign to the user (default: Owner).</param>
 public record WorkspaceCreateRequest(string Name, string Description, string Role = "Owner");
@@ -115,9 +115,9 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser()
     {
-        // Generate random username and delegate to bulk creation
+        // Generate random username with test prefix
         var randomId = new Random().Next(1, 0x10000);
-        var username = $"{randomId:X4}";
+        var username = $"{TestUser.Prefix}{randomId:X4}";
 
         var result = await CreateBulkUsers(new[] { username });
 
@@ -132,11 +132,11 @@ public partial class TestControlController(
     /// <summary>
     /// Create multiple test users in bulk with credentials
     /// </summary>
-    /// <param name="usernames">Collection of usernames to create (will be prefixed with __TEST__)</param>
+    /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
     /// <returns>Collection of created user credentials including IDs and passwords</returns>
     /// <remarks>
     /// All users are automatically approved (email confirmed) for immediate use in tests.
-    /// Usernames are automatically prefixed with __TEST__ for consistency.
+    /// All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
     /// Each user receives a unique, secure random password.
     /// </remarks>
     [HttpPost("users/bulk")]
@@ -146,17 +146,27 @@ public partial class TestControlController(
     {
         LogStartingCount(usernames.Count);
 
+        // Validate all usernames have test prefix
+        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
+        if (invalidUsernames.Count > 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Invalid usernames",
+                $"All usernames must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidUsernames)}"
+            );
+        }
+
         var credentials = new List<TestUserCredentials>();
 
         foreach (var username in usernames)
         {
-            var fullUsername = $"{TestUser.Prefix}{username}";
-            var email = $"{TestUser.Prefix}{username}@test.com";
+            var email = $"{username}@test.com";
             var password = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
 
             var identityUser = new IdentityUser
             {
-                UserName = fullUsername,
+                UserName = username,
                 Email = email,
                 EmailConfirmed = true // Auto-approve for test users
             };
@@ -167,24 +177,24 @@ public partial class TestControlController(
             {
                 return ProblemWithLog(
                     StatusCodes.Status403Forbidden,
-                    $"Unable to create user {fullUsername}",
+                    $"Unable to create user {username}",
                     string.Join("; ", result.Errors.Select(e => e.Description))
                 );
             }
 
             // Get the created user to obtain the GUID
-            var createdUser = await userManager.FindByNameAsync(fullUsername);
+            var createdUser = await userManager.FindByNameAsync(username);
             if (createdUser?.Id == null)
             {
                 return ProblemWithLog(
                     StatusCodes.Status500InternalServerError,
-                    $"Unable to retrieve created user {fullUsername}"
+                    $"Unable to retrieve created user {username}"
                 );
             }
 
             credentials.Add(new TestUserCredentials(
                 Id: Guid.Parse(createdUser.Id),
-                Username: fullUsername,
+                Username: username,
                 Email: email,
                 Password: password
             ));
@@ -248,12 +258,12 @@ public partial class TestControlController(
     /// <summary>
     /// Create a workspace for a test user with specified role.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
     /// <param name="request">The workspace creation details.</param>
     /// <returns>The created workspace information.</returns>
     /// <remarks>
     /// Validates that both username and workspace name have __TEST__ prefix for safety.
-    /// User must exist and workspace name must start with __TEST__.
+    /// Returns 403 if either username or workspace name lacks the prefix.
     /// </remarks>
     [HttpPost("users/{username}/workspaces")]
     [ProducesResponseType(typeof(TenantResultDto), StatusCodes.Status201Created)]
@@ -265,29 +275,34 @@ public partial class TestControlController(
     {
         LogStartingKey(username);
 
+        // Validate username has test prefix
+        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Username must have test prefix",
+                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+            );
+        }
+
         // Validate workspace name has test prefix
         if (!request.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
-                "Workspace name must have __TEST__ prefix",
-                $"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety"
+                "Workspace name must have test prefix",
+                $"Workspace name '{request.Name}' must start with {TestUser.Prefix} for test safety"
             );
         }
 
-        // Find user with __TEST__ prefix
-        var fullUsername = username;
-        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
-        {
-            fullUsername = $"{TestUser.Prefix}{username}";
-        }
-        var user = await userManager.FindByNameAsync(fullUsername);
+        // Find user
+        var user = await userManager.FindByNameAsync(username);
         if (user == null)
         {
             return ProblemWithLog(
                 StatusCodes.Status404NotFound,
                 "User not found",
-                $"Test user '{fullUsername}' not found"
+                $"Test user '{username}' not found"
             );
         }
 
@@ -320,13 +335,13 @@ public partial class TestControlController(
     /// <summary>
     /// Assign a user to an existing workspace with a specific role.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
     /// <param name="workspaceKey">The unique key of the workspace.</param>
     /// <param name="assignment">The role assignment details.</param>
     /// <returns>204 No Content on success.</returns>
     /// <remarks>
     /// Validates that both user and workspace have __TEST__ prefix for safety.
-    /// Workspace must exist and user must not already have a role in the workspace.
+    /// Returns 403 if either username or workspace name lacks the prefix.
     /// </remarks>
     [HttpPost("users/{username}/workspaces/{workspaceKey:guid}/assign")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -340,15 +355,24 @@ public partial class TestControlController(
     {
         LogStartingKey(workspaceKey);
 
-        // Find user with __TEST__ prefix
-        var fullUsername = $"{TestUser.Prefix}{username}";
-        var user = await userManager.FindByNameAsync(fullUsername);
+        // Validate username has test prefix
+        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Username must have test prefix",
+                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+            );
+        }
+
+        // Find user
+        var user = await userManager.FindByNameAsync(username);
         if (user == null)
         {
             return ProblemWithLog(
                 StatusCodes.Status404NotFound,
                 "User not found",
-                $"Test user '{fullUsername}' not found"
+                $"Test user '{username}' not found"
             );
         }
 
@@ -368,7 +392,7 @@ public partial class TestControlController(
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Workspace is not a test workspace",
-                $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety"
+                $"Workspace '{tenant.Name}' must start with {TestUser.Prefix} for test safety"
             );
         }
 
@@ -404,13 +428,13 @@ public partial class TestControlController(
     /// <summary>
     /// Seed test transactions in a workspace for a user.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
     /// <param name="workspaceKey">The unique key of the workspace.</param>
     /// <param name="request">The transaction seeding details.</param>
     /// <returns>The collection of created transactions.</returns>
     /// <remarks>
     /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
-    /// Creates the specified number of transactions with realistic test data.
+    /// Returns 403 if either username or workspace name lacks the prefix.
     /// </remarks>
     [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed")]
     [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
@@ -425,15 +449,24 @@ public partial class TestControlController(
     {
         LogStartingCount(request.Count);
 
-        // Find user with __TEST__ prefix
-        var fullUsername = $"{TestUser.Prefix}{username}";
-        var user = await userManager.FindByNameAsync(fullUsername);
+        // Validate username has test prefix
+        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Username must have test prefix",
+                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+            );
+        }
+
+        // Find user
+        var user = await userManager.FindByNameAsync(username);
         if (user == null)
         {
             return ProblemWithLog(
                 StatusCodes.Status404NotFound,
                 "User not found",
-                $"Test user '{fullUsername}' not found"
+                $"Test user '{username}' not found"
             );
         }
 
@@ -453,7 +486,7 @@ public partial class TestControlController(
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Workspace is not a test workspace",
-                $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety"
+                $"Workspace '{tenant.Name}' must start with {TestUser.Prefix} for test safety"
             );
         }
 
@@ -466,7 +499,7 @@ public partial class TestControlController(
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "User does not have access to workspace",
-                $"User '{fullUsername}' must have a role in workspace '{tenant.Name}' to seed transactions"
+                $"User '{username}' must have a role in workspace '{tenant.Name}' to seed transactions"
             );
         }
 
@@ -532,12 +565,12 @@ public partial class TestControlController(
     /// <summary>
     /// Create multiple workspaces for a user in a single request.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix) of the user.</param>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
     /// <param name="workspaces">The collection of workspace setup requests.</param>
     /// <returns>The collection of created workspace results with keys and roles.</returns>
     /// <remarks>
-    /// Validates all workspace names have __TEST__ prefix before creating any.
-    /// Creates workspaces transactionally - all succeed or all fail.
+    /// Validates that username and all workspace names have __TEST__ prefix before creating any.
+    /// Returns 403 if username or any workspace name lacks the prefix.
     /// </remarks>
     [HttpPost("users/{username}/workspaces/bulk")]
     [ProducesResponseType(typeof(IReadOnlyCollection<WorkspaceSetupResult>), StatusCodes.Status201Created)]
@@ -549,19 +582,24 @@ public partial class TestControlController(
     {
         LogStartingCount(workspaces.Count);
 
-        // Find user with __TEST__ prefix
-        var fullUsername = username;
+        // Validate username has test prefix
         if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
-            fullUsername = $"{TestUser.Prefix}{username}";
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Username must have test prefix",
+                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+            );
         }
-        var user = await userManager.FindByNameAsync(fullUsername);
+
+        // Find user
+        var user = await userManager.FindByNameAsync(username);
         if (user == null)
         {
             return ProblemWithLog(
                 StatusCodes.Status404NotFound,
                 "User not found",
-                $"Test user '{fullUsername}' not found"
+                $"Test user '{username}' not found"
             );
         }
 
@@ -572,7 +610,7 @@ public partial class TestControlController(
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Invalid workspace names",
-                $"All workspace names must start with '{TestUser.Prefix}'. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}"
+                $"All workspace names must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}"
             );
         }
 
