@@ -431,7 +431,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Open workspace selector dropdown to view details
         await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
-        await workspacesPage.WorkspaceSelector.CloseMenuAsync();
 
         _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
@@ -486,6 +485,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Check if edit button is available
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
         _objectStore.Add("CanEditWorkspace", (object)canEdit);
+        _objectStore.Add("CanMakeDesiredChanges", (object)canEdit);
     }
 
     /// <summary>

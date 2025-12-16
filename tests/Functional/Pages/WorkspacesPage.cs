@@ -169,13 +169,15 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await ClickCreateButtonAsync();
     }
 
-    public async Task ClickCreateButtonAsync()
+    /// <summary>
+    /// Clicks the create button and waits for the create workspace API call
+    /// </summary>
+    private async Task ClickCreateButtonAsync()
     {
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
         }, CreateTenantApiRegex);
-        //?await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -286,6 +288,15 @@ public class WorkspacesPage(IPage page) : BasePage(page)
             await descriptionInput.FillAsync(newDescription);
         }
 
+        await ClickUpdateButtonAsync(card);
+    }
+
+    /// <summary>
+    /// Clicks the update button and waits for the update workspace API call
+    /// </summary>
+    /// <param name="card">The edit form card locator</param>
+    private async Task ClickUpdateButtonAsync(ILocator card)
+    {
         await WaitForApi(async () =>
         {
             await card.GetByTestId("edit-workspace-submit").ClickAsync();
@@ -315,6 +326,14 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await GetDeleteButton(workspaceName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
 
+        await ClickDeleteButtonAsync();
+    }
+
+    /// <summary>
+    /// Clicks the delete button and waits for the delete workspace API call
+    /// </summary>
+    private async Task ClickDeleteButtonAsync()
+    {
         await WaitForApi(async () =>
         {
             await DeleteModalButton.ClickAsync();

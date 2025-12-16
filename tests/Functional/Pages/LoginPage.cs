@@ -37,6 +37,9 @@ public class LoginPage(IPage _page): BasePage(_page)
         // Intentionally leave password empty for validation testing
     }
 
+    /// <summary>
+    /// Clicks the login button and waits for the login API call
+    /// </summary>
     public async Task ClickLoginButtonAsync()
     {
         await SaveScreenshotAsync("Before-login-attempt");
@@ -108,7 +111,7 @@ public class LoginPage(IPage _page): BasePage(_page)
     }
 
     /// <summary>
-    /// Click login button without waiting for API (for cases where validation prevents submission)
+    /// Clicks the login button without waiting for API (for validation testing)
     /// </summary>
     public async Task ClickLoginButtonWithoutApiWaitAsync()
     {

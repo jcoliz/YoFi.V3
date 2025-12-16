@@ -248,6 +248,14 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await CreatePayeeInput.FillAsync(payee);
         await CreateAmountInput.FillAsync(amount.ToString("F2"));
 
+        await ClickCreateButtonAsync();
+    }
+
+    /// <summary>
+    /// Clicks the create button and waits for the create transaction API call
+    /// </summary>
+    private async Task ClickCreateButtonAsync()
+    {
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
@@ -345,6 +353,14 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await EditPayeeInput.FillAsync(newPayee);
         await EditAmountInput.FillAsync(newAmount.ToString("F2"));
 
+        await ClickUpdateButtonAsync();
+    }
+
+    /// <summary>
+    /// Clicks the update button and waits for the update transaction API call
+    /// </summary>
+    private async Task ClickUpdateButtonAsync()
+    {
         await WaitForApi(async () =>
         {
             await UpdateButton.ClickAsync();
@@ -373,6 +389,14 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await GetDeleteButton(payeeName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
 
+        await ClickDeleteButtonAsync();
+    }
+
+    /// <summary>
+    /// Clicks the delete button and waits for the delete transaction API call
+    /// </summary>
+    private async Task ClickDeleteButtonAsync()
+    {
         await WaitForApi(async () =>
         {
             await DeleteButton.ClickAsync();

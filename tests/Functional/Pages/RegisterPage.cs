@@ -62,6 +62,9 @@ public class RegisterPage(IPage _page): BasePage(_page)
         await PasswordAgainInput.FillAsync(differentPassword);
     }
 
+    /// <summary>
+    /// Clicks the register button and waits for the registration API call
+    /// </summary>
     public async Task ClickRegisterButtonAsync()
     {
         await SaveScreenshotAsync("Before-registration-attempt");
@@ -72,6 +75,9 @@ public class RegisterPage(IPage _page): BasePage(_page)
         }, RegisterApiRegex);
     }
 
+    /// <summary>
+    /// Clicks the register button without waiting for API (for validation testing)
+    /// </summary>
     public async Task ClickRegisterButtonWithoutApiWaitAsync()
     {
         await SaveScreenshotAsync("Before-registration-attempt");
