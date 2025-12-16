@@ -1014,3 +1014,37 @@ See [`docs/wip/APPLICATION-FEATURE-RETURN-VALUES.md`](docs/wip/APPLICATION-FEATU
 - Performance benchmarks
 - Multiple enumeration risks with `IEnumerable<T>`
 - Complete before/after examples
+
+## Commit Message Pattern
+
+**Keep commit messages concise and under 100 words. Always follow the project's commit conventions documented in [`docs/COMMIT-CONVENTIONS.md`](docs/COMMIT-CONVENTIONS.md).**
+
+1. **Review conventions** - Before creating a commit message, review [`docs/COMMIT-CONVENTIONS.md`](docs/COMMIT-CONVENTIONS.md) for the complete format, types, scopes, and examples.
+
+2. **Length limit** - Commit messages should be under 100 words total, including the subject line and body.
+
+3. **Subject line** - Use conventional commits format: `type(scope): subject`
+   - Use approved types (feat, fix, docs, refactor, test, build, ci)
+   - Use established scopes (see COMMIT-CONVENTIONS.md for layer and feature scopes)
+   - Keep subject line under 72 characters
+   - Use imperative mood, lowercase, no period ("add feature" not "Added feature.")
+
+4. **Body** - Optional but recommended for complex changes:
+   - Explain what and why, not how
+   - Use bullet points for multiple items
+   - Wrap lines at 72 characters
+   - Keep concise - focus on essential information
+
+### Example
+
+```
+feat(auth): add anonymous tenant access authorization policy
+
+Implement authorization policy to allow test endpoints to access tenant
+context without authentication. Fixes TenantContextNotSetException in
+SeedTransactions by setting HttpContext.Items["TenantKey"] via handler.
+
+- Add AnonymousTenantAccessRequirement and Handler
+- Register "AllowAnonymousTenantAccess" policy
+- Apply [Authorize] to SeedTransactions endpoint
+```
