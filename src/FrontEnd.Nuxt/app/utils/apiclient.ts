@@ -609,6 +609,13 @@ export class TestControlClient {
             }
             return result201;
             });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
         } else if (status === 403) {
             return response.text().then((_responseText) => {
             let result403: any = null;

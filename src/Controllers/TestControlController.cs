@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -383,14 +384,19 @@ public partial class TestControlController(
     /// Seed test transactions in a workspace for a user.
     /// </summary>
     /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
-    /// <param name="workspaceKey">The unique key of the workspace.</param>
+    /// <param name="tenantKey">The unique key of the workspace.</param>
     /// <param name="request">The transaction seeding details.</param>
+    /// <param name="transactionsFeature">Feature providing transaction operations.</param>
     /// <returns>The collection of created transactions.</returns>
     /// <remarks>
     /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+    /// The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+    /// before TransactionsFeature is injected via DI.
     /// Returns 403 if either username or workspace name lacks the prefix.
     /// </remarks>
     [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed")]
+    [Authorize("AllowAnonymousTenantAccess")]
     [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -399,7 +405,6 @@ public partial class TestControlController(
         string username,
         Guid tenantKey,
         [FromBody] TransactionSeedRequest request,
-        [FromServices] TenantContext tenantContext,
         [FromServices] TransactionsFeature transactionsFeature)
     {
         LogStartingCount(request.Count);
@@ -458,9 +463,10 @@ public partial class TestControlController(
             );
         }
 
-        await tenantContext.SetCurrentTenantAsync(tenantKey);
+        // Tenant context is already set by AnonymousTenantAccessHandler + TenantContextMiddleware
+        // TransactionsFeature was injected with tenant context already populated
 
-        // Create transactions with realistic test data
+        // Create transactions using the feature (gets all validation logic)
         var random = new Random();
         var createdTransactions = new List<TransactionResultDto>();
         var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));

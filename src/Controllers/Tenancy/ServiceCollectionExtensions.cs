@@ -35,19 +35,27 @@ public static class ServiceCollectionExtensions
         // Add claims to token
         services.AddScoped<IUserClaimsProvider<IdentityUser>, TenantUserClaimsService<IdentityUser>>();
 
-        // Register the authorization handler for tenant role requirements
+        // Register the authorization handlers
         services.AddSingleton<IAuthorizationHandler, TenantRoleHandler>();
+        services.AddSingleton<IAuthorizationHandler, AnonymousTenantAccessHandler>();
 
-        // Register each policy NAME that the attribute might create
+        // Register authorization policies
         services.AddAuthorization(options =>
         {
-            // Register each policy NAME that the attribute might create
+            // Register tenant role policies for authenticated users
             foreach (TenantRole role in Enum.GetValues<TenantRole>())
             {
                 // This creates: "TenantRole_Viewer", "TenantRole_Editor", "TenantRole_Owner", etc
                 options.AddPolicy($"TenantRole_{role}", policy =>
                     policy.Requirements.Add(new TenantRoleRequirement(role)));
             }
+
+            // Register anonymous tenant access policy for test endpoints
+            options.AddPolicy("AllowAnonymousTenantAccess", policy =>
+            {
+                policy.Requirements.Add(new AnonymousTenantAccessRequirement());
+                policy.RequireAssertion(_ => true); // Allow all users (authenticated or not)
+            });
         });
 
         return services;
