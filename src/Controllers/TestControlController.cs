@@ -14,12 +14,7 @@ using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers;
 
-/// <summary>
-/// Information about an error code available for testing
-/// </summary>
-/// <param name="Code">The error code to use in the query parameter</param>
-/// <param name="Description">Description of what error will be generated</param>
-public record ErrorCodeInfo(string Code, string Description);
+#region DTOs and Records
 
 /// <summary>
 /// Data transfer object for test user credentials including unique identifier
@@ -29,6 +24,21 @@ public record ErrorCodeInfo(string Code, string Description);
 /// <param name="Email">The email address for authentication</param>
 /// <param name="Password">The generated password for authentication</param>
 public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
+
+public record TestUser(int Id)
+{
+    /// <summary>
+    /// Prefix for test users
+    /// </summary>
+    /// <remarks>
+    /// A user with this value in their username is being used during functional testing.
+    /// </remarks>
+    internal const string Prefix = "__TEST__";
+
+    public string Username { get; init; } = $"{Prefix}{Id:X4}";
+    public string Email { get; init; } = $"{Prefix}{Id:X4}@test.com";
+    public string Password { get; init; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
+}
 
 /// <summary>
 /// Request to create a workspace for a test user.
@@ -67,20 +77,14 @@ public record WorkspaceSetupRequest(string Name, string Description, string Role
 /// <param name="Role">The role assigned to the user.</param>
 public record WorkspaceSetupResult(Guid Key, string Name, string Role);
 
-public record TestUser(int Id)
-{
-    /// <summary>
-    /// Prefix for test users
-    /// </summary>
-    /// <remarks>
-    /// A user with this value in their username is being used during functional testing.
-    /// </remarks>
-    internal const string Prefix = "__TEST__";
+/// <summary>
+/// Information about an error code available for testing
+/// </summary>
+/// <param name="Code">The error code to use in the query parameter</param>
+/// <param name="Description">Description of what error will be generated</param>
+public record ErrorCodeInfo(string Code, string Description);
 
-    public string Username { get; init; } = $"{Prefix}{Id:X4}";
-    public string Email { get; init; } = $"{Prefix}{Id:X4}@test.com";
-    public string Password { get; init; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
-}
+#endregion
 
 /// <summary>
 /// Controller for test user management
@@ -96,6 +100,7 @@ public partial class TestControlController(
     ILogger<TestControlController> logger
 ) : ControllerBase
 {
+    #region User Management
 
     /// <summary>
     /// Create a test user with auto-generated username
@@ -234,6 +239,10 @@ public partial class TestControlController(
         LogOkUsername("all users");
         return NoContent();
     }
+
+    #endregion
+
+    #region Workspace Management
 
     /// <summary>
     /// Create a workspace for a test user with specified role.
@@ -593,6 +602,10 @@ public partial class TestControlController(
         return Created($"/TestControl/users/{username}/workspaces/bulk", results);
     }
 
+    #endregion
+
+    #region Error Testing
+
     /// <summary>
     /// List available error codes that can be generated for testing
     /// </summary>
@@ -689,6 +702,10 @@ public partial class TestControlController(
         }
     }
 
+    #endregion
+
+    #region Logging
+
     [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting {Count}")]
     private partial void LogStartingCount(int count, [CallerMemberName] string? location = null);
 
@@ -715,4 +732,6 @@ public partial class TestControlController(
 
     [LoggerMessage(9, LogLevel.Warning, "{Location}: Failed. {Error}")]
     private partial void LogError(string error, [CallerMemberName] string? location = null);
+
+    #endregion
 }
