@@ -8,6 +8,7 @@
 import {
   TransactionsClient,
   TransactionEditDto,
+  TenantRole,
   type TransactionResultDto,
   type IProblemDetails,
 } from '~/utils/apiclient'
@@ -58,6 +59,11 @@ const toDate = ref<string>('')
 // Computed
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
+const canEditTransactions = computed(() => {
+  const currentTenant = userPreferencesStore.getCurrentTenant
+  if (!currentTenant?.role) return false
+  return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
+})
 
 // Watch for workspace changes
 watch(currentTenantKey, async (newKey) => {
@@ -259,9 +265,10 @@ function formatCurrency(amount: number | undefined): string {
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 data-test-id="page-heading">Transactions</h1>
         <button
+          v-if="canEditTransactions"
           class="btn btn-primary"
           data-test-id="new-transaction-button"
-          :disabled="!hasWorkspace || loading"
+          :disabled="loading"
           @click="openCreateModal"
         >
           <FeatherIcon
@@ -378,6 +385,7 @@ function formatCurrency(amount: number | undefined): string {
             />
             <p>No transactions found</p>
             <button
+              v-if="canEditTransactions"
               class="btn btn-primary btn-sm"
               data-test-id="empty-state-create-button"
               @click="openCreateModal"
@@ -399,7 +407,12 @@ function formatCurrency(amount: number | undefined): string {
                   <th>Date</th>
                   <th>Payee</th>
                   <th class="text-end">Amount</th>
-                  <th class="text-end">Actions</th>
+                  <th
+                    v-if="canEditTransactions"
+                    class="text-end"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -411,7 +424,10 @@ function formatCurrency(amount: number | undefined): string {
                   <td>{{ formatDate(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
-                  <td class="text-end">
+                  <td
+                    v-if="canEditTransactions"
+                    class="text-end"
+                  >
                     <button
                       class="btn btn-sm btn-outline-primary me-1"
                       title="Edit"
