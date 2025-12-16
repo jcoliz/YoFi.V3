@@ -25,6 +25,14 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     // Store workspace keys for later reference (keys are FULL workspace names as returned by API)
     private readonly Dictionary<string, Guid> _workspaceKeys = new();
 
+    [SetUp]
+    public void SetupWorkspaceTenancySteps()
+    {
+        // Clear test data before each scenario
+        _userCredentials.Clear();
+        _workspaceKeys.Clear();
+    }
+
     #endregion
 
     #region Helpers
@@ -138,12 +146,13 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Store with FULL workspace name (what API returns)
         _workspaceKeys[result!.Name] = result.Key;
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
     /// Given: I own a workspace called {workspaceName}
     /// </summary>
-    protected async Task GivenIAWorkspaceCalled(string workspaceName)
+    protected async Task GivenIOwnAWorkspaceCalled(string workspaceName)
     {
         // Alias for GivenIHaveAWorkspaceCalled with explicit Owner role
         await GivenIHaveAWorkspaceCalled(workspaceName);

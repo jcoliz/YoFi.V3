@@ -105,6 +105,8 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator EmptyStateCreateButton => EmptyState.GetByTestId("create-workspace-button");
 
+    public ILocator EditForm => WorkspacesList.GetByTestId("edit-form");
+
     #endregion
 
     #region Delete Modal Elements
@@ -261,7 +263,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     {
         await GetEditButton(workspaceName).ClickAsync();
         // Wait for edit form to appear in the card
-        await GetWorkspaceCardByName(workspaceName).GetByTestId("edit-workspace-submit").WaitForAsync();
+        await EditForm.WaitForAsync();
     }
 
     /// <summary>
@@ -273,7 +275,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     public async Task UpdateWorkspaceAsync(string originalName, string newName, string? newDescription = null)
     {
         await StartEditAsync(originalName);
-        var card = GetWorkspaceCardByName(originalName);
+        var card = EditForm;
         var nameInput = card.GetByTestId("edit-workspace-name");
         var descriptionInput = card.GetByTestId("edit-workspace-description");
 
@@ -283,8 +285,10 @@ public class WorkspacesPage(IPage page) : BasePage(page)
             await descriptionInput.FillAsync(newDescription);
         }
 
-        await card.GetByTestId("edit-workspace-submit").ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await WaitForApi(async () =>
+        {
+            await card.GetByTestId("edit-workspace-submit").ClickAsync();
+        }, CreateTenantApiRegex);
     }
 
     /// <summary>

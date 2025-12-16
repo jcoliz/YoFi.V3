@@ -413,7 +413,10 @@ definePageMeta({
           >
             <div class="card-body">
               <!-- Edit Form -->
-              <div v-if="editingTenant?.key === tenant.key">
+              <div
+                v-if="editingTenant?.key === tenant.key"
+                data-test-id="edit-form"
+              >
                 <ErrorDisplay
                   v-model:show="showUpdateError"
                   :problem="updateError"

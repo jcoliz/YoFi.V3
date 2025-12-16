@@ -178,14 +178,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Owner updates workspace information
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task OwnerUpdatesWorkspaceInformation()
     {
         // Given I am logged in as "alice"
         await GivenIAmLoggedInAs("alice");
 
         // And I own a workspace called "Old Name"
-        await GivenIAWorkspaceCalled("Old Name");
+        await GivenIOwnAWorkspaceCalled("Old Name");
 
         // When I rename it to "New Name"
         await WhenIRenameItTo("New Name");
@@ -242,7 +241,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenIAmLoggedInAs("alice");
 
         // And I own a workspace called "Test Workspace"
-        await GivenIAWorkspaceCalled("Test Workspace");
+        await GivenIOwnAWorkspaceCalled("Test Workspace");
 
         // When I delete "Test Workspace"
         await WhenIDelete("Test Workspace");
