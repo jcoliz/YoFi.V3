@@ -116,6 +116,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         {
             _workspaceKeys[result.Name] = result.Key;
         }
+
+        // Now we need to refresh the token to get updated claims
+        var profilePage = new ProfilePage(Page);
+        await profilePage.NavigateAsync();
+        await profilePage.ClickRefreshButtonAsync();
+
     }
 
     /// <summary>
@@ -147,6 +153,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Store with FULL workspace name (what API returns)
         _workspaceKeys[result!.Name] = result.Key;
         _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+
+        // Now we need to refresh the token to get updated claims
+        var profilePage = new ProfilePage(Page);
+        await profilePage.NavigateAsync();
+        await profilePage.ClickRefreshButtonAsync();
     }
 
     /// <summary>
@@ -190,6 +201,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         }
 
         _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+
+        // Now we need to refresh the token to get updated claims
+        var profilePage = new ProfilePage(Page);
+        await profilePage.NavigateAsync();
+        await profilePage.ClickRefreshButtonAsync();
     }
 
     /// <summary>
@@ -224,6 +240,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         }
 
         _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+
+        // Now we need to refresh the token to get updated claims
+        var profilePage = new ProfilePage(Page);
+        await profilePage.NavigateAsync();
+        await profilePage.ClickRefreshButtonAsync();
+
     }
 
     /// <summary>

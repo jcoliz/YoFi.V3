@@ -1,8 +1,11 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class ProfilePage(IPage _page): BasePage(_page)
 {
+    private static readonly Regex RefreshTokenApiRegex = new("/api/auth/refresh", RegexOptions.Compiled);
+
     // Main sections
     public ILocator AccountInfoSection => Page!.GetByTestId("AccountInfo");
     public ILocator WorkspaceInfoSection => Page!.GetByTestId("WorkspaceInfo");
@@ -13,6 +16,33 @@ public class ProfilePage(IPage _page): BasePage(_page)
 
     // Account action buttons
     public ILocator LogoutButton => Page!.GetByTestId("Logout");
+
+    public ILocator RefreshButton => Page!.GetByTestId("refresh-token");
+
+    #region Navigation
+
+    /// <summary>
+    /// Navigates to the workspaces page
+    /// </summary>
+    public async Task NavigateAsync()
+    {
+        await Page!.GotoAsync("/profile");
+        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    #endregion
+
+
+    /// <summary>
+    /// Clicks the refresh button and waits for the refresh token API call
+    /// </summary>
+    public async Task ClickRefreshButtonAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await RefreshButton.ClickAsync();
+        }, RefreshTokenApiRegex);
+    }
 
     public async Task<string> GetEmailAsync()
     {
