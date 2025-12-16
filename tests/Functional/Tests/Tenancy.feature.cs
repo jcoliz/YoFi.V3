@@ -233,7 +233,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Owner removes an unused workspace
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task OwnerRemovesAnUnusedWorkspace()
     {
         // Given I am logged in as "alice"
@@ -256,7 +255,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Non-owner cannot delete a workspace
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task NonOwnerCannotDeleteAWorkspace()
     {
         // Given I am logged in as "charlie"

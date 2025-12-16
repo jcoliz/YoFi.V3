@@ -15,6 +15,7 @@ namespace YoFi.V3.Tests.Functional.Pages;
 public class WorkspacesPage(IPage page) : BasePage(page)
 {
     private static readonly Regex CreateTenantApiRegex = new("/api/Tenant", RegexOptions.Compiled);
+    private static readonly Regex ModifyTenantApiRegex = new(@"/api/Tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.Compiled);
 
     #region Components
 
@@ -313,8 +314,11 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     {
         await GetDeleteButton(workspaceName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-        await DeleteModalButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await WaitForApi(async () =>
+        {
+            await DeleteModalButton.ClickAsync();
+        }, ModifyTenantApiRegex);
     }
 
     /// <summary>

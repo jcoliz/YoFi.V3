@@ -200,13 +200,30 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var currentUsername = GetCurrentTestUsername();
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
+        // Create workspace if it doesn't exist
         if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
         {
-            throw new InvalidOperationException($"Workspace '{fullWorkspaceName}' key not found.");
+            var request = new WorkspaceSetupRequest
+            {
+                Name = fullWorkspaceName,
+                Description = $"Test workspace: {workspaceName}",
+                Role = "Viewer"
+            };
+
+            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
+            var result = results.First();
+
+            // Store with FULL workspace name (what API returns)
+            _workspaceKeys[result.Name] = result.Key;
+        }
+        else
+        {
+            // Workspace exists, just assign Viewer role
+            var assignment = new UserRoleAssignment { Role = "Viewer" };
+            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
         }
 
-        var assignment = new UserRoleAssignment { Role = "Viewer" };
-        await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
