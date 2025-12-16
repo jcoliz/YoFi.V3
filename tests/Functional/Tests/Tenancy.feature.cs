@@ -206,7 +206,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Non-owner cannot change workspace settings
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task NonOwnerCannotChangeWorkspaceSettings()
     {
         // Given I am logged in as "bob"
@@ -285,7 +284,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// User views transactions in a specific workspace
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task UserViewsTransactionsInASpecificWorkspace()
     {
         // Given I am logged in as "alice"
@@ -451,7 +449,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     /// Workspace list shows only accessible workspaces
     /// </summary>
     [Test]
-    [Explicit("WIP")]
     public async Task WorkspaceListShowsOnlyAccessibleWorkspaces()
     {
         // Given I am logged in as "bob"

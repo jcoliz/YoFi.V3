@@ -166,13 +166,30 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var currentUsername = GetCurrentTestUsername();
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
+        // Create workspace if it doesn't exist
         if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
         {
-            throw new InvalidOperationException($"Workspace '{fullWorkspaceName}' key not found.");
+            var request = new WorkspaceSetupRequest
+            {
+                Name = fullWorkspaceName,
+                Description = $"Test workspace: {workspaceName}",
+                Role = "Editor"
+            };
+
+            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
+            var result = results.First();
+
+            // Store with FULL workspace name (what API returns)
+            _workspaceKeys[result.Name] = result.Key;
+        }
+        else
+        {
+            // Workspace exists, just assign Editor role
+            var assignment = new UserRoleAssignment { Role = "Editor" };
+            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
         }
 
-        var assignment = new UserRoleAssignment { Role = "Editor" };
-        await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
@@ -302,7 +319,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
             var request = new WorkspaceCreateRequest
             {
                 Name = fullWorkspaceName,
-                Description = $"Test workspace for {owner}: {workspaceName}"
+                Description = $"Test workspace for {owner}: {workspaceName}",
+                Role = "Owner"
             };
 
             var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[fullOwnerUsername].Username, request);
