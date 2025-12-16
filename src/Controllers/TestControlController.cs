@@ -165,10 +165,10 @@ public partial class TestControlController(
 
             if (!result.Succeeded)
             {
-                return Problem(
-                    title: $"Unable to create user {fullUsername}",
-                    detail: string.Join("; ", result.Errors.Select(e => e.Description)),
-                    statusCode: StatusCodes.Status403Forbidden
+                return ProblemWithLog(
+                    StatusCodes.Status403Forbidden,
+                    $"Unable to create user {fullUsername}",
+                    string.Join("; ", result.Errors.Select(e => e.Description))
                 );
             }
 
@@ -176,9 +176,9 @@ public partial class TestControlController(
             var createdUser = await userManager.FindByNameAsync(fullUsername);
             if (createdUser?.Id == null)
             {
-                return Problem(
-                    title: $"Unable to retrieve created user {fullUsername}",
-                    statusCode: StatusCodes.Status500InternalServerError
+                return ProblemWithLog(
+                    StatusCodes.Status500InternalServerError,
+                    $"Unable to retrieve created user {fullUsername}"
                 );
             }
 
@@ -211,9 +211,10 @@ public partial class TestControlController(
     {
         if (!username.Contains(TestUser.Prefix))
         {
-            return Problem(
-                detail: "Only test users can be approved via this method",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "Only test users can be approved via this method"
             );
         }
 
@@ -267,11 +268,10 @@ public partial class TestControlController(
         // Validate workspace name has test prefix
         if (!request.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
-            LogError($"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety");
-            return Problem(
-                title: "Workspace name must have __TEST__ prefix",
-                detail: $"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Workspace name must have __TEST__ prefix",
+                $"Workspace name '{request.Name}' must start with '{TestUser.Prefix}' for test safety"
             );
         }
 
@@ -284,21 +284,20 @@ public partial class TestControlController(
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
-            LogError($"Test user '{fullUsername}' not found");
-            return Problem(
-                title: "User not found",
-                detail: $"Test user '{fullUsername}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "User not found",
+                $"Test user '{fullUsername}' not found"
             );
         }
 
         // Parse role
         if (!Enum.TryParse<TenantRole>(request.Role, ignoreCase: true, out var role))
         {
-            return Problem(
-                title: "Invalid role",
-                detail: $"Role '{request.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
-                statusCode: StatusCodes.Status400BadRequest
+            return ProblemWithLog(
+                StatusCodes.Status400BadRequest,
+                "Invalid role",
+                $"Role '{request.Role}' is not valid. Valid roles: Owner, Editor, Viewer"
             );
         }
 
@@ -346,10 +345,10 @@ public partial class TestControlController(
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
-            return Problem(
-                title: "User not found",
-                detail: $"Test user '{fullUsername}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "User not found",
+                $"Test user '{fullUsername}' not found"
             );
         }
 
@@ -357,29 +356,29 @@ public partial class TestControlController(
         var tenant = await tenantFeature.GetTenantByKeyAsync(workspaceKey);
         if (tenant == null)
         {
-            return Problem(
-                title: "Workspace not found",
-                detail: $"Workspace with key '{workspaceKey}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "Workspace not found",
+                $"Workspace with key '{workspaceKey}' not found"
             );
         }
 
         if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
-            return Problem(
-                title: "Workspace is not a test workspace",
-                detail: $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Workspace is not a test workspace",
+                $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety"
             );
         }
 
         // Parse role
         if (!Enum.TryParse<TenantRole>(assignment.Role, ignoreCase: true, out var role))
         {
-            return Problem(
-                title: "Invalid role",
-                detail: $"Role '{assignment.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
-                statusCode: StatusCodes.Status400BadRequest
+            return ProblemWithLog(
+                StatusCodes.Status400BadRequest,
+                "Invalid role",
+                $"Role '{assignment.Role}' is not valid. Valid roles: Owner, Editor, Viewer"
             );
         }
 
@@ -391,10 +390,10 @@ public partial class TestControlController(
         }
         catch (DuplicateUserTenantRoleException ex)
         {
-            return Problem(
-                title: "User already has role in workspace",
-                detail: ex.Message,
-                statusCode: StatusCodes.Status409Conflict
+            return ProblemWithLog(
+                StatusCodes.Status409Conflict,
+                "User already has role in workspace",
+                ex.Message
             );
         }
 
@@ -431,10 +430,10 @@ public partial class TestControlController(
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
-            return Problem(
-                title: "User not found",
-                detail: $"Test user '{fullUsername}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "User not found",
+                $"Test user '{fullUsername}' not found"
             );
         }
 
@@ -442,19 +441,19 @@ public partial class TestControlController(
         var tenant = await tenantFeature.GetTenantByKeyAsync(tenantKey);
         if (tenant == null)
         {
-            return Problem(
-                title: "Workspace not found",
-                detail: $"Workspace with key '{tenantKey}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "Workspace not found",
+                $"Workspace with key '{tenantKey}' not found"
             );
         }
 
         if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
         {
-            return Problem(
-                title: "Workspace is not a test workspace",
-                detail: $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Workspace is not a test workspace",
+                $"Workspace '{tenant.Name}' must start with '{TestUser.Prefix}' for test safety"
             );
         }
 
@@ -464,10 +463,10 @@ public partial class TestControlController(
         var hasAccess = await tenantFeature.HasUserTenantRoleAsync(userId, tenant.Id);
         if (!hasAccess)
         {
-            return Problem(
-                title: "User does not have access to workspace",
-                detail: $"User '{fullUsername}' must have a role in workspace '{tenant.Name}' to seed transactions",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "User does not have access to workspace",
+                $"User '{fullUsername}' must have a role in workspace '{tenant.Name}' to seed transactions"
             );
         }
 
@@ -559,10 +558,10 @@ public partial class TestControlController(
         var user = await userManager.FindByNameAsync(fullUsername);
         if (user == null)
         {
-            return Problem(
-                title: "User not found",
-                detail: $"Test user '{fullUsername}' not found",
-                statusCode: StatusCodes.Status404NotFound
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "User not found",
+                $"Test user '{fullUsername}' not found"
             );
         }
 
@@ -570,10 +569,10 @@ public partial class TestControlController(
         var invalidWorkspaces = workspaces.Where(w => !w.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
         if (invalidWorkspaces.Count > 0)
         {
-            return Problem(
-                title: "Invalid workspace names",
-                detail: $"All workspace names must start with '{TestUser.Prefix}'. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}",
-                statusCode: StatusCodes.Status403Forbidden
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Invalid workspace names",
+                $"All workspace names must start with '{TestUser.Prefix}'. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}"
             );
         }
 
@@ -585,10 +584,10 @@ public partial class TestControlController(
             // Parse role
             if (!Enum.TryParse<TenantRole>(workspace.Role, ignoreCase: true, out var role))
             {
-                return Problem(
-                    title: "Invalid role",
-                    detail: $"Role '{workspace.Role}' is not valid. Valid roles: Owner, Editor, Viewer",
-                    statusCode: StatusCodes.Status400BadRequest
+                return ProblemWithLog(
+                    StatusCodes.Status400BadRequest,
+                    "Invalid role",
+                    $"Role '{workspace.Role}' is not valid. Valid roles: Owner, Editor, Viewer"
                 );
             }
 
@@ -659,9 +658,10 @@ public partial class TestControlController(
             case "400m":
                 return BadRequest("This is a test 400 error with a message");
             case "400p":
-                return Problem(
-                    detail: "This is a test 400 error with a message",
-                    statusCode: StatusCodes.Status400BadRequest
+                return ProblemWithLog(
+                    StatusCodes.Status400BadRequest,
+                    "Bad Request",
+                    "This is a test 400 error with a message"
                 );
             case "400a": // ArgumentException
                 throw new ArgumentException("This is a test 400 error from an ArgumentException", nameof(code));
@@ -670,9 +670,10 @@ public partial class TestControlController(
             case "403":
                 return Forbid();
             case "403p":
-                return Problem(
-                    detail: "This is a test 403 error with a message",
-                    statusCode: StatusCodes.Status403Forbidden
+                return ProblemWithLog(
+                    StatusCodes.Status403Forbidden,
+                    "Forbidden",
+                    "This is a test 403 error with a message"
                 );
             case "403etnf": // TenantNotFoundException
                 throw new TenantNotFoundException(Guid.NewGuid());
@@ -700,6 +701,39 @@ public partial class TestControlController(
             default:
                 throw new NotImplementedException();
         }
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Returns a ProblemDetails response with automatic logging.
+    /// </summary>
+    /// <param name="statusCode">HTTP status code (e.g., StatusCodes.Status404NotFound)</param>
+    /// <param name="title">Brief error title</param>
+    /// <param name="detail">Detailed error message (optional)</param>
+    /// <returns>ObjectResult containing ProblemDetails with logging side effect</returns>
+    /// <remarks>
+    /// Automatically logs at Warning level for 4xx errors and Error level for 5xx errors.
+    /// Use this method instead of Problem() to ensure all error responses are logged.
+    /// </remarks>
+    private ObjectResult ProblemWithLog(
+        int statusCode,
+        string title,
+        string? detail = null,
+        [CallerMemberName] string? location = null)
+    {
+        if (statusCode >= 500)
+        {
+            LogProblemError(statusCode, title, detail ?? string.Empty, location);
+        }
+        else if (statusCode >= 400)
+        {
+            LogProblemWarning(statusCode, title, detail ?? string.Empty, location);
+        }
+
+        return Problem(title: title, detail: detail, statusCode: statusCode);
     }
 
     #endregion
@@ -732,6 +766,12 @@ public partial class TestControlController(
 
     [LoggerMessage(9, LogLevel.Warning, "{Location}: Failed. {Error}")]
     private partial void LogError(string error, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(10, LogLevel.Warning, "{Location}: Problem {StatusCode} - {Title}: {Detail}")]
+    private partial void LogProblemWarning(int statusCode, string title, string detail, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(11, LogLevel.Error, "{Location}: Problem {StatusCode} - {Title}: {Detail}")]
+    private partial void LogProblemError(int statusCode, string title, string detail, [CallerMemberName] string? location = null);
 
     #endregion
 }
