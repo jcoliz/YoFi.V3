@@ -35,12 +35,113 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
     #endregion
 
+    #region Object Store Keys
+
+    private const string KEY_LOGGED_IN_AS = "LoggedInAs";
+    private const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
+    private const string KEY_LAST_CREATED_WORKSPACE = "LastCreatedWorkspace";
+    private const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
+    private const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
+    private const string KEY_CAN_EDIT_WORKSPACE = "CanEditWorkspace";
+    private const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
+    private const string KEY_CAN_CREATE_TRANSACTION = "CanCreateTransaction";
+    private const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
+    private const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
+
+    #endregion
+
     #region Helpers
 
     /// <summary>
     /// Adds the __TEST__ prefix to a name for test controller API calls
     /// </summary>
     private static string AddTestPrefix(string name) => $"__TEST__{name}";
+
+    /// <summary>
+    /// Get or create a page object of type T from the object store
+    /// </summary>
+    private T GetOrCreatePage<T>() where T : class
+    {
+        if (!_objectStore.Contains<T>())
+        {
+            var page = Activator.CreateInstance(typeof(T), Page) as T;
+            _objectStore.Add(page!);
+        }
+        return It<T>();
+    }
+
+    /// <summary>
+    /// Gets a required value from the object store, throwing if not found
+    /// </summary>
+    private string GetRequiredFromStore(string key)
+    {
+        return _objectStore.Get<string>(key)
+            ?? throw new InvalidOperationException($"Required value '{key}' not found in object store");
+    }
+
+    /// <summary>
+    /// Gets the current or newly renamed workspace name from object store
+    /// </summary>
+    private string GetCurrentOrNewWorkspaceName()
+    {
+        return _objectStore.Contains<string>(KEY_NEW_WORKSPACE_NAME)
+            ? _objectStore.Get<string>(KEY_NEW_WORKSPACE_NAME)!
+            : _objectStore.Get<string>(KEY_CURRENT_WORKSPACE)!;
+    }
+
+    /// <summary>
+    /// Gets the last transaction payee from object store
+    /// </summary>
+    private string GetLastTransactionPayee()
+    {
+        return GetRequiredFromStore(KEY_LAST_TRANSACTION_PAYEE);
+    }
+
+    /// <summary>
+    /// Asserts that a user cannot perform a specific action
+    /// </summary>
+    private void AssertCannotPerformAction(string actionKey, string message)
+    {
+        var canPerform = _objectStore.Get<object>(actionKey) as bool?
+            ?? throw new InvalidOperationException($"Permission check '{actionKey}' not found");
+        Assert.That(canPerform, Is.False, message);
+    }
+
+    /// <summary>
+    /// Ensures user has access to workspace with specified role
+    /// Creates workspace if it doesn't exist, otherwise assigns role
+    /// </summary>
+    private async Task EnsureWorkspaceAccessAsync(string workspaceName, string role)
+    {
+        var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
+        {
+            var request = new WorkspaceSetupRequest
+            {
+                Name = fullWorkspaceName,
+                Description = $"Test workspace: {workspaceName}",
+                Role = role
+            };
+
+            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
+            var result = results.First();
+            _workspaceKeys[result.Name] = result.Key;
+        }
+        else
+        {
+            var assignment = new UserRoleAssignment { Role = role };
+            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
+        }
+
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+
+        // Refresh token to get updated claims
+        var profilePage = new ProfilePage(Page);
+        await profilePage.NavigateAsync();
+        await profilePage.ClickRefreshButtonAsync();
+    }
 
     #endregion
 
@@ -91,7 +192,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
 
         // Store FULL username for future reference
-        _objectStore.Add("LoggedInAs", fullUsername);
+        _objectStore.Add(KEY_LOGGED_IN_AS, fullUsername);
     }
 
     /// <summary>
@@ -126,6 +227,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
     /// <summary>
     /// Given: I have a workspace called {workspaceName}
+    /// Given: I own a workspace called {workspaceName}
+    /// Given: I own {workspaceName}
     /// </summary>
     protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
     {
@@ -152,110 +255,25 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Store with FULL workspace name (what API returns)
         _workspaceKeys[result!.Name] = result.Key;
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
 
         // Now we need to refresh the token to get updated claims
         var profilePage = new ProfilePage(Page);
         await profilePage.NavigateAsync();
         await profilePage.ClickRefreshButtonAsync();
-    }
-
-    /// <summary>
-    /// Given: I own a workspace called {workspaceName}
-    /// </summary>
-    protected async Task GivenIOwnAWorkspaceCalled(string workspaceName)
-    {
-        // Alias for GivenIHaveAWorkspaceCalled with explicit Owner role
-        await GivenIHaveAWorkspaceCalled(workspaceName);
     }
 
     /// <summary>
     /// Given: I can edit data in {workspaceName}
     /// </summary>
     protected async Task GivenICanEditDataIn(string workspaceName)
-    {
-        var currentUsername = GetCurrentTestUsername();
-        var fullWorkspaceName = AddTestPrefix(workspaceName);
-
-        // Create workspace if it doesn't exist
-        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
-        {
-            var request = new WorkspaceSetupRequest
-            {
-                Name = fullWorkspaceName,
-                Description = $"Test workspace: {workspaceName}",
-                Role = "Editor"
-            };
-
-            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
-            var result = results.First();
-
-            // Store with FULL workspace name (what API returns)
-            _workspaceKeys[result.Name] = result.Key;
-        }
-        else
-        {
-            // Workspace exists, just assign Editor role
-            var assignment = new UserRoleAssignment { Role = "Editor" };
-            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
-        }
-
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
-
-        // Now we need to refresh the token to get updated claims
-        var profilePage = new ProfilePage(Page);
-        await profilePage.NavigateAsync();
-        await profilePage.ClickRefreshButtonAsync();
-    }
+        => await EnsureWorkspaceAccessAsync(workspaceName, "Editor");
 
     /// <summary>
     /// Given: I can view data in {workspaceName}
     /// </summary>
     protected async Task GivenICanViewDataIn(string workspaceName)
-    {
-        var currentUsername = GetCurrentTestUsername();
-        var fullWorkspaceName = AddTestPrefix(workspaceName);
-
-        // Create workspace if it doesn't exist
-        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
-        {
-            var request = new WorkspaceSetupRequest
-            {
-                Name = fullWorkspaceName,
-                Description = $"Test workspace: {workspaceName}",
-                Role = "Viewer"
-            };
-
-            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
-            var result = results.First();
-
-            // Store with FULL workspace name (what API returns)
-            _workspaceKeys[result.Name] = result.Key;
-        }
-        else
-        {
-            // Workspace exists, just assign Viewer role
-            var assignment = new UserRoleAssignment { Role = "Viewer" };
-            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
-        }
-
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
-
-        // Now we need to refresh the token to get updated claims
-        var profilePage = new ProfilePage(Page);
-        await profilePage.NavigateAsync();
-        await profilePage.ClickRefreshButtonAsync();
-
-    }
-
-    /// <summary>
-    /// Given: I have two workspaces
-    /// </summary>
-    protected async Task GivenIHaveTwoWorkspaces(DataTable workspacesTable)
-    {
-        // Reuse the same logic as GivenIHaveAccessToTheseWorkspaces
-        await GivenIHaveAccessToTheseWorkspaces(workspacesTable);
-    }
+        => await EnsureWorkspaceAccessAsync(workspaceName, "Viewer");
 
     /// <summary>
     /// Given: {workspaceName} contains {transactionCount} transactions
@@ -332,14 +350,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     }
 
     /// <summary>
-    /// Given: I own {workspaceName}
-    /// </summary>
-    protected async Task GivenIOwn(string workspaceName)
-    {
-        await GivenIHaveAWorkspaceCalled(workspaceName);
-    }
-
-    /// <summary>
     /// Given: there are other workspaces in the system
     /// </summary>
     protected async Task GivenThereAreOtherWorkspacesInTheSystem(DataTable workspacesTable)
@@ -398,7 +408,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         _userCredentials[fullUsername] = new TestUserCredentials { Username = fullUsername, Email = email, Password = password };
 
         // New users get a workspace with their name
-        _objectStore.Add("CurrentWorkspaceName", fullUsername);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullUsername);
 
         // Click the "Continue" button to proceed after registration
         await registerPage.ContinueButton.ClickAsync();
@@ -419,8 +429,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await workspacesPage.CreateWorkspaceAsync(workspaceName, description);
 
         // Store the workspace name for future reference
-        _objectStore.Add("LastCreatedWorkspace", workspaceName);
-        _objectStore.Add("CurrentWorkspaceName", workspaceName);
+        _objectStore.Add(KEY_LAST_CREATED_WORKSPACE, workspaceName);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, workspaceName);
     }
 
     /// <summary>
@@ -454,7 +464,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Open workspace selector dropdown to view details
         await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
     }
 
     /// <summary>
@@ -465,16 +475,16 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var fullNewName = AddTestPrefix(newName);
 
         // Store the new name for assertions
-        _objectStore.Add("NewWorkspaceName", fullNewName);
+        _objectStore.Add(KEY_NEW_WORKSPACE_NAME, fullNewName);
 
         // Get the current workspace name from object store
-        var oldName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+        var oldName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
         await workspacesPage.UpdateWorkspaceAsync(oldName, fullNewName);
 
-        _objectStore.Add("CurrentWorkspaceName", fullNewName);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullNewName);
     }
 
     /// <summary>
@@ -482,11 +492,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIUpdateTheDescriptionTo(string newDescription)
     {
-        var workspaceName = _objectStore.Contains<string>("NewWorkspaceName")
-            ? _objectStore.Get<string>("NewWorkspaceName")
-            : _objectStore.Get<string>("CurrentWorkspaceName");
-        if (workspaceName == null)
-            throw new InvalidOperationException("No workspace name found");
+        var workspaceName = GetCurrentOrNewWorkspaceName();
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
@@ -499,15 +505,15 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
-        var workspaceName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
         // Check if edit button is available
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
-        _objectStore.Add("CanEditWorkspace", (object)canEdit);
-        _objectStore.Add("CanMakeDesiredChanges", (object)canEdit);
+        _objectStore.Add(KEY_CAN_EDIT_WORKSPACE, (object)canEdit);
+        _objectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canEdit);
     }
 
     /// <summary>
@@ -534,8 +540,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Check if delete button is available
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(fullWorkspaceName);
-        _objectStore.Add("CanDeleteWorkspace", (object)canDelete);
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+        _objectStore.Add(KEY_CAN_DELETE_WORKSPACE, (object)canDelete);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
     }
 
     /// <summary>
@@ -552,7 +558,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
         await transactionsPage.WaitForLoadingCompleteAsync();
 
-        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
     }
 
     /// <summary>
@@ -568,7 +574,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Check if workspace is in available list
         var availableWorkspaces = await transactionsPage.WorkspaceSelector.GetAvailableWorkspacesAsync();
         var hasAccess = availableWorkspaces.Contains(fullWorkspaceName);
-        _objectStore.Add("HasWorkspaceAccess", (object)hasAccess);
+        _objectStore.Add(KEY_HAS_WORKSPACE_ACCESS, (object)hasAccess);
     }
 
     /// <summary>
@@ -580,8 +586,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Check if New Transaction button is available
         var canCreate = await transactionsPage.IsNewTransactionAvailableAsync();
-        _objectStore.Add("CanCreateTransaction", (object)canCreate);
-        _objectStore.Add("CanMakeDesiredChanges", (object)canCreate);
+        _objectStore.Add(KEY_CAN_CREATE_TRANSACTION, (object)canCreate);
+        _objectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canCreate);
 
         // TODO: Check if edit buttons are available on existing transactions
         // This would require knowing which transactions exist
@@ -603,7 +609,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var testPayee = "Test Transaction " + Guid.NewGuid().ToString()[..8];
         await transactionsPage.CreateTransactionAsync(testDate, testPayee, 100.00m);
 
-        _objectStore.Add("LastTransactionPayee", testPayee);
+        _objectStore.Add(KEY_LAST_TRANSACTION_PAYEE, testPayee);
     }
 
     /// <summary>
@@ -611,14 +617,14 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIUpdateThatTransaction()
     {
-        var payee = _objectStore.Get<string>("LastTransactionPayee") ?? throw new InvalidOperationException("No transaction payee found");
+        var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         var newDate = DateTime.Today.ToString("yyyy-MM-dd");
         var newPayee = "Updated " + payee;
         await transactionsPage.UpdateTransactionAsync(payee, newDate, newPayee, 200.00m);
 
-        _objectStore.Add("LastTransactionPayee", newPayee);
+        _objectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
     }
 
     /// <summary>
@@ -626,7 +632,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIDeleteThatTransaction()
     {
-        var payee = _objectStore.Get<string>("LastTransactionPayee") ?? throw new InvalidOperationException("No transaction payee found");
+        var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.DeleteTransactionAsync(payee);
@@ -686,8 +692,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var workspacesPage = GetOrCreateWorkspacesPage();
 
         // Get the last created workspace name
-        var workspaceName = _objectStore.Contains<string>("LastCreatedWorkspace")
-            ? _objectStore.Get<string>("LastCreatedWorkspace")
+        var workspaceName = _objectStore.Contains<string>(KEY_LAST_CREATED_WORKSPACE)
+            ? _objectStore.Get<string>(KEY_LAST_CREATED_WORKSPACE)
             : null;
 
         if (workspaceName != null)
@@ -700,6 +706,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
     /// <summary>
     /// Then: I should have {expectedCount} workspaces available
+    /// Then: I should see all {expectedCount} workspaces
+    /// Then: the workspace count should be {expectedCount}
     /// </summary>
     protected async Task ThenIShouldHaveWorkspacesAvailable(int expectedCount)
     {
@@ -724,11 +732,10 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
     /// <summary>
     /// Then: I should see all {expectedCount} workspaces
+    /// Then: the workspace count should be {expectedCount}
     /// </summary>
     protected async Task ThenIShouldSeeAllWorkspaces(int expectedCount)
-    {
-        await ThenIShouldHaveWorkspacesAvailable(expectedCount);
-    }
+        => await ThenIShouldHaveWorkspacesAvailable(expectedCount);
 
     /// <summary>
     /// Then: I should see what I can do in each workspace
@@ -762,7 +769,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
 
-        var expected = _objectStore.Get<string>("CurrentWorkspaceName");
+        var expected = _objectStore.Get<string>(KEY_CURRENT_WORKSPACE);
 
         // Verify workspace selector shows expected information
         var workspaceName = await workspacesPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
@@ -777,7 +784,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
-        var currentWorkspaceName = _objectStore.Get<string>("CurrentWorkspaceName");
+        var currentWorkspaceName = _objectStore.Get<string>(KEY_CURRENT_WORKSPACE);
         var createdDate = await workspacesPage.GetWorkspaceCardCreatedDate(currentWorkspaceName);
 
         // Can I verify that it looks like a date?
@@ -791,7 +798,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenTheWorkspaceShouldReflectTheChanges()
     {
-        var newName = _objectStore.Get<string>("NewWorkspaceName") ?? throw new InvalidOperationException("No new workspace name found");
+        var newName = GetRequiredFromStore(KEY_NEW_WORKSPACE_NAME);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
@@ -805,8 +812,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
-        var canEdit = _objectStore.Get<object>("CanMakeDesiredChanges") as bool? ?? throw new InvalidOperationException("Edit permission not checked");
-        Assert.That(canEdit, Is.False, "User should not be able to make desired changes");
+        AssertCannotPerformAction(KEY_CAN_MAKE_DESIRED_CHANGES, "User should not be able to make desired changes");
     }
 
     /// <summary>
@@ -827,8 +833,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenTheWorkspaceShouldRemainIntact()
     {
-        var canDelete = _objectStore.Get<object>("CanDeleteWorkspace") as bool? ?? throw new InvalidOperationException("Delete permission not checked");
-        Assert.That(canDelete, Is.False, "User should not be able to delete the workspace");
+        AssertCannotPerformAction(KEY_CAN_DELETE_WORKSPACE, "User should not be able to delete the workspace");
     }
 
     /// <summary>
@@ -872,8 +877,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotBeAbleToAccessThatData()
     {
-        var hasAccess = _objectStore.Get<object>("HasWorkspaceAccess") as bool? ?? throw new InvalidOperationException("Workspace access not checked");
-        Assert.That(hasAccess, Is.False, "User should not have access to the workspace");
+        AssertCannotPerformAction(KEY_HAS_WORKSPACE_ACCESS, "User should not have access to the workspace");
     }
 
     /// <summary>
@@ -891,7 +895,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenTheTransactionShouldBeSavedSuccessfully()
     {
-        var payee = _objectStore.Get<string>("LastTransactionPayee") ?? throw new InvalidOperationException("No transaction payee found");
+        var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
@@ -903,7 +907,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenMyChangesShouldBeSaved()
     {
-        var payee = _objectStore.Get<string>("LastTransactionPayee") ?? throw new InvalidOperationException("No transaction payee found");
+        var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
@@ -915,7 +919,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenItShouldBeRemoved()
     {
-        var payee = _objectStore.Get<string>("LastTransactionPayee") ?? throw new InvalidOperationException("No transaction payee found");
+        var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
@@ -927,7 +931,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenICanAddEditAndDeleteTransactions()
     {
-        var workspaceName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
 
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
@@ -962,7 +966,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenICanChangeWorkspaceSettings()
     {
-        var workspaceName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
@@ -976,7 +980,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenICanRemoveTheWorkspaceIfNeeded()
     {
-        var workspaceName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
+        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
@@ -1017,14 +1021,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
             $"Workspace '{fullWorkspaceName}' should not be visible");
     }
 
-    /// <summary>
-    /// Then: the workspace count should be {expectedCount}
-    /// </summary>
-    protected async Task ThenTheWorkspaceCountShouldBe(int expectedCount)
-    {
-        await ThenIShouldHaveWorkspacesAvailable(expectedCount);
-    }
-
     #endregion
 
     #region Helpers
@@ -1032,28 +1028,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// <summary>
     /// Get or create WorkspacesPage and store it in the object store
     /// </summary>
-    private WorkspacesPage GetOrCreateWorkspacesPage()
-    {
-        if (!_objectStore.Contains<WorkspacesPage>())
-        {
-            var workspacesPage = new WorkspacesPage(Page);
-            _objectStore.Add(workspacesPage);
-        }
-        return It<WorkspacesPage>();
-    }
+    private WorkspacesPage GetOrCreateWorkspacesPage() => GetOrCreatePage<WorkspacesPage>();
 
     /// <summary>
     /// Get or create TransactionsPage and store it in the object store
     /// </summary>
-    private TransactionsPage GetOrCreateTransactionsPage()
-    {
-        if (!_objectStore.Contains<TransactionsPage>())
-        {
-            var transactionsPage = new TransactionsPage(Page);
-            _objectStore.Add(transactionsPage);
-        }
-        return It<TransactionsPage>();
-    }
+    private TransactionsPage GetOrCreateTransactionsPage() => GetOrCreatePage<TransactionsPage>();
 
     /// <summary>
     /// Get the current test username (with __TEST__ prefix)
@@ -1065,9 +1045,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     private string GetCurrentTestUsername()
     {
         // Check if we have a logged-in user in object store
-        if (_objectStore.Contains<string>("LoggedInAs"))
+        if (_objectStore.Contains<string>(KEY_LOGGED_IN_AS))
         {
-            return _objectStore.Get<string>("LoggedInAs");
+            return _objectStore.Get<string>(KEY_LOGGED_IN_AS);
         }
 
         // Fall back to first user from credentials

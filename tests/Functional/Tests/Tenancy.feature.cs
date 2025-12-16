@@ -184,7 +184,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenIAmLoggedInAs("alice");
 
         // And I own a workspace called "Old Name"
-        await GivenIOwnAWorkspaceCalled("Old Name");
+        await GivenIHaveAWorkspaceCalled("Old Name");
 
         // When I rename it to "New Name"
         await WhenIRenameItTo("New Name");
@@ -239,7 +239,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenIAmLoggedInAs("alice");
 
         // And I own a workspace called "Test Workspace"
-        await GivenIOwnAWorkspaceCalled("Test Workspace");
+        await GivenIHaveAWorkspaceCalled("Test Workspace");
 
         // When I delete "Test Workspace"
         await WhenIDelete("Test Workspace");
@@ -293,7 +293,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["Personal", "Owner"],
             ["Business", "Owner"]
         );
-        await GivenIHaveTwoWorkspaces(table);
+        await GivenIHaveAccessToTheseWorkspaces(table);
 
         // And "Personal" contains 5 transactions
         await GivenWorkspaceContainsTransactions("Personal", 5);
@@ -422,7 +422,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenIAmLoggedInAs("alice");
 
         // And I own "My Workspace"
-        await GivenIOwn("My Workspace");
+        await GivenIHaveAWorkspaceCalled("My Workspace");
 
         // And "My Workspace" contains 3 transactions
         await GivenWorkspaceContainsTransactions("My Workspace", 3);
@@ -481,7 +481,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await ThenIShouldNotSeeInMyList("Charlie's Taxes");
 
         // And the workspace count should be 1
-        await ThenTheWorkspaceCountShouldBe(1);
+        await ThenIShouldHaveWorkspacesAvailable(1);
     }
 
     #endregion

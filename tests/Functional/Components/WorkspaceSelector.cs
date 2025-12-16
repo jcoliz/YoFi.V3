@@ -103,6 +103,15 @@ public class WorkspaceSelector(IPage page, ILocator parent)
     /// </summary>
     public async Task OpenMenuAsync()
     {
+        // FLAKY: Somestimes this fails. Maybe check first to ensure it's closed?
+        // Also wait for network idle before clicking?
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var visible = await MenuPanel.IsVisibleAsync();
+        if (visible)
+        {
+            return;
+        }
         await MenuTrigger.ClickAsync();
         await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }

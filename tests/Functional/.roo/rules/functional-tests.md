@@ -222,27 +222,66 @@ When implementing or updating step methods in the `Steps/` directory:
 
 ### XML Comment Pattern Matching (CRITICAL)
 
-1. **XML Comments Are Authoritative**: The XML summary comment is the authoritative pattern matcher for Gherkin steps, NOT the method name.
-   - ✅ CORRECT: Match against `/// <summary>Then: I should see an error message containing (.+)</summary>`
+1. **XML Comments Are Authoritative - Method Names Are Irrelevant**: The XML summary comment is the ONLY thing that matters for matching Gherkin steps to methods. Method names are for code readability only.
+   - ✅ CORRECT: Match steps ONLY by XML comment: `/// <summary>Then: I should see an error message containing (.+)</summary>`
    - ❌ WRONG: Assume method must be named `ThenIShouldSeeAnErrorMessageContaining`
+   - **There is ABSOLUTELY NO expectation or requirement that method names match step patterns**
+   - Method names should be clear and concise for developers, NOT mirror the Gherkin text
+   - This separation allows refactoring method names without breaking step matching
 
-2. **Exact Matching Required**: The XML comment must match the Gherkin step text exactly, including all words and adverbs.
+2. **Multiple Step Patterns in One Method**: A single method can match multiple Gherkin step patterns by including multiple lines in the XML comment.
+   - Use this to consolidate duplicate/alias methods into a single implementation
+   - Each line in the `<summary>` tag represents a different step pattern that maps to this method
+
+   **Example:**
+   ```csharp
+   /// <summary>
+   /// Given: I have a workspace called {workspaceName}
+   /// Given: I own a workspace called {workspaceName}
+   /// Given: I own {workspaceName}
+   /// </summary>
+   protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
+   {
+       // Single implementation handles all three step variations
+   }
+   ```
+
+   **Benefits:**
+   - Reduces code duplication when steps have identical behavior
+   - Keeps related step variations together
+   - Makes refactoring easier (change implementation once, affects all patterns)
+
+   **When to use:**
+   - Steps are semantically identical (e.g., "I own X" = "I have X" for Owner role)
+   - Steps are just shortened versions (e.g., "I own X" is shorthand for "I have a workspace called X")
+   - Different phrasings of the same action
+
+   **When NOT to use:**
+   - Steps have different semantics even if implementation is similar
+   - Steps might diverge in behavior later
+   - Clarity would be compromised
+
+3. **Exact Matching Required**: Each XML comment line must match its Gherkin step text exactly, including all words and adverbs.
    - ✅ CORRECT: `When: I try to navigate directly to the login page` matches Gherkin step exactly
    - ❌ WRONG: Assuming `When: I try to navigate to the login page` matches when Gherkin says "directly"
    - **Why**: Words like "directly" may indicate different behavior (e.g., bypass redirects, force navigation)
    - If similar steps exist with slightly different wording, create a new step method with the exact pattern
 
-3. **Method Names May Differ**: Method names can be shorter or different from the full XML comment pattern.
-   - Example: XML comment says "containing (.+)" but method is `ThenIShouldSeeAnErrorMessage(string errorMessage)`
-   - The regex pattern `(.+)` in the XML comment captures the parameter
+4. **Method Names Should Be Clear, Not Literal**: Method names should be descriptive for code maintainability, NOT verbatim copies of Gherkin steps.
+   - **Good**: XML `When: I try to navigate directly to the login page` → Method `WhenITryToNavigateToLoginPage()`
+   - **Bad**: XML `When: I try to navigate directly to the login page` → Method `WhenITryToNavigateDirectlyToTheLoginPage()`
+   - **Good**: XML `Then: I should see an error message containing (.+)` → Method `ThenIShouldSeeAnErrorMessage(string message)`
+   - **Bad**: XML `Then: I should see an error message containing (.+)` → Method `ThenIShouldSeeAnErrorMessageContaining(string message)`
+   - Keep method names concise - omit words like "directly", "containing", "exactly" if they don't add clarity
+   - The XML comment pattern captures the exact step text; the method name serves code readability
 
-4. **Creating New Step Methods**:
+5. **Creating New Step Methods**:
    - Write XML comment to match the **exact** Gherkin step pattern word-for-word
    - Include all adverbs, adjectives, and qualifiers from the Gherkin step
    - Use regex patterns like `(.+)`, `{text}`, `{value}` for parameters only
    - Method name should be descriptive but doesn't need to include every word if clear from context
 
-5. **Finding Existing Steps**:
+6. **Finding Existing Steps**:
    - Always search for methods by their XML comment pattern first
    - Use `list_code_definition_names` or `search_files` to find methods by XML comment
    - Don't create duplicate methods just because the name doesn't match exactly
