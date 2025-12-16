@@ -8,15 +8,31 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// <summary>
 /// Step definitions for Workspace Tenancy feature tests
 /// </summary>
+/// <remarks>
+/// TEST PREFIX HANDLING PATTERN:
+/// - DataTable values in feature files are user-readable (e.g., "alice", "Personal Budget")
+/// - The __TEST__ prefix is added immediately upon entering step methods using AddTestPrefix()
+/// - All internal storage (_userCredentials, _workspaceKeys, _objectStore) uses FULL names with prefix
+/// - This ensures consistency with what the Test Controller API and UI expect
+/// </remarks>
 public abstract class WorkspaceTenancySteps : FunctionalTest
 {
     #region Test Data Storage
 
-    // Store user credentials created in Background
+    // Store user credentials created in Background (keys are FULL usernames with __TEST__ prefix)
     private readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
-    // Store workspace keys for later reference
+    // Store workspace keys for later reference (keys are FULL workspace names as returned by API)
     private readonly Dictionary<string, Guid> _workspaceKeys = new();
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    /// Adds the __TEST__ prefix to a name for test controller API calls
+    /// </summary>
+    private static string AddTestPrefix(string name) => $"__TEST__{name}";
 
     #endregion
 
@@ -30,13 +46,17 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Clear existing users and workspaces to avoid conflicts
         await testControlClient.DeleteAllTestDataAsync();
 
-        var usernames = usersTable.ToSingleColumnList();
+        // Add __TEST__ prefix to usernames before API call
+        var usernames = usersTable.ToSingleColumnList()
+            .Select(AddTestPrefix)
+            .ToList();
+
         var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
 
+        // Store with FULL username (what test controller returns)
         foreach (var cred in credentials)
         {
-            var shortUsername = cred.Username.Replace("__TEST__", "");
-            _userCredentials[shortUsername] = cred;
+            _userCredentials[cred.Username] = cred;
         }
     }
 
@@ -45,9 +65,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenIAmLoggedInAs(string username)
     {
-        if (!_userCredentials.TryGetValue(username, out var cred))
+        // Add __TEST__ prefix to match stored credentials
+        var fullUsername = AddTestPrefix(username);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
         {
-            throw new InvalidOperationException($"User '{username}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
         }
 
         await Page.GotoAsync("/login");
@@ -59,7 +82,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Wait for redirect after successful login
         await Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
 
-        _objectStore.Add("LoggedInAs", username);
+        // Store FULL username for future reference
+        _objectStore.Add("LoggedInAs", fullUsername);
     }
 
     /// <summary>
@@ -69,16 +93,17 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     {
         var currentUsername = GetCurrentTestUsername();
 
-        // Convert table rows directly to workspace setup requests
+        // Add __TEST__ prefix to workspace names before API call
         var requests = workspacesTable.Select(row => new WorkspaceSetupRequest
         {
-            Name = $"__TEST__ {row["Workspace Name"]}",
-            Description = $"__TEST__ Test workspace: {row["Workspace Name"]}",
+            Name = AddTestPrefix(row["Workspace Name"]),
+            Description = $"Test workspace: {row["Workspace Name"]}",
             Role = row["My Role"]
         }).ToList();
 
         var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, requests);
 
+        // Store with FULL workspace names (what API returns)
         foreach (var result in results)
         {
             _workspaceKeys[result.Name] = result.Key;
@@ -90,12 +115,13 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
     {
-        var currentUsername = _objectStore.Get<string>("LoggedInAs");
+        var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var request = new WorkspaceCreateRequest
         {
-            Name = $"__TEST__ {workspaceName}",
-            Description = $"__TEST__ Test workspace: {workspaceName}",
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
             Role = "Owner"
         };
 
@@ -106,10 +132,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating workspace '{workspaceName}': {ex.Message}");
+            Console.WriteLine($"Error creating workspace '{fullWorkspaceName}': {ex.Message}");
             throw;
         }
-        _workspaceKeys[workspaceName] = result!.Key;
+
+        // Store with FULL workspace name (what API returns)
+        _workspaceKeys[result!.Name] = result.Key;
     }
 
     /// <summary>
@@ -127,10 +155,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task GivenICanEditDataIn(string workspaceName)
     {
         var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_workspaceKeys.TryGetValue(workspaceName, out var workspaceKey))
+        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
         {
-            throw new InvalidOperationException($"Workspace '{workspaceName}' key not found.");
+            throw new InvalidOperationException($"Workspace '{fullWorkspaceName}' key not found.");
         }
 
         var assignment = new UserRoleAssignment { Role = "Editor" };
@@ -143,10 +172,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task GivenICanViewDataIn(string workspaceName)
     {
         var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_workspaceKeys.TryGetValue(workspaceName, out var workspaceKey))
+        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
         {
-            throw new InvalidOperationException($"Workspace '{workspaceName}' key not found.");
+            throw new InvalidOperationException($"Workspace '{fullWorkspaceName}' key not found.");
         }
 
         var assignment = new UserRoleAssignment { Role = "Viewer" };
@@ -168,10 +198,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task GivenWorkspaceContainsTransactions(string workspaceName, int transactionCount)
     {
         var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_workspaceKeys.TryGetValue(workspaceName, out var workspaceKey))
+        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
         {
-            throw new InvalidOperationException($"Workspace '{workspaceName}' key not found.");
+            throw new InvalidOperationException($"Workspace '{fullWorkspaceName}' key not found.");
         }
 
         var request = new TransactionSeedRequest
@@ -189,16 +220,20 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     protected async Task GivenIHaveAccessTo(string workspaceName)
     {
         var currentUsername = GetCurrentTestUsername();
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var request = new WorkspaceSetupRequest
         {
-            Name = workspaceName,
-            Description = $"__TEST__ Test workspace: {workspaceName}",
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
             Role = "Viewer" // Default to minimum access level
         };
 
         var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
         var result = results.First();
-        _workspaceKeys[workspaceName] = result.Key;
+
+        // Store with FULL workspace name (what API returns)
+        _workspaceKeys[result.Name] = result.Key;
     }
 
     /// <summary>
@@ -208,22 +243,26 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     {
         // Get a different user from the credentials dictionary (not the current user)
         var currentUsername = GetCurrentTestUsername();
-        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Value.Username != currentUsername);
+        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Key != currentUsername);
 
         if (otherUser.Key == null)
         {
             throw new InvalidOperationException("No other test users available. Need at least one user besides the current user.");
         }
 
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         // Create workspace for the other user
         var request = new WorkspaceCreateRequest
         {
-            Name = workspaceName,
-            Description = $"__TEST__ Test workspace (no access): {workspaceName}"
+            Name = fullWorkspaceName,
+            Description = $"Test workspace (no access): {workspaceName}"
         };
 
         var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
-        _workspaceKeys[workspaceName] = result.Key;
+
+        // Store with FULL workspace name (what API returns)
+        _workspaceKeys[result.Name] = result.Key;
     }
 
     /// <summary>
@@ -243,20 +282,24 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         {
             var workspaceName = row["Workspace Name"];
             var owner = row["Owner"];
+            var fullOwnerUsername = AddTestPrefix(owner);
+            var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-            if (!_userCredentials.ContainsKey(owner))
+            if (!_userCredentials.ContainsKey(fullOwnerUsername))
             {
-                throw new InvalidOperationException($"Owner '{owner}' credentials not found.");
+                throw new InvalidOperationException($"Owner '{fullOwnerUsername}' credentials not found.");
             }
 
             var request = new WorkspaceCreateRequest
             {
-                Name = workspaceName,
-                Description = $"__TEST__ Test workspace for {owner}: {workspaceName}"
+                Name = fullWorkspaceName,
+                Description = $"Test workspace for {owner}: {workspaceName}"
             };
 
-            var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[owner].Username, request);
-            _workspaceKeys[workspaceName] = result.Key;
+            var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[fullOwnerUsername].Username, request);
+
+            // Store with FULL workspace name (what API returns)
+            _workspaceKeys[result.Name] = result.Key;
         }
     }
 
@@ -269,11 +312,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenANewUserRegistersAndLogsIn(string username)
     {
-        // Update username with test prefix
-        username = $"__TEST__{username}";
+        // Add __TEST__ prefix
+        var fullUsername = AddTestPrefix(username);
 
         // Generate a unique email and password for the new user
-        var email = $"{username}@test.local";
+        var email = $"{fullUsername}@test.local";
         var password = "Test123!";
 
         // Navigate to register page
@@ -282,18 +325,20 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         var registerPage = new RegisterPage(Page);
 
-        await registerPage.RegisterAsync(email, username, password);
+        await registerPage.RegisterAsync(email, fullUsername, password);
 
-        // Store credentials for future reference
-        _userCredentials[username] = new TestUserCredentials { Email = email, Password = password };
-        _objectStore.Add("CurrentWorkspaceName", username); // New users get a workspace with their name
+        // Store credentials with FULL username
+        _userCredentials[fullUsername] = new TestUserCredentials { Username = fullUsername, Email = email, Password = password };
+
+        // New users get a workspace with their name
+        _objectStore.Add("CurrentWorkspaceName", fullUsername);
 
         // Click the "Continue" button to proceed after registration
         await registerPage.ContinueButton.ClickAsync();
 
         // Now we are on the login button and we should login
         var loginPage = new LoginPage(Page);
-        await loginPage.LoginAsync(username, password);
+        await loginPage.LoginAsync(fullUsername, password);
     }
 
     /// <summary>
@@ -301,13 +346,14 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenICreateANewWorkspaceCalledFor(string name, string description)
     {
+        var workspaceName = AddTestPrefix(name);
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
-        await workspacesPage.CreateWorkspaceAsync(name, description);
+        await workspacesPage.CreateWorkspaceAsync(workspaceName, description);
 
         // Store the workspace name for future reference
-        _objectStore.Add("LastCreatedWorkspace", name);
-        _objectStore.Add("CurrentWorkspaceName", name);
+        _objectStore.Add("LastCreatedWorkspace", workspaceName);
+        _objectStore.Add("CurrentWorkspaceName", workspaceName);
     }
 
     /// <summary>
@@ -333,14 +379,16 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIViewTheDetailsOf(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
         // Open workspace selector dropdown to view details
-        await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync($"__TEST__ {workspaceName}");
+        await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
         await workspacesPage.WorkspaceSelector.CloseMenuAsync();
 
-        _objectStore.Add("CurrentWorkspaceName", $"__TEST__ {workspaceName}");
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
@@ -348,17 +396,19 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIRenameItTo(string newName)
     {
+        var fullNewName = AddTestPrefix(newName);
+
         // Store the new name for assertions
-        _objectStore.Add("NewWorkspaceName", newName);
+        _objectStore.Add("NewWorkspaceName", fullNewName);
 
         // Get the current workspace name from object store
         var oldName = _objectStore.Get<string>("CurrentWorkspaceName") ?? throw new InvalidOperationException("No workspace name found");
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
-        await workspacesPage.UpdateWorkspaceAsync(oldName, newName);
+        await workspacesPage.UpdateWorkspaceAsync(oldName, fullNewName);
 
-        _objectStore.Add("CurrentWorkspaceName", newName);
+        _objectStore.Add("CurrentWorkspaceName", fullNewName);
     }
 
     /// <summary>
@@ -398,9 +448,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIDelete(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
-        await workspacesPage.DeleteWorkspaceAsync(workspaceName);
+        await workspacesPage.DeleteWorkspaceAsync(fullWorkspaceName);
     }
 
     /// <summary>
@@ -408,13 +460,15 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenITryToDelete(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
         // Check if delete button is available
-        var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
+        var canDelete = await workspacesPage.IsDeleteAvailableAsync(fullWorkspaceName);
         _objectStore.Add("CanDeleteWorkspace", (object)canDelete);
-        _objectStore.Add("CurrentWorkspaceName", workspaceName);
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
@@ -422,14 +476,16 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIViewTransactionsIn(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
         // Select the workspace
-        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
         await transactionsPage.WaitForLoadingCompleteAsync();
 
-        _objectStore.Add("CurrentWorkspaceName", workspaceName);
+        _objectStore.Add("CurrentWorkspaceName", fullWorkspaceName);
     }
 
     /// <summary>
@@ -437,14 +493,14 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenITryToViewTransactionsIn(string workspaceName)
     {
-        // TODO: Need Test Control API to get workspace key by name
-        // For now, attempt to navigate and check if workspace is available
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
         // Check if workspace is in available list
         var availableWorkspaces = await transactionsPage.WorkspaceSelector.GetAvailableWorkspacesAsync();
-        var hasAccess = availableWorkspaces.Contains(workspaceName);
+        var hasAccess = availableWorkspaces.Contains(fullWorkspaceName);
         _objectStore.Add("HasWorkspaceAccess", (object)hasAccess);
     }
 
@@ -468,9 +524,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task WhenIAddATransactionTo(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
-        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
         // Add a test transaction
         var testDate = DateTime.Today.ToString("yyyy-MM-dd");
@@ -529,6 +587,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenTheWorkspaceShouldBePersonalizedWithTheName(string expectedName)
     {
+        var fullExpectedName = AddTestPrefix(expectedName);
+
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
@@ -541,10 +601,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldSeeInMyWorkspaceList(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
-        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(workspaceName);
+        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.True,
-            $"Workspace '{workspaceName}' should be visible in the list");
+            $"Workspace '{fullWorkspaceName}' should be visible in the list");
     }
 
     /// <summary>
@@ -684,10 +746,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenShouldNoLongerAppearInMyList(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
-        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(workspaceName);
+        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.False,
-            $"Workspace '{workspaceName}' should not be in the list");
+            $"Workspace '{fullWorkspaceName}' should not be in the list");
     }
 
     /// <summary>
@@ -714,10 +778,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenTheyShouldAllBeFromWorkspace(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         // Verify we're viewing the correct workspace
         var transactionsPage = GetOrCreateTransactionsPage();
         var currentWorkspace = await transactionsPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
-        Assert.That(currentWorkspace, Is.EqualTo(workspaceName), $"Should be viewing '{workspaceName}' workspace");
+        Assert.That(currentWorkspace, Is.EqualTo(fullWorkspaceName), $"Should be viewing '{fullWorkspaceName}' workspace");
     }
 
     /// <summary>
@@ -725,10 +791,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotSeeAnyTransactionsFrom(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         // Transactions are workspace-isolated, so if we're in a different workspace, we won't see them
         var transactionsPage = GetOrCreateTransactionsPage();
         var currentWorkspace = await transactionsPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
-        Assert.That(currentWorkspace, Is.Not.EqualTo(workspaceName), $"Should not be viewing '{workspaceName}' workspace");
+        Assert.That(currentWorkspace, Is.Not.EqualTo(fullWorkspaceName), $"Should not be viewing '{fullWorkspaceName}' workspace");
     }
 
     /// <summary>
@@ -833,6 +901,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldSeeOnlyInMyList(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
 
         // Verify exactly one workspace is visible
@@ -840,9 +910,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         Assert.That(count, Is.EqualTo(1), "Should see exactly one workspace");
 
         // Verify it's the expected workspace
-        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(workspaceName);
+        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.True,
-            $"The only workspace should be '{workspaceName}'");
+            $"The only workspace should be '{fullWorkspaceName}'");
     }
 
     /// <summary>
@@ -850,10 +920,12 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenIShouldNotSeeInMyList(string workspaceName)
     {
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
         var workspacesPage = GetOrCreateWorkspacesPage();
-        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(workspaceName);
+        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.False,
-            $"Workspace '{workspaceName}' should not be visible");
+            $"Workspace '{fullWorkspaceName}' should not be visible");
     }
 
     /// <summary>
@@ -895,18 +967,29 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     }
 
     /// <summary>
-    /// Get the current test username (strips __TEST__ prefix if present)
+    /// Get the current test username (with __TEST__ prefix)
     /// </summary>
+    /// <remarks>
+    /// Returns the FULL username with prefix. Checks _objectStore first (which is set by GivenIAmLoggedInAs),
+    /// otherwise falls back to the first user in _userCredentials.
+    /// </remarks>
     private string GetCurrentTestUsername()
     {
-        // For now, get the first user from _userCredentials
-        // In a real scenario, you'd track which user is currently "logged in" in the test context
+        // Check if we have a logged-in user in object store
+        if (_objectStore.Contains<string>("LoggedInAs"))
+        {
+            return _objectStore.Get<string>("LoggedInAs");
+        }
+
+        // Fall back to first user from credentials
         var firstUser = _userCredentials.FirstOrDefault();
         if (firstUser.Key == null)
         {
             throw new InvalidOperationException("No test users found. Ensure users are created in Background.");
         }
-        return firstUser.Value.Username;
+
+        // Return the FULL username (key in dictionary already has prefix)
+        return firstUser.Key;
     }
 
     #endregion
