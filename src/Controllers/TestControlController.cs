@@ -121,12 +121,16 @@ public partial class TestControlController(
 
         var result = await CreateBulkUsers(new[] { username });
 
-        if (result is CreatedResult createdResult && createdResult.Value is IReadOnlyCollection<TestUserCredentials> credentials)
+        if (result is CreatedAtActionResult createdResult && createdResult.Value is IReadOnlyCollection<TestUserCredentials> credentials)
         {
             return CreatedAtAction(nameof(CreateUser), credentials.First());
         }
 
-        return result;
+        return ProblemWithLog(
+            StatusCodes.Status500InternalServerError,
+            "Invalid result from bulk user creation",
+            "Bulk user creation did not provide a CreatedAtActionResult with expected credentials"
+        );
     }
 
     /// <summary>
