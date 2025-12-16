@@ -119,18 +119,16 @@ public partial class TestControlController(
         var randomId = new Random().Next(1, 0x10000);
         var username = $"{TestUser.Prefix}{randomId:X4}";
 
-        var result = await CreateBulkUsers(new[] { username });
+        LogStarting();
 
-        if (result is CreatedAtActionResult createdResult && createdResult.Value is IReadOnlyCollection<TestUserCredentials> credentials)
+        var credentialsResult = await CreateUsersInternalAsync(new[] { username });
+        if (credentialsResult.Error != null)
         {
-            return CreatedAtAction(nameof(CreateUser), credentials.First());
+            return credentialsResult.Error;
         }
 
-        return ProblemWithLog(
-            StatusCodes.Status500InternalServerError,
-            "Invalid result from bulk user creation",
-            "Bulk user creation did not provide a CreatedAtActionResult with expected credentials"
-        );
+        LogOk();
+        return CreatedAtAction(nameof(CreateUser), credentialsResult.Credentials!.First());
     }
 
     /// <summary>
@@ -150,62 +148,14 @@ public partial class TestControlController(
     {
         LogStartingCount(usernames.Count);
 
-        // Validate all usernames have test prefix
-        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
-        if (invalidUsernames.Count > 0)
+        var credentialsResult = await CreateUsersInternalAsync(usernames);
+        if (credentialsResult.Error != null)
         {
-            return ProblemWithLog(
-                StatusCodes.Status403Forbidden,
-                "Invalid usernames",
-                $"All usernames must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidUsernames)}"
-            );
+            return credentialsResult.Error;
         }
 
-        var credentials = new List<TestUserCredentials>();
-
-        foreach (var username in usernames)
-        {
-            var email = $"{username}@test.com";
-            var password = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
-
-            var identityUser = new IdentityUser
-            {
-                UserName = username,
-                Email = email,
-                EmailConfirmed = true // Auto-approve for test users
-            };
-
-            var result = await userManager.CreateAsync(identityUser, password);
-
-            if (!result.Succeeded)
-            {
-                return ProblemWithLog(
-                    StatusCodes.Status403Forbidden,
-                    $"Unable to create user {username}",
-                    string.Join("; ", result.Errors.Select(e => e.Description))
-                );
-            }
-
-            // Get the created user to obtain the GUID
-            var createdUser = await userManager.FindByNameAsync(username);
-            if (createdUser?.Id == null)
-            {
-                return ProblemWithLog(
-                    StatusCodes.Status500InternalServerError,
-                    $"Unable to retrieve created user {username}"
-                );
-            }
-
-            credentials.Add(new TestUserCredentials(
-                Id: Guid.Parse(createdUser.Id),
-                Username: username,
-                Email: email,
-                Password: password
-            ));
-        }
-
-        LogOkCount(credentials.Count);
-        return CreatedAtAction(nameof(CreateBulkUsers), credentials);
+        LogOkCount(credentialsResult.Credentials!.Count);
+        return CreatedAtAction(nameof(CreateBulkUsers), credentialsResult.Credentials);
     }
 
     /// <summary>
@@ -748,6 +698,88 @@ public partial class TestControlController(
     #endregion
 
     #region Helper Methods
+
+    /// <summary>
+    /// Result of internal user creation operation.
+    /// </summary>
+    /// <param name="Credentials">The created user credentials if successful.</param>
+    /// <param name="Error">The error result if creation failed.</param>
+    private record UserCreationResult(
+        IReadOnlyCollection<TestUserCredentials>? Credentials,
+        ObjectResult? Error);
+
+    /// <summary>
+    /// Internal helper method to create test users with validation and error handling.
+    /// </summary>
+    /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix).</param>
+    /// <returns>A result containing either the created credentials or an error response.</returns>
+    private async Task<UserCreationResult> CreateUsersInternalAsync(IReadOnlyCollection<string> usernames)
+    {
+        // Validate all usernames have test prefix
+        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
+        if (invalidUsernames.Count > 0)
+        {
+            return new UserCreationResult(
+                null,
+                ProblemWithLog(
+                    StatusCodes.Status403Forbidden,
+                    "Invalid usernames",
+                    $"All usernames must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidUsernames)}"
+                )
+            );
+        }
+
+        var credentials = new List<TestUserCredentials>();
+
+        foreach (var username in usernames)
+        {
+            var email = $"{username}@test.com";
+            var password = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
+
+            var identityUser = new IdentityUser
+            {
+                UserName = username,
+                Email = email,
+                EmailConfirmed = true // Auto-approve for test users
+            };
+
+            var result = await userManager.CreateAsync(identityUser, password);
+
+            if (!result.Succeeded)
+            {
+                return new UserCreationResult(
+                    null,
+                    ProblemWithLog(
+                        StatusCodes.Status403Forbidden,
+                        $"Unable to create user {username}",
+                        string.Join("; ", result.Errors.Select(e => e.Description))
+                    )
+                );
+            }
+
+            // Get the created user to obtain the GUID
+            var createdUser = await userManager.FindByNameAsync(username);
+            if (createdUser?.Id == null)
+            {
+                return new UserCreationResult(
+                    null,
+                    ProblemWithLog(
+                        StatusCodes.Status500InternalServerError,
+                        $"Unable to retrieve created user {username}"
+                    )
+                );
+            }
+
+            credentials.Add(new TestUserCredentials(
+                Id: Guid.Parse(createdUser.Id),
+                Username: username,
+                Email: email,
+                Password: password
+            ));
+        }
+
+        return new UserCreationResult(credentials, null);
+    }
 
     /// <summary>
     /// Returns a ProblemDetails response with automatic logging.
