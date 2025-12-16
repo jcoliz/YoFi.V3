@@ -1,5 +1,8 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace YoFi.V3.Controllers.Tenancy.Context;
 
@@ -7,6 +10,7 @@ namespace YoFi.V3.Controllers.Tenancy.Context;
 /// Middleware that sets the current tenant context for tenant-scoped requests.
 /// </summary>
 /// <param name="next">The next middleware in the pipeline.</param>
+/// <param name="logger">Logger for diagnostic output.</param>
 /// <remarks>
 /// This middleware must be added AFTER authentication and authorization middlewares in the pipeline.
 /// It extracts the tenant key from <see cref="HttpContext.Items"/> (where it's placed by
@@ -37,7 +41,7 @@ namespace YoFi.V3.Controllers.Tenancy.Context;
 /// app.MapControllers();        // 4. Route to controllers/features
 /// </code>
 /// </remarks>
-public class TenantContextMiddleware(RequestDelegate next)
+public partial class TenantContextMiddleware(RequestDelegate next, ILogger<TenantContextMiddleware> logger)
 {
     /// <summary>
     /// Processes the HTTP request and sets the tenant context if applicable.
@@ -60,18 +64,31 @@ public class TenantContextMiddleware(RequestDelegate next)
         {
             // Route expects a tenant but authorization didn't set the tenant key
             // This indicates missing or failed authorization - fail fast with clear error
+            LogUnauthorizedTenantAccess();
+
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new ProblemDetails
+
+            var problemDetails = new ProblemDetails
             {
                 Status = StatusCodes.Status401Unauthorized,
                 Title = "Unauthorized",
                 Detail = "Tenant authorization required for this endpoint",
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1"
-            });
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
+                Instance = context.Request.Path
+            };
+
+            // Add trace ID for correlation (matches CustomExceptionHandler pattern)
+            var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+            problemDetails.Extensions["traceId"] = traceId;
+
+            await context.Response.WriteAsJsonAsync(problemDetails);
             return; // Stop pipeline - don't call next()
         }
         // else: Route doesn't need tenant context - allow request to continue
 
         await next(context);
     }
+
+    [LoggerMessage(1, LogLevel.Warning, "{Location}: Tenant authorization required but not provided")]
+    private partial void LogUnauthorizedTenantAccess([CallerMemberName] string? location = null);
 }
