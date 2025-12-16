@@ -16,6 +16,30 @@ changes do not break existing features.
 8. **Generated Future**: In the future, we'll use C# code generation to convert the Gherkin features into running C# tests. In the meantime, the hand-written tests will mimic the generated code in the future. The [FunctionalTest.mustache](./Features/FunctionalTest.mustache) file gives the template for these tests
 9. **Page Object Models**: We use page and component models to encapsulate knowledge about the structure of specific pages or controls.
 
+## Test Architecture
+
+The functional tests follow a layered architecture that separates test intent from implementation:
+
+```mermaid
+flowchart TD
+    A[Gherkin Features<br/>.feature files] -->|Compiled via<br/>Mustache Template| B[Test Classes<br/>.feature.cs files]
+    B -->|Calls| C[Step Methods<br/>Steps/*.cs]
+    C -->|Uses| D[Page Models<br/>Pages/*.cs]
+    D -->|May contain| E[Component Models<br/>Components/*.cs]
+    D -->|Uses| F[Playwright API]
+    E -->|Uses| F
+```
+
+**Flow:**
+- **Gherkin Features** define test scenarios in business-readable language
+- **Test Classes** are generated from Gherkin, containing `[Test]` methods that call step methods
+- **Step Methods** orchestrate the test flow by calling page models
+- **Page Models** encapsulate page structure and provide interaction methods
+- **Component Models** are reusable UI components shared across multiple pages
+- **Playwright API** provides browser automation (locators, actions, assertions)
+
+This separation ensures maintainability: UI changes only affect Page/Component Models, not test scenarios.
+
 ## Targets
 
 1. **Docker container**. Run against a locally-built or remotely-pulled container image.
