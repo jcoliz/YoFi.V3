@@ -591,7 +591,15 @@ public partial class TestControlController(
             }
 
             var tenantDto = new TenantEditDto(workspace.Name, workspace.Description);
-            var created = await tenantFeature.CreateTenantForUserAsync(userId, tenantDto);
+
+            // Create tenant without any role assignments (administrative creation)
+            var created = await tenantFeature.CreateTenantAsync(tenantDto);
+
+            // Get the created tenant to obtain its ID for role assignment
+            var tenant = await tenantFeature.GetTenantByKeyAsync(created.Key);
+
+            // Assign the requested role to the user
+            await tenantFeature.AddUserTenantRoleAsync(userId, tenant!.Id, role);
 
             results.Add(new WorkspaceSetupResult(created.Key, created.Name, workspace.Role));
         }
