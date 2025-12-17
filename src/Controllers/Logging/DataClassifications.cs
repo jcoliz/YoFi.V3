@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Compliance.Classification;
 
-namespace YoFi.V3.BackEnd.Logging;
+namespace YoFi.V3.Controllers.Logging;
 
 /// <summary>
 /// Data classification taxonomy for logging.
