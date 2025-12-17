@@ -209,7 +209,7 @@ public class MyServiceTests
 
 12. **API-layer logging only** - Log at Controllers (API boundary) only. Application Features and Data Repositories should remain logging-free to maintain Clean Architecture principles. Add logging to lower layers only for specific scenarios (long-running operations, external service calls, complex workflows).
 
-13. **Sensitive data rules** - NEVER log: email addresses, passwords, JWT tokens, refresh tokens (except first 8 chars in dev/container), tenant names, transaction amounts, payee names. CAN log: User GUIDs, Tenant GUIDs, TraceIds/SpanIds. Users provide TraceId or GUID when reporting issues.
+13. **Sensitive data rules** - Environment-based restrictions apply. ALWAYS safe: User GUIDs, Tenant GUIDs, TraceIds/SpanIds. NEVER log (any environment): Passwords, JWT access tokens, API keys/secrets. PRODUCTION-ONLY restrictions (can log in dev/container): Email addresses, usernames, tenant names, transaction amounts, payee names, refresh tokens. In local development, test data (emails, usernames, full refresh tokens) CAN be logged at Debug level for debugging. In container/CI, test data CAN be logged (partial tokens: first 8-12 chars). See [`docs/LOGGING-POLICY.md`](docs/LOGGING-POLICY.md) for complete policy.
 
 14. **Logging scope for context** - Push UserId and TenantId to logging scope via middleware/filters when available. This makes them available in structured logging (Application Insights). However, if you want UserId or TenantId to appear in the console/container log MESSAGE itself (not just as structured properties), you must still include them as parameters in the log method and message template (e.g., `"{Location}: OK {TenantId}"`).
 

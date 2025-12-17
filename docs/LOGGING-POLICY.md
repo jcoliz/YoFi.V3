@@ -1,7 +1,7 @@
 # Logging Policy
 
 **Status:** Active
-**Last Updated:** 2024-12-15
+**Last Updated:** 2024-12-17
 **Applies To:** All YoFi.V3 application code
 
 ## Overview
@@ -53,31 +53,91 @@ This document defines the logging standards and practices for the YoFi.V3 applic
 
 ## Sensitive Data Rules
 
-### ✅ CAN Log
-- **User GUIDs** - Non-PII identifiers for correlation
-- **Tenant GUIDs** - Non-PII identifiers for correlation
-- **TraceIds/SpanIds** - For distributed tracing correlation
-- **Test correlation data** - For functional test debugging
+### ✅ ALWAYS Safe to Log
+- **User GUIDs** - Non-PII identifiers for correlation (all environments)
+- **Tenant GUIDs** - Non-PII identifiers for correlation (all environments)
+- **TraceIds/SpanIds** - For distributed tracing correlation (all environments)
+- **Test correlation data** - For functional test debugging (all environments)
 
-### ⚠️ CONDITIONAL Logging
-- **Refresh Tokens** - NEVER in production. In development/container environments, log first 8 characters only (e.g., `"abc12345..."`)
+### ⚠️ CONDITIONAL Logging (Environment-Dependent)
 
-### ❌ NEVER Log
-- **Email addresses** - Use User GUID instead; users can provide email when reporting issues
-- **Passwords** - Obvious security violation
-- **JWT tokens** - Security credentials
-- **Tenant names** - May contain business-sensitive information
-- **Transaction amounts** - Financial data
-- **Payee names** - Personal financial information
-- **API keys/secrets** - Security credentials
+**Email Addresses and Usernames:**
+- **Local Development** - CAN log at Debug level
+  - Test/seed data only, not real users
+  - Significantly improves debugging of authentication and user-related issues
+  - Makes it easy to correlate logs with test scenarios
+- **Container/CI** - CAN log at Debug level
+  - Test users only, no real PII
+  - Essential for debugging functional test failures
+  - Helps correlate test scenarios with log output
+- **Production** - NEVER log
+  - Real user PII that must be protected
+  - Use User GUID instead; users can provide email when reporting issues
+  - TraceIds in error responses enable log correlation without PII
 
-### Rationale: Email Address Policy
+**Refresh Tokens:**
+- **Local Development** - CAN log full tokens at Debug level
+  - No real resources at risk in local development
+  - Anyone with log access already has database access, browser DevTools, and full system access
+  - Full tokens significantly improve debugging of authentication issues
+  - Development tokens have no real-world value
+- **Container/CI** - Log first 8-12 characters only (e.g., `"abc12345..."`)
+  - Shared environment with longer log retention
+  - CI/CD logs may be accessed by more people and stored longer
+  - Partial logging balances debugging needs with reasonable caution
+- **Production** - NEVER log (not even partial)
+  - Real user sessions with real security implications
+  - Token theft could enable actual user impersonation
+  - Use TraceId correlation for debugging instead
 
-**Why not log emails:**
-- YoFi is a personal finance application (sensitive category)
-- TraceIds are surfaced on every error response for log correlation
-- Users can provide their User GUID or TraceId when reporting issues
-- Eliminates risk of email exposure in log aggregation systems
+### ❌ NEVER Log (Any Environment)
+- **Passwords** - Security credentials (obvious security violation)
+- **JWT access tokens** - Security credentials (even in development, use refresh tokens for debugging instead)
+- **API keys/secrets** - Configuration secrets (even test keys should be in secure configuration)
+
+### 🔒 Production-Only Restrictions
+These can be logged in development/container but NEVER in production:
+- **Tenant names** - May contain business-sensitive information in production
+- **Transaction amounts** - Real financial data in production
+- **Payee names** - Real personal financial information in production
+
+### Rationale: Environment-Based Sensitivity
+
+**The Core Principle:** "Don't log data that could enable real harm or expose real users."
+
+**Development/Container Environments:**
+- **Test data only** - No real users, no real financial information
+- **Debugging is paramount** - Development friction directly impacts productivity
+- **Access control exists** - Anyone with log access already has full system access
+- **Benefit outweighs risk** - Being able to see "test@example.com failed login" is invaluable for debugging
+
+**Production Environment:**
+- **Real user PII** - Actual email addresses of real people
+- **Real financial data** - Actual transaction amounts and payee names
+- **Compliance requirements** - May be subject to GDPR, CCPA, financial regulations
+- **Alternative exists** - TraceIds in error responses enable correlation without PII
+
+**Why This Matters:**
+- Development teams waste hours debugging "user X can't login" when they can't see that it's actually "test-user-with-typo@example.com"
+- Functional test debugging requires correlating test scenarios with log output
+- In production, we have TraceIds and User GUIDs which are sufficient
+- Security policies should remove real risks, not create unnecessary friction
+
+**Example Scenarios:**
+
+*Development/Container:*
+```
+DEBUG: Login: Starting Email=test@example.com
+ERROR: Login: Failed Email=test@example.com Reason=InvalidPassword
+```
+✅ Acceptable - test data, significant debugging value
+
+*Production:*
+```
+DEBUG: Login: Starting UserId=550e8400-e29b-41d4-a716-446655440000
+ERROR: Login: Failed UserId=550e8400-e29b-41d4-a716-446655440000 Reason=InvalidPassword TraceId=abc123
+```
+✅ Acceptable - user can report "I got error with TraceId abc123" and you can correlate without knowing their email
 
 ## Structured Logging Context
 
@@ -284,7 +344,8 @@ When adding logging to a new controller:
 - [ ] Start message template with `"{Location}: "`
 - [ ] Use Debug level for "Starting" messages
 - [ ] Use Information level for "OK" outcome messages
-- [ ] Verify no sensitive data (emails, tokens, amounts) in log messages
+- [ ] Verify no production-sensitive data (real emails, real tokens, real amounts) in log messages
+- [ ] Verify development logs include helpful debug information (test emails, test usernames)
 - [ ] Add XML documentation comments to the controller class and methods
 - [ ] Run tests to verify logging behavior
 
@@ -314,4 +375,5 @@ If you need to deviate from this policy or have questions:
 ---
 
 **Document History:**
+- 2024-12-17: Updated sensitive data policy to allow test data (emails, usernames, tokens) in development/container environments while maintaining production restrictions
 - 2024-12-15: Initial policy created based on established practices and questionnaire
