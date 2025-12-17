@@ -84,70 +84,72 @@ graph TB
 
 ### Package Structure
 
-**Following Microsoft.Extensions.Logging pattern with 3 packages:**
+**Recommended: 2-Package Structure (Simplified)**
 
-**Package 1: `JColiz.MultiTenant.Abstractions`** (Minimal interfaces)
-```
-JColiz.MultiTenant.Abstractions/
-├── ITenantModel.cs          # Interface for tenant-scoped entities
-├── ITenantProvider.cs       # Interface for accessing current tenant
-└── ITenantRepository.cs     # Interface for tenant data operations
+After analyzing YoFi.V3's actual dependencies, a 2-package structure is more appropriate. In YoFi.V3, every project that references Abstractions also references Core models - there's no isolation benefit from separating them. The 2-package structure follows the pattern of successful libraries like AutoMapper, FluentValidation, and Serilog.
 
-Dependencies: None (zero dependencies for maximum compatibility)
-Purpose: Allow other projects (like Entities) to depend on tenant concepts
-         without pulling in implementations or ASP.NET Core
-```
-
-**Package 2: `JColiz.MultiTenant`** (Domain models and exceptions)
+**Package 1: `JColiz.MultiTenant`** (Core - Domain, Business Logic, Data Contracts)
 ```
 JColiz.MultiTenant/
+├── Interfaces/
+│   ├── ITenantModel.cs          # Interface for tenant-scoped entities
+│   ├── ITenantProvider.cs       # Interface for accessing current tenant
+│   └── ITenantRepository.cs     # Interface for tenant data operations
 ├── Models/
-│   ├── Tenant.cs
-│   ├── UserTenantRoleAssignment.cs
-│   └── TenantRole.cs
-└── Exceptions/
-    ├── TenancyException.cs (base)
-    ├── TenantNotFoundException.cs
-    ├── TenantAccessDeniedException.cs
-    ├── UserTenantRoleNotFoundException.cs
-    ├── DuplicateUserTenantRoleException.cs
-    ├── TenantContextNotSetException.cs
-    └── TenancyResourceNotFoundException.cs
+│   ├── Tenant.cs                # Tenant entity
+│   ├── UserTenantRoleAssignment.cs  # User-tenant-role junction
+│   └── TenantRole.cs            # TenantRole enum (Viewer/Editor/Owner)
+├── Exceptions/
+│   ├── TenancyException.cs      # Base exception
+│   ├── TenantNotFoundException.cs
+│   ├── TenantAccessDeniedException.cs
+│   ├── UserTenantRoleNotFoundException.cs
+│   ├── DuplicateUserTenantRoleException.cs
+│   ├── TenantContextNotSetException.cs
+│   ├── TenancyResourceNotFoundException.cs
+│   └── TenancyAccessDeniedException.cs
+├── Dto/
+│   ├── TenantEditDto.cs         # Input DTO for create/update
+│   ├── TenantResultDto.cs       # Output DTO for single tenant
+│   └── TenantRoleResultDto.cs   # Output DTO with user's role
+└── Features/
+    └── TenantFeature.cs         # Business logic for tenant operations
 
-Dependencies: JColiz.MultiTenant.Abstractions
-Purpose: Provides concrete domain models and business exceptions
+Dependencies: System.ComponentModel.DataAnnotations only (for [Table] attribute)
+Purpose: Framework-agnostic domain models, business logic, and data contracts
 ```
 
-**Package 3: `JColiz.MultiTenant.AspNetCore`** (ASP.NET Core integration)
+**Package 2: `JColiz.MultiTenant.AspNetCore`** (ASP.NET Core Integration)
 ```
 JColiz.MultiTenant.AspNetCore/
 ├── Authorization/
-│   ├── RequireTenantRoleAttribute.cs
-│   ├── TenantRoleHandler.cs
-│   ├── TenantRoleRequirement.cs
-│   └── IClaimsEnricher.cs              ← NEW abstraction
+│   ├── IClaimsEnricher.cs              # Generic claims interface (replaces NuxtIdentity dependency)
+│   ├── TenantClaimsEnricher.cs         # Default implementation
+│   ├── RequireTenantRoleAttribute.cs   # Authorization attribute
+│   ├── TenantRoleHandler.cs            # Authorization handler
+│   ├── TenantRoleRequirement.cs        # Authorization requirement
+│   ├── AnonymousTenantAccessHandler.cs # Test endpoint handler
+│   └── AnonymousTenantAccessRequirement.cs
 ├── Context/
-│   ├── TenantContext.cs
-│   └── TenantContextMiddleware.cs
+│   ├── TenantContext.cs                # Current tenant manager
+│   └── TenantContextMiddleware.cs      # Middleware to set context
 ├── Api/
-│   ├── TenantController.cs (optional)
-│   └── Dto/ (3 DTOs)
-├── Features/
-│   └── TenantFeature.cs
+│   └── TenantController.cs             # Optional API endpoints
 ├── Exceptions/
-│   └── TenancyExceptionHandler.cs
-└── ServiceCollectionExtensions.cs
+│   └── TenancyExceptionHandler.cs      # Maps exceptions to HTTP responses
+└── ServiceCollectionExtensions.cs      # .AddTenancy() and .UseTenancy()
 
-Dependencies: JColiz.MultiTenant.Abstractions, JColiz.MultiTenant, ASP.NET Core packages
-Purpose: Complete ASP.NET Core integration with middleware, authorization, and API
+Dependencies: JColiz.MultiTenant, ASP.NET Core packages
+Purpose: Web infrastructure (middleware, authorization, optional API)
 ```
 
-**Why 3 packages?**
-- ✅ **Abstractions package** - Allows Entities project to depend on `ITenantModel` without AspNetCore
-- ✅ **Base package** - Domain models and exceptions that don't need web infrastructure
-- ✅ **AspNetCore package** - Web-specific implementations and middleware
-- ✅ **Follows Microsoft pattern** - Same structure as Microsoft.Extensions.Logging
-- ✅ **Minimal dependencies** - Each package has exactly what it needs
+**Why 2 packages instead of 3?**
+- ✅ **Matches actual usage** - YoFi.V3 analysis shows 100% overlap between Abstractions and Core consumers
+- ✅ **Simpler maintenance** - One core package instead of two
+- ✅ **Industry precedent** - AutoMapper, FluentValidation, Serilog all use 2-package structure
+- ✅ **Cleaner separation** - Domain/business logic vs web infrastructure (not interfaces vs implementations)
+- ✅ **DTOs with Features** - Aligns with architecture philosophy that DTOs are feature-level components
+- ❌ **Not for plugin ecosystems** - 3-package structure (Abstractions separate) is for libraries building plugin ecosystems
 
 ### Claims Provider Abstraction
 
@@ -891,21 +893,99 @@ builder.Services
 - ✅ Documentation in NuxtIdentity docs
 - ✅ Version compatibility matrix
 
-## Implementation Decisions Needed
+## YoFi.V3 Dependency Analysis
 
-1. **Core package structure:** Create separate `TenantScope.Core` (recommended for framework-agnostic domain models) or bundle everything in `TenantScope.AspNetCore`?
-   - **Recommendation:** Separate packages for cleaner dependencies
+### Project-Level Dependencies (Coarse-Grain)
 
-2. **Repository location:** Create new `github.com/jcoliz/TenantScope` or keep as submodule in YoFi.V3?
-   - **Recommendation:** New repository for cleaner separation
+Analysis of which `src/` projects depend on proposed library packages:
 
-3. **Optional features:** Should tenant management API (`TenantController`) be included or optional?
+#### Package 1: `JColiz.MultiTenant` (Core)
+
+| Your Project | What It Uses | Why |
+|--------------|--------------|-----|
+| **`src/Entities/`** | `ITenantModel`, `Tenant`, `UserTenantRoleAssignment`, `TenantRole`, Exceptions | Domain entities implement tenant interface; tenant entities in domain model |
+| **`src/Application/`** | `ITenantProvider`, `TenantFeature`, DTOs, Exceptions | Features need tenant context and business logic |
+| **`src/Data/Sqlite/`** | `ITenantRepository` (implements), `Tenant`, `UserTenantRoleAssignment`, `TenantRole`, Exceptions | EF Core entity configuration and repository implementation |
+| **`src/Controllers/`** | `ITenantProvider`, `Tenant`, `TenantRole`, `TenantFeature`, DTOs, All Exceptions | Controllers use tenant context, authorization, and business logic |
+
+#### Package 2: `JColiz.MultiTenant.AspNetCore` (Web)
+
+| Your Project | What It Uses | Why |
+|--------------|--------------|-----|
+| **`src/Controllers/`** | Authorization handlers, Middleware, `TenantController` (optional), Exception handler | Web API infrastructure and authorization |
+| **`src/BackEnd/`** | `ServiceCollectionExtensions` (`.AddTenancy()`, `.UseTenancy()`), NuxtIdentity adapter | Startup configuration and DI registration |
+
+#### Dependency Matrix
+
+```
+┌─────────────────────┬──────────────┬──────────────────────┐
+│ Your Project        │ Core Package │ AspNetCore Package   │
+├─────────────────────┼──────────────┼──────────────────────┤
+│ src/Entities/       │      ✅      │         ❌           │
+│ src/Application/    │      ✅      │         ❌           │
+│ src/Data/Sqlite/    │      ✅      │         ❌           │
+│ src/Controllers/    │      ✅      │         ✅           │
+│ src/BackEnd/        │      ❌      │         ✅           │
+│ src/WireApiHost/    │      ❌      │         ❌           │
+│ src/ServiceDefaults/│      ❌      │         ❌           │
+│ src/AppHost/        │      ❌      │         ❌           │
+│ src/FrontEnd.Nuxt/  │      ❌      │         ❌           │
+└─────────────────────┴──────────────┴──────────────────────┘
+```
+
+### Key Insights
+
+1. **Clean Layering**: Core package used by domain/application/data layers; AspNetCore only by web layer
+2. **No 3-Package Benefit**: Every project using interfaces also uses models - no isolation from separating them
+3. **Breaking Change Minimal**: Only `src/BackEnd/Program.cs` needs code changes (NuxtIdentity adapter); all others just namespace updates
+4. **TenantFeature Placement**: Moved to Core package (zero ASP.NET Core dependencies, pure business logic)
+5. **DTOs with Features**: DTOs stay with `TenantFeature` in Core (aligns with architecture where DTOs are feature-level components)
+
+### Migration Impact Summary
+
+| Component | Current Location | New Location | Breaking Change? |
+|-----------|-----------------|--------------|------------------|
+| Interfaces, Models, Exceptions | `YoFi.V3.Entities.Tenancy.*` | `JColiz.MultiTenant.*` | ✅ Namespace only |
+| DTOs, TenantFeature | `YoFi.V3.Application.Tenancy.*` | `JColiz.MultiTenant.*` | ✅ Namespace only |
+| Authorization, Context, Middleware | `YoFi.V3.Controllers.Tenancy.*` | `JColiz.MultiTenant.AspNetCore.*` | ⚠️ Namespace + adapter class |
+| Controllers, DI Extensions | `YoFi.V3.Controllers.Tenancy.*` | `JColiz.MultiTenant.AspNetCore.*` | ✅ Namespace only |
+
+**Overall Complexity:** ⭐⭐⭐ (3/5) - Mostly namespace changes + one ~20-line adapter class for NuxtIdentity
+
+## Implementation Decisions
+
+### ✅ Decided: 2-Package Structure
+
+**Decision:** Use 2 packages (`JColiz.MultiTenant` + `JColiz.MultiTenant.AspNetCore`)
+
+**Rationale:**
+- YoFi.V3 dependency analysis shows no benefit from separating Abstractions from Core
+- Matches industry precedent (AutoMapper, FluentValidation, Serilog)
+- Simpler to maintain and document
+- DTOs belong with Features (architecture philosophy)
+
+### ✅ Decided: TenantFeature in Core Package
+
+**Decision:** Place `TenantFeature` and DTOs in `JColiz.MultiTenant` (Core package)
+
+**Rationale:**
+- Zero ASP.NET Core dependencies - pure business logic
+- Makes business logic reusable in console apps, background services, etc.
+- DTOs are feature-level data contracts, not web-specific
+- Keeps `src/Application/` dependency clean (Core only, not AspNetCore)
+
+### Open Decisions
+
+1. **Repository location:** Create new `github.com/jcoliz/MultiTenant` or keep as submodule in YoFi.V3?
+   - **Recommendation:** New repository for cleaner separation and independent evolution
+
+2. **Optional features:** Should tenant management API (`TenantController`) be included or optional?
    - **Recommendation:** Include by default, document how to exclude if not needed
 
-4. **EF Core package:** Create `TenantScope.EntityFrameworkCore` with base `ITenantRepository` implementation for EF Core?
+3. **EF Core package:** Create `JColiz.MultiTenant.EntityFrameworkCore` with base `ITenantRepository` implementation for EF Core?
    - **Recommendation:** Phase 2 (after initial release proves viable)
 
-5. **Claims format:** Keep `tenant_role: "key:role"` format fixed or make it configurable?
+4. **Claims format:** Keep `tenant_role: "key:role"` format fixed or make it configurable?
    - **Recommendation:** Fixed for v1.0, configuration option in v1.1+
 
 ## Next Steps
@@ -957,19 +1037,25 @@ builder.Services
 
 Your tenancy implementation is architecturally excellent and addresses a universal need in ASP.NET Core applications. The minimal coupling to NuxtIdentity (single interface) makes extraction straightforward.
 
-### Primary Recommendation: Option A - `TenantScope.AspNetCore`
+### Primary Recommendation: Option A - `JColiz.MultiTenant` (2-Package Structure)
 
-**Create a standalone, framework-agnostic multi-tenancy library named `TenantScope`.**
+**Create a standalone multi-tenancy library with 2 packages:**
+1. **`JColiz.MultiTenant`** - Domain models, business logic, data contracts (framework-agnostic)
+2. **`JColiz.MultiTenant.AspNetCore`** - Web infrastructure (middleware, authorization, optional API)
 
 **Key Reasons:**
 1. **Broader Impact** - Serves entire .NET community, not just Nuxt users
-2. **Clean Architecture** - Proper separation between authentication and authorization
+2. **Clean Architecture** - Proper separation between domain/business logic and web infrastructure
 3. **Future-Proof** - Independent of any specific auth framework
-4. **Professional Branding** - `TenantScope` is memorable, searchable, and unique
-5. **Minimal Coupling** - Only 1 interface dependency, easily abstracted
+4. **Professional Branding** - `JColiz.MultiTenant` follows industry naming conventions
+5. **Minimal Coupling** - Only 1 interface dependency (easily abstracted via adapter pattern)
 6. **Avoids Accidental Coupling** - Extraction now prevents YoFi-specific dependencies
+7. **DTOs with Features** - Aligns with architecture philosophy
+8. **Simplified Structure** - 2 packages instead of 3 (no artificial separation of interfaces from models)
 
 **Timeline:** 3-4 days from start to NuGet publication
+
+**Migration Complexity:** Low - mostly namespace updates + one ~20-line adapter class for NuxtIdentity integration
 
 **Trade-off:** Slightly more initial work (abstraction layer + adapter) in exchange for maximum long-term value and reusability.
 
