@@ -5,6 +5,13 @@ namespace YoFi.V3.BackEnd.Logging;
 /// <summary>
 /// Data classification taxonomy for logging.
 /// </summary>
+/// <remarks>
+/// WARNING: If you apply these classifications to data, you MUST ensure that
+/// the corresponding redaction policies are implemented in the logging pipeline.
+/// Each classification here has specific redaction requirements per environment
+/// (development, container/CI, production) that must be enforced to protect
+/// sensitive information and comply with privacy/security standards.
+/// </remarks>
 public static class DataTaxonomy
 {
     public static DataClassification PII { get; } = new DataClassification("Logging", "PII");
@@ -29,9 +36,9 @@ public static class DataTaxonomy
 /// In development/testing, this is synthetic test data. In production, it's real PII
 /// that must be protected for privacy compliance (GDPR, CCPA, etc.).
 /// </remarks>
-public class PIIClassification : DataClassificationAttribute
+public class PIIAttribute : DataClassificationAttribute
 {
-    public PIIClassification() : base(DataTaxonomy.PII) { }
+    public PIIAttribute() : base(DataTaxonomy.PII) { }
 }
 
 /// <summary>
@@ -57,9 +64,9 @@ public class PIIClassification : DataClassificationAttribute
 /// - Demo/sample data
 /// - Data in test-only endpoints
 /// </remarks>
-public class TestDataClassification : DataClassificationAttribute
+public class TestDataAttribute : DataClassificationAttribute
 {
-    public TestDataClassification() : base(DataTaxonomy.TestData) { }
+    public TestDataAttribute() : base(DataTaxonomy.TestData) { }
 }
 
 /// <summary>
@@ -77,9 +84,9 @@ public class TestDataClassification : DataClassificationAttribute
 /// Even in development, logging these creates security risks (accidental commits,
 /// exposed logs, bad habits). Always redacted using ErasingRedactor.
 /// </remarks>
-public class SecretsClassification : DataClassificationAttribute
+public class SecretsAttribute : DataClassificationAttribute
 {
-    public SecretsClassification() : base(DataTaxonomy.Secrets) { }
+    public SecretsAttribute() : base(DataTaxonomy.Secrets) { }
 }
 
 /// <summary>
@@ -87,7 +94,7 @@ public class SecretsClassification : DataClassificationAttribute
 /// </summary>
 /// <remarks>
 /// Examples: Refresh tokens, session tokens, bearer tokens.
-/// NOTE: Access tokens (JWTs) should use SecretsClassification instead.
+/// NOTE: Access tokens (JWTs) should use [Secrets] instead.
 ///
 /// Redaction policy:
 /// - Development: Not redacted (full visibility for debugging)
@@ -98,9 +105,9 @@ public class SecretsClassification : DataClassificationAttribute
 /// these are long-lived credentials that benefit from partial visibility in
 /// testing environments for debugging authentication flows.
 /// </remarks>
-public class AuthTokenClassification : DataClassificationAttribute
+public class AuthTokenAttribute : DataClassificationAttribute
 {
-    public AuthTokenClassification() : base(DataTaxonomy.AuthToken) { }
+    public AuthTokenAttribute() : base(DataTaxonomy.AuthToken) { }
 }
 
 /// <summary>
@@ -118,7 +125,7 @@ public class AuthTokenClassification : DataClassificationAttribute
 /// but represents actual sensitive business/financial information in production.
 /// Similar policy to PII but semantically different (business data vs. personal data).
 /// </remarks>
-public class FinancialDataClassification : DataClassificationAttribute
+public class FinancialDataAttribute : DataClassificationAttribute
 {
-    public FinancialDataClassification() : base(DataTaxonomy.FinancialData) { }
+    public FinancialDataAttribute() : base(DataTaxonomy.FinancialData) { }
 }
