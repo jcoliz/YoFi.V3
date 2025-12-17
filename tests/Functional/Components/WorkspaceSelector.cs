@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Components;
 
@@ -11,7 +12,7 @@ namespace YoFi.V3.Tests.Functional.Components;
 /// Represents the workspace/tenant selector component that displays the current workspace
 /// and provides functionality to switch between workspaces and manage them.
 /// </remarks>
-public class WorkspaceSelector(IPage page, ILocator parent)
+public class WorkspaceSelector(BasePage page, ILocator parent)
 {
     /// <summary>
     /// Root element of the WorkspaceSelector component
@@ -105,7 +106,9 @@ public class WorkspaceSelector(IPage page, ILocator parent)
     {
         // FLAKY: Somestimes this fails. Maybe check first to ensure it's closed?
         // Also wait for network idle before clicking?
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await page.SaveScreenshotAsync("before-opening-workspace-menu");
 
         var visible = await MenuPanel.IsVisibleAsync();
         if (visible)
@@ -220,7 +223,7 @@ public class WorkspaceSelector(IPage page, ILocator parent)
         await OpenMenuAsync();
         await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
         // Wait for any navigation or state changes
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await CloseMenuAsync();
     }
 
@@ -231,7 +234,7 @@ public class WorkspaceSelector(IPage page, ILocator parent)
     {
         await OpenMenuAsync();
         await ManageWorkspacesButton.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>

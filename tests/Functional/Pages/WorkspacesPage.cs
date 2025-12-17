@@ -22,7 +22,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Workspace selector component at the top of the page
     /// </summary>
-    public WorkspaceSelector WorkspaceSelector => new WorkspaceSelector(Page!, Page!.Locator("body"));
+    public WorkspaceSelector WorkspaceSelector => new WorkspaceSelector(this, Page!.Locator("body"));
 
     /// <summary>
     /// Error display component for page-level errors
@@ -416,6 +416,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task OpenDeleteModalAsync(string workspaceName)
     {
+        await SaveScreenshotAsync($"before-opening-delete-modal.png");
         await GetDeleteButton(workspaceName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
