@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using NuxtIdentity.Core.Abstractions;
 using YoFi.V3.Application.Tenancy.Features;
 using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Controllers.Tenancy.Context;
@@ -32,8 +30,8 @@ public static class ServiceCollectionExtensions
         // Register TenantFeature
         services.AddScoped<TenantFeature>();
 
-        // Add claims to token
-        services.AddScoped<IUserClaimsProvider<IdentityUser>, TenantUserClaimsService<IdentityUser>>();
+        // Register claims enricher (framework-agnostic abstraction)
+        services.AddScoped<IClaimsEnricher, TenantClaimsEnricher>();
 
         // Register the authorization handlers
         services.AddSingleton<IAuthorizationHandler, TenantRoleHandler>();

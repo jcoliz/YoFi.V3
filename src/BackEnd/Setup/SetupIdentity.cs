@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NuxtIdentity.Core.Abstractions;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
+using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Data;
 
 namespace YoFi.V3.BackEnd.Setup;
@@ -36,6 +38,9 @@ public static class SetupIdentity
 
         // Add NuxtIdentity
         services.AddNuxtIdentityWithEntityFramework<IdentityUser, ApplicationDbContext>(configuration);
+
+        // Register NuxtIdentity adapter for tenant claims
+        services.AddScoped<IUserClaimsProvider<IdentityUser>, NuxtIdentityTenantClaimsAdapter<IdentityUser>>();
 
         return services;
     }
