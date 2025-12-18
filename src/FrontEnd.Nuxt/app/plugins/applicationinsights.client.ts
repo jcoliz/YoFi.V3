@@ -37,6 +37,15 @@ export default defineNuxtPlugin(() => {
     return
   }
 
+  // Detect if we're running under Playwright functional tests
+  // Playwright's SetExtraHTTPHeadersAsync() adds test correlation headers that cause
+  // CORS errors when Application Insights tries to send them to Azure
+  // Playwright sets navigator.webdriver to true when running automated tests
+  if (navigator.webdriver) {
+    console.warn('Application Insights disabled: Running under automated testing (Playwright detected)')
+    return
+  }
+
   // Initialize Application Insights
   const appInsights = new ApplicationInsights({
     config: {
