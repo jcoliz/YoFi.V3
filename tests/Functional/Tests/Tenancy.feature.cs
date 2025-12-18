@@ -156,6 +156,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // And I have a workspace called "My Finances"
         await GivenIHaveAWorkspaceCalled("My Finances");
 
+        // Bug AV#1979 call stack here
         // When I view the details of "My Finances"
         await WhenIViewTheDetailsOf("My Finances");
 

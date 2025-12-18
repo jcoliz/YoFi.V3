@@ -461,8 +461,18 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
+
+        TestContext.Out.WriteLine($"[WhenIViewTheDetailsOf] URL Before: {Page.Url}");
+
+        await workspacesPage.SaveScreenshotAsync($"before-navigate-to-workspace-page");
+
         await workspacesPage.NavigateAsync();
 
+        await workspacesPage.SaveScreenshotAsync($"after-navigate-to-workspace-page");
+
+        TestContext.Out.WriteLine($"[WhenIViewTheDetailsOf] URL After: {Page.Url}");
+
+        // Bug AB#1979 call stack here
         // Open workspace selector dropdown to view details
         await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 

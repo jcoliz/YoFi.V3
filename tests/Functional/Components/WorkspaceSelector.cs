@@ -115,6 +115,8 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
         {
             return;
         }
+        // Bug AB#1979 call stack here: Menu trigger is not visible, becasue we are on the
+        // login screen!
         await MenuTrigger.ClickAsync();
         await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
@@ -220,6 +222,7 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     /// <param name="workspaceName">The name of the workspace to select</param>
     public async Task SelectWorkspaceAsync(string workspaceName)
     {
+        // Bug AV#1979 call stack here
         await OpenMenuAsync();
         await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
         // Wait for any navigation or state changes
