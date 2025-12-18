@@ -18,7 +18,8 @@ export const useApiBaseUrl = () => {
     throw new Error('API base URL is not a string')
   }
 
-  console.log('API Base URL:', baseUrl)
+  // Debug logging
+  // console.trace('API Base URL:', baseUrl)
 
   return {
     baseUrl: baseUrl,
