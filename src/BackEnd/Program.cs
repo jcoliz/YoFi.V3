@@ -4,6 +4,7 @@ using YoFi.V3.BackEnd.Logging;
 using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers;
+using YoFi.V3.Controllers.Extensions;
 using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Controllers.Middleware;
 
-namespace YoFi.V3.Controllers;
+namespace YoFi.V3.Controllers.Extensions;
 
 /// <summary>
 /// Extension methods for configuring Controllers-specific services.
