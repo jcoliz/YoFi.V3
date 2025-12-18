@@ -15,11 +15,6 @@ public record ApplicationOptions
     public static readonly string Section = "Application";
 
     /// <summary>
-    /// What environment the application is running in
-    /// </summary>
-    public EnvironmentType Environment { get; init; }
-
-    /// <summary>
     /// Application version
     /// </summary>
     /// <remarks>
@@ -31,12 +26,4 @@ public record ApplicationOptions
     /// Allowed CORS origins
     /// </summary>
     public string[] AllowedCorsOrigins { get; set; } = Array.Empty<string>();
-
-}
-
-public enum EnvironmentType
-{
-    Production = 0,
-    Container,
-    Local
 }

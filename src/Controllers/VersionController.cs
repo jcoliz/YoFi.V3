@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YoFi.V3.Entities.Options;
@@ -11,7 +13,7 @@ namespace YoFi.V3.Controllers;
 [ApiController]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public partial class VersionController(IOptions<ApplicationOptions> options, ILogger<VersionController> logger) : ControllerBase
+public partial class VersionController(IWebHostEnvironment env, IOptions<ApplicationOptions> options, ILogger<VersionController> logger) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
@@ -29,12 +31,9 @@ public partial class VersionController(IOptions<ApplicationOptions> options, ILo
             );
         }
 
-        var versionWithEnv = options.Value.Environment switch
-        {
-            EnvironmentType.Local => $"{version} (Local)",
-            EnvironmentType.Container => $"{version} (Container)",
-            _ => version
-        };
+        var versionWithEnv = env.IsProduction()
+            ? version
+            : $"{version} ({env.EnvironmentName})";
 
         LogOkVersion(versionWithEnv);
         return Ok(versionWithEnv);

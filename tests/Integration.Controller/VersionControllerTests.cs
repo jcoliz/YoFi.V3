@@ -1,5 +1,4 @@
 using System.Net;
-using YoFi.V3.Entities.Options;
 using YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Controller;
@@ -10,7 +9,7 @@ public class VersionControllerTests
     private CustomVersionWebApplicationFactory _factory = null!;
     private HttpClient _client = null!;
     private const string TestVersion = "1.2.3-test";
-    private const EnvironmentType TestEnvironment = EnvironmentType.Local;
+    private const string TestEnvironment = "Development";
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
@@ -53,7 +52,7 @@ public class VersionControllerTests
     }
 
     [Test]
-    public async Task GetVersion_ReturnsVersionWithLocalEnvironment()
+    public async Task GetVersion_ReturnsVersionWithDevelopmentEnvironment()
     {
         // Act
         var response = await _client.GetAsync("/version");
@@ -63,7 +62,7 @@ public class VersionControllerTests
         Assert.That(response.IsSuccessStatusCode, Is.True);
 
         // Should include the test version and environment suffix
-        Assert.That(version, Is.EqualTo($"{TestVersion} (Local)"));
+        Assert.That(version, Is.EqualTo($"{TestVersion} (Development)"));
     }
 
     [Test]
@@ -77,14 +76,14 @@ public class VersionControllerTests
             Is.EqualTo("application/json"));
     }
 
-    [TestCase(EnvironmentType.Production, "1.2.3-test", ExpectedResult = "1.2.3-test")]
-    [TestCase(EnvironmentType.Local, "1.2.3-test", ExpectedResult = "1.2.3-test (Local)")]
-    [TestCase(EnvironmentType.Container, "1.2.3-test", ExpectedResult = "1.2.3-test (Container)")]
-    [TestCase(EnvironmentType.Production, "2.0.0", ExpectedResult = "2.0.0")]
-    [TestCase(EnvironmentType.Local, "2.0.0", ExpectedResult = "2.0.0 (Local)")]
-    [TestCase(EnvironmentType.Container, "2.0.0", ExpectedResult = "2.0.0 (Container)")]
+    [TestCase("Production", "1.2.3-test", ExpectedResult = "1.2.3-test")]
+    [TestCase("Development", "1.2.3-test", ExpectedResult = "1.2.3-test (Development)")]
+    [TestCase("Container", "1.2.3-test", ExpectedResult = "1.2.3-test (Container)")]
+    [TestCase("Production", "2.0.0", ExpectedResult = "2.0.0")]
+    [TestCase("Development", "2.0.0", ExpectedResult = "2.0.0 (Development)")]
+    [TestCase("Container", "2.0.0", ExpectedResult = "2.0.0 (Container)")]
     public async Task<string> GetVersion_AllEnvironmentTypes_ReturnsCorrectFormat(
-        EnvironmentType environment,
+        string environment,
         string version)
     {
         // Arrange

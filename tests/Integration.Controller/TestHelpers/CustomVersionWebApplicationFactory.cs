@@ -1,18 +1,18 @@
-using YoFi.V3.Entities.Options;
-
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 /// <summary>
-/// Custom WebApplicationFactory that injects a specific version for testing
+/// Custom WebApplicationFactory that injects a specific version and environment for testing
 /// </summary>
 public class CustomVersionWebApplicationFactory : BaseTestWebApplicationFactory
 {
-    public CustomVersionWebApplicationFactory(string version, EnvironmentType environment)
-        : base(new Dictionary<string, string?>
-        {
-            ["Application:Version"] = version,
-            ["Application:Environment"] = environment.ToString()
-        })
+    public CustomVersionWebApplicationFactory(string version, string environment)
+        : base(
+            configurationOverrides: new Dictionary<string, string?>
+            {
+                ["Application:Version"] = version
+            },
+            dbPath: null,
+            environment: environment)
     {
     }
 }

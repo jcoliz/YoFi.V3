@@ -64,9 +64,9 @@ try
     app.PrepareDatabaseAsync();
 
     // Configure the HTTP request pipeline
-    app.ConfigureMiddlewarePipeline(applicationOptions, logger);
+    app.ConfigureMiddlewarePipeline(app.Environment, logger);
 
-    logger.LogOkEnvironment(applicationOptions.Environment);
+    logger.LogOkEnvironment(app.Environment.EnvironmentName);
 
     app.Run();
 

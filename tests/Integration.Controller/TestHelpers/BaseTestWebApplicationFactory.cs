@@ -55,30 +55,46 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _dbPath;
     private readonly Dictionary<string, string?> _configurationOverrides;
+    private readonly string? _environment;
 
     public BaseTestWebApplicationFactory(
         Dictionary<string, string?>? configurationOverrides = null,
-        string? dbPath = null)
+        string? dbPath = null,
+        string? environment = null)
     {
         _configurationOverrides = configurationOverrides ?? new Dictionary<string, string?>();
         _dbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.db");
+        _environment = environment;
 
         // Set default configuration if not provided
         if (!_configurationOverrides.ContainsKey("Application:Version"))
             _configurationOverrides["Application:Version"] = "test-version";
-
-        if (!_configurationOverrides.ContainsKey("Application:Environment"))
-            _configurationOverrides["Application:Environment"] = "Local";
 
         if (!_configurationOverrides.ContainsKey("Application:AllowedCorsOrigins:0"))
             _configurationOverrides["Application:AllowedCorsOrigins:0"] = "http://localhost:3000";
 
         if (!_configurationOverrides.ContainsKey("ConnectionStrings:DefaultConnection"))
             _configurationOverrides["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}";
+
+        // JWT configuration required for non-Development environments
+        if (!_configurationOverrides.ContainsKey("Jwt:Key"))
+            _configurationOverrides["Jwt:Key"] = "YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14=";
+
+        if (!_configurationOverrides.ContainsKey("Jwt:Issuer"))
+            _configurationOverrides["Jwt:Issuer"] = "http://localhost:5000";
+
+        if (!_configurationOverrides.ContainsKey("Jwt:Audience"))
+            _configurationOverrides["Jwt:Audience"] = "http://localhost:5000";
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Set environment if specified
+        if (_environment is not null)
+        {
+            builder.UseEnvironment(_environment);
+        }
+
         builder.ConfigureAppConfiguration((context, config) =>
         {
             config.AddInMemoryCollection(_configurationOverrides);

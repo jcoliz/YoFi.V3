@@ -2,11 +2,13 @@
 
 The application is built to run in three distinct environments:
 
-* Local: For local development
+* Development: For local development
 * Container: Primarily for quick build/execution of functional tests in CI pipeline
 * Production: Running in Azure
 
-## Local
+**Environment Configuration:** Uses standard ASP.NET Core `ASPNETCORE_ENVIRONMENT` variable (Development, Container, Production).
+
+## Development
 
 As described in [ADR 0004](./adr/0004-aspire-development.md), local development is done using .NET Aspire.
 
@@ -77,8 +79,8 @@ As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 000
 
 ## Summary Table
 
-| Aspect | Local | Container | Production |
-|--------|-------|-----------|------------|
+| Aspect | Development | Container | Production |
+|--------|-------------|-----------|------------|
 | Frontend host | Node dev server | nginx (static) | Azure Static Web Apps |
 | Backend host | .NET process | Docker container | Azure App Service |
 | Frontend build | `npm run dev` | `npm run generate` | `npm run generate` |

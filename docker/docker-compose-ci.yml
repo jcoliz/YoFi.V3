@@ -26,7 +26,7 @@ services:
       args:
         - SOLUTION_VERSION=${SOLUTION_VERSION:-'docker-compose'}
     environment:
-      - APPLICATION__ENVIRONMENT=Container
+      - ASPNETCORE_ENVIRONMENT=Container
       - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
       - APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
       - JWT__ISSUER=${JWT_ISSUER:-http://localhost:5001}

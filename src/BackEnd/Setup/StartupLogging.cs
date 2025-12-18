@@ -37,7 +37,7 @@ public static partial class StartupLogging
     [LoggerMessage(10, LogLevel.Information, "{Location}: OK. Environment: {Environment}")]
     public static partial void LogOkEnvironment(
         this ILogger logger,
-        EnvironmentType environment,
+        string environment,
         [CallerMemberName] string? location = null);
 
     [LoggerMessage(11, LogLevel.Information, "{Location}: Application Stopped Normally")]
