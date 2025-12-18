@@ -27,38 +27,92 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IAuthClient
     {
+        /// <summary>
+        /// Authenticates a user with username and password.
+        /// </summary>
+        /// <param name="request">Login credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<LoginResponse> LoginAsync(LoginRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Authenticates a user with username and password.
+        /// </summary>
+        /// <param name="request">Login credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<LoginResponse> LoginAsync(LoginRequest request, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="request">Signup credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, bad request.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<LoginResponse> SignUpAsync(SignUpRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="request">Signup credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, bad request.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<LoginResponse> SignUpAsync(SignUpRequest request, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Retrieves the current user's session information.
+        /// </summary>
+        /// <remarks>
+        /// Requires a valid JWT access token in the Authorization header.
+        /// </remarks>
+        /// <returns>User information if authenticated; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<SessionResponse> GetSessionAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves the current user's session information.
+        /// </summary>
+        /// <remarks>
+        /// Requires a valid JWT access token in the Authorization header.
+        /// </remarks>
+        /// <returns>User information if authenticated; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<SessionResponse> GetSessionAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Handles token refresh logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The refresh token request.</param>
+        /// <returns>New token pair if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<RefreshResponse> RefreshTokensAsync(RefreshRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Handles token refresh logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The refresh token request.</param>
+        /// <returns>New token pair if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<RefreshResponse> RefreshTokensAsync(RefreshRequest request, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Handles logout logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The logout request containing the refresh token to revoke.</param>
+        /// <returns>Success response.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task LogoutAsync(RefreshRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Handles logout logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The logout request containing the refresh token to revoke.</param>
+        /// <returns>Success response.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task LogoutAsync(RefreshRequest request, System.Threading.CancellationToken cancellationToken);
 
@@ -112,6 +166,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Authenticates a user with username and password.
+        /// </summary>
+        /// <param name="request">Login credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<LoginResponse> LoginAsync(LoginRequest request)
         {
@@ -119,6 +178,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Authenticates a user with username and password.
+        /// </summary>
+        /// <param name="request">Login credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<LoginResponse> LoginAsync(LoginRequest request, System.Threading.CancellationToken cancellationToken)
         {
@@ -205,6 +269,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="request">Signup credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, bad request.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<LoginResponse> SignUpAsync(SignUpRequest request)
         {
@@ -212,6 +281,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="request">Signup credentials.</param>
+        /// <returns>JWT tokens and user information if successful; otherwise, bad request.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<LoginResponse> SignUpAsync(SignUpRequest request, System.Threading.CancellationToken cancellationToken)
         {
@@ -298,6 +372,13 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Retrieves the current user's session information.
+        /// </summary>
+        /// <remarks>
+        /// Requires a valid JWT access token in the Authorization header.
+        /// </remarks>
+        /// <returns>User information if authenticated; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<SessionResponse> GetSessionAsync()
         {
@@ -305,6 +386,13 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves the current user's session information.
+        /// </summary>
+        /// <remarks>
+        /// Requires a valid JWT access token in the Authorization header.
+        /// </remarks>
+        /// <returns>User information if authenticated; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<SessionResponse> GetSessionAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -384,6 +472,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Handles token refresh logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The refresh token request.</param>
+        /// <returns>New token pair if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<RefreshResponse> RefreshTokensAsync(RefreshRequest request)
         {
@@ -391,6 +484,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Handles token refresh logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The refresh token request.</param>
+        /// <returns>New token pair if successful; otherwise, unauthorized.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<RefreshResponse> RefreshTokensAsync(RefreshRequest request, System.Threading.CancellationToken cancellationToken)
         {
@@ -477,6 +575,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Handles logout logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The logout request containing the refresh token to revoke.</param>
+        /// <returns>Success response.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task LogoutAsync(RefreshRequest request)
         {
@@ -484,6 +587,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Handles logout logic. Can be overridden for custom behavior.
+        /// </summary>
+        /// <param name="request">The logout request containing the refresh token to revoke.</param>
+        /// <returns>Success response.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task LogoutAsync(RefreshRequest request, System.Threading.CancellationToken cancellationToken)
         {

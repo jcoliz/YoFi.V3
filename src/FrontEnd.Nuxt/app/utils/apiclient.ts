@@ -17,6 +17,11 @@ export class AuthClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Authenticates a user with username and password.
+     * @param request Login credentials.
+     * @return JWT tokens and user information if successful; otherwise, unauthorized.
+     */
     login(request: LoginRequest): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/login";
         url_ = url_.replace(/[?&]$/, "");
@@ -62,6 +67,11 @@ export class AuthClient {
         return Promise.resolve<LoginResponse>(null as any);
     }
 
+    /**
+     * Registers a new user.
+     * @param request Signup credentials.
+     * @return JWT tokens and user information if successful; otherwise, bad request.
+     */
     signUp(request: SignUpRequest): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/signup";
         url_ = url_.replace(/[?&]$/, "");
@@ -107,6 +117,10 @@ export class AuthClient {
         return Promise.resolve<LoginResponse>(null as any);
     }
 
+    /**
+     * Retrieves the current user's session information.
+     * @return User information if authenticated; otherwise, unauthorized.
+     */
     getSession(): Promise<SessionResponse> {
         let url_ = this.baseUrl + "/api/auth/user";
         url_ = url_.replace(/[?&]$/, "");
@@ -148,6 +162,11 @@ export class AuthClient {
         return Promise.resolve<SessionResponse>(null as any);
     }
 
+    /**
+     * Handles token refresh logic. Can be overridden for custom behavior.
+     * @param request The refresh token request.
+     * @return New token pair if successful; otherwise, unauthorized.
+     */
     refreshTokens(request: RefreshRequest): Promise<RefreshResponse> {
         let url_ = this.baseUrl + "/api/auth/refresh";
         url_ = url_.replace(/[?&]$/, "");
@@ -193,6 +212,11 @@ export class AuthClient {
         return Promise.resolve<RefreshResponse>(null as any);
     }
 
+    /**
+     * Handles logout logic. Can be overridden for custom behavior.
+     * @param request The logout request containing the refresh token to revoke.
+     * @return Success response.
+     */
     logout(request: RefreshRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/logout";
         url_ = url_.replace(/[?&]$/, "");
