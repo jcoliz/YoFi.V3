@@ -417,6 +417,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     public async Task OpenDeleteModalAsync(string workspaceName)
     {
         await SaveScreenshotAsync($"before-opening-delete-modal.png");
+        // AB#1976 Call Stack Here
         await GetDeleteButton(workspaceName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
@@ -464,6 +465,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task DeleteWorkspaceAsync(string workspaceName)
     {
+        // AB#1976 Call Stack Here
         await OpenDeleteModalAsync(workspaceName);
         await ConfirmDeleteAsync();
     }

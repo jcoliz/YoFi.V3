@@ -261,6 +261,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var profilePage = new ProfilePage(Page);
         await profilePage.NavigateAsync();
         await profilePage.ClickRefreshButtonAsync();
+
+        // AB#1976 This is the last thing that happens before the failures begin.
     }
 
     /// <summary>
@@ -524,7 +526,19 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
+
+        // AB#1976 It would seem that the navigate to the workspaces page
+        // is getting denied, and we are logged out at this point and returned to
+        // the login page.
+        await workspacesPage.SaveScreenshotAsync($"before-navigate-to-workspace-page.png");
+
         await workspacesPage.NavigateAsync();
+
+        await workspacesPage.SaveScreenshotAsync($"after-navigate-to-workspace-page.png");
+
+        TestContext.Out.WriteLine($"[WhenIDelete] Current URL: {Page.Url}");
+
+        // AB#1976 Call Stack Here
         await workspacesPage.DeleteWorkspaceAsync(fullWorkspaceName);
     }
 
@@ -601,7 +615,18 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var transactionsPage = GetOrCreateTransactionsPage();
+
+        await transactionsPage.SaveScreenshotAsync("before-navigate-to-transactions-page");
+
         await transactionsPage.NavigateAsync();
+
+        // AB#1977: Theory is that the navigate to the transactions page is getting denied
+        // and we are being logged out at this point.
+
+        await transactionsPage.SaveScreenshotAsync("after-navigate-to-transactions-page");
+
+        TestContext.Out.WriteLine($"[WhenIAddATransactionTo] Current URL: {Page.Url}");
+
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
         // Add a test transaction

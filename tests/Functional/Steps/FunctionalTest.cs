@@ -116,7 +116,28 @@ public abstract class FunctionalTest : PageTest
         // Set headers for both W3C trace propagation and direct correlation
         //
         await Context.SetExtraHTTPHeadersAsync(BuildTestCorrelationHeaders());
+
+        //
+        // Capture console logs from browser
+        //
+        Page.Console += (sender, msg) =>
+        {
+            var message = $"{msg.Type}: {msg.Text} at: {msg.Location} url: {msg.Page?.Url ?? "n/a"}";
+
+            if (! ignoredConsoleMessages.Any(x=> message.StartsWith(x)))
+                TestContext.Out.WriteLine($"[Browser Console] {message}");
+        };
     }
+
+    private static readonly string[] ignoredConsoleMessages = new[]
+    {
+        "debug: [vite]",
+        "warning: Application Insights disabled",
+        "info: <Suspense> is an experimental feature",
+        "log: ✨ %cNuxt DevTools",
+        "error: DropDownClientOnly",
+        "log: 🍍 \"userPreferences\" store"
+    };
 
     [TearDown]
     public void TearDown()

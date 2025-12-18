@@ -242,6 +242,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenIHaveAWorkspaceCalled("Test Workspace");
 
         // When I delete "Test Workspace"
+        // AB#1976 Call Stack Here
         await WhenIDelete("Test Workspace");
 
         // Hook: Before first Then Step
