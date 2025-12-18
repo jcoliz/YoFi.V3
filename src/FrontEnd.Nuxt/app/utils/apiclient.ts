@@ -238,6 +238,10 @@ export class TestControlClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Create a test user with auto-generated username
+     * @return Created user credentials including ID and password
+     */
     createUser(): Promise<TestUserCredentials> {
         let url_ = this.baseUrl + "/TestControl/users";
         url_ = url_.replace(/[?&]$/, "");
@@ -286,6 +290,10 @@ export class TestControlClient {
         return Promise.resolve<TestUserCredentials>(null as any);
     }
 
+    /**
+     * Deletes all test users from the system.
+     * @return 204 No Content on success.
+     */
     deleteUsers(): Promise<void> {
         let url_ = this.baseUrl + "/TestControl/users";
         url_ = url_.replace(/[?&]$/, "");
@@ -330,6 +338,11 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Create multiple test users in bulk with credentials
+     * @param usernames Collection of usernames to create (must include __TEST__ prefix)
+     * @return Collection of created user credentials including IDs and passwords
+     */
     createBulkUsers(usernames: string[]): Promise<TestUserCredentials[]> {
         let url_ = this.baseUrl + "/TestControl/users/bulk";
         url_ = url_.replace(/[?&]$/, "");
@@ -389,6 +402,9 @@ export class TestControlClient {
         return Promise.resolve<TestUserCredentials[]>(null as any);
     }
 
+    /**
+     * Approve a test user
+     */
     approveUser(username: string): Promise<void> {
         let url_ = this.baseUrl + "/TestControl/users/{username}/approve";
         if (username === undefined || username === null)
@@ -436,6 +452,12 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Create a workspace for a test user with specified role.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param request The workspace creation details.
+     * @return The created workspace information.
+     */
     createWorkspaceForUser(username: string, request: WorkspaceCreateRequest): Promise<TenantResultDto> {
         let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces";
         if (username === undefined || username === null)
@@ -498,6 +520,13 @@ export class TestControlClient {
         return Promise.resolve<TenantResultDto>(null as any);
     }
 
+    /**
+     * Assign a user to an existing workspace with a specific role.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param workspaceKey The unique key of the workspace.
+     * @param assignment The role assignment details.
+     * @return 204 No Content on success.
+     */
     assignUserToWorkspace(username: string, workspaceKey: string, assignment: UserRoleAssignment): Promise<void> {
         let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{workspaceKey}/assign";
         if (username === undefined || username === null)
@@ -566,6 +595,13 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Seed test transactions in a workspace for a user.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param tenantKey The unique key of the workspace.
+     * @param request The transaction seeding details.
+     * @return The collection of created transactions.
+     */
     seedTransactions(username: string, tenantKey: string, request: TransactionSeedRequest): Promise<TransactionResultDto[]> {
         let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed";
         if (username === undefined || username === null)
@@ -645,6 +681,10 @@ export class TestControlClient {
         return Promise.resolve<TransactionResultDto[]>(null as any);
     }
 
+    /**
+     * Delete all test data including test users and test workspaces.
+     * @return 204 No Content on success.
+     */
     deleteAllTestData(): Promise<void> {
         let url_ = this.baseUrl + "/TestControl/data";
         url_ = url_.replace(/[?&]$/, "");
@@ -682,6 +722,12 @@ export class TestControlClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Create multiple workspaces for a user in a single request.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param workspaces The collection of workspace setup requests.
+     * @return The collection of created workspace results with keys and roles.
+     */
     bulkWorkspaceSetup(username: string, workspaces: WorkspaceSetupRequest[]): Promise<WorkspaceSetupResult[]> {
         let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/bulk";
         if (username === undefined || username === null)
@@ -751,6 +797,10 @@ export class TestControlClient {
         return Promise.resolve<WorkspaceSetupResult[]>(null as any);
     }
 
+    /**
+     * List available error codes that can be generated for testing
+     * @return A collection of error code descriptions
+     */
     listErrors(): Promise<ErrorCodeInfo[]> {
         let url_ = this.baseUrl + "/TestControl/errors";
         url_ = url_.replace(/[?&]$/, "");
@@ -799,6 +849,10 @@ export class TestControlClient {
         return Promise.resolve<ErrorCodeInfo[]>(null as any);
     }
 
+    /**
+     * Generate various error codes for testing purposes
+     * @param code Kind of error desired
+     */
     returnError(code: string): Promise<void> {
         let url_ = this.baseUrl + "/TestControl/errors/{code}";
         if (code === undefined || code === null)
@@ -885,6 +939,11 @@ export class TransactionsClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Retrieves all transactions for the tenant, optionally filtered by date range.
+     * @param fromDate (optional) The starting date for the date range filter (inclusive). If null, no lower bound is applied.
+     * @param toDate (optional) The ending date for the date range filter (inclusive). If null, no upper bound is applied.
+     */
     getTransactions(fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<TransactionResultDto[]> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
@@ -961,6 +1020,11 @@ export class TransactionsClient {
         return Promise.resolve<TransactionResultDto[]>(null as any);
     }
 
+    /**
+     * Creates a new transaction in the tenant workspace.
+     * @param tenantKey The unique identifier of the tenant (from route).
+     * @param transaction The transaction data including date, amount, and payee.
+     */
     createTransaction(tenantKey: string, transaction: TransactionEditDto): Promise<TransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions";
         if (tenantKey === undefined || tenantKey === null)
@@ -1030,6 +1094,10 @@ export class TransactionsClient {
         return Promise.resolve<TransactionResultDto>(null as any);
     }
 
+    /**
+     * Retrieves a specific transaction by its unique key.
+     * @param key The unique identifier of the transaction.
+     */
     getTransactionById(key: string, tenantKey: string): Promise<TransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
         if (key === undefined || key === null)
@@ -1098,6 +1166,11 @@ export class TransactionsClient {
         return Promise.resolve<TransactionResultDto>(null as any);
     }
 
+    /**
+     * Updates an existing transaction in the tenant workspace.
+     * @param key The unique identifier of the transaction to update.
+     * @param transaction The updated transaction data including date, amount, and payee.
+     */
     updateTransaction(key: string, tenantKey: string, transaction: TransactionEditDto): Promise<void> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
         if (key === undefined || key === null)
@@ -1173,6 +1246,10 @@ export class TransactionsClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Deletes a transaction from the tenant workspace.
+     * @param key The unique identifier of the transaction to delete.
+     */
     deleteTransaction(key: string, tenantKey: string): Promise<void> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
         if (key === undefined || key === null)
@@ -1248,6 +1325,10 @@ export class VersionClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Retrieves the current application version.
+     * @return The version string, optionally with environment name in non-production environments.
+     */
     getVersion(): Promise<string> {
         let url_ = this.baseUrl + "/Version";
         url_ = url_.replace(/[?&]$/, "");
@@ -1308,6 +1389,10 @@ export class WeatherClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Retrieves weather forecasts for the next 5 days.
+     * @return A collection of weather forecasts starting from today.
+     */
     getWeatherForecasts(): Promise<WeatherForecast[]> {
         let url_ = this.baseUrl + "/api/Weather";
         url_ = url_.replace(/[?&]$/, "");
@@ -1367,6 +1452,9 @@ export class TenantClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    /**
+     * Get all tenants for current user
+     */
     getTenants(): Promise<TenantRoleResultDto[]> {
         let url_ = this.baseUrl + "/api/Tenant";
         url_ = url_.replace(/[?&]$/, "");
@@ -1429,6 +1517,11 @@ export class TenantClient {
         return Promise.resolve<TenantRoleResultDto[]>(null as any);
     }
 
+    /**
+     * Create a new tenant, with current user as owner
+     * @param tenantDto The tenant data including name and description
+     * @return The created tenant's information
+     */
     createTenant(tenantDto: TenantEditDto): Promise<TenantResultDto> {
         let url_ = this.baseUrl + "/api/Tenant";
         url_ = url_.replace(/[?&]$/, "");
@@ -1495,6 +1588,11 @@ export class TenantClient {
         return Promise.resolve<TenantResultDto>(null as any);
     }
 
+    /**
+     * Get a specific tenant for current user by tenant key
+     * @param key The unique key of the tenant
+     * @return The tenant with the user's role if they have access
+     */
     getTenant(key: string): Promise<TenantRoleResultDto> {
         let url_ = this.baseUrl + "/api/Tenant/{key}";
         if (key === undefined || key === null)
@@ -1560,6 +1658,12 @@ export class TenantClient {
         return Promise.resolve<TenantRoleResultDto>(null as any);
     }
 
+    /**
+     * Update an existing tenant (requires Owner role)
+     * @param tenantKey The unique key of the tenant to update
+     * @param tenantDto The updated tenant data including name and description
+     * @return The updated tenant's information
+     */
     updateTenant(tenantKey: string, tenantDto: TenantEditDto): Promise<TenantResultDto> {
         let url_ = this.baseUrl + "/api/Tenant/{tenantKey}";
         if (tenantKey === undefined || tenantKey === null)
@@ -1636,6 +1740,11 @@ export class TenantClient {
         return Promise.resolve<TenantResultDto>(null as any);
     }
 
+    /**
+     * Delete a tenant (requires Owner role)
+     * @param tenantKey The unique key of the tenant to delete
+     * @return No content on successful deletion
+     */
     deleteTenant(tenantKey: string): Promise<void> {
         let url_ = this.baseUrl + "/api/Tenant/{tenantKey}";
         if (tenantKey === undefined || tenantKey === null)
@@ -2142,10 +2251,15 @@ export interface IRefreshRequest {
     refreshToken?: string;
 }
 
+/** Data transfer object for test user credentials including unique identifier */
 export class TestUserCredentials implements ITestUserCredentials {
+    /** The unique identifier (GUID) of the created user */
     id?: string;
+    /** The username for authentication */
     username?: string;
+    /** The email address for authentication */
     email?: string;
+    /** The generated password for authentication */
     password?: string;
 
     constructor(data?: ITestUserCredentials) {
@@ -2183,10 +2297,15 @@ export class TestUserCredentials implements ITestUserCredentials {
     }
 }
 
+/** Data transfer object for test user credentials including unique identifier */
 export interface ITestUserCredentials {
+    /** The unique identifier (GUID) of the created user */
     id?: string;
+    /** The username for authentication */
     username?: string;
+    /** The email address for authentication */
     email?: string;
+    /** The generated password for authentication */
     password?: string;
 }
 
@@ -2238,9 +2357,13 @@ export interface ITenantResultDto {
     createdAt?: Date;
 }
 
+/** Request to create a workspace for a test user. */
 export class WorkspaceCreateRequest implements IWorkspaceCreateRequest {
+    /** The name of the workspace (must include __TEST__ prefix). */
     name?: string;
+    /** A description of the workspace. */
     description?: string;
+    /** The role to assign to the user (default: Owner). */
     role?: string;
 
     constructor(data?: IWorkspaceCreateRequest) {
@@ -2276,13 +2399,19 @@ export class WorkspaceCreateRequest implements IWorkspaceCreateRequest {
     }
 }
 
+/** Request to create a workspace for a test user. */
 export interface IWorkspaceCreateRequest {
+    /** The name of the workspace (must include __TEST__ prefix). */
     name?: string;
+    /** A description of the workspace. */
     description?: string;
+    /** The role to assign to the user (default: Owner). */
     role?: string;
 }
 
+/** Request to assign a user to an existing workspace. */
 export class UserRoleAssignment implements IUserRoleAssignment {
+    /** The role to assign to the user in the workspace. */
     role?: string;
 
     constructor(data?: IUserRoleAssignment) {
@@ -2314,7 +2443,9 @@ export class UserRoleAssignment implements IUserRoleAssignment {
     }
 }
 
+/** Request to assign a user to an existing workspace. */
 export interface IUserRoleAssignment {
+    /** The role to assign to the user in the workspace. */
     role?: string;
 }
 
@@ -2366,8 +2497,11 @@ export interface ITransactionResultDto {
     payee?: string;
 }
 
+/** Request to seed transactions in a workspace. */
 export class TransactionSeedRequest implements ITransactionSeedRequest {
+    /** Number of transactions to create. */
     count?: number;
+    /** Prefix for payee names (default: "Test Transaction"). */
     payeePrefix?: string;
 
     constructor(data?: ITransactionSeedRequest) {
@@ -2401,14 +2535,21 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
     }
 }
 
+/** Request to seed transactions in a workspace. */
 export interface ITransactionSeedRequest {
+    /** Number of transactions to create. */
     count?: number;
+    /** Prefix for payee names (default: "Test Transaction"). */
     payeePrefix?: string;
 }
 
+/** Result of workspace setup including key, name, and assigned role. */
 export class WorkspaceSetupResult implements IWorkspaceSetupResult {
+    /** The unique identifier of the created workspace. */
     key?: string;
+    /** The name of the workspace. */
     name?: string;
+    /** The role assigned to the user. */
     role?: string;
 
     constructor(data?: IWorkspaceSetupResult) {
@@ -2444,15 +2585,23 @@ export class WorkspaceSetupResult implements IWorkspaceSetupResult {
     }
 }
 
+/** Result of workspace setup including key, name, and assigned role. */
 export interface IWorkspaceSetupResult {
+    /** The unique identifier of the created workspace. */
     key?: string;
+    /** The name of the workspace. */
     name?: string;
+    /** The role assigned to the user. */
     role?: string;
 }
 
+/** Request for setting up a workspace with a specific role. */
 export class WorkspaceSetupRequest implements IWorkspaceSetupRequest {
+    /** The name of the workspace. */
     name?: string;
+    /** A description of the workspace. */
     description?: string;
+    /** The role to assign to the user. */
     role?: string;
 
     constructor(data?: IWorkspaceSetupRequest) {
@@ -2488,14 +2637,21 @@ export class WorkspaceSetupRequest implements IWorkspaceSetupRequest {
     }
 }
 
+/** Request for setting up a workspace with a specific role. */
 export interface IWorkspaceSetupRequest {
+    /** The name of the workspace. */
     name?: string;
+    /** A description of the workspace. */
     description?: string;
+    /** The role to assign to the user. */
     role?: string;
 }
 
+/** Information about an error code available for testing */
 export class ErrorCodeInfo implements IErrorCodeInfo {
+    /** The error code to use in the query parameter */
     code?: string;
+    /** Description of what error will be generated */
     description?: string;
 
     constructor(data?: IErrorCodeInfo) {
@@ -2529,8 +2685,11 @@ export class ErrorCodeInfo implements IErrorCodeInfo {
     }
 }
 
+/** Information about an error code available for testing */
 export interface IErrorCodeInfo {
+    /** The error code to use in the query parameter */
     code?: string;
+    /** Description of what error will be generated */
     description?: string;
 }
 

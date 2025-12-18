@@ -686,80 +686,268 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface ITestControlClient
     {
+        /// <summary>
+        /// Create a test user with auto-generated username
+        /// </summary>
+        /// <remarks>
+        /// User is automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
+        /// </remarks>
+        /// <returns>Created user credentials including ID and password</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TestUserCredentials> CreateUserAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a test user with auto-generated username
+        /// </summary>
+        /// <remarks>
+        /// User is automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
+        /// </remarks>
+        /// <returns>Created user credentials including ID and password</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TestUserCredentials> CreateUserAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Deletes all test users from the system.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all users whose username contains the __TEST__ prefix.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteUsersAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Deletes all test users from the system.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all users whose username contains the __TEST__ prefix.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteUsersAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Create multiple test users in bulk with credentials
+        /// </summary>
+        /// <remarks>
+        /// All users are automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
+        /// <br/>Each user receives a unique, secure random password.
+        /// </remarks>
+        /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
+        /// <returns>Collection of created user credentials including IDs and passwords</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TestUserCredentials>> CreateBulkUsersAsync(System.Collections.Generic.IEnumerable<string> usernames);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create multiple test users in bulk with credentials
+        /// </summary>
+        /// <remarks>
+        /// All users are automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
+        /// <br/>Each user receives a unique, secure random password.
+        /// </remarks>
+        /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
+        /// <returns>Collection of created user credentials including IDs and passwords</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TestUserCredentials>> CreateBulkUsersAsync(System.Collections.Generic.IEnumerable<string> usernames, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Approve a test user
+        /// </summary>
+        /// <remarks>
+        /// This simulates the email approval step. When a user is created, they have to be
+        /// <br/>approved before they can log in. Only users with __TEST__ in their username can be approved
+        /// <br/>via this method.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ApproveUserAsync(string username);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Approve a test user
+        /// </summary>
+        /// <remarks>
+        /// This simulates the email approval step. When a user is created, they have to be
+        /// <br/>approved before they can log in. Only users with __TEST__ in their username can be approved
+        /// <br/>via this method.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ApproveUserAsync(string username, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Create a workspace for a test user with specified role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both username and workspace name have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="request">The workspace creation details.</param>
+        /// <returns>The created workspace information.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a workspace for a test user with specified role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both username and workspace name have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="request">The workspace creation details.</param>
+        /// <returns>The created workspace information.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Assign a user to an existing workspace with a specific role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both user and workspace have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaceKey">The unique key of the workspace.</param>
+        /// <param name="assignment">The role assignment details.</param>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task AssignUserToWorkspaceAsync(string username, System.Guid workspaceKey, UserRoleAssignment assignment);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Assign a user to an existing workspace with a specific role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both user and workspace have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaceKey">The unique key of the workspace.</param>
+        /// <param name="assignment">The role assignment details.</param>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task AssignUserToWorkspaceAsync(string username, System.Guid workspaceKey, UserRoleAssignment assignment, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Seed test transactions in a workspace for a user.
+        /// </summary>
+        /// <remarks>
+        /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+        /// <br/>Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+        /// <br/>The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+        /// <br/>before TransactionsFeature is injected via DI.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="tenantKey">The unique key of the workspace.</param>
+        /// <param name="request">The transaction seeding details.</param>
+        /// <returns>The collection of created transactions.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Seed test transactions in a workspace for a user.
+        /// </summary>
+        /// <remarks>
+        /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+        /// <br/>Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+        /// <br/>The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+        /// <br/>before TransactionsFeature is injected via DI.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="tenantKey">The unique key of the workspace.</param>
+        /// <param name="request">The transaction seeding details.</param>
+        /// <returns>The collection of created transactions.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Delete all test data including test users and test workspaces.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAllTestDataAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete all test data including test users and test workspaces.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteAllTestDataAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Create multiple workspaces for a user in a single request.
+        /// </summary>
+        /// <remarks>
+        /// Validates that username and all workspace names have __TEST__ prefix before creating any.
+        /// <br/>Returns 403 if username or any workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaces">The collection of workspace setup requests.</param>
+        /// <returns>The collection of created workspace results with keys and roles.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkspaceSetupResult>> BulkWorkspaceSetupAsync(string username, System.Collections.Generic.IEnumerable<WorkspaceSetupRequest> workspaces);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create multiple workspaces for a user in a single request.
+        /// </summary>
+        /// <remarks>
+        /// Validates that username and all workspace names have __TEST__ prefix before creating any.
+        /// <br/>Returns 403 if username or any workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaces">The collection of workspace setup requests.</param>
+        /// <returns>The collection of created workspace results with keys and roles.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkspaceSetupResult>> BulkWorkspaceSetupAsync(string username, System.Collections.Generic.IEnumerable<WorkspaceSetupRequest> workspaces, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// List available error codes that can be generated for testing
+        /// </summary>
+        /// <returns>A collection of error code descriptions</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ErrorCodeInfo>> ListErrorsAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// List available error codes that can be generated for testing
+        /// </summary>
+        /// <returns>A collection of error code descriptions</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ErrorCodeInfo>> ListErrorsAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Generate various error codes for testing purposes
+        /// </summary>
+        /// <param name="code">Kind of error desired</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReturnErrorAsync(string code);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Generate various error codes for testing purposes
+        /// </summary>
+        /// <param name="code">Kind of error desired</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReturnErrorAsync(string code, System.Threading.CancellationToken cancellationToken);
 
@@ -813,6 +1001,14 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Create a test user with auto-generated username
+        /// </summary>
+        /// <remarks>
+        /// User is automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
+        /// </remarks>
+        /// <returns>Created user credentials including ID and password</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TestUserCredentials> CreateUserAsync()
         {
@@ -820,6 +1016,14 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a test user with auto-generated username
+        /// </summary>
+        /// <remarks>
+        /// User is automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
+        /// </remarks>
+        /// <returns>Created user credentials including ID and password</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TestUserCredentials> CreateUserAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -910,6 +1114,13 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Deletes all test users from the system.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all users whose username contains the __TEST__ prefix.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteUsersAsync()
         {
@@ -917,6 +1128,13 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Deletes all test users from the system.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all users whose username contains the __TEST__ prefix.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteUsersAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -1000,6 +1218,16 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Create multiple test users in bulk with credentials
+        /// </summary>
+        /// <remarks>
+        /// All users are automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
+        /// <br/>Each user receives a unique, secure random password.
+        /// </remarks>
+        /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
+        /// <returns>Collection of created user credentials including IDs and passwords</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TestUserCredentials>> CreateBulkUsersAsync(System.Collections.Generic.IEnumerable<string> usernames)
         {
@@ -1007,6 +1235,16 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create multiple test users in bulk with credentials
+        /// </summary>
+        /// <remarks>
+        /// All users are automatically approved (email confirmed) for immediate use in tests.
+        /// <br/>All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
+        /// <br/>Each user receives a unique, secure random password.
+        /// </remarks>
+        /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
+        /// <returns>Collection of created user credentials including IDs and passwords</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TestUserCredentials>> CreateBulkUsersAsync(System.Collections.Generic.IEnumerable<string> usernames, System.Threading.CancellationToken cancellationToken)
         {
@@ -1103,6 +1341,14 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Approve a test user
+        /// </summary>
+        /// <remarks>
+        /// This simulates the email approval step. When a user is created, they have to be
+        /// <br/>approved before they can log in. Only users with __TEST__ in their username can be approved
+        /// <br/>via this method.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task ApproveUserAsync(string username)
         {
@@ -1110,6 +1356,14 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Approve a test user
+        /// </summary>
+        /// <remarks>
+        /// This simulates the email approval step. When a user is created, they have to be
+        /// <br/>approved before they can log in. Only users with __TEST__ in their username can be approved
+        /// <br/>via this method.
+        /// </remarks>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ApproveUserAsync(string username, System.Threading.CancellationToken cancellationToken)
         {
@@ -1199,6 +1453,16 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Create a workspace for a test user with specified role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both username and workspace name have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="request">The workspace creation details.</param>
+        /// <returns>The created workspace information.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TenantResultDto> CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request)
         {
@@ -1206,6 +1470,16 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a workspace for a test user with specified role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both username and workspace name have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="request">The workspace creation details.</param>
+        /// <returns>The created workspace information.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TenantResultDto> CreateWorkspaceForUserAsync(string username, WorkspaceCreateRequest request, System.Threading.CancellationToken cancellationToken)
         {
@@ -1317,6 +1591,17 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Assign a user to an existing workspace with a specific role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both user and workspace have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaceKey">The unique key of the workspace.</param>
+        /// <param name="assignment">The role assignment details.</param>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task AssignUserToWorkspaceAsync(string username, System.Guid workspaceKey, UserRoleAssignment assignment)
         {
@@ -1324,6 +1609,17 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Assign a user to an existing workspace with a specific role.
+        /// </summary>
+        /// <remarks>
+        /// Validates that both user and workspace have __TEST__ prefix for safety.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaceKey">The unique key of the workspace.</param>
+        /// <param name="assignment">The role assignment details.</param>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task AssignUserToWorkspaceAsync(string username, System.Guid workspaceKey, UserRoleAssignment assignment, System.Threading.CancellationToken cancellationToken)
         {
@@ -1444,6 +1740,20 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Seed test transactions in a workspace for a user.
+        /// </summary>
+        /// <remarks>
+        /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+        /// <br/>Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+        /// <br/>The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+        /// <br/>before TransactionsFeature is injected via DI.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="tenantKey">The unique key of the workspace.</param>
+        /// <param name="request">The transaction seeding details.</param>
+        /// <returns>The collection of created transactions.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request)
         {
@@ -1451,6 +1761,20 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Seed test transactions in a workspace for a user.
+        /// </summary>
+        /// <remarks>
+        /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+        /// <br/>Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+        /// <br/>The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+        /// <br/>before TransactionsFeature is injected via DI.
+        /// <br/>Returns 403 if either username or workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="tenantKey">The unique key of the workspace.</param>
+        /// <param name="request">The transaction seeding details.</param>
+        /// <returns>The collection of created transactions.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> SeedTransactionsAsync(string username, System.Guid tenantKey, TransactionSeedRequest request, System.Threading.CancellationToken cancellationToken)
         {
@@ -1577,6 +1901,14 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Delete all test data including test users and test workspaces.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteAllTestDataAsync()
         {
@@ -1584,6 +1916,14 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete all test data including test users and test workspaces.
+        /// </summary>
+        /// <remarks>
+        /// Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// </remarks>
+        /// <returns>204 No Content on success.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteAllTestDataAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -1657,6 +1997,16 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Create multiple workspaces for a user in a single request.
+        /// </summary>
+        /// <remarks>
+        /// Validates that username and all workspace names have __TEST__ prefix before creating any.
+        /// <br/>Returns 403 if username or any workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaces">The collection of workspace setup requests.</param>
+        /// <returns>The collection of created workspace results with keys and roles.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkspaceSetupResult>> BulkWorkspaceSetupAsync(string username, System.Collections.Generic.IEnumerable<WorkspaceSetupRequest> workspaces)
         {
@@ -1664,6 +2014,16 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create multiple workspaces for a user in a single request.
+        /// </summary>
+        /// <remarks>
+        /// Validates that username and all workspace names have __TEST__ prefix before creating any.
+        /// <br/>Returns 403 if username or any workspace name lacks the prefix.
+        /// </remarks>
+        /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+        /// <param name="workspaces">The collection of workspace setup requests.</param>
+        /// <returns>The collection of created workspace results with keys and roles.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkspaceSetupResult>> BulkWorkspaceSetupAsync(string username, System.Collections.Generic.IEnumerable<WorkspaceSetupRequest> workspaces, System.Threading.CancellationToken cancellationToken)
         {
@@ -1775,6 +2135,10 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// List available error codes that can be generated for testing
+        /// </summary>
+        /// <returns>A collection of error code descriptions</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ErrorCodeInfo>> ListErrorsAsync()
         {
@@ -1782,6 +2146,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// List available error codes that can be generated for testing
+        /// </summary>
+        /// <returns>A collection of error code descriptions</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<ErrorCodeInfo>> ListErrorsAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -1861,6 +2229,10 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Generate various error codes for testing purposes
+        /// </summary>
+        /// <param name="code">Kind of error desired</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task ReturnErrorAsync(string code)
         {
@@ -1868,6 +2240,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Generate various error codes for testing purposes
+        /// </summary>
+        /// <param name="code">Kind of error desired</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ReturnErrorAsync(string code, System.Threading.CancellationToken cancellationToken)
         {
@@ -2127,38 +2503,84 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface ITransactionsClient
     {
+        /// <summary>
+        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// </summary>
+        /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
+        /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// </summary>
+        /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
+        /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Creates a new transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
+        /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Creates a new transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
+        /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Retrieves a specific transaction by its unique key.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves a specific transaction by its unique key.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Updates an existing transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to update.</param>
+        /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Updates an existing transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to update.</param>
+        /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Deletes a transaction from the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to delete.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteTransactionAsync(System.Guid key, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Deletes a transaction from the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to delete.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteTransactionAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
@@ -2212,6 +2634,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// </summary>
+        /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
+        /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey)
         {
@@ -2219,6 +2646,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// </summary>
+        /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
+        /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
@@ -2343,6 +2775,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Creates a new transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
+        /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction)
         {
@@ -2350,6 +2787,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Creates a new transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
+        /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
         {
@@ -2471,6 +2913,10 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Retrieves a specific transaction by its unique key.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey)
         {
@@ -2478,6 +2924,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves a specific transaction by its unique key.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
@@ -2596,6 +3046,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Updates an existing transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to update.</param>
+        /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction)
         {
@@ -2603,6 +3058,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Updates an existing transaction in the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to update.</param>
+        /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
         {
@@ -2732,6 +3192,10 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Deletes a transaction from the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to delete.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteTransactionAsync(System.Guid key, string tenantKey)
         {
@@ -2739,6 +3203,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Deletes a transaction from the tenant workspace.
+        /// </summary>
+        /// <param name="key">The unique identifier of the transaction to delete.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteTransactionAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
@@ -2983,10 +3451,18 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IVersionClient
     {
+        /// <summary>
+        /// Retrieves the current application version.
+        /// </summary>
+        /// <returns>The version string, optionally with environment name in non-production environments.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<string> GetVersionAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves the current application version.
+        /// </summary>
+        /// <returns>The version string, optionally with environment name in non-production environments.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<string> GetVersionAsync(System.Threading.CancellationToken cancellationToken);
 
@@ -3040,6 +3516,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Retrieves the current application version.
+        /// </summary>
+        /// <returns>The version string, optionally with environment name in non-production environments.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<string> GetVersionAsync()
         {
@@ -3047,6 +3527,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves the current application version.
+        /// </summary>
+        /// <returns>The version string, optionally with environment name in non-production environments.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<string> GetVersionAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -3268,10 +3752,24 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface IWeatherClient
     {
+        /// <summary>
+        /// Retrieves weather forecasts for the next 5 days.
+        /// </summary>
+        /// <remarks>
+        /// Forecasts are generated once and cached in the database for subsequent requests.
+        /// </remarks>
+        /// <returns>A collection of weather forecasts starting from today.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WeatherForecast>> GetWeatherForecastsAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves weather forecasts for the next 5 days.
+        /// </summary>
+        /// <remarks>
+        /// Forecasts are generated once and cached in the database for subsequent requests.
+        /// </remarks>
+        /// <returns>A collection of weather forecasts starting from today.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WeatherForecast>> GetWeatherForecastsAsync(System.Threading.CancellationToken cancellationToken);
 
@@ -3325,6 +3823,13 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Retrieves weather forecasts for the next 5 days.
+        /// </summary>
+        /// <remarks>
+        /// Forecasts are generated once and cached in the database for subsequent requests.
+        /// </remarks>
+        /// <returns>A collection of weather forecasts starting from today.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WeatherForecast>> GetWeatherForecastsAsync()
         {
@@ -3332,6 +3837,13 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Retrieves weather forecasts for the next 5 days.
+        /// </summary>
+        /// <remarks>
+        /// Forecasts are generated once and cached in the database for subsequent requests.
+        /// </remarks>
+        /// <returns>A collection of weather forecasts starting from today.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WeatherForecast>> GetWeatherForecastsAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -3543,38 +4055,94 @@ namespace YoFi.V3.Tests.Functional.Generated
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial interface ITenantClient
     {
+        /// <summary>
+        /// Get all tenants for current user
+        /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TenantRoleResultDto>> GetTenantsAsync();
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get all tenants for current user
+        /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TenantRoleResultDto>> GetTenantsAsync(System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Create a new tenant, with current user as owner
+        /// </summary>
+        /// <param name="tenantDto">The tenant data including name and description</param>
+        /// <returns>The created tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> CreateTenantAsync(TenantEditDto tenantDto);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a new tenant, with current user as owner
+        /// </summary>
+        /// <param name="tenantDto">The tenant data including name and description</param>
+        /// <returns>The created tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> CreateTenantAsync(TenantEditDto tenantDto, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Get a specific tenant for current user by tenant key
+        /// </summary>
+        /// <remarks>
+        /// Uses 'key' parameter instead of 'tenantKey' to avoid triggering tenant-scoped authorization middleware.
+        /// <br/>Authorization is handled in the feature layer via GetTenantForUserAsync.
+        /// </remarks>
+        /// <param name="key">The unique key of the tenant</param>
+        /// <returns>The tenant with the user's role if they have access</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantRoleResultDto> GetTenantAsync(System.Guid key);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a specific tenant for current user by tenant key
+        /// </summary>
+        /// <remarks>
+        /// Uses 'key' parameter instead of 'tenantKey' to avoid triggering tenant-scoped authorization middleware.
+        /// <br/>Authorization is handled in the feature layer via GetTenantForUserAsync.
+        /// </remarks>
+        /// <param name="key">The unique key of the tenant</param>
+        /// <returns>The tenant with the user's role if they have access</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantRoleResultDto> GetTenantAsync(System.Guid key, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Update an existing tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to update</param>
+        /// <param name="tenantDto">The updated tenant data including name and description</param>
+        /// <returns>The updated tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> UpdateTenantAsync(System.Guid tenantKey, TenantEditDto tenantDto);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update an existing tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to update</param>
+        /// <param name="tenantDto">The updated tenant data including name and description</param>
+        /// <returns>The updated tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TenantResultDto> UpdateTenantAsync(System.Guid tenantKey, TenantEditDto tenantDto, System.Threading.CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Delete a tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to delete</param>
+        /// <returns>No content on successful deletion</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteTenantAsync(System.Guid tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to delete</param>
+        /// <returns>No content on successful deletion</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task DeleteTenantAsync(System.Guid tenantKey, System.Threading.CancellationToken cancellationToken);
 
@@ -3628,6 +4196,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, System.Text.StringBuilder urlBuilder);
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
+        /// <summary>
+        /// Get all tenants for current user
+        /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TenantRoleResultDto>> GetTenantsAsync()
         {
@@ -3635,6 +4206,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get all tenants for current user
+        /// </summary>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TenantRoleResultDto>> GetTenantsAsync(System.Threading.CancellationToken cancellationToken)
         {
@@ -3734,6 +4308,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Create a new tenant, with current user as owner
+        /// </summary>
+        /// <param name="tenantDto">The tenant data including name and description</param>
+        /// <returns>The created tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TenantResultDto> CreateTenantAsync(TenantEditDto tenantDto)
         {
@@ -3741,6 +4320,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Create a new tenant, with current user as owner
+        /// </summary>
+        /// <param name="tenantDto">The tenant data including name and description</param>
+        /// <returns>The created tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TenantResultDto> CreateTenantAsync(TenantEditDto tenantDto, System.Threading.CancellationToken cancellationToken)
         {
@@ -3857,6 +4441,15 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Get a specific tenant for current user by tenant key
+        /// </summary>
+        /// <remarks>
+        /// Uses 'key' parameter instead of 'tenantKey' to avoid triggering tenant-scoped authorization middleware.
+        /// <br/>Authorization is handled in the feature layer via GetTenantForUserAsync.
+        /// </remarks>
+        /// <param name="key">The unique key of the tenant</param>
+        /// <returns>The tenant with the user's role if they have access</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TenantRoleResultDto> GetTenantAsync(System.Guid key)
         {
@@ -3864,6 +4457,15 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a specific tenant for current user by tenant key
+        /// </summary>
+        /// <remarks>
+        /// Uses 'key' parameter instead of 'tenantKey' to avoid triggering tenant-scoped authorization middleware.
+        /// <br/>Authorization is handled in the feature layer via GetTenantForUserAsync.
+        /// </remarks>
+        /// <param name="key">The unique key of the tenant</param>
+        /// <returns>The tenant with the user's role if they have access</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TenantRoleResultDto> GetTenantAsync(System.Guid key, System.Threading.CancellationToken cancellationToken)
         {
@@ -3977,6 +4579,12 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Update an existing tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to update</param>
+        /// <param name="tenantDto">The updated tenant data including name and description</param>
+        /// <returns>The updated tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<TenantResultDto> UpdateTenantAsync(System.Guid tenantKey, TenantEditDto tenantDto)
         {
@@ -3984,6 +4592,12 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Update an existing tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to update</param>
+        /// <param name="tenantDto">The updated tenant data including name and description</param>
+        /// <returns>The updated tenant's information</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TenantResultDto> UpdateTenantAsync(System.Guid tenantKey, TenantEditDto tenantDto, System.Threading.CancellationToken cancellationToken)
         {
@@ -4114,6 +4728,11 @@ namespace YoFi.V3.Tests.Functional.Generated
             }
         }
 
+        /// <summary>
+        /// Delete a tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to delete</param>
+        /// <returns>No content on successful deletion</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DeleteTenantAsync(System.Guid tenantKey)
         {
@@ -4121,6 +4740,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete a tenant (requires Owner role)
+        /// </summary>
+        /// <param name="tenantKey">The unique key of the tenant to delete</param>
+        /// <returns>No content on successful deletion</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DeleteTenantAsync(System.Guid tenantKey, System.Threading.CancellationToken cancellationToken)
         {
@@ -4498,19 +5122,34 @@ namespace YoFi.V3.Tests.Functional.Generated
 
     }
 
+    /// <summary>
+    /// Data transfer object for test user credentials including unique identifier
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TestUserCredentials
     {
 
+        /// <summary>
+        /// The unique identifier (GUID) of the created user
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public System.Guid Id { get; set; }
 
+        /// <summary>
+        /// The username for authentication
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("username")]
         public string Username { get; set; }
 
+        /// <summary>
+        /// The email address for authentication
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string Email { get; set; }
 
+        /// <summary>
+        /// The generated password for authentication
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("password")]
         public string Password { get; set; }
 
@@ -4534,25 +5173,43 @@ namespace YoFi.V3.Tests.Functional.Generated
 
     }
 
+    /// <summary>
+    /// Request to create a workspace for a test user.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkspaceCreateRequest
     {
 
+        /// <summary>
+        /// The name of the workspace (must include __TEST__ prefix).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
 
+        /// <summary>
+        /// A description of the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; }
 
+        /// <summary>
+        /// The role to assign to the user (default: Owner).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public string Role { get; set; }
 
     }
 
+    /// <summary>
+    /// Request to assign a user to an existing workspace.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UserRoleAssignment
     {
 
+        /// <summary>
+        /// The role to assign to the user in the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public string Role { get; set; }
 
@@ -4577,55 +5234,97 @@ namespace YoFi.V3.Tests.Functional.Generated
 
     }
 
+    /// <summary>
+    /// Request to seed transactions in a workspace.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TransactionSeedRequest
     {
 
+        /// <summary>
+        /// Number of transactions to create.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("count")]
         public int Count { get; set; }
 
+        /// <summary>
+        /// Prefix for payee names (default: "Test Transaction").
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("payeePrefix")]
         public string PayeePrefix { get; set; }
 
     }
 
+    /// <summary>
+    /// Result of workspace setup including key, name, and assigned role.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkspaceSetupResult
     {
 
+        /// <summary>
+        /// The unique identifier of the created workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public System.Guid Key { get; set; }
 
+        /// <summary>
+        /// The name of the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
 
+        /// <summary>
+        /// The role assigned to the user.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public string Role { get; set; }
 
     }
 
+    /// <summary>
+    /// Request for setting up a workspace with a specific role.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class WorkspaceSetupRequest
     {
 
+        /// <summary>
+        /// The name of the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; }
 
+        /// <summary>
+        /// A description of the workspace.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; }
 
+        /// <summary>
+        /// The role to assign to the user.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("role")]
         public string Role { get; set; }
 
     }
 
+    /// <summary>
+    /// Information about an error code available for testing
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ErrorCodeInfo
     {
 
+        /// <summary>
+        /// The error code to use in the query parameter
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         public string Code { get; set; }
 
+        /// <summary>
+        /// Description of what error will be generated
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; }
 
