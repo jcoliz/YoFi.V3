@@ -211,7 +211,67 @@ docker ps
 # Look for "healthy" in STATUS column
 ```
 
+## Observability with Aspire Dashboard
+
+The docker-compose configuration includes the Aspire Dashboard for comprehensive observability during development and testing.
+
+### Accessing the Dashboard
+
+When running containers via [`docker-compose-ci.yml`](docker-compose-ci.yml), the Aspire Dashboard is automatically available at:
+
+**http://localhost:18888**
+
+The dashboard provides real-time visibility into:
+- **Structured Logs** - Filter, search, and correlate logs with TraceIds
+- **Distributed Traces** - View request flows and timing breakdowns
+- **Metrics** - Monitor ASP.NET Core, EF Core, and runtime performance
+- **Resources** - See service health and configuration
+
+### Dashboard Features
+
+#### Structured Logs Tab
+- Filter by log level (Debug, Info, Warning, Error)
+- Search by message content or TraceId
+- View structured log properties
+- Correlate logs with specific requests
+
+#### Traces Tab
+- Visualize distributed traces through the application
+- See timing breakdown of each operation
+- Filter by status (success, error)
+- View detailed span information
+
+#### Metrics Tab
+- ASP.NET Core metrics (request rate, duration, active requests)
+- HTTP client metrics (outbound request stats)
+- Runtime metrics (GC, thread pool, exceptions)
+- Entity Framework Core metrics (query duration, connection pool)
+
+### Using the Dashboard for Debugging
+
+**During functional tests:**
+```powershell
+.\scripts\Run-FunctionalTestsVsContainer.ps1
+# Dashboard available at http://localhost:18888
+```
+
+**When troubleshooting container issues:**
+```powershell
+.\scripts\Start-Container.ps1
+# Opens both the application and dashboard automatically
+```
+
+The dashboard provides much richer diagnostics than `docker logs` alone, making it easier to:
+- Debug functional test failures
+- Troubleshoot issues specific to the generated frontend
+- Analyze performance problems
+- Correlate logs with specific HTTP requests
+
 ## Troubleshooting
+
+### View Telemetry in Aspire Dashboard
+
+For most troubleshooting scenarios, the Aspire Dashboard (http://localhost:18888) provides the best visibility. Check the Structured Logs and Traces tabs to see detailed diagnostic information with correlation IDs.
 
 ### Container Exits Immediately
 
@@ -267,10 +327,13 @@ Run functional tests against the containerized backend:
 ```
 
 This script:
-1. Builds the backend container
-2. Starts it with test configuration
-3. Runs the complete Playwright test suite
-4. Tears down the environment
+1. Builds the backend and dashboard containers
+2. Starts them with test configuration
+3. Displays the Aspire Dashboard URL for real-time monitoring
+4. Runs the complete Playwright test suite
+5. Tears down the environment
+
+**Tip:** Open the Aspire Dashboard (http://localhost:18888) while tests are running to see real-time logs, traces, and metrics.
 
 ## Performance
 
@@ -296,6 +359,7 @@ See [Container Environment Guide](../docs/CONTAINER-ENVIRONMENT.md) for detailed
 ## Related Documentation
 
 - [Container Environment Guide](../docs/CONTAINER-ENVIRONMENT.md) - Detailed containerization documentation
+- [Aspire Dashboard Setup](../docs/wip/DOCKER-COMPOSE-ASPIRE-DASHBOARD.md) - Complete Aspire Dashboard integration guide
 - [Deployment Guide](../docs/DEPLOYMENT.md) - Production deployment to Azure
 - [Architecture Overview](../docs/ARCHITECTURE.md) - Application architecture
 - [Contributing Guide](../docs/CONTRIBUTING.md) - Development setup and guidelines

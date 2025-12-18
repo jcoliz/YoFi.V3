@@ -48,10 +48,11 @@ try {
         throw "Docker compose up failed with exit code $LASTEXITCODE"
     }
 
-    Write-Host "Containers are up and running." -ForegroundColor Green
-    Write-Host "Opening application at http://localhost:5000..." -ForegroundColor Cyan
-
-    Start-Process "http://localhost:5000"
+    Write-Host "OK Containers started successfully" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Opening application and dashboard..." -ForegroundColor Cyan
+    Start-Process "http://localhost:5000"   # Frontend
+    Start-Process "http://localhost:18888"  # Aspire Dashboard
 }
 catch {
     Write-Error "Failed to start containers: $_"

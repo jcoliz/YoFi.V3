@@ -85,14 +85,55 @@ enable an evaluator to simply run one command to pull both containers locally an
 docker run jcoliz/yofi-v3:latest
 ```
 
+## Observability
+
+### Aspire Dashboard
+
+The docker-compose configuration includes the Aspire Dashboard for comprehensive observability. When containers are running, the dashboard is available at **http://localhost:18888**.
+
+**Dashboard Features:**
+- **Structured Logs** - Filter, search, and correlate logs with TraceIds (better than `docker logs`)
+- **Distributed Traces** - Visualize request flows and timing breakdowns
+- **Metrics** - Monitor ASP.NET Core, EF Core, and runtime performance
+- **Resources** - View service health and configuration
+
+**Automatic Access:**
+- [`Start-Container.ps1`](../scripts/Start-Container.ps1) - Opens dashboard automatically
+- [`Run-FunctionalTestsVsContainer.ps1`](../scripts/Run-FunctionalTestsVsContainer.ps1) - Displays dashboard URL
+
+See [`docs/wip/DOCKER-COMPOSE-ASPIRE-DASHBOARD.md`](wip/DOCKER-COMPOSE-ASPIRE-DASHBOARD.md) for complete details on using the dashboard.
+
 ## Troubleshooting
 
-If functional tests fail against the container, you have a few options:
+If functional tests fail against the container, you have several options:
 
-- Re-run one failed test at a time in Playwright debug mode. Change the `PWDEBUG` setting in [docker.runsettings](../tests/Functional/docker.runsettings) to `1`. This usually shows the problem.
-- Check the docker logs. The backend logs quite a bit of useful information to stdout, which is available in docker logs.
-- Consider rebuilding with higher log levels. Start by setting `YoFi.V3` logging level to `Debug`. The easiest way is to change [appsettings.json](../src/BackEnd/appsettings.json). Just remember to change it back!
-- Check the browser console logs. Occasionally some useful notes are dropped in there.
+### 1. View Telemetry in Aspire Dashboard (Recommended)
+
+Open http://localhost:18888 and check:
+- **Structured Logs tab** - Filter by log level, search by content, view structured properties
+- **Traces tab** - See request flows with timing information
+- **Metrics tab** - Check for performance issues
+
+This provides much richer diagnostics than `docker logs` alone and makes it easy to correlate logs with specific requests using TraceIds.
+
+### 2. Re-run Failed Tests in Playwright Debug Mode
+
+Change the `PWDEBUG` setting in [docker.runsettings](../tests/Functional/docker.runsettings) to `1` and re-run one test at a time. This usually shows the problem.
+
+### 3. Check Docker Logs
+
+The backend logs useful information to stdout:
+```powershell
+docker logs yofi-v3-backend-1
+```
+
+### 4. Increase Log Levels
+
+If you need more detailed logs, set `YoFi.V3` logging level to `Debug` in the docker-compose environment variables. The logs will appear in both `docker logs` and the Aspire Dashboard.
+
+### 5. Check Browser Console
+
+For frontend issues, check the browser console logs. Occasionally useful notes are dropped there.
 
 ## Benchmarking performance
 

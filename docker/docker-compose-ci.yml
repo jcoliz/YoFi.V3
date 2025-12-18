@@ -1,5 +1,14 @@
 name: yofi-v3
 services:
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:10.0
+    container_name: aspire-dashboard
+    ports:
+      - '18888:18888'  # Dashboard UI
+      - '4317:4317'    # OTLP/gRPC endpoint
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+    restart: unless-stopped
   frontend:
     image: ${REGISTRY_PREFIX:-}yofi-v3-frontend
     build:
@@ -35,6 +44,10 @@ services:
       - JWT__KEY=${JWT_KEY:-YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14=}
       - JWT__LIFESPAN=${JWT_LIFESPAN:-00:10:00}
       - LOGGING__LOGLEVEL__YOFI=Debug
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     restart: always
     ports:
       - '5001:8080'
+    depends_on:
+      - aspire-dashboard

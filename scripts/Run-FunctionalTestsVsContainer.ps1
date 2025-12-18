@@ -4,25 +4,39 @@ Runs functional tests against the CI Docker containers.
 
 .DESCRIPTION
 This script builds and starts the Docker containers defined in docker-compose-ci.yml,
-then runs the functional tests against them. The containers are automatically stopped
-and cleaned up after the tests complete. This is useful for debugging CI build issues
-locally and running functional tests in a containerized environment.
+then runs the functional tests against them. By default, containers are automatically
+stopped and cleaned up after the tests complete. Use the -KeepRunning switch to leave
+containers running for investigation via the Aspire Dashboard.
+
+.PARAMETER KeepRunning
+When specified, leaves containers running after tests complete. Use this to examine
+telemetry in the Aspire Dashboard (http://localhost:18888). Remember to run
+Stop-Container.ps1 when finished.
 
 .EXAMPLE
 .\Run-FunctionalTestsVsContainer.ps1
-Builds containers, runs functional tests, and cleans up.
+Builds containers, runs functional tests, and cleans up automatically.
+
+.EXAMPLE
+.\Run-FunctionalTestsVsContainer.ps1 -KeepRunning
+Runs tests but leaves containers running for dashboard investigation.
+Use .\scripts\Stop-Container.ps1 to clean up when finished.
 
 .NOTES
 The script uses docker.runsettings for test configuration when running against containers.
 The solution version is automatically generated using Get-Version.ps1.
-Containers are always stopped after test execution, even if tests fail.
+The Aspire Dashboard is available at http://localhost:18888 while containers are running.
 
 .LINK
 https://docs.docker.com/compose/
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [Parameter()]
+    [switch]
+    $KeepRunning
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -53,6 +67,10 @@ try {
         throw "Docker compose up failed with exit code $LASTEXITCODE"
     }
 
+    Write-Host ""
+    Write-Host "Aspire Dashboard available at http://localhost:18888" -ForegroundColor Cyan
+    Write-Host ""
+
     Push-Location ./tests/Functional
 
     Write-Host "Running functional tests..." -ForegroundColor Cyan
@@ -65,7 +83,16 @@ try {
         throw "Tests failed with exit code $testExitCode"
     }
 
-    Write-Host "Functional tests completed successfully" -ForegroundColor Green
+    Write-Host "OK Functional tests completed successfully" -ForegroundColor Green
+
+    if ($KeepRunning) {
+        Write-Host ""
+        Write-Host "Containers are still running (per -KeepRunning switch)" -ForegroundColor Yellow
+        Write-Host "Aspire Dashboard: http://localhost:18888" -ForegroundColor Cyan
+        Write-Host "Application: http://localhost:5000" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Run '.\scripts\Stop-Container.ps1' to stop containers when finished." -ForegroundColor Yellow
+    }
 }
 catch {
     Write-Error "Failed to run functional tests: $_"
@@ -73,7 +100,9 @@ catch {
     exit 1
 }
 finally {
-    Write-Host "Stopping docker services..." -ForegroundColor Cyan
-    docker compose -f ./docker/docker-compose-ci.yml down
+    if (-not $KeepRunning) {
+        Write-Host "Stopping docker services..." -ForegroundColor Cyan
+        docker compose -f ./docker/docker-compose-ci.yml down
+    }
     Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
 }
