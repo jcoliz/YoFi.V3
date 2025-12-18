@@ -282,7 +282,7 @@ public partial class TestControlController(
         string username,
         [FromBody] WorkspaceCreateRequest request)
     {
-        LogStartingKey(username);
+        LogStartingUsername(username);
 
         // Validate username has test prefix
         if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
@@ -891,16 +891,19 @@ public partial class TestControlController(
     private partial void LogFailed(Exception ex, [CallerMemberName] string? location = null);
 
     [LoggerMessage(3, LogLevel.Information, "{Location}: OK. User {Name}")]
-    private partial void LogOkUsername(string name, [CallerMemberName] string? location = null);
+    private partial void LogOkUsername(/*[TestData]*/ string name, [CallerMemberName] string? location = null);
 
     [LoggerMessage(4, LogLevel.Information, "{Location}: OK {Count}")]
     private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
 
     [LoggerMessage(5, LogLevel.Debug, "{Location}: Starting {Key}")]
-    private partial void LogStartingKey(object key, [CallerMemberName] string? location = null);
+    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
 
     [LoggerMessage(6, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(12, LogLevel.Debug, "{Location}: Starting {Username}")]
+    private partial void LogStartingUsername(/*[TestData]*/ string username, [CallerMemberName] string? location = null);
 
     [LoggerMessage(7, LogLevel.Debug, "{Location}: Starting")]
     private partial void LogStarting([CallerMemberName] string? location = null);

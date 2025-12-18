@@ -104,7 +104,7 @@ public partial class TenantRoleHandler(
     private partial void LogCheckingTenantKey(string tenantKey, [CallerMemberName] string? location = null);
 
     [LoggerMessage(5, LogLevel.Debug, "{Location}: All claims: {Claims}")]
-    private partial void LogAllClaims(string claims, [CallerMemberName] string? location = null);
+    private partial void LogAllClaims(/*[PII]*/ string claims, [CallerMemberName] string? location = null);
 
     [LoggerMessage(6, LogLevel.Debug, "{Location}: Found matching claim: {ClaimValue}")]
     private partial void LogFoundClaim(string claimValue, [CallerMemberName] string? location = null);
