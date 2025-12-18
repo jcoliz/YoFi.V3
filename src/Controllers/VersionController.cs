@@ -9,12 +9,26 @@ using YoFi.V3.Entities.Options;
 
 namespace YoFi.V3.Controllers;
 
+/// <summary>
+/// Provides application version information.
+/// </summary>
+/// <param name="env">The web host environment for environment-specific behavior.</param>
+/// <param name="options">Application options containing version information.</param>
+/// <param name="logger">Logger for diagnostic output.</param>
+/// <remarks>
+/// Returns the application version string. In non-production environments, the environment
+/// name is appended to the version (e.g., "1.0.0 (Development)").
+/// </remarks>
 [Route("[controller]")]
 [ApiController]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class VersionController(IWebHostEnvironment env, IOptions<ApplicationOptions> options, ILogger<VersionController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Retrieves the current application version.
+    /// </summary>
+    /// <returns>The version string, optionally with environment name in non-production environments.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

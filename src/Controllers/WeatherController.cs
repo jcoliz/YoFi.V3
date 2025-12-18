@@ -8,12 +8,28 @@ using YoFi.V3.Entities.Models;
 
 namespace YoFi.V3.Controllers;
 
+/// <summary>
+/// Provides weather forecast data for demonstration and testing purposes.
+/// </summary>
+/// <param name="weatherFeature">Feature providing weather forecast operations.</param>
+/// <param name="logger">Logger for diagnostic output.</param>
+/// <remarks>
+/// This controller demonstrates basic CRUD operations and data persistence.
+/// Weather forecasts are stored in the database and reused across requests.
+/// </remarks>
 [Route("api/[controller]")]
 [ApiController]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class WeatherController(WeatherFeature weatherFeature, ILogger<WeatherController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Retrieves weather forecasts for the next 5 days.
+    /// </summary>
+    /// <returns>A collection of weather forecasts starting from today.</returns>
+    /// <remarks>
+    /// Forecasts are generated once and cached in the database for subsequent requests.
+    /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<WeatherForecast>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWeatherForecasts()

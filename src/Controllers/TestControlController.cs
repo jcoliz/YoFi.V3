@@ -26,6 +26,14 @@ namespace YoFi.V3.Controllers;
 /// <param name="Password">The generated password for authentication</param>
 public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
 
+/// <summary>
+/// Internal helper record for generating test user credentials.
+/// </summary>
+/// <param name="Id">The numeric identifier used to generate username and email.</param>
+/// <remarks>
+/// Generates username, email, and password based on the provided ID.
+/// All generated usernames include the __TEST__ prefix for safety.
+/// </remarks>
 public record TestUser(int Id)
 {
     /// <summary>
@@ -36,8 +44,19 @@ public record TestUser(int Id)
     /// </remarks>
     internal const string Prefix = "__TEST__";
 
+    /// <summary>
+    /// Gets the generated username in format __TEST__XXXX where XXXX is a hex ID.
+    /// </summary>
     public string Username { get; init; } = $"{Prefix}{Id:X4}";
+
+    /// <summary>
+    /// Gets the generated email address in format __TEST__XXXX@test.com.
+    /// </summary>
     public string Email { get; init; } = $"{Prefix}{Id:X4}@test.com";
+
+    /// <summary>
+    /// Gets the generated secure random password.
+    /// </summary>
     public string Password { get; init; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
 }
 
@@ -88,9 +107,37 @@ public record ErrorCodeInfo(string Code, string Description);
 #endregion
 
 /// <summary>
-/// Controller for test user management
+/// Controller for test user and workspace management in functional tests.
 /// </summary>
-/// <param name="logger"></param>
+/// <param name="userManager">User manager for identity operations.</param>
+/// <param name="tenantFeature">Feature providing tenant management operations.</param>
+/// <param name="logger">Logger for diagnostic output.</param>
+/// <remarks>
+/// This controller provides endpoints for creating and managing test users, workspaces,
+/// and test data during functional testing. All operations enforce the __TEST__ prefix
+/// on usernames and workspace names for safety.
+///
+/// <para><strong>Test User Management:</strong></para>
+/// <list type="bullet">
+/// <item><description>Create test users with auto-generated credentials</description></item>
+/// <item><description>Bulk create multiple test users</description></item>
+/// <item><description>Delete all test users</description></item>
+/// </list>
+///
+/// <para><strong>Workspace Management:</strong></para>
+/// <list type="bullet">
+/// <item><description>Create workspaces for test users with specified roles</description></item>
+/// <item><description>Assign users to existing workspaces</description></item>
+/// <item><description>Seed transactions in workspaces</description></item>
+/// <item><description>Bulk workspace setup</description></item>
+/// </list>
+///
+/// <para><strong>Error Testing:</strong></para>
+/// <list type="bullet">
+/// <item><description>List available error codes</description></item>
+/// <item><description>Generate specific HTTP error responses</description></item>
+/// </list>
+/// </remarks>
 [Route("[controller]")]
 [ApiController]
 [Produces("application/json")]
@@ -188,6 +235,13 @@ public partial class TestControlController(
         return NoContent();
     }
 
+    /// <summary>
+    /// Deletes all test users from the system.
+    /// </summary>
+    /// <returns>204 No Content on success.</returns>
+    /// <remarks>
+    /// Deletes all users whose username contains the __TEST__ prefix.
+    /// </remarks>
     [HttpDelete("users")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

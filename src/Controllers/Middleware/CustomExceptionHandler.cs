@@ -13,8 +13,27 @@ namespace YoFi.V3.Controllers.Middleware;
 /// <summary>
 /// Configurable exception handler that maps specific exception types to HTTP status codes and problem details.
 /// </summary>
+/// <param name="logger">Logger for diagnostic output.</param>
+/// <remarks>
+/// This handler processes application-specific exceptions and converts them into appropriate
+/// HTTP responses with ProblemDetails. It handles:
+/// <list type="bullet">
+/// <item><description>TenancyException (delegated to TenancyExceptionHandler)</description></item>
+/// <item><description>ResourceNotFoundException → 404 Not Found</description></item>
+/// <item><description>KeyNotFoundException → 404 Not Found (legacy)</description></item>
+/// <item><description>ArgumentException → 400 Bad Request</description></item>
+/// </list>
+/// Unhandled exceptions are passed to the next exception handler in the pipeline.
+/// </remarks>
 public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>
+    /// Attempts to handle the exception by mapping it to an appropriate HTTP response.
+    /// </summary>
+    /// <param name="httpContext">The HTTP context for the current request.</param>
+    /// <param name="exception">The exception to handle.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the exception was handled; false to pass to the next handler.</returns>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
