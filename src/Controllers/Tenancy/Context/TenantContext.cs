@@ -11,7 +11,7 @@ namespace YoFi.V3.Controllers.Tenancy.Context;
 /// <remarks>
 /// WARNING: Only add this to controllers or endpoints that provide tenant context!!
 /// Note that tenant context is only set on routes which explicitly require a tenant
-/// role using the <see cref="TenantRoleAttribute"/>. Other routes (like /api/version)
+/// role using the RequireTenantRole attribute. Other routes (like /api/version)
 /// will not have tenant context set.
 ///
 /// This service maintains the current tenant for the request scope and implements

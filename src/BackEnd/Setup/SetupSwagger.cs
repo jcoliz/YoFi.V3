@@ -1,4 +1,6 @@
-﻿namespace YoFi.V3.BackEnd.Startup;
+﻿using System.Reflection;
+
+namespace YoFi.V3.BackEnd.Startup;
 
 public static class __SetupSwagger
 {
@@ -10,6 +12,16 @@ public static class __SetupSwagger
             options.Title = "YoFi.V3 Backend";
             options.Description = "Application boundary between .NET backend and YoFi.V3 frontend.";
             options.Version = "v1";
+
+            // Enable XML documentation comments for controller descriptions
+            options.UseControllerSummaryAsTagDescription = true;
+
+            // Include XML documentation from Controllers project
+            var controllersXmlFile = Path.Combine(AppContext.BaseDirectory, "YoFi.V3.Controllers.xml");
+            if (File.Exists(controllersXmlFile))
+            {
+                options.DocumentProcessors.Add(new NSwag.Generation.Processors.DocumentTagsProcessor());
+            }
 
             options.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
             {

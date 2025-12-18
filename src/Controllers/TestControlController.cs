@@ -856,6 +856,7 @@ public partial class TestControlController(
     /// <param name="statusCode">HTTP status code (e.g., StatusCodes.Status404NotFound)</param>
     /// <param name="title">Brief error title</param>
     /// <param name="detail">Detailed error message (optional)</param>
+    /// <param name="location">The name of the calling method (automatically populated)</param>
     /// <returns>ObjectResult containing ProblemDetails with logging side effect</returns>
     /// <remarks>
     /// Automatically logs at Warning level for 4xx errors and Error level for 5xx errors.

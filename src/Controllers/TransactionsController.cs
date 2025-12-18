@@ -50,7 +50,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// Retrieves a specific transaction by its unique key.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
-    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpGet("{key:guid}")]
     [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
@@ -89,7 +89,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
     /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
-    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpPut("{key:guid}")]
     [RequireTenantRole(TenantRole.Editor)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -109,7 +109,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// Deletes a transaction from the tenant workspace.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to delete.</param>
-    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpDelete("{key:guid}")]
     [RequireTenantRole(TenantRole.Editor)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

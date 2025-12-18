@@ -14,10 +14,29 @@ namespace YoFi.V3.Controllers.Logging;
 /// </remarks>
 public static class DataTaxonomy
 {
+    /// <summary>
+    /// Gets the data classification for Personally Identifiable Information (PII).
+    /// </summary>
     public static DataClassification PII { get; } = new DataClassification("Logging", "PII");
+
+    /// <summary>
+    /// Gets the data classification for test/synthetic data.
+    /// </summary>
     public static DataClassification TestData { get; } = new DataClassification("Logging", "TestData");
+
+    /// <summary>
+    /// Gets the data classification for security secrets and credentials.
+    /// </summary>
     public static DataClassification Secrets { get; } = new DataClassification("Logging", "Secrets");
+
+    /// <summary>
+    /// Gets the data classification for authentication tokens.
+    /// </summary>
     public static DataClassification AuthToken { get; } = new DataClassification("Logging", "AuthToken");
+
+    /// <summary>
+    /// Gets the data classification for financial or sensitive business data.
+    /// </summary>
     public static DataClassification FinancialData { get; } = new DataClassification("Logging", "FinancialData");
 }
 
@@ -38,6 +57,9 @@ public static class DataTaxonomy
 /// </remarks>
 public class PIIAttribute : DataClassificationAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PIIAttribute"/> class.
+    /// </summary>
     public PIIAttribute() : base(DataTaxonomy.PII) { }
 }
 
@@ -66,6 +88,9 @@ public class PIIAttribute : DataClassificationAttribute
 /// </remarks>
 public class TestDataAttribute : DataClassificationAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestDataAttribute"/> class.
+    /// </summary>
     public TestDataAttribute() : base(DataTaxonomy.TestData) { }
 }
 
@@ -86,6 +111,9 @@ public class TestDataAttribute : DataClassificationAttribute
 /// </remarks>
 public class SecretsAttribute : DataClassificationAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SecretsAttribute"/> class.
+    /// </summary>
     public SecretsAttribute() : base(DataTaxonomy.Secrets) { }
 }
 
@@ -107,6 +135,9 @@ public class SecretsAttribute : DataClassificationAttribute
 /// </remarks>
 public class AuthTokenAttribute : DataClassificationAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthTokenAttribute"/> class.
+    /// </summary>
     public AuthTokenAttribute() : base(DataTaxonomy.AuthToken) { }
 }
 
@@ -127,5 +158,8 @@ public class AuthTokenAttribute : DataClassificationAttribute
 /// </remarks>
 public class FinancialDataAttribute : DataClassificationAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FinancialDataAttribute"/> class.
+    /// </summary>
     public FinancialDataAttribute() : base(DataTaxonomy.FinancialData) { }
 }

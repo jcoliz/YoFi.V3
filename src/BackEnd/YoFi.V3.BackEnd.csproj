@@ -5,6 +5,14 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);**/*.db;**/*.db-shm;**/*.db-wal</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!-- Copy Controllers XML documentation to output for Swagger -->
+  <ItemGroup>
+    <Content Include="..\Controllers\bin\$(Configuration)\$(TargetFramework)\YoFi.V3.Controllers.xml">
+      <Link>YoFi.V3.Controllers.xml</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
