@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Generated;
+using NUnit.Framework.Internal;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
@@ -685,6 +686,10 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         var newPayee = "Updated " + payee;
         await transactionsPage.UpdateTransactionAsync(payee, newDate, newPayee, 200.00m);
 
+        // AB#1980: Save screenshot here to help debug
+        await transactionsPage.SaveScreenshotAsync("after-updating-transaction");
+        TestContext.Out.WriteLine($"[WhenIUpdateThatTransaction] New Payee: {newPayee}");
+
         _objectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
     }
 
@@ -968,10 +973,13 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// </summary>
     protected async Task ThenMyChangesShouldBeSaved()
     {
+        // AB#1980: KEY_LAST_TRANSACTION_PAYEE
         var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+
+        // AB#1980: Fails here
         Assert.That(hasTransaction, Is.True, "Updated transaction should be visible");
     }
 

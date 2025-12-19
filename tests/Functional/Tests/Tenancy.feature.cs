@@ -397,6 +397,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
+        // AB#1980 Screnshot shows one transaction
 
         // Then the transaction should be saved successfully
         await ThenTheTransactionShouldBeSavedSuccessfully();
@@ -404,6 +405,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // And when I update that transaction
         await WhenIUpdateThatTransaction();
 
+        // AB#1980 Call Stack Here
         // Then my changes should be saved
         await ThenMyChangesShouldBeSaved();
 

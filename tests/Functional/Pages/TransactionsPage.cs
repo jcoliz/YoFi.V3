@@ -452,6 +452,9 @@ public class TransactionsPage(IPage page) : BasePage(page)
         {
             await UpdateButton.ClickAsync();
         }, UpdateTransactionApiRegex);
+
+        // AB#1980: Wait for network idle to ensure UI has updated
+        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
