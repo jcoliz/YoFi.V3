@@ -41,12 +41,9 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     private const string KEY_LOGGED_IN_AS = "LoggedInAs";
     private const string KEY_PENDING_USER_CONTEXT = "PendingUserContext"; // User context for pre-login steps
     private const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
-    private const string KEY_LAST_CREATED_WORKSPACE = "LastCreatedWorkspace";
     private const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
     private const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
-    private const string KEY_CAN_EDIT_WORKSPACE = "CanEditWorkspace";
     private const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
-    private const string KEY_CAN_CREATE_TRANSACTION = "CanCreateTransaction";
     private const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
     private const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
 
@@ -458,7 +455,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         await workspacesPage.CreateWorkspaceAsync(workspaceName, description);
 
         // Store the workspace name for future reference
-        _objectStore.Add(KEY_LAST_CREATED_WORKSPACE, workspaceName);
         _objectStore.Add(KEY_CURRENT_WORKSPACE, workspaceName);
     }
 
@@ -551,7 +547,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Check if edit button is available
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
-        _objectStore.Add(KEY_CAN_EDIT_WORKSPACE, (object)canEdit);
         _objectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canEdit);
     }
 
@@ -637,7 +632,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
 
         // Check if New Transaction button is available
         var canCreate = await transactionsPage.IsNewTransactionAvailableAsync();
-        _objectStore.Add(KEY_CAN_CREATE_TRANSACTION, (object)canCreate);
         _objectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canCreate);
 
         // TODO: Check if edit buttons are available on existing transactions
@@ -757,10 +751,8 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         // Check that we have Owner permissions on the workspace
         var workspacesPage = GetOrCreateWorkspacesPage();
 
-        // Get the last created workspace name
-        var workspaceName = _objectStore.Contains<string>(KEY_LAST_CREATED_WORKSPACE)
-            ? _objectStore.Get<string>(KEY_LAST_CREATED_WORKSPACE)
-            : null;
+        // Get the current workspace name
+        var workspaceName = _objectStore.Get<string>(KEY_CURRENT_WORKSPACE);
 
         if (workspaceName != null)
         {
