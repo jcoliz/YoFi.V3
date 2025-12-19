@@ -194,6 +194,9 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         {
             await CreateButton.ClickAsync();
         }, CreateTenantApiRegex);
+
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -360,6 +363,9 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         {
             await EditForm.GetByTestId("edit-workspace-submit").ClickAsync();
         }, CreateTenantApiRegex);
+
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -436,6 +442,9 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         {
             await DeleteModalButton.ClickAsync();
         }, ModifyTenantApiRegex);
+
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>

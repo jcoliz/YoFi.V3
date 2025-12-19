@@ -288,6 +288,9 @@ public class TransactionsPage(IPage page) : BasePage(page)
         {
             await CreateButton.ClickAsync();
         }, CreateTransactionApiRegex);
+
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -453,8 +456,9 @@ public class TransactionsPage(IPage page) : BasePage(page)
             await UpdateButton.ClickAsync();
         }, UpdateTransactionApiRegex);
 
-        // AB#1980: Wait for network idle to ensure UI has updated
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // AB#1980: I think this is the ACTUAL fix
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -527,6 +531,9 @@ public class TransactionsPage(IPage page) : BasePage(page)
         {
             await DeleteButton.ClickAsync();
         }, UpdateTransactionApiRegex);
+
+        // Wait for the loading spinner to disappear, indicating UI has updated
+        await WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -571,7 +578,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
     public async Task SetFromDateAsync(string date)
     {
         await FromDateInput.FillAsync(date);
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Don't need to wait here. Nothing happens when we modify filters
     }
 
     /// <summary>
@@ -581,7 +588,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
     public async Task SetToDateAsync(string date)
     {
         await ToDateInput.FillAsync(date);
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Don't need to wait here. Nothing happens when we modify filters
     }
 
     /// <summary>
@@ -593,7 +600,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
     {
         await FromDateInput.FillAsync(fromDate);
         await ToDateInput.FillAsync(toDate);
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Don't need to wait here. Nothing happens when we modify filters
     }
 
     /// <summary>
@@ -602,7 +609,8 @@ public class TransactionsPage(IPage page) : BasePage(page)
     public async Task ClearFiltersAsync()
     {
         await ClearFiltersButton.ClickAsync();
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Don't need to wait here. Nothing happens when we modify filters
     }
 
     #endregion
