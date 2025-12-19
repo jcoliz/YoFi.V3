@@ -7,6 +7,7 @@ using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 
 namespace Microsoft.Extensions.Hosting;
@@ -47,6 +48,9 @@ public static class Extensions
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder, ILogger logger) where TBuilder : IHostApplicationBuilder
     {
+        var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? builder.Environment.ApplicationName;
+        var serviceVersion = builder.Configuration["SOLUTION_VERSION"] ?? "1.0.0";
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
@@ -54,6 +58,11 @@ public static class Extensions
         });
 
         builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource =>
+                resource.AddService(
+                    serviceName: serviceName,
+                    serviceVersion: serviceVersion,
+                    serviceInstanceId: Environment.MachineName))
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
@@ -63,7 +72,7 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
+                tracing.AddSource(serviceName)
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>
