@@ -22,23 +22,59 @@ The functional tests follow a layered architecture that separates test intent fr
 
 ```mermaid
 flowchart TD
-    A[Gherkin Features<br/>.feature files] -->|Compiled via<br/>Mustache Template| B[Test Classes<br/>.feature.cs files]
-    B -->|Calls| C[Step Methods<br/>Steps/*.cs]
-    C -->|Uses| D[Page Models<br/>Pages/*.cs]
-    D -->|May contain| E[Component Models<br/>Components/*.cs]
-    D -->|Uses| F[Playwright API]
-    E -->|Uses| F
+    A[Gherkin Features<br/>.feature files] -->|Compiled via<br/>Mustache Template| B[Test Classes<br/>Tests/*.feature.cs]
+    B -->|Inherits| C[Step Definitions<br/>Steps/*.cs]
+    C -->|Inherits| D[Common Steps<br/>Steps/Common/*.cs]
+    D -->|Inherits| E[Test Infrastructure<br/>Infrastructure/*.cs]
+    C -->|Uses| F[Page Models<br/>Pages/*.cs]
+    F -->|Contains| G[Component Models<br/>Components/*.cs]
+    F -->|Uses| H[Playwright API]
+    G -->|Uses| H
+```
+
+**Directory Structure:**
+```
+tests/Functional/
+├── Infrastructure/          # Core test infrastructure
+│   ├── FunctionalTestBase.cs   # Base class with setup/teardown
+│   └── ObjectStore.cs          # Shared data storage
+├── Steps/                   # Step definitions
+│   ├── Common/              # Shared step implementations
+│   │   ├── CommonGivenSteps.cs
+│   │   ├── CommonWhenSteps.cs
+│   │   └── CommonThenSteps.cs
+│   ├── AuthenticationSteps.cs  # Feature-specific steps
+│   ├── WeatherSteps.cs
+│   └── WorkspaceTenancySteps.cs
+├── Pages/                   # Page Object Models
+├── Components/              # Reusable UI components
+├── Features/                # Gherkin feature files
+└── Tests/                   # Generated test classes
+```
+
+**Inheritance Hierarchy:**
+```
+FunctionalTestBase (Infrastructure/)
+    ↓
+CommonGivenSteps → CommonWhenSteps → CommonThenSteps (Steps/Common/)
+    ↓
+AuthenticationSteps, WeatherSteps, WorkspaceTenancySteps (Steps/)
+    ↓
+Generated Test Classes (Tests/)
 ```
 
 **Flow:**
-- **Gherkin Features** define test scenarios in business-readable language
-- **Test Classes** are generated from Gherkin, containing `[Test]` methods that call step methods
-- **Step Methods** orchestrate the test flow by calling page models
-- **Page Models** encapsulate page structure and provide interaction methods
-- **Component Models** are reusable UI components shared across multiple pages
+- **Gherkin Features** ([`Features/`](Features/)) define test scenarios in business-readable language
+- **Test Classes** ([`Tests/`](Tests/)) are generated from Gherkin, containing `[Test]` methods that call step methods
+- **Step Definitions** ([`Steps/`](Steps/)) orchestrate the test flow by calling page models
+  - **Common Steps** ([`Steps/Common/`](Steps/Common/)) provide shared Given/When/Then implementations
+  - **Feature Steps** extend common steps with feature-specific implementations
+- **Infrastructure** ([`Infrastructure/`](Infrastructure/)) provides test lifecycle, correlation headers, and shared utilities
+- **Page Models** ([`Pages/`](Pages/)) encapsulate page structure and provide interaction methods
+- **Component Models** ([`Components/`](Components/)) are reusable UI components shared across multiple pages
 - **Playwright API** provides browser automation (locators, actions, assertions)
 
-This separation ensures maintainability: UI changes only affect Page/Component Models, not test scenarios.
+This separation ensures maintainability: UI changes only affect Page/Component Models, infrastructure changes are isolated, and common test logic is reused.
 
 ## Targets
 
@@ -76,10 +112,14 @@ whenever the Playwright packages are updated to a new version.
 
 ## Adding new tests
 
-1. Write new Gherkin scenarios in a [Feature](./Features/) file. Either create a new feature, or add new scenarios to an existing feature.
-2. Ensure the steps are available in [FunctionalTest.cs](./Steps/FunctionalTest.cs)
+1. Write new Gherkin scenarios in a [`Features/`](./Features/) file. Either create a new feature, or add new scenarios to an existing feature.
+2. Ensure the steps are available:
+   - Add to [`Steps/Common/`](./Steps/Common/) if shared across features
+   - Add to feature-specific step class in [`Steps/`](./Steps/) if unique to that feature
 3. Write additional [Page](./Pages/) or [Component](./Components/) models if page functionality is new or changed.
-4. Write or update new C# test files in the [Feature](./Features/) directory, following the [Instructions](./INSTRUCTIONS.md) provided. GitHub Copilot is excellent at this!
+4. Write or update new C# test files in the [`Tests/`](./Tests/) directory, following the [Instructions](./INSTRUCTIONS.md) provided. GitHub Copilot is excellent at this!
+
+See [`Steps/README.md`](./Steps/README.md) for detailed guidance on writing step definitions.
 
 ## Known issues
 

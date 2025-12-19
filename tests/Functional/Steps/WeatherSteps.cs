@@ -1,12 +1,13 @@
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
+using YoFi.V3.Tests.Functional.Steps.Common;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
 /// <summary>
 /// Step definitions for Weather feature tests
 /// </summary>
-public abstract class WeatherSteps : FunctionalTest
+public abstract class WeatherSteps : CommonThenSteps
 {
     #region Steps: GIVEN
 

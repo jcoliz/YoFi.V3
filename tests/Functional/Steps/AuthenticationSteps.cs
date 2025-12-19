@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Steps.Common;
 using NUnit.Framework.Internal;
 
 namespace YoFi.V3.Tests.Functional.Steps;
@@ -16,7 +17,7 @@ public class TestUser(int id)
 /// <summary>
 /// Step definitions for Authentication feature tests
 /// </summary>
-public abstract class AuthenticationSteps : FunctionalTest
+public abstract class AuthenticationSteps : CommonThenSteps
 {
     #region Steps: GIVEN
 

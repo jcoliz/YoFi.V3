@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Steps.Common;
 using NUnit.Framework.Internal;
 
 namespace YoFi.V3.Tests.Functional.Steps;
@@ -16,7 +17,7 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// - All internal storage (_userCredentials, _workspaceKeys, _objectStore) uses FULL names with prefix
 /// - This ensures consistency with what the Test Controller API and UI expect
 /// </remarks>
-public abstract class WorkspaceTenancySteps : FunctionalTest
+public abstract class WorkspaceTenancySteps : CommonThenSteps
 {
     #region Test Data Storage
 

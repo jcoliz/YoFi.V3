@@ -145,12 +145,13 @@ FunctionalTest.cs (600 lines)
 └── ObjectStore class
 ```
 
-**Recommendation:** Consider splitting into:
+**Recommendation:** Split into clearer separation of concerns:
 ```
+Infrastructure/                      # Test infrastructure (at tests/Functional level)
+├── FunctionalTestBase.cs           # Base class, setup/teardown
+└── ObjectStore.cs                  # Extracted helper
+
 Steps/
-├── Infrastructure/
-│   ├── FunctionalTestBase.cs      # Base class, setup/teardown
-│   └── ObjectStore.cs              # Extracted helper
 ├── Common/
 │   ├── CommonGivenSteps.cs         # Shared Given steps
 │   ├── CommonWhenSteps.cs          # Shared When steps
