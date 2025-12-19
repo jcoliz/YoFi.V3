@@ -12,10 +12,13 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// Represents the workspaces management page that provides complete CRUD functionality
 /// for managing workspace (tenant) entities.
 /// </remarks>
-public class WorkspacesPage(IPage page) : BasePage(page)
+public partial class WorkspacesPage(IPage page) : BasePage(page)
 {
-    private static readonly Regex CreateTenantApiRegex = new("/api/Tenant", RegexOptions.Compiled);
-    private static readonly Regex ModifyTenantApiRegex = new(@"/api/Tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.Compiled);
+    [GeneratedRegex("/api/Tenant")]
+    private static partial Regex CreateTenantApiRegex();
+
+    [GeneratedRegex(@"/api/Tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
+    private static partial Regex ModifyTenantApiRegex();
 
     #region Components
 
@@ -193,7 +196,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
-        }, CreateTenantApiRegex);
+        }, CreateTenantApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -362,7 +365,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await EditForm.GetByTestId("edit-workspace-submit").ClickAsync();
-        }, CreateTenantApiRegex);
+        }, CreateTenantApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -441,7 +444,7 @@ public class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await DeleteModalButton.ClickAsync();
-        }, ModifyTenantApiRegex);
+        }, ModifyTenantApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();

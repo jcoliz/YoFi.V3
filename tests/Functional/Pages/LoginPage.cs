@@ -2,9 +2,10 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
-public class LoginPage(IPage _page): BasePage(_page)
+public partial class LoginPage(IPage _page): BasePage(_page)
 {
-    private static readonly Regex LoginApiRegex = new("/api/auth/login", RegexOptions.Compiled);
+    [GeneratedRegex("/api/auth/login")]
+    private static partial Regex LoginApiRegex();
 
     public ILocator View => Page!.GetByTestId("LoginForm");
     public ILocator UsernameInput => View.GetByTestId("username");
@@ -47,7 +48,7 @@ public class LoginPage(IPage _page): BasePage(_page)
         await WaitForApi(async () =>
         {
             await LoginButton.ClickAsync();
-        }, LoginApiRegex);
+        }, LoginApiRegex());
     }
 
     public async Task<bool> HasErrorMessageAsync(string expectedError)

@@ -12,11 +12,14 @@ namespace YoFi.V3.Tests.Functional.Pages;
 /// Represents the transactions page that displays and manages transactions for the selected
 /// workspace with full CRUD functionality.
 /// </remarks>
-public class TransactionsPage(IPage page) : BasePage(page)
+public partial class TransactionsPage(IPage page) : BasePage(page)
 {
     // POST api/tenant/{tenantKey:guid}/Transactions
-    private static readonly Regex CreateTransactionApiRegex = new(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions", RegexOptions.Compiled);
-    private static readonly Regex UpdateTransactionApiRegex = new(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.Compiled);
+    [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions")]
+    private static partial Regex CreateTransactionApiRegex();
+
+    [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
+    private static partial Regex UpdateTransactionApiRegex();
 
     #region Components
 
@@ -287,7 +290,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
-        }, CreateTransactionApiRegex);
+        }, CreateTransactionApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -454,7 +457,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await UpdateButton.ClickAsync();
-        }, UpdateTransactionApiRegex);
+        }, UpdateTransactionApiRegex());
 
         // AB#1980: I think this is the ACTUAL fix
         // Wait for the loading spinner to disappear, indicating UI has updated
@@ -530,7 +533,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await DeleteButton.ClickAsync();
-        }, UpdateTransactionApiRegex);
+        }, UpdateTransactionApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
