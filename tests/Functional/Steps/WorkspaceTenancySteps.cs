@@ -38,6 +38,7 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     #region Object Store Keys
 
     private const string KEY_LOGGED_IN_AS = "LoggedInAs";
+    private const string KEY_PENDING_USER_CONTEXT = "PendingUserContext"; // User context for pre-login steps
     private const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
     private const string KEY_LAST_CREATED_WORKSPACE = "LastCreatedWorkspace";
     private const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
@@ -107,42 +108,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         Assert.That(canPerform, Is.False, message);
     }
 
-    /// <summary>
-    /// Ensures user has access to workspace with specified role
-    /// Creates workspace if it doesn't exist, otherwise assigns role
-    /// </summary>
-    private async Task EnsureWorkspaceAccessAsync(string workspaceName, string role)
-    {
-        var currentUsername = GetCurrentTestUsername();
-        var fullWorkspaceName = AddTestPrefix(workspaceName);
-
-        if (!_workspaceKeys.TryGetValue(fullWorkspaceName, out var workspaceKey))
-        {
-            var request = new WorkspaceSetupRequest
-            {
-                Name = fullWorkspaceName,
-                Description = $"Test workspace: {workspaceName}",
-                Role = role
-            };
-
-            var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
-            var result = results.First();
-            _workspaceKeys[result.Name] = result.Key;
-        }
-        else
-        {
-            var assignment = new UserRoleAssignment { Role = role };
-            await testControlClient.AssignUserToWorkspaceAsync(currentUsername, workspaceKey, assignment);
-        }
-
-        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
-
-        // Refresh token to get updated claims
-        var profilePage = new ProfilePage(Page);
-        await profilePage.NavigateAsync();
-        await profilePage.ClickRefreshButtonAsync();
-    }
-
     #endregion
 
     #region Steps: GIVEN
@@ -196,44 +161,18 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     }
 
     /// <summary>
-    /// Given: I have access to these workspaces
+    /// Given: {username} owns a workspace called {workspaceName}
+    /// Given: {username} owns {workspaceName}
     /// </summary>
-    protected async Task GivenIHaveAccessToTheseWorkspaces(DataTable workspacesTable)
+    protected async Task GivenUserOwnsAWorkspaceCalled(string username, string workspaceName)
     {
-        var currentUsername = GetCurrentTestUsername();
-
-        // Add __TEST__ prefix to workspace names before API call
-        var requests = workspacesTable.Select(row => new WorkspaceSetupRequest
-        {
-            Name = AddTestPrefix(row["Workspace Name"]),
-            Description = $"Test workspace: {row["Workspace Name"]}",
-            Role = row["My Role"]
-        }).ToList();
-
-        var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, requests);
-
-        // Store with FULL workspace names (what API returns)
-        foreach (var result in results)
-        {
-            _workspaceKeys[result.Name] = result.Key;
-        }
-
-        // Now we need to refresh the token to get updated claims
-        var profilePage = new ProfilePage(Page);
-        await profilePage.NavigateAsync();
-        await profilePage.ClickRefreshButtonAsync();
-
-    }
-
-    /// <summary>
-    /// Given: I have a workspace called {workspaceName}
-    /// Given: I own a workspace called {workspaceName}
-    /// Given: I own {workspaceName}
-    /// </summary>
-    protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
-    {
-        var currentUsername = GetCurrentTestUsername();
+        var fullUsername = AddTestPrefix(username);
         var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        {
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+        }
 
         var request = new WorkspaceCreateRequest
         {
@@ -245,11 +184,11 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         TenantResultDto? result;
         try
         {
-            result = await testControlClient.CreateWorkspaceForUserAsync(currentUsername, request);
+            result = await testControlClient.CreateWorkspaceForUserAsync(fullUsername, request);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating workspace '{fullWorkspaceName}': {ex.Message}");
+            Console.WriteLine($"Error creating workspace '{fullWorkspaceName}' for user '{fullUsername}': {ex.Message}");
             throw;
         }
 
@@ -257,25 +196,164 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         _workspaceKeys[result!.Name] = result.Key;
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
 
-        // Now we need to refresh the token to get updated claims
-        var profilePage = new ProfilePage(Page);
-        await profilePage.NavigateAsync();
-        await profilePage.ClickRefreshButtonAsync();
-
-        // AB#1976 This is the last thing that happens before the failures begin.
+        // Store pending user context for steps that need it before login
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
     }
 
     /// <summary>
-    /// Given: I can edit data in {workspaceName}
+    /// Given: {username} has access to these workspaces
     /// </summary>
-    protected async Task GivenICanEditDataIn(string workspaceName)
-        => await EnsureWorkspaceAccessAsync(workspaceName, "Editor");
+    protected async Task GivenUserHasAccessToTheseWorkspaces(string username, DataTable workspacesTable)
+    {
+        var fullUsername = AddTestPrefix(username);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        {
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+        }
+
+        // Add __TEST__ prefix to workspace names before API call
+        var requests = workspacesTable.Select(row => new WorkspaceSetupRequest
+        {
+            Name = AddTestPrefix(row["Workspace Name"]),
+            Description = $"Test workspace: {row["Workspace Name"]}",
+            Role = row["My Role"]
+        }).ToList();
+
+        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, requests);
+
+        // Store with FULL workspace names (what API returns)
+        foreach (var result in results)
+        {
+            _workspaceKeys[result.Name] = result.Key;
+        }
+
+        // Store pending user context for steps that need it before login
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+    }
 
     /// <summary>
-    /// Given: I can view data in {workspaceName}
+    /// Given: {username} has access to {workspaceName}
     /// </summary>
-    protected async Task GivenICanViewDataIn(string workspaceName)
-        => await EnsureWorkspaceAccessAsync(workspaceName, "Viewer");
+    protected async Task GivenUserHasAccessTo(string username, string workspaceName)
+    {
+        var fullUsername = AddTestPrefix(username);
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        {
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+        }
+
+        var request = new WorkspaceSetupRequest
+        {
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
+            Role = "Viewer" // Default to minimum access level
+        };
+
+        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var result = results.First();
+
+        // Store with FULL workspace name (what API returns)
+        _workspaceKeys[result.Name] = result.Key;
+
+        // Store pending user context for steps that need it before login
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+    }
+
+    /// <summary>
+    /// Given: {username} can edit data in {workspaceName}
+    /// </summary>
+    protected async Task GivenUserCanEditDataIn(string username, string workspaceName)
+    {
+        var fullUsername = AddTestPrefix(username);
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        {
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+        }
+
+        var request = new WorkspaceSetupRequest
+        {
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
+            Role = "Editor"
+        };
+
+        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var result = results.First();
+        _workspaceKeys[result.Name] = result.Key;
+
+        // Store current workspace for later reference
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+
+        // Store pending user context for steps that need it before login
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+    }
+
+    /// <summary>
+    /// Given: {username} can view data in {workspaceName}
+    /// </summary>
+    protected async Task GivenUserCanViewDataIn(string username, string workspaceName)
+    {
+        var fullUsername = AddTestPrefix(username);
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        {
+            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+        }
+
+        var request = new WorkspaceSetupRequest
+        {
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
+            Role = "Viewer"
+        };
+
+        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var result = results.First();
+        _workspaceKeys[result.Name] = result.Key;
+
+        // Store current workspace for later reference
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+
+        // Store pending user context for steps that need it before login
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+    }
+
+    /// <summary>
+    /// Given: there is a workspace called {workspaceName} that {username} doesn't have access to
+    /// </summary>
+    protected async Task GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo(string workspaceName, string username)
+    {
+        var fullUsername = AddTestPrefix(username);
+
+        // Get a different user from the credentials dictionary (not the specified user)
+        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Key != fullUsername);
+
+        if (otherUser.Key == null)
+        {
+            throw new InvalidOperationException($"No other test users available besides '{fullUsername}'. Need at least one user besides the specified user.");
+        }
+
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        // Create workspace for the other user
+        var request = new WorkspaceCreateRequest
+        {
+            Name = fullWorkspaceName,
+            Description = $"Test workspace (no access for {username}): {workspaceName}",
+            Role = "Owner"
+        };
+
+        var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
+
+        // Store with FULL workspace name (what API returns)
+        _workspaceKeys[result.Name] = result.Key;
+    }
 
     /// <summary>
     /// Given: {workspaceName} contains {transactionCount} transactions
@@ -297,58 +375,6 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
         };
 
         await testControlClient.SeedTransactionsAsync(currentUsername, workspaceKey, request);
-    }
-
-    /// <summary>
-    /// Given: I have access to {workspaceName}
-    /// </summary>
-    protected async Task GivenIHaveAccessTo(string workspaceName)
-    {
-        var currentUsername = GetCurrentTestUsername();
-        var fullWorkspaceName = AddTestPrefix(workspaceName);
-
-        var request = new WorkspaceSetupRequest
-        {
-            Name = fullWorkspaceName,
-            Description = $"Test workspace: {workspaceName}",
-            Role = "Viewer" // Default to minimum access level
-        };
-
-        var results = await testControlClient.BulkWorkspaceSetupAsync(currentUsername, new[] { request });
-        var result = results.First();
-
-        // Store with FULL workspace name (what API returns)
-        _workspaceKeys[result.Name] = result.Key;
-    }
-
-    /// <summary>
-    /// Given: there is a workspace called {workspaceName} that I don't have access to
-    /// </summary>
-    protected async Task GivenThereIsAWorkspaceCalledThatIDontHaveAccessTo(string workspaceName)
-    {
-        // Get a different user from the credentials dictionary (not the current user)
-        var currentUsername = GetCurrentTestUsername();
-        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Key != currentUsername);
-
-        if (otherUser.Key == null)
-        {
-            throw new InvalidOperationException("No other test users available. Need at least one user besides the current user.");
-        }
-
-        var fullWorkspaceName = AddTestPrefix(workspaceName);
-
-        // Create workspace for the other user
-        var request = new WorkspaceCreateRequest
-        {
-            Name = fullWorkspaceName,
-            Description = $"Test workspace (no access): {workspaceName}",
-            Role = "Owner"
-        };
-
-        var result = await testControlClient.CreateWorkspaceForUserAsync(otherUser.Value.Username, request);
-
-        // Store with FULL workspace name (what API returns)
-        _workspaceKeys[result.Name] = result.Key;
     }
 
     /// <summary>
@@ -1074,15 +1100,23 @@ public abstract class WorkspaceTenancySteps : FunctionalTest
     /// Get the current test username (with __TEST__ prefix)
     /// </summary>
     /// <remarks>
-    /// Returns the FULL username with prefix. Checks _objectStore first (which is set by GivenIAmLoggedInAs),
-    /// otherwise falls back to the first user in _userCredentials.
+    /// Returns the FULL username with prefix. Priority order:
+    /// 1. KEY_LOGGED_IN_AS (set after login)
+    /// 2. KEY_PENDING_USER_CONTEXT (set by pre-login entitlement steps)
+    /// 3. First user in _userCredentials (fallback)
     /// </remarks>
     private string GetCurrentTestUsername()
     {
-        // Check if we have a logged-in user in object store
+        // Check if we have a logged-in user in object store (highest priority)
         if (_objectStore.Contains<string>(KEY_LOGGED_IN_AS))
         {
             return _objectStore.Get<string>(KEY_LOGGED_IN_AS);
+        }
+
+        // Check if we have a pending user context (for pre-login steps)
+        if (_objectStore.Contains<string>(KEY_PENDING_USER_CONTEXT))
+        {
+            return _objectStore.Get<string>(KEY_PENDING_USER_CONTEXT)!;
         }
 
         // Fall back to first user from credentials

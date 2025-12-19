@@ -116,17 +116,17 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task UserViewsAllTheirWorkspaces()
     {
-        // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
-
-        // And I have access to these workspaces:
+        // Given "alice" has access to these workspaces:
         var table = new DataTable(
             ["Workspace Name", "My Role"],
             ["Personal", "Owner"],
             ["Family Budget", "Editor"],
             ["Tax Records", "Viewer"]
         );
-        await GivenIHaveAccessToTheseWorkspaces(table);
+        await GivenUserHasAccessToTheseWorkspaces("alice", table);
+
+        // And I am logged in as "alice"
+        await GivenIAmLoggedInAs("alice");
 
         // When I view my workspace list
         await WhenIViewMyWorkspaceList();
@@ -150,11 +150,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task UserViewsWorkspaceDetails()
     {
-        // Given I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        // Given "bob" owns a workspace called "My Finances"
+        await GivenUserOwnsAWorkspaceCalled("bob", "My Finances");
 
-        // And I have a workspace called "My Finances"
-        await GivenIHaveAWorkspaceCalled("My Finances");
+        // And I am logged in as "bob"
+        await GivenIAmLoggedInAs("bob");
 
         // Bug AV#1979 call stack here
         // When I view the details of "My Finances"
@@ -181,11 +181,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task OwnerUpdatesWorkspaceInformation()
     {
-        // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        // Given "alice" owns a workspace called "Old Name"
+        await GivenUserOwnsAWorkspaceCalled("alice", "Old Name");
 
-        // And I own a workspace called "Old Name"
-        await GivenIHaveAWorkspaceCalled("Old Name");
+        // And I am logged in as "alice"
+        await GivenIAmLoggedInAs("alice");
 
         // When I rename it to "New Name"
         await WhenIRenameItTo("New Name");
@@ -209,11 +209,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task NonOwnerCannotChangeWorkspaceSettings()
     {
-        // Given I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        // Given "bob" can edit data in "Family Budget"
+        await GivenUserCanEditDataIn("bob", "Family Budget");
 
-        // And I can edit data in "Family Budget"
-        await GivenICanEditDataIn("Family Budget");
+        // And I am logged in as "bob"
+        await GivenIAmLoggedInAs("bob");
 
         // When I try to change the workspace name or description
         await WhenITryToChangeTheWorkspaceNameOrDescription();
@@ -236,11 +236,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task OwnerRemovesAnUnusedWorkspace()
     {
-        // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        // Given "alice" owns a workspace called "Test Workspace"
+        await GivenUserOwnsAWorkspaceCalled("alice", "Test Workspace");
 
-        // And I own a workspace called "Test Workspace"
-        await GivenIHaveAWorkspaceCalled("Test Workspace");
+        // And I am logged in as "alice"
+        await GivenIAmLoggedInAs("alice");
 
         // When I delete "Test Workspace"
         // AB#1976 Call Stack Here
@@ -259,11 +259,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task NonOwnerCannotDeleteAWorkspace()
     {
-        // Given I am logged in as "charlie"
-        await GivenIAmLoggedInAs("charlie");
+        // Given "charlie" can view data in "Shared Workspace"
+        await GivenUserCanViewDataIn("charlie", "Shared Workspace");
 
-        // And I can view data in "Shared Workspace"
-        await GivenICanViewDataIn("Shared Workspace");
+        // And I am logged in as "charlie"
+        await GivenIAmLoggedInAs("charlie");
 
         // When I try to delete "Shared Workspace"
         await WhenITryToDelete("Shared Workspace");
@@ -286,22 +286,22 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task UserViewsTransactionsInASpecificWorkspace()
     {
-        // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
-
-        // And I have two workspaces:
+        // Given "alice" has access to these workspaces:
         var table = new DataTable(
             ["Workspace Name", "My Role"],
             ["Personal", "Owner"],
             ["Business", "Owner"]
         );
-        await GivenIHaveAccessToTheseWorkspaces(table);
+        await GivenUserHasAccessToTheseWorkspaces("alice", table);
 
         // And "Personal" contains 5 transactions
         await GivenWorkspaceContainsTransactions("Personal", 5);
 
         // And "Business" contains 3 transactions
         await GivenWorkspaceContainsTransactions("Business", 3);
+
+        // And I am logged in as "alice"
+        await GivenIAmLoggedInAs("alice");
 
         // When I view transactions in "Personal"
         await WhenIViewTransactionsIn("Personal");
@@ -325,14 +325,14 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task UserCannotAccessDataInWorkspacesTheyDontHaveAccessTo()
     {
-        // Given I am logged in as "bob"
+        // Given "bob" has access to "Family Budget"
+        await GivenUserHasAccessTo("bob", "Family Budget");
+
+        // And there is a workspace called "Private Finances" that "bob" doesn't have access to
+        await GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo("Private Finances", "bob");
+
+        // And I am logged in as "bob"
         await GivenIAmLoggedInAs("bob");
-
-        // And I have access to "Family Budget"
-        await GivenIHaveAccessTo("Family Budget");
-
-        // And there is a workspace called "Private Finances" that I don't have access to
-        await GivenThereIsAWorkspaceCalledThatIDontHaveAccessTo("Private Finances");
 
         // When I try to view transactions in "Private Finances"
         await WhenITryToViewTransactionsIn("Private Finances");
@@ -355,14 +355,14 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task ViewerCanSeeButNotChangeData()
     {
-        // Given I am logged in as "charlie"
-        await GivenIAmLoggedInAs("charlie");
-
-        // And I can view data in "Family Budget"
-        await GivenICanViewDataIn("Family Budget");
+        // Given "charlie" can view data in "Family Budget"
+        await GivenUserCanViewDataIn("charlie", "Family Budget");
 
         // And "Family Budget" contains 3 transactions
         await GivenWorkspaceContainsTransactions("Family Budget", 3);
+
+        // And I am logged in as "charlie"
+        await GivenIAmLoggedInAs("charlie");
 
         // When I view transactions in "Family Budget"
         await WhenIViewTransactionsIn("Family Budget");
@@ -386,11 +386,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task EditorCanViewAndModifyData()
     {
-        // Given I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        // Given "bob" can edit data in "Family Budget"
+        await GivenUserCanEditDataIn("bob", "Family Budget");
 
-        // And I can edit data in "Family Budget"
-        await GivenICanEditDataIn("Family Budget");
+        // And I am logged in as "bob"
+        await GivenIAmLoggedInAs("bob");
 
         // When I add a transaction to "Family Budget"
         await WhenIAddATransactionTo("Family Budget");
@@ -420,14 +420,14 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task OwnerCanDoEverythingIncludingManagingTheWorkspace()
     {
-        // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
-
-        // And I own "My Workspace"
-        await GivenIHaveAWorkspaceCalled("My Workspace");
+        // Given "alice" owns "My Workspace"
+        await GivenUserOwnsAWorkspaceCalled("alice", "My Workspace");
 
         // And "My Workspace" contains 3 transactions
         await GivenWorkspaceContainsTransactions("My Workspace", 3);
+
+        // And I am logged in as "alice"
+        await GivenIAmLoggedInAs("alice");
 
         // Hook: Before first Then Step
         await SaveScreenshotAsync();
@@ -453,11 +453,8 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task WorkspaceListShowsOnlyAccessibleWorkspaces()
     {
-        // Given I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
-
-        // And I have access to "Family Budget"
-        await GivenIHaveAccessTo("Family Budget");
+        // Given "bob" has access to "Family Budget"
+        await GivenUserHasAccessTo("bob", "Family Budget");
 
         // And there are other workspaces in the system:
         var table = new DataTable(
@@ -466,6 +463,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["Charlie's Taxes", "charlie"]
         );
         await GivenThereAreOtherWorkspacesInTheSystem(table);
+
+        // And I am logged in as "bob"
+        await GivenIAmLoggedInAs("bob");
 
         // When I view my workspace list
         await WhenIViewMyWorkspaceList();
