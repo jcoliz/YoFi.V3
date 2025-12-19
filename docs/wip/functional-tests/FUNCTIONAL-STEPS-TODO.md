@@ -1,6 +1,78 @@
-# Authentication Steps - TODO Items
+# Functional Tests - TODO Items
 
-This document tracks incomplete step implementations that are actively used in the Authentication feature tests.
+This document tracks incomplete step implementations and improvements needed for functional tests.
+
+## Page Object Improvements
+
+### TransactionsPage - Replace NetworkIdle with Explicit API Waiting
+
+**Context**: Currently using `NetworkIdle` after transaction create/edit/delete operations in [`TransactionsPage.cs`](../../../tests/Functional/Pages/TransactionsPage.cs:460), but this is an indirect heuristic. The frontend actually makes a GET transactions API call after each mutation to refresh the list.
+
+**Better Approach**: Explicitly wait for both API calls using `Task.WhenAll()`.
+
+**Changes Needed in `tests/Functional/Pages/TransactionsPage.cs`:**
+
+1. **Add GET transactions regex** (around line 18-20 with other regexes):
+   ```csharp
+   private static readonly Regex GetTransactionsApiRegex = new(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions\?", RegexOptions.Compiled);
+   ```
+
+2. **Update `SubmitCreateFormAsync()`** (line ~286):
+   ```csharp
+   public async Task SubmitCreateFormAsync()
+   {
+       var createResponseTask = Page!.WaitForResponseAsync(CreateTransactionApiRegex);
+       var getTransactionsResponseTask = Page!.WaitForResponseAsync(GetTransactionsApiRegex);
+
+       await CreateButton.ClickAsync();
+
+       await Task.WhenAll(createResponseTask, getTransactionsResponseTask);
+   }
+   ```
+
+3. **Update `SubmitEditFormAsync()`** (line ~450):
+   ```csharp
+   public async Task SubmitEditFormAsync()
+   {
+       var updateResponseTask = Page!.WaitForResponseAsync(UpdateTransactionApiRegex);
+       var getTransactionsResponseTask = Page!.WaitForResponseAsync(GetTransactionsApiRegex);
+
+       await UpdateButton.ClickAsync();
+
+       await Task.WhenAll(updateResponseTask, getTransactionsResponseTask);
+   }
+   ```
+
+   **Remove** the `NetworkIdle` wait on line 460.
+
+4. **Update `ConfirmDeleteAsync()`** (line ~527):
+   ```csharp
+   public async Task ConfirmDeleteAsync()
+   {
+       var deleteResponseTask = Page!.WaitForResponseAsync(UpdateTransactionApiRegex);
+       var getTransactionsResponseTask = Page!.WaitForResponseAsync(GetTransactionsApiRegex);
+
+       await DeleteButton.ClickAsync();
+
+       await Task.WhenAll(deleteResponseTask, getTransactionsResponseTask);
+   }
+   ```
+
+**Benefits:**
+- ✅ More explicit and reliable than NetworkIdle
+- ✅ Faster (no 500ms timeout needed)
+- ✅ Documents the actual frontend behavior
+- ✅ Better error messages if specific API calls fail
+
+**Testing:**
+After changes, run functional tests to verify stability:
+```powershell
+.\scripts\Run-FunctionalTestsVsContainer.ps1
+```
+
+---
+
+## Authentication Steps - TODO Items
 
 ## High Priority - Called by Active Tests
 
