@@ -10,9 +10,9 @@ public class HomePage(IPage? _page): BasePage(_page)
     /// <summary>
     /// Waits for the home page to fully load by ensuring the brochure section is visible
     /// </summary>
-    public async Task EnsurePageLoaded()
+    public async Task EnsurePageLoaded(float timeout = 5000)
     {
-        await BrochureSection.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await BrochureSection.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     /// <summary>
@@ -20,6 +20,6 @@ public class HomePage(IPage? _page): BasePage(_page)
     /// </summary>
     public async Task WaitForPageReadyAsync(float timeout = 5000)
     {
-        await EnsurePageLoaded();
+        await EnsurePageLoaded(timeout);
     }
 }

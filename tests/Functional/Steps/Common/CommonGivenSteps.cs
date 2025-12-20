@@ -67,8 +67,7 @@ public abstract class CommonGivenSteps : FunctionalTestBase
     {
         await GivenIHaveAnExistingAccount();
         await GivenIAmOnTheLoginPage();
-        await WhenIEnterMyCredentials();
-        await WhenIClickTheLoginButton();
+        await WhenILoginWithMyCredentials();
         await ThenIShouldSeeTheHomePage();
     }
 
@@ -79,6 +78,7 @@ public abstract class CommonGivenSteps : FunctionalTestBase
     // These are forward references to WHEN and THEN steps that will be implemented in other classes
     protected abstract Task WhenUserLaunchesSite();
     protected abstract Task WhenIEnterMyCredentials();
+    protected abstract Task WhenILoginWithMyCredentials();
     protected abstract Task WhenIClickTheLoginButton();
     protected abstract Task ThenPageLoadedOk();
     protected abstract Task ThenIShouldSeeTheHomePage();

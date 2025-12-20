@@ -45,6 +45,18 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
+    /// When: I enter my credentials
+    /// </summary>
+    protected override async Task WhenILoginWithMyCredentials()
+    {
+        var loginPage = GetOrCreateLoginPage();
+
+        var testuser = It<Generated.TestUserCredentials>();
+
+        await loginPage.LoginAsync(testuser.Username, testuser.Password);
+    }
+
+    /// <summary>
     /// When: I click the login button
     /// </summary>
     protected override async Task WhenIClickTheLoginButton()

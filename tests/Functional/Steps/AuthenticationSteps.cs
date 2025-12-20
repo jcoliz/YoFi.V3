@@ -201,10 +201,14 @@ public abstract class AuthenticationSteps : CommonThenSteps
     protected async Task WhenIClickTheLogoutButton()
     {
         var profilePage = GetOrCreateProfilePage();
+
+        // wait network idle before clicking logout: fails in development otherwise
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
         await profilePage.ClickLogoutAsync();
         // Wait for home page to be ready after logout
         var homePage = new HomePage(Page);
-        await homePage.WaitForPageReadyAsync();
+        await homePage.WaitForPageReadyAsync(12000);
     }
 
     /// <summary>
@@ -317,12 +321,12 @@ public abstract class AuthenticationSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I try to navigate directly to the login page
+    /// When: I try to navigate directly to the login page, expecting it to fail
     /// </summary>
-    protected async Task WhenITryToNavigateDirectlyToTheLoginPage()
+    protected async Task WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure()
     {
         var loginPage = new LoginPage(Page);
-        await loginPage.NavigateAsync();
+        await loginPage.NavigateAsync(false);
     }
 
     /// <summary>

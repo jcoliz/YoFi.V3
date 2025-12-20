@@ -70,16 +70,20 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// </remarks>
     private async Task FillRegistrationWithVueWaitAsync(string email, string username, string password, string confirmPassword)
     {
-        // Fill all fields and trigger blur events for Vue reactivity
+        // Click each field first to ensure it's ready for input (required for FillAsync to work)
+        await EmailInput.ClickAsync();
         await EmailInput.FillAsync(email);
         await EmailInput.BlurAsync();
 
+        await UsernameInput.ClickAsync();
         await UsernameInput.FillAsync(username);
         await UsernameInput.BlurAsync();
 
+        await PasswordInput.ClickAsync();
         await PasswordInput.FillAsync(password);
         await PasswordInput.BlurAsync();
 
+        await PasswordAgainInput.ClickAsync();
         await PasswordAgainInput.FillAsync(confirmPassword);
         await PasswordAgainInput.BlurAsync();
 

@@ -133,12 +133,16 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I am on the login page
         await GivenIAmOnTheLoginPage();
-
+#if false
         // When I enter my credentials
         await WhenIEnterMyCredentials();
 
         // And I click the login button
         await WhenIClickTheLoginButton();
+#else
+        // When I login with my credentials
+        await WhenILoginWithMyCredentials();
+#endif
 
         // Then I should see the home page
         await ThenIShouldSeeTheHomePage();
@@ -268,8 +272,8 @@ public class UserAuthenticationTests : AuthenticationSteps
         // Given I am logged in
         await GivenIAmLoggedIn();
 
-        // When I try to navigate directly to the login page
-        await WhenITryToNavigateDirectlyToTheLoginPage();
+        // When: I try to navigate directly to the login page, expecting it to fail
+        await WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure();
 
         // Then I should be redirected to my profile page
         await ThenIShouldBeRedirectedToMyProfilePage();

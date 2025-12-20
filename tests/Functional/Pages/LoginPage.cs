@@ -23,10 +23,16 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// <summary>
     /// Navigates to this page
     /// </summary>
-    public async Task NavigateAsync()
+    public async Task NavigateAsync(bool waitForReady = true)
     {
         await Page!.GotoAsync("/login");
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        if (waitForReady)
+        {
+            await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        }
+
+        // Lots of tests fail in development environment if we take this away
+        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     #endregion
@@ -52,11 +58,13 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// </remarks>
     private async Task FillCredentialsWithVueWaitAsync(string email, string password)
     {
-        // Fill username field and wait for Vue to process the input
+        // Click username field first to ensure it's ready for input (required for FillAsync to work)
+        await UsernameInput.ClickAsync();
         await UsernameInput.FillAsync(email);
         await UsernameInput.BlurAsync(); // Trigger blur event for Vue reactivity
 
-        // Fill password field and wait for Vue to process the input
+        // Click password field first to ensure it's ready for input
+        await PasswordInput.ClickAsync();
         await PasswordInput.FillAsync(password);
         await PasswordInput.BlurAsync(); // Trigger blur event for Vue reactivity
 
@@ -92,6 +100,7 @@ public partial class LoginPage(IPage _page): BasePage(_page)
 
         // If we get here, field never populated - log warning but continue
         TestContext.Out.WriteLine($"[LOGIN] WARNING: Username field still empty after {maxRetries} retries. Form may not submit properly.");
+
     }
 
     public async Task EnterUsernameOnlyAsync(string username)
