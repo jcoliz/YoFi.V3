@@ -4,14 +4,13 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-# Would be nice to do this as a separate state
-#COPY src/FrontEnd.Nuxt/package*.json ./
-
-# Copy source code
-COPY ./ ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
+
+# Copy source code
+COPY ./ ./
 
 # Set the API base URL at build time
 ARG NUXT_PUBLIC_API_BASE_URL=https://your-backend.azurewebsites.net
