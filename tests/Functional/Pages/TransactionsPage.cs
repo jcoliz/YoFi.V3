@@ -16,10 +16,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 {
     // POST api/tenant/{tenantKey:guid}/Transactions
     [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions")]
-    private static partial Regex CreateTransactionApiRegex();
+    private static partial Regex TransactionsApiRegex();
 
     [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
-    private static partial Regex UpdateTransactionApiRegex();
+    private static partial Regex SingleTransactionApiRegex();
 
     #region Components
 
@@ -221,9 +221,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public async Task NavigateAsync()
     {
-        await Page!.GotoAsync("/transactions");
-        // TODO: Wait for the transactions list to load
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await WaitForApi(async () =>
+        {
+            await Page!.GotoAsync("/transactions");
+        }, TransactionsApiRegex());
     }
 
     #endregion
@@ -291,7 +292,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
-        }, CreateTransactionApiRegex());
+        }, TransactionsApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -458,7 +459,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await UpdateButton.ClickAsync();
-        }, UpdateTransactionApiRegex());
+        }, SingleTransactionApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -533,7 +534,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await DeleteButton.ClickAsync();
-        }, UpdateTransactionApiRegex());
+        }, SingleTransactionApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();

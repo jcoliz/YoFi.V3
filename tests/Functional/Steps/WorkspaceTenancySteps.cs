@@ -529,6 +529,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         await workspacesPage.NavigateAsync();
         // Update with same name but new description
         await workspacesPage.UpdateWorkspaceAsync(workspaceName, workspaceName, newDescription);
+
+        // Wait for the workspace card to be updated in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await workspacesPage.WaitForWorkspaceAsync(workspaceName);
     }
 
     /// <summary>
