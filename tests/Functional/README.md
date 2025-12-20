@@ -84,6 +84,43 @@ This separation ensures maintainability: UI changes only affect Page/Component M
 
 The choice of target is governed by a `.runsettings` file, providing details about the target.
 
+## Configuration
+
+Test configuration uses `.runsettings` files combined with environment variables from `.env` files.
+
+### Environment Variables (.env)
+
+Environment variables provide a flexible way to configure test targets without modifying version-controlled files.
+
+**Setup:**
+1. Copy [`.env.example`](./.env.example) to `.env`
+2. Set your environment URLs in `.env`:
+   ```bash
+   # Production
+   PRODUCTION_WEB_APP_URL=https://your-app.azurestaticapps.net
+   PRODUCTION_API_BASE_URL=https://your-api.azurewebsites.net
+
+   # Additional environments
+   STAGING_WEB_APP_URL=https://your-app-staging.azurestaticapps.net
+   STAGING_API_BASE_URL=https://your-api-staging.azurewebsites.net
+   ```
+3. The `.env` file is automatically loaded during test initialization
+
+**Note:** The `.env` file is ignored by Git to keep environment URLs out of version control.
+
+### RunSettings Files
+
+- **[`local.runsettings`](./local.runsettings)** - Local development (hardcoded localhost URLs)
+- **[`docker.runsettings`](./docker.runsettings)** - Docker container testing
+- **[`production.runsettings`](./production.runsettings)** - Production environment (references `PRODUCTION_*` variables from `.env`)
+
+To run tests against production:
+```powershell
+dotnet test --settings production.runsettings
+```
+
+You can create additional `.runsettings` files for other environments (staging, dev) following the same pattern.
+
 ### Local build
 
 You can run tests against a build running locally, either in Visual Studio or with `dotnet watch`. In one window, launch the app. In another, run the functional tests with `local.runsettings`.

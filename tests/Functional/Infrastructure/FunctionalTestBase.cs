@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Web;
+using DotNetEnv;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using YoFi.V3.Tests.Functional.Generated;
@@ -24,6 +25,7 @@ public abstract partial class FunctionalTestBase : PageTest
     #region Fields
 
     private static bool _prerequisiteCheckFailed = false;
+    private static bool _environmentVariablesLoaded = false;
 
     protected ObjectStore _objectStore = new();
     protected Activity? _testActivity;
@@ -158,6 +160,9 @@ public abstract partial class FunctionalTestBase : PageTest
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {
+        // Ensure environment variables are loaded (will be no-op if already loaded)
+        EnsureEnvironmentVariablesLoaded();
+
         // If prerequisites already failed in another fixture, skip silently
         if (_prerequisiteCheckFailed)
         {
@@ -192,6 +197,50 @@ public abstract partial class FunctionalTestBase : PageTest
 
             // Mark tests as inconclusive with brief message
             Assert.Inconclusive("Prerequisites check failed (see error output above)");
+        }
+    }
+
+    /// <summary>
+    /// Loads environment variables from .env file if it exists in the test project root.
+    /// </summary>
+    /// <remarks>
+    /// This allows test configuration via .env files instead of only using .runsettings.
+    /// Environment variables from .env can be referenced in .runsettings using {VAR_NAME} syntax.
+    /// Silently continues if .env file doesn't exist.
+    /// </remarks>
+    private static void LoadEnvironmentVariables()
+    {
+        try
+        {
+            // Try multiple paths to find .env file
+            var searchPaths = new[]
+            {
+                // Current directory (where tests are executed from)
+                Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+                // Test assembly directory
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".env"),
+                // Go up to find project root (handles bin/Debug/net10.0 structure)
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", ".env")
+            };
+
+            foreach (var envFilePath in searchPaths)
+            {
+                var normalizedPath = Path.GetFullPath(envFilePath);
+                if (File.Exists(normalizedPath))
+                {
+                    Env.Load(normalizedPath);
+                    Console.WriteLine($"[Environment] Loaded environment variables from: {normalizedPath}");
+                    return;
+                }
+            }
+
+            // No .env file found - this is OK, not all environments need it
+            Console.WriteLine("[Environment] No .env file found (this is optional)");
+        }
+        catch (Exception ex)
+        {
+            // Log warning but don't fail tests if .env loading fails
+            Console.WriteLine($"[Environment] Warning: Failed to load .env file: {ex.Message}");
         }
     }
 
@@ -339,6 +388,9 @@ public abstract partial class FunctionalTestBase : PageTest
     /// </remarks>
     protected static string GetRequiredParameter(string parameterName)
     {
+        // Ensure environment variables are loaded before resolving parameters
+        EnsureEnvironmentVariablesLoaded();
+
         var rawValue = TestContext.Parameters[parameterName];
 
         if (string.IsNullOrWhiteSpace(rawValue))
@@ -349,6 +401,25 @@ public abstract partial class FunctionalTestBase : PageTest
         }
 
         return ResolveEnvironmentVariables(rawValue, parameterName);
+    }
+
+    /// <summary>
+    /// Ensures environment variables are loaded from .env file before they're needed.
+    /// Uses a static flag to ensure loading happens only once across all test instances.
+    /// </summary>
+    private static void EnsureEnvironmentVariablesLoaded()
+    {
+        if (_environmentVariablesLoaded)
+            return;
+
+        lock (typeof(FunctionalTestBase))
+        {
+            if (_environmentVariablesLoaded)
+                return;
+
+            LoadEnvironmentVariables();
+            _environmentVariablesLoaded = true;
+        }
     }
 
     /// <summary>
