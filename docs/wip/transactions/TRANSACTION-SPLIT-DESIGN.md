@@ -10,10 +10,15 @@ This document defines the database schema, indexing strategy, query patterns, an
 
 1. **Transaction** remains the primary entity with properties: Date, Payee, Amount, Memo, Source
 2. **Split** is a new entity representing a portion of a transaction with properties: Amount, Category, Memo
-3. **Transaction.Amount** is authoritative (imported from bank) - splits don't have to match (validation warning only)
+3. **Transaction.Amount** is authoritative (imported from bank or manually entered)
 4. **Every transaction MUST have at least one split** - enforced by database and application
 5. **Single-split transactions** hide complexity - user edits transaction directly, backend updates the single split
 6. **Multi-split transactions** require explicit split management UI
+7. **⚠️ CRITICAL: Unbalanced transactions are a significant error state** - Splits MUST sum to Transaction.Amount
+   - Backend always calculates and returns `IsBalanced` flag
+   - UI must prominently display warnings for unbalanced transactions
+   - UI should make it difficult to ignore unbalanced state (visual indicators, modal warnings, etc.)
+   - Goal: Guide user to fix balance discrepancies immediately, not later
 
 ### Key Design Decisions from Discussion
 
@@ -22,7 +27,7 @@ This document defines the database schema, indexing strategy, query patterns, an
 - **Category property**: NOT NULL with empty string for uncategorized (better performance than NULL, consistent with Payee pattern)
 - **Split primary key**: Use Guid Key for consistency with Transaction pattern, enables future API flexibility
 - **API design**: Individual split CRUD operations (POST/PUT/DELETE) are primary pattern; atomic replacement also supported
-- **Amount behavior**: Transaction.Amount never changes after import; splits can total to different amount (warning state for user)
+- **Amount behavior**: Transaction.Amount is editable (user can correct mistakes on manual entry); splits can total to different amount (warning state for user)
 
 ## Database Schema
 
@@ -128,7 +133,7 @@ public record Transaction : BaseTenantModel
     public string? Memo { get; set; }
 
     /// <summary>
-    /// Source of the transaction (e.g., "Bank Import", "Manual Entry")
+    /// Source of the transaction (e.g., "MegaBankCorp Checking 0123456789-00", "Manual Entry")
     /// </summary>
     public string? Source { get; set; }
 
@@ -304,35 +309,7 @@ var dto = new TransactionDetailDto(
 
 **Performance**: One query with single join, efficient due to covering index
 
-### Pattern 3: Get Transactions with Split Indicators and Balance Check
-
-List view with split indicators and balance validation.
-
-```csharp
-var transactions = await context.Transactions
-    .AsNoTracking()
-    .Where(t => t.TenantId == tenantId)
-    .Where(t => t.Date >= fromDate && t.Date <= toDate)
-    .OrderByDescending(t => t.Date)
-    .Select(t => new TransactionResultDto(
-        t.Key,
-        t.Date,
-        t.Amount,
-        t.Payee,
-        HasMultipleSplits: t.Splits.Count > 1,
-        // For single-split transactions, show the category
-        SingleSplitCategory: t.Splits.Count == 1 ? t.Splits.First().Category : null,
-        // CRITICAL: Check if splits balance with transaction amount
-        IsBalanced: t.Splits.Sum(s => s.Amount) == t.Amount
-    ))
-    .ToListAsync();
-```
-
-**Indexes used**: `IX_Transactions_TenantId_Date`, `IX_Splits_TransactionId`
-**Performance**: Acceptable - counts and sums are fast with proper indexes
-**Note**: EF Core will generate efficient SQL with subquery for the sum calculation
-
-### Pattern 4: Filter by Category
+### Pattern 3: Filter by Category
 
 Find transactions that have splits in a specific category.
 
@@ -348,7 +325,7 @@ var transactions = await context.Transactions
 **Indexes used**: `IX_Transactions_TenantId`, `IX_Splits_Category`
 **Performance**: Efficient with category index
 
-### Pattern 5: Category Report
+### Pattern 4: Category Report
 
 Sum amounts by category across all transactions.
 
@@ -369,9 +346,9 @@ var categoryTotals = await context.Splits
 **Indexes used**: `IX_Splits_Category`, `IX_Transactions_TenantId_Date`
 **Performance**: Efficient - category index enables fast grouping
 
-### Pattern 6: Create Transaction with Splits
+### Pattern 5: Create Transaction with Single Split (Backend Handles Complexity)
 
-Atomic creation - transaction and splits saved together.
+Most common creation pattern - transaction with one split (categorized or uncategorized).
 
 ```csharp
 var transaction = new Transaction
@@ -382,33 +359,31 @@ var transaction = new Transaction
     Amount = dto.Amount,
     Memo = dto.Memo,
     Source = dto.Source,
-    Splits = dto.Splits.Select((s, index) => new Split
+    Splits = new List<Split>
     {
-        Amount = s.Amount,
-        Category = s.Category,
-        Memo = s.Memo,
-        Order = index
-    }).ToList()
+        new Split
+        {
+            Amount = dto.Amount,
+            Category = dto.Category ?? string.Empty, // Use provided category or empty string
+            Memo = null,
+            Order = 0
+        }
+    }
 };
-
-// Validation: Ensure at least one split
-if (transaction.Splits.Count == 0)
-{
-    throw new ValidationException("Transaction must have at least one split");
-}
 
 context.Transactions.Add(transaction);
 await context.SaveChangesAsync();
 ```
 
-**Database operations**: Single transaction insert + N split inserts (batched by EF Core)
+**Database operations**: Single transaction insert + single split insert
+**Note**: Backend handles split-making complexity. UI can optionally provide category on creation. User adds more splits later via POST splits endpoint if needed.
 
-### Pattern 7: Update Transaction with Splits (Atomic Replacement)
+### Pattern 6: Update Transaction Properties (Returns Balance State)
 
-Replace all splits atomically - simplest approach matching "splits can't be edited independently" constraint.
+Update transaction properties without affecting splits. Returns balance state since Amount changes can cause imbalance.
 
 ```csharp
-// Load existing transaction with splits
+// Load existing transaction with splits to calculate balance
 var transaction = await context.Transactions
     .Include(t => t.Splits)
     .Where(t => t.TenantId == tenantId && t.Key == transactionKey)
@@ -417,40 +392,34 @@ var transaction = await context.Transactions
 if (transaction == null)
     throw new TransactionNotFoundException(transactionKey);
 
-// Update transaction properties (Amount is readonly after creation)
+// Update transaction properties
 transaction.Payee = dto.Payee;
 transaction.Date = dto.Date;
 transaction.Memo = dto.Memo;
-// Note: Amount, Source are NOT updated (imported values are authoritative)
-
-// Replace all splits atomically
-context.RemoveRange(transaction.Splits); // Delete existing splits
-transaction.Splits = dto.Splits.Select((s, index) => new Split
-{
-    TransactionId = transaction.Id,
-    Amount = s.Amount,
-    Category = s.Category,
-    Memo = s.Memo,
-    Order = index
-}).ToList();
-
-// Validation: Ensure at least one split
-if (transaction.Splits.Count == 0)
-{
-    throw new ValidationException("Transaction must have at least one split");
-}
+transaction.Amount = dto.Amount; // Editable to correct manual entry mistakes
+// Note: Source is NOT updated (imported source is readonly)
 
 await context.SaveChangesAsync();
+
+// Calculate balance state (critical if Amount was changed)
+var splitsTotal = transaction.Splits.Sum(s => s.Amount);
+var isBalanced = splitsTotal == transaction.Amount;
+
+return new TransactionUpdateResultDto(
+    Key: transaction.Key,
+    Amount: transaction.Amount,
+    SplitsTotal: splitsTotal,
+    IsBalanced: isBalanced
+);
 ```
 
-**Database operations**: Update transaction + delete old splits + insert new splits (single transaction)
-**Benefits**: Simple, atomic, no orphaned splits, no complex diff logic
+**Database operations**: Single transaction update
+**Performance**: Fast - direct update, balance calculated in memory
+**Note**: Returns balance state so UI can immediately warn if Amount change caused imbalance
 
-**Note**: This pattern is useful for bulk operations or import scenarios. For typical user editing, see individual split operations below.
+### Pattern 7: Add Splits to Transaction (Bulk)
 
-### Pattern 8: Add Split to Transaction
-
-Most common editing pattern - user adds a split to existing transaction.
+Add one or more splits to existing transaction. Handles both single split and bulk split additions.
 
 ```csharp
 // Load existing transaction to get next order number
@@ -462,33 +431,38 @@ var transaction = await context.Transactions
 if (transaction == null)
     throw new TransactionNotFoundException(transactionKey);
 
-// Create new split with next order
-var newSplit = new Split
+// Get starting order number
+var nextOrder = transaction.Splits.Any() ? transaction.Splits.Max(s => s.Order) + 1 : 0;
+
+// Create new splits
+var newSplits = dtos.Select((dto, index) => new Split
 {
     TransactionId = transaction.Id,
     Amount = dto.Amount,
     Category = dto.Category,
     Memo = dto.Memo,
-    Order = transaction.Splits.Any() ? transaction.Splits.Max(s => s.Order) + 1 : 0
-};
+    Order = nextOrder + index
+}).ToList();
 
-context.Splits.Add(newSplit);
+context.Splits.AddRange(newSplits);
 await context.SaveChangesAsync();
 
-return new SplitResultDto(newSplit.Key, newSplit.Amount, newSplit.Category, newSplit.Memo);
+return newSplits.Select(s => new SplitResultDto(s.Key, s.Amount, s.Category, s.Memo)).ToList();
 ```
 
-**Database operations**: Single split insert
-**Performance**: Fast - no full transaction reload needed for response
+**Database operations**: N split inserts (batched by EF Core)
+**Performance**: Fast - batched insert, no full transaction reload
+**Note**: API accepts single SplitEditDto or collection - both use this pattern
 
-### Pattern 9: Update Individual Split
+### Pattern 8: Update Individual Split
 
-User edits amount, category, or memo on a single split.
+User edits amount, category, or memo on a single split. Returns balance state after update.
 
 ```csharp
-// Load split with transaction for tenant validation
+// Load split with transaction and all splits for balance calculation
 var split = await context.Splits
     .Include(s => s.Transaction)
+        .ThenInclude(t => t!.Splits)
     .Where(s => s.Key == splitKey)
     .SingleOrDefaultAsync();
 
@@ -505,17 +479,28 @@ split.Category = dto.Category;
 split.Memo = dto.Memo;
 
 await context.SaveChangesAsync();
+
+// Calculate updated balance state
+var splitsTotal = split.Transaction.Splits.Sum(s => s.Amount);
+var isBalanced = splitsTotal == split.Transaction.Amount;
+
+return new SplitOperationResultDto(
+    Splits: new[] { new SplitResultDto(split.Key, split.Amount, split.Category, split.Memo) },
+    TransactionAmount: split.Transaction.Amount,
+    SplitsTotal: splitsTotal,
+    IsBalanced: isBalanced
+);
 ```
 
 **Database operations**: Single split update
-**Performance**: Fast - direct update, no collection operations
+**Performance**: Fast - direct update, balance calculated in memory
 
-### Pattern 10: Delete Individual Split
+### Pattern 9: Delete Individual Split
 
-User removes a split from transaction.
+User removes a split from transaction. Returns balance state after deletion.
 
 ```csharp
-// Load split with transaction and sibling splits for validation
+// Load split with transaction and sibling splits for validation and balance
 var split = await context.Splits
     .Include(s => s.Transaction)
         .ThenInclude(t => t!.Splits)
@@ -533,12 +518,26 @@ if (split.Transaction.Key != transactionKey)
 if (split.Transaction.Splits.Count == 1)
     throw new ValidationException("Cannot delete the last split - transaction must have at least one split");
 
+// Calculate balance state AFTER deletion
+var remainingSplits = split.Transaction.Splits.Where(s => s.Id != split.Id).ToList();
+var splitsTotal = remainingSplits.Sum(s => s.Amount);
+var isBalanced = splitsTotal == split.Transaction.Amount;
+
 context.Splits.Remove(split);
 await context.SaveChangesAsync();
+
+return new SplitOperationResultDto(
+    Splits: null, // Split was deleted, no splits to return
+    TransactionAmount: split.Transaction.Amount,
+    SplitsTotal: splitsTotal,
+    IsBalanced: isBalanced,
+    RemainingCount: remainingSplits.Count
+);
 ```
 
 **Database operations**: Single split delete
 **Validation**: Prevents deleting last split (business rule)
+**Performance**: Balance calculated before deletion for immediate UI feedback
 
 ## DTO Design
 
@@ -592,7 +591,7 @@ Used for detail views and editing.
 /// <param name="Amount">Transaction amount (authoritative imported value)</param>
 /// <param name="Payee">Recipient or payee of the transaction</param>
 /// <param name="Memo">Optional memo for the transaction</param>
-/// <param name="Source">Source of the transaction (e.g., "Bank Import")</param>
+/// <param name="Source">Source of the transaction (e.g., "MegaBankCorp Checking 0123456789-00")</param>
 /// <param name="Splits">Collection of splits categorizing this transaction</param>
 /// <param name="SplitsTotal">Calculated sum of all split amounts</param>
 /// <param name="IsBalanced">True if SplitsTotal matches Amount</param>
@@ -628,7 +627,7 @@ Input DTO for creating/updating transactions.
 /// <param name="Amount">Transaction amount (required for creation, readonly after creation)</param>
 /// <param name="Payee">Recipient or payee of the transaction</param>
 /// <param name="Memo">Optional memo for the transaction</param>
-/// <param name="Source">Source of the transaction (e.g., "Bank Import", "Manual Entry")</param>
+/// <param name="Source">Source of the transaction (e.g., "MegaBankCorp Checking 0123456789-00", "Manual Entry")</param>
 /// <param name="Splits">Collection of splits categorizing this transaction</param>
 /// <remarks>
 /// Input DTO with validation attributes. Used for both creating new transactions
@@ -778,28 +777,39 @@ Returns single transaction WITH splits (detail view).
 
 #### POST /api/tenant/{tenantKey}/transactions
 
-Creates new transaction with splits.
+Creates new transaction with single uncategorized split (backend handles split complexity).
 
-**Request body**: `TransactionEditDto` (must include at least one split)
+**Request body**: `TransactionCreateDto` (Amount, Payee, Date, optional Memo/Source/Category)
 **Response**: `TransactionDetailDto` (201 Created)
 
+**Behavior**:
+- Backend automatically creates single split: Amount = transaction amount, Category = provided category or empty string
+- If category provided in request, assign to the split; otherwise split is uncategorized
+- User can add more splits later via POST splits endpoint
+- **Backend handles split-making complexity** - UI doesn't need to know about splits on creation
+
 **Validation**:
-- All `TransactionEditDto` validation rules
-- At least one split required
-- Each split validated against `SplitEditDto` rules
+- All transaction property validation rules (Date, Amount, Payee)
 
 #### PUT /api/tenant/{tenantKey}/transactions/{transactionKey}
 
-Updates transaction with atomic split replacement.
+Updates transaction properties and returns balance state (Amount changes can cause imbalance).
 
-**Request body**: `TransactionEditDto` (replaces ALL splits)
-**Response**: `204 No Content`
+**Request body**: `TransactionEditDto` (no splits array)
+**Response**: `TransactionUpdateResultDto` (200 OK)
+
+**Response includes**:
+- Updated transaction key
+- Updated amount
+- Sum of all splits
+- **IsBalanced flag** - Critical when Amount is edited
 
 **Behavior**:
-- Updates transaction properties (Date, Payee, Memo)
-- **Does NOT update Amount or Source** (imported values are readonly)
-- Replaces ALL splits atomically (old splits deleted, new splits created)
-- At least one split required
+- Updates transaction properties (Date, Payee, Memo, Amount)
+- **Does NOT update Source** (imported source is readonly, not in DTO)
+- **Does NOT modify splits** - use individual split endpoints to manage splits
+- Editing Amount does NOT automatically adjust splits (creates imbalance if splits don't match new amount)
+- **Returns balance state** so UI can immediately warn if Amount change caused imbalance
 
 #### DELETE /api/tenant/{tenantKey}/transactions/{transactionKey}
 
@@ -825,22 +835,33 @@ Gets all splits for a transaction.
 
 #### POST /api/tenant/{tenantKey}/transactions/{transactionKey}/splits
 
-Adds a new split to existing transaction.
+Adds one or more splits to existing transaction.
 
-**Request body**: `SplitEditDto`
-**Response**: `SplitResultDto` (201 Created)
+**Request body**: `SplitEditDto` (single) OR `IReadOnlyCollection<SplitEditDto>` (bulk)
+**Response**: `SplitOperationResultDto` - 201 Created
+
+**Response includes**:
+- Created split(s) with assigned Key(s)
+- Updated transaction balance state (IsBalanced flag)
+- SplitsTotal (sum of all split amounts after addition)
 
 **Behavior**:
-- Adds split with Order = max(existing Order) + 1
+- Accepts single split or array of splits
+- Assigns Order = max(existing Order) + 1, +2, +3, etc.
 - Transaction must exist and user must have Editor role
-- Returns created split with assigned Key
+- Returns created split(s) AND updated balance state
 
 #### PUT /api/tenant/{tenantKey}/transactions/{transactionKey}/splits/{splitKey}
 
 Updates a specific split's amount, category, or memo.
 
 **Request body**: `SplitEditDto`
-**Response**: `204 No Content`
+**Response**: `SplitOperationResultDto` - 200 OK
+
+**Response includes**:
+- Updated split data
+- Updated transaction balance state (IsBalanced flag)
+- SplitsTotal (sum of all split amounts after update)
 
 **Validation**:
 - Split must belong to specified transaction (security check)
@@ -850,7 +871,12 @@ Updates a specific split's amount, category, or memo.
 
 Deletes a specific split.
 
-**Response**: `204 No Content`
+**Response**: `SplitOperationResultDto` - 200 OK
+
+**Response includes**:
+- Updated transaction balance state (IsBalanced flag after deletion)
+- SplitsTotal (sum of remaining split amounts)
+- Remaining splits count
 
 **Validation**:
 - Cannot delete the last split (transaction must have at least one)
@@ -871,30 +897,38 @@ Reorders splits within a transaction.
 
 ## Migration Strategy
 
-### Phase 1: Add Split Table and Migrate Existing Data
+### Phase 1: Database Schema Changes
 
-1. **Create Split table** with all indexes
-2. **Add Memo and Source columns to Transaction table**
-3. **Migrate existing transactions**: For each existing transaction, create a single split with:
-   - Amount = Transaction.Amount
-   - Category = "" (empty string, uncategorized)
-   - Memo = null
-   - Order = 0
+1. **Clear existing transaction data** (app is new, no relevant data to preserve)
+2. **Create Split table** with all indexes
+3. **Add Memo and Source columns to Transaction table**
 
 ### Phase 2: Update Application Code
 
-1. **Update Transaction entity** (add Splits navigation, Memo, Source properties)
-2. **Create Split entity** class
-3. **Update EF Core configuration** (indexes, relationships, cascade delete)
-4. **Update TransactionsFeature** to work with splits
-5. **Update TransactionsController** to return new DTOs
+1. **Create Split entity** class (inherits from BaseModel)
+2. **Update Transaction entity**:
+   - Add Splits navigation collection
+   - Add Memo and Source properties
+   - Keep Amount property (authoritative value)
+3. **Update EF Core configuration**:
+   - Configure Split entity (indexes, relationships, cascade delete)
+   - Update Transaction entity configuration
+4. **Create new DTOs**:
+   - TransactionCreateDto, TransactionEditDto, TransactionUpdateResultDto
+   - SplitEditDto, SplitResultDto, SplitOperationResultDto
+5. **Update TransactionsFeature** to work with splits:
+   - Pattern 5: Create transaction with single split
+   - Pattern 6: Update transaction properties
+   - Pattern 7, 8, 9: Split CRUD operations
+6. **Update TransactionsController** to return new DTOs with balance state
 
 ### Phase 3: Frontend Updates (Separate Task)
 
-1. Update transaction list view to show split indicators
-2. Update transaction detail view to show splits
-3. Add split editor UI
-4. Show validation warnings when splits don't balance
+1. Update transaction list view to show split indicators and balance warnings
+2. Update transaction detail view to show splits with balance state
+3. Add split editor UI with immediate balance feedback
+4. Implement prominent warnings for unbalanced transactions
+5. Add category reports (primary use case)
 
 ## Answers to Original Questions
 
@@ -952,9 +986,9 @@ Reorders splits within a transaction.
 
 ### Expected Query Patterns
 
-1. **Most common**: List transactions WITHOUT splits (fast, no joins)
-2. **Occasional**: Get single transaction WITH splits (single join, efficient indexes)
-3. **Rare**: Category reports (efficient with category index)
+1. **Most common**: Category reports and summaries (efficient with category index) - Core purpose of personal finance tracking
+2. **Very common**: List transactions with split indicators (fast, subquery for balance check)
+3. **Common**: Get single transaction WITH splits (single join, efficient indexes)
 
 ### Scaling Considerations
 
@@ -991,10 +1025,54 @@ Reorders splits within a transaction.
 
 ### Unit Tests (Application Layer)
 
-- `TransactionsFeature.AddTransactionAsync()` - Validate split creation
-- `TransactionsFeature.UpdateTransactionAsync()` - Validate atomic split replacement
-- `TransactionsFeature.GetTransactionByKeyAsync()` - Verify split loading
-- Balance validation logic (SplitsTotal calculation)
+Test all TransactionsFeature methods with the following patterns from the existing [`tests/Unit/Tests/TransactionsTests.cs`](tests/Unit/Tests/TransactionsTests.cs:1):
+
+**Transaction Creation with Split**:
+- `AddTransactionAsync_ValidTransaction_CreatesTransactionWithSingleSplit()` - Verify single split created automatically
+- `AddTransactionAsync_WithCategory_CreatesSplitWithCategory()` - Category parameter flows to split
+- `AddTransactionAsync_WithoutCategory_CreatesSplitWithEmptyCategory()` - Default uncategorized behavior
+- `AddTransactionAsync_ValidTransaction_SplitAmountMatchesTransaction()` - Balance validation on creation
+
+**Transaction Updates (Properties Only)**:
+- `UpdateTransactionAsync_UpdatesProperties_PreservesSplits()` - Splits unchanged by transaction update
+- `UpdateTransactionAsync_AmountChanged_ReturnsBalanceState()` - Verify TransactionUpdateResultDto includes IsBalanced
+- `UpdateTransactionAsync_AmountChanged_DoesNotAdjustSplits()` - Editing Amount creates imbalance if splits don't match
+
+**Split CRUD Operations**:
+- `AddSplitAsync_ValidSplit_AddsToTransaction()` - Single split addition
+- `AddSplitAsync_MultipleSplits_AddsAllWithCorrectOrder()` - Bulk split addition with order assignment
+- `AddSplitAsync_ReturnsBalanceState()` - Verify SplitOperationResultDto includes balance calculation
+- `UpdateSplitAsync_ValidUpdate_UpdatesSplitProperties()` - Amount, category, memo updates
+- `UpdateSplitAsync_AmountChanged_ReturnsUpdatedBalanceState()` - Balance recalculated after update
+- `UpdateSplitAsync_WrongTransaction_ThrowsInvalidOperationException()` - Security: split must belong to specified transaction
+- `DeleteSplitAsync_ValidSplit_RemovesSplit()` - Successful deletion
+- `DeleteSplitAsync_LastSplit_ThrowsValidationException()` - Cannot delete last split (business rule)
+- `DeleteSplitAsync_ReturnsBalanceStateAfterDeletion()` - Balance calculated with remaining splits
+- `DeleteSplitAsync_WrongTransaction_ThrowsInvalidOperationException()` - Security check
+
+**Query Operations with Balance Validation**:
+- `GetTransactionsAsync_ReturnsBalanceIndicators()` - Verify HasMultipleSplits, SingleSplitCategory, IsBalanced
+- `GetTransactionsAsync_UnbalancedTransaction_IsBalancedFalse()` - Detect imbalance in list view
+- `GetTransactionByKeyAsync_IncludesSplits()` - Verify splits loaded in correct order
+- `GetTransactionByKeyAsync_CalculatesBalanceState()` - Verify TransactionDetailDto includes SplitsTotal and IsBalanced
+
+**Balance Calculation Logic**:
+- `CalculateBalance_MatchingAmounts_ReturnsTrue()` - Splits sum equals transaction amount
+- `CalculateBalance_DifferentAmounts_ReturnsFalse()` - Splits sum doesn't match transaction amount
+- `CalculateBalance_EmptySplits_ThrowsValidationException()` - Edge case: no splits present
+- `CalculateBalance_NegativeAmounts_HandlesCorrectly()` - Credits and refunds
+
+**Tenant Isolation**:
+- `AddSplitAsync_OtherTenantTransaction_ThrowsNotFoundException()` - Security
+- `UpdateSplitAsync_OtherTenantSplit_ThrowsNotFoundException()` - Security
+- `DeleteSplitAsync_OtherTenantSplit_ThrowsNotFoundException()` - Security
+
+Follow the existing test pattern from TransactionsTests.cs:
+- Gherkin-style comments (Given/When/Then/And)
+- NUnit attributes and constraint-based assertions
+- InMemoryDataProvider for fast, isolated tests
+- TestTenantProvider for tenant context
+- Comprehensive coverage of validation rules and edge cases
 
 ### Integration Tests (Controller Layer)
 
