@@ -26,11 +26,9 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task GivenIAmOnTheRegistrationPage()
     {
-        await Page.GotoAsync("/register");
         var registerPage = GetOrCreateRegisterPage();
+        await registerPage.NavigateAsync();
         Assert.That(await registerPage.IsRegisterFormVisibleAsync(), Is.True, "Should be on registration page");
-
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -73,9 +71,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task GivenIAmViewingMyProfilePage()
     {
-        await Page.GotoAsync("/profile");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var profilePage = GetOrCreateProfilePage();
+        await profilePage.NavigateAsync();
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
 
@@ -193,9 +190,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task WhenINavigateToMyProfilePage()
     {
-        await Page.GotoAsync("/profile");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var profilePage = GetOrCreateProfilePage();
+        await profilePage.NavigateAsync();
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True, "Should be on profile page");
     }
 
@@ -206,7 +202,9 @@ public abstract class AuthenticationSteps : CommonThenSteps
     {
         var profilePage = GetOrCreateProfilePage();
         await profilePage.ClickLogoutAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for home page to be ready after logout
+        var homePage = new HomePage(Page);
+        await homePage.WaitForPageReadyAsync();
     }
 
     /// <summary>
@@ -314,8 +312,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </remarks>
     protected async Task WhenITryToNavigateToTheLoginPage()
     {
-        await Page.GotoAsync("/login");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var loginPage = new LoginPage(Page);
+        await loginPage.NavigateAsync();
     }
 
     /// <summary>
@@ -323,8 +321,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task WhenITryToNavigateDirectlyToTheLoginPage()
     {
-        await Page.GotoAsync("/login");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        var loginPage = new LoginPage(Page);
+        await loginPage.NavigateAsync();
     }
 
     /// <summary>
@@ -332,8 +330,12 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
     {
+        // Navigate directly - should redirect to login page for anonymous users
         await Page.GotoAsync(page);
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Wait for redirect to complete by waiting for login page to be ready
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.WaitForPageReadyAsync();
     }
 
     #endregion
@@ -489,10 +491,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task ThenIShouldBeRedirectedToTheHomePage()
     {
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
         var homePage = new HomePage(Page);
-        await homePage.BrochureSection.WaitForAsync(new LocatorWaitForOptions { Timeout = 3000 });
+        await homePage.WaitForPageReadyAsync();
         Assert.That(await homePage.BrochureSection.IsVisibleAsync(), Is.True, "Should be on home page");
     }
 
@@ -585,8 +585,8 @@ public abstract class AuthenticationSteps : CommonThenSteps
     /// </summary>
     protected async Task ThenIShouldBeRedirectedToMyProfilePage()
     {
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var profilePage = GetOrCreateProfilePage();
+        await profilePage.WaitForPageReadyAsync();
         Assert.That(await profilePage.IsOnProfilePageAsync(), Is.True,
             "Should be redirected to profile page");
     }

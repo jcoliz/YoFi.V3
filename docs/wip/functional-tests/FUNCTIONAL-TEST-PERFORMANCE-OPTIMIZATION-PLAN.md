@@ -517,3 +517,20 @@ This is a big one!
 +
 
 5. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 33.7s
+
+Let's check in with the CI runner!
+
+Was: Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 1 m 18 s - YoFi.V3.Tests.Functional.dll (net10.0) 2.43s/ea
+Now: Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 51 s - YoFi.V3.Tests.Functional.dll (net10.0) 1.59s/ea
+
+Under one second on Beach!
+
+- Loginstate use waits custom to each page
+- Workspace Selector remove needless waits
+
+6. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 29.3s
+
+Final remove all network waits from authentication tests
+Final results on Beach:
+
+7. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 23.6s (0.74/s) Approx 75% reduction!

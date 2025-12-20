@@ -296,6 +296,124 @@ public class MyPage(IPage page) : BasePage(page)
 }
 ```
 
+## Test Synchronization with Vue.js
+
+### NEVER Use NetworkIdle Waits
+
+❌ **PROHIBITED**: `await Page.WaitForLoadStateAsync(LoadState.NetworkIdle)`
+
+**Why**: NetworkIdle waits are unreliable with modern reactive frameworks like Vue.js:
+- Network activity may complete before Vue finishes rendering DOM updates
+- Vue batches DOM updates asynchronously (nextTick)
+- NetworkIdle doesn't account for client-side state updates
+- Creates intermittent test failures and increases test execution time
+
+### WaitForPageReadyAsync Pattern
+
+✅ **REQUIRED**: Every page object MUST implement `WaitForPageReadyAsync()` that waits for key visible elements.
+
+```csharp
+/// <summary>
+/// Waits for the page to be ready by ensuring key elements are visible
+/// </summary>
+public async Task WaitForPageReadyAsync(float timeout = 5000)
+{
+    await KeyElement.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+}
+```
+
+**When to use:**
+- After navigation (in `NavigateAsync()` methods)
+- After clicking navigation links/buttons
+- In component methods that navigate to other pages
+- In THEN steps that verify redirection
+
+### Wait for Created/Updated Elements
+
+✅ **REQUIRED**: After create/update operations, explicitly wait for the created/updated DOM element.
+
+```csharp
+/// <summary>
+/// Waits for a specific transaction to appear in the list
+/// </summary>
+public async Task WaitForTransactionAsync(string payeeName, float timeout = 5000)
+{
+    var row = GetTransactionRow(payeeName);
+    await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+}
+
+// Usage after update
+await transactionsPage.SubmitEditFormAsync();
+await transactionsPage.WaitForTransactionAsync(updatedPayeeName);
+```
+
+**When to use:**
+- After creating a new entity (workspace, transaction, etc.)
+- After updating an existing entity
+- Before assertions that check for the entity's presence
+
+### Handling Redirects
+
+✅ **REQUIRED**: When navigation may trigger a redirect, wait for the destination page to be ready.
+
+```csharp
+protected async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
+{
+    // Navigate directly - should redirect to login page for anonymous users
+    await Page.GotoAsync(page);
+
+    // Wait for redirect to complete by waiting for login page to be ready
+    var loginPage = GetOrCreateLoginPage();
+    await loginPage.WaitForPageReadyAsync();
+}
+```
+
+### Avoid Redundant Waits
+
+❌ **BAD**: Waiting for the same element multiple times
+```csharp
+var homePage = new HomePage(Page);
+await homePage.WaitForPageReadyAsync();  // Waits for BrochureSection
+await homePage.BrochureSection.WaitForAsync(...);  // ❌ Redundant!
+```
+
+✅ **GOOD**: Wait once, then use
+```csharp
+var homePage = new HomePage(Page);
+await homePage.WaitForPageReadyAsync();  // Waits for BrochureSection
+Assert.That(await homePage.BrochureSection.IsVisibleAsync(), Is.True);
+```
+
+### Component Navigation Pattern
+
+✅ **REQUIRED**: Navigation components should call destination page's `WaitForPageReadyAsync()`.
+
+```csharp
+/// <summary>
+/// Clicks the Sign In menu item and waits for login page to be ready
+/// </summary>
+public async Task ClickSignInAsync()
+{
+    await SignInMenuItem.ClickAsync();
+    var loginPage = new LoginPage(_page);
+    await loginPage.WaitForPageReadyAsync();
+}
+```
+
+**DO NOT** use NetworkIdle in components - let the destination page define its ready state.
+
+### Best Practices Summary
+
+1. **Never use NetworkIdle** - Use DOM-based waits instead
+2. **Every page defines WaitForPageReadyAsync()** - Wait for key visible elements
+3. **Wait for created/updated elements** - After CRUD operations
+4. **Handle redirects explicitly** - Wait for destination page to be ready
+5. **Avoid redundant waits** - Don't wait for the same element twice
+6. **Components delegate to pages** - Let pages define their ready state
+7. **Prefer specific over generic waits** - Wait for the exact element being tested
+
+These patterns ensure reliable test execution with Vue.js's asynchronous rendering while maintaining optimal test performance.
+
 ## See Also
 
 - [`functional-tests.md`](functional-tests.md) - Gherkin to C# conversion rules
