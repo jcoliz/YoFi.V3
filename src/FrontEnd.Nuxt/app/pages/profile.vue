@@ -14,6 +14,11 @@ definePageMeta({
 
 const { refreshToken, token, data, signOut, refresh } = useAuth()
 
+const ready = ref(false)
+onMounted(() => {
+  ready.value = true
+})
+
 // Edit mode state
 const isEditing = ref(false)
 const isLoading = ref(false)
@@ -292,6 +297,7 @@ const handleUpdate = async () => {
           <button
             class="btn btn-outline-danger btn-sm"
             data-test-id="Logout"
+            :disabled="!ready"
             @click="systemLogout"
           >
             <i class="bi bi-box-arrow-right me-1" />

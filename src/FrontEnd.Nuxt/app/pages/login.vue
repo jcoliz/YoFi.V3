@@ -18,6 +18,11 @@ definePageMeta({
 const { signIn } = useAuth()
 const route = useRoute()
 
+const ready = ref(false)
+onMounted(() => {
+  ready.value = true
+})
+
 // Reactive form data
 const form = ref({
   username: '',
@@ -160,7 +165,7 @@ const handleSubmit = async () => {
                 type="submit"
                 class="btn btn-primary"
                 data-test-id="Login"
-                :disabled="isLoading"
+                :disabled="isLoading || !ready"
               >
                 <span
                   v-if="isLoading"

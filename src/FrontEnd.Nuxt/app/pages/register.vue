@@ -20,6 +20,11 @@ definePageMeta({
 
 const { signUp } = useAuth()
 
+const ready = ref(false)
+onMounted(() => {
+  ready.value = true
+})
+
 // Reactive form data
 const form = ref({
   email: '',
@@ -267,7 +272,7 @@ const isWeakPassword = computed(() => {
                 type="submit"
                 class="btn btn-primary"
                 data-test-id="Register"
-                :disabled="isLoading"
+                :disabled="isLoading || !ready"
               >
                 <output
                   v-if="isLoading"
