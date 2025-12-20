@@ -55,10 +55,9 @@ public abstract class CommonGivenSteps : FunctionalTestBase
     /// </summary>
     protected virtual async Task GivenIAmOnTheLoginPage()
     {
-        await Page.GotoAsync("/login");
         var loginPage = GetOrCreateLoginPage();
+        await loginPage.NavigateAsync();
         Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should be on login page");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>

@@ -471,3 +471,32 @@ Starting with a timing test run on Beach
 - Removed just a couple wait for network idle
 
 2. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 58.4s (1.825s/ea!)
+
+@@ -139,8 +139,10 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
+     /// </summary>
+     public async Task NavigateAsync()
+     {
+-        await Page!.GotoAsync("/workspaces");
+-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
++        await WaitForApi(async () =>
++        {
++            await Page!.GotoAsync("/workspaces");
++        }, TenantsApiRegex());
+     }
+
+3. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 47.8s
+
+@@ -221,9 +221,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
+     /// </summary>
+     public async Task NavigateAsync()
+     {
+-        await Page!.GotoAsync("/transactions");
+-        // TODO: Wait for the transactions list to load
+-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
++        await WaitForApi(async () =>
++        {
++            await Page!.GotoAsync("/transactions");
++        }, TransactionsApiRegex());
+     }
+
+4. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 44.9s

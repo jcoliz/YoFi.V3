@@ -51,7 +51,7 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     {
         var loginPage = GetOrCreateLoginPage();
         await loginPage.ClickLoginButtonAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
     }
 
     #endregion

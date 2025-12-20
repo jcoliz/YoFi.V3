@@ -12,10 +12,24 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     public ILocator PasswordInput => View.GetByTestId("password");
     public ILocator LoginButton => View.GetByTestId("Login");
     public ILocator ErrorDisplay => View.GetByTestId("error-display");
+
     /// <summary>
     /// Link to navigate to the registration page
     /// </summary>
     public ILocator CreateAccountLink => Page!.GetByTestId("create-account-link");
+
+    #region Navigation
+
+    /// <summary>
+    /// Navigates to this page
+    /// </summary>
+    public async Task NavigateAsync()
+    {
+        await Page!.GotoAsync("/login");
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+    }
+
+    #endregion
 
     public async Task LoginAsync(string email, string password)
     {

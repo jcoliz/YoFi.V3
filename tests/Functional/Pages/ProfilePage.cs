@@ -22,7 +22,7 @@ public class ProfilePage(IPage _page): BasePage(_page)
     #region Navigation
 
     /// <summary>
-    /// Navigates to the workspaces page
+    /// Navigates to this page
     /// </summary>
     public async Task NavigateAsync()
     {
@@ -31,7 +31,6 @@ public class ProfilePage(IPage _page): BasePage(_page)
     }
 
     #endregion
-
 
     /// <summary>
     /// Clicks the refresh button and waits for the refresh token API call
