@@ -104,19 +104,14 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     /// </summary>
     public async Task OpenMenuAsync()
     {
-        // FLAKY: Somestimes this fails. Maybe check first to ensure it's closed?
-        // Also wait for network idle before clicking?
+        // TODO: Re-evaluate if we need to wait for network idle here
         await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-        await page.SaveScreenshotAsync("before-opening-workspace-menu");
 
         var visible = await MenuPanel.IsVisibleAsync();
         if (visible)
         {
             return;
         }
-        // Bug AB#1979 call stack here: Menu trigger is not visible, becasue we are on the
-        // login screen!
         await MenuTrigger.ClickAsync();
         await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }

@@ -43,8 +43,6 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// </summary>
     public async Task ClickLoginButtonAsync()
     {
-        await SaveScreenshotAsync("Before-login-attempt");
-
         await WaitForApi(async () =>
         {
             await LoginButton.ClickAsync();
@@ -53,9 +51,18 @@ public partial class LoginPage(IPage _page): BasePage(_page)
 
     public async Task<bool> HasErrorMessageAsync(string expectedError)
     {
-        await ErrorDisplay.WaitForAsync();
+        await WaitForErrorDisplayAsync();
         var errorText = await ErrorDisplay.InnerTextAsync();
         return errorText.Contains(expectedError);
+    }
+
+    /// <summary>
+    /// Waits for the error display to become visible
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForErrorDisplayAsync(int timeout = 5000)
+    {
+        await ErrorDisplay.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     public async Task<bool> HasValidationErrorAsync()
@@ -114,11 +121,8 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// <summary>
     /// Clicks the login button without waiting for API (for validation testing)
     /// </summary>
-    public async Task ClickLoginButtonWithoutApiWaitAsync()
+    public async Task ClickLoginButtonForValidation()
     {
-        await SaveScreenshotAsync("Before-login-attempt");
         await LoginButton.ClickAsync();
-        // Give the browser a moment to show validation
-        await Task.Delay(500);
     }
 }

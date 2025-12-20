@@ -2,7 +2,6 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:WorkspaceTenancySteps
 @template:Features/FunctionalTest.mustache
-@hook:before-first-then:SaveScreenshot
 Feature: Workspace Management
     As a YoFi user
     I want to create and manage separate financial workspaces

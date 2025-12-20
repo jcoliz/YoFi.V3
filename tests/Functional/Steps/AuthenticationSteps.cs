@@ -114,7 +114,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     protected async Task WhenISubmitTheRegistrationFormForValidation()
     {
         var registerPage = GetOrCreateRegisterPage();
-        await registerPage.ClickRegisterButtonWithoutApiWaitAsync();
+        await registerPage.ClickRegisterButtonForValidation();
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     protected async Task WhenIClickTheLoginButtonForValidation()
     {
         var loginPage = GetOrCreateLoginPage();
-        await loginPage.ClickLoginButtonWithoutApiWaitAsync();
+        await loginPage.ClickLoginButtonForValidation();
     }
 
     /// <summary>

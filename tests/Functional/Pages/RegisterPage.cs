@@ -31,8 +31,6 @@ public class RegisterPage(IPage _page): BasePage(_page)
         await PasswordInput.FillAsync(password);
         await PasswordAgainInput.FillAsync(password);
 
-        await SaveScreenshotAsync("Registering");
-
         await ClickRegisterButtonAsync();
     }
 
@@ -67,8 +65,6 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// </summary>
     public async Task ClickRegisterButtonAsync()
     {
-        await SaveScreenshotAsync("Before-registration-attempt");
-
         await WaitForApi(async () =>
         {
             await RegisterButton.ClickAsync();
@@ -78,17 +74,24 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// <summary>
     /// Clicks the register button without waiting for API (for validation testing)
     /// </summary>
-    public async Task ClickRegisterButtonWithoutApiWaitAsync()
+    public async Task ClickRegisterButtonForValidation()
     {
-        await SaveScreenshotAsync("Before-registration-attempt");
         await RegisterButton.ClickAsync();
-        // Give the browser a moment to show validation
-        await Task.Delay(500);
+        await WaitForErrorDisplayAsync();
+    }
+
+    /// <summary>
+    /// Waits for the error display to become visible
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForErrorDisplayAsync(int timeout = 5000)
+    {
+        await ErrorDisplay.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     public async Task<bool> HasErrorMessageAsync(string expectedError)
     {
-        await ErrorDisplay.WaitForAsync();
+        await WaitForErrorDisplayAsync();
         var errorText = await ErrorDisplay.InnerTextAsync();
         return errorText.Contains(expectedError);
     }

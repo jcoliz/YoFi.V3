@@ -2,7 +2,6 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:WeatherSteps
 @template:Features/FunctionalTest.mustache
-@hook:before-first-then:SaveScreenshot
 Feature: Weather Forecasts
     As a user planning my activities
     I want to view upcoming weather forecasts

@@ -457,3 +457,17 @@ Each phase is independent and can be rolled back separately:
 - [Playwright Performance](https://playwright.dev/docs/test-timeouts)
 - [NUnit Parallel Execution](https://docs.nunit.org/articles/nunit/running-tests/parallelexecution.html)
 - [`FUNCTIONAL-TEST-PERFORMANCE-ANALYSIS.md`](./FUNCTIONAL-TEST-PERFORMANCE-ANALYSIS.md) - Detailed analysis
+
+---
+
+## Implementation
+
+Starting with a timing test run on Beach
+1. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 94.2s (2.94s/ea)
+
+- Removed *all* screen shots
+- Added back in screen shot on failure
+- Removed Task.Delay
+- Removed just a couple wait for network idle
+
+2. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 58.4s (1.825s/ea!)

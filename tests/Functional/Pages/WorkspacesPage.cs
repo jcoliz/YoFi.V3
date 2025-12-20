@@ -425,8 +425,6 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task OpenDeleteModalAsync(string workspaceName)
     {
-        await SaveScreenshotAsync($"before-opening-delete-modal.png");
-        // AB#1976 Call Stack Here
         await GetDeleteButton(workspaceName).ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
@@ -545,6 +543,19 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     public async Task WaitForLoadingCompleteAsync()
     {
         await LoadingSpinner.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Waits for a workspace card with the specified name to appear in the list
+    /// </summary>
+    /// <param name="workspaceName">The workspace name to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Use this after create or update operations to ensure the workspace list has been fully rendered
+    /// </remarks>
+    public async Task WaitForWorkspaceAsync(string workspaceName, float timeout = 5000)
+    {
+        await GetWorkspaceCardByName(workspaceName).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     #endregion

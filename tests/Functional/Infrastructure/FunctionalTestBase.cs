@@ -147,8 +147,15 @@ public abstract class FunctionalTestBase : PageTest
     };
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
+        // Capture screenshot only on test failure
+        if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Failed)
+        {
+            var pageModel = It<Pages.BasePage>();
+            await pageModel.SaveScreenshotAsync($"FAILED");
+        }
+
         _testActivity?.Stop();
         _testActivity?.Dispose();
     }

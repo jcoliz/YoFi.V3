@@ -61,7 +61,9 @@ public abstract class CommonThenSteps : CommonWhenSteps
     /// </summary>
     protected override async Task ThenIShouldSeeTheHomePage()
     {
-        await Task.Delay(1000);
+        var homePage = new HomePage(Page);
+        await homePage.EnsurePageLoaded();
+
         Assert.That(Page.Url.EndsWith('/'), Is.True, "Should be on home page");
     }
 

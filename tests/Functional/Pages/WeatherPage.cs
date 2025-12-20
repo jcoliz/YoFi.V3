@@ -3,10 +3,29 @@ using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
-public class WeatherPage(IPage? _page): BasePage(_page)
+public partial class WeatherPage(IPage? _page): BasePage(_page)
 {
+    [GeneratedRegex("/api/Weather")]
+    private static partial Regex WeatherApiRegex();
+
     public ILocator ForecastTableBody => Page!.GetByTestId("forecast-table-body");
     public ILocator ForecastRows => ForecastTableBody.Locator("tr");
+
+    #region Navigation
+
+    /// <summary>
+    /// Navigates to the weather page via address bar
+    /// </summary>
+    public async Task NavigateAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await Page!.GotoAsync("/weather");
+        }, WeatherApiRegex());
+    }
+
+    #endregion
+
 
     public async Task<int> GetForecastCountAsync()
     {

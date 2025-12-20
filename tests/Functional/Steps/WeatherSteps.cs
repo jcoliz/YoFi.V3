@@ -36,7 +36,8 @@ public abstract class WeatherSteps : CommonThenSteps
     /// </summary>
     protected async Task WhenINavigateToViewTheWeatherForecast()
     {
-        await VisitPage("Weather");
+        var weatherPage = GetOrCreateWeatherPage();
+        await weatherPage.NavigateAsync();
     }
 
     #endregion

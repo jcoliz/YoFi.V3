@@ -2,7 +2,6 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:AuthenticationSteps
 @template:Features/FunctionalTest.mustache
-@hook:before-first-then:SaveScreenshot
 Feature: User Authentication
     As a user of YoFi
     I want to register, login, and manage my account

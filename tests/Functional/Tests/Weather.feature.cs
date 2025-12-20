@@ -32,9 +32,6 @@ public class WeatherForecasts : WeatherSteps
         // When I navigate to view the weather forecast
         await WhenINavigateToViewTheWeatherForecast();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see upcoming weather predictions
         await ThenIShouldSeeUpcomingWeatherPredictions();
 
@@ -51,9 +48,6 @@ public class WeatherForecasts : WeatherSteps
         // Given I am viewing weather forecasts
         await GivenIAmViewingWeatherForecasts();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then each forecast should display temperature in both Celsius and Fahrenheit
         await ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
 
@@ -69,9 +63,6 @@ public class WeatherForecasts : WeatherSteps
     {
         // Given I am viewing weather forecasts
         await GivenIAmViewingWeatherForecasts();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see forecasts for at least the next 5 days
         await ThenIShouldSeeForecastsForAtLeastTheNext5Days();

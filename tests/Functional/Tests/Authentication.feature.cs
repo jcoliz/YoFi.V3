@@ -41,9 +41,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I submit the registration form
         await WhenISubmitTheRegistrationForm();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then My registration request should be acknowledged
         await ThenMyRegistrationRequestShouldBeAcknowledged();
     }
@@ -62,9 +59,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I submit the registration form
         await WhenISubmitTheRegistrationForm();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see an error message containing "Passwords must be"
         await ThenIShouldSeeAnErrorMessage("Passwords must be");
@@ -87,9 +81,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I submit the registration form (for validation)
         await WhenISubmitTheRegistrationFormForValidation();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see an error message containing "Passwords do not match"
         await ThenIShouldSeeAnErrorMessage("Passwords do not match");
@@ -115,9 +106,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I submit the registration form
         await WhenISubmitTheRegistrationForm();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see an error message containing "is already taken"
         await ThenIShouldSeeAnErrorMessage("is already taken");
@@ -152,9 +140,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I click the login button
         await WhenIClickTheLoginButton();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see the home page
         await ThenIShouldSeeTheHomePage();
 
@@ -176,9 +161,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // And I click the login button
         await WhenIClickTheLoginButton();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see an error message "Invalid credentials"
         await ThenIShouldSeeAnErrorMessage("Invalid credentials");
@@ -205,9 +187,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // And I click the login button (for validation)
         await WhenIClickTheLoginButtonForValidation();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see a validation error
         await ThenIShouldSeeAValidationError();
 
@@ -229,9 +208,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // When I click the logout button
         await WhenIClickTheLogoutButton();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should be logged out
         await ThenIShouldBeLoggedOut();
@@ -266,9 +242,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // When I navigate to my profile page
         await WhenINavigateToMyProfilePage();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see my account information
         await ThenIShouldSeeMyAccountInformation();
     }
@@ -298,9 +271,6 @@ public class UserAuthenticationTests : AuthenticationSteps
         // When I try to navigate directly to the login page
         await WhenITryToNavigateDirectlyToTheLoginPage();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should be redirected to my profile page
         await ThenIShouldBeRedirectedToMyProfilePage();
 
@@ -322,9 +292,6 @@ public class UserAuthenticationTests : AuthenticationSteps
 
         // When I try to navigate directly to a protected page like <page>
         await WhenITryToNavigateDirectlyToAProtectedPageLike(page);
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should be redirected to the login page
         await ThenIShouldBeRedirectedToTheLoginPage();

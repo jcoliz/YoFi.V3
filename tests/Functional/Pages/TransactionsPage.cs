@@ -222,6 +222,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task NavigateAsync()
     {
         await Page!.GotoAsync("/transactions");
+        // TODO: Wait for the transactions list to load
         await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
@@ -459,7 +460,6 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
             await UpdateButton.ClickAsync();
         }, UpdateTransactionApiRegex());
 
-        // AB#1980: I think this is the ACTUAL fix
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
     }
@@ -668,6 +668,19 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task WaitForLoadingCompleteAsync()
     {
         await LoadingSpinner.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Waits for a transaction with the specified payee name to appear in the list
+    /// </summary>
+    /// <param name="payeeName">The payee name to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Use this after create or update operations to ensure the transaction list has been fully rendered
+    /// </remarks>
+    public async Task WaitForTransactionAsync(string payeeName, float timeout = 5000)
+    {
+        await GetTransactionRowByPayee(payeeName).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     /// <summary>

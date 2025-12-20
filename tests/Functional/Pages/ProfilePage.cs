@@ -69,7 +69,6 @@ public class ProfilePage(IPage _page): BasePage(_page)
 
     public async Task ClickLogoutAsync()
     {
-        await SaveScreenshotAsync("Before-logout");
         await LogoutButton.ClickAsync();
     }
 

@@ -455,6 +455,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         await workspacesPage.NavigateAsync();
         await workspacesPage.CreateWorkspaceAsync(workspaceName, description);
 
+        // Wait for the new workspace card to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await workspacesPage.WaitForWorkspaceAsync(workspaceName);
+
         // Store the workspace name for future reference
         _objectStore.Add(KEY_CURRENT_WORKSPACE, workspaceName);
     }
@@ -486,17 +490,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         var workspacesPage = GetOrCreateWorkspacesPage();
 
-        TestContext.Out.WriteLine($"[WhenIViewTheDetailsOf] URL Before: {Page.Url}");
-
-        await workspacesPage.SaveScreenshotAsync($"before-navigate-to-workspace-page");
-
         await workspacesPage.NavigateAsync();
 
-        await workspacesPage.SaveScreenshotAsync($"after-navigate-to-workspace-page");
-
-        TestContext.Out.WriteLine($"[WhenIViewTheDetailsOf] URL After: {Page.Url}");
-
-        // Bug AB#1979 call stack here
         // Open workspace selector dropdown to view details
         await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
@@ -557,21 +552,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     protected async Task WhenIDelete(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
-
         var workspacesPage = GetOrCreateWorkspacesPage();
 
-        // AB#1976 It would seem that the navigate to the workspaces page
-        // is getting denied, and we are logged out at this point and returned to
-        // the login page.
-        await workspacesPage.SaveScreenshotAsync($"before-navigate-to-workspace-page.png");
-
         await workspacesPage.NavigateAsync();
-
-        await workspacesPage.SaveScreenshotAsync($"after-navigate-to-workspace-page.png");
-
-        TestContext.Out.WriteLine($"[WhenIDelete] Current URL: {Page.Url}");
-
-        // AB#1976 Call Stack Here
         await workspacesPage.DeleteWorkspaceAsync(fullWorkspaceName);
     }
 
@@ -647,17 +630,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var transactionsPage = GetOrCreateTransactionsPage();
-
-        await transactionsPage.SaveScreenshotAsync("before-navigate-to-transactions-page");
-
         await transactionsPage.NavigateAsync();
-
-        // AB#1977: Theory is that the navigate to the transactions page is getting denied
-        // and we are being logged out at this point.
-
-        await transactionsPage.SaveScreenshotAsync("after-navigate-to-transactions-page");
-
-        TestContext.Out.WriteLine($"[WhenIAddATransactionTo] Current URL: {Page.Url}");
 
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
@@ -681,9 +654,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var newPayee = "Updated " + payee;
         await transactionsPage.UpdateTransactionAsync(payee, newDate, newPayee, 200.00m);
 
-        // AB#1980: Save screenshot here to help debug
-        await transactionsPage.SaveScreenshotAsync("after-updating-transaction");
-        TestContext.Out.WriteLine($"[WhenIUpdateThatTransaction] New Payee: {newPayee}");
+        // Wait for the updated transaction to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await transactionsPage.WaitForTransactionAsync(newPayee);
 
         _objectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
     }
@@ -739,6 +712,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
+
+        // FAILS here (sometimes). We await the spinner being hidden, but maybe the list isn't updated yet.
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.True,
             $"Workspace '{fullWorkspaceName}' should be visible in the list");
@@ -966,13 +941,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// </summary>
     protected async Task ThenMyChangesShouldBeSaved()
     {
-        // AB#1980: KEY_LAST_TRANSACTION_PAYEE
         var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
+
+        // Prior operation awaits the loading spinner being being hidden.
+        // Maybe that's not enough time for the updated transaction to appear.
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
 
-        // AB#1980: Fails here
         Assert.That(hasTransaction, Is.True, "Updated transaction should be visible");
     }
 

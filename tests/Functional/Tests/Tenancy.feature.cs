@@ -43,9 +43,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When a new user "david" registers and logs in
         await WhenANewUserRegistersAndLogsIn("david");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then user should have a workspace ready to use
         await ThenUserShouldHaveAWorkspaceReadyToUse();
 
@@ -70,9 +67,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I create a new workspace called "Alice's Finances" for "My personal finances"
         await WhenICreateANewWorkspaceCalledFor("Alice's Finances", "My personal finances");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see "Alice's Finances" in my workspace list
         await ThenIShouldSeeInMyWorkspaceList("Alice's Finances");
 
@@ -94,9 +88,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // And I create a workspace called "Side Business"
         await WhenICreateAWorkspaceCalled("Side Business");
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should have 2 workspaces available
         await ThenIShouldHaveWorkspacesAvailable(2);
@@ -131,9 +122,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I view my workspace list
         await WhenIViewMyWorkspaceList();
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see all 3 workspaces
         await ThenIShouldSeeAllWorkspaces(3);
 
@@ -159,9 +147,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // Bug AV#1979 call stack here
         // When I view the details of "My Finances"
         await WhenIViewTheDetailsOf("My Finances");
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see the workspace information
         await ThenIShouldSeeTheWorkspaceInformation();
@@ -193,9 +178,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // And I update the description to "Updated description text"
         await WhenIUpdateTheDescriptionTo("Updated description text");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then the workspace should reflect the changes
         await ThenTheWorkspaceShouldReflectTheChanges();
 
@@ -217,9 +199,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // When I try to change the workspace name or description
         await WhenITryToChangeTheWorkspaceNameOrDescription();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should not be able to make those changes
         await ThenIShouldNotBeAbleToMakeThoseChanges();
@@ -246,9 +225,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // AB#1976 Call Stack Here
         await WhenIDelete("Test Workspace");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then "Test Workspace" should no longer appear in my list
         await ThenShouldNoLongerAppearInMyList("Test Workspace");
     }
@@ -267,9 +243,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // When I try to delete "Shared Workspace"
         await WhenITryToDelete("Shared Workspace");
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then the workspace should remain intact
         await ThenTheWorkspaceShouldRemainIntact();
@@ -306,9 +279,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I view transactions in "Personal"
         await WhenIViewTransactionsIn("Personal");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see exactly 5 transactions
         await ThenIShouldSeeExactlyTransactions(5);
 
@@ -337,9 +307,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I try to view transactions in "Private Finances"
         await WhenITryToViewTransactionsIn("Private Finances");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should not be able to access that data
         await ThenIShouldNotBeAbleToAccessThatData();
     }
@@ -367,9 +334,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I view transactions in "Family Budget"
         await WhenIViewTransactionsIn("Family Budget");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-
         // Then I should see the transactions
         await ThenIShouldSeeTheTransactions();
 
@@ -395,17 +359,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // When I add a transaction to "Family Budget"
         await WhenIAddATransactionTo("Family Budget");
 
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
-        // AB#1980 Screnshot shows one transaction
-
         // Then the transaction should be saved successfully
         await ThenTheTransactionShouldBeSavedSuccessfully();
 
         // And when I update that transaction
         await WhenIUpdateThatTransaction();
 
-        // AB#1980 Call Stack Here
+        // FAILS here due to changes NOT saved
         // Then my changes should be saved
         await ThenMyChangesShouldBeSaved();
 
@@ -430,9 +390,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // And I am logged in as "alice"
         await GivenIAmLoggedInAs("alice");
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I can add, edit, and delete transactions
         await ThenICanAddEditAndDeleteTransactions();
@@ -471,9 +428,6 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
         // When I view my workspace list
         await WhenIViewMyWorkspaceList();
-
-        // Hook: Before first Then Step
-        await SaveScreenshotAsync();
 
         // Then I should see only "Family Budget" in my list
         await ThenIShouldSeeOnlyInMyList("Family Budget");

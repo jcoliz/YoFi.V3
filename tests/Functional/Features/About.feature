@@ -2,7 +2,6 @@
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:FunctionalTest
 @template:Features/FunctionalTest.mustache
-@hook:before-first-then:SaveScreenshot
 Feature: About Page
     As a site administrator
     I want to view application version and configuration information
