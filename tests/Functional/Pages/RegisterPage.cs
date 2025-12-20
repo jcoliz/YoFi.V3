@@ -39,6 +39,37 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
     public async Task RegisterAsync(string email, string username, string password)
     {
+        await FillRegistrationWithVueWaitAsync(email, username, password, password);
+        await ClickRegisterButtonAsync();
+    }
+
+    public async Task EnterRegistrationDetailsAsync(string email, string username, string password, string confirmPassword)
+    {
+        await ClearFormAsync();
+        await EmailInput.ClickAsync();
+        await FillRegistrationWithVueWaitAsync(email, username, password, confirmPassword);
+    }
+
+    public async Task EnterWeakPasswordDetailsAsync(string email, string username, string weakPassword)
+    {
+        await FillRegistrationWithVueWaitAsync(email, username, weakPassword, weakPassword);
+    }
+
+    public async Task EnterMismatchedPasswordDetailsAsync(string email, string username, string password, string differentPassword)
+    {
+        await FillRegistrationWithVueWaitAsync(email, username, password, differentPassword);
+    }
+
+    /// <summary>
+    /// Fills registration form fields and waits for Vue reactivity to complete
+    /// </summary>
+    /// <remarks>
+    /// This method handles the timing issue where Vue.js needs time to process
+    /// input events before the form is ready for submission. It fills all fields,
+    /// triggers blur events, and polls until the email field contains a value.
+    /// </remarks>
+    private async Task FillRegistrationWithVueWaitAsync(string email, string username, string password, string confirmPassword)
+    {
         // Fill all fields and trigger blur events for Vue reactivity
         await EmailInput.FillAsync(email);
         await EmailInput.BlurAsync();
@@ -49,50 +80,44 @@ public class RegisterPage(IPage _page): BasePage(_page)
         await PasswordInput.FillAsync(password);
         await PasswordInput.BlurAsync();
 
-        await PasswordAgainInput.FillAsync(password);
+        await PasswordAgainInput.FillAsync(confirmPassword);
         await PasswordAgainInput.BlurAsync();
 
         // Wait for fields to actually contain values (Vue reactivity completion)
         // This prevents race condition where button is clicked before form is ready
-        var maxRetries = 10;
+        var maxRetries = 20; // Increased from 10 to handle slower production environments
         for (int i = 0; i < maxRetries; i++)
         {
             var emailValue = await EmailInput.InputValueAsync();
             if (!string.IsNullOrEmpty(emailValue))
             {
-                break;
+                if (i > 0)
+                {
+                    TestContext.Out.WriteLine($"[REGISTER] Email field populated after {i + 1} retries");
+                }
+                return;
             }
+
+            // If we've tried 5 times unsuccessfully, try filling again
+            if (i == 4)
+            {
+                TestContext.Out.WriteLine("[REGISTER] First fill may have failed, attempting to fill fields again...");
+                await EmailInput.FillAsync(email);
+                await EmailInput.BlurAsync();
+                await UsernameInput.FillAsync(username);
+                await UsernameInput.BlurAsync();
+                await PasswordInput.FillAsync(password);
+                await PasswordInput.BlurAsync();
+                await PasswordAgainInput.FillAsync(confirmPassword);
+                await PasswordAgainInput.BlurAsync();
+            }
+
             TestContext.Out.WriteLine($"[REGISTER] Retry {i + 1}/{maxRetries}: Email field still empty, waiting for Vue reactivity...");
             await Task.Delay(50);
         }
 
-        await ClickRegisterButtonAsync();
-    }
-
-    public async Task EnterRegistrationDetailsAsync(string email, string username, string password, string confirmPassword)
-    {
-        await ClearFormAsync();
-        await EmailInput.ClickAsync();
-        await EmailInput.FillAsync(email);
-        await UsernameInput.FillAsync(username);
-        await PasswordInput.FillAsync(password);
-        await PasswordAgainInput.FillAsync(confirmPassword);
-    }
-
-    public async Task EnterWeakPasswordDetailsAsync(string email, string username, string weakPassword)
-    {
-        await EmailInput.FillAsync(email);
-        await UsernameInput.FillAsync(username);
-        await PasswordInput.FillAsync(weakPassword);
-        await PasswordAgainInput.FillAsync(weakPassword);
-    }
-
-    public async Task EnterMismatchedPasswordDetailsAsync(string email, string username, string password, string differentPassword)
-    {
-        await EmailInput.FillAsync(email);
-        await UsernameInput.FillAsync(username);
-        await PasswordInput.FillAsync(password);
-        await PasswordAgainInput.FillAsync(differentPassword);
+        // If we get here, field never populated - log warning but continue
+        TestContext.Out.WriteLine($"[REGISTER] WARNING: Email field still empty after {maxRetries} retries. Form may not submit properly.");
     }
 
     /// <summary>

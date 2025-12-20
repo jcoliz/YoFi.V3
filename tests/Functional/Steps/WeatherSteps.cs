@@ -133,6 +133,10 @@ public abstract class WeatherSteps : CommonThenSteps
     protected async Task ThenIShouldSeeForecastsForAtLeastTheNext5Days()
     {
         var weatherPage = GetOrCreateWeatherPage();
+
+        // Wait for at least 5 forecast rows to be rendered
+        await weatherPage.WaitForForecastRowsAsync(minCount: 5);
+
         var actualCount = await weatherPage.GetForecastCountAsync();
         Assert.That(actualCount, Is.GreaterThanOrEqualTo(5),
             $"Expected at least 5 days of forecasts, but found {actualCount}");

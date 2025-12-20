@@ -33,6 +33,25 @@ public partial class LoginPage(IPage _page): BasePage(_page)
 
     public async Task LoginAsync(string email, string password)
     {
+        await FillCredentialsWithVueWaitAsync(email, password);
+        await ClickLoginButtonAsync();
+    }
+
+    public async Task EnterCredentialsAsync(string email, string password)
+    {
+        await FillCredentialsWithVueWaitAsync(email, password);
+    }
+
+    /// <summary>
+    /// Fills login credentials and waits for Vue reactivity to complete
+    /// </summary>
+    /// <remarks>
+    /// This method handles the timing issue where Vue.js needs time to process
+    /// input events before the form is ready for submission. It fills fields,
+    /// triggers blur events, and polls until the username field contains a value.
+    /// </remarks>
+    private async Task FillCredentialsWithVueWaitAsync(string email, string password)
+    {
         // Fill username field and wait for Vue to process the input
         await UsernameInput.FillAsync(email);
         await UsernameInput.BlurAsync(); // Trigger blur event for Vue reactivity
@@ -44,25 +63,35 @@ public partial class LoginPage(IPage _page): BasePage(_page)
         // Wait for fields to actually contain the values (Vue reactivity completion)
         // This prevents race condition where button is clicked before form is ready
         await UsernameInput.WaitForAsync(new() { State = WaitForSelectorState.Attached });
-        var maxRetries = 10;
+        var maxRetries = 20; // Increased from 10 to handle slower production environments
         for (int i = 0; i < maxRetries; i++)
         {
             var usernameValue = await UsernameInput.InputValueAsync();
             if (!string.IsNullOrEmpty(usernameValue))
             {
-                break;
+                if (i > 0)
+                {
+                    TestContext.Out.WriteLine($"[LOGIN] Username field populated after {i + 1} retries");
+                }
+                return;
             }
+
+            // If we've tried 5 times unsuccessfully, try filling again
+            if (i == 4)
+            {
+                TestContext.Out.WriteLine("[LOGIN] First fill may have failed, attempting to fill fields again...");
+                await UsernameInput.FillAsync(email);
+                await UsernameInput.BlurAsync();
+                await PasswordInput.FillAsync(password);
+                await PasswordInput.BlurAsync();
+            }
+
             TestContext.Out.WriteLine($"[LOGIN] Retry {i + 1}/{maxRetries}: Username field still empty, waiting for Vue reactivity...");
             await Task.Delay(50);
         }
 
-        await ClickLoginButtonAsync();
-    }
-
-    public async Task EnterCredentialsAsync(string email, string password)
-    {
-        await UsernameInput.FillAsync(email);
-        await PasswordInput.FillAsync(password);
+        // If we get here, field never populated - log warning but continue
+        TestContext.Out.WriteLine($"[LOGIN] WARNING: Username field still empty after {maxRetries} retries. Form may not submit properly.");
     }
 
     public async Task EnterUsernameOnlyAsync(string username)

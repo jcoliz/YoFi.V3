@@ -32,6 +32,19 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
         return await ForecastRows.CountAsync();
     }
 
+    /// <summary>
+    /// Waits for at least the specified number of forecast rows to be visible
+    /// </summary>
+    /// <param name="minCount">Minimum number of rows to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForForecastRowsAsync(int minCount = 5, float timeout = 5000)
+    {
+        await Page!.WaitForFunctionAsync(
+            $"() => document.querySelectorAll('[data-test-id=\"forecast-table-body\"] tr').length >= {minCount}",
+            new PageWaitForFunctionOptions { Timeout = timeout }
+        );
+    }
+
     public async Task<IReadOnlyList<ILocator>> GetAllForecastRowsAsync()
     {
         return await ForecastRows.AllAsync();

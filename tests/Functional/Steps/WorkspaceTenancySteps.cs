@@ -512,6 +512,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         await workspacesPage.NavigateAsync();
         await workspacesPage.UpdateWorkspaceAsync(oldName, fullNewName);
 
+        // Wait for the renamed workspace card to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await workspacesPage.WaitForWorkspaceAsync(fullNewName);
+
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullNewName);
     }
 
