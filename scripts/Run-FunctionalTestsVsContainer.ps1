@@ -23,7 +23,7 @@ Runs tests but leaves containers running for dashboard investigation.
 Use .\scripts\Stop-Container.ps1 to clean up when finished.
 
 .NOTES
-The script uses docker.runsettings for test configuration when running against containers.
+The script uses container.runsettings for test configuration when running against containers.
 The solution version is automatically generated using Get-Version.ps1.
 The Aspire Dashboard is available at http://localhost:18888 while containers are running.
 
@@ -74,7 +74,7 @@ try {
     Push-Location ./tests/Functional
 
     Write-Host "Running functional tests..." -ForegroundColor Cyan
-    dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\docker.runsettings
+    dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\runsettings\container.runsettings
     $testExitCode = $LASTEXITCODE
 
     Pop-Location

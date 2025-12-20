@@ -1,5 +1,5 @@
 {
   "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
-  "dotnet.unitTests.runSettingsPath": "local.runsettings",
+  "dotnet.unitTests.runSettingsPath": "runsettings/development.runsettings",
   "dotnet.automaticallyCreateSolutionInWorkspace": false,
 }
