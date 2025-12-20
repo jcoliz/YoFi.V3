@@ -201,6 +201,13 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <remarks>
     /// This method bypasses user access validation and is intended for administrative
     /// or test control scenarios. For user-facing operations, use GetTenantForUserAsync instead.
+    ///
+    /// <para><strong>Test Control API Use Cases:</strong></para>
+    /// <list type="bullet">
+    /// <item><description>Looking up workspaces by key for validation before operations</description></item>
+    /// <item><description>Verifying workspace names have __TEST__ prefix for safety</description></item>
+    /// <item><description>Getting tenant ID for role assignment operations</description></item>
+    /// </list>
     /// </remarks>
     public async Task<Tenant?> GetTenantByKeyAsync(Guid tenantKey)
     {
@@ -214,6 +221,11 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="role">The role to assign to the user.</param>
     /// <exception cref="DuplicateUserTenantRoleException">Thrown when the user already has a role in the tenant.</exception>
+    /// <remarks>
+    /// <para><strong>Test Control API Use Case:</strong></para>
+    /// Used by the "Assign User to Existing Workspace" endpoint to add users to workspaces with specific roles (Owner, Editor, or Viewer).
+    /// This supports functional test scenarios where multiple users need different access levels to the same workspace.
+    /// </remarks>
     public async Task AddUserTenantRoleAsync(Guid userId, long tenantId, TenantRole role)
     {
         await tenantRepository.AddUserTenantRoleAsync(new UserTenantRoleAssignment
@@ -232,6 +244,10 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <remarks>
     /// This method is useful for bulk operations on test data or administrative tasks
     /// where tenants are identified by naming conventions.
+    ///
+    /// <para><strong>Test Control API Use Case:</strong></para>
+    /// Used by the "Delete All Test Data" endpoint to find all test workspaces (those with __TEST__ prefix) for cleanup between test runs.
+    /// This ensures test isolation by removing all test-related data before executing new tests.
     /// </remarks>
     public async Task<IReadOnlyCollection<Tenant>> GetTenantsByNamePrefixAsync(string namePrefix)
     {
@@ -251,6 +267,10 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <remarks>
     /// This method is intended for bulk cleanup operations such as removing test data.
     /// Each tenant is deleted individually without user access validation.
+    ///
+    /// <para><strong>Test Control API Use Case:</strong></para>
+    /// Used by the "Delete All Test Data" endpoint to bulk delete all test workspaces found by GetTenantsByNamePrefixAsync.
+    /// Cascade deletes automatically remove associated role assignments and transactions, ensuring clean test state.
     /// </remarks>
     public async Task DeleteTenantsByKeysAsync(IReadOnlyCollection<Guid> tenantKeys)
     {
@@ -270,6 +290,11 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// <param name="userId">The user identifier.</param>
     /// <param name="tenantId">The tenant identifier.</param>
     /// <returns>True if the user has a role in the tenant; otherwise, false.</returns>
+    /// <remarks>
+    /// <para><strong>Test Control API Use Case:</strong></para>
+    /// Used by the "Seed Transactions" endpoint to verify the user has access to the workspace before seeding test data.
+    /// This ensures transaction seeding only occurs in workspaces where the user has legitimate access, maintaining test data integrity.
+    /// </remarks>
     public async Task<bool> HasUserTenantRoleAsync(Guid userId, long tenantId)
     {
         var role = await tenantRepository.GetUserTenantRoleAsync(userId.ToString(), tenantId);
