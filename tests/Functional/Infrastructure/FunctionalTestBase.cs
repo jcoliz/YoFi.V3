@@ -60,9 +60,7 @@ public abstract class FunctionalTestBase : PageTest
                 }
 
                 _testControlClient = new TestControlClient(
-                    baseUrl:
-                        TestContext.Parameters["apiBaseUrl"]
-                        ?? throw new NullReferenceException("apiBaseUrl test parameter not set"),
+                    baseUrl: GetRequiredParameter("apiBaseUrl"),
                     httpClient: httpClient
                 );
             }
@@ -78,10 +76,7 @@ public abstract class FunctionalTestBase : PageTest
         {
             AcceptDownloads = true,
             ViewportSize = new ViewportSize() { Width = 1280, Height = 720 },
-            BaseURL = checkEnvironment(
-                TestContext.Parameters["webAppUrl"]
-                ?? throw new ArgumentNullException("webAppUrl test parameter not set")
-            )
+            BaseURL = GetRequiredParameter("webAppUrl")
         };
     #endregion
 
@@ -170,10 +165,7 @@ public abstract class FunctionalTestBase : PageTest
             return;
         }
 
-        var url = checkEnvironment(
-                TestContext.Parameters["webAppUrl"]
-                ?? throw new ArgumentNullException("webAppUrl test parameter not set")
-            );
+        var url = GetRequiredParameter("webAppUrl");
         baseUrl = new(url);
 
         // Check prerequisites before running any tests - fail with clear message if they're not met
@@ -253,10 +245,8 @@ public abstract class FunctionalTestBase : PageTest
     {
         try
         {
-            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"]
-                ?? throw new NullReferenceException("apiBaseUrl test parameter not set");
-
-            var normalizedBaseUrl = checkEnvironment(apiBaseUrl).TrimEnd('/');
+            var apiBaseUrl = GetRequiredParameter("apiBaseUrl");
+            var normalizedBaseUrl = apiBaseUrl.TrimEnd('/');
             var healthUrl = $"{normalizedBaseUrl}/health";
 
             using var httpClient = new HttpClient();
@@ -283,7 +273,17 @@ public abstract class FunctionalTestBase : PageTest
         }
         catch (HttpRequestException ex)
         {
-            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? "unknown";
+            // Try to get the parameter for error message, fallback to "unknown" if it fails
+            string apiBaseUrl;
+            try
+            {
+                apiBaseUrl = GetRequiredParameter("apiBaseUrl");
+            }
+            catch
+            {
+                apiBaseUrl = "unknown";
+            }
+
             var message = $"""
                 Cannot connect to backend API at {apiBaseUrl}/health
 
@@ -298,7 +298,17 @@ public abstract class FunctionalTestBase : PageTest
         }
         catch (TaskCanceledException ex)
         {
-            var apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? "unknown";
+            // Try to get the parameter for error message, fallback to "unknown" if it fails
+            string apiBaseUrl;
+            try
+            {
+                apiBaseUrl = GetRequiredParameter("apiBaseUrl");
+            }
+            catch
+            {
+                apiBaseUrl = "unknown";
+            }
+
             var message = $"""
                 Backend API health check timed out (5 seconds) at {apiBaseUrl}/health
 
@@ -316,28 +326,76 @@ public abstract class FunctionalTestBase : PageTest
     #region Helpers
 
     /// <summary>
-    /// Checks for environment variable references in curly braces and replaces them.
+    /// Gets a required test parameter and resolves any environment variable references.
     /// </summary>
-    /// <param name="old">String that may contain {ENV_VAR} references.</param>
-    /// <returns>String with environment variables resolved.</returns>
-    protected string checkEnvironment(string old)
+    /// <param name="parameterName">Name of the test parameter to retrieve.</param>
+    /// <returns>The parameter value with any environment variable references resolved.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the parameter is not set or when a referenced environment variable doesn't exist.
+    /// </exception>
+    /// <remarks>
+    /// Parameters can contain environment variable references using the syntax: {ENV_VAR_NAME}
+    /// For example: "https://localhost:5001" or "{WEB_APP_URL}"
+    /// </remarks>
+    protected string GetRequiredParameter(string parameterName)
     {
-        var result = old;
-        var match = findEnvRegex.Match(old);
+        var rawValue = TestContext.Parameters[parameterName];
 
-        // If password is in curly braces, then pull password from the
-        // matching environment var
-        if (match.Success)
+        if (string.IsNullOrWhiteSpace(rawValue))
         {
-            var env = match.Groups[1].Value;
-            var envVar = Environment.GetEnvironmentVariable(env)!;
-            result = replaceEnvRegex.Replace(old, envVar);
+            throw new InvalidOperationException(
+                $"Required test parameter '{parameterName}' is not set in .runsettings file."
+            );
+        }
+
+        return ResolveEnvironmentVariables(rawValue, parameterName);
+    }
+
+    /// <summary>
+    /// Resolves environment variable references in curly braces (e.g., {ENV_VAR}).
+    /// </summary>
+    /// <param name="value">String that may contain {ENV_VAR} references.</param>
+    /// <param name="contextName">Name of the parameter/setting being resolved (for error messages).</param>
+    /// <returns>String with all environment variable references resolved.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when a referenced environment variable doesn't exist.
+    /// </exception>
+    private string ResolveEnvironmentVariables(string value, string contextName)
+    {
+        var result = value;
+
+        // Find all {ENV_VAR} patterns
+        foreach (Match match in findEnvRegex.Matches(value))
+        {
+            var envVarName = match.Groups[1].Value;
+            var envVarValue = Environment.GetEnvironmentVariable(envVarName);
+
+            if (envVarValue is null)
+            {
+                throw new InvalidOperationException(
+                    $"Environment variable '{envVarName}' referenced in test parameter '{contextName}' is not set. " +
+                    $"Original value: {value}"
+                );
+            }
+
+            result = result.Replace(match.Value, envVarValue);
         }
 
         return result;
     }
+
     private static readonly Regex findEnvRegex = new("{(.*?)}");
-    private static readonly Regex replaceEnvRegex = new("({.*?})");
+
+    /// <summary>
+    /// Checks for environment variable references in curly braces and replaces them.
+    /// </summary>
+    /// <param name="old">String that may contain {ENV_VAR} references.</param>
+    /// <returns>String with environment variables resolved.</returns>
+    [Obsolete("Use GetRequiredParameter() instead. This method will be removed in a future version.")]
+    protected string checkEnvironment(string old)
+    {
+        return ResolveEnvironmentVariables(old, "unknown");
+    }
 
     /// <summary>
     /// Saves a screenshot for debugging purposes.
