@@ -21,7 +21,7 @@ services:
   backend:
     image: jcoliz/yofi-v3-backend:latest
     environment:
-      - APPLICATION__ENVIRONMENT=Container
+      - ASPNETCORE_ENVIRONMENT=Container
       - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
       - JWT__ISSUER=http://localhost:5001
       - JWT__AUDIENCE=http://localhost:5001
