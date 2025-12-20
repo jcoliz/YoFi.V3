@@ -91,6 +91,14 @@ public partial class LoginPage(IPage _page): BasePage(_page)
         return await View.IsVisibleAsync();
     }
 
+    /// <summary>
+    /// Waits for the login page to be ready
+    /// </summary>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+    }
+
     public async Task NavigateToCreateAccountAsync()
     {
         await CreateAccountLink.ClickAsync();

@@ -14,4 +14,12 @@ public class HomePage(IPage? _page): BasePage(_page)
     {
         await BrochureSection.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
+
+    /// <summary>
+    /// Waits for the home page to be ready
+    /// </summary>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await EnsurePageLoaded();
+    }
 }

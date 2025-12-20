@@ -174,4 +174,12 @@ public class RegisterPage(IPage _page): BasePage(_page)
         // Check if the form is in loading state by looking for spinner or disabled state
         return await IsRegisterButtonDisabledAsync();
     }
+
+    /// <summary>
+    /// Waits for the register page to be ready
+    /// </summary>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await RegisterForm.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+    }
 }

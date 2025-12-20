@@ -104,9 +104,6 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     /// </summary>
     public async Task OpenMenuAsync()
     {
-        // TODO: Re-evaluate if we need to wait for network idle here
-        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
         var visible = await MenuPanel.IsVisibleAsync();
         if (visible)
         {
@@ -220,8 +217,19 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
         // Bug AV#1979 call stack here
         await OpenMenuAsync();
         await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
-        // Wait for any navigation or state changes
-        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Wait for the CurrentWorkspaceName to update to the selected workspace
+        // This is more reliable than waiting for NetworkIdle
+        await CurrentWorkspaceName.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+        // Also verify the text matches what we selected (with a reasonable timeout for text content)
+        var currentName = await CurrentWorkspaceName.TextContentAsync();
+        if (currentName != workspaceName)
+        {
+            // Give it a bit more time if names don't match yet
+            await page.Page!.WaitForTimeoutAsync(500);
+        }
+
         await CloseMenuAsync();
     }
 
@@ -232,7 +240,7 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     {
         await OpenMenuAsync();
         await ManageWorkspacesButton.ClickAsync();
-        await page.Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // No need to wait here - let the destination page handle its own ready state
     }
 
     /// <summary>

@@ -27,7 +27,8 @@ public class ProfilePage(IPage _page): BasePage(_page)
     public async Task NavigateAsync()
     {
         await Page!.GotoAsync("/profile");
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for the main content to be visible instead of NetworkIdle
+        await AccountInfoSection.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
     }
 
     #endregion
@@ -80,6 +81,14 @@ public class ProfilePage(IPage _page): BasePage(_page)
     {
         await AccountInfoSection.WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Visible });
         return await AccountInfoSection.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Waits for the profile page to be ready
+    /// </summary>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await AccountInfoSection.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
 }

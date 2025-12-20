@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Components;
 
@@ -88,42 +89,50 @@ public class LoginState(IPage page, ILocator parent)
     }
 
     /// <summary>
-    /// Clicks the Sign In menu item
+    /// Clicks the Sign In menu item and waits for login page to be ready
     /// </summary>
     public async Task ClickSignInAsync()
     {
         await OpenMenuAsync();
         await SignInMenuItem.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for login page to be ready using its own encapsulated logic
+        var loginPage = new LoginPage(page);
+        await loginPage.WaitForPageReadyAsync();
     }
 
     /// <summary>
-    /// Clicks the Sign Out menu item
+    /// Clicks the Sign Out menu item and waits for navigation to complete
     /// </summary>
     public async Task ClickSignOutAsync()
     {
         await OpenMenuAsync();
         await SignOutMenuItem.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for home page to be ready (sign out redirects to home)
+        var homePage = new HomePage(page);
+        await homePage.WaitForPageReadyAsync();
     }
 
     /// <summary>
-    /// Clicks the Profile menu item
+    /// Clicks the Profile menu item and waits for profile page to be ready
     /// </summary>
     public async Task ClickProfileAsync()
     {
         await OpenMenuAsync();
         await ProfileMenuItem.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for profile page to be ready using its own encapsulated logic
+        var profilePage = new ProfilePage(page);
+        await profilePage.WaitForPageReadyAsync();
     }
 
     /// <summary>
-    /// Clicks the Create Account menu item
+    /// Clicks the Create Account menu item and waits for register page to be ready
     /// </summary>
     public async Task ClickCreateAccountAsync()
     {
         await OpenMenuAsync();
         await CreateAccountMenuItem.ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        // Wait for register page to be ready using its own encapsulated logic
+        var registerPage = new RegisterPage(page);
+        await registerPage.WaitForPageReadyAsync();
     }
 }
