@@ -15,10 +15,10 @@ namespace YoFi.V3.Tests.Functional.Pages;
 public partial class WorkspacesPage(IPage page) : BasePage(page)
 {
     [GeneratedRegex("/api/Tenant")]
-    private static partial Regex CreateTenantApiRegex();
+    private static partial Regex TenantsApiRegex();
 
     [GeneratedRegex(@"/api/Tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
-    private static partial Regex ModifyTenantApiRegex();
+    private static partial Regex SingleTenantApiRegex();
 
     #region Components
 
@@ -139,8 +139,10 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public async Task NavigateAsync()
     {
-        await Page!.GotoAsync("/workspaces");
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await WaitForApi(async () =>
+        {
+            await Page!.GotoAsync("/workspaces");
+        }, TenantsApiRegex());
     }
 
     #endregion
@@ -196,7 +198,7 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await CreateButton.ClickAsync();
-        }, CreateTenantApiRegex());
+        }, TenantsApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -365,7 +367,7 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await EditForm.GetByTestId("edit-workspace-submit").ClickAsync();
-        }, CreateTenantApiRegex());
+        }, TenantsApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
@@ -442,7 +444,7 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
         await WaitForApi(async () =>
         {
             await DeleteModalButton.ClickAsync();
-        }, ModifyTenantApiRegex());
+        }, SingleTenantApiRegex());
 
         // Wait for the loading spinner to disappear, indicating UI has updated
         await WaitForLoadingCompleteAsync();
