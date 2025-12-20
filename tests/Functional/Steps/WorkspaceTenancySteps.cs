@@ -757,9 +757,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
-        // Wait for the page to be fully ready with workspace cards rendered
-        await workspacesPage.WaitForPageReadyAsync();
-
         var actualCount = await workspacesPage.GetWorkspaceCountAsync();
         Assert.That(actualCount, Is.EqualTo(expectedCount),
             $"Should have exactly {expectedCount} workspaces");
@@ -850,9 +847,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
-
-        // Wait for the page to be fully ready with workspace cards rendered
-        await workspacesPage.WaitForPageReadyAsync();
 
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(newName);
         Assert.That(hasWorkspace, Is.True, $"Updated workspace '{newName}' should be visible");
@@ -1031,9 +1025,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
-        // Wait for the page to be fully ready with workspace cards rendered
-        await workspacesPage.WaitForPageReadyAsync();
-
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
         Assert.That(canEdit, Is.True, "Owner should be able to edit workspace settings");
     }
@@ -1048,9 +1039,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
-        // Wait for the page to be fully ready with workspace cards rendered
-        await workspacesPage.WaitForPageReadyAsync();
-
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
         Assert.That(canDelete, Is.True, "Owner should be able to delete workspace");
     }
@@ -1064,9 +1052,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
-
-        // Wait for the page to be fully ready with workspace cards rendered
-        await workspacesPage.WaitForPageReadyAsync();
 
         // Verify exactly one workspace is visible
         var count = await workspacesPage.GetWorkspaceCountAsync();

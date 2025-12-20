@@ -135,7 +135,7 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     #region Navigation
 
     /// <summary>
-    /// Navigates to the workspaces page
+    /// Navigates to the workspaces page and waits for it to be ready
     /// </summary>
     public async Task NavigateAsync()
     {
@@ -143,6 +143,9 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
         {
             await Page!.GotoAsync("/workspaces");
         }, TenantsApiRegex());
+
+        // Wait for the page to be fully ready with workspace cards rendered
+        await WaitForPageReadyAsync();
     }
 
     #endregion
