@@ -9,7 +9,9 @@ namespace YoFi.V3.Tests.Functional.Components;
 /// <param name="page">Playwright page instance (reserved for future use)</param>
 /// <param name="parent">Parent locator containing the navigation element</param>
 #pragma warning disable IDE0060 // Remove unused parameter
+#pragma warning disable CS9113 // Remove unused parameter
 public class Nav(IPage page, ILocator parent)
+#pragma warning restore CS9113 // Remove unused parameter
 #pragma warning restore IDE0060 // Remove unused parameter
 {
     /// <summary>

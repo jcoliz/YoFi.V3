@@ -19,7 +19,7 @@ namespace YoFi.V3.Tests.Functional.Infrastructure;
 /// - Object store access for sharing data between steps
 /// - Test Control API client access
 /// </remarks>
-public abstract class FunctionalTestBase : PageTest
+public abstract partial class FunctionalTestBase : PageTest
 {
     #region Fields
 
@@ -337,7 +337,7 @@ public abstract class FunctionalTestBase : PageTest
     /// Parameters can contain environment variable references using the syntax: {ENV_VAR_NAME}
     /// For example: "https://localhost:5001" or "{WEB_APP_URL}"
     /// </remarks>
-    protected string GetRequiredParameter(string parameterName)
+    protected static string GetRequiredParameter(string parameterName)
     {
         var rawValue = TestContext.Parameters[parameterName];
 
@@ -360,12 +360,12 @@ public abstract class FunctionalTestBase : PageTest
     /// <exception cref="InvalidOperationException">
     /// Thrown when a referenced environment variable doesn't exist.
     /// </exception>
-    private string ResolveEnvironmentVariables(string value, string contextName)
+    private static string ResolveEnvironmentVariables(string value, string contextName)
     {
         var result = value;
 
         // Find all {ENV_VAR} patterns
-        foreach (Match match in findEnvRegex.Matches(value))
+        foreach (Match match in EnvVarRegex().Matches(value))
         {
             var envVarName = match.Groups[1].Value;
             var envVarValue = Environment.GetEnvironmentVariable(envVarName);
@@ -384,18 +384,8 @@ public abstract class FunctionalTestBase : PageTest
         return result;
     }
 
-    private static readonly Regex findEnvRegex = new("{(.*?)}");
-
-    /// <summary>
-    /// Checks for environment variable references in curly braces and replaces them.
-    /// </summary>
-    /// <param name="old">String that may contain {ENV_VAR} references.</param>
-    /// <returns>String with environment variables resolved.</returns>
-    [Obsolete("Use GetRequiredParameter() instead. This method will be removed in a future version.")]
-    protected string checkEnvironment(string old)
-    {
-        return ResolveEnvironmentVariables(old, "unknown");
-    }
+    [GeneratedRegex(@"\{(.*?)\}")]
+    private static partial Regex EnvVarRegex();
 
     /// <summary>
     /// Saves a screenshot for debugging purposes.
