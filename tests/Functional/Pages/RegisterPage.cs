@@ -19,6 +19,19 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public ILocator UsernameDisplay =>  SuccessMessage.GetByTestId("display-username");
     public ILocator ContinueButton => SuccessMessage.GetByTestId("ContinueButton");
 
+    #region Navigation
+
+    /// <summary>
+    /// Navigates to this page
+    /// </summary>
+    public async Task NavigateAsync()
+    {
+        await Page!.GotoAsync("/register");
+        await RegisterForm.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+    }
+
+    #endregion
+
     /// <summary>
     /// Link to navigate to the login page
     /// </summary>

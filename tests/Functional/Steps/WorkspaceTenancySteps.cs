@@ -146,10 +146,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
             throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
         }
 
-        await Page.GotoAsync("/login");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
         var loginPage = new LoginPage(Page);
+        await loginPage.NavigateAsync();
+
         await loginPage.LoginAsync(cred.Username, cred.Password);
 
         // Wait for redirect after successful login
@@ -424,10 +423,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var password = "Test123!";
 
         // Navigate to register page
-        await Page.GotoAsync("/register");
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
         var registerPage = new RegisterPage(Page);
+        await registerPage.NavigateAsync();
 
         await registerPage.RegisterAsync(email, fullUsername, password);
 

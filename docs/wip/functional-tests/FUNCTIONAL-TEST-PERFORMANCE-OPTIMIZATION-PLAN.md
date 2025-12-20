@@ -499,4 +499,21 @@ Starting with a timing test run on Beach
 +        }, TransactionsApiRegex());
      }
 
-4. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 44.9s
+4. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 44.9s (1.40s/ea)
+
+This is a big one!
+
+--- a/tests/Functional/Steps/WorkspaceTenancySteps.cs
++++ b/tests/Functional/Steps/WorkspaceTenancySteps.cs
+@@ -146,10 +146,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
+             throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+         }
+
+-        await Page.GotoAsync("/login");
+-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+-
+         var loginPage = new LoginPage(Page);
++        await loginPage.NavigateAsync();
++
+
+5. Test summary: total: 32, failed: 0, succeeded: 32, skipped: 0, duration: 33.7s
