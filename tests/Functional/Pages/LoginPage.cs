@@ -52,7 +52,7 @@ public partial class LoginPage(IPage _page): BasePage(_page)
             {
                 break;
             }
-            TestContext.WriteLine("Waiting for username input to be populated...");
+            TestContext.Out.WriteLine($"[LOGIN] Retry {i + 1}/{maxRetries}: Username field still empty, waiting for Vue reactivity...");
             await Task.Delay(50);
         }
 

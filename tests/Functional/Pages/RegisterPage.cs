@@ -39,10 +39,32 @@ public class RegisterPage(IPage _page): BasePage(_page)
 
     public async Task RegisterAsync(string email, string username, string password)
     {
+        // Fill all fields and trigger blur events for Vue reactivity
         await EmailInput.FillAsync(email);
+        await EmailInput.BlurAsync();
+
         await UsernameInput.FillAsync(username);
+        await UsernameInput.BlurAsync();
+
         await PasswordInput.FillAsync(password);
+        await PasswordInput.BlurAsync();
+
         await PasswordAgainInput.FillAsync(password);
+        await PasswordAgainInput.BlurAsync();
+
+        // Wait for fields to actually contain values (Vue reactivity completion)
+        // This prevents race condition where button is clicked before form is ready
+        var maxRetries = 10;
+        for (int i = 0; i < maxRetries; i++)
+        {
+            var emailValue = await EmailInput.InputValueAsync();
+            if (!string.IsNullOrEmpty(emailValue))
+            {
+                break;
+            }
+            TestContext.Out.WriteLine($"[REGISTER] Retry {i + 1}/{maxRetries}: Email field still empty, waiting for Vue reactivity...");
+            await Task.Delay(50);
+        }
 
         await ClickRegisterButtonAsync();
     }
