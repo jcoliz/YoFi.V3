@@ -704,6 +704,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var transactionsPage = GetOrCreateTransactionsPage();
         await transactionsPage.NavigateAsync();
 
+        // Wait for the workspace selector to show a workspace name
+        // After registration/login, the workspace might not be immediately visible
+        await transactionsPage.WorkspaceSelector.CurrentWorkspaceName.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
         var workspaceName = await transactionsPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
         Assert.That(workspaceName, Does.Contain(expectedName), $"Workspace name should contain '{expectedName}'");
     }
