@@ -33,8 +33,28 @@ public partial class LoginPage(IPage _page): BasePage(_page)
 
     public async Task LoginAsync(string email, string password)
     {
+        // Fill username field and wait for Vue to process the input
         await UsernameInput.FillAsync(email);
+        await UsernameInput.BlurAsync(); // Trigger blur event for Vue reactivity
+
+        // Fill password field and wait for Vue to process the input
         await PasswordInput.FillAsync(password);
+        await PasswordInput.BlurAsync(); // Trigger blur event for Vue reactivity
+
+        // Wait for fields to actually contain the values (Vue reactivity completion)
+        // This prevents race condition where button is clicked before form is ready
+        await UsernameInput.WaitForAsync(new() { State = WaitForSelectorState.Attached });
+        var maxRetries = 10;
+        for (int i = 0; i < maxRetries; i++)
+        {
+            var usernameValue = await UsernameInput.InputValueAsync();
+            if (!string.IsNullOrEmpty(usernameValue))
+            {
+                break;
+            }
+            TestContext.WriteLine("Waiting for username input to be populated...");
+            await Task.Delay(50);
+        }
 
         await ClickLoginButtonAsync();
     }

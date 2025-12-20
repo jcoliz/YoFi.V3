@@ -548,6 +548,32 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Waits for the page to be ready by ensuring the workspaces list container is visible
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Use this after navigation to ensure the page has fully loaded and workspace cards are ready.
+    /// Waits for either the workspaces list container or empty state to be visible.
+    /// </remarks>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        // Wait for loading to complete first
+        await WaitForLoadingCompleteAsync();
+
+        // Then wait for either the workspace list or empty state to be visible
+        // This ensures Vue has finished rendering the workspace cards
+        try
+        {
+            await WorkspacesList.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        }
+        catch
+        {
+            // If workspaces list isn't visible, check if empty state is visible
+            await EmptyState.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        }
+    }
+
+    /// <summary>
     /// Waits for a workspace card with the specified name to appear in the list
     /// </summary>
     /// <param name="workspaceName">The workspace name to wait for</param>

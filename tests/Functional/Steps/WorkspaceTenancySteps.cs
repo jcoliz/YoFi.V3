@@ -751,6 +751,11 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     protected async Task ThenIShouldHaveWorkspacesAvailable(int expectedCount)
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
+        await workspacesPage.NavigateAsync();
+
+        // Wait for the page to be fully ready with workspace cards rendered
+        await workspacesPage.WaitForPageReadyAsync();
+
         var actualCount = await workspacesPage.GetWorkspaceCountAsync();
         Assert.That(actualCount, Is.EqualTo(expectedCount),
             $"Should have exactly {expectedCount} workspaces");
@@ -841,6 +846,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
+
+        // Wait for the page to be fully ready with workspace cards rendered
+        await workspacesPage.WaitForPageReadyAsync();
 
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(newName);
         Assert.That(hasWorkspace, Is.True, $"Updated workspace '{newName}' should be visible");
@@ -937,6 +945,11 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
+
+        // Wait for the transaction to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await transactionsPage.WaitForTransactionAsync(payee);
+
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
         Assert.That(hasTransaction, Is.True, "Transaction should be visible in the list");
     }
@@ -1014,6 +1027,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
+        // Wait for the page to be fully ready with workspace cards rendered
+        await workspacesPage.WaitForPageReadyAsync();
+
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
         Assert.That(canEdit, Is.True, "Owner should be able to edit workspace settings");
     }
@@ -1028,6 +1044,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var workspacesPage = GetOrCreateWorkspacesPage();
         await workspacesPage.NavigateAsync();
 
+        // Wait for the page to be fully ready with workspace cards rendered
+        await workspacesPage.WaitForPageReadyAsync();
+
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
         Assert.That(canDelete, Is.True, "Owner should be able to delete workspace");
     }
@@ -1040,6 +1059,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         var workspacesPage = GetOrCreateWorkspacesPage();
+        await workspacesPage.NavigateAsync();
+
+        // Wait for the page to be fully ready with workspace cards rendered
+        await workspacesPage.WaitForPageReadyAsync();
 
         // Verify exactly one workspace is visible
         var count = await workspacesPage.GetWorkspaceCountAsync();
