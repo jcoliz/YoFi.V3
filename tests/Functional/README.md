@@ -78,9 +78,9 @@ This separation ensures maintainability: UI changes only affect Page/Component M
 
 ## Targets
 
-1. **Docker container**. Run against a locally-built or remotely-pulled container image.
-2. **Local build**. Run against the locally-built development bits running in Visual Studio or running with `dotnet watch`.
-3. **Deployed instance**. Run against any deployed version in Azure App Service, including the production environment.
+1. **Development**. Run against the locally-built development bits running in Visual Studio or running with `dotnet watch`.
+2. **Container**. Run against a locally-built or remotely-pulled container image.
+3. **Production**. Run against any deployed version in Azure App Service, including the production environment.
 
 The choice of target is governed by a `.runsettings` file, providing details about the target.
 
@@ -110,28 +110,40 @@ Environment variables provide a flexible way to configure test targets without m
 
 ### RunSettings Files
 
-- **[`local.runsettings`](./local.runsettings)** - Local development (hardcoded localhost URLs)
-- **[`docker.runsettings`](./docker.runsettings)** - Docker container testing
-- **[`production.runsettings`](./production.runsettings)** - Production environment (references `PRODUCTION_*` variables from `.env`)
+- **[`runsettings/development.runsettings`](./runsettings/development.runsettings)** - Local development (hardcoded localhost URLs)
+- **[`runsettings/container.runsettings`](./runsettings/container.runsettings)** - Docker container testing
+- **[`runsettings/production.runsettings`](./runsettings/production.runsettings)** - Production environment (references `PRODUCTION_*` variables from `.env`)
 
 To run tests against production:
 ```powershell
-dotnet test --settings production.runsettings
+dotnet test --settings runsettings/production.runsettings
 ```
 
 You can create additional `.runsettings` files for other environments (staging, dev) following the same pattern.
 
-### Local build
+### Development build
 
-You can run tests against a build running locally, either in Visual Studio or with `dotnet watch`. In one window, launch the app. In another, run the functional tests with `local.runsettings`.
+Run tests against a build running locally, either in Visual Studio or with `dotnet watch`. In one window, launch the app. In another, run the functional tests:
 
-### Docker container
+```powershell
+dotnet test --settings runsettings/development.runsettings
+```
 
-Running in a docker container is a future project.
+### Container
 
-### Deployed instance
+Run tests against a locally-built or remotely-pulled container image:
 
-Likewise, running against a deployed instance is for the far future. Right now, the codebase cannot even be deployed!!
+```powershell
+dotnet test --settings runsettings/container.runsettings
+```
+
+### Production
+
+Run tests against a deployed instance in Azure App Service. First configure your `.env` file with production URLs, then run:
+
+```powershell
+dotnet test --settings runsettings/production.runsettings
+```
 
 ## Getting Started
 
