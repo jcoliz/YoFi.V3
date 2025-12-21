@@ -1,8 +1,8 @@
 # Product Requirements Document: Reports
 
 **Status**: Draft
-**Created**: [YYYY-MM-DD]
-**Owner**: [Your Name]
+**Created**: 2025-12-21
+**Owner**: James Coliz
 **Target Release**: [Version or Sprint]
 **ADO**: [Link to ADO Item]
 
@@ -123,9 +123,7 @@ This is an "income statement" made easier to use for lay users.
 
 ---
 
-## Technical Approach (Optional)
-
-[Brief description of the intended technical approach, if you have one in mind]
+## Technical Approach
 
 **Layers Affected**:
 - [x] Frontend (Vue/Nuxt): reports display page(s)
@@ -134,19 +132,23 @@ This is an "income statement" made easier to use for lay users.
 - [ ] Entities (Domain models)
 - [?] Database (Schema changes): Possibly changes to indexing
 
-**High-Level Entity Concepts**:
-
-**[EntityName] Entity** (new or modified):
-- PropertyName (description - what it represents, required/optional)
-- PropertyName (description)
-- PropertyName (description)
-
-[Add more entities as needed]
-
 **Key Business Rules**:
-1. **Rule Name** - Description of business rule that affects user experience
-2. **Rule Name** - Description of business rule
-3. [Add more business rules that belong in PRD scope]
+
+1. **Split-Based Aggregation** - Reports aggregate split amounts by category, not transaction amounts. Each split contributes independently to its category total.
+
+2. **Hierarchical Category Rollups** - Categories use `:` delimiter for hierarchy (e.g., "Home:Utilities:Electric"). Reports show both detail rows for each level and rollup subtotals for parent categories.
+
+3. **Income Category Convention** - Top-level "Income" category (case-insensitive) and all subcategories (e.g., "Income:Salary") are treated as income. All other categories are expenses. No special handling for unexpected signs (negative income is shown as negative).
+
+4. **Uncategorized Split Handling** - Whether uncategorized splits (empty string category) are included is defined per report. When included, they appear as top-level "Uncategorized" row. Each split in a multi-split transaction is counted independently.
+
+5. **Drill-Down Navigation** - Clicking any report cell/row opens transactions page in new browser tab with appropriate filters applied. Clicking subtotal rows (e.g., "Home") filters to all subcategories ("Home:*"). Filters are visible and editable on transactions page.
+
+6. **Year-over-Year Report** - Separate report type showing columns for each year where any data exists. Shows only years with data (no zero columns for missing years). No month-by-month view available for this report type.
+
+7. **Report Configuration** - Report definitions are hard-coded in application (not database-stored). Category filtering is defined at report-definition level. Users select from pre-defined reports only (custom report creation is future).
+
+8. **Performance Targets** - Real-time query of split data (no pre-aggregation). Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s.
 
 **Code Patterns to Follow**:
 - Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
@@ -158,200 +160,34 @@ This is an "income statement" made easier to use for lay users.
 
 ## Open Questions
 
-Based on my review of the Reports PRD, I have several clarifying questions to help refine the requirements and create a detailed implementation plan.
+### 1. **Built-in Report Definitions**
 
-### 1. **Category Structure & Data Model**
+What specific built-in reports should be included initially? Need to pull from YoFi V1.
 
-The PRD mentions "subtotals at each category level" (e.g., "Home:Utilities" and "Home"), but the current Transaction model doesn't have a category field - it uses splits instead.
+### 2. **Chart Visualization Library & Types**
 
-**A:** Category will be implemented when PRD-TRANSACTION-RECORD is implemented.
-
-**Questions:**
-- Should reports aggregate split amounts by category across all transactions?
-
-**A:** YES. We are actually displaying a summary of **SPLITS**
-
-- For hierarchical categories (e.g., "Home:Utilities:Electric"), should the report show:
-  - All three levels separately (Electric, Utilities, Home)?
-  - Only the deepest level with user-controlled depth display?
-  - Both detail rows and rollup subtotals?
-
-**A:** Both detail and rollup subtotals
-
-- How should transactions with multiple splits be counted? (e.g., if a transaction has splits for "Food:Groceries" and "Home:Supplies", does it appear in both categories?)
-
-**A:** In this case, the amount in groceries shows up in that summary cell, and supplies in that summary cell. For the "drill down" transaction view, then yes both transactions would show up. This is how transaction filtering should work with splits regardless of this.
-
-### 2. **Report Definitions & Built-in Reports**
-
-Story 1 mentions "pre-defined income and/or expense reports" but doesn't specify what these are.
-
-**Questions:**
-- What specific built-in reports should be included? Examples:
-  - "All Expenses" (excludes income/positive amounts)?
-  - "All Income" (only positive amounts)?
-  - "Net Income/Expense" (both)?
-  - Specific category groups (e.g., "Housing", "Transportation")?
-
-**A:** Good question. I just need to go pull this in from YoFi V1
-
-- How do users distinguish income from expenses? By:
-  - Amount sign (positive = income, negative = expense)?
-  - Category naming convention?
-  - Explicit transaction type field (future enhancement)?
-
-**A:** Good question. For now, we will define some hard-coded conventions for reports. In this case "Income" top level category is income, everything else is expense. Hard-coded categories will be case insensitive. For this question, an "Income" report would include all subcategories of top-level "Income"
-
-- Should report definitions be stored in the database or hardcoded in the application?
-
-**A:** For simplicity, I was thinking we would hard-code them. I'm open to reconsidering this
-
-- Negative amounts in Income category: If someone enters a negative amount in an "Income:Salary" split, does it show as negative income or get treated specially?
-
-No special treatment for unexpect sign in any category. This is normal and expected behavior.
-
-### 3. **Category Filtering in Report Definitions**
-
-Story 1 says "User's choice of report filters which categories are included or excluded."
-
-**Questions:**
-- Is category filtering defined at report-definition level (each built-in report has fixed categories) OR at runtime (user selects which categories to include/exclude)?
-
-**A:** Category filtering is defined as property  of the report defition.
-
-- If runtime filtering: Should this be a multi-select list, regex pattern, or category hierarchy selector?
-- Can users create custom combinations of the built-in report definitions, or only use them as-is?
-
-**A:** Until "User - Defines a custom report" is complete, NO they can only choose a pre-defined report
-
-### 4. **Data Aggregation & Performance**
-
-Reports need to aggregate potentially thousands of transactions across multiple dimensions (time, category, splits).
-
-**Questions:**
-- Should reports query raw transaction/split data in real-time, or use a pre-aggregated reporting table/view?
-
-**A:** YoFi does this now using Azure SQL server. I an seeing many thousands of records across 15 years, and the year-over-year report gets built in less than a second. This requirement may affect our choice of database, which I accept.
-
-- What is the acceptable performance threshold? (e.g., <500ms for a year's worth of data?)
-
-**A:** <500ms for a single year is good. As noted above, YoFi today aggregates all data over 15 years in roughly a second. We should strive for no more than 2s.
-
-- Should there be a maximum date range for performance reasons?
-
-**A:** Absolutely not.
-
-- How many transactions do you anticipate per tenant? (hundreds, thousands, tens of thousands?)
-
-**A:** Good question, I will research this
-
-### 5. **Chart Visualization Specifics**
-
-Story 3 mentions charts but leaves the specifics as "TBD."
-
-**Questions:**
 - What chart library should be used? (Chart.js, Recharts, D3, other?)
 - For month-by-month reports, which chart type? (line chart, bar chart, stacked bar?)
 - For category breakdown reports, which chart type? (pie chart, horizontal bar, tree map?)
 - Should charts be interactive (clickable to drill down)?
 - Are there accessibility requirements for charts (screen reader support, alternative data tables)?
 
-### 6. **Summary Report Structure**
+### 3. **Summary Report Sections**
 
-Story 4 describes a "summary report" but leaves the sections "to be designed."
+What high-level sections should the summary report include? Need to pull from YoFi V1.
 
-**Questions:**
-- What high-level sections should the summary include? Suggestions:
-  - Total Income vs. Total Expenses
-  - Net Income (Income - Expenses)
-  - Top 5 Expense Categories
-  - Monthly spending trend (last 12 months)
-  - Uncategorized transaction warning/count
+Answered: Summary report allows year selection (YES), does not include year-over-year comparison (NO).
 
-**A:** Just need to go pull this over from YoFi, and add it in
+### 4. **State Management & User Preferences**
 
-- Should the summary always show the current year, or allow year selection?
-
-**A:** YES
-
-- Should it include year-over-year comparison data?
-
-**A:** NO
-
-### 7. **Drill-Down to Transactions (Story 7)**
-
-This is a critical feature for user trust and data verification.
-
-**Questions:**
-- When drilling down, should the transactions page open:
-  - In a new browser tab/window?
-  - In a modal overlay?
-  - By navigating to the transactions page with filters applied?
-
-**A:** I like the idea of in a new browser tab
-
-- Should the applied filter be visible and editable on the transactions page?
-
-**A:** YES
-
-- Should there be a "back to report" navigation affordance?
-
-**A:** NO, they're in a new tab, they can just close it.
-
-- What if the user clicks a subtotal row (e.g., "Home") - should it include all subcategories ("Home:*")?
-
-**A:** YES Exactly. This applies to all subtotals and even the report grand tota.
-
-### 8. **Year-over-Year Report (Story 6)**
-
-**Questions:**
-- Should this be a separate report type, or an option available for all reports?
-
-**A:** Separate report type. That's waht YoFi does today and it works well.
-
-- What happens if data doesn't exist for some years (e.g., user started in 2023)? Show zeros or omit columns?
-
-**A:** Show columns for all years where there is any data in any row
-
-- Should there be year-over-year % change calculations?
-
-**A:** Interesting idea, will consider. Right now, I worry that this clutters too much
-
-- Can this be combined with month-by-month view (12 months × N years grid)?
-
-**A:** NO
-
-### 9. **Uncategorized Transactions Handling**
-
-**Questions:**
-- Should uncategorized splits (empty string category) be:
-  - Always shown as "Uncategorized" row?
-  - Only shown if user opts in via report configuration?
-  - Different behavior for different report types?
-
-**A:** Whether to include uncategorized transaction is a property of the report definition. I was not imaginging allowing user to configure, until such time as they are creating custom reports
-
-- If a transaction has 2 splits (one categorized, one uncategorized), does the transaction appear in both sections?
-
-**A:** We are really only summarizing **SPLITS** so the categorized split will affect the total of that category, and the uncategorized split will affect the total of the uncategorized category
-
-### 10. **State Management & User Preferences**
-
-**Questions:**
-- Should report configuration (year, depth level, chart/table view) be:
-  - Persisted per user (saved to database)?
-  - Saved in browser localStorage only?
-  - Reset to defaults each visit?
-
-**A:** Will have to think about this some more
-
+- Should report configuration (year, depth level, chart/table view) be persisted per user (database), saved in browser localStorage, or reset each visit?
 - Should there be "Save Report Configuration" functionality for later recall?
 
-**A:** Will have to think about this some more
+Note: Custom report configurations (Story 8 - future) will be tenant-scoped.
 
-- Are report configurations tenant-scoped or user-scoped?
+### 5. **Transaction Volume Research**
 
-**A:** When user is creating own reports, they are tenant scoped.
+How many transactions are anticipated per tenant? (hundreds, thousands, tens of thousands?) - Research needed for indexing strategy.
 
 ---
 
@@ -367,9 +203,10 @@ This is a critical feature for user trust and data verification.
 
 **Dependencies**:
 - Requires PRD-TRANSACTION-SPLITS to be complete, so Category field is available. We are actually summarizing the **SPLITS** in the system
-- Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down
+- Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accomodate needs of report-driven filters
 
 **Constraints**:
+- We may need to revisit choice of database technology if current choice doesn't support reporting perf metrics.
 - [Technical, time, or resource constraints]
 
 ---
