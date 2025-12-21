@@ -64,7 +64,8 @@ Bank file formats may or may not include unique transaction identifiers:
 
 Bank format imports (OFX/QFX) go through a review stage before becoming permanent:
 - **Imported transactions are stored in temporary "import review" state**
-- **User can return to review state indefinitely** - no time pressure
+- **User can return to review state indefinitely** - no time pressure, no expiration
+- **Review state persists across sessions** - user can close browser and return later
 - **Separate API capability** provides import candidates for review
 - **Three categories of import candidates**:
   1. **New transactions** - No conflict, ready to import (selected by default)
@@ -73,6 +74,7 @@ Bank format imports (OFX/QFX) go through a review stage before becoming permanen
 - **User explicitly approves** which transactions to accept into permanent storage
 - **Import review transactions not included** in reports, exports, or analytics until accepted
 - **XLSX imports do NOT use this workflow** - they import directly with Key-based create/update logic
+- **Categories are ad-hoc** - no validation against existing category list, user can enter any valid value (as defined by Transactions-Record PRD)
 
 ### **Export Filtering**
 
@@ -109,6 +111,7 @@ Exports support **date range filtering only**:
   - Potential duplicates (same Key/hash, different data, highlighted and deselected by default)
 - [ ] User can select/deselect individual transactions for import
 - [ ] User can click "Accept Selected" to move approved transactions into primary transactions
+- [ ] User can click "Delete All" to wipe the entire set of in-review transactions, potentially start again.
 - [ ] User can leave Import Review page and return later (review state persists)
 - [ ] Transactions in import review state are NOT included in reports, exports, or transaction lists
 - [ ] System uses bank-provided transaction ID as Key, or generates hash from (Date + Amount + Payee) if no ID
@@ -210,6 +213,9 @@ Exports support **date range filtering only**:
 - [ ] User sees summary: X records imported, Y records failed
 - [ ] User can download error report with failed rows and reasons
 - [ ] System does not create partial/incomplete records
+- [ ] XLSX imports only accept cell values (formulas are not evaluated)
+- [ ] If splits reference non-existent parent transaction Key, system shows warning but allows user to proceed
+- [ ] Standard controller logging is applied (who imported, when, how many records)
 
 ### Story 8: User - Export Complete Data Archive (GDPR Compliance)
 **As a** YoFi user
@@ -320,12 +326,9 @@ Exports support **date range filtering only**:
 ## Open Questions
 
 - [ ] What is the exact field name for unique transaction ID in OFX and QFX formats? (Need to identify during parser implementation)
-- [X] Should import review batches expire after a certain time period, or persist indefinitely? NO, they persist indefinitely. In YoFi V1, we added an "Imported" flag to the entity.
 - [ ] What file size limits should we enforce? (Defer until real-world testing provides data)
-- [X] Should we support Excel formulas in XLSX imports, or require values only? NO values only
-- [X] How should we handle splits when their parent transaction Key doesn't exist during import? This is a warning that should be surfaced to the user.
-- [X] Should category values be validated against existing categories, or create new ones automatically? NO There is no concept of "creating categories". Categories are 100% ad hoc.
-- [X] What level of logging/auditing is needed for import operations? (Track who imported what, when) Standard controller logging matching existing patterns
+- [ ] Should we provide user guidance/tooltips explaining the import review workflow for first-time users?
+- [ ] Should there be a limit on how many pending import batches a user can have simultaneously?
 
 ---
 
@@ -368,7 +371,6 @@ The original YoFi V1 application (https://github.com/jcoliz/yofi) implemented co
 - Import review workflow for duplicate management
 - GUID Keys throughout (no database IDs)
 - Consistent Key-based update pattern across all entities
-
 
 ---
 

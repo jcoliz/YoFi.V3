@@ -62,7 +62,7 @@ All of these will be considered as separate features. The goal of this is to get
 - [ ] Can add free text categories, at unlimited depth, separated by `:`
 - [ ] Can add a memorandum (memo) field with additional text to provide additional context
 
-Note that valid categories are described by the following regular expressionL
+Note that valid categories are described by the following regular expression. The only **invalid** category value is one with excess whitespace at the start or end, or around a separator. We will always accept "invalid" values, and just trim the erroneous whitespace.
 
 ```re
 ^(?:\S(?:[^:])*?\S|\S)(?::(?:\S(?:[^:])*?\S|\S))*$
