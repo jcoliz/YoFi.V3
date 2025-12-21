@@ -12,6 +12,8 @@ namespace YoFi.V3.Tests.Functional.Components;
 /// </remarks>
 public class LoginState(IPage page, ILocator parent)
 {
+    #region Component Elements
+
     /// <summary>
     /// Root element of the LoginState component
     /// </summary>
@@ -57,6 +59,10 @@ public class LoginState(IPage page, ILocator parent)
     /// </summary>
     public ILocator CreateAccountMenuItem => Menu.GetByTestId("CreateAccount");
 
+    #endregion
+
+    #region Actions
+
     /// <summary>
     /// Opens the dropdown menu
     /// </summary>
@@ -64,28 +70,6 @@ public class LoginState(IPage page, ILocator parent)
     {
         await Trigger.ClickAsync();
         await Menu.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Checks if a user is currently logged in
-    /// </summary>
-    /// <returns>True if username is visible, false otherwise</returns>
-    public async Task<bool> IsLoggedInAsync()
-    {
-        return await Username.IsVisibleAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Gets the displayed username
-    /// </summary>
-    /// <returns>The username text, or null if not logged in</returns>
-    public async Task<string?> GetUsernameAsync()
-    {
-        if (await IsLoggedInAsync())
-        {
-            return await Username.TextContentAsync();
-        }
-        return null;
     }
 
     /// <summary>
@@ -135,4 +119,32 @@ public class LoginState(IPage page, ILocator parent)
         var registerPage = new RegisterPage(page);
         await registerPage.WaitForPageReadyAsync();
     }
+
+    #endregion
+
+    #region Query Methods
+
+    /// <summary>
+    /// Checks if a user is currently logged in
+    /// </summary>
+    /// <returns>True if username is visible, false otherwise</returns>
+    public async Task<bool> IsLoggedInAsync()
+    {
+        return await Username.IsVisibleAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the displayed username
+    /// </summary>
+    /// <returns>The username text, or null if not logged in</returns>
+    public async Task<string?> GetUsernameAsync()
+    {
+        if (await IsLoggedInAsync())
+        {
+            return await Username.TextContentAsync();
+        }
+        return null;
+    }
+
+    #endregion
 }

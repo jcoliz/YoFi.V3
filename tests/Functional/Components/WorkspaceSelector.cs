@@ -14,6 +14,8 @@ namespace YoFi.V3.Tests.Functional.Components;
 /// </remarks>
 public class WorkspaceSelector(BasePage page, ILocator parent)
 {
+    #region Component Elements
+
     /// <summary>
     /// Root element of the WorkspaceSelector component
     /// </summary>
@@ -99,6 +101,10 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     /// </summary>
     public ILocator ManageWorkspacesButton => MenuPanel.GetByTestId("manage-workspaces-button");
 
+    #endregion
+
+    #region Actions
+
     /// <summary>
     /// Opens the workspace dropdown menu
     /// </summary>
@@ -121,6 +127,45 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
         await MenuTrigger.ClickAsync();
         await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    /// <summary>
+    /// Selects a workspace from the dropdown by name
+    /// </summary>
+    /// <param name="workspaceName">The name of the workspace to select</param>
+    public async Task SelectWorkspaceAsync(string workspaceName)
+    {
+        // Bug AV#1979 call stack here
+        await OpenMenuAsync();
+        await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
+
+        // Wait for the CurrentWorkspaceName to update to the selected workspace
+        // This is more reliable than waiting for NetworkIdle
+        await CurrentWorkspaceName.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+        // Also verify the text matches what we selected (with a reasonable timeout for text content)
+        var currentName = await CurrentWorkspaceName.TextContentAsync();
+        if (currentName != workspaceName)
+        {
+            // Give it a bit more time if names don't match yet
+            await page.Page!.WaitForTimeoutAsync(500);
+        }
+
+        await CloseMenuAsync();
+    }
+
+    /// <summary>
+    /// Clicks the Manage Workspaces button
+    /// </summary>
+    public async Task ClickManageWorkspacesAsync()
+    {
+        await OpenMenuAsync();
+        await ManageWorkspacesButton.ClickAsync();
+        // No need to wait here - let the destination page handle its own ready state
+    }
+
+    #endregion
+
+    #region Query Methods
 
     /// <summary>
     /// Gets the currently displayed workspace name
@@ -209,41 +254,6 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     }
 
     /// <summary>
-    /// Selects a workspace from the dropdown by name
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace to select</param>
-    public async Task SelectWorkspaceAsync(string workspaceName)
-    {
-        // Bug AV#1979 call stack here
-        await OpenMenuAsync();
-        await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
-
-        // Wait for the CurrentWorkspaceName to update to the selected workspace
-        // This is more reliable than waiting for NetworkIdle
-        await CurrentWorkspaceName.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-
-        // Also verify the text matches what we selected (with a reasonable timeout for text content)
-        var currentName = await CurrentWorkspaceName.TextContentAsync();
-        if (currentName != workspaceName)
-        {
-            // Give it a bit more time if names don't match yet
-            await page.Page!.WaitForTimeoutAsync(500);
-        }
-
-        await CloseMenuAsync();
-    }
-
-    /// <summary>
-    /// Clicks the Manage Workspaces button
-    /// </summary>
-    public async Task ClickManageWorkspacesAsync()
-    {
-        await OpenMenuAsync();
-        await ManageWorkspacesButton.ClickAsync();
-        // No need to wait here - let the destination page handle its own ready state
-    }
-
-    /// <summary>
     /// Gets the list of available workspace options from the select dropdown
     /// </summary>
     /// <returns>Array of workspace names available for selection</returns>
@@ -284,6 +294,10 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
         return null;
     }
 
+    #endregion
+
+    #region Wait Helpers
+
     /// <summary>
     /// Waits for the workspace selector to finish loading
     /// </summary>
@@ -295,4 +309,6 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
         // Close menu after waiting
         await MenuTrigger.ClickAsync();
     }
+
+    #endregion
 }

@@ -8,8 +8,19 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
     [GeneratedRegex("/api/Weather")]
     private static partial Regex WeatherApiRegex();
 
+    #region Page Elements
+
+    /// <summary>
+    /// Forecast table body containing all forecast rows
+    /// </summary>
     public ILocator ForecastTableBody => Page!.GetByTestId("forecast-table-body");
+
+    /// <summary>
+    /// All forecast rows in the table
+    /// </summary>
     public ILocator ForecastRows => ForecastTableBody.Locator("tr");
+
+    #endregion
 
     #region Navigation
 
@@ -26,30 +37,28 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
 
     #endregion
 
+    #region Query Methods
 
+    /// <summary>
+    /// Gets the count of forecast rows
+    /// </summary>
     public async Task<int> GetForecastCountAsync()
     {
         return await ForecastRows.CountAsync();
     }
 
     /// <summary>
-    /// Waits for at least the specified number of forecast rows to be visible
+    /// Gets all forecast rows as a list
     /// </summary>
-    /// <param name="minCount">Minimum number of rows to wait for</param>
-    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
-    public async Task WaitForForecastRowsAsync(int minCount = 5, float timeout = 5000)
-    {
-        await Page!.WaitForFunctionAsync(
-            $"() => document.querySelectorAll('[data-test-id=\"forecast-table-body\"] tr').length >= {minCount}",
-            new PageWaitForFunctionOptions { Timeout = timeout }
-        );
-    }
-
     public async Task<IReadOnlyList<ILocator>> GetAllForecastRowsAsync()
     {
         return await ForecastRows.AllAsync();
     }
 
+    /// <summary>
+    /// Gets forecast data from a specific row
+    /// </summary>
+    /// <param name="row">The row locator</param>
     public async Task<ForecastRowData> GetForecastRowDataAsync(ILocator row)
     {
         var cells = await row.Locator("td").AllAsync();
@@ -81,6 +90,9 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
         );
     }
 
+    /// <summary>
+    /// Gets all parsed dates from forecast rows
+    /// </summary>
     public async Task<List<DateTime>> GetParsedDatesAsync()
     {
         var rows = await GetAllForecastRowsAsync();
@@ -99,6 +111,30 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
         return dates;
     }
 
+    #endregion
+
+    #region Wait Helpers
+
+    /// <summary>
+    /// Waits for at least the specified number of forecast rows to be visible
+    /// </summary>
+    /// <param name="minCount">Minimum number of rows to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForForecastRowsAsync(int minCount = 5, float timeout = 5000)
+    {
+        await Page!.WaitForFunctionAsync(
+            $"() => document.querySelectorAll('[data-test-id=\"forecast-table-body\"] tr').length >= {minCount}",
+            new PageWaitForFunctionOptions { Timeout = timeout }
+        );
+    }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    /// Parses temperature text to extract Celsius and Fahrenheit values
+    /// </summary>
     private static (double? celsius, double? fahrenheit) ParseTemperature(string temperatureText)
     {
         var celsiusMatch = Regex.Match(temperatureText ?? "", @"(-?\d+(?:\.\d+)?)\s*°?C");
@@ -109,8 +145,13 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
 
         return (celsius, fahrenheit);
     }
+
+    #endregion
 }
 
+/// <summary>
+/// Record representing data from a forecast row
+/// </summary>
 public record ForecastRowData(
     string? Date,
     DateTime? ParsedDate,

@@ -11,10 +11,29 @@ public class BasePage(IPage? _page)
 
     public IPage? Page { get; set; } = _page;
 
-    public ILocator Header => Page!.Locator("h1");
+    #region Components
 
+    /// <summary>
+    /// Site header component with navigation and login state
+    /// </summary>
     public SiteHeader SiteHeader => new SiteHeader(Page!, Page!.Locator("body"));
 
+    #endregion
+
+    #region Common Page Elements
+
+    /// <summary>
+    /// Main page heading (h1)
+    /// </summary>
+    public ILocator Header => Page!.Locator("h1");
+
+    #endregion
+
+    #region Navigation
+
+    /// <summary>
+    /// Navigates to the site root
+    /// </summary>
     public async Task<IResponse> LaunchSite()
     {
         var result = await Page!.GotoAsync("/");
@@ -22,52 +41,33 @@ public class BasePage(IPage? _page)
         return result!;
     }
 
-    public async Task<string> GetPageHeading()
-    {
-        return await Header.InnerTextAsync();
-    }
-
-    public async Task<string> GetPageTitle()
-    {
-        return await Page!.TitleAsync();
-    }
-
-    public async Task WaitUntilLoaded()
-    {
-        await Page!.GetByTestId("BaseSpinner").WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Hidden });
-    }
-
+    /// <summary>
+    /// Navigates using sidebar links
+    /// </summary>
+    /// <param name="link">The test ID of the sidebar link</param>
     public async Task NavigateToUsingSidebar(string link)
     {
         await Page!.Locator("#SideBar").GetByTestId(link).ClickAsync();
     }
 
-    // TODO: Work out duplication with base functional test versions of these!
-    public async Task WaitForApi(Func<Task> action, string? endpoint = null)
+    #endregion
+
+    #region Query Methods
+
+    /// <summary>
+    /// Gets the main page heading text
+    /// </summary>
+    public async Task<string> GetPageHeading()
     {
-        throw new NotImplementedException("Prefer regex version of WaitForApi");
+        return await Header.InnerTextAsync();
     }
 
-    public async Task WaitForApi(Func<Task> action, Regex regex)
+    /// <summary>
+    /// Gets the page title from the browser
+    /// </summary>
+    public async Task<string> GetPageTitle()
     {
-        var response = await Page!.RunAndWaitForResponseAsync(action, regex);
-        TestContext.Out.WriteLine("API request {0}", response.Url);
-
-        // We also test failure cases, so we don't assert here
-        // TODO: Consider returning the response for further checking
-        // Assert.That(response!.Ok, Is.True);
-    }
-
-    public async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)
-    {
-        var context = TestContext.Parameters["screenshotContext"] ?? "Local";
-        var testclassfull = $"{TestContext.CurrentContext.Test.ClassName}";
-        var testclass = testclassfull.Split(".").Last();
-        var testname = MakeValidFileName($"{TestContext.CurrentContext.Test.Name}");
-        var displaymoment = string.IsNullOrEmpty(moment) ? string.Empty : $"-{moment.Replace('/','-')}";
-        var filename = $"Screenshot/{context}/{testclass}/{testname}{displaymoment}.png";
-        await Page!.ScreenshotAsync(new PageScreenshotOptions() { Path = filename, OmitBackground = true, FullPage = fullPage });
-        TestContext.AddTestAttachment(filename);
+        return await Page!.TitleAsync();
     }
 
     /// <summary>
@@ -88,6 +88,64 @@ public class BasePage(IPage? _page)
         return await locator.IsEnabledAsync();
     }
 
+    #endregion
+
+    #region Wait Helpers
+
+    /// <summary>
+    /// Waits for the loading spinner to disappear
+    /// </summary>
+    public async Task WaitUntilLoaded()
+    {
+        await Page!.GetByTestId("BaseSpinner").WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Hidden });
+    }
+
+    // TODO: Work out duplication with base functional test versions of these!
+    public async Task WaitForApi(Func<Task> action, string? endpoint = null)
+    {
+        throw new NotImplementedException("Prefer regex version of WaitForApi");
+    }
+
+    /// <summary>
+    /// Executes an action and waits for a matching API response
+    /// </summary>
+    /// <param name="action">Action that triggers the API call</param>
+    /// <param name="regex">Regex pattern to match the API endpoint</param>
+    public async Task WaitForApi(Func<Task> action, Regex regex)
+    {
+        var response = await Page!.RunAndWaitForResponseAsync(action, regex);
+        TestContext.Out.WriteLine("API request {0}", response.Url);
+
+        // We also test failure cases, so we don't assert here
+        // TODO: Consider returning the response for further checking
+        // Assert.That(response!.Ok, Is.True);
+    }
+
+    #endregion
+
+    #region Screenshot Helpers
+
+    /// <summary>
+    /// Captures a screenshot of the current page
+    /// </summary>
+    /// <param name="moment">Optional moment identifier for the screenshot filename</param>
+    /// <param name="fullPage">Whether to capture the full page or just the viewport</param>
+    public async Task SaveScreenshotAsync(string? moment = null, bool fullPage = true)
+    {
+        var context = TestContext.Parameters["screenshotContext"] ?? "Local";
+        var testclassfull = $"{TestContext.CurrentContext.Test.ClassName}";
+        var testclass = testclassfull.Split(".").Last();
+        var testname = MakeValidFileName($"{TestContext.CurrentContext.Test.Name}");
+        var displaymoment = string.IsNullOrEmpty(moment) ? string.Empty : $"-{moment.Replace('/','-')}";
+        var filename = $"Screenshot/{context}/{testclass}/{testname}{displaymoment}.png";
+        await Page!.ScreenshotAsync(new PageScreenshotOptions() { Path = filename, OmitBackground = true, FullPage = fullPage });
+        TestContext.AddTestAttachment(filename);
+    }
+
+    #endregion
+
+    #region Helpers
+
     // https://stackoverflow.com/questions/309485/c-sharp-sanitize-file-name
     private static string MakeValidFileName( string name )
     {
@@ -96,5 +154,7 @@ public class BasePage(IPage? _page)
 
         return System.Text.RegularExpressions.Regex.Replace( name, invalidRegStr, "_" );
     }
+
+    #endregion
 
 }

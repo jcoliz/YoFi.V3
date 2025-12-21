@@ -5,7 +5,16 @@ namespace YoFi.V3.Tests.Functional.Pages;
 
 public class HomePage(IPage? _page): BasePage(_page)
 {
+    #region Page Elements
+
+    /// <summary>
+    /// Main brochure section on the home page
+    /// </summary>
     public ILocator BrochureSection => Page!.GetByTestId("brochure-section");
+
+    #endregion
+
+    #region Wait Helpers
 
     /// <summary>
     /// Waits for the home page to fully load by ensuring the brochure section is visible
@@ -22,4 +31,6 @@ public class HomePage(IPage? _page): BasePage(_page)
     {
         await EnsurePageLoaded(timeout);
     }
+
+    #endregion
 }

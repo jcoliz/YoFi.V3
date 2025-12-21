@@ -7,16 +7,39 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     [GeneratedRegex("/api/auth/login")]
     private static partial Regex LoginApiRegex();
 
+    #region Page Elements
+
+    /// <summary>
+    /// Main login form view
+    /// </summary>
     public ILocator View => Page!.GetByTestId("LoginForm");
+
+    /// <summary>
+    /// Username/email input field
+    /// </summary>
     public ILocator UsernameInput => View.GetByTestId("username");
+
+    /// <summary>
+    /// Password input field
+    /// </summary>
     public ILocator PasswordInput => View.GetByTestId("password");
+
+    /// <summary>
+    /// Login submit button
+    /// </summary>
     public ILocator LoginButton => View.GetByTestId("Login");
+
+    /// <summary>
+    /// Error display section
+    /// </summary>
     public ILocator ErrorDisplay => View.GetByTestId("error-display");
 
     /// <summary>
     /// Link to navigate to the registration page
     /// </summary>
     public ILocator CreateAccountLink => Page!.GetByTestId("create-account-link");
+
+    #endregion
 
     #region Navigation
 
@@ -32,18 +55,199 @@ public partial class LoginPage(IPage _page): BasePage(_page)
         }
     }
 
+    /// <summary>
+    /// Navigates to the registration page
+    /// </summary>
+    public async Task NavigateToCreateAccountAsync()
+    {
+        await CreateAccountLink.ClickAsync();
+    }
+
     #endregion
 
+    #region Login Actions
+
+    /// <summary>
+    /// Performs a complete login with credentials
+    /// </summary>
+    /// <param name="email">User email</param>
+    /// <param name="password">User password</param>
     public async Task LoginAsync(string email, string password)
     {
         await FillCredentialsWithVueWaitAsync(email, password);
         await ClickLoginButtonAsync();
     }
 
+    /// <summary>
+    /// Enters credentials without submitting
+    /// </summary>
+    /// <param name="email">User email</param>
+    /// <param name="password">User password</param>
     public async Task EnterCredentialsAsync(string email, string password)
     {
         await FillCredentialsWithVueWaitAsync(email, password);
     }
+
+    /// <summary>
+    /// Enters only username, leaving password empty
+    /// </summary>
+    /// <param name="username">Username to enter</param>
+    public async Task EnterUsernameOnlyAsync(string username)
+    {
+        await UsernameInput.FillAsync(username);
+        await PasswordInput.ClearAsync();
+        // Intentionally leave password empty for validation testing
+    }
+
+    /// <summary>
+    /// Clicks the login button and waits for the login API call
+    /// </summary>
+    public async Task ClickLoginButtonAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await LoginButton.ClickAsync();
+        }, LoginApiRegex());
+    }
+
+    /// <summary>
+    /// Clicks the login button without waiting for API (for validation testing)
+    /// </summary>
+    public async Task ClickLoginButtonForValidation()
+    {
+        await LoginButton.ClickAsync();
+    }
+
+    /// <summary>
+    /// Clears the login form
+    /// </summary>
+    public async Task ClearFormAsync()
+    {
+        await UsernameInput.ClearAsync();
+        await PasswordInput.ClearAsync();
+    }
+
+    #endregion
+
+    #region Query Methods
+
+    /// <summary>
+    /// Checks if an error message is displayed
+    /// </summary>
+    /// <param name="expectedError">Expected error message text</param>
+    public async Task<bool> HasErrorMessageAsync(string expectedError)
+    {
+        await WaitForErrorDisplayAsync();
+        var errorText = await ErrorDisplay.InnerTextAsync();
+        return errorText.Contains(expectedError);
+    }
+
+    /// <summary>
+    /// Checks if a validation error is displayed
+    /// </summary>
+    public async Task<bool> HasValidationErrorAsync()
+    {
+        await ErrorDisplay.WaitForAsync();
+        var errorText = await ErrorDisplay.InnerTextAsync();
+        return !string.IsNullOrEmpty(errorText);
+    }
+
+    /// <summary>
+    /// Checks if currently on the login page
+    /// </summary>
+    public async Task<bool> IsOnLoginPageAsync()
+    {
+        return await View.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Checks if the login button is disabled
+    /// </summary>
+    public async Task<bool> IsLoginButtonDisabledAsync()
+    {
+        return await LoginButton.IsDisabledAsync();
+    }
+
+    /// <summary>
+    /// Checks if input fields are disabled
+    /// </summary>
+    public async Task<bool> AreInputsDisabledAsync()
+    {
+        var emailDisabled = await UsernameInput.IsDisabledAsync();
+        var passwordDisabled = await PasswordInput.IsDisabledAsync();
+        return emailDisabled && passwordDisabled;
+    }
+
+    /// <summary>
+    /// Check if the password field has HTML5 validation error (required field)
+    /// </summary>
+    public async Task<bool> HasPasswordRequiredValidationAsync()
+    {
+        // Check the HTML5 validity state
+        var validationMessage = await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
+        return !string.IsNullOrEmpty(validationMessage);
+    }
+
+    /// <summary>
+    /// Get the HTML5 validation message for the password field
+    /// </summary>
+    public async Task<string> GetPasswordValidationMessageAsync()
+    {
+        return await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
+    }
+
+    #endregion
+
+    #region Wait Helpers
+
+    /// <summary>
+    /// Waits for the error display to become visible
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForErrorDisplayAsync(int timeout = 5000)
+    {
+        await ErrorDisplay.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+    }
+
+    /// <summary>
+    /// Waits for the page to be ready
+    /// </summary>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await WaitForLoginButtonEnabledAsync(timeout);
+    }
+
+    /// <summary>
+    /// Waits until the login button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Useful when form validation needs to complete before the button is enabled.
+    /// Uses Playwright's WaitForAsync with Enabled state.
+    /// </remarks>
+    public async Task WaitForLoginButtonEnabledAsync(float timeout = 5000)
+    {
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the button is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await LoginButton.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return;
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Login button did not become enabled within {timeout}ms");
+    }
+
+    #endregion
+
+    #region Helpers
 
     /// <summary>
     /// Fills login credentials and waits for Vue reactivity to complete
@@ -104,134 +308,5 @@ public partial class LoginPage(IPage _page): BasePage(_page)
 
     }
 
-    public async Task EnterUsernameOnlyAsync(string username)
-    {
-        await UsernameInput.FillAsync(username);
-        await PasswordInput.ClearAsync();
-        // Intentionally leave password empty for validation testing
-    }
-
-    /// <summary>
-    /// Clicks the login button and waits for the login API call
-    /// </summary>
-    public async Task ClickLoginButtonAsync()
-    {
-        await WaitForApi(async () =>
-        {
-            await LoginButton.ClickAsync();
-        }, LoginApiRegex());
-    }
-
-    public async Task<bool> HasErrorMessageAsync(string expectedError)
-    {
-        await WaitForErrorDisplayAsync();
-        var errorText = await ErrorDisplay.InnerTextAsync();
-        return errorText.Contains(expectedError);
-    }
-
-    /// <summary>
-    /// Waits for the error display to become visible
-    /// </summary>
-    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
-    public async Task WaitForErrorDisplayAsync(int timeout = 5000)
-    {
-        await ErrorDisplay.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-    }
-
-    public async Task<bool> HasValidationErrorAsync()
-    {
-        await ErrorDisplay.WaitForAsync();
-        var errorText = await ErrorDisplay.InnerTextAsync();
-        return !string.IsNullOrEmpty(errorText);
-    }
-
-    public async Task<bool> IsOnLoginPageAsync()
-    {
-        return await View.IsVisibleAsync();
-    }
-
-    /// <summary>
-    /// Waits for the page to be ready
-    /// </summary>
-    public async Task WaitForPageReadyAsync(float timeout = 5000)
-    {
-        await WaitForLoginButtonEnabledAsync(timeout);
-    }
-
-    public async Task NavigateToCreateAccountAsync()
-    {
-        await CreateAccountLink.ClickAsync();
-    }
-
-    public async Task<bool> IsLoginButtonDisabledAsync()
-    {
-        return await LoginButton.IsDisabledAsync();
-    }
-
-    /// <summary>
-    /// Waits until the login button becomes enabled
-    /// </summary>
-    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
-    /// <remarks>
-    /// Useful when form validation needs to complete before the button is enabled.
-    /// Uses Playwright's WaitForAsync with Enabled state.
-    /// </remarks>
-    public async Task WaitForLoginButtonEnabledAsync(float timeout = 5000)
-    {
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await LoginButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return;
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Login button did not become enabled within {timeout}ms");
-    }
-
-    public async Task<bool> AreInputsDisabledAsync()
-    {
-        var emailDisabled = await UsernameInput.IsDisabledAsync();
-        var passwordDisabled = await PasswordInput.IsDisabledAsync();
-        return emailDisabled && passwordDisabled;
-    }
-
-    public async Task ClearFormAsync()
-    {
-        await UsernameInput.ClearAsync();
-        await PasswordInput.ClearAsync();
-    }
-
-    /// <summary>
-    /// Check if the password field has HTML5 validation error (required field)
-    /// </summary>
-    public async Task<bool> HasPasswordRequiredValidationAsync()
-    {
-        // Check the HTML5 validity state
-        var validationMessage = await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
-        return !string.IsNullOrEmpty(validationMessage);
-    }
-
-    /// <summary>
-    /// Get the HTML5 validation message for the password field
-    /// </summary>
-    public async Task<string> GetPasswordValidationMessageAsync()
-    {
-        return await PasswordInput.EvaluateAsync<string>("el => el.validationMessage");
-    }
-
-    /// <summary>
-    /// Clicks the login button without waiting for API (for validation testing)
-    /// </summary>
-    public async Task ClickLoginButtonForValidation()
-    {
-        await LoginButton.ClickAsync();
-    }
+    #endregion
 }

@@ -6,18 +6,39 @@ public class ProfilePage(IPage _page): BasePage(_page)
 {
     private static readonly Regex RefreshTokenApiRegex = new("/api/auth/refresh", RegexOptions.Compiled);
 
-    // Main sections
+    #region Page Elements
+
+    /// <summary>
+    /// Account information section
+    /// </summary>
     public ILocator AccountInfoSection => Page!.GetByTestId("AccountInfo");
+
+    /// <summary>
+    /// Workspace information section
+    /// </summary>
     public ILocator WorkspaceInfoSection => Page!.GetByTestId("WorkspaceInfo");
 
-    // Account information display
+    /// <summary>
+    /// Email display in account information
+    /// </summary>
     public ILocator EmailDisplay => AccountInfoSection.GetByTestId("Email");
+
+    /// <summary>
+    /// Username display in account information
+    /// </summary>
     public ILocator UsernameDisplay => AccountInfoSection.GetByTestId("Username");
 
-    // Account action buttons
+    /// <summary>
+    /// Logout button
+    /// </summary>
     public ILocator LogoutButton => Page!.GetByTestId("Logout");
 
+    /// <summary>
+    /// Refresh token button
+    /// </summary>
     public ILocator RefreshButton => Page!.GetByTestId("refresh-token");
+
+    #endregion
 
     #region Navigation
 
@@ -33,6 +54,8 @@ public class ProfilePage(IPage _page): BasePage(_page)
 
     #endregion
 
+    #region Actions
+
     /// <summary>
     /// Clicks the refresh button and waits for the refresh token API call
     /// </summary>
@@ -44,16 +67,39 @@ public class ProfilePage(IPage _page): BasePage(_page)
         }, RefreshTokenApiRegex);
     }
 
+    /// <summary>
+    /// Clicks the logout button
+    /// </summary>
+    public async Task ClickLogoutAsync()
+    {
+        await LogoutButton.ClickAsync();
+    }
+
+    #endregion
+
+    #region Query Methods
+
+    /// <summary>
+    /// Gets the displayed email
+    /// </summary>
     public async Task<string> GetEmailAsync()
     {
         return await EmailDisplay.InnerTextAsync();
     }
 
+    /// <summary>
+    /// Gets the displayed username
+    /// </summary>
     public async Task<string> GetUsernameAsync()
     {
         return await UsernameDisplay.InnerTextAsync();
     }
 
+    /// <summary>
+    /// Checks if account information matches expected values
+    /// </summary>
+    /// <param name="email">Expected email</param>
+    /// <param name="username">Expected username</param>
     public async Task<bool> HasAccountInformationAsync(string email, string username)
     {
         var displayedEmail = await GetEmailAsync();
@@ -61,27 +107,34 @@ public class ProfilePage(IPage _page): BasePage(_page)
         return displayedEmail == email && displayedUsername == username;
     }
 
-
+    /// <summary>
+    /// Checks if workspace information section is visible
+    /// </summary>
     public async Task<bool> HasWorkspaceInformationAsync()
     {
         return await WorkspaceInfoSection.IsVisibleAsync();
     }
 
-    public async Task ClickLogoutAsync()
-    {
-        await LogoutButton.ClickAsync();
-    }
-
+    /// <summary>
+    /// Checks if currently on the profile page
+    /// </summary>
     public async Task<bool> IsOnProfilePageAsync()
     {
         return await AccountInfoSection.IsVisibleAsync();
     }
 
+    /// <summary>
+    /// Waits for and checks if on the profile page
+    /// </summary>
     public async Task<bool> WaitForOnProfilePageAsync()
     {
         await AccountInfoSection.WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Visible });
         return await AccountInfoSection.IsVisibleAsync();
     }
+
+    #endregion
+
+    #region Wait Helpers
 
     /// <summary>
     /// Waits for the profile page to be ready
@@ -118,5 +171,7 @@ public class ProfilePage(IPage _page): BasePage(_page)
 
         throw new TimeoutException($"Logout button did not become enabled within {timeout}ms");
     }
+
+    #endregion
 
 }

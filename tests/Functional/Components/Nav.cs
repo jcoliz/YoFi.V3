@@ -14,6 +14,8 @@ public class Nav(IPage page, ILocator parent)
 #pragma warning restore CS9113 // Remove unused parameter
 #pragma warning restore IDE0060 // Remove unused parameter
 {
+    #region Component Elements
+
     /// <summary>
     /// Root navigation element (nav tag)
     /// Returns the first nav element found within the parent locator
@@ -27,6 +29,10 @@ public class Nav(IPage page, ILocator parent)
     /// <returns>Locator for the navigation link with the specified text</returns>
     public ILocator this [string key] => Root.Locator(".nav-link").GetByText(key);
 
+    #endregion
+
+    #region Actions
+
     /// <summary>
     /// Clicks a navigation link by its visible text and initiates navigation
     /// </summary>
@@ -39,4 +45,6 @@ public class Nav(IPage page, ILocator parent)
         await this[option].ClickAsync();
         // Navigation happens - caller should wait for destination page to be ready
     }
+
+    #endregion
 }

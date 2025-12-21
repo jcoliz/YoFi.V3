@@ -12,6 +12,8 @@ namespace YoFi.V3.Tests.Functional.Components;
 /// </remarks>
 public class ErrorDisplay(ILocator parent)
 {
+    #region Component Elements
+
     /// <summary>
     /// Root element of the ErrorDisplay component
     /// </summary>
@@ -41,6 +43,41 @@ public class ErrorDisplay(ILocator parent)
     /// Close button for dismissing the error alert
     /// </summary>
     public ILocator CloseButton => Root.GetByTestId("close-button");
+
+    #endregion
+
+    #region Actions
+
+    /// <summary>
+    /// Clicks the "Show details" button to expand additional information
+    /// </summary>
+    public async Task ShowMoreAsync()
+    {
+        await MoreButton.ClickAsync();
+        await MoreText.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Clicks the "Hide details" button to collapse additional information
+    /// </summary>
+    public async Task HideMoreAsync()
+    {
+        await MoreButton.ClickAsync();
+        await MoreText.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Closes the error display by clicking the close button
+    /// </summary>
+    public async Task CloseAsync()
+    {
+        await CloseButton.ClickAsync();
+        await Root.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    #endregion
+
+    #region Query Methods
 
     /// <summary>
     /// Checks if the error display is currently visible
@@ -79,24 +116,6 @@ public class ErrorDisplay(ILocator parent)
     }
 
     /// <summary>
-    /// Clicks the "Show details" button to expand additional information
-    /// </summary>
-    public async Task ShowMoreAsync()
-    {
-        await MoreButton.ClickAsync();
-        await MoreText.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Clicks the "Hide details" button to collapse additional information
-    /// </summary>
-    public async Task HideMoreAsync()
-    {
-        await MoreButton.ClickAsync();
-        await MoreText.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
-    }
-
-    /// <summary>
     /// Gets the expanded details text (typically a trace ID)
     /// </summary>
     /// <returns>The more text content, or null if not visible</returns>
@@ -118,14 +137,9 @@ public class ErrorDisplay(ILocator parent)
         return await MoreText.IsVisibleAsync();
     }
 
-    /// <summary>
-    /// Closes the error display by clicking the close button
-    /// </summary>
-    public async Task CloseAsync()
-    {
-        await CloseButton.ClickAsync();
-        await Root.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
-    }
+    #endregion
+
+    #region Wait Helpers
 
     /// <summary>
     /// Waits for the error display to appear
@@ -142,4 +156,6 @@ public class ErrorDisplay(ILocator parent)
     {
         await Root.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
+
+    #endregion
 }
