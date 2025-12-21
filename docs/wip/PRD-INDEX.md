@@ -9,7 +9,14 @@ This index provides a centralized view of all Product Requirements Documents (PR
 | Transaction Splits | Design Complete | High | James Coliz | [PRD](transactions/PRD-TRANSACTION-SPLITS.md) | [Design](transactions/TRANSACTION-SPLIT-DESIGN.md) |
 | Transaction Filtering | Design Complete | High | James Coliz | [PRD](transactions/PRD-TRANSACTION-FILTERING.md) | [UI Recommendations](transactions/TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) |
 
-## Planned Features
+## Planned Features (V3.1+)
+
+| Feature | Status | Priority | Owner | PRD | Technical Design |
+|---------|--------|----------|-------|-----|------------------|
+| Transaction Bank Import | Draft | High | James Coliz | [PRD](import-export/PRD-BANK-IMPORT.md) | TBD |
+| Tenant Data Administration | Draft | High | James Coliz | [PRD](import-export/PRD-TENANT-DATA-ADMIN.md) | TBD |
+
+## Future Features
 
 | Feature | Status | Priority | Owner | PRD | Notes |
 |---------|--------|----------|-------|-----|-------|
