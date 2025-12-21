@@ -124,6 +124,49 @@ if (!formData.value.trim()) {
   - Use consistent patterns: `"{action}-submit-button"`, `"{action}-cancel-button"`
   - For forms: Use the field name: `"username"`, `"email"`, `"password"`, NOT `"username-input"`
 
+### Client-Ready Pattern for SSR/Hydration
+
+**CRITICAL**: When creating pages that will be tested with Playwright, implement the client-ready pattern to signal when Vue hydration is complete:
+
+```vue
+<script setup lang="ts">
+// 1. Create a ready ref that starts false
+const ready = ref(false)
+
+// 2. Set to true once component is mounted (client-side only)
+onMounted(() => {
+  ready.value = true
+})
+</script>
+
+<template>
+  <!-- 3. Disable interactive elements until ready -->
+  <button
+    type="submit"
+    data-test-id="Login"
+    :disabled="isLoading || !ready"
+  >
+    Sign In
+  </button>
+</template>
+```
+
+**Why This Is Critical:**
+
+- Initial page navigation delivers **server-rendered (SSR) HTML that is non-interactive**
+- Vue must "hydrate" this HTML to make it interactive
+- Tests that interact with elements before hydration completes will fail or behave unexpectedly
+- The `ready` ref pattern prevents tests from interacting with non-hydrated elements
+
+**Rules:**
+
+- **ALWAYS** add `const ready = ref(false)` to pages that will be tested
+- **ALWAYS** add `onMounted(() => { ready.value = true })` hook
+- **ALWAYS** include `!ready` in button disabled conditions: `:disabled="isLoading || !ready"`
+- **ALWAYS** combine with loading state - never use ready alone
+
+**See:** [`tests/Functional/NUXT-SSR-TESTING-PATTERN.md`](../../tests/Functional/NUXT-SSR-TESTING-PATTERN.md) for complete documentation and rationale.
+
 ### Loading State Pattern
 
 **ALWAYS** implement the loading state pattern for async operations (form submissions, API calls):

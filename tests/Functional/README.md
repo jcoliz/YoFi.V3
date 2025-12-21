@@ -170,6 +170,19 @@ whenever the Playwright packages are updated to a new version.
 
 See [`Steps/README.md`](./Steps/README.md) for detailed guidance on writing step definitions.
 
+## Nuxt SSR/Client Hydration Testing
+
+When testing Nuxt applications, there's a critical timing issue: **initial page navigation delivers server-rendered HTML that is non-interactive**. Tests must wait for Vue client hydration to complete before interacting with elements.
+
+**Pattern**: Use a `ready` ref in Vue components and wait for buttons to become enabled in Page Object Models.
+
+See [`NUXT-SSR-TESTING-PATTERN.md`](./NUXT-SSR-TESTING-PATTERN.md) for comprehensive documentation on:
+- Why this pattern is necessary
+- How to implement it in Vue components
+- How to implement it in Page Object Models
+- Examples from production code
+- Troubleshooting guide
+
 ## Known issues
 
 Unfortunately, the [Playwright Test for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) does not support C# test runners. This request was made and rejected. See [Feature: Playwright Test for VSCode Support for C# Projects ](https://github.com/microsoft/playwright/issues/38045).

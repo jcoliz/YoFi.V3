@@ -19,6 +19,8 @@ it only has to be changed on **one line** in the POM.
 Because waiting on load conditions is often quite page-specific, and changes
 based on design, all waiting is done in POMs.
 
+**Critical**: When testing Nuxt pages, always implement `WaitForPageReadyAsync()` that waits for client hydration to complete. See [`NUXT-SSR-TESTING-PATTERN.md`](../NUXT-SSR-TESTING-PATTERN.md) for the complete pattern and rationale.
+
 ## Hybrid Model Pattern
 
 Page object models in this project use a **Hybrid Approach** that provides both high-level workflow methods and low-level primitive actions. This gives test authors the flexibility to use simple one-line calls for happy-path scenarios or compose fine-grained steps for complex edge cases.
