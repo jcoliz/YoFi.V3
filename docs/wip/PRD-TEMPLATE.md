@@ -54,9 +54,13 @@
 - [ ] Entities (Domain models)
 - [ ] Database (Schema changes)
 
-**Key Components**:
-- [Component or file to modify/create]
-- [Component or file to modify/create]
+**Key Concepts**:
+- [High-level entity or component concept, not detailed implementation]
+- [Example: "PayeeMatchingRule entity with pattern matching and conflict resolution"]
+
+**Code Patterns to Follow**:
+- [Link to existing controller/feature to follow as pattern]
+- [Link to similar entity or validation example]
 
 ---
 
@@ -89,12 +93,19 @@
 
 [Any additional context, links to related documents, or background information]
 
+**Related Documents**:
+- [Link to companion Design Document if it exists]
+- [Link to related PRDs]
+
 ---
 
 ## Handoff Checklist (for AI implementation)
+
+> [!NOTE] See [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md) for guidance on PRD scope (WHAT/WHY vs HOW), what belongs in a PRD vs Design Document, and examples.
 
 When handing this off for detailed design/implementation:
 - [ ] All user stories have clear acceptance criteria
 - [ ] Open questions are resolved or documented as design decisions
 - [ ] Technical approach section indicates affected layers
-- [ ] Any existing code patterns or files to reference are noted
+- [ ] Code patterns to follow are referenced (links to similar controllers/features)
+- [ ] Companion design document created (for complex features) OR noted as "detailed design during implementation"
