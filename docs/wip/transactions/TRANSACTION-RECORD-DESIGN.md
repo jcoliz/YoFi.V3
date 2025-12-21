@@ -1,0 +1,892 @@
+# Transaction Record Design
+
+## Overview
+
+This document defines the database schema, DTO design, validation rules, and migration strategy for implementing the Transaction Record feature in YoFi.V3. This feature adds essential fields to the Transaction entity to support faithful bank data retention and user augmentation.
+
+## Requirements Summary
+
+### Core Requirements (from PRD)
+
+**Story 1: Represent Imported Data**
+- Retain bank date, amount, payee (already exist)
+- Add bank account source information (free text field)
+- Add bank unique identifier for duplicate detection
+
+**Story 2: User Augmentation**
+- Support free-text categories with unlimited depth using `:` delimiter (e.g., "Household Bills:Utilities:Electric")
+- Support memo field for additional context
+
+**Story 3: Transaction Management**
+- Enable editing all fields
+- Enable deleting transactions
+
+### Key Design Decisions
+
+- **Source field**: Free-text string (NOT a separate Account entity) - user flexibility over rigid structure
+- **Category field**: Single string with `:` delimiter (NOT normalized table) - rapid user entry, simple queries, described by the following regex:
+    ```re
+    ^(?:\S(?:[^:])*?\S|\S)(?::(?:\S(?:[^:])*?\S|\S))*$
+    ```
+- **ExternalId field**: For duplicate detection - importer's responsibility
+- **Memo field**: 1000 chars, nullable, plain text only
+- **No audit trail**: Edit-in-place with no history tracking (future enhancement if needed)
+
+
+
+## Current State Analysis
+
+### Existing Transaction Entity
+
+Current [`Transaction`](src/Entities/Models/Transaction.cs:13) entity (lines 13-35):
+
+```csharp
+[Table("YoFi.V3.Transactions")]
+public record Transaction : BaseTenantModel
+{
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public string Payee { get; set; } = string.Empty;
+    public decimal Amount { get; set; } = 0;
+
+    // Navigation properties
+    public virtual Tenant? Tenant { get; set; }
+}
+```
+
+**Already satisfies Story 1**:
+- ✅ Date retained
+- ✅ Amount retained
+- ✅ Payee retained
+
+**Missing fields**:
+- ❌ Source (bank account information)
+- ❌ ExternalId (bank's unique identifier)
+- ❌ Category (user categorization)
+- ❌ Memo (user notes)
+
+### Existing DTOs
+
+**[`TransactionResultDto`](src/Application/Dto/TransactionResultDto.cs:14)** (output):
+```csharp
+public record TransactionResultDto(Guid Key, DateOnly Date, decimal Amount, string Payee);
+```
+
+**[`TransactionEditDto`](src/Application/Dto/TransactionEditDto.cs:21)** (input):
+```csharp
+public record TransactionEditDto(
+    [DateRange(50, 5)] DateOnly Date,
+    [Range(typeof(decimal), "-999999999", "999999999")] decimal Amount,
+    [Required][NotWhiteSpace][MaxLength(200)] string Payee
+);
+```
+
+Both DTOs need to be updated to include new fields.
+
+## Database Schema
+
+### Updated Transaction Entity
+
+```csharp
+using System.ComponentModel.DataAnnotations.Schema;
+using YoFi.V3.Entities.Tenancy.Models;
+
+namespace YoFi.V3.Entities.Models;
+
+/// <summary>
+/// A financial transaction record tied to a specific tenant.
+/// </summary>
+/// <remarks>
+/// Transactions represent financial events imported from bank/credit card sources
+/// or entered manually. Each transaction can be categorized and annotated with
+/// additional user context.
+/// </remarks>
+[Table("YoFi.V3.Transactions")]
+public record Transaction : BaseTenantModel
+{
+    /// <summary>
+    /// Date the transaction occurred.
+    /// </summary>
+    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+
+    /// <summary>
+    /// Recipient or payee of the transaction.
+    /// </summary>
+    /// <remarks>
+    /// Required field. Typically populated from bank data or user entry.
+    /// </remarks>
+    [Required]
+    public string Payee { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Amount of the transaction.
+    /// </summary>
+    /// <remarks>
+    /// Can be negative for credits/refunds. YoFi is single-currency for now,
+    /// so no currency code is stored.
+    /// </remarks>
+    public decimal Amount { get; set; } = 0;
+
+    /// <summary>
+    /// Source of the transaction (e.g., "MegaBankCorp Checking 1234", "Manual Entry").
+    /// </summary>
+    /// <remarks>
+    /// Free-text field typically populated by importer with bank name, account type,
+    /// and last 4 digits of account number. Can be any text. Nullable for manual entries
+    /// or when source is unknown.
+    /// </remarks>
+    [MaxLength(200)]
+    public string? Source { get; set; }
+
+    /// <summary>
+    /// Bank's unique identifier for this transaction.
+    /// </summary>
+    /// <remarks>
+    /// Used for duplicate detection during import. Format varies by bank/institution.
+    /// Nullable for manual entries. Importer is responsible for populating this field
+    /// and preventing duplicate imports.
+    /// </remarks>
+    [MaxLength(100)]
+    public string? ExternalId { get; set; }
+
+    /// <summary>
+    /// User-assigned category for reporting and analysis.
+    /// </summary>
+    /// <remarks>
+    /// Free-text field supporting hierarchical categories separated by ':' delimiter.
+    /// Examples: "Bills:Utilities:Electric", "Food:Groceries", "Entertainment".
+    /// Nullable when transaction is uncategorized. No pre-seeded categories -
+    /// users construct category structure by assigning categories on the fly.
+    /// </remarks>
+    [MaxLength(200)]
+    public string? Category { get; set; }
+
+    /// <summary>
+    /// Optional memo for additional transaction context.
+    /// </summary>
+    /// <remarks>
+    /// Plain text field for user notes. Most transactions won't have memos.
+    /// Examples: "Reimbursable", "Split with roommate", "Gift for John's birthday".
+    /// </remarks>
+    [MaxLength(1000)]
+    public string? Memo { get; set; }
+
+    // Navigation properties
+    public virtual Tenant? Tenant { get; set; }
+}
+```
+
+### Entity Framework Configuration
+
+Update [`ApplicationDbContext`](src/Data/Sqlite/ApplicationDbContext.cs:1) configuration:
+
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    modelBuilder.Entity<Transaction>(entity =>
+    {
+        // Existing configuration...
+
+        // Payee is required
+        entity.Property(t => t.Payee)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        // Amount precision for currency
+        entity.Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
+        // NEW: Source (nullable, max 200 chars)
+        entity.Property(t => t.Source)
+            .HasMaxLength(200);
+
+        // NEW: ExternalId (nullable, max 100 chars)
+        entity.Property(t => t.ExternalId)
+            .HasMaxLength(100);
+
+        // NEW: Category (nullable, max 200 chars)
+        entity.Property(t => t.Category)
+            .HasMaxLength(200);
+
+        // NEW: Memo (nullable, max 1000 chars)
+        entity.Property(t => t.Memo)
+            .HasMaxLength(1000);
+
+        // Existing indexes...
+        entity.HasIndex(t => t.Key).IsUnique();
+        entity.HasIndex(t => t.TenantId);
+        entity.HasIndex(t => new { t.TenantId, t.Date });
+
+        // NEW: Index on Category for filtering and reporting
+        entity.HasIndex(t => t.Category);
+
+        // NEW: Index on ExternalId for duplicate detection
+        entity.HasIndex(t => t.ExternalId);
+
+        // NEW: Composite index on TenantId + ExternalId for efficient duplicate checks
+        entity.HasIndex(t => new { t.TenantId, t.ExternalId });
+    });
+}
+```
+
+### Database Indexes
+
+**Existing Indexes**:
+1. `IX_Transactions_Key` (Unique) - Standard Guid lookup
+2. `IX_Transactions_TenantId` - Tenant isolation
+3. `IX_Transactions_TenantId_Date` (Composite) - Date range queries
+
+**New Indexes**:
+4. **`IX_Transactions_Category`** - Category filtering and reporting
+   - **Purpose**: Filter transactions by category, group by category for reports
+   - **Queries**: `WHERE Category = @category` or `GROUP BY Category`
+
+5. **`IX_Transactions_ExternalId`** - Duplicate detection
+   - **Purpose**: Quick lookup by bank's transaction ID
+   - **Queries**: `WHERE ExternalId = @externalId`
+
+6. **`IX_Transactions_TenantId_ExternalId`** (Composite) - Tenant-scoped duplicate detection
+   - **Purpose**: Efficient duplicate checking within tenant during import
+   - **Queries**: `WHERE TenantId = @tenantId AND ExternalId = @externalId`
+   - **Benefits**: Covering index for duplicate detection (most common import scenario)
+
+## DTO Design
+
+### TransactionResultDto (Output - List View)
+
+Used for list views where full details aren't needed.
+
+```csharp
+using System;
+
+namespace YoFi.V3.Application.Dto;
+
+/// <summary>
+/// Transaction data returned from queries (output-only).
+/// </summary>
+/// <param name="Key">Unique identifier for the transaction</param>
+/// <param name="Date">Date the transaction occurred</param>
+/// <param name="Amount">Transaction amount (can be negative for credits/refunds)</param>
+/// <param name="Payee">Recipient or payee of the transaction</param>
+/// <param name="Category">User-assigned category (null if uncategorized)</param>
+/// <remarks>
+/// This is an output DTO for list views - data is already validated when read from the database.
+/// For input/editing, see <see cref="TransactionEditDto"/>.
+/// For detail view with all fields, see <see cref="TransactionDetailDto"/>.
+/// </remarks>
+public record TransactionResultDto(
+    Guid Key,
+    DateOnly Date,
+    decimal Amount,
+    string Payee,
+    string? Category
+);
+```
+
+### TransactionDetailDto (Output - Detail View)
+
+Used for detail views where all fields are displayed.
+
+```csharp
+using System;
+
+namespace YoFi.V3.Application.Dto;
+
+/// <summary>
+/// Complete transaction data including all fields (output-only).
+/// </summary>
+/// <param name="Key">Unique identifier for the transaction</param>
+/// <param name="Date">Date the transaction occurred</param>
+/// <param name="Amount">Transaction amount (can be negative for credits/refunds)</param>
+/// <param name="Payee">Recipient or payee of the transaction</param>
+/// <param name="Category">User-assigned category (null if uncategorized)</param>
+/// <param name="Memo">Optional memo for additional context</param>
+/// <param name="Source">Source of the transaction (e.g., "Chase Checking 1234")</param>
+/// <param name="ExternalId">Bank's unique identifier for duplicate detection</param>
+/// <remarks>
+/// Complete transaction DTO including all fields. Used for detail views and editing forms.
+/// </remarks>
+public record TransactionDetailDto(
+    Guid Key,
+    DateOnly Date,
+    decimal Amount,
+    string Payee,
+    string? Category,
+    string? Memo,
+    string? Source,
+    string? ExternalId
+);
+```
+
+### TransactionEditDto (Input - Create/Update)
+
+Input DTO for creating or updating transactions.
+
+```csharp
+using System;
+using System.ComponentModel.DataAnnotations;
+using YoFi.V3.Application.Validation;
+
+namespace YoFi.V3.Application.Dto;
+
+/// <summary>
+/// Transaction data for creating or updating transactions (input DTO).
+/// </summary>
+/// <param name="Date">Date the transaction occurred (max 50 years in past, 5 years in future)</param>
+/// <param name="Amount">Transaction amount (cannot be zero; can be negative for credits/refunds)</param>
+/// <param name="Payee">Recipient or payee of the transaction (required, cannot be whitespace, max 200 chars)</param>
+/// <param name="Category">User-assigned category (optional, max 200 chars, supports ':' hierarchy)</param>
+/// <param name="Memo">Optional memo for additional context (max 1000 chars)</param>
+/// <param name="Source">Source of the transaction (optional, max 200 chars, typically from importer)</param>
+/// <param name="ExternalId">Bank's unique identifier (optional, max 100 chars, for duplicate detection)</param>
+/// <remarks>
+/// This is an input DTO with validation attributes. All properties are validated before
+/// being persisted to the database. For query results, see <see cref="TransactionResultDto"/>
+/// or <see cref="TransactionDetailDto"/>.
+///
+/// Validation rules:
+/// - Date: Must be within 50 years in the past and 5 years in the future
+/// - Amount: Must be non-zero (enforced in business logic)
+/// - Payee: Required, cannot be empty or whitespace, max 200 characters
+/// - Category: Optional, max 200 characters, can include ':' for hierarchy
+/// - Memo: Optional, max 1000 characters, plain text only
+/// - Source: Optional, max 200 characters, typically set by importer
+/// - ExternalId: Optional, max 100 characters, for duplicate detection
+/// </remarks>
+public record TransactionEditDto(
+    [DateRange(50, 5, ErrorMessage = "Transaction date must be within 50 years in the past and 5 years in the future")]
+    DateOnly Date,
+
+    [Range(typeof(decimal), "-999999999", "999999999", ErrorMessage = "Amount must be a valid value")]
+    decimal Amount,
+
+    [Required(ErrorMessage = "Payee is required")]
+    [NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
+    [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
+    string Payee,
+
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
+    string? Category,
+
+    [MaxLength(1000, ErrorMessage = "Memo cannot exceed 1000 characters")]
+    string? Memo,
+
+    [MaxLength(200, ErrorMessage = "Source cannot exceed 200 characters")]
+    string? Source,
+
+    [MaxLength(100, ErrorMessage = "ExternalId cannot exceed 100 characters")]
+    string? ExternalId
+);
+```
+
+## Query Patterns
+
+### Pattern 1: Get Transactions (List View)
+
+Most common query - list view with basic fields.
+
+```csharp
+// Query for list view (includes Category for display)
+var transactions = await context.Transactions
+    .AsNoTracking()
+    .Where(t => t.TenantId == tenantId)
+    .Where(t => t.Date >= fromDate && t.Date <= toDate)
+    .OrderByDescending(t => t.Date)
+    .Select(t => new TransactionResultDto(
+        t.Key,
+        t.Date,
+        t.Amount,
+        t.Payee,
+        t.Category
+    ))
+    .ToListAsync();
+```
+
+**Index used**: `IX_Transactions_TenantId_Date`
+**Performance**: Fast - covered by composite index
+
+### Pattern 2: Get Transaction Detail
+
+Single transaction with all fields.
+
+```csharp
+// Query for detail view (includes all fields)
+var transaction = await context.Transactions
+    .AsNoTracking()
+    .Where(t => t.TenantId == tenantId && t.Key == transactionKey)
+    .Select(t => new TransactionDetailDto(
+        t.Key,
+        t.Date,
+        t.Amount,
+        t.Payee,
+        t.Category,
+        t.Memo,
+        t.Source,
+        t.ExternalId
+    ))
+    .SingleOrDefaultAsync();
+```
+
+**Indexes used**: `IX_Transactions_TenantId`, `IX_Transactions_Key`
+**Performance**: Fast - single row lookup
+
+### Pattern 3: Filter by Category
+
+Find transactions in a specific category.
+
+```csharp
+// Filter by exact category match
+var transactions = await context.Transactions
+    .AsNoTracking()
+    .Where(t => t.TenantId == tenantId)
+    .Where(t => t.Category == category)
+    .OrderByDescending(t => t.Date)
+    .ToListAsync();
+
+// Filter by category hierarchy (starts with)
+var transactions = await context.Transactions
+    .AsNoTracking()
+    .Where(t => t.TenantId == tenantId)
+    .Where(t => t.Category != null && t.Category.StartsWith(categoryPrefix))
+    .OrderByDescending(t => t.Date)
+    .ToListAsync();
+```
+
+**Index used**: `IX_Transactions_Category`
+**Performance**: Efficient with category index
+
+### Pattern 4: Check for Duplicate ExternalId
+
+Duplicate detection during import.
+
+```csharp
+// Check if transaction with ExternalId already exists for tenant
+var exists = await context.Transactions
+    .AsNoTracking()
+    .AnyAsync(t => t.TenantId == tenantId && t.ExternalId == externalId);
+
+if (exists)
+{
+    throw new DuplicateTransactionException(externalId);
+}
+```
+
+**Index used**: `IX_Transactions_TenantId_ExternalId` (covering index)
+**Performance**: Very fast - composite index covers query entirely
+
+### Pattern 5: Create Transaction
+
+Create new transaction with all fields.
+
+```csharp
+var transaction = new Transaction
+{
+    TenantId = tenantId,
+    Date = dto.Date,
+    Payee = dto.Payee,
+    Amount = dto.Amount,
+    Category = dto.Category,
+    Memo = dto.Memo,
+    Source = dto.Source,
+    ExternalId = dto.ExternalId
+};
+
+context.Transactions.Add(transaction);
+await context.SaveChangesAsync();
+
+return new TransactionDetailDto(
+    transaction.Key,
+    transaction.Date,
+    transaction.Amount,
+    transaction.Payee,
+    transaction.Category,
+    transaction.Memo,
+    transaction.Source,
+    transaction.ExternalId
+);
+```
+
+**Database operations**: Single transaction insert
+**Performance**: Fast - single row insert
+
+### Pattern 6: Update Transaction
+
+Update existing transaction (all fields editable per Story 3).
+
+```csharp
+var transaction = await context.Transactions
+    .Where(t => t.TenantId == tenantId && t.Key == transactionKey)
+    .SingleOrDefaultAsync();
+
+if (transaction == null)
+    throw new TransactionNotFoundException(transactionKey);
+
+// Update all fields (all editable per Story 3)
+transaction.Date = dto.Date;
+transaction.Payee = dto.Payee;
+transaction.Amount = dto.Amount;
+transaction.Category = dto.Category;
+transaction.Memo = dto.Memo;
+transaction.Source = dto.Source;
+transaction.ExternalId = dto.ExternalId;
+
+await context.SaveChangesAsync();
+
+return new TransactionDetailDto(
+    transaction.Key,
+    transaction.Date,
+    transaction.Amount,
+    transaction.Payee,
+    transaction.Category,
+    transaction.Memo,
+    transaction.Source,
+    transaction.ExternalId
+);
+```
+
+**Database operations**: Single transaction update
+**Performance**: Fast - direct update
+
+## API Endpoints
+
+### GET /api/tenant/{tenantKey}/transactions
+
+Returns list of transactions (with category for display).
+
+**Response**: `IReadOnlyCollection<TransactionResultDto>`
+
+**Query parameters**:
+- `fromDate` (optional): Filter by start date
+- `toDate` (optional): Filter by end date
+- `category` (optional): Filter by category (exact match or hierarchy prefix)
+
+**Example Response**:
+```json
+[
+  {
+    "key": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "date": "2024-12-20",
+    "amount": -42.50,
+    "payee": "Acme Grocery Store",
+    "category": "Food:Groceries"
+  },
+  {
+    "key": "7b9e4a1c-8d23-4f96-a542-1e8f3b2c4d5e",
+    "date": "2024-12-19",
+    "amount": -125.00,
+    "payee": "Electric Company",
+    "category": "Bills:Utilities:Electric"
+  }
+]
+```
+
+### GET /api/tenant/{tenantKey}/transactions/{transactionKey}
+
+Returns single transaction with all fields.
+
+**Response**: `TransactionDetailDto`
+
+**Example Response**:
+```json
+{
+  "key": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "date": "2024-12-20",
+  "amount": -42.50,
+  "payee": "Acme Grocery Store",
+  "category": "Food:Groceries",
+  "memo": "Weekly grocery shopping",
+  "source": "Chase Checking 1234",
+  "externalId": "TXN20241220-ABC123"
+}
+```
+
+### POST /api/tenant/{tenantKey}/transactions
+
+Creates new transaction.
+
+**Request body**: `TransactionEditDto`
+**Response**: `TransactionDetailDto` (201 Created)
+
+**Example Request**:
+```json
+{
+  "date": "2024-12-20",
+  "amount": -42.50,
+  "payee": "Acme Grocery Store",
+  "category": "Food:Groceries",
+  "memo": "Weekly grocery shopping",
+  "source": "Chase Checking 1234",
+  "externalId": "TXN20241220-ABC123"
+}
+```
+
+**Validation**:
+- All `TransactionEditDto` validation rules apply
+- ExternalId uniqueness NOT enforced at database level (importer's responsibility)
+
+### PUT /api/tenant/{tenantKey}/transactions/{transactionKey}
+
+Updates existing transaction (all fields editable per Story 3).
+
+**Request body**: `TransactionEditDto`
+**Response**: `TransactionDetailDto` (200 OK)
+
+**Behavior**:
+- All fields are editable (Date, Payee, Amount, Category, Memo, Source, ExternalId)
+- Source and ExternalId can be updated (user may correct import errors)
+
+### DELETE /api/tenant/{tenantKey}/transactions/{transactionKey}
+
+Deletes transaction.
+
+**Response**: `204 No Content`
+
+## Validation Rules
+
+### Transaction Validation
+
+1. **Date range** - Within 50 years past, 5 years future (`DateRangeAttribute`)
+2. **Payee required** - Not null, not whitespace, max 200 chars
+3. **Amount non-zero** - Business rule (validated in feature)
+4. **Category max length** - 200 characters (nullable)
+5. **Memo max length** - 1000 characters (nullable)
+6. **Source max length** - 200 characters (nullable)
+7. **ExternalId max length** - 100 characters (nullable)
+
+### Category Validation
+
+Categories use `:` delimiter for hierarchy (e.g., "Bills:Utilities:Electric"). No additional validation needed:
+- ✅ Empty string allowed (uncategorized)
+- ✅ Any text allowed (user flexibility)
+- ✅ No pre-validation of category names (user constructs on the fly)
+- ✅ Case-sensitive (user controls casing)
+
+**Recommendation**: Frontend should trim whitespace before sending, but backend doesn't enforce.
+
+### ExternalId Validation
+
+- ✅ Nullable (manual entries don't have ExternalId)
+- ✅ No uniqueness constraint at database level (importer's responsibility)
+- ✅ Max 100 chars (accommodates various bank formats)
+
+**Duplicate detection**: Importer should query for existing `TenantId + ExternalId` before creating transaction.
+
+## Migration Strategy
+
+### Phase 1: Database Schema Changes
+
+1. **Add new columns to Transaction table**:
+   - `Source` (nvarchar(200), nullable)
+   - `ExternalId` (nvarchar(100), nullable)
+   - `Category` (nvarchar(200), nullable)
+   - `Memo` (nvarchar(1000), nullable)
+
+2. **Create new indexes**:
+   - `IX_Transactions_Category` (single column)
+   - `IX_Transactions_ExternalId` (single column)
+   - `IX_Transactions_TenantId_ExternalId` (composite)
+
+3. **Update existing rows** (if any):
+   - All new columns are nullable, so no data migration needed
+   - Existing transactions will have `NULL` for new fields
+
+**Entity Framework Migration Command**:
+```bash
+dotnet ef migrations add AddTransactionRecordFields --project src/Data/Sqlite --startup-project src/BackEnd
+```
+
+### Phase 2: Update Application Code
+
+1. **Update Transaction entity** in [`src/Entities/Models/Transaction.cs`](src/Entities/Models/Transaction.cs:13):
+   - Add Source, ExternalId, Category, Memo properties
+   - Add XML documentation comments
+   - Add validation attributes
+
+2. **Update Entity Framework configuration** in [`src/Data/Sqlite/ApplicationDbContext.cs`](src/Data/Sqlite/ApplicationDbContext.cs:1):
+   - Configure max lengths for new properties
+   - Add new indexes
+
+3. **Create new DTOs** in [`src/Application/Dto/`](src/Application/Dto/):
+   - Update `TransactionResultDto` (add Category)
+   - Create `TransactionDetailDto` (all fields)
+   - Update `TransactionEditDto` (add all new fields with validation)
+
+4. **Update TransactionsFeature** in [`src/Application/Features/TransactionsFeature.cs`](src/Application/Features/TransactionsFeature.cs:19):
+   - Update mapping to include new fields
+   - Update queries to project new DTOs
+   - Add category filtering support
+
+5. **Update TransactionsController** in [`src/Controllers/TransactionsController.cs`](src/Controllers/TransactionsController.cs:28):
+   - Update endpoint return types (new DTOs)
+   - Add query parameter for category filtering
+   - Update ProducesResponseType attributes
+
+6. **Regenerate API client**:
+   - Run WireApiHost to regenerate TypeScript client with new DTOs
+   - New fields will be available in frontend
+
+### Phase 3: Testing
+
+1. **Unit tests** in [`tests/Unit/`](tests/Unit/):
+   - Test TransactionsFeature with new fields
+   - Test category filtering
+   - Test ExternalId duplicate detection logic
+
+2. **Integration tests** in [`tests/Integration.Controller/`](tests/Integration.Controller/):
+   - Test CRUD operations with all new fields
+   - Test category filtering endpoint
+   - Test validation rules for new fields
+
+3. **Integration tests** in [`tests/Integration.Data/`](tests/Integration.Data/):
+   - Test entity persistence with new fields
+   - Test indexes (category, externalId)
+   - Test nullable field handling
+
+### Phase 4: Frontend Updates (Separate Task)
+
+1. Update transaction list view to show category
+2. Update transaction detail/edit form to include all new fields
+3. Add category autocomplete (suggest existing categories)
+4. Add category filtering to list view
+5. Update import workflow to populate Source and ExternalId
+
+## Testing Strategy
+
+### Unit Tests (Application Layer)
+
+Follow existing pattern from [`tests/Unit/Tests/TransactionsTests.cs`](tests/Unit/Tests/TransactionsTests.cs:1):
+
+**Transaction Creation with New Fields**:
+- `AddTransactionAsync_AllFields_CreatesTransaction()` - Verify all fields persisted
+- `AddTransactionAsync_MinimalFields_CreatesTransaction()` - Only required fields
+- `AddTransactionAsync_NullableFields_AllowsNull()` - Category, Memo, Source, ExternalId nullable
+- `AddTransactionAsync_CategoryHierarchy_StoresCorrectly()` - Test ':' delimiter
+
+**Transaction Updates**:
+- `UpdateTransactionAsync_UpdatesAllFields()` - All fields editable (Story 3)
+- `UpdateTransactionAsync_Category_UpdatesCorrectly()` - Category can be changed
+- `UpdateTransactionAsync_NullFields_ClearsValues()` - Can clear optional fields
+
+**Query Operations**:
+- `GetTransactionsAsync_ReturnsCategory()` - Verify TransactionResultDto includes Category
+- `GetTransactionByKeyAsync_ReturnsAllFields()` - Verify TransactionDetailDto includes all fields
+- `GetTransactionsAsync_FilterByCategory_ReturnsMatches()` - Category filtering works
+- `GetTransactionsAsync_FilterByCategoryHierarchy_ReturnsMatches()` - Hierarchy filtering (starts with)
+
+**Duplicate Detection**:
+- `CheckDuplicateAsync_ExistingExternalId_ReturnsTrue()` - Duplicate detection works
+- `CheckDuplicateAsync_NewExternalId_ReturnsFalse()` - New transaction allowed
+- `CheckDuplicateAsync_SameTenant_DetectsDuplicate()` - Tenant-scoped detection
+- `CheckDuplicateAsync_DifferentTenant_AllowsDuplicate()` - ExternalId can exist in different tenants
+
+**Validation**:
+- `AddTransactionAsync_CategoryTooLong_ThrowsValidationException()` - Max 200 chars
+- `AddTransactionAsync_MemoTooLong_ThrowsValidationException()` - Max 1000 chars
+- `AddTransactionAsync_SourceTooLong_ThrowsValidationException()` - Max 200 chars
+- `AddTransactionAsync_ExternalIdTooLong_ThrowsValidationException()` - Max 100 chars
+
+**Tenant Isolation**:
+- `GetTransactionAsync_OtherTenant_ReturnsNull()` - Cannot access other tenant's transactions
+- `UpdateTransactionAsync_OtherTenant_ThrowsNotFoundException()` - Cannot update other tenant's transactions
+
+Follow existing test patterns:
+- Gherkin-style comments (Given/When/Then/And)
+- NUnit attributes and constraint-based assertions
+- InMemoryDataProvider for fast, isolated tests
+- TestTenantProvider for tenant context
+
+### Integration Tests (Controller Layer)
+
+Test API endpoints with new fields:
+
+**CRUD Operations**:
+- POST transaction with all fields
+- POST transaction with minimal fields (only required)
+- GET transaction list (verify Category included)
+- GET transaction detail (verify all fields included)
+- PUT transaction (update all fields)
+- DELETE transaction
+
+**Category Filtering**:
+- GET with category filter (exact match)
+- GET with category filter (hierarchy prefix)
+- GET with invalid category (returns empty list)
+
+**Validation**:
+- POST with missing required fields (400 Bad Request)
+- POST with field length violations (400 Bad Request)
+- POST with invalid date range (400 Bad Request)
+
+**Tenant Isolation**:
+- Cannot access other tenant's transactions
+- Cannot update other tenant's transactions
+- ExternalId can be same across different tenants
+
+### Integration Tests (Data Layer)
+
+Test database operations:
+
+**Persistence**:
+- Create transaction with all fields
+- Create transaction with nullable fields null
+- Update transaction fields
+- Delete transaction
+
+**Indexes**:
+- Category index used for filtering
+- ExternalId index used for duplicate detection
+- Composite TenantId+ExternalId index used for import
+
+**Queries**:
+- Filter by category
+- Filter by category hierarchy (starts with)
+- Check for duplicate ExternalId within tenant
+
+## Performance Considerations
+
+### Index Coverage
+
+- **List view queries**: Covered by `IX_Transactions_TenantId_Date` (no new fields needed)
+- **Category filtering**: Covered by `IX_Transactions_Category`
+- **Duplicate detection**: Covered by `IX_Transactions_TenantId_ExternalId` (composite)
+
+### Query Optimization
+
+- **AsNoTracking**: Always use for read-only queries
+- **Projection**: Use `.Select()` to project to DTOs (avoid loading unused fields)
+- **Category filtering**: Index enables efficient filtering without table scan
+
+### Storage Considerations
+
+New columns add minimal storage overhead:
+- Source: ~30 chars average = 60 bytes
+- ExternalId: ~20 chars average = 40 bytes
+- Category: ~20 chars average = 40 bytes
+- Memo: ~100 chars average = 200 bytes (most null)
+
+**Total**: ~340 bytes per transaction (acceptable overhead)
+
+## Future Enhancements
+
+1. **Category autocomplete** - Track distinct categories for dropdown suggestions
+2. **Category hierarchy reports** - Roll up subcategories to parent categories
+3. **ExternalId uniqueness enforcement** - Optional database constraint (if importers become reliable)
+4. **Bulk categorization** - Apply category to multiple transactions at once
+5. **Category normalization** - Case-insensitive matching, trim whitespace
+6. **Transaction attachments** - Link receipts/documents to transactions
+7. **Audit trail** - Track who changed what and when (if needed)
+
+## Summary
+
+This design provides:
+
+✅ **Complete schema** - All Story 1 and Story 2 requirements met
+✅ **Efficient queries** - Index coverage for common query patterns
+✅ **Simple API** - RESTful endpoints with clear DTOs
+✅ **Flexible validation** - User flexibility balanced with data quality
+✅ **Migration path** - Clear steps for adding fields to existing transactions
+✅ **Testing strategy** - Comprehensive coverage of all new functionality
+✅ **Consistent patterns** - Follows established project conventions
+
+**Design is complete and ready for implementation.** All PRD requirements are addressed with clear implementation guidance for each layer of the stack.
