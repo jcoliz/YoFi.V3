@@ -77,6 +77,17 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Custom date range inputs (From/To)
 - [ ] "Clear All" button resets all filters
 
+### Story 5: Reports User - Investigates underlying transactions [NEW]
+**As a** User
+**I want** discover which transactions exactly comprise one of the numbers shown
+**So that** I can understand what underlying actions caused the result I'm seeing
+
+See [PRD-REPORTS](../reports/PRD-REPORTS.md).
+
+**Acceptance Criteria**:
+- [ ] When viewing a report, user can select any number to understand what transactions comprise that total.
+- [ ] User cannot construct a filter by hand which matches a report filter. Reports can give private search query which we will need to implement.
+
 ---
 
 ## Technical Approach
