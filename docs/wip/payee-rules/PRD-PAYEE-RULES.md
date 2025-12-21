@@ -30,7 +30,8 @@ to what transactions.
 - Does not affect splits. Payee matching sets the whole transaction category.
 - Tracking of payees is out of scope. Actual used payees are not collected, stored, or analyzed. "Payees" in our app are purely used as part of matching rules to assign categories.
 - Any modifications to transactions outside of category, e.g. memo, date
-- [Scope boundaries]
+- Automatic creation of rules, or suggestions of rules to create. Interesting as a future feature enhancement.
+- AL/ML-driven category matching (also interesting for future!)
 
 ---
 
@@ -42,7 +43,7 @@ to what transactions.
 **So that** my transactions are automatically categorized when I import them
 
 **Acceptance Criteria**:
-- [ ] Payee matching rule includes a category, which matching transactions will be assigned when considered
+- [ ] Payee matching rule includes a category, which matching transactions will be assigned when matched
 - [ ] Rule includes a free-form payee name snippet
 - [ ] If a transaction contains the payee name snippet from the rule within its payee field, that's a match
 - [ ] User can alternately describe the rule with a regular expression
@@ -52,7 +53,7 @@ to what transactions.
 - [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transacction, and if the transaction already has a category, it will use that.
 - [ ] Rules are scoped to the tenant of which they are a member
 - [ ] In case of conflict between two substring-only rules, the rule with the longer payee name snippet wins. In case where the rules have equal length, the most recently added or edited rule takes priority.
-- [ ] Category will be automatically trimmed (leading/trailing whitespace removed) when saved
+- [ ] Category terms will be automatically trimmed (leading/trailing whitespace removed) when saved (e.g. "Utilities :Electric" trimmed to "Utilities:Electric")
 - [ ] Category inner whitespace normalized to single spaces (e.g., "Food  &  Dining" → "Food & Dining")
 - [ ] Empty category is not allowed (validation error)
 - [ ] Regex patterns are validated on save with user-friendly error messages
@@ -172,7 +173,8 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 - Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs)
 - CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing transaction endpoints
-- Testing: NUnit with Gherkin comments (Given/When/Then)
+- Tenant data administration: Payee Matching rules are included in all tenant data administration operations.
+- Testing: Standard unit/integration/functional tests with Gherkin comments or steps (Given/When/Then)
 
 **Performance Considerations**:
 - In-memory rule caching recommended (typical rule sets < 200KB)
