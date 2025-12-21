@@ -28,11 +28,8 @@ public partial class LoginPage(IPage _page): BasePage(_page)
         await Page!.GotoAsync("/login");
         if (waitForReady)
         {
-            await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+            await WaitForPageReadyAsync();
         }
-
-        // Lots of tests fail in development environment if we take this away
-        await Page!.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     #endregion
@@ -52,9 +49,13 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// Fills login credentials and waits for Vue reactivity to complete
     /// </summary>
     /// <remarks>
-    /// This method handles the timing issue where Vue.js needs time to process
+    /// This method was put in place to handle the timing issue where Vue.js needs time to process
     /// input events before the form is ready for submission. It fills fields,
     /// triggers blur events, and polls until the username field contains a value.
+    ///
+    /// TODO: Track whether this is still used. I think the problem was that I didn't wait
+    /// for the client-side controls to be ready before filling. If that is fixed, this method
+    /// may be unnecessary.
     /// </remarks>
     private async Task FillCredentialsWithVueWaitAsync(string email, string password)
     {
@@ -150,11 +151,11 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     }
 
     /// <summary>
-    /// Waits for the login page to be ready
+    /// Waits for the page to be ready
     /// </summary>
     public async Task WaitForPageReadyAsync(float timeout = 5000)
     {
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        await WaitForLoginButtonEnabledAsync(timeout);
     }
 
     public async Task NavigateToCreateAccountAsync()
@@ -165,6 +166,34 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     public async Task<bool> IsLoginButtonDisabledAsync()
     {
         return await LoginButton.IsDisabledAsync();
+    }
+
+    /// <summary>
+    /// Waits until the login button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Useful when form validation needs to complete before the button is enabled.
+    /// Uses Playwright's WaitForAsync with Enabled state.
+    /// </remarks>
+    public async Task WaitForLoginButtonEnabledAsync(float timeout = 5000)
+    {
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the button is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await LoginButton.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return;
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Login button did not become enabled within {timeout}ms");
     }
 
     public async Task<bool> AreInputsDisabledAsync()

@@ -202,8 +202,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     {
         var profilePage = GetOrCreateProfilePage();
 
-        // wait network idle before clicking logout: fails in development otherwise
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await profilePage.WaitForLogoutButtonReadyAsync();
 
         await profilePage.ClickLogoutAsync();
         // Wait for home page to be ready after logout

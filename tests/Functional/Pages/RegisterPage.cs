@@ -27,10 +27,39 @@ public class RegisterPage(IPage _page): BasePage(_page)
     public async Task NavigateAsync()
     {
         await Page!.GotoAsync("/register");
-        await RegisterForm.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+        await WaitForPageReadyAsync();
     }
 
     #endregion
+
+    /// <summary>
+    /// Waits until the register button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Useful when form validation needs to complete before the button is enabled.
+    /// Uses Playwright's WaitForAsync with Enabled state.
+    /// </remarks>
+    public async Task WaitForRegisterButtonEnabledAsync(float timeout = 5000)
+    {
+        await RegisterButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await RegisterButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the button is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await RegisterButton.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return;
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Register button did not become enabled within {timeout}ms");
+    }
+
 
     /// <summary>
     /// Link to navigate to the login page
@@ -67,6 +96,10 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// This method handles the timing issue where Vue.js needs time to process
     /// input events before the form is ready for submission. It fills all fields,
     /// triggers blur events, and polls until the email field contains a value.
+    ///
+    /// TODO: Track whether this is still used. I think the problem was that I didn't wait
+    /// for the client-side controls to be ready before filling. If that is fixed, this method
+    /// may be unnecessary.
     /// </remarks>
     private async Task FillRegistrationWithVueWaitAsync(string email, string username, string password, string confirmPassword)
     {
@@ -231,6 +264,6 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// </summary>
     public async Task WaitForPageReadyAsync(float timeout = 5000)
     {
-        await RegisterForm.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        await WaitForRegisterButtonEnabledAsync(timeout);
     }
 }
