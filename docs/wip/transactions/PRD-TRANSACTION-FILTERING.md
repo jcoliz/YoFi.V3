@@ -4,6 +4,7 @@
 **Created**: 2025-12-21
 **Owner**: James Coliz
 **Target Release**: V3.0
+**ADO**: [Feature 1983](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1983): Transaction Filtering
 
 ---
 
