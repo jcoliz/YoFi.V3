@@ -182,22 +182,6 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 
 ---
 
-## Open Questions
-
-- [X] **Rule conflict resolution**: When multiple rules match, which takes precedence? (Priority order, specificity, first-match?) A: Explained above. 1: More aspects wins, 2: Regex beats substring, 3: longer pattern wins, 4: most recent wins
-- [X] **Rule scope**: Are rules tenant-scoped, user-scoped, or both? A: Tenant scoped, added above.
-- [X] **Regex validation**: Should we validate regex patterns on save? Display friendly error messages? A: Good idea. If regex is invalid, we should not save it, but display an error instead.
-- [X] **Performance**: At what rule count do we need indexing/caching strategies? A: TBD based on real-world performance testing once feature is implemented
-- [X] **Import order**: Should rules execute in creation order, alphabetical, or user-defined priority? A: Rules execute all at once, subject to rule conflict resolution described earlier.
-- [X] **Case sensitivity**: Both substring and regex matching are case-insensitive.
-      Implementation uses `StringComparison.OrdinalIgnoreCase` for substring and
-      `RegexOptions.IgnoreCase` for regex patterns.
-- [X] **Unused rules**: Should we track when a rule was last matched, so we could suggest to user to remove rules that have not been used recently (in last year). YES: Added
-- [X] Should there be a "dry run" preview mode? A: NO, adds complexity. Easy to change if it's wrong
-- [X] Should we cache frequently-used rules? A: NO, there is so such thing as "frequently used rules". All rules are used at the same moment.
-
----
-
 ## Success Metrics
 
 - **Primary**: % of imported transactions automatically categorized (Target: >80%)
