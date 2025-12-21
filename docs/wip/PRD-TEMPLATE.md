@@ -54,13 +54,25 @@
 - [ ] Entities (Domain models)
 - [ ] Database (Schema changes)
 
-**Key Concepts**:
-- [High-level entity or component concept, not detailed implementation]
-- [Example: "PayeeMatchingRule entity with pattern matching and conflict resolution"]
+**High-Level Entity Concepts**:
+
+**[EntityName] Entity** (new or modified):
+- PropertyName (description - what it represents, required/optional)
+- PropertyName (description)
+- PropertyName (description)
+
+[Add more entities as needed]
+
+**Key Business Rules**:
+1. **Rule Name** - Description of business rule that affects user experience
+2. **Rule Name** - Description of business rule
+3. [Add more business rules that belong in PRD scope]
 
 **Code Patterns to Follow**:
-- [Link to existing controller/feature to follow as pattern]
-- [Link to similar entity or validation example]
+- Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
+- CRUD operations: [`TransactionsController.cs`](../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs)
+- Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
+- Testing: NUnit with Gherkin comments (Given/When/Then)
 
 ---
 

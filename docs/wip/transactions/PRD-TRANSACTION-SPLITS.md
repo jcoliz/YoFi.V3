@@ -1,10 +1,12 @@
 # Product Requirements Document: Transaction Splits
 
-**Status**: Approved (Detailed Design Complete)
+**Status**: Implemented
 **Created**: 2025-12-21
 **Owner**: James Coliz
 **Target Release**: V3.0
 **ADO**: [Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits
+
+> **Note**: See [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) for guidance on PRD scope. Implementation details are in [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md).
 
 ---
 
@@ -102,25 +104,34 @@ Split transactions will be implemented with a new `Split` entity that has a many
 - [x] Entities (Domain models) - New Split entity, updated Transaction entity
 - [x] Database (Schema changes) - Split table with indexes, Transaction table updates
 
-**Key Components**:
-- **New**: `src/Entities/Split.cs` - Split entity with Amount, Category, Memo, Order
-- **Modified**: `src/Entities/Transaction.cs` - Add Splits navigation, Memo, Source properties
-- **Modified**: `src/Application/Features/TransactionsFeature.cs` - Split CRUD operations
-- **Modified**: `src/Controllers/TransactionsController.cs` - Split endpoints
-- **New**: `src/Application/Dto/SplitEditDto.cs`, `SplitResultDto.cs` - Split DTOs
-- **Modified**: `src/Application/Dto/TransactionResultDto.cs` - Add HasMultipleSplits, SingleSplitCategory, IsBalanced
+**High-Level Entity Concepts**:
 
-**Database Design**:
-- Split table with foreign key to Transaction (cascade delete)
-- Indexes: TransactionId, Category, (TransactionId, Order) composite
-- Transaction.Amount remains authoritative (imported/manual entry value)
-- Splits sum to Transaction.Amount (validation warning if not balanced)
+**Split Entity** (new):
+- Amount (allocated to this category)
+- Category (empty string for uncategorized)
+- Memo (optional, split-specific notes)
+- Order (for display sequencing)
+- TransactionId (foreign key)
 
-**API Design Pattern**:
-- Individual split CRUD operations (POST/PUT/DELETE) - Primary editing pattern
-- Transaction creation automatically creates single split (hides complexity)
-- Transaction update does NOT modify splits (separate concerns)
-- All mutation operations return balance state (IsBalanced flag)
+**Transaction Entity** (modified):
+- Add Splits navigation collection
+- Add Memo property (transaction-level notes)
+- Add Source property (import origin)
+- Amount remains authoritative (imported value, not sum of splits)
+
+**Key Business Rules**:
+- Every transaction must have at least one split
+- Transaction.Amount is authoritative (imported or manually entered)
+- Splits sum should match Transaction.Amount (warning if not, but not enforced)
+- Category is empty string for uncategorized (not NULL)
+- Source property stays at Transaction level (entire transaction from one import)
+- Unbalanced transactions are warning state, not error (user's choice to resolve)
+
+**Code Patterns to Follow**:
+- Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs) for Split entity, [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs) for Transaction
+- CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
+- Tenant-scoped authorization: Existing transaction endpoints
+- Testing: NUnit with Gherkin comments (Given/When/Then)
 
 ---
 
@@ -176,49 +187,30 @@ Split transactions will be implemented with a new `Split` entity that has a many
 
 ## Notes & Context
 
-**Design Documents**:
-- Comprehensive technical design: [`docs/wip/transactions/TRANSACTION-SPLIT-DESIGN.md`](docs/wip/transactions/TRANSACTION-SPLIT-DESIGN.md)
-- Original requirements: [`docs/wip/transactions/TRANSACTION-SPLIT-REQUIREMENTS.md`](docs/wip/transactions/TRANSACTION-SPLIT-REQUIREMENTS.md)
+**Related Documents**:
+- **Design Document**: [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) - Complete implementation details (entity definitions, DTOs, API endpoints, query patterns)
+- **Original Requirements**: [`TRANSACTION-SPLIT-REQUIREMENTS.md`](TRANSACTION-SPLIT-REQUIREMENTS.md) - Initial requirements gathering
 
-**Key Design Decisions**:
-1. **Source property stays at Transaction level** - Entire transaction came from one import source
-2. **Category is NOT NULL with empty string** - Better performance than NULL, consistent with Payee pattern
-3. **Transaction.Amount is authoritative** - Imported value is source of truth, splits are user's categorization
-4. **Unbalanced transactions are warning state** - UI prominently displays warnings, but doesn't block saving (user's choice to resolve)
-5. **Order property for stable split display** - Users can reorder splits, preference is preserved
+**Historical Context**:
+This feature enables the primary use case for personal finance tracking: category-based reporting. Without splits, users are forced to choose a single category for mixed purchases, reducing report accuracy.
 
-**Migration Strategy**:
-1. Clear existing transaction data (app is new, no relevant data to preserve)
-2. Create Split table with indexes
-3. Add Memo and Source columns to Transaction table
-4. Update application code to work with splits
-5. Frontend updates (separate task)
-
-**Testing Strategy**:
-- Unit tests for TransactionsFeature (split CRUD, balance calculations)
-- Integration tests for Controllers (API endpoints, validation)
-- Integration tests for Data layer (cascade delete, ordering)
-- Follow existing patterns: Gherkin comments, NUnit assertions
+**Key Design Decisions** (rationale for requirements):
+1. **Source property stays at Transaction level** - Entire transaction came from one import source, not per-split
+2. **Category is NOT NULL with empty string** - Better query performance than NULL, consistent with existing Payee pattern
+3. **Transaction.Amount is authoritative** - Imported value is source of truth; splits are user's categorization overlay
+4. **Unbalanced transactions are warning state** - User can temporarily save unbalanced state (convenience), but UI prominently warns them
+5. **At least one split required** - Business rule ensuring every transaction is categorizable
+6. **Order property for stable split display** - Users can reorder splits; their preference persists across sessions
 
 ---
 
 ## Handoff Checklist (for AI implementation)
 
-Implementation completed:
-- [x] Database schema designed with indexes
-- [x] Entity models created/updated
-- [x] DTOs designed for all operations
-- [x] API endpoints specified
-- [x] Query patterns documented
-- [x] Validation rules defined
-- [x] Balance calculation logic specified
-- [x] Testing strategy documented
+Implementation completed - feature is working in code:
+- [x] All user stories have clear acceptance criteria
+- [x] Open questions are resolved or documented as design decisions
+- [x] Technical approach section indicates affected layers
+- [x] Code patterns to follow are referenced
+- [x] Companion design document created with implementation details
 
-**Reference Implementation**: See [`docs/wip/transactions/TRANSACTION-SPLIT-DESIGN.md`](docs/wip/transactions/TRANSACTION-SPLIT-DESIGN.md) for:
-- Complete entity definitions with XML comments
-- All DTO definitions with validation attributes
-- 9 documented query patterns with EF Core syntax
-- API endpoint specifications
-- Index strategy and performance analysis
-- Migration steps
-- Comprehensive test scenarios
+**Implementation Reference**: See [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) for details.

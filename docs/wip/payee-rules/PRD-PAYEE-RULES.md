@@ -117,78 +117,68 @@ Notes
 
 ---
 
-## Technical Approach (Optional)
+## Technical Approach
 
-### Conflict resolution Rules
+Payee matching rules will be implemented with a new `PayeeMatchingRule` entity that applies pattern matching to categorize transactions automatically.
 
-In case where a transaction matches multiple rules, the following are applied in this order. In cases where multiple rules tie on one rule, eliminate the others and proceed until the tie is broken.
+**Layers Affected**:
+- [x] Frontend (Vue/Nuxt) - Payee rule CRUD page, transaction page actions, import review display
+- [x] Controllers (API endpoints) - Full CRUD controller for payee rules, trigger matching endpoint
+- [x] Application (Features/Business logic) - Rule CRUD capabilities, matching logic
+- [x] Entities (Domain models) - PayeeMatchingRule entity
+- [x] Database (Schema changes) - Store and index rules
 
-1. More aspects wins (e.g. substring payee + amount wins over regex only). Beyond this rule, aspects other than payee pattern are not considered.
-2. Regex wins over substring.
-3. Longer payee pattern wins over shorter.
-4. Most recently updated wins. This can't tie, so will always find a winner.
+**High-Level Entity Concepts**:
 
-### Layers affected
+**PayeeMatchingRule Entity** (new):
+- PayeePattern (required - substring or regex pattern to match transaction payee)
+- PayeeIsRegex (flag indicating pattern type)
+- SourcePattern (optional - match transaction source/bank)
+- SourceIsRegex (flag for source pattern type)
+- AmountExact (optional - match specific amount)
+- AmountMin / AmountMax (optional - match amount range)
+- Category (required - category to assign when matched)
+- CreatedAt / ModifiedAt (audit timestamps)
+- LastUsedAt / MatchCount (usage statistics for cleanup)
 
-This will be a full stack change, with new entities in the database, a full CRUD stack including a payee rule management page, controller and
-payee rule application feature.
+**Key Business Rules**:
+1. **Conflict Resolution** - When multiple rules match, apply precedence:
+   - More matching aspects wins (e.g., payee + amount beats payee only)
+   - Regex pattern beats substring pattern
+   - Longer pattern beats shorter pattern
+   - Most recently modified wins (tie-breaker)
 
-Additionally, the mapping logic itself should probably live in the payee rules feature for cohesion. The triggering logic will need to go in the importer and in the transactions page. Unsure whether triggering matching logic should go through the transactions API or direct to the
+2. **Pattern Matching**:
+   - Case-insensitive matching (both substring and regex)
+   - Substring uses `StringComparison.OrdinalIgnoreCase`
+   - Regex uses `RegexOptions.IgnoreCase`
+   - ReDoS protection: 100ms timeout on regex evaluation
 
-- [x] Frontend (Vue/Nuxt)
-  - [ ] Payee rule crud page.
-  - [ ] Transaction page needs per-transaction action to trigger match or add a new rule.
-  - [ ] Import review needs to show result of matching
-- [x] Controllers (API endpoints)
-  - [ ] Full CRUD controller for payee rules
-  - [ ] Possibly triggering transaction actions, unless we route that through transaction controller
-- [x] Application (Features/Business logic)
-  - [ ] Rule CRUD capabilities
-  - [ ] Matching logic
-- [x] Entities (Domain models): Payee matching rule entitiy
-- [x] Database (Schema changes): Store and possibly index rules
+3. **Category Normalization**:
+   - Leading/trailing whitespace trimmed
+   - Inner whitespace normalized to single spaces
+   - Empty category not allowed (validation error)
 
-**Key Components**:
-Included in above layers
+4. **Amount Matching**:
+   - Amounts are absolute value (matches both positive and negative)
+   - Ranges are inclusive of specified bounds
+   - Cannot distinguish income vs expense (by design)
 
-**Entity Design (Draft)**:
-```csharp
-public class PayeeMatchingRule : BaseTenantModel
-{
-    // Payee matching: REQUIRED
-    public string PayeePattern { get; set; }
-    public bool PayeeIsRegex { get; set; }
+5. **Rules Scoped to Tenant** - Each rule belongs to a tenant via `BaseTenantModel`
 
-    // Source matching (optional)
-    public string? SourcePattern { get; set; }
-    public bool SourceIsRegex { get; set; }
+6. **No Active/Inactive Flag** - Rules are either present or deleted (simplicity)
 
-    // Amount matching (optional)
-    public decimal? AmountExact { get; set; }
-    public decimal? AmountMin { get; set; }
-    public decimal? AmountMax { get; set; }
+**Code Patterns to Follow**:
+- Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs)
+- CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
+- Tenant-scoped authorization: Existing transaction endpoints
+- Testing: NUnit with Gherkin comments (Given/When/Then)
 
-    // Resulting impact on transaction: REQUIRED
-    public string Category { get; set; }
-
-    // Metadata
-    public DateTime CreatedAt { get; set; }
-    public DateTime ModifiedAt { get; set; }
-    public DateTime? LastUsedAt { get; set; }
-    public int MatchCount { get; set; } // Statistics
-}
-```
-
-Schema notes:
-- Having a friendly name only adds confusion. The PayeePattern is the way we identify the rule.
-- PayeePattern is **REQUIRED**
-- Don't see the need for "Is active" tracking
-
-Database notes:
-- May need database indexing on Transaction.Payee for rule matching queries
-  - Note: Standard indexes don't help with substring matches (LIKE '%pattern%')
-  - Consider in-memory rule caching (typical rule sets are <200KB)
-  - If rule sets exceed 1000+ rules, evaluate PostgreSQL trigram indexes or FTS
+**Performance Considerations**:
+- In-memory rule caching recommended (typical rule sets < 200KB)
+- Standard indexes don't help substring matching (`LIKE '%pattern%'`)
+- If rule sets exceed 1000+ rules, evaluate PostgreSQL trigram indexes or full-text search
+- Target performance: < 100ms for typical rule set evaluation
 
 ---
 
