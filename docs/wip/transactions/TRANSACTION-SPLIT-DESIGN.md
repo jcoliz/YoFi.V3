@@ -1111,6 +1111,97 @@ Follow the existing test pattern from TransactionsTests.cs:
 6. **Split history** - Track changes to splits over time (audit log)
 7. **Smart split suggestions** - ML-based category suggestions based on payee/amount patterns
 
+## Known Design Gaps (Frontend Implementation)
+
+This design is comprehensive for backend implementation but has intentional gaps for frontend details that should be addressed during UI development:
+
+### 1. Balance Warning Visual Treatment (Partial Specification)
+
+**What's specified**:
+- Backend always returns `IsBalanced` flag in all mutation operations
+- Lines 17-21: "UI must prominently display warnings", "make it difficult to ignore", "visual indicators, modal warnings, etc."
+- Goal: "Guide user to fix balance discrepancies immediately, not later"
+
+**What's NOT specified**:
+- Exact icon type (warning triangle? exclamation? info icon?)
+- Color scheme (red for error? yellow for warning? orange?)
+- List view treatment (inline badge? row highlighting? subtle icon?)
+- Detail view treatment (banner at top? inline warning next to splits? modal on save?)
+- User flow for resolving imbalance (step-by-step wizard? simple calculation helper? just show the numbers?)
+
+**Recommendation**: Address during frontend UI design phase. Consider user testing for warning prominence vs. annoyance balance.
+
+### 2. Category Text Normalization (Not Specified)
+
+**What's NOT specified**:
+- Case sensitivity: Is "Food" the same as "food"? Should categories be case-insensitive for matching?
+- Whitespace handling: Should "Food" and " Food " be treated as the same category?
+- Trimming: Should leading/trailing whitespace be stripped on save?
+- Duplicate detection: Should UI warn when creating near-duplicate categories ("Groceries" vs "Grocery")?
+- Maximum distinct categories: At what point does the category dropdown become unwieldy?
+
+**Impact**: Without normalization rules, users may create duplicate categories unintentionally, degrading category report quality.
+
+**Recommendation**: Define category normalization rules (case-insensitive comparison, trim on save) and implement in backend validation before frontend implementation.
+
+### 3. Split Reordering User Experience (Limited Rationale)
+
+**What's specified**:
+- PATCH `/splits/reorder` endpoint exists
+- Lines 736, 895: Comments mention "drag-and-drop in UI"
+- Order property preserves user's display preference
+
+**What's NOT specified**:
+- WHY users would want to reorder splits (importance-based? amount-based? just preference?)
+- How prominent reordering should be in UI (always-visible drag handles? hidden in edit mode?)
+- Alternative interaction patterns (up/down arrow buttons on mobile? context menu?)
+- Whether reordering is common enough to warrant prominent UI real estate
+
+**Recommendation**: Gather user feedback during beta testing. Consider starting with minimal reordering UI and enhancing based on usage patterns.
+
+### 4. Bulk Categorization Workflows (Out of Scope)
+
+**What's specified**:
+- POST endpoint accepts single OR collection of splits (line 840)
+- Line 969: "Atomic replacement is still available for bulk operations"
+- Listed as future enhancement (line 1108)
+
+**What's NOT specified**:
+- Bulk categorization workflow: How to apply category to multiple transactions at once?
+- Filter-then-categorize pattern: Can user filter by payee, then bulk-assign category to all results?
+- Import workflow: How to efficiently categorize newly-imported transactions?
+- Copy splits workflow: Copy split pattern from one transaction to multiple others?
+
+**Impact**: Power users importing 50+ transactions monthly may find individual categorization tedious.
+
+**Recommendation**: Track user feedback during beta testing. If bulk categorization is a common pain point, design and implement in future sprint.
+
+### 5. Mobile/Responsive Design (Not Covered)
+
+**What's NOT specified**:
+- How split editor works on small screens (< 600px width)
+- Touch interactions for adding/removing splits (tap-and-hold? swipe? buttons?)
+- Simplified mobile view (collapse splits to summary? hide split memo field?)
+- Mobile balance warning treatment (inline vs. modal vs. notification?)
+- Category dropdown on mobile (native picker? custom autocomplete? full-screen modal?)
+
+**Impact**: Split editor may be difficult to use on mobile devices without responsive design considerations.
+
+**Recommendation**: Use mobile-first design approach. Consider progressive disclosure (show transaction → tap to expand splits → tap to edit individual split).
+
+### 6. Error Recovery and Optimistic UI (Not Covered)
+
+**What's NOT specified**:
+- Optimistic UI updates: Should UI immediately reflect changes before server confirmation?
+- Failed save handling: What happens if split operation fails mid-save?
+- Offline editing: Should app support offline split editing with sync on reconnect?
+- Concurrent editing: What if two users edit the same transaction simultaneously?
+- Undo/redo: Should there be undo for split operations?
+
+**Impact**: Without error recovery strategy, users may lose work or create inconsistent state.
+
+**Recommendation**: Start with pessimistic UI (wait for server response). Consider optimistic updates for single-split operations only (lower risk). Add offline support in future if user demand exists.
+
 ## Summary
 
 This design provides:
@@ -1123,4 +1214,6 @@ This design provides:
 ✅ **Validation** - Business rules enforced, balance warnings for user resolution
 ✅ **Consistent patterns** - Follows established project conventions (Guid keys, tenancy, etc.)
 
-**Next steps**: Review design with user, then proceed to implementation.
+**Backend design is complete and ready for implementation.** Frontend design gaps are intentional and should be addressed during UI development phase based on usability testing and user feedback.
+
+**Next steps**: Review design with user, then proceed to backend implementation.
