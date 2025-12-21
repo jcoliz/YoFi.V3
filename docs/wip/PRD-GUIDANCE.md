@@ -6,6 +6,58 @@ This document provides guidance for writing Product Requirements Documents (PRDs
 
 ---
 
+## PRD Status Workflow
+
+PRDs progress through four status levels:
+
+### Draft
+**Definition**: Author is actively writing and editing the PRD.
+
+**Activities**:
+- Writing user stories and acceptance criteria
+- Researching technical constraints
+- Resolving open questions
+- Iterating on scope and goals
+
+**Who can edit**: PRD author
+**When to move to next status**: When author is ready for feedback and has populated all sections which the author has a clear view of. There may be section still yet complete where author would like reviewer input to craft those sections.
+
+### In Review
+**Definition**: Author is actively soliciting feedback from stakeholders.
+
+**Activities**:
+- Team reviews user stories for completeness
+- Stakeholders validate business requirements
+- Technical leads assess feasibility
+- Open questions are discussed and resolved
+- Handoff checklist items are validated
+
+**Who can edit**: PRD author (incorporating feedback)
+**When to move to next status**: When handoff checklist is reviewed and all items are green-checked (approved)
+
+### Approved
+**Definition**: PRD has passed handoff checklist review and is ready for implementation planning.
+
+**Activities**:
+- Detailed design or implementation planning can begin
+- Design documents can be created (if needed)
+- No further changes to requirements without re-review
+
+**Who can edit**: Requires stakeholder approval for changes
+**When to move to next status**: When feature is fully implemented and working in code
+
+### Implemented
+**Definition**: Feature is working in the code and PRD is now historical reference.
+
+**Activities**:
+- PRD becomes documentation of what was built
+- Used for onboarding and maintenance
+- Changes require new PRD or feature modification request
+
+**Who can edit**: Read-only (historical record)
+
+---
+
 ## PRD Scope: WHAT and WHY, Not HOW
 
 **A PRD defines WHAT to build and WHY, not HOW to build it.**
