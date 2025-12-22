@@ -1,6 +1,6 @@
 # YoFi.V3 Product Roadmap
 
-**Status**: Draft
+**Status**: In review
 **Last Updated**: 2025-12-21
 **Owner**: James Coliz
 
@@ -245,17 +245,29 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | Planned     |
 | Story 8 - Define Custom Report                  | Post V3   |           | Future      |
 
-**Reading this timeline:**
+### Reading this timeline:
+
 - Each row represents one **user story** from a PRD
 - Stories within a feature may be worked on in parallel, or at completely unrelated times
 - Features are complete when all their stories show ✅
 - This is a working timeline - move stories between iterations as priorities change
 
-**How to use this timeline:**
+### How to use this timeline:
+
 1. **Planning**: Assign stories to iterations based on priority and dependencies
 2. **Tracking**: Update status as stories progress
 3. **Adjusting**: Move stories between iterations as needed
 4. **Communicating**: Share progress by pointing to specific story completions
+
+### Status Values
+- **💡 Future** - Identified but not yet planned
+- **📝 Draft** - Initial requirements gathering, not yet reviewed
+- **📝 Approved** - Requirements approved, ready for design
+- **🎨 Design Complete** - Technical design finished, ready for implementation
+- **🚧 In Progress** - Implementation underway
+- **✅ Implemented** - Code complete and deployed to production
+
+---
 
 ## Story Delivery Approach
 
@@ -265,12 +277,13 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 - A "feature" may have stories delivered across multiple releases
 - Features remain in "🚧 In Progress" until all stories are complete
 
-**Example: Bank Import Feature**
+**Example: Payee Rules Feature**
 ```
-Story 1: Upload OFX file (2 weeks) → Delivered in V3.1-alpha
-Story 2: Review imported transactions (2 weeks) → Delivered in V3.1-alpha
-Story 3: Duplicate detection (3 weeks) → Delivered in V3.1-beta
-Story 4: Error handling (1 week) → Delivered in V3.1-rc
+Story 1: Establish Rules (CRUD) → Delivered in Beta 2
+Story 2: Auto-categorize on Import → Delivered in Alpha 1, Iteration 3
+Story 3: Manual Trigger Matching → Delivered in Beta 3
+Story 4: Advanced Matching (Source/Amount) → Delivered Post V3
+Story 5: Rule Cleanup → Delivered Post V3
 ```
 
 **Tracking Story Progress:**
@@ -307,23 +320,6 @@ See individual PRDs for detailed feature success metrics.
 
 ---
 
-## Status & Priority Definitions
-
-### Status Values
-- **💡 Future** - Identified but not yet planned
-- **📝 Draft** - Initial requirements gathering, not yet reviewed
-- **📝 Approved** - Requirements approved, ready for design
-- **🎨 Design Complete** - Technical design finished, ready for implementation
-- **🚧 In Progress** - Implementation underway
-- **✅ Implemented** - Code complete and released
-
-### Priority Levels
-- **High** - Core functionality, blocking other features, or critical user needs
-- **Medium** - Important but not blocking; enhances user experience
-- **Low** - Nice to have, can be deferred indefinitely
-
----
-
 ## Out of Scope
 
 **Explicitly NOT in YoFi.V3**:
@@ -338,28 +334,7 @@ See individual PRDs for detailed feature success metrics.
 
 ## Creating a New PRD
 
-### Process
-1. **Identify Strategic Theme** - Which capability area does this feature belong to?
-2. **Copy Template** - Use [`PRD-TEMPLATE.md`](wip/PRD-TEMPLATE.md)
-3. **Create PRD File** - Save in feature area folder: `docs/wip/{feature-area}/PRD-{FEATURE-NAME}.md`
-4. **Fill Out Sections** - Problem Statement, Goals, User Stories, Technical Approach
-5. **Update Roadmap** - Add feature to appropriate release section in this document
-6. **Request Review** - Update status as PRD progresses through lifecycle
-
-### PRD Guidelines
-- **Keep PRDs concise** - Under 200 lines preferred; link to separate design docs for implementation details
-- **Focus on what and why** - Save how (implementation) for technical design documents
-- **Include acceptance criteria** - Make user stories testable with clear success conditions
-- **Link to designs** - Reference detailed technical documents for implementation guidance
-- **Reference existing patterns** - Link to similar features or architecture documents
-
-### Handoff Checklist (for AI Implementation)
-Before marking a PRD as "Design Complete" or "Ready for Implementation":
-- [ ] All user stories have clear acceptance criteria
-- [ ] Open questions are resolved or documented as design decisions
-- [ ] Technical approach section indicates affected layers (Frontend, API, Application, Database)
-- [ ] Existing code patterns and files are referenced as examples
-- [ ] Companion technical design document created if needed (for complex features)
+For guidance on creating a new PRD, see [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md#creating-a-new-prd).
 
 ---
 

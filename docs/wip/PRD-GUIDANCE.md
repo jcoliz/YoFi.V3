@@ -263,3 +263,30 @@ If you're unsure whether something belongs in a PRD:
 If the answer to #3 is "yes," it's probably an implementation detail that doesn't belong in the PRD.
 
 When in doubt, err on the side of **less detail in PRD**, **more detail in Design Document**.
+
+---
+
+## Creating a New PRD
+
+### Process
+1. **Identify Strategic Theme** - Which capability area does this feature belong to?
+2. **Copy Template** - Use [`PRD-TEMPLATE.md`](PRD-TEMPLATE.md)
+3. **Create PRD File** - Save in feature area folder: `docs/wip/{feature-area}/PRD-{FEATURE-NAME}.md`
+4. **Fill Out Sections** - Problem Statement, Goals, User Stories, Technical Approach
+5. **Update Roadmap** - Add feature to appropriate release section in [`PRODUCT-ROADMAP.md`](PRODUCT-ROADMAP.md)
+6. **Request Review** - Update status as PRD progresses through lifecycle
+
+### PRD Guidelines
+- **Keep PRDs concise** - Under 200 lines preferred; link to separate design docs for implementation details
+- **Focus on what and why** - Save how (implementation) for technical design documents
+- **Include acceptance criteria** - Make user stories testable with clear success conditions
+- **Link to designs** - Reference detailed technical documents for implementation guidance
+- **Reference existing patterns** - Link to similar features or architecture documents
+
+### Handoff Checklist (for AI Implementation)
+Before marking a PRD as "Design Complete" or "Ready for Implementation":
+- [ ] All user stories have clear acceptance criteria
+- [ ] Open questions are resolved or documented as design decisions
+- [ ] Technical approach section indicates affected layers (Frontend, API, Application, Database)
+- [ ] Existing code patterns and files are referenced as examples
+- [ ] Companion technical design document created if needed (for complex features)
