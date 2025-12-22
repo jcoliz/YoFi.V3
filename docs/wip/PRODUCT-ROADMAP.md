@@ -62,9 +62,10 @@ graph TB
 **Why It Matters**: Users need accurate transaction records as the foundation for all financial insights. Single-category transactions are insufficient for real-world scenarios (grocery trips with food + household items, business expenses with mixed categories).
 
 **Features**:
-- Transaction CRUD with splits
-- Transaction filtering and search
+- Transaction CRUD with splits → [PRD: Transaction Record](wip/transactions/PRD-TRANSACTION-RECORD.md), [PRD: Transaction Splits](wip/transactions/PRD-TRANSACTION-SPLITS.md)
+- Transaction filtering and search → [PRD: Transaction Filtering](wip/transactions/PRD-TRANSACTION-FILTERING.md)
 - Transaction record validation
+- Investment transactions management
 
 ### 🤖 Data Intelligence & Automation
 **Goal**: Reduce manual categorization work through intelligent pattern matching
@@ -72,7 +73,7 @@ graph TB
 **Why It Matters**: Manual categorization at scale (hundreds of transactions per month) creates friction that prevents users from maintaining their financial tracking. Automation is the key differentiator that makes YoFi practical for daily use.
 
 **Features**:
-- Payee matching rules (substring and regex)
+- Payee matching rules (substring and regex) → [PRD: Payee Rules](wip/automation/PRD-PAYEE-RULES.md)
 - Category autocomplete (future)
 - Split templates (future)
 - Bulk operations (future)
@@ -83,9 +84,8 @@ graph TB
 **Why It Matters**: Manual data entry is the #1 barrier to adoption. Users need frictionless import from their banks and other financial institutions.
 
 **Features**:
-- Bank file import (OFX/QFX)
-- Duplicate detection
-- Tenant data administration (XLSX import/export)
+- Bank file import (OFX/QFX) with duplicate detection → [PRD: Bank Import](wip/import-export/PRD-BANK-IMPORT.md)
+- Tenant data administration (XLSX import/export) → [PRD: Tenant Data Admin](wip/import-export/PRD-TENANT-DATA-ADMIN.md)
 - API integrations (future - Plaid, etc.)
 
 ### 👥 Multi-User & Collaboration
@@ -105,10 +105,10 @@ graph TB
 **Why It Matters**: The ultimate value of transaction tracking is understanding spending patterns and making informed decisions. Reports close the loop on the user journey.
 
 **Features**:
-- Category spending reports
+- Category spending reports → [PRD: Reports](wip/reports/PRD-REPORTS.md)
 - Trend analysis and visualizations
-- Budget creation and tracking
-- API access for external reporting tools
+- Budget creation and tracking → *PRD to be created (V3.1)*
+- API access for external reporting tools → *PRD to be created (Beta 2-3)*
 - Custom dashboards
 - Net worth tracking (balance sheet view)
 - Tax planning and historical tax analysis
@@ -119,7 +119,7 @@ graph TB
 **Why It Matters**: Financial tracking requires receipts, invoices, and statements as evidence. Automating attachment matching reduces manual filing work.
 
 **Features**:
-- Transaction attachments (receipts, invoices)
+- Transaction attachments (receipts, invoices) → *PRD to be created (Beta 3)*
 - Bulk document upload with auto-matching to transactions
 - Filename-based matching patterns
 - Document storage and retrieval
@@ -167,7 +167,8 @@ Actual financial data now here, so production security needs to be tighter.
 
 Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
 
-System Readiness
+**System Readiness**
+
 -	Invitations MVP
 
 ### Beta 3: Household active
@@ -176,7 +177,7 @@ Ready for beta testers to move wholly off YoFi V1
 
 ### V3.0: Public Release
 
-Widely released
+Widely released. Minimal V1 regressions, except rarely used corner cases.
 
 ### V3.1: Near Backlog
 
@@ -255,12 +256,6 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 2. **Tracking**: Update status as stories progress
 3. **Adjusting**: Move stories between iterations as needed
 4. **Communicating**: Share progress by pointing to specific story completions
-
-## PRDs to follow
-
--	Transaction attachments (Beta 3)
--	API reports. Will be more challenging with tenant-scoped keys! Probably should be user scoped. (Beta 2 or 3)
--	Budgeting. (V3.1)
 
 ## Story Delivery Approach
 
