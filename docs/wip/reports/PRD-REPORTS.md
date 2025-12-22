@@ -47,9 +47,48 @@ mechanism to deliver this insight and understanding
 **Acceptance Criteria**:
 - [ ] User can select from a set of pre-defined income and/or expense reports
 - [ ] User's choice of report filters which categories are included or excluded
-- [ ] A grand total is shown at the bottom, including all included categories
+- [ ] A grand total is shown at the end of each row if there are month columns
+- [ ] A percentage is shown at the far end of each row, after the grand total, giving the percentage of that row out of the whole report grand total
+- [ ] A grand total is shown at the bottom of each column, including all included categories
 - [ ] Subtotals are shown at each category level, e.g. there would be a subtotal for "Home:Utilities", and also one for "Home".
 - [ ] Report definition includes a choice of whether uncategorized transactions are included. If the report includes them, they are included as a top-level report item "Uncategorized".
+
+### Category
+
+Reports expect certain category conventions. The following top-level case-insensitive categories (e.g "Income") category and all subcategories (e.g., "Income:Salary") are treated as described below.
+
+- Income: All sources of income
+- Taxes: Tax withheld or paid, typically income tax, but any tax payments are expected here.
+- Savings: Explicit transfers to savings accounts, which are not expenses
+- Transfer: Moving money around, which is not expected to show up in any category
+
+All other categories are expenses. No special handling for unexpected signs (negative income is shown as negative).
+
+### Reports
+
+Following are the standard income/expense reports
+
+| Name | Categories | Default Level | Shows months by default
+| --- | --- | --- | --- |
+| Income | Income:* | 1 | No |
+| Taxes | Taxes:* | 1 | No |
+| Expenses | (All others):* | 1 | No |
+| Savings | Savings:* | 1 | No |
+| Transfers | Transfer:* | 1 | No |
+| Income Detail | Income:* | 2 | Yes |
+| Taxes Detail | Taxes:* | 2 | Yes |
+| Expenses Detail | (All others):* | 2 | Yes |
+| Savings Detail | Savings:* | 2 | No |
+| All | * | 1 | No |
+| All Detail | * | 2 | Yes |
+
+**Notes:**
+- **Category Filtering**: "Expenses" and "Expenses Detail" include all categories EXCEPT Income, Taxes, Savings, and Transfer. They also include uncategorized splits.
+- **Category Depth Levels**: "Default Level: N" means show N levels below the report filter root. For example:
+  - Income report at Level 1 shows categories like `Income:Salary`, `Income:Bonus` (one level below Income)
+  - Income report at Level 2 shows categories like `Income:Salary:Primary`, `Income:Bonus:Annual` (two levels below Income)
+  - Expenses report at Level 1 shows top-level expense categories like `Home`, `Transportation` (treated as if there's an implicit "Expenses" root)
+  - Expenses report at Level 2 shows `Home:Utilities`, `Transportation:Fuel` (two levels of expense hierarchy)
 
 ### Story 2: User - Configures report display
 **As a** user
@@ -60,6 +99,9 @@ mechanism to deliver this insight and understanding
 - [ ] User can choose which year to display. Unless otherwise described later, reports are always in the context of a single calendar year
 - [ ] User can choose whether to show independent month values with a row total, or show whole year only. The default is an aspect of report definition.
 - [ ] User can choose how many levels deep of categories to show. The default level is an aspect of the report definition.
+- [ ] Settings are persisted per-report in browser localStorage (each report remembers its own year, depth, and chart/table view)
+- [ ] Settings auto-save whenever changed
+- [ ] User can click "Reset" to clear localStorage for that specific report and restore definition defaults
 
 ### Story 3: User - Views a report in chart form
 **As a** user
@@ -67,19 +109,31 @@ mechanism to deliver this insight and understanding
 **So that** I can process the information better as a visual learner
 
 **Acceptance Criteria**:
-- [ ] For any report I can view the data in an easy-to-understand chart. It's OK if the chart shows a higher summary level than the table at any moment. (Exactly which form of chart TBD)
+- [ ] For any report I can view the data in an easy-to-understand chart using Chart.js library
+- [ ] Month-by-month reports display as line charts showing top-level categories only
+- [ ] Category breakdown reports display as donut charts
+- [ ] Charts are not interactive (no drill-down from charts)
 - [ ] User can choose between chart, table, or both (defaults to both)
+- [ ] No accessibility requirements for charts
 
 ### Story 4: User - Views summary report
 **As a** user
 **I want** to view a top-level summary of my entire income/expense picture
 **So that** I can get a high-level sense of where we are
 
-This is an "income statement" made easier to use for lay users.
+This is an "income statement" made easier to use for lay users. The sections are as follows. Unless otherwise noted these are the reports described in Story 1
+
+- Income
+- Taxes
+- Calculated Section: "Net Income". Rows: "Income", "Taxes" (both taken from grand total of above), "Total". Columns: Category, "$ Total", "% of Income"
+- Expenses
+- Savings
+- Calculated Section: "Net Savings". Rows: "Net Income" (taken from previous calculated section), "Expenses", "Total". Columns: "Category", "$ Total", "% of Net Income"
+  - **Note**: Total = Net Income - Expenses, representing actual savings rate (explicit savings in "Savings" section + implicit savings remaining in bank account)
 
 **Acceptance Criteria**:
-- [ ] Summary report includes a collection of high-level report sections (to be designed)
-- [ ] From each section, there is an affordance for me to drill into that and directly view a dedicated report at a lower level of detail.
+- [ ] Summary report includes a collection of high-level report sections
+- [ ] From each section which is backed by an underlying report, there is an affordance for me to drill into that and directly view a dedicated report at a lower level of detail.
 
 ### Story 5: User - Views budget reports [PENDING]
 **As a** user
@@ -108,7 +162,12 @@ This is an "income statement" made easier to use for lay users.
 **So that** I can understand what underlying actions caused the result I'm seeing
 
 **Acceptance Criteria**:
-- [ ] User can select any number on a report, and choose to drill in. This will move user to Transactions page, with a filter applied based on what was included in that number.
+- [ ] User can select any number on a report and drill in, opening the Transactions page in a new browser tab
+- [ ] Clicking a monthly cell (e.g., "Home:Utilities" for March) applies category AND month filters
+- [ ] Clicking a row total applies category filter for the entire year
+- [ ] Clicking a column total filters to that month for all categories included in the report (e.g., Income report shows all Income:* categories)
+- [ ] Clicking subtotal rows (e.g., "Home") filters to all subcategories using wildcard pattern (e.g., "Home:*")
+- [ ] Filters are visible and editable on the transactions page
 
 ### Story 8: User - Defines a custom report [FUTURE]
 **As a** user
@@ -118,6 +177,7 @@ This is an "income statement" made easier to use for lay users.
 **Acceptance Criteria**:
 - [ ] User can customize any of the existing built-in report parameters
 - [ ] User has complete CRUD control of report defintions
+- [ ] Custom reports are available to anyone in the workspace (tenant)
 
 **NOTE** This is included here for future vision. Remainder of PRD does not include further consideration of this
 
@@ -138,17 +198,15 @@ This is an "income statement" made easier to use for lay users.
 
 2. **Hierarchical Category Rollups** - Categories use `:` delimiter for hierarchy (e.g., "Home:Utilities:Electric"). Reports show both detail rows for each level and rollup subtotals for parent categories.
 
-3. **Income Category Convention** - Top-level "Income" category (case-insensitive) and all subcategories (e.g., "Income:Salary") are treated as income. All other categories are expenses. No special handling for unexpected signs (negative income is shown as negative).
+3. **Uncategorized Split Handling** - Whether uncategorized splits (empty string category) are included is defined per report. When included, they appear as top-level "Uncategorized" row. Each split in a multi-split transaction is counted independently.
 
-4. **Uncategorized Split Handling** - Whether uncategorized splits (empty string category) are included is defined per report. When included, they appear as top-level "Uncategorized" row. Each split in a multi-split transaction is counted independently.
+4. **Drill-Down Navigation** - Clicking any report cell/row opens transactions page in new browser tab with appropriate filters applied. Clicking subtotal rows (e.g., "Home") filters to all subcategories ("Home:*"). Filters are visible and editable on transactions page.
 
-5. **Drill-Down Navigation** - Clicking any report cell/row opens transactions page in new browser tab with appropriate filters applied. Clicking subtotal rows (e.g., "Home") filters to all subcategories ("Home:*"). Filters are visible and editable on transactions page.
+5. **Year-over-Year Report** - Separate report type showing columns for each year where any data exists. Shows only years with data (no zero columns for missing years). No month-by-month view available for this report type.
 
-6. **Year-over-Year Report** - Separate report type showing columns for each year where any data exists. Shows only years with data (no zero columns for missing years). No month-by-month view available for this report type.
+6. **Report Configuration** - Report definitions are hard-coded in application (not database-stored). Category filtering is defined at report-definition level. Users select from pre-defined reports only (custom report creation is future).
 
-7. **Report Configuration** - Report definitions are hard-coded in application (not database-stored). Category filtering is defined at report-definition level. Users select from pre-defined reports only (custom report creation is future).
-
-8. **Performance Targets** - Real-time query of split data (no pre-aggregation). Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s.
+7. **Performance Targets** - Real-time query of split data (no pre-aggregation). Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s. Expected volume: 1,500 transactions per year per tenant (30,000 transactions over 20 years).
 
 **Code Patterns to Follow**:
 - Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
@@ -160,34 +218,7 @@ This is an "income statement" made easier to use for lay users.
 
 ## Open Questions
 
-### 1. **Built-in Report Definitions**
-
-What specific built-in reports should be included initially? Need to pull from YoFi V1.
-
-### 2. **Chart Visualization Library & Types**
-
-- What chart library should be used? (Chart.js, Recharts, D3, other?)
-- For month-by-month reports, which chart type? (line chart, bar chart, stacked bar?)
-- For category breakdown reports, which chart type? (pie chart, horizontal bar, tree map?)
-- Should charts be interactive (clickable to drill down)?
-- Are there accessibility requirements for charts (screen reader support, alternative data tables)?
-
-### 3. **Summary Report Sections**
-
-What high-level sections should the summary report include? Need to pull from YoFi V1.
-
-Answered: Summary report allows year selection (YES), does not include year-over-year comparison (NO).
-
-### 4. **State Management & User Preferences**
-
-- Should report configuration (year, depth level, chart/table view) be persisted per user (database), saved in browser localStorage, or reset each visit?
-- Should there be "Save Report Configuration" functionality for later recall?
-
-Note: Custom report configurations (Story 8 - future) will be tenant-scoped.
-
-### 5. **Transaction Volume Research**
-
-How many transactions are anticipated per tenant? (hundreds, thousands, tens of thousands?) - Research needed for indexing strategy.
+**All questions have been resolved and integrated into the appropriate sections above.**
 
 ---
 
@@ -206,8 +237,8 @@ How many transactions are anticipated per tenant? (hundreds, thousands, tens of 
 - Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accomodate needs of report-driven filters
 
 **Constraints**:
-- We may need to revisit choice of database technology if current choice doesn't support reporting perf metrics.
-- [Technical, time, or resource constraints]
+- Database technology choice may need revisiting if performance targets aren't met with SQLite
+- May need composite indexes on (TenantKey, Category, Year) for optimal split-based query performance
 
 ---
 
