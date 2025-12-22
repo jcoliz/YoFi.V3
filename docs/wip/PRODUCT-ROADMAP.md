@@ -73,7 +73,7 @@ graph TB
 **Why It Matters**: Manual categorization at scale (hundreds of transactions per month) creates friction that prevents users from maintaining their financial tracking. Automation is the key differentiator that makes YoFi practical for daily use.
 
 **Features**:
-- Payee matching rules (substring and regex) → [PRD: Payee Rules](wip/automation/PRD-PAYEE-RULES.md)
+- Payee matching rules (substring and regex) → [PRD: Payee Rules](wip/payee-rules/PRD-PAYEE-RULES.md)
 - Category autocomplete (future)
 - Split templates (future)
 - Bulk operations (future)
@@ -199,51 +199,51 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 
 ### Story-Level Iteration Roadmap
 
-| Feature: Story                                  | Milestone | Iteration | Status      |
-|-------------------------------------------------|-----------|-----------|-------------|
-| **Multi-Tenancy**: All stories complete         | ✅        | ✅        | Complete    |
-| **Transaction Record**                          |           |           | Approved    |
-| Story 1 - Represent Imported Data               | A1        | 1         | Approved    |
-| Story 2 - Add Additional Information            | A1        | 2         | Approved    |
-| Story 3 - Manage Transactions                   | A1        | 3         | Approved    |
-| **Transaction Splits**                          |           |           | Approved    |
-| Story 1 - Split Single Transaction              | B2        |           | Approved    |
-| Story 2 - View Category Reports                 | -         |           | Superseded  |
-| Story 3 - Simple Single-Category Workflow       | A1        | 1         | Approved    |
-| Story 4 - Detect Unbalanced Transactions        | B2        |           | Approved    |
-| Story 5 - Import Transactions with Splits       | A1        | 1         | Approved    |
-| **Transaction Filtering**                       |           |           | Approved    |
-| Story 1 - Quick Text Search                     | A1        | 2         | Approved    |
-| Story 2 - Find Uncategorized                    | B1        |           | Approved    |
-| Story 3 - Default Date Range                    | V3.0      |           | Approved    |
-| Story 4 - Advanced Filtering                    | B1        |           | Approved    |
-| Story 5 - Reports Integration                   | V3.1      |           | Future      |
-| **Bank Import**                                 |           |           | Planned     |
-| Story 1 - Upload Bank File                      | A1        | 1         | Planned     |
-| Story 2 - Review Imported Transactions          | B2        |           | Planned     |
-| Story 3 - Manage Import State                   | B2        |           | Planned     |
-| Story 4 - Handle Import Errors                  | B2        |           | Planned     |
-| **Payee Rules**                                 |           |           | Planned     |
-| Story 1 - Establish Rules (CRUD)                | B2        |           | Planned     |
-| Story 2 - Auto-categorize on Import             | A1        | 3         | Planned     |
-| Story 3 - Manual Trigger Matching               | B3        |           | Planned     |
-| Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | Planned     |
-| Story 5 - Rule Cleanup                          | Post V3   |           | Planned     |
-| **Tenant Data Admin**                           |           |           | Planned     |
-| Story 1 - Export with Selection                 | V3.0      |           | Planned     |
-| Story 2 - Import with Detection                 | B1        |           | Planned     |
-| Story 3 - Delete All Data                       | V3.0      |           | Planned     |
-| Story 4 - Load Sample Data                      | A1        | 2         | Planned     |
-| Story 5 - Handle Import Errors                  | V3.1      |           | Planned     |
-| **Reports**                                     |           |           | Planned     |
-| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | Planned     |
-| Story 2 - Configure Report Display              | B2        |           | Planned     |
-| Story 3 - View Report in Chart Form             | V3.0      |           | Planned     |
-| Story 4 - View Summary Report                   | B3        |           | Planned     |
-| Story 5 - View Budget Reports                   | V3.0      |           | Future      |
-| Story 6 - View Complete History Over Time       | B3        |           | Planned     |
-| Story 7 - Investigate Underlying Transactions   | V3.1      |           | Planned     |
-| Story 8 - Define Custom Report                  | Post V3   |           | Future      |
+| Feature: Story                                  | Milestone | Iteration | Status               |
+|-------------------------------------------------|-----------|-----------|----------------------|
+| **Multi-Tenancy**: All stories complete         | ✅        | ✅        | ✅ Implemented       |
+| **Transaction Record**                          |           |           | 🎨 Design Complete   |
+| Story 1 - Represent Imported Data               | A1        | 1         | 🎨 Design Complete   |
+| Story 2 - Add Additional Information            | A1        | 2         | 🎨 Design Complete   |
+| Story 3 - Manage Transactions                   | A1        | 3         | 🎨 Design Complete   |
+| **Transaction Splits**                          |           |           | 🎨 Design Complete   |
+| Story 1 - Split Single Transaction              | B2        |           | 🎨 Design Complete   |
+| Story 2 - View Category Reports                 | -         |           | 🚫 Superseded        |
+| Story 3 - Simple Single-Category Workflow       | A1        | 1         | 🎨 Design Complete   |
+| Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
+| Story 5 - Import Transactions with Splits       | A1        | 1         | 🎨 Design Complete   |
+| **Transaction Filtering**                       |           |           | 🎨 Design Complete   |
+| Story 1 - Quick Text Search                     | A1        | 2         | 🎨 Design Complete   |
+| Story 2 - Find Uncategorized                    | B1        |           | 🎨 Design Complete   |
+| Story 3 - Default Date Range                    | V3.0      |           | 🎨 Design Complete   |
+| Story 4 - Advanced Filtering                    | B1        |           | 🎨 Design Complete   |
+| Story 5 - Reports Integration                   | V3.1      |           | 💡 Future            |
+| **Bank Import**                                 |           |           | ✔️ Approved          |
+| Story 1 - Upload Bank File                      | A1        | 1         | ✔️ Approved          |
+| Story 2 - Review Imported Transactions          | B2        |           | ✔️ Approved          |
+| Story 3 - Manage Import State                   | B2        |           | ✔️ Approved          |
+| Story 4 - Handle Import Errors                  | B2        |           | ✔️ Approved          |
+| **Payee Rules**                                 |           |           | ✔️ Approved          |
+| Story 1 - Establish Rules (CRUD)                | B2        |           | ✔️ Approved          |
+| Story 2 - Auto-categorize on Import             | A1        | 3         | ✔️ Approved          |
+| Story 3 - Manual Trigger Matching               | B3        |           | ✔️ Approved          |
+| Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
+| Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
+| **Tenant Data Admin**                           |           |           | ✔️ Approved          |
+| Story 1 - Export with Selection                 | V3.0      |           | ✔️ Approved          |
+| Story 2 - Import with Detection                 | B1        |           | ✔️ Approved          |
+| Story 3 - Delete All Data                       | V3.0      |           | ✔️ Approved          |
+| Story 4 - Load Sample Data                      | A1        | 2         | ✔️ Approved          |
+| Story 5 - Handle Import Errors                  | V3.1      |           | ✔️ Approved          |
+| **Reports**                                     |           |           | 📝 Draft             |
+| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | 📝 Draft             |
+| Story 2 - Configure Report Display              | B2        |           | 📝 Draft             |
+| Story 3 - View Report in Chart Form             | V3.0      |           | 📝 Draft             |
+| Story 4 - View Summary Report                   | B3        |           | 📝 Draft             |
+| Story 5 - View Budget Reports                   | V3.0      |           | 💡 Future            |
+| Story 6 - View Complete History Over Time       | B3        |           | 📝 Draft             |
+| Story 7 - Investigate Underlying Transactions   | V3.1      |           | 📝 Draft             |
+| Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
 
 ### Reading this timeline:
 
@@ -262,10 +262,11 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 ### Status Values
 - **💡 Future** - Identified but not yet planned
 - **📝 Draft** - Initial requirements gathering, not yet reviewed
-- **📝 Approved** - Requirements approved, ready for design
+- **✔️ Approved** - Requirements approved, ready for design
 - **🎨 Design Complete** - Technical design finished, ready for implementation
 - **🚧 In Progress** - Implementation underway
 - **✅ Implemented** - Code complete and deployed to production
+- **🚫 Superseded** - Story kept for reference but replaced by another story or approach
 
 ---
 

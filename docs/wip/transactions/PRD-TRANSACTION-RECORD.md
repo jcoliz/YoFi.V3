@@ -1,6 +1,6 @@
 # Product Requirements Document: Transaction Record
 
-**Status**: Approved
+**Status**: Approved (Detailed design complete)
 **Created**: 2025-12-20
 **Owner**: James Coliz
 **Target Release**: V3.0

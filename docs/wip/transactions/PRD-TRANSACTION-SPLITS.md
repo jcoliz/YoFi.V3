@@ -1,6 +1,6 @@
 # Product Requirements Document: Transaction Splits
 
-**Status**: Approved
+**Status**: Approved (Detailed design complete)
 **Created**: 2025-12-21
 **Owner**: James Coliz
 **Target Release**: V3.0
