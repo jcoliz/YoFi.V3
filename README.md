@@ -2,9 +2,15 @@
 
 [![Build](https://github.com/jcoliz/YoFi.V3/actions/workflows/build.yaml/badge.svg)](https://github.com/jcoliz/YoFi.V3/actions/workflows/build.yaml)
 
-This is the beginning of a structural refactor/rewrite of the [YoFi](https://github.com/jcoliz/yofi) project. YoFi was originally started on .NET Core 2.2, so it's time to modernize!
+YoFi.V3 aims to be a modern personal finance tracking application that makes managing household money **effortless through intelligent automation**. We eliminate tedious manual categorization while providing the insights users need to make informed financial decisions.
 
-Currently, I'm collecting domain-independent building blocks of a more modern web stack. Once this is all together and working, I will start bringing actual YoFi code over to this project.
+**Core Principles:**
+- **Automation First** - Minimize manual work through smart rules and pattern matching
+- **Multi-User Ready** - Built for households and teams from day one
+- **Data Privacy** - Your financial data stays under your control
+- **Clean UX** - Simple workflows that don't overwhelm casual users
+
+For detailed feature roadmap and release planning, see [PRODUCT-ROADMAP.md](docs/PRODUCT-ROADMAP.md).
 
 ## Technology Stack
 
