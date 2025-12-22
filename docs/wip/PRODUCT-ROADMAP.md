@@ -64,7 +64,6 @@ graph TB
 **Features**:
 - Transaction CRUD with splits
 - Transaction filtering and search
-- Balance tracking and reconciliation
 - Transaction record validation
 
 ### 🤖 Data Intelligence & Automation
@@ -202,21 +201,25 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Feature: Story                                  | Milestone | Iteration | Status      |
 |-------------------------------------------------|-----------|-----------|-------------|
 | **Multi-Tenancy**: All stories complete         | ✅        | ✅        | Complete    |
+| **Transaction Record**                          |           |           | Approved    |
+| Story 1 - Represent Imported Data               | A1        | 1         | Approved    |
+| Story 2 - Add Additional Information            | A1        | 2         | Approved    |
+| Story 3 - Manage Transactions                   | A1        | 3         | Approved    |
 | **Transaction Splits**                          |           |           | Approved    |
 | Story 1 - Split Single Transaction              | B2        |           | Approved    |
 | Story 2 - View Category Reports                 | -         |           | Superseded  |
 | Story 3 - Simple Single-Category Workflow       | A1        | 1         | Approved    |
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | Approved    |
 | Story 5 - Import Transactions with Splits       | A1        | 1         | Approved    |
-| **Transaction Filtering**                       |           |           |             |
+| **Transaction Filtering**                       |           |           | Approved    |
 | Story 1 - Quick Text Search                     | A1        | 2         | Approved    |
 | Story 2 - Find Uncategorized                    | B1        |           | Approved    |
-| Story 3 - Default Date Range                    | B3        |           | Approved     |
-| Story 4 - Advanced Filtering                    | B1        |           | Approved     |
+| Story 3 - Default Date Range                    | V3.0      |           | Approved    |
+| Story 4 - Advanced Filtering                    | B1        |           | Approved    |
 | Story 5 - Reports Integration                   | V3.1      |           | Future      |
-| **Bank Import**                                 |           |           | Next        |
-| Story 1 - Upload Bank File                      | A1        | 1         | Next        |
-| Story 2 - Review Imported Transactions          | B2        |           | Next        |
+| **Bank Import**                                 |           |           | Planned     |
+| Story 1 - Upload Bank File                      | A1        | 1         | Planned     |
+| Story 2 - Review Imported Transactions          | B2        |           | Planned     |
 | Story 3 - Manage Import State                   | B2        |           | Planned     |
 | Story 4 - Handle Import Errors                  | B2        |           | Planned     |
 | **Payee Rules**                                 |           |           | Planned     |
@@ -227,7 +230,7 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 5 - Rule Cleanup                          | Post V3   |           | Planned     |
 | **Tenant Data Admin**                           |           |           | Planned     |
 | Story 1 - Export with Selection                 | V3.0      |           | Planned     |
-| Story 2 - Import with Detection                 | B3        |           | Planned     |
+| Story 2 - Import with Detection                 | B1        |           | Planned     |
 | Story 3 - Delete All Data                       | V3.0      |           | Planned     |
 | Story 4 - Load Sample Data                      | A1        | 2         | Planned     |
 | Story 5 - Handle Import Errors                  | V3.1      |           | Planned     |
@@ -243,7 +246,7 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 
 **Reading this timeline:**
 - Each row represents one **user story** from a PRD
-- Stories within a feature may be worked on in parallel
+- Stories within a feature may be worked on in parallel, or at completely unrelated times
 - Features are complete when all their stories show ✅
 - This is a working timeline - move stories between iterations as priorities change
 
@@ -258,7 +261,6 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 -	Transaction attachments (Beta 3)
 -	API reports. Will be more challenging with tenant-scoped keys! Probably should be user scoped. (Beta 2 or 3)
 -	Budgeting. (V3.1)
-
 
 ## Story Delivery Approach
 
