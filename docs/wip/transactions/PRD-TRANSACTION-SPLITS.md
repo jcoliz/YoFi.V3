@@ -1,6 +1,6 @@
 # Product Requirements Document: Transaction Splits
 
-**Status**: Implemented
+**Status**: Approved
 **Created**: 2025-12-21
 **Owner**: James Coliz
 **Target Release**: V3.0
@@ -35,7 +35,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 ## User Stories
 
-### Story 1: User - Split Grocery Transaction
+### Story 1: User - Split Single Transaction
 **As a** personal finance user
 **I want** to split a grocery store transaction across "Food" and "Home" categories
 **So that** my category reports accurately reflect spending in each area
@@ -47,16 +47,12 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
 - [ ] UI shows warning when splits don't sum to transaction amount
 
-### Story 2: User - View Category Reports
+### Story 2: User - View Category Reports [SUPERSEDED]
 **As a** personal finance user
 **I want** to see total spending by category
 **So that** I can understand my spending patterns and make budget decisions
 
-**Acceptance Criteria**:
-- [ ] Category report sums amounts across all splits (not transactions)
-- [ ] Report shows both category name and total amount
-- [ ] Can filter by date range
-- [ ] Uncategorized splits are included in report with empty/special indicator
+> [!WARNING] This story is superseded by the [Reports](../reports/PRD-REPORTS.md) feature.
 
 ### Story 3: User - Simple Single-Category Workflow
 **As a** casual user

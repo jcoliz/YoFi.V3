@@ -107,7 +107,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] User can navigate to Data Administration page (Settings or Workspace menu)
 - [ ] Export section displays checkboxes for each available entity type
 - [ ] System dynamically discovers entity types (not hardcoded list)
-- [ ] Special handling: "Transactions" checkbox automatically includes Splits
+- [ ] Special handling: "Transactions" checkbox automatically includes Splitss
 - [ ] User can select any combination of entity types (one, some, or all)
 - [ ] User can specify date range filter:
   - Year selector dropdown (showing years with data, plus "All Years")

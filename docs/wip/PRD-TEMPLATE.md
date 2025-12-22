@@ -3,7 +3,7 @@
 **Status**: Draft | In Review | Approved | Implemented
 **Created**: [YYYY-MM-DD]
 **Owner**: [Your Name]
-**Target Release**: [Version or Sprint]
+**Target Release**: [Release Milestone when predominance of work is expected]
 **ADO**: [Link to ADO Item]
 
 ---
@@ -113,11 +113,9 @@
 
 ## Handoff Checklist (for AI implementation)
 
-> [!NOTE] See [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md) for guidance on PRD scope (WHAT/WHY vs HOW), what belongs in a PRD vs Design Document, and examples.
-
 When handing this off for detailed design/implementation:
+- [ ] Document stays within PRD scope (WHAT/WHY). If implementation details are needed, they are in a separate Design Document. See [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md).
 - [ ] All user stories have clear acceptance criteria
 - [ ] Open questions are resolved or documented as design decisions
 - [ ] Technical approach section indicates affected layers
 - [ ] Code patterns to follow are referenced (links to similar controllers/features)
-- [ ] Companion design document created (for complex features) OR noted as "detailed design during implementation"

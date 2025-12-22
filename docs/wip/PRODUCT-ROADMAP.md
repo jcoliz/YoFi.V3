@@ -127,72 +127,138 @@ graph TB
 
 ---
 
-## Feature Map
+## Release Milestones
 
-> [!NOTE]
-> Features are delivered incrementally through user stories. A feature may span multiple releases as stories are completed. Status reflects the overall feature state, not individual stories.
+### Alpha 1: Primary Path MVP, First Reviewable
 
-### V3.0 - Foundation (Current Focus)
+Happy path works end to end. First version it would make sense to send out for evaluation. There may be additional Alpha releases TBD, if more is needed before going Beta.
 
-| Feature | Status | User Stories | PRD | Technical Design | Notes |
-|---------|--------|--------------|-----|------------------|-------|
-| **Transaction Splits** | ✅ Implemented | 5/5 complete | [PRD](transactions/PRD-TRANSACTION-SPLITS.md) | [Design](transactions/TRANSACTION-SPLIT-DESIGN.md) | Split transactions across categories - core capability |
-| **Transaction Filtering** | 🚧 In Progress | 2/4 complete | [PRD](transactions/PRD-TRANSACTION-FILTERING.md) | [UI Recommendations](transactions/TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) | Search and filter transaction list |
-| **Multi-Tenancy Foundation** | ✅ Implemented | All complete | [ADR-0009](../adr/0009-accounts-and-tenancy.md) | [TENANCY.md](../TENANCY.md) | Workspace isolation with role-based access |
-| **Authentication** | ✅ Implemented | All complete | [ADR-0008](../adr/0008-identity.md) | - | JWT-based auth with ASP.NET Core Identity |
+**Feature readiness**
 
-**Theme Focus**: 🧮 Core Transaction Management + 👥 Multi-User & Collaboration
+- Minimum useful user stories from features on the primary path.
+- Probably needs import with first set of sample data
 
-### V3.1 - Data Management (Next)
+**System readiness**
 
-| Feature | Status | User Stories | PRD | Technical Design | Notes |
-|---------|--------|--------------|-----|------------------|-------|
-| **Bank Import (OFX/QFX)** | 📝 Approved | 0/4 started | [PRD](import-export/PRD-BANK-IMPORT.md) | TBD | Import transactions with duplicate detection |
-| **Tenant Data Administration** | 📝 Draft | 0/5 started | [PRD](import-export/PRD-TENANT-DATA-ADMIN.md) | TBD | XLSX import/export for all entities |
-| **Payee Matching Rules** | 📝 Approved | 0/5 started | [PRD](payee-rules/PRD-PAYEE-RULES.md) | TBD | Auto-categorize transactions by payee patterns |
+- All alpha builds of YoFi are not supported with real financial data.
+- We need an evaluator's guide.
+- Should update the Home Screen with evaluation guidance.
+- Must get docker publishing path working
 
-**Theme Focus**: 📥 Import & Integration + 🤖 Data Intelligence & Automation
+### Beta 1: First personally usable
 
-**Key Dependencies**:
-```mermaid
-graph LR
-    A[Bank Import] --> B[Payee Matching Rules]
-    B --> C[Category Autocomplete]
-    A --> D[Tenant Data Admin]
-```
+Just enough for me to use it personally for very limited scenarios with my personal data.
 
-### V3.2 - Intelligence & Efficiency (Planned)
+**Feature readiness**
 
-| Feature | Status | User Stories | PRD | Notes |
-|---------|--------|--------------|-----|-------|
-| **Category Autocomplete** | 💡 Future | Not scoped | TBD | Suggest categories based on usage patterns |
-| **Split Templates** | 💡 Future | Not scoped | TBD | Save common split patterns for reuse |
-| **Bulk Categorization** | 💡 Future | Not scoped | TBD | Apply category/rules to multiple transactions |
-| **Transaction Record Design** | 🎨 Design Complete | Documentation | [PRD](transactions/PRD-TRANSACTION-RECORD.md) | Formal transaction schema definition |
+TBD. Enough that I can use it for my personal finances. Probably needs at least data import.
 
-**Theme Focus**: 🤖 Data Intelligence & Automation
+**System readiness**
 
-### V3.3+ - Reporting & Financial Planning (Future)
+Actual financial data now here, so production security needs to be tighter.
 
-| Feature | Theme | Priority | User Stories | Notes |
-|---------|-------|----------|--------------|-------|
-| **Budget Creation & Tracking** | 📊 Reports & Insights | High | Not scoped | Create category budgets, track vs. actual, alerts |
-| **Transaction Attachments** | 📎 Document Management | High | Not scoped | Attach receipts/invoices to transactions |
-| **Bulk Document Upload** | 📎 Document Management | Medium | Not scoped | Upload documents with auto-match to transactions by filename |
-| **API Reporting Endpoints** | 📊 Reports & Insights | Medium | Not scoped | Export reports for Excel and external tools |
-| **Net Worth & Balance Sheet** | 📊 Reports & Insights | Medium | Not scoped | Investment tracking, asset/liability reporting |
-| **Tax Planning & Analysis** | 📊 Reports & Insights | Medium | Not scoped | Map transactions to tax return, historical analysis, future planning |
+-	Test API Key in prod
+-	Seed User
+-	No registration without invitation. Perhaps make test control API generate invitations.
+-	Log redaction for financial data
+-	Functional tests against production
+-	Production troubleshooting guide
 
-### Future Backlog (Lower Priority)
+### Beta 2: Household usable
 
-| Feature | Theme | Priority | User Stories | Notes |
-|---------|-------|----------|--------------|-------|
-| Trend Visualization | 📊 Reports & Insights | Medium | Not scoped | Interactive charts for spending patterns over time |
-| Plaid Integration | 📥 Import & Integration | Low | Not scoped | Real-time bank connectivity |
-| Mobile App | 🧮 Core Transaction Management | Low | Not scoped | Native iOS/Android apps |
-| Custom Dashboards | 📊 Reports & Insights | Low | Not scoped | User-configurable dashboard widgets |
+Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
+
+System Readiness
+-	Invitations MVP
+
+### Beta 3: Household active
+
+Ready for beta testers to move wholly off YoFi V1
+
+### V3.0: Public Release
+
+Widely released
+
+### V3.1: Near Backlog
+
+Deferred/deferrable stories from release, but really want them.
+
+### Post V3: Under consideration
+
+Expecting to put energy into designing these items once V3.0 is out.
+
+### Future: For potential consideration
+
+May consider in the future. Not actively expecting to put energy on them.
 
 ---
+
+## Implementation Timeline
+
+Stories are the fundamental unit of delivery. This timeline shows the expected **release milestone** for each story. Features are completed when all their stories are done. Stories targeted for the next milestone are further sequenced into iterations.
+
+### Story-Level Iteration Roadmap
+
+| Feature: Story                                  | Milestone | Iteration | Status      |
+|-------------------------------------------------|-----------|-----------|-------------|
+| **Multi-Tenancy**: All stories complete         | ✅        | ✅        | Complete    |
+| **Transaction Splits**                          |           |           | Approved    |
+| Story 1 - Split Single Transaction              | B2        |           | Approved    |
+| Story 2 - View Category Reports                 | -         |           | Superseded  |
+| Story 3 - Simple Single-Category Workflow       | A1        | 1         | Approved    |
+| Story 4 - Detect Unbalanced Transactions        | B2        |           | Approved    |
+| Story 5 - Import Transactions with Splits       | A1        | 1         | Approved    |
+| **Transaction Filtering**                       |           |           |             |
+| Story 1 - Quick Text Search                     | A1        | 2         | Approved    |
+| Story 2 - Find Uncategorized                    | B1        |           | Approved    |
+| Story 3 - Default Date Range                    | B3        |           | Approved     |
+| Story 4 - Advanced Filtering                    | B1        |           | Approved     |
+| Story 5 - Reports Integration                   | V3.1      |           | Future      |
+| **Bank Import**                                 |           |           | Next        |
+| Story 1 - Upload Bank File                      | A1        | 1         | Next        |
+| Story 2 - Review Imported Transactions          | B2        |           | Next        |
+| Story 3 - Manage Import State                   | B2        |           | Planned     |
+| Story 4 - Handle Import Errors                  | B2        |           | Planned     |
+| **Payee Rules**                                 |           |           | Planned     |
+| Story 1 - Establish Rules (CRUD)                | B2        |           | Planned     |
+| Story 2 - Auto-categorize on Import             | A1        | 3         | Planned     |
+| Story 3 - Manual Trigger Matching               | B3        |           | Planned     |
+| Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | Planned     |
+| Story 5 - Rule Cleanup                          | Post V3   |           | Planned     |
+| **Tenant Data Admin**                           |           |           | Planned     |
+| Story 1 - Export with Selection                 | V3.0      |           | Planned     |
+| Story 2 - Import with Detection                 | B3        |           | Planned     |
+| Story 3 - Delete All Data                       | V3.0      |           | Planned     |
+| Story 4 - Load Sample Data                      | A1        | 2         | Planned     |
+| Story 5 - Handle Import Errors                  | V3.1      |           | Planned     |
+| **Reports**                                     |           |           | Planned     |
+| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | Planned     |
+| Story 2 - Configure Report Display              | B2        |           | Planned     |
+| Story 3 - View Report in Chart Form             | V3.0      |           | Planned     |
+| Story 4 - View Summary Report                   | B3        |           | Planned     |
+| Story 5 - View Budget Reports                   | V3.0      |           | Future      |
+| Story 6 - View Complete History Over Time       | B3        |           | Planned     |
+| Story 7 - Investigate Underlying Transactions   | V3.1      |           | Planned     |
+| Story 8 - Define Custom Report                  | Post V3   |           | Future      |
+
+**Reading this timeline:**
+- Each row represents one **user story** from a PRD
+- Stories within a feature may be worked on in parallel
+- Features are complete when all their stories show ✅
+- This is a working timeline - move stories between iterations as priorities change
+
+**How to use this timeline:**
+1. **Planning**: Assign stories to iterations based on priority and dependencies
+2. **Tracking**: Update status as stories progress
+3. **Adjusting**: Move stories between iterations as needed
+4. **Communicating**: Share progress by pointing to specific story completions
+
+## PRDs to follow
+
+-	Transaction attachments (Beta 3)
+-	API reports. Will be more challenging with tenant-scoped keys! Probably should be user scoped. (Beta 2 or 3)
+-	Budgeting. (V3.1)
+
 
 ## Story Delivery Approach
 
@@ -215,51 +281,6 @@ Story 4: Error handling (1 week) → Delivered in V3.1-rc
 - Feature Map shows "X/Y complete" to track progress
 - Stories can be linked to ADO work items for detailed tracking
 - Status updates reflect latest completed stories
-
-## Release Timeline
-
-> [!NOTE]
-> Timeline shows **when features start** and **expected completion**, but individual stories may deliver incrementally throughout the period.
-
-```mermaid
-gantt
-    title YoFi.V3 Story Delivery Timeline
-    dateFormat YYYY-MM
-    section V3.0 Foundation
-    Transaction Splits           :done, 2025-01, 2025-03
-    Multi-Tenancy               :done, 2025-01, 2025-03
-    Transaction Filtering       :active, 2025-03, 2025-04
-    section V3.1 Data Management
-    Bank Import Stories         :2025-04, 2025-06
-    Payee Rules Stories         :2025-05, 2025-07
-    Tenant Data Admin Stories   :2025-06, 2025-08
-    section V3.2 Intelligence
-    Category Autocomplete       :2025-08, 2025-10
-    Bulk Operations            :2025-10, 2025-12
-```
-
-**Reading this timeline:**
-- Bars represent **active development periods** for feature stories
-- Stories may deliver to users incrementally within the bar duration
-- Overlapping bars indicate parallel work on multiple features
-- Timeline is illustrative and adjusts based on story completion rates
-
----
-
-## Feature Dependencies
-
-### Critical Path
-1. **Multi-Tenancy Foundation** (V3.0) → Enables all tenant-scoped features
-2. **Transaction Splits** (V3.0) → Enables accurate category reporting
-3. **Bank Import** (V3.1) → Enables high-volume transaction workflows
-4. **Payee Matching Rules** (V3.1) → Makes bank import practical at scale
-
-### Optional Enhancements
-- **Category Autocomplete** depends on transaction history volume
-- **Split Templates** depends on user workflow patterns
-- **Bulk Operations** depends on user pain points with individual edits
-
----
 
 ## Success Metrics
 

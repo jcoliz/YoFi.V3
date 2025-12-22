@@ -1,6 +1,6 @@
 # Product Requirements Document: Reports
 
-**Status**: Draft
+**Status**: In review
 **Created**: 2025-12-21
 **Owner**: James Coliz
 **Target Release**: [Version or Sprint]
@@ -29,7 +29,6 @@ mechanism to deliver this insight and understanding
 - Custom report creation by users (deferred to future - Story 8)
 - Budget variance reporting (deferred pending Budget PRD - Story 5)
 - Multi-currency support (out of scope for V3)
-- Pre-aggregated reporting tables or materialized views (query splits in real-time)
 - Report scheduling or automated email delivery
 - Export reports to PDF or Excel (separate feature)
 - Retrieve report data for API (separate feature)
@@ -140,7 +139,7 @@ This is an "income statement" made easier to use for lay users. The sections are
 **I want** to see how I'm doing against my budget plan
 **So that** I can adjust my spending to stay on target
 
-**NOTE** THis is a placeholder story. Will return to after completing Budget PRD in the future
+**NOTE** This is a placeholder story. Will return to after completing Budget PRD in the future
 
 **Acceptance Criteria**:
 - [ ] [Specific, testable criterion 1]
@@ -168,6 +167,14 @@ This is an "income statement" made easier to use for lay users. The sections are
 - [ ] Clicking a column total filters to that month for all categories included in the report (e.g., Income report shows all Income:* categories)
 - [ ] Clicking subtotal rows (e.g., "Home") filters to all subcategories using wildcard pattern (e.g., "Home:*")
 - [ ] Filters are visible and editable on the transactions page
+
+#### Interaction with Transaction Filtering
+
+The requirements we will have on filtering:
+- [ ] Reports can specify a date range
+- [ ] Reports can specify categories with wildcard, e.g. "Income:*" matches "Income" and "Income:Salary"
+- [ ] Reports can use special "Expenses" moniker to mean "all transactions not in Income, Taxes, Savings, or Transfer" top level categories
+- [ ] Reports can (and almost always will) specify *both* a date range and a category with wildcard.
 
 ### Story 8: User - Defines a custom report [FUTURE]
 **As a** user
@@ -206,7 +213,7 @@ This is an "income statement" made easier to use for lay users. The sections are
 
 6. **Report Configuration** - Report definitions are hard-coded in application (not database-stored). Category filtering is defined at report-definition level. Users select from pre-defined reports only (custom report creation is future).
 
-7. **Performance Targets** - Real-time query of split data (no pre-aggregation). Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s. Expected volume: 1,500 transactions per year per tenant (30,000 transactions over 20 years).
+7. **Performance Targets** - Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s. Expected volume: 1,500 transactions per year per tenant (30,000 transactions over 20 years).
 
 **Code Patterns to Follow**:
 - Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
@@ -224,9 +231,17 @@ This is an "income statement" made easier to use for lay users. The sections are
 
 ## Success Metrics
 
-[How will we know this feature is successful?]
-- [Metric 1]
-- [Metric 2]
+**Feature Adoption**:
+- **Report Usage Rate**: 70%+ of active users view at least one report per month (indicates reports deliver value worth returning to)
+- **Drill-Down Usage**: 40%+ of report viewers use drill-down to transactions at least once (validates the new capability addresses a real need)
+
+**User Engagement**:
+- **Report View Depth**: Average of 2+ different report types viewed per session (indicates users explore multiple perspectives on their data)
+- **Configuration Persistence**: 50%+ of users modify default report settings (depth level, month display) and those settings persist across sessions (indicates customization provides value)
+
+**Performance**:
+- **Query Performance**: 95%+ of single-year reports complete in <500ms, 95%+ of multi-year reports complete in <2s (meets user experience targets)
+- **Error Rate**: <1% of report requests result in errors or timeouts (indicates stable, reliable functionality)
 
 ---
 
@@ -237,28 +252,51 @@ This is an "income statement" made easier to use for lay users. The sections are
 - Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accomodate needs of report-driven filters
 
 **Constraints**:
-- Database technology choice may need revisiting if performance targets aren't met with SQLite
+- Database technology choice may need revisiting if performance targets aren't met with SQLite.
 - May need composite indexes on (TenantKey, Category, Year) for optimal split-based query performance
 
 ---
 
 ## Notes & Context
 
-[Any additional context, links to related documents, or background information]
+**Background**: This feature represents a core value proposition of the YoFi financial tracking application. While transaction entry and categorization are necessary data collection activities, reports transform that raw data into actionable insights that drive user decision-making about their financial lives.
+
+**Design Philosophy**:
+- **Progressive Disclosure**: Reports start at high-level summaries (Summary Report, Level 1 reports) and allow users to drill down progressively to more detail (Level 2+ reports, individual transactions). This prevents information overload while maintaining access to full detail when needed.
+- **Split-Centric Model**: Reports aggregate transaction splits rather than transactions themselves. This correctly handles multi-category transactions (e.g., a single grocery receipt split between "Food" and "Home" categories) and aligns with how users conceptualize their spending.
+- **Performance First**: Performance targets (<500ms single-year, <2s multi-year) define acceptable user experience. Implementation approach (real-time queries, pre-aggregation, indexes, caching) is flexible and should be chosen based on what achieves these targets most effectively.
+
+**Evolution from V1**: This PRD captures proven patterns from YoFi V1 that worked well for users:
+- The Income/Taxes/Expenses/Savings/All report structure maps to how users naturally think about their finances
+- Chart.js provided reliable visualization without excessive complexity
+- Category hierarchy with `:` delimiter proved intuitive and flexible
+
+**New in V3**: Drill-down to transactions (Story 7) is a new capability designed to address a gap from V1. When users saw unexpected values in reports, they had to manually search transactions to understand what drove those numbers. Direct drill-down eliminates this friction.
+
+**Future Extensibility**: While custom reports (Story 8) are deferred, the hard-coded report definitions are designed to be easily refactored into database-backed configurations when that capability is added. The report definition model (category filters, depth levels, month display) captures the parameters users would want to customize.
 
 **Related Documents**:
-- [Link to companion Design Document if it exists]
-- [Link to related PRDs]
+- [`PRD-TRANSACTION-SPLITS.md`](../import-export/PRD-BANK-IMPORT.md) - Defines split data model that reports aggregate
+- [`PRD-TRANSACTION-FILTERING.md`](TBD) - Defines filtering UX that drill-down navigation depends on
+- [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) - General guidance on PRD scope and structure
 
 ---
 
 ## Handoff Checklist (for AI implementation)
 
-> [!NOTE] See [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md) for guidance on PRD scope (WHAT/WHY vs HOW), what belongs in a PRD vs Design Document, and examples.
+**Review Result**: ✅ **APPROVED** - Ready for implementation with minor fixes
 
-When handing this off for detailed design/implementation:
-- [ ] All user stories have clear acceptance criteria
-- [ ] Open questions are resolved or documented as design decisions
-- [ ] Technical approach section indicates affected layers
-- [ ] Code patterns to follow are referenced (links to similar controllers/features)
-- [ ] Companion design document created (for complex features) OR noted as "detailed design during implementation"
+**Checklist Status**:
+- ✅ All user stories have clear acceptance criteria (Stories 1-4, 6-7 complete; 5, 8 appropriately marked as future)
+- ✅ Open questions resolved and integrated into Technical Approach section
+- ✅ Technical approach clearly indicates affected layers (Frontend, Controllers, Application, Entities, Database)
+- ✅ Code patterns referenced with file links
+
+**Required Fixes Before Implementation**:
+1. Line 212: Verify/correct [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs) path
+2. Line 271: Fix link to PRD-TRANSACTION-SPLITS.md (currently points to wrong file: `../import-export/PRD-BANK-IMPORT.md`)
+3. Line 192: Clarify database checkbox - change [?] to [x] or [ ]
+
+**Strengths**: Excellent WHAT/WHY focus per PRD-GUIDANCE.md patterns, comprehensive business rules, clear success metrics, strong product context.
+
+**Recommendation**: Approve after addressing 3 required fixes above.
