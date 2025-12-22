@@ -1,12 +1,11 @@
++++
+title = "YoFi.V3 Product Roadmap"
+status = "Approved"
+last_updated = "2025-12-21"
+owner = "James Coliz"
++++
+
 # YoFi.V3 Product Roadmap
-
-**Status**: In review
-**Last Updated**: 2025-12-21
-**Owner**: James Coliz
-
-> [!NOTE] This document itself is a work in progress. When complete, I will move to top level docs as project documentation.
-
----
 
 ## Vision
 
@@ -335,7 +334,7 @@ See individual PRDs for detailed feature success metrics.
 
 ## Creating a New PRD
 
-For guidance on creating a new PRD, see [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md#creating-a-new-prd).
+For guidance on creating a new PRD, see [`PRD-GUIDANCE.md`](wip/PRD-GUIDANCE.md#creating-a-new-prd).
 
 ---
 
@@ -365,5 +364,3 @@ This roadmap is a living document. As we learn from users and evolve our underst
 - Open a GitHub Discussion for strategic questions
 - Open a GitHub Issue for specific feature requests
 - Contact the owner directly for roadmap questions
-
-**Last Major Update**: 2025-12-21 - Initial roadmap creation with integrated feature map
