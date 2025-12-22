@@ -1,9 +1,8 @@
-+++
-title = "YoFi.V3 Product Roadmap"
-status = "Approved"
-last_updated = "2025-12-21"
-owner = "James Coliz"
-+++
+---
+title: YoFi.V3 Product Roadmap
+status: Approved
+owner: James Coliz
+---
 
 # YoFi.V3 Product Roadmap
 
@@ -211,6 +210,7 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 3 - Simple Single-Category Workflow       | A1        | 1         | 🎨 Design Complete   |
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
 | Story 5 - Import Transactions with Splits       | A1        | 1         | 🎨 Design Complete   |
+| Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
 | **Transaction Filtering**                       |           |           | 🎨 Design Complete   |
 | Story 1 - Quick Text Search                     | A1        | 2         | 🎨 Design Complete   |
 | Story 2 - Find Uncategorized                    | B1        |           | 🎨 Design Complete   |

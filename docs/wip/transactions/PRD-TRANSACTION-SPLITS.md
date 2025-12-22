@@ -43,9 +43,11 @@ Personal finance tracking requires categorizing transactions across multiple cat
 **Acceptance Criteria**:
 - [ ] User can add multiple splits to an existing transaction
 - [ ] Each split has its own amount and category
+- [ ] Entire list of splits can be viewed from a "transaction detail" page showing all aspects of a transaction
 - [ ] Splits can be edited individually (amount, category, memo)
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
 - [ ] UI shows warning when splits don't sum to transaction amount
+- [ ] Split amounts can be negative or positive. Negative indicates money flowing away from us, positive indicates money flowing toward us.
 
 ### Story 2: User - View Category Reports [SUPERSEDED]
 **As a** personal finance user
@@ -87,20 +89,46 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] User can add splits to imported transactions
 - [ ] Source field indicates import origin (e.g., "MegaBankCorp Checking 0123456789-00")
 
+### Story 6: User - Upload splits
+**As a** detail-oriented user
+**I want** to upload an Excel spreadsheet of split data
+**So that** I don't have to enter a very long list of splits by hand (e.g. for my paystub)
+
+**Acceptance Criteria**:
+- [ ] User can upload a spreadsheet (Excel .xlsx) containing split data, from the "transaction detail" page.
+- [ ] Required columns: Category, Amount (optional columns: Memo). Column headers are required.
+- [ ] Additional columns. If uploaded sheet has needless columns, they are ignored in this process.
+- [ ] Invalid input cancels entire import, with an error message displayed to user.
+- [ ] Uploaded splits append to any existing splits for the transaction
+- [ ] Validation errors are shown clearly before committing changes
+- [ ] User can include any categories (see Transactions Record PRD for discussion of ad-hoc categories). Categories will be silently cleaned up to ensure valid category is saved (even if blank)
+- [ ] If sum of uploaded splits does not equal transaction amount, will show balance warning.
+- [ ] UI provides a downloadable template file showing expected format
+- [ ] Order is assigned automatically based on row sequence in file
+- [ ] Upload results are committed immediately, and UI updated. User cannot preview the import, as with bank importing.
+- [ ] User cannot upload any other format that Excel .xlsx
+
+**Performance Characteristics**
+Limits and constraints will be set during performance testing, as these constraints are functions of the system, not the feature.
+
+- Maximum splits per upload
+- Maximum upload
+
 ---
 
 ## Technical Approach
 
 Split transactions will be implemented with a new `Split` entity that has a many-to-one relationship with `Transaction`. This preserves the existing transaction-centric UX while enabling flexible categorization.
 
-**Layers Affected**:
+### Layers Affected
+
 - [x] Frontend (Vue/Nuxt) - Split editor UI, list indicators, balance warnings
 - [x] Controllers (API endpoints) - Split CRUD endpoints, updated transaction endpoints
 - [x] Application (Features/Business logic) - TransactionsFeature with split operations
 - [x] Entities (Domain models) - New Split entity, updated Transaction entity
 - [x] Database (Schema changes) - Split table with indexes, Transaction table updates
 
-**High-Level Entity Concepts**:
+### High-Level Entity Concepts
 
 **Split Entity** (new):
 - Amount (allocated to this category)
@@ -115,7 +143,8 @@ Split transactions will be implemented with a new `Split` entity that has a many
 - Add Source property (import origin)
 - Amount remains authoritative (imported value, not sum of splits)
 
-**Key Business Rules**:
+### Key Business Rules
+
 - Every transaction must have at least one split
 - Transaction.Amount is authoritative (imported or manually entered)
 - Splits sum should match Transaction.Amount (warning if not, but not enforced)
@@ -123,7 +152,12 @@ Split transactions will be implemented with a new `Split` entity that has a many
 - Source property stays at Transaction level (entire transaction from one import)
 - Unbalanced transactions are warning state, not error (user's choice to resolve)
 
-**Code Patterns to Follow**:
+### Security considerations
+
+- File upload endpoints need size limits and MIME type validation. Exact limits subject to further security research.
+
+### Code Patterns to Follow
+
 - Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs) for Split entity, [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs) for Transaction
 - CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing transaction endpoints
@@ -132,6 +166,15 @@ Split transactions will be implemented with a new `Split` entity that has a many
 ---
 
 ## Open Questions
+
+- [x] **Q**: The example mentions "paystub" - typically paystubs have Multiple deduction categories (taxes, insurance, 401k, etc.). Are these positive amounts (deductions from gross pay) or negative amounts (contra-entries)? Should the upload support both positive and negative split amounts?
+  **A**: Updated story #1 to point out that all splits allow negative and positive
+
+- [x] **Q**: Category Auto-Creation. If a category doesn't exist yet, should it be created automatically from the upload? Or should only existing categories be allowed (validation error if not found)?
+  **A** Categories are not "created". Categories don't "exist". See "Ad-hoc categories" in [](../transactions/PRD-TRANSACTION-RECORD.md)
+
+- [X] **Q**:  Technical Implementation Scope. Backend file parsing - which library? (EPPlus, ClosedXML, CsvHelper?) Maximum file size limits? Maximum number of splits per upload? Is this a new API endpoint or enhancement to existing endpoint?
+  **A** These are implementation details, out of scope for "product requirements"
 
 - [x] **Q**: Should we include a HasSplits flag in the transaction list DTO?
   **A**: YES - Include `HasMultipleSplits`, `SingleSplitCategory`, and `IsBalanced` in `TransactionResultDto`
@@ -210,3 +253,36 @@ Implementation completed - feature is working in code:
 - [x] Companion design document created with implementation details
 
 **Implementation Reference**: See [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) for details.
+
+### Updated Requirements - Excellent Coverage
+
+I've reviewed the updated PRD for Story 6 "Upload splits". The updates comprehensively address all the questions I raised:
+
+**File Format & Validation** (Lines 98-110):
+- ✅ Format specified: Excel .xlsx only
+- ✅ Required columns: Category, Amount (optional: Memo)
+- ✅ Headers required, extra columns ignored
+- ✅ Invalid input cancels entire import with error message
+- ✅ Validation errors shown before committing
+- ✅ Categories cleaned up automatically (ad-hoc categories supported)
+- ✅ Downloadable template provided
+
+**UX Flow** (Lines 98, 102, 108):
+- ✅ Upload from "transaction detail" page
+- ✅ Appends to existing splits (doesn't replace)
+- ✅ Results committed immediately (no preview)
+- ✅ Order auto-assigned from row sequence
+
+**Technical & Performance** (Lines 112-116, 156-157):
+- ✅ Performance limits deferred to testing (appropriate)
+- ✅ Security considerations documented (size/MIME validation)
+- ✅ Implementation details appropriately marked as out-of-scope
+
+**Business Logic** (Lines 46-50, 170-171):
+- ✅ Positive/negative split amounts supported (Story 1 updated)
+- ✅ Ad-hoc categories clarified (links to Transaction Record PRD)
+- ✅ Balance warning if sum doesn't match transaction amount
+
+## No Further Questions
+
+The PRD is now complete and ready for implementation. All acceptance criteria are clear, open questions are resolved, and the scope is well-defined. The document properly separates product requirements from implementation details, and references related documentation appropriately.

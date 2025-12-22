@@ -62,12 +62,6 @@ All of these will be considered as separate features. The goal of this is to get
 - [ ] Can add free text categories, at unlimited depth, separated by `:`
 - [ ] Can add a memorandum (memo) field with additional text to provide additional context
 
-Note that valid categories are described by the following regular expression. The only **invalid** category value is one with excess whitespace at the start or end, or around a separator. We will always accept "invalid" values, and just trim the erroneous whitespace.
-
-```re
-^(?:\S(?:[^:])*?\S|\S)(?::(?:\S(?:[^:])*?\S|\S))*$
-```
-
 ### Story 3: User - Manage transactions
 **As a** user
 **I want** to edit transaction details or delete them
@@ -93,6 +87,46 @@ Note that valid categories are described by the following regular expression. Th
 **Key Components**:
 - This is largely to cover the rationale for the **schema** of a transaction, so it's the requirements for the Transaction entity.
 - Of course, the added fields will need to be plumbed up through the stack.
+
+### Key Business Rules
+
+#### Ad-hoc categories
+
+Throughout all of YoFi, categories are free text strings. User is not expected to match against existing categories. Categories are never validated against some list.
+
+If user includes a `:` character in them, this signified a hierarchy of categories, e.g. "Home:Utilities" signifies that the categorized split concerns "Utilities", and in reports it should be grouped and subtotaled under "Home". See [Reports PRD](../reports/PRD-REPORTS.md) for details.
+
+White-space requirements.
+- No white space to start or end the category
+- No white space surrounding a `:` separator
+- No more than one consecutive space inside a term, e.g. "Home  And Garden" should be "Home And Garden"
+
+Capitalization requirements
+- All words in categories are capitalized. e.g. "Home and garden" should be "Home And Garden"
+- Captilization inside words is optional. e.g. "HomeAndGarden" is ok.
+
+Empty term requirements
+- After diving a category up into delimited terms, and trimming/consolodation whitespace as described above, each term cannot be empty
+
+> [!IMPORTANT] Invalid categories are never rejected, nor are warnings generated. They are simply cleaned up to be valid before saving.
+
+**Examples**
+
+| Input | Cleaned up version saved to storage |
+| --- | --- |
+| homeAndGarden | HomeAndGarden |
+| Home andGarden | Home AndGarden |
+| Home and Garden | Home And Garden |
+| " " | <blank> |
+| Home: | Home |
+| :Home | Home |
+| : | <blank> |
+| Home::Garden | Home:Garden |
+
+**Expected Implementation**
+
+Best place to handle this cleanup is within the application layer (Transactions Feature).
+
 ---
 
 ## Open Questions
@@ -182,10 +216,6 @@ Note that valid categories are described by the following regular expression. Th
   - Key components identified: Transaction entity schema, plumbing through stack
 
 - ✅ **Any existing code patterns or files to reference are noted**
-  - References existing [`Transaction`](src/Entities/Models/Transaction.cs:13) entity
-  - References existing [`TransactionEditDto`](src/Application/Dto/TransactionEditDto.cs:21) and [`TransactionResultDto`](src/Application/Dto/TransactionResultDto.cs:14)
-  - References multi-tenancy infrastructure (implemented)
-  - References Transaction CRUD API endpoints (partially implemented)
   - Links to related [`PRD-TRANSACTION-SPLITS.md`](docs/wip/transactions/PRD-TRANSACTION-SPLITS.md:1)
 
 ### Summary
