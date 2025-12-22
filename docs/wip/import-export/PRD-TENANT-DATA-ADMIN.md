@@ -1,12 +1,11 @@
-# Product Requirements Document: Tenant Data Administration
-
-**Status**: Approved
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: V3.5
-**ADO**: TBD
-
 ---
+status: Approved
+owner: James Coliz
+target_release: V3.0
+ado: TBD
+---
+
+# Product Requirements Document: Tenant Data Administration
 
 ## Problem Statement
 

@@ -1,12 +1,11 @@
-# Product Requirements Document: Transaction Record
-
-**Status**: Approved (Detailed design complete)
-**Created**: 2025-12-20
-**Owner**: James Coliz
-**Target Release**: V3.0
-**ADO**: [Link to ADO Item]
-
 ---
+status: Approved (Detailed design complete)
+owner: James Coliz
+target_release: Alpha 1
+ado: "[Link to ADO Item]"
+---
+
+# Product Requirements Document: Transaction Record
 
 ## Problem Statement
 

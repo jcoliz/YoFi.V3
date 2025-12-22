@@ -1,14 +1,13 @@
+---
+status: Approved (Detailed design complete)
+owner: James Coliz
+target_release: Beta 2
+ado: "[Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits"
+---
+
 # Product Requirements Document: Transaction Splits
 
-**Status**: Approved (Detailed design complete)
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: V3.0
-**ADO**: [Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits
-
 > **Note**: See [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) for guidance on PRD scope. Implementation details are in [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md).
-
----
 
 ## Problem Statement
 

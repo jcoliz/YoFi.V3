@@ -1,12 +1,11 @@
-# Product Requirements Document: Transaction Bank Import
-
-**Status**: Approved
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: V3.0
-**ADO**: TBD
-
 ---
+status: Approved
+owner: James Coliz
+target_release: Beta 2
+ado: TBD
+---
+
+# Product Requirements Document: Transaction Bank Import
 
 ## Problem Statement
 

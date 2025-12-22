@@ -1,12 +1,11 @@
-# Product Requirements Document: Reports
-
-**Status**: In review
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: [Version or Sprint]
-**ADO**: [Link to ADO Item]
-
 ---
+status: In review
+owner: James Coliz
+target_release: V3.0
+ado: "[Link to ADO Item]"
+---
+
+# Product Requirements Document: Reports
 
 ## Problem Statement
 

@@ -1,12 +1,11 @@
-# Product Requirements Document: Payee Matching Rules
-
-**Status**: Approved
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: v3.2
-**ADO**: [Link to ADO Item]
-
 ---
+status: Approved
+owner: James Coliz
+target_release: Beta 3
+ado: "[Link to ADO Item]"
+---
+
+# Product Requirements Document: Payee Matching Rules
 
 ## Problem Statement
 

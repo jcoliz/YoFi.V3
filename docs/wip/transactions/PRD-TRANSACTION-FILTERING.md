@@ -1,12 +1,11 @@
-# Product Requirements Document: Transaction Filtering
-
-**Status**: Approved (Detailed Design Complete)
-**Created**: 2025-12-21
-**Owner**: James Coliz
-**Target Release**: V3.0
-**ADO**: [Feature 1983](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1983): Transaction Filtering
-
 ---
+status: Approved (Detailed Design Complete)
+owner: James Coliz
+target_release: Beta 1
+ado: "[Feature 1983](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1983): Transaction Filtering"
+---
+
+# Product Requirements Document: Transaction Filtering
 
 ## Problem Statement
 

@@ -1,12 +1,11 @@
-# Product Requirements Document: [Feature Name]
-
-**Status**: Draft | In Review | Approved | Implemented
-**Created**: [YYYY-MM-DD]
-**Owner**: [Your Name]
-**Target Release**: [Release Milestone when predominance of work is expected]
-**ADO**: [Link to ADO Item]
-
 ---
+status: Draft | In Review | Approved | Implemented
+owner: [Your Name]
+target_release: [Release Milestone when predominance of work is expected]
+ado: [Link to ADO Item]
+---
+
+# Product Requirements Document: [Feature Name]
 
 ## Problem Statement
 
