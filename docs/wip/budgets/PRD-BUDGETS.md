@@ -43,11 +43,21 @@ Users need a way to plan and monitor their spending against category-specific ta
 **So that** I can stay on track with my financial goals
 
 **Acceptance Criteria**:
+
+**Budget Line Item CRUD Operations:**
 - [ ] User can create, list, edit, and delete individual budget line items
-- [ ] Budget line items include an amount and category, and descriptive memo
-- [ ] Budget line items include a date, at which point the funds become "available". This is typically Jan 1 of a particular year by convention, but can be anthing
-- [ ] Budget line items include a frequency, among: weekly, monthly, quarterly, or yearly. e.g. a "weekly" budget of $50 will make $50 "available" in that category starting on the start date, and then every week thereafter.
-- [ ] Budget line items apply only to the calendar year of their date. (e.g. a 'weekly' budget with start date of 12/1 would provide about 4 weeks of new "available" budget before expiring at year end.)
+
+**Budget Line Item Fields:**
+- [ ] Budget line items include category (category hierarchy path)
+- [ ] Budget line items include amount (budget amount per frequency period)
+- [ ] Budget line items include frequency (weekly, monthly, quarterly, or yearly)
+- [ ] Budget line items include start date (date when funds become "available", typically Jan 1)
+- [ ] Budget line items include memo (optional descriptive note)
+
+**Budget Accumulation Behavior:**
+- [ ] Budget line items apply only to the calendar year of their start date
+- [ ] Budget accumulates from start date through Dec 31 based on frequency
+- [ ] Example: Weekly $50 budget starting 12/1 provides ~4 weeks of budget before year end expiration
 
 ### Story 2: User - Views Budget Status
 **As a** User who is watching my spending
@@ -55,11 +65,19 @@ Users need a way to plan and monitor their spending against category-specific ta
 **So that** I can stay on track with my financial goals
 
 **Acceptance Criteria**:
-- [ ] User can select pre-defined budget reports which compare/contrast actual spending against budgeted spending
-- [ ] Budget reports list the actual spending in that category tree in one column, then the budgeted spending for it in a second column, and the % of budget spent in a 3rd column (e.g., budget $50, actual $30, spent 60%)
-- [ ] Budget reports show the % complete of the year so far in the header, so user can compare the spent% versus the current%. e.g., if we are 60% through the year, then my 60% spent lines are doing well
-- [ ] Budget column shows cumulative budget available from year start to report date (sum of all periods that have elapsed based on frequency)
+
+**Report Selection:**
+- [ ] User can select from pre-defined budget reports comparing actual spending against budgeted spending
+
+**Report Column Definitions:**
+- [ ] Budget column shows cumulative budget available from year start to report date (sum of all elapsed periods based on frequency)
 - [ ] Actual column shows cumulative spending from year start to report date (same time period as budget column)
+- [ ] %Spent column shows percentage of budget consumed (Actual / Budget × 100%)
+- [ ] Example: Budget $50, Actual $30, %Spent 60%
+
+**Report Header Information:**
+- [ ] Budget reports show % complete of the year so far in header
+- [ ] Users can compare spent% versus year% to assess pacing (e.g., 60% through year with 60% spent = on track)
 
 **Pre-defined budget reports**
 - "Full Budget": Shows hierarchy of categories with any budget applied within them, with rollup totals. Shows 2 columns: Category (with hierarchy), and Budget (total annual budget for entire year). No actuals comparison.
@@ -67,19 +85,32 @@ Users need a way to plan and monitor their spending against category-specific ta
 - "Expenses Budget": Like "Full Budget" but only shows expenses (see Reports PRD for a definition of what "Expenses" is). Shows only budget column, no actuals comparison.
 - "Expenses vs Budget": Like "All vs Budget", but only Expenses. Includes table view (Budget, Actual, %Spent columns) and chart view with special handling. Chart is a double bar chart: X axis shows top-level expense categories in descending total budget amount (all subcategory budgets roll up to parent), Y axis is $ amount. Each X-axis stop has a PAIR of bars showing "Actual" and "Budget" for that top-level category. Mixed-level budgets are additive (e.g., $10k Transportation + $3k Transportation:Repairs:Jeep = $13k total rolled up to Transportation bar).
 
-- [ ] Question: Should budget report specifications be moved to reports PRD, with a link back here? The chart specifications and column definitions feel report-focused rather than budget-focused.
-
 ### Story 3: User - Allocates budget at any category hierarchy level
 **As a** User who is watching my spending
 **I want** to assign budgets at varying granularity
 **So that** I can track spending according to my own particular mental model
 
 **Acceptance Criteria**:
-- [ ] User can specify budget at a high level, like "Entertainment". In this case, only the "Entertainment" top-level category will have values in the budget and %spent columns
-- [ ] User can specify budget at low levels, like "Transportation:Repairs:Jeep Cherokee". In this case all three of those levels will have values in budget and %spent columns
-- [ ] User can specify budget at mixed levels, e.g., $3k in "Transportation:Repairs:Jeep Cherokee" and another $10k in "Transportation". Budget column shows $13k at "Transportation" level (additive rollup), and actual spending rolls up all Transportation:* spending for spent% calculation
-- [ ] If only child categories are budgeted (e.g., "Transportation:Repairs:Jeep" = $3k), parent categories automatically show rolled-up values (e.g., "Transportation" shows $3k budget with all Transportation spending in actual column)
-- [ ] Spent% at parent level = (All category spending including children) / (Sum of all budget line items for that category tree)
+
+**High-Level Budgets:**
+- [ ] User can specify budget at top level (e.g., "Entertainment")
+- [ ] Top-level category shows budget and %spent values
+
+**Low-Level Budgets:**
+- [ ] User can specify budget at any subcategory depth (e.g., "Transportation:Repairs:Jeep Cherokee")
+- [ ] All hierarchy levels show budget and %spent values rolled up from children
+
+**Mixed-Level Budgets (Additive Model):**
+- [ ] User can specify budgets at multiple hierarchy levels within same category tree
+- [ ] Example: $10k at "Transportation" + $3k at "Transportation:Repairs:Jeep" = $13k total at Transportation level
+- [ ] Budget column shows additive rollup: parent budget + sum of all descendant budgets
+
+**Automatic Rollup Behavior:**
+- [ ] Parent categories without direct budgets automatically show rolled-up values from children
+- [ ] Example: Only "Transportation:Repairs:Jeep" budgeted at $3k → "Transportation" and "Transportation:Repairs" show $3k rolled up
+
+**Spent% Calculation:**
+- [ ] Spent% at any level = (All category spending including children) / (Sum of all budget line items for that category tree)
 
 ### Story 4: User - Creates new budget based on historical data [Post V3]
 **As a** User who is watching my budget
@@ -87,17 +118,33 @@ Users need a way to plan and monitor their spending against category-specific ta
 **So that** my budget is realistic and I don't have to manually calculate averages for each category
 
 **Acceptance Criteria**:
-- [ ] User can select a prior year to use as the basis for creating a new budget
-- [ ] User can optionally select multiple prior years to average spending across (e.g., use 2022-2024 actuals to create 2025 budget)
-- [ ] When multiple years selected, system calculates average actual spending per category across all selected years (sum of all splits in category / number of years)
-- [ ] System calculates actual spending per category for the selected year(s) (sum of all transaction splits in each category)
-- [ ] System automatically determines appropriate frequency for each category based on spending patterns (e.g., consistent monthly spending → monthly frequency, irregular spending → yearly frequency)
-- [ ] System creates new budget line items for each category with Amount = (average actual spending / appropriate periods), StartDate = 1/1/[new year], Frequency = [determined frequency]
-- [ ] Default source is the immediate prior year's actuals (e.g., creating 2025 budget defaults to 2024 actual spending)
-- [ ] User can review and edit the proposed line items before finalizing (modify amounts, frequencies, add/remove categories)
-- [ ] System shows preview of what will be created, including comparison to historical actuals vs. proposed budget
-- [ ] If budget line items already exist for the target year, user is warned before proceeding (to avoid accidental duplication)
-- [ ] Categories with zero or minimal spending (< $100/year average) are excluded from auto-generated budget but can be manually added
+
+**Historical Data Selection:**
+- [ ] User can select a prior year as basis for new budget
+- [ ] User can optionally select multiple prior years to average spending across (e.g., 2022-2024 actuals for 2025 budget)
+- [ ] Default source is immediate prior year's actuals (e.g., 2024 actuals for 2025 budget)
+
+**Spending Calculation:**
+- [ ] System calculates actual spending per category for selected year(s) (sum of all transaction splits in each category)
+- [ ] When multiple years selected, system calculates average: (sum of all splits in category / number of years)
+- [ ] Categories with minimal spending (< $100/year average) are excluded but can be manually added
+
+**Frequency Detection:**
+- [ ] System automatically determines appropriate frequency per category based on spending patterns
+- [ ] Consistent monthly spending → monthly frequency
+- [ ] Irregular spending → yearly frequency
+
+**Budget Line Item Creation:**
+- [ ] System creates new budget line items with Amount = (average actual spending / appropriate periods)
+- [ ] StartDate = 1/1/[new year]
+- [ ] Frequency = [determined frequency from spending pattern analysis]
+- [ ] Memo auto-generated documenting calculation basis
+
+**User Review and Approval:**
+- [ ] System shows preview of proposed budget line items before creation
+- [ ] Preview includes comparison: historical actuals vs. proposed budget amounts
+- [ ] User can review and edit proposed line items (modify amounts, frequencies, add/remove categories)
+- [ ] If budget line items already exist for target year, user receives warning before proceeding (avoids accidental duplication)
 
 ### Story 5: User - Applies CAGR growth to trending categories [Post V3]
 **As a** User who is watching my budget
@@ -105,16 +152,24 @@ Users need a way to plan and monitor their spending against category-specific ta
 **So that** my budget accounts for inflation and predictable increases like utilities without manual calculation
 
 **Acceptance Criteria**:
-- [ ] When user selects 5+ years of historical data for budget creation, system calculates CAGR (Compound Annual Growth Rate) for each category
-- [ ] System only offers CAGR option for categories with statistically significant trends (e.g., R² > 0.7 or similar threshold indicating consistent growth/decline pattern)
-- [ ] In budget creation preview, categories with detected CAGR show checkbox option: "Apply CAGR growth (detected [X]% annual increase/decrease [year range])"
-- [ ] When CAGR checkbox selected, budget amount = (last year actual spending) × (1 + CAGR), not multi-year average
-- [ ] Example: Electric bill 2024 actual = $1200, 5-year CAGR = 5% → 2025 budget = $1200 × 1.05 = $1260 annual ($105/month)
-- [ ] System auto-generates memo documenting calculation: "Based on [last year] actual $[amount] + [X]% CAGR ([year range] trend)"
-- [ ] Categories without significant CAGR trend (volatile spending, outliers, flat trend) fall back to existing average-based calculation from Story 4
-- [ ] CAGR checkbox defaults to OFF (opt-in per category), preserving existing average behavior unless user explicitly chooses growth adjustment
-- [ ] Preview screen shows both options side-by-side: "With CAGR: $1260/year" vs "Average: $1140/year" so user can compare before choosing
+
+**CAGR Detection Requirements:**
+- [ ] Feature available only when user selects 5+ years of historical data for budget creation
+- [ ] System calculates CAGR (Compound Annual Growth Rate) for each category
+- [ ] System offers CAGR option only for categories with statistically significant trends (R² > 0.7 threshold)
+- [ ] Categories without significant CAGR trend fall back to average-based calculation from Story 4
+
+**Budget Creation Preview with CAGR:**
+- [ ] Categories with detected CAGR show checkbox option: "Apply CAGR growth (detected [X]% annual increase/decrease [year range])"
+- [ ] CAGR checkbox defaults to OFF (opt-in per category)
+- [ ] Preview shows both options side-by-side for comparison: "With CAGR: $1260/year" vs "Average: $1140/year"
 - [ ] System displays visual indicator (e.g., 📈 icon) next to categories with detected growth trends
+
+**CAGR Budget Calculation:**
+- [ ] When CAGR checkbox selected: Budget amount = (last year actual spending) × (1 + CAGR)
+- [ ] CAGR uses last year actual as baseline, NOT multi-year average
+- [ ] Example: Electric bill 2024 actual = $1200, 5-year CAGR = 5% → 2025 budget = $1260 annual ($105/month)
+- [ ] System auto-generates memo: "Based on [last year] actual $[amount] + [X]% CAGR ([year range] trend)"
 
 **Notes**:
 - CAGR calculation requires minimum 5 years of data; with fewer years, this feature is not available
@@ -235,7 +290,6 @@ Budget feature introduces a new entity for tracking spending targets per categor
 - **Transaction Filtering** ([`PRD-TRANSACTION-FILTERING.md`](../transactions/PRD-TRANSACTION-FILTERING.md)) - Users drilling down from budget reports need category filtering capability on transactions page.
 
 **Constraints**:
-- **No mid-year budget changes** - Budget line items are immutable within their frequency period. Users cannot retroactively change a budget and recalculate historical spent%. They can only add/edit/delete line items which affects future calculations.
 - **Calendar year boundary** - System hardcoded to calendar year (Jan 1 - Dec 31). No support for fiscal years or custom budget periods in V3.
 - **No rollover budget between years** - Unspent budget does not carry into next calendar year. Annual renewal is manual (addressed by Story 4 in future).
 
