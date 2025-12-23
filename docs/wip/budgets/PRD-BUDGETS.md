@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: In Review
 owner: James
 target_release: Beta 3
 ado: [Link to ADO Item]
@@ -25,7 +25,7 @@ Users need a way to plan and monitor their spending against category-specific ta
 ### Non-Goals
 
 - Visible warnings or intrusive messaging. This is more nagging than helpful.
-- AI-suggested budgets based on historical spending
+- ML/AI-suggested budgets (Stories 4-5 use rules-based algorithms, not machine learning)
 - Budget forecasting or "if you keep spending" projections
 - Multiple budget scenarios or A/B comparison
 - Budget sharing across different tenants
@@ -80,13 +80,45 @@ Users need a way to plan and monitor their spending against category-specific ta
 - I actually need to research what YoFi does in criterion 3 above
 
 ### Story 4: User - Creates new budget based on historical data [Post V3]
-**As a** User who is watching my spending
-**I want** help creating my budget with historical inputs
-**So that** new-year budget-writing is not so tedious
+**As a** User who is watching my budget
+**I want** create next year's budget based on what I actually spent this year
+**So that** my budget is realistic and I don't have to manually calculate averages for each category
 
-**Acceptance Criteria**: **Needs further design**
-- [ ] [Specific, testable criterion 1]
-- [ ] [Specific, testable criterion 2]
+**Acceptance Criteria**:
+- [ ] User can select a prior year to use as the basis for creating a new budget
+- [ ] User can optionally select multiple prior years to average spending across (e.g., use 2022-2024 actuals to create 2025 budget)
+- [ ] When multiple years selected, system calculates average actual spending per category across all selected years (sum of all splits in category / number of years)
+- [ ] System calculates actual spending per category for the selected year(s) (sum of all transaction splits in each category)
+- [ ] System automatically determines appropriate frequency for each category based on spending patterns (e.g., consistent monthly spending → monthly frequency, irregular spending → yearly frequency)
+- [ ] System creates new budget line items for each category with Amount = (average actual spending / appropriate periods), StartDate = 1/1/[new year], Frequency = [determined frequency]
+- [ ] Default source is the immediate prior year's actuals (e.g., creating 2025 budget defaults to 2024 actual spending)
+- [ ] User can review and edit the proposed line items before finalizing (modify amounts, frequencies, add/remove categories)
+- [ ] System shows preview of what will be created, including comparison to historical actuals vs. proposed budget
+- [ ] If budget line items already exist for the target year, user is warned before proceeding (to avoid accidental duplication)
+- [ ] Categories with zero or minimal spending (< $10/year average) are excluded from auto-generated budget but can be manually added
+
+### Story 5: User - Applies CAGR growth to trending categories [Post V3]
+**As a** User who is watching my budget
+**I want** the system to detect spending trends and apply growth rates automatically
+**So that** my budget accounts for inflation and predictable increases like utilities without manual calculation
+
+**Acceptance Criteria**:
+- [ ] When user selects 5+ years of historical data for budget creation, system calculates CAGR (Compound Annual Growth Rate) for each category
+- [ ] System only offers CAGR option for categories with statistically significant trends (e.g., R² > 0.7 or similar threshold indicating consistent growth/decline pattern)
+- [ ] In budget creation preview, categories with detected CAGR show checkbox option: "Apply CAGR growth (detected [X]% annual increase/decrease [year range])"
+- [ ] When CAGR checkbox selected, budget amount = (last year actual spending) × (1 + CAGR), not multi-year average
+- [ ] Example: Electric bill 2024 actual = $1200, 5-year CAGR = 5% → 2025 budget = $1200 × 1.05 = $1260 annual ($105/month)
+- [ ] System auto-generates memo documenting calculation: "Based on [last year] actual $[amount] + [X]% CAGR ([year range] trend)"
+- [ ] Categories without significant CAGR trend (volatile spending, outliers, flat trend) fall back to existing average-based calculation from Story 4
+- [ ] CAGR checkbox defaults to OFF (opt-in per category), preserving existing average behavior unless user explicitly chooses growth adjustment
+- [ ] Preview screen shows both options side-by-side: "With CAGR: $1260/year" vs "Average: $1140/year" so user can compare before choosing
+- [ ] System displays visual indicator (e.g., 📈 icon) next to categories with detected growth trends
+
+**Notes**:
+- CAGR calculation requires minimum 5 years of data; with fewer years, this feature is not available
+- Statistical threshold (R² > 0.7) ensures CAGR is only suggested when trend is meaningful, avoiding spurious growth on random variations
+- Last year actual as baseline (not average) captures current spending level plus projected growth
+- **Dependency**: This story depends on Story 4 (historical budget creation). Story 5's "fallback to average" assumes Story 4's average calculation is available.
 
 ---
 
@@ -147,17 +179,21 @@ Budget feature introduces a new entity for tracking spending targets per categor
 
 ## Open Questions
 
-**All questions resolved. Key decisions documented:**
+- [ ] **Story 2: Pre-defined Budget Reports** (Line 64-65) - Need to pull report list from YoFi V1. Will define which reports (Income, Taxes, Expenses, Savings, Detail variants) get budget comparison columns. Research required before PRD approval.
 
-1. ✅ **Budget accumulation model** - Budgets accumulate within calendar year; unspent amounts carry forward until Dec 31. See Business Rule #1.
+- [ ] **Story 3: Additive Model Confirmation** (Line 79-80) - Need to research what YoFi V1 does for mixed-level budgets (e.g., $10k Transportation + $3k Transportation:Repairs). Current PRD documents additive model ($13k total at Transportation), but requires V1 confirmation before approval.
 
-2. ✅ **Annual renewal** - Budgets expire Dec 31; users manually create new line items each year (Story 4 addresses this friction). See Business Rule #2.
+- [ ] **Story 4: Minimal Spending Threshold** (Line 98) - Current threshold is $10/year for excluding categories from auto-generated budgets. Is this too low? Consider whether annual subscriptions at $5-50/year should be included or excluded. Research typical negligible spending patterns.
 
-3. ✅ **Additive hierarchy** - Parent budgets = own allocation + child allocations ($10k Transportation + $3k Transportation:Repairs = $13k). See Business Rule #3.
-
-4. ✅ **Pre-defined budget reports** - Mirror existing Reports feature (Income, Taxes, Expenses, Savings, Detail variants) with added Budget/Actual/Spent% columns. See Story 2 criteria and Dependencies section.
-
-5. ✅ **Category flexibility** - Any category type allowed (Income, Expenses, Taxes, etc.). Only constraint: non-blank category. See Business Rule #5.
+**Resolved Questions** (moved to appropriate sections):
+- ✅ **Budget accumulation model** → Business Rule #1
+- ✅ **Annual renewal** → Business Rule #2
+- ✅ **Additive hierarchy** → Business Rule #3 (pending V1 confirmation above)
+- ✅ **Category flexibility** → Business Rule #5
+- ✅ **Non-Goals clarification** → Updated to "ML/AI-suggested budgets" (Stories 4-5 are rules-based)
+- ✅ **Story 5 dependency** → Added dependency note to Story 5
+- ✅ **Frequency detection algorithm** → Appropriately vague for PRD level, deferred to design document
+- ✅ **Target release** → Header shows "Beta 3" (predominant milestone); Stories 4-5 tagged [Post V3]
 
 ---
 
