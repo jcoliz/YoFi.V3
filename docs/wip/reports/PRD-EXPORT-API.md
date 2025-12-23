@@ -1,7 +1,8 @@
 ---
-status: Draft
-owner: Architect
+status: Approved (Detailed Design Complete)
+owner: James Coliz
 target_release: Beta 2
+ado: TBD
 ---
 
 # Product Requirements Document: Reports Export API
@@ -291,6 +292,17 @@ Content-Type: application/json
 - Excel desktop: No CORS issues (native HTTP client, not browser-based)
 - Excel Web (browser-based): **OUT OF SCOPE** - Power Query not fully supported in Excel Web, users must use desktop Excel
 - API responses should be < 32 MB (Excel desktop query size practical limit)
+
+---
+
+## Implementation Scope
+
+**Layers Affected**:
+- [x] Frontend (Vue/Nuxt) - API key management UI (create, list, revoke keys)
+- [x] Controllers (API endpoints) - ReportsController (report data), ApiKeysController (key management)
+- [x] Application (Features/Business logic) - ReportsFeature (report generation), ApiKeyFeature (key CRUD), ApiKeyService (validation/hashing)
+- [x] Entities (Domain models) - ApiKey entity, ApiKeyScope enum, validation result types
+- [x] Database (Schema changes) - ApiKeys table with indexes
 
 ---
 

@@ -106,7 +106,7 @@ graph TB
 - Category spending reports → [PRD: Reports](wip/reports/PRD-REPORTS.md)
 - Trend analysis and visualizations
 - Budget creation and tracking → *PRD to be created (V3.1)*
-- API access for external reporting tools → *PRD to be created (Beta 2-3)*
+- API access for external reporting tools (Excel integration) → [PRD: Reports Export API](wip/reports/PRD-EXPORT-API.md)
 - Custom dashboards
 - Net worth tracking (balance sheet view)
 - Tax planning and historical tax analysis
@@ -243,6 +243,11 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 6 - View Complete History Over Time       | B3        |           | 📝 Draft             |
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | 📝 Draft             |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
+| **Reports Export API**                          |           |           | 🎨 Design Complete   |
+| Story 1 - Connect Excel to YoFi Reports         | B2        |           | 🎨 Design Complete   |
+| Story 2 - Access Multiple Workspaces from Excel | B2        |           | 🎨 Design Complete   |
+| Story 3 - Secure API Key Management             | B2        |           | 🎨 Design Complete   |
+| Story 4 - Discover Available Reports            | Post V3   |           | 🎨 Design Complete   |
 | **Transaction Receipts**                        |           |           | ✔️ Approved          |
 | Story 1 - Direct Receipt Upload                 | B2        |           | ✔️ Approved          |
 | Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
