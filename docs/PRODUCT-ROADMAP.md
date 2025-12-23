@@ -117,10 +117,10 @@ graph TB
 **Why It Matters**: Financial tracking requires receipts, invoices, and statements as evidence. Automating attachment matching reduces manual filing work.
 
 **Features**:
-- Transaction attachments (receipts, invoices) → *PRD to be created (Beta 3)*
-- Bulk document upload with auto-matching to transactions
-- Filename-based matching patterns
-- Document storage and retrieval
+- Transaction receipts (attachments) → [PRD: Transaction Receipts](wip/transactions/PRD-TRANSACTION-ATTACHMENTS.md)
+- Bulk receipt upload with inbox zero workflow
+- Filename-based matching algorithm with confidence levels
+- Azure Blob Storage integration
 
 ---
 
@@ -243,6 +243,11 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 6 - View Complete History Over Time       | B3        |           | 📝 Draft             |
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | 📝 Draft             |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
+| **Transaction Receipts**                        |           |           | ✔️ Approved          |
+| Story 1 - Direct Receipt Upload                 | B2        |           | ✔️ Approved          |
+| Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
+| Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
+| Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
 
 ### Reading this timeline:
 
