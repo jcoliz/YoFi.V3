@@ -28,85 +28,105 @@ Attachments also help in determining the correct categories and splits for a tra
 - ❌ Multiple attachments per transaction (noted in Story 1, should be here too)
 - ❌ Sharing attachments outside the tenant
 
----
+## Functional Stories
 
-## User Stories
-
-### Story 1: User - Attaches file to transaction
+### Story 1: Direct Transaction Attachment
 **As a** User
-**I want** to retain documentation related to a specific transaction
-**So that** I have an easy way to find that documentation later
+**I want** to directly attach a document to a transaction
+**So that** I can retain documentation immediately when I know which transaction it belongs to
 
 **Acceptance Criteria**:
-- [ ] From transaction detail page, user can upload an attachment, in an "Attachments" subsection.
-- [ ] While it's uploading user can see a loading state on the page
-- [ ] User can delete the attachment
-- [ ] User can download the attachment
-- [ ] Only one attachment is allowed per transaction. After an attachment is uploaded, the affordance to upload is not available
-- [ ] From the transactions list, user can download the attachment, if it exists. (Affordance to download will be the only indicator of attachment existence. It's not important enough to show an strong indicator of attachment existence)
-- [ ] User can upload these file types: PDF, PNG, JPG. Future filetypes will be considered based on user feedback.
-- [ ] User will see a dialog or toast notifying them in case of failure
-- [ ] Attachments are tenant scoped. All users in a tenant can see attachments in that tenant
-- [ ] Files will be limited to 7MB
+- [ ] From transaction detail page "Attachments" subsection, user can upload a file
+- [ ] User can download the attachment from transaction details page
+- [ ] User can download the attachment from transactions list page (download affordance is the only indicator of attachment existence)
+- [ ] User can delete the attachment from transaction details page
+- [ ] Upload control is hidden after an attachment is uploaded (only one attachment per transaction)
 
-### Story 2: User - Uploads a bulk of documents for later attachment
+### Story 2: Bulk Upload to Pending Attachments
 **As a** User
-**I want** to upload a group of documents independently of transactions
-**So that** I can retain the document immediately, before the transaction is available in the app (don't want to lose it!)
+**I want** to upload multiple documents before knowing which transactions they belong to
+**So that** I don't lose receipts while waiting for bank imports or manual transaction entry
 
 **Acceptance Criteria**:
-- [ ] User can access a dedicated "Pending Attachments" page for the following operations
-- [ ] User can upload multiple attachments at once
-- [ ] User can upload same kinds of files as described in story 1
-- [ ] While it's uploading user can see a loading state on the page
-- [ ] If one upload fails, the remaining continue to process
-- [ ] If any upload fails, a details pane is shown with the errors listed per file
-- [ ] If an upload fails, user must explicitly upload again through normal flow if desired
-- [ ] User can see the existing Pending Attachments
-- [ ] User can download any one of the Pending Attachments
-- [ ] User can delete any one of them
-- [ ] User can select multiple and delete many at once
-- [ ] User can immediately see file-name guidance to help the system match attachments to transactions
-- [ ] When a pending attachment is shown in the pending attachments list, its matching state is immediately shown (Match or Assign buttons, or nothing). Thus, the matching state is decided whenver the list is fetched. (If this turns out to be a performance problem, we can switch to storing it and periodically updating)
-- [ ] If system has a single high-confidence match, user will see a "Match" button on the affected line
-- [ ] User can click "Match" button to immediately attach to the matched transaction, and remove from this list. User will see a toast notification of this action.
-- [ ] If system has multiple matches, or only a single low-confidence match, user will see an "Assign" button on the affected line. ("Match" and "Assign" buttons are mutually exclusive)
-- [ ] User can click "Assign" button to review potential transaction matches for a pending attachment on dedicate page (see Story 4). When user returns, the now-matched attachment is no longer visible.
-- [ ] Pending Attachments are tenant scoped. All users in a tenant interact with pending attachments in that tenant, as described above
-- [ ] Multi-user race condition: If another user matches the attachment first, an error toast notification is shown
+- [ ] User can access a dedicated "Pending Attachments" page
+- [ ] User can upload multiple files simultaneously
+- [ ] If one upload fails, the remaining files continue to process
+- [ ] If any upload fails, a details pane shows the errors listed per file
+- [ ] Failed uploads must be explicitly re-uploaded through normal flow
+- [ ] User can view all pending attachments in a list
+- [ ] User can download any pending attachment
+- [ ] User can delete individual pending attachments
+- [ ] User can select multiple pending attachments and delete them at once
+- [ ] User can see filename guidance to help the system match attachments to transactions
 
-### Story 3: User - Matches an attachment from a transaction
-**As a** user
-**I want** to match a pending attachment to a transaction from the context of a transaction
-**So that** I don't have to dig through the pending attachments when I know exactly which transaction I need
+### Story 3: Automatic Matching Suggestions
+**As a** User
+**I want** the system to suggest which pending attachments match which transactions
+**So that** I can quickly associate receipts without manual searching
 
-**Acceptance Criteria**:
-- [ ] From transaction details page, if there are potential attachment matches, user will see an affordance indicating that potential matches exist. This will take the form of additional text on the page and the presence of a "Match" or "Assign" button. This is included in the "Attachments" sub-section of the transaction details page, where the upload attachment control is also located.
-- [ ] If there are no potential matches for the transaction, no matching affordance is shown
-- [ ] If there are potential matches for the transaction, the upload control is still available
-- [ ] User will not see this affordance if the transaction already has an attachment
-- [ ] In case of potential matches, user will see same 'Match' or 'Assign' buttons **using the same confidence logic** as described in Story 2", also in the "Attachments" subsection.
-- [ ] User can click "Match" button to immediately attach to the matched transaction. User will see a toast notification of this action. Page is updated to show the matched attachment as attached to this transaction.
-- [ ] User can click "Assign" button to review potential transaction matches for a pending attachment on dedicate page (see Story 4)
-- [ ] Multi-user race condition: If another user matches the attachment first, an error toast notification is shown
+**Acceptance Criteria - From Pending Attachments Page**:
+- [ ] When viewing pending attachments list, matching state is computed and displayed for each attachment
+- [ ] If system finds a single high-confidence match, a "Match" button is shown
+- [ ] Clicking "Match" button immediately attaches to the matched transaction, removes from pending list, and shows toast notification
+- [ ] If system finds multiple matches OR only a single low-confidence match, an "Assign" button is shown
+- [ ] Clicking "Assign" button navigates to the Match Review Page (Story 4)
+- [ ] "Match" and "Assign" buttons are mutually exclusive
+- [ ] If no matches found, no button is shown
+
+**Acceptance Criteria - From Transaction Details Page**:
+- [ ] In "Attachments" subsection, if potential matches exist, additional text and "Match" or "Assign" button are shown
+- [ ] Uses same confidence logic as Pending Attachments Page to determine which button to show
+- [ ] Matching affordance is not shown if transaction already has an attachment
+- [ ] Matching affordance is not shown if no potential matches exist
+- [ ] Upload control remains available even when potential matches exist
+- [ ] Clicking "Match" button immediately attaches to transaction, shows toast notification, and updates page to show attachment
+- [ ] Clicking "Assign" button navigates to Match Review Page (Story 4)
 - [ ] After successful matching, the potential matches affordance is removed/hidden
 
-**Story 4: User - Reviews and assigns pending attachments to transactions**
-
-**As a** user
-**I want** to review potential transaction matches for a pending attachment
+### Story 4: Manual Match Review
+**As a** User
+**I want** to review and select from multiple potential transaction matches
 **So that** I can confidently assign the attachment to the correct transaction
 
 **Acceptance Criteria**:
 - [ ] Page displays the pending attachment details (filename, size, file type)
-- [ ] Page shows list of potential matching transactions, ordered by confidence score. Score is not displayed to user, it only drives ordering and choice of offering a "Match" option
-- [ ] Each transaction shows key details (date, payee, amount) to aid matching decision
+- [ ] Page shows list of potential matching transactions, ordered by match confidence
+- [ ] Confidence score is not displayed to user (only affects ordering)
+- [ ] Each transaction shows key details to aid decision (date, payee, amount)
 - [ ] User can click "Match" on any transaction to complete the assignment
-- [ ] After matching, user is returned to the originating page (Pending Attachments or Transaction Details)
+- [ ] After matching, user is returned to the originating page (Pending Attachments Page or Transaction Details Page)
 - [ ] User can cancel/go back without matching
 - [ ] Page handles "no matches found" state with clear messaging
-- [ ] Page clearly indicates which context the user came from (breadcrumb or back button)
-- [ ] Multi-user race condition: If another user matches the attachment first, an error toast notification is shown
+- [ ] Page clearly indicates which page the user came from (breadcrumb or back button)
+
+---
+
+## System Requirements
+
+### File Handling
+- [ ] Supported file types: PDF, PNG, JPG (future file types will be considered based on user feedback)
+- [ ] Maximum file size: 7MB
+- [ ] Upload progress indication (loading state shown during upload)
+- [ ] Toast or dialog notifications shown on upload failure
+- [ ] Only one attachment allowed per transaction
+
+### Tenant Scoping & Security
+- [ ] All attachments (direct and pending) are tenant-scoped
+- [ ] All users in a tenant can view and manage all attachments in that tenant
+- [ ] All users in a tenant can view and manage all pending attachments in that tenant
+
+### Race Condition Handling
+- [ ] If two users attempt to match the same pending attachment simultaneously, the second user receives a toast error notification
+- [ ] No data loss occurs in race condition scenarios
+- [ ] User can retry the operation after receiving race condition error
+
+### Matching Algorithm
+- [ ] Matching state is computed when pending attachments list is fetched (if performance becomes an issue, will switch to stored state with periodic updates)
+- [ ] Algorithm determines "high confidence" vs "low confidence" matches to decide between "Match" and "Assign" buttons
+- [ ] Date is required in filename to enable matching
+- [ ] Only transactions within ±1 week of attachment date are considered for matching
+- [ ] Limits on number of pending attachments will be established based on real-life performance testing
+- [ ] Detailed matching algorithm specification deferred to technical design
 
 ---
 
