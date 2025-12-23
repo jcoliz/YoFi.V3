@@ -1,5 +1,5 @@
 ---
-status: In review
+status: Approved
 owner: James Coliz
 target_release: V3.0
 ado: "[Link to ADO Item]"
@@ -133,16 +133,15 @@ This is an "income statement" made easier to use for lay users. The sections are
 - [ ] Summary report includes a collection of high-level report sections
 - [ ] From each section which is backed by an underlying report, there is an affordance for me to drill into that and directly view a dedicated report at a lower level of detail.
 
-### Story 5: User - Views budget reports [PENDING]
+### Story 5: User - Views budget reports [SUPERSEDED]
 **As a** user
 **I want** to see how I'm doing against my budget plan
 **So that** I can adjust my spending to stay on target
 
-**NOTE** This is a placeholder story. Will return to after completing Budget PRD in the future
+**NOTE** This story has been superseded by [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md), which provides comprehensive budget management including budget reports.
 
 **Acceptance Criteria**:
-- [ ] [Specific, testable criterion 1]
-- [ ] [Specific, testable criterion 2]
+- 🚫 Superseded - See [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md) for budget reporting requirements
 
 ### Story 6: User - Views complete history of income/expenses over time
 **As a** user
@@ -196,7 +195,7 @@ The requirements we will have on filtering:
 - [x] Controllers (API endpoints): Give API access to report generation logic for front end
 - [x] Application (Features/Business logic): Generate reports
 - [ ] Entities (Domain models)
-- [?] Database (Schema changes): Possibly changes to indexing
+- [x] Database (Schema changes): May need composite indexes on (TenantKey, Category, Year) for optimal split-based query performance (see Constraints section)
 
 **Key Business Rules**:
 
@@ -215,8 +214,8 @@ The requirements we will have on filtering:
 7. **Performance Targets** - Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s. Expected volume: 1,500 transactions per year per tenant (30,000 transactions over 20 years).
 
 **Code Patterns to Follow**:
-- Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
-- CRUD operations: [`TransactionsController.cs`](../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs)
+- Entity pattern: [`BaseTenantModel`](../../../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../../../src/Entities/Models/BaseModel.cs)
+- CRUD operations: [`TransactionsController.cs`](../../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
 - Testing: NUnit with Gherkin comments (Given/When/Then)
 
@@ -275,27 +274,27 @@ The requirements we will have on filtering:
 **Future Extensibility**: While custom reports (Story 8) are deferred, the hard-coded report definitions are designed to be easily refactored into database-backed configurations when that capability is added. The report definition model (category filters, depth levels, month display) captures the parameters users would want to customize.
 
 **Related Documents**:
-- [`PRD-TRANSACTION-SPLITS.md`](../import-export/PRD-BANK-IMPORT.md) - Defines split data model that reports aggregate
-- [`PRD-TRANSACTION-FILTERING.md`](TBD) - Defines filtering UX that drill-down navigation depends on
+- [`PRD-TRANSACTION-SPLITS.md`](../transactions/PRD-TRANSACTION-SPLITS.md) - Defines split data model that reports aggregate
+- [`PRD-TRANSACTION-FILTERING.md`](../transactions/PRD-TRANSACTION-FILTERING.md) - Defines filtering UX that drill-down navigation depends on
 - [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) - General guidance on PRD scope and structure
 
 ---
 
 ## Handoff Checklist (for AI implementation)
 
-**Review Result**: ✅ **APPROVED** - Ready for implementation with minor fixes
+**Review Result**: ✅ **APPROVED** - Ready for implementation
 
 **Checklist Status**:
 - ✅ All user stories have clear acceptance criteria (Stories 1-4, 6-7 complete; 5, 8 appropriately marked as future)
 - ✅ Open questions resolved and integrated into Technical Approach section
 - ✅ Technical approach clearly indicates affected layers (Frontend, Controllers, Application, Entities, Database)
-- ✅ Code patterns referenced with file links
+- ✅ Code patterns referenced with file links (all paths verified and corrected)
+- ✅ All related document links verified and corrected
+- ✅ Database layer properly marked with index requirements
 
 **Required Fixes Before Implementation**:
-1. Line 212: Verify/correct [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs) path
-2. Line 271: Fix link to PRD-TRANSACTION-SPLITS.md (currently points to wrong file: `../import-export/PRD-BANK-IMPORT.md`)
-3. Line 192: Clarify database checkbox - change [?] to [x] or [ ]
+None - all issues resolved.
 
 **Strengths**: Excellent WHAT/WHY focus per PRD-GUIDANCE.md patterns, comprehensive business rules, clear success metrics, strong product context.
 
-**Recommendation**: Approve after addressing 3 required fixes above.
+**Recommendation**: Ready for implementation.

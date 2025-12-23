@@ -62,7 +62,12 @@ Users need a way to plan and monitor their spending against category-specific ta
 - [ ] Actual column shows cumulative spending from year start to report date (same time period as budget column)
 
 **Pre-defined budget reports**
-- Will pull this information from YoFi
+- "Full Budget": Shows hierarchy of categories with any budget applied within them, with rollup totals. Shows 2 columns: Category (with hierarchy), and Budget (total annual budget for entire year). No actuals comparison.
+- "All vs Budget": Shows all categories (Income, Expenses, Taxes, Savings, etc.) which have a budget, and rollup totals. Columns: Budget (cumulative to date), Actual, %Spent. Note that Budget CANNOT have a zero at any point in this report.
+- "Expenses Budget": Like "Full Budget" but only shows expenses (see Reports PRD for a definition of what "Expenses" is). Shows only budget column, no actuals comparison.
+- "Expenses vs Budget": Like "All vs Budget", but only Expenses. Includes table view (Budget, Actual, %Spent columns) and chart view with special handling. Chart is a double bar chart: X axis shows top-level expense categories in descending total budget amount (all subcategory budgets roll up to parent), Y axis is $ amount. Each X-axis stop has a PAIR of bars showing "Actual" and "Budget" for that top-level category. Mixed-level budgets are additive (e.g., $10k Transportation + $3k Transportation:Repairs:Jeep = $13k total rolled up to Transportation bar).
+
+- [ ] Question: Should budget report specifications be moved to reports PRD, with a link back here? The chart specifications and column definitions feel report-focused rather than budget-focused.
 
 ### Story 3: User - Allocates budget at any category hierarchy level
 **As a** User who is watching my spending
@@ -75,9 +80,6 @@ Users need a way to plan and monitor their spending against category-specific ta
 - [ ] User can specify budget at mixed levels, e.g., $3k in "Transportation:Repairs:Jeep Cherokee" and another $10k in "Transportation". Budget column shows $13k at "Transportation" level (additive rollup), and actual spending rolls up all Transportation:* spending for spent% calculation
 - [ ] If only child categories are budgeted (e.g., "Transportation:Repairs:Jeep" = $3k), parent categories automatically show rolled-up values (e.g., "Transportation" shows $3k budget with all Transportation spending in actual column)
 - [ ] Spent% at parent level = (All category spending including children) / (Sum of all budget line items for that category tree)
-
-**TODO**
-- I actually need to research what YoFi does in criterion 3 above
 
 ### Story 4: User - Creates new budget based on historical data [Post V3]
 **As a** User who is watching my budget
@@ -95,7 +97,7 @@ Users need a way to plan and monitor their spending against category-specific ta
 - [ ] User can review and edit the proposed line items before finalizing (modify amounts, frequencies, add/remove categories)
 - [ ] System shows preview of what will be created, including comparison to historical actuals vs. proposed budget
 - [ ] If budget line items already exist for the target year, user is warned before proceeding (to avoid accidental duplication)
-- [ ] Categories with zero or minimal spending (< $10/year average) are excluded from auto-generated budget but can be manually added
+- [ ] Categories with zero or minimal spending (< $100/year average) are excluded from auto-generated budget but can be manually added
 
 ### Story 5: User - Applies CAGR growth to trending categories [Post V3]
 **As a** User who is watching my budget
@@ -179,21 +181,33 @@ Budget feature introduces a new entity for tracking spending targets per categor
 
 ## Open Questions
 
-- [ ] **Story 2: Pre-defined Budget Reports** (Line 64-65) - Need to pull report list from YoFi V1. Will define which reports (Income, Taxes, Expenses, Savings, Detail variants) get budget comparison columns. Research required before PRD approval.
+- [ ] **Story 2: Report Location - What Goes and What Stays?** - Budget report specifications will be split between Budgets PRD and Reports PRD. Need to determine precisely which content stays in Story 2 here vs which detailed specifications move to Reports PRD. For each of the 4 pre-defined budget reports ("Full Budget", "All vs Budget", "Expenses Budget", "Expenses vs Budget"), decide what level of detail belongs in each document. Consider: high-level descriptions vs detailed column specs, chart specifications, rollup behavior details, filtering rules, etc.
 
-- [ ] **Story 3: Additive Model Confirmation** (Line 79-80) - Need to research what YoFi V1 does for mixed-level budgets (e.g., $10k Transportation + $3k Transportation:Repairs). Current PRD documents additive model ($13k total at Transportation), but requires V1 confirmation before approval.
+- [ ] **Story 3: Actual Spending Rollup for Mixed-Level Budgets** - When "Transportation" has $10k direct budget AND "Transportation:Repairs:Jeep" has $3k budget (total $13k rolled-up budget), what does the "Actual" column at "Transportation" level show?
+  - Option A: ALL Transportation spending including all children (e.g., $15k total)
+  - Option B: Only spending for categories with budgets, rolled up (e.g., $8k if only Transportation direct + Jeep have spending)
+  - This affects spent% calculation: Actual / $13k
 
-- [ ] **Story 4: Minimal Spending Threshold** (Line 98) - Current threshold is $10/year for excluding categories from auto-generated budgets. Is this too low? Consider whether annual subscriptions at $5-50/year should be included or excluded. Research typical negligible spending patterns.
+- [ ] **Story 3: Spent% for Partially-Budgeted Category Trees** - When only "Transportation:Repairs:Jeep" has $3k budget (no budget at "Transportation" or "Transportation:Repairs" levels), the parent categories show $3k rolled-up budget but ALL Transportation spending in Actual column (including Fuel, Insurance, unbudgeted Repairs, etc.). This could create misleadingly high spent% (e.g., $15k actual / $3k budget = 500%). Is this intended behavior, or should Actual column only show spending for categories that have budgets?
 
 **Resolved Questions** (moved to appropriate sections):
 - ✅ **Budget accumulation model** → Business Rule #1
 - ✅ **Annual renewal** → Business Rule #2
-- ✅ **Additive hierarchy** → Business Rule #3 (pending V1 confirmation above)
+- ✅ **Additive hierarchy** → Business Rule #3 and Story 2 report descriptions
 - ✅ **Category flexibility** → Business Rule #5
 - ✅ **Non-Goals clarification** → Updated to "ML/AI-suggested budgets" (Stories 4-5 are rules-based)
 - ✅ **Story 5 dependency** → Added dependency note to Story 5
 - ✅ **Frequency detection algorithm** → Appropriately vague for PRD level, deferred to design document
 - ✅ **Target release** → Header shows "Beta 3" (predominant milestone); Stories 4-5 tagged [Post V3]
+- ✅ **Story 2: Report list from YoFi V1** → Pre-defined budget reports documented in Story 2
+- ✅ **Story 2: "Full Budget" columns** → 2 columns: Category (with hierarchy), Budget (total annual)
+- ✅ **Story 2: "All vs Budget" scope** → All categories with any budget (Income, Expenses, Taxes, Savings, etc.)
+- ✅ **Story 2: "Expenses vs Budget" chart rollups** → Only top-level categories shown, all subcategory budgets roll up to parent, additive model
+- ✅ **Story 2: "Expenses Budget" vs "Expenses vs Budget"** → "Budget" reports show only budget column (no actuals), "vs Budget" reports show Budget/Actual/%Spent columns
+- ✅ **Story 4: Minimal spending threshold** → Updated to $100/year (V1 standard practice)
+- ✅ **Story 4: Category name changes** → System creates budgets for categories as they exist in historical data; users expected to move transactions when renaming categories
+- ✅ **Story 5: R² threshold** → 0.7 is acceptable starting point, can tune based on real outcomes
+- ✅ **BudgetLineItem.Amount semantics** → Per-period amount (Frequency=Monthly, Amount=$500 means $500/month)
 
 ---
 

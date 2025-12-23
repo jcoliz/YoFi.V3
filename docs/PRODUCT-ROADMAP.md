@@ -105,7 +105,7 @@ graph TB
 **Features**:
 - Category spending reports → [PRD: Reports](wip/reports/PRD-REPORTS.md)
 - Trend analysis and visualizations
-- Budget creation and tracking → *PRD to be created (V3.1)*
+- Budget creation and tracking → [PRD: Budgets](wip/budgets/PRD-BUDGETS.md)
 - API access for external reporting tools (Excel integration) → [PRD: Reports Export API](wip/reports/PRD-EXPORT-API.md)
 - Custom dashboards
 - Net worth tracking (balance sheet view)
@@ -234,14 +234,14 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 3 - Delete All Data                       | V3.0      |           | ✔️ Approved          |
 | Story 4 - Load Sample Data                      | A1        | 2         | ✔️ Approved          |
 | Story 5 - Handle Import Errors                  | V3.1      |           | ✔️ Approved          |
-| **Reports**                                     |           |           | 📝 Draft             |
-| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | 📝 Draft             |
-| Story 2 - Configure Report Display              | B2        |           | 📝 Draft             |
-| Story 3 - View Report in Chart Form             | V3.0      |           | 📝 Draft             |
-| Story 4 - View Summary Report                   | B3        |           | 📝 Draft             |
-| Story 5 - View Budget Reports                   | V3.0      |           | 💡 Future            |
-| Story 6 - View Complete History Over Time       | B3        |           | 📝 Draft             |
-| Story 7 - Investigate Underlying Transactions   | V3.1      |           | 📝 Draft             |
+| **Reports**                                     |           |           | ✔️ Approved          |
+| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✔️ Approved          |
+| Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
+| Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
+| Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
+| Story 5 - View Budget Reports                   | -         |           | 🚫 Superseded        |
+| Story 6 - View Complete History Over Time       | B3        |           | ✔️ Approved          |
+| Story 7 - Investigate Underlying Transactions   | V3.1      |           | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
 | **Reports Export API**                          |           |           | 🎨 Design Complete   |
 | Story 1 - Connect Excel to YoFi Reports         | B2        |           | 🎨 Design Complete   |
@@ -253,6 +253,12 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
 | Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
 | Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
+| **Budgets**                                     |           |           | 📝 Draft             |
+| Story 1 - Create/Edit Budget                    | B3        |           | 📝 Draft             |
+| Story 2 - View Budget Status                    | B3        |           | 📝 Draft             |
+| Story 3 - Allocate Budget at Any Category Level | B3        |           | 📝 Draft             |
+| Story 4 - Create Budget from Historical Data    | Post V3   |           | 📝 Draft             |
+| Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | 📝 Draft             |
 
 ### Reading this timeline:
 
