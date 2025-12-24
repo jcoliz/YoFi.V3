@@ -239,7 +239,7 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
-| Story 5 - View Budget Reports                   | -         |           | 🚫 Superseded        |
+| Story 5 - View Budget Reports                   | B3        |           | ✔️ Approved          |
 | Story 6 - View Complete History Over Time       | B3        |           | ✔️ Approved          |
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
@@ -253,12 +253,12 @@ Stories are the fundamental unit of delivery. This timeline shows the expected *
 | Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
 | Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
 | Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
-| **Budgets**                                     |           |           | 📝 Draft             |
-| Story 1 - Create/Edit Budget                    | B3        |           | 📝 Draft             |
-| Story 2 - View Budget Status                    | B3        |           | 📝 Draft             |
-| Story 3 - Allocate Budget at Any Category Level | B3        |           | 📝 Draft             |
-| Story 4 - Create Budget from Historical Data    | Post V3   |           | 📝 Draft             |
-| Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | 📝 Draft             |
+| **Budgets**                                     |           |           | ✔️ Approved          |
+| Story 1 - Create/Edit Budget                    | B3        |           | ✔️ Approved          |
+| Story 2 - View Budget Status                    | B3        |           | ✔️ Approved          |
+| Story 3 - Allocate Budget at Any Category Level | B3        |           | ✔️ Approved          |
+| Story 4 - Create Budget from Historical Data    | Post V3   |           | ✔️ Approved          |
+| Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | ✔️ Approved          |
 
 ### Reading this timeline:
 
