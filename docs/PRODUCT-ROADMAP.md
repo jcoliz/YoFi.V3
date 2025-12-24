@@ -177,15 +177,15 @@ Ready for beta testers to move wholly off YoFi V1
 
 Widely released. Minimal V1 regressions, except rarely used corner cases.
 
-### V3.1: Near Backlog
+### V3.X: Additional Defined releases
 
-Deferred/deferrable stories from release, but really want them.
+The difference between a specific V3.X and "Post V3", is that a V3.X release is a defined release with intention to be released. Post V3 and Future state are backlogs from which we may later pull work into a defined release.
 
-### Post V3: Under consideration
+### Post V3: Under consideration backlog
 
 Expecting to put energy into designing these items once V3.0 is out.
 
-### Future: For potential consideration
+### Future: For potential consideration backlog
 
 May consider in the future. Not actively expecting to put energy on them.
 
@@ -194,6 +194,8 @@ May consider in the future. Not actively expecting to put energy on them.
 ## Implementation Timeline
 
 Stories are the fundamental unit of delivery. This timeline shows the expected **release milestone** for each story. Features are completed when all their stories are done. Stories targeted for the next milestone are further sequenced into iterations.
+
+My general practice is to break release miletones down into iterations as it approaches. Too much early detailed planning is just a recipe for churn.
 
 ### Story-Level Iteration Roadmap
 
