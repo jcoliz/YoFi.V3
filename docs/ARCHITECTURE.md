@@ -164,13 +164,22 @@ Documented in [Architecture Decision Records](adr/README.md):
 
 ## Testing Strategy
 
-### Test Organization
-- **Unit Tests** (`tests/Unit/`) - Application layer business logic isolation
-- **Integration.Data Tests** (`tests/Integration.Data/`) - Database and data layer testing
-- **Integration.Controller Tests** (`tests/Integration.Controller/`) - API controllers with authentication and authorization
-- **Functional Tests** (`tests/Functional/`) - End-to-end user workflows with Playwright
+YoFi.V3 follows a **Testing Pyramid** strategy optimized for API-driven applications. See **[TESTING-STRATEGY.md](TESTING-STRATEGY.md)** for complete guidance on mapping PRD acceptance criteria to test layers.
 
-All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenario descriptions.
+### Test Distribution Target
+- **60% Controller Integration tests** - Primary layer for API contract verification, authentication, and authorization
+- **25% Unit tests** - Business logic, algorithms, and validation rules
+- **15% Functional tests** - Critical end-to-end user workflows through the browser
+
+Controller Integration tests are the sweet spot: they validate complete API contracts including authentication, authorization, and database operations while remaining fast (~100-200ms) and maintainable.
+
+### Test Organization
+- **Unit Tests** ([`tests/Unit/`](../tests/Unit/)) - Application layer business logic isolation with mocked dependencies
+- **Integration.Data Tests** ([`tests/Integration.Data/`](../tests/Integration.Data/)) - Repository operations and Entity Framework configurations
+- **Integration.Controller Tests** ([`tests/Integration.Controller/`](../tests/Integration.Controller/)) - API endpoints with authentication and authorization
+- **Functional Tests** ([`tests/Functional/`](../tests/Functional/)) - End-to-end user workflows with Playwright and BDD-style scenarios
+
+All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenario descriptions. See [`.roorules`](../.roorules) for complete testing patterns.
 
 ### Current Test Coverage
 - ✅ **Application layer** - Comprehensive unit tests approaching 100% coverage
@@ -178,13 +187,13 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 - ✅ **API controllers** - Integration tests with authentication and multi-tenancy
 - ✅ **Authentication & authorization** - End-to-end authentication implemented with functional tests in progress
 - ✅ **Multi-tenancy** - Complete security and isolation testing
-- 📋 **Additional features** - Test coverage expands as features are developed
+- 📋 **Additional features** - Test coverage expands as features are developed (targeting ~300 total tests for current PRDs)
 
 ### Testing Tools
-- **Unit**: NUnit with constraint-based assertions
+- **Unit**: NUnit with constraint-based assertions and Moq for mocking
 - **Integration.Data**: NUnit with SQLite in-memory database
-- **Integration.Controller**: NUnit with WebApplicationFactory and test authentication
-- **Functional**: Playwright with C# bindings and SpecFlow-style Gherkin
+- **Integration.Controller**: NUnit with WebApplicationFactory and test authentication handlers
+- **Functional**: Playwright with C# bindings and SpecFlow-style Gherkin scenarios
 - **API Client**: NSwag-generated TypeScript client for type-safe frontend integration
 
 ## Security Considerations
