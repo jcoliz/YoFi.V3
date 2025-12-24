@@ -15,7 +15,7 @@ This document provides a comprehensive testing strategy for the YoFi.V3 project.
 
 ## The Testing Pyramid
 
-Our testing strategy follows the testing pyramid model with a target distribution of:
+Our testing strategy follows an **inverted pyramid model** optimized for API-first architectures, with a target distribution of:
 
 ```
                     ▲
@@ -23,26 +23,37 @@ Our testing strategy follows the testing pyramid model with a target distributio
                   ╱   ╲
                  ╱     ╲
                 ╱  E2E  ╲              15% - Functional Tests (Playwright/BDD)
-               ╱ 15%     ╲             End-to-end user workflows
+               ╱   15%   ╲             End-to-end user workflows
               ╱___________╲            Slowest, most comprehensive
              ╱             ╲
             ╱               ╲
-           ╱   Integration   ╲        25% - Integration Tests
-          ╱      25%          ╲       Controller + Data layer testing
-         ╱                     ╲      Moderate speed, focused scenarios
+           ╱      Unit       ╲         25% - Unit Tests
+          ╱        25%        ╲        Application layer logic
+         ╱                     ╲       Fast, isolated, focused
         ╱_______________________╲
        ╱                         ╲
-      ╱                           ╲
-     ╱          Unit Tests         ╲  60% - Unit Tests
-    ╱             60%                ╲ Application layer logic
-   ╱_______________________________  ╲ Fast, isolated, comprehensive
+      ╱   Controller Integration  ╲    60% - Controller Integration Tests
+     ╱             60%             ╲   API contracts, auth, operations
+    ╱_______________________________╲  Fast (~100ms), comprehensive
+
 ```
 
+> **📊 YoFi.V3 Testing Strategy: Inverted Pyramid**
+>
+> This project uses an **inverted testing pyramid** compared to traditional approaches:
+> - **60% Controller Integration** (primary layer) - API contracts, auth, database operations
+> - **25% Unit** (supporting layer) - Complex algorithms, calculations, business logic
+> - **15% Functional** (critical paths only) - End-to-end workflows requiring UI
+>
+> **Why?** Controller Integration tests provide the best ROI for API-first architectures:
+> fast enough (~100-200ms), comprehensive coverage, low maintenance, and test real behavior.
+
 **Key Principles:**
-- **Fast feedback** - Majority of tests run in milliseconds (unit tests)
+- **Inverted pyramid** - Unlike traditional pyramids, we prioritize Integration tests
+- **API-first architecture** - Most acceptance criteria describe API contracts
+- **Fast feedback** - Integration tests with in-memory DB are fast enough (~100-200ms)
 - **Targeted coverage** - Each layer tests what it does best
 - **Avoid duplication** - Don't test the same thing at multiple layers
-- **Pyramid shape** - More tests at lower, faster layers
 
 ## Overview of Test Layers
 
@@ -120,14 +131,20 @@ Our testing strategy follows the testing pyramid model with a target distributio
 - Pure logic testing with mocked dependencies
 - No database, no HTTP, no external services
 - Fastest execution (milliseconds)
-- Highest coverage density (60% of all tests)
+- Focused coverage (~25% of all tests) - used for algorithms and complex logic
 
 **When to Use:**
-- Business logic and validation rules
-- Application Feature methods
-- DTO transformations and mappings
+- Business logic and validation rules **with significant complexity**
+- Application Feature methods **with algorithmic logic**
+- DTO transformations and mappings **with complex rules**
 - Domain calculations and algorithms
-- Error handling and edge cases
+- Error handling and edge cases **in business logic**
+
+**When NOT to Use (use Integration instead):**
+- Simple CRUD operations (test via API)
+- Authorization rules (require HTTP context)
+- Database queries (require database context)
+- Validation that's simple field checking
 
 ## Current Status
 
@@ -145,11 +162,11 @@ Our testing strategy follows the testing pyramid model with a target distributio
 
 **Goal:** Map each acceptance criterion to the appropriate test layer(s) and ensure comprehensive coverage across all PRDs.
 
-**Next Steps:**
-- ~~Define decision framework for test layer selection~~
-- Provide detailed examples for each test layer
-- Create comprehensive mapping of existing acceptance criteria
-- Track coverage metrics per PRD
+**Status:**
+- ✅ Define decision framework for test layer selection
+- ✅ Provide detailed examples for each test layer
+- ✅ Create comprehensive mapping of existing acceptance criteria
+- 🔄 Track coverage metrics per PRD (ongoing as tests are implemented)
 
 ## Decision Framework: Which Test Layer?
 
@@ -1637,9 +1654,9 @@ public async Task GetTransactions_InvalidTenantIdFormat_Returns404WithProblemDet
 
 ### Testing Strategy at a Glance
 
-**Target Distribution (60/25/15):**
+**Target Distribution (60% Integration, 25% Unit, 15% Functional):**
 - **60% Controller Integration tests** - Primary layer for API contract verification
-- **25% Unit tests** - Business logic and algorithms
+- **25% Unit tests** - Business logic algorithms and complex calculations
 - **15% Functional tests** - Critical end-to-end user workflows
 
 **Controller Integration Is the Sweet Spot:**
@@ -1659,8 +1676,8 @@ public async Task GetTransactions_InvalidTenantIdFormat_Returns404WithProblemDet
 5. **Run Tests After Changes** - Verify all pass before completing tasks
 
 **This is guidance, not rigid rules.** The distribution will vary by feature:
-- **Algorithm-heavy features** (Attachments) → More unit tests (40%)
-- **Workflow-heavy features** (Bank Import) → More integration tests (70%)
+- **Algorithm-heavy features** (Attachments) → More unit tests (40% unit, 45% integration, 15% functional)
+- **Workflow-heavy features** (Bank Import) → More integration tests (70% integration, 15% unit, 15% functional)
 - **CRUD-heavy features** (Splits) → Balanced mix (60% integration, 25% unit, 15% functional)
 
 **Success metric:** Comprehensive coverage that provides fast feedback, minimizes maintenance burden, and accurately reflects system behavior. The percentages are targets to guide decision-making, not quotas to meet.
