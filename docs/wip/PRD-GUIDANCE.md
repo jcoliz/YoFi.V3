@@ -121,6 +121,13 @@ See [`PRD-TEMPLATE.md`](PRD-TEMPLATE.md) for the standard structure:
 9. **Notes & Context**: Historical context, related documents
 10. **Handoff Checklist**: Readiness for implementation
 
+### Metadata: target_release
+
+This metadata signifies the Release Milestone when the predominance of work is expected. It is common and expected that some stories will come in after this. Expected (but not required) practice is that stories coming in later have a tag, e.g. `[V3.1]` to signiy when they land.
+
+The [Product Roadmap](../PRODUCT-ROADMAP.md) contains the authoritative list of expected `target_release` values. The roadmap also contains the
+authoritative list of when any given story is expected.
+
 ---
 
 ## Examples of Appropriate PRD Scope

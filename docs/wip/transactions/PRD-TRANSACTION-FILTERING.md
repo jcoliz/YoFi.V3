@@ -22,6 +22,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Allow field-specific searches for precision filtering
 - [ ] Support filtering by balance status (balanced vs. unbalanced transactions)
 - [ ] Maintain minimal, uncluttered UI (progressive disclosure)
+- [ ] Support report-driven navigation with hierarchical category filtering (Story 6 - V3.1)
 
 ### Non-Goals
 - Complex boolean query syntax (AND/OR/NOT operators)
@@ -55,7 +56,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Transactions with mixed categorized/uncategorized splits ARE included (they need attention)
 - [ ] Works in combination with other filters (date range, text search)
 
-### Story 3: User - Default Date Range
+### Story 3: User - Default Date Range [V3.0]
 **As a** user
 **I want** transactions filtered to last 12 months by default
 **So that** I see recent data without manual filtering on every visit
@@ -91,7 +92,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Balance status visible in transaction list (indicator or badge)
 - [ ] Works in combination with other filters (date range, text search, uncategorized)
 
-### Story 6: Reports User - Investigates underlying transactions [NEW]
+### Story 6: Reports User - Investigates underlying transactions [NEW][V3.1]
 **As a** User
 **I want** discover which transactions exactly comprise one of the numbers shown
 **So that** I can understand what underlying actions caused the result I'm seeing
@@ -100,7 +101,7 @@ See [`PRD-REPORTS`](../reports/PRD-REPORTS.md).
 
 **Acceptance Criteria**:
 - [ ] When viewing a report, user can select any number to understand what transactions comprise that total.
-- [ ] User cannot construct a filter by hand which matches a report filter. Reports can give private search query which we will need to implement.
+- [ ] Reports page will launch a navigation to a transaction page with a filter it constructs to match a report cell. Current understanding of this is that report-driven filters will be a date range (already supported), and categories with an ending wild card, e.g. "Income:*"
 
 ---
 
@@ -123,17 +124,60 @@ Implement collapsible filter bar pattern with search-first UX (similar to Monarc
 **API Design**:
 ```
 GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2024-12-31&uncategorizedOnly=true&balanceStatus=unbalanced
+GET /api/tenant/{key}/transactions?category=Income:*&fromDate=2024-01-01&toDate=2024-12-31  # Report-driven filter
 ```
 
 **Filter Parameters**:
 - `search` - Multi-field substring search across payee, split categories, split memos, transaction memo, amount (OR logic within transaction/splits)
 - `payee` - Field-specific substring search on transaction payee (AND logic)
-- `category` - Field-specific substring search on split categories (matches if ANY split matches)
+- `category` - Field-specific search on split categories (matches if ANY split matches). Supports wildcard suffix `*` for hierarchical category matching (see Key Business Rules below)
 - `memo` - Field-specific substring search on transaction memo OR split memos (matches if ANY matches)
 - `amount` - Exact amount match on transaction amount (not split amounts)
 - `fromDate`, `toDate` - Date range on transaction date
 - `uncategorizedOnly` - Boolean: if true, only transactions where ANY split has empty category
 - `balanceStatus` - Enum: `all` (default), `balanced`, `unbalanced` (compares sum of split amounts to transaction amount)
+
+**Key Business Rules**:
+
+### Category Wildcard Matching (Story 6 - Report Integration)
+
+The `category` parameter supports two matching modes:
+
+**1. Substring Match (default)** - When category value does NOT end with `*`:
+- `category=Food` matches: "Food", "Fast Food", "Food:Dining", "Food:Groceries"
+- Uses `Contains()` matching for flexible user-driven searches
+
+**2. Hierarchical Match (wildcard)** - When category value ends with `*`:
+- `category=Food:*` matches:
+  - ✅ "Food" (exact match of the parent category itself)
+  - ✅ "Food:Dining" (direct child)
+  - ✅ "Food:Groceries" (direct child)
+  - ✅ "Food:Dining:Fast" (grandchild)
+  - ❌ "Foods" (different word, not hierarchical)
+  - ❌ "Fast Food" (doesn't start with "Food")
+- `category=Food:Dining:*` matches:
+  - ✅ "Food:Dining" (exact match)
+  - ✅ "Food:Dining:Fast" (child)
+  - ❌ "Food:Dining Out" (space breaks hierarchy - not "Food:Dining:" prefix)
+
+**Implementation**:
+```csharp
+if (filters.Category.EndsWith("*"))
+{
+    var prefix = filters.Category.TrimEnd('*');
+    query = query.Where(t => t.Splits.Any(s =>
+        s.Category == prefix ||                    // Exact match: "Food"
+        s.Category.StartsWith(prefix + ":")        // Children: "Food:*"
+    ));
+}
+else
+{
+    // Normal substring match
+    query = query.Where(t => t.Splits.Any(s => s.Category.Contains(filters.Category)));
+}
+```
+
+**Use Case**: Reports feature uses wildcard matching to drill down into hierarchical category totals. User-driven filters use substring matching for flexible searches.
 
 ---
 
@@ -160,8 +204,8 @@ GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2
 - [x] **Q**: How to handle balance status filtering performance?
   **A**: Add computed property `IsBalanced` to `TransactionResultDto` (calculated in Application layer during query). Frontend filters based on DTO property. Backend doesn't need SQL-level filtering for balance status (calculation requires loading splits anyway).
 
-- [ ] **Q**: Should filters be shareable via URL parameters?
-  **A**: YES (future enhancement) - Enable bookmarking and sharing filtered views.
+- [x] **Q**: Should filters be shareable via URL parameters?
+  **A**: YES - Required for Story 6 (report-to-transactions navigation). Enable bookmarking and sharing filtered views.
 
 ---
 
@@ -181,8 +225,9 @@ GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2
 ## Dependencies & Constraints
 
 **Dependencies**:
-- ✅ Transaction Record implementation (memo, source, externalId fields) - COMPLETED
-- ✅ Transaction Splits implementation (Split entity with category, memo, amount) - COMPLETED
+- 🎨 Transaction Record implementation (memo, source, externalId fields) - DESIGN COMPLETE
+- 🎨 Transaction Splits implementation (Split entity with category, memo, amount) - DESIGN COMPLETE
+- 🎨 Reports feature (for Story 6 report-driven filtering) - V3.1 - DESIGN COMPLETE
 - Existing transaction list infrastructure
 
 **Constraints**:
