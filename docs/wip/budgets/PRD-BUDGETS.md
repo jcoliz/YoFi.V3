@@ -167,27 +167,25 @@ This is still a ONE-LEVEL report. The "Side Gigs" row represents the rollup of a
 **I want** see how I'm doing against my budget
 **So that** I can stay on track with my financial goals
 
+**NOTE**: Budget report display specifications are in [`PRD-REPORTS.md`](../reports/PRD-REPORTS.md) Story 5. This story focuses on budget data availability and calculation behavior.
+
 **Acceptance Criteria**:
 
-**Report Selection:**
-- [ ] User can select from pre-defined budget reports comparing actual spending against budgeted spending
+**Budget Data Availability:**
+- [ ] Budget line items created in Story 1 are available for report calculations
+- [ ] Budget calculations respect StartDate, Frequency, and Amount fields
+- [ ] Budget amounts accumulate from StartDate through Dec 31 based on frequency (per Business Rule #1)
 
-**Report Column Definitions:**
-- [ ] Budget column shows cumulative budget available from budget line item StartDate to report date (sum of all elapsed periods based on frequency)
-- [ ] Actual column shows cumulative spending from Jan 1 to report date (always full year regardless of budget StartDate)
-- [ ] %Spent column shows percentage of budget consumed (Actual / Budget × 100%)
-- [ ] Example: Budget $50, Actual $30, %Spent 60%
-- [ ] Mid-year budget example: Budget starting 7/1 with $2000 yearly shows $2000 budget on 12/31, but Actual shows all spending from 1/1 (may exceed 100%)
+**Column Calculation Behavior:**
+- [ ] Budget column calculation: Sum all elapsed periods from StartDate to report date based on frequency
+- [ ] Actual column calculation: Sum all transaction splits from Jan 1 to report date (always full year regardless of budget StartDate)
+- [ ] %Spent calculation: (Actual / Budget × 100%) where Budget is cumulative to date
+- [ ] Mid-year budgets result in Actual potentially exceeding Budget (>100% spent) because Actual always shows full year
 
-**Report Header Information:**
-- [ ] Budget reports show % complete of the year so far in header
-- [ ] Users can compare spent% versus year% to assess pacing (e.g., 60% through year with 60% spent = on track)
-
-**Pre-defined budget reports**
-- "Full Budget": Shows hierarchy of categories with any budget applied within them, with rollup totals. Shows 2 columns: Category (with hierarchy), and Budget (total annual budget for entire year). No actuals comparison.
-- "All vs Budget": Shows all categories (Income, Expenses, Taxes, Savings, etc.) which have a budget, and rollup totals. Columns: Budget (cumulative to date), Actual, %Spent. Note that Budget CANNOT have a zero at any point in this report.
-- "Expenses Budget": Like "Full Budget" but only shows expenses (see Reports PRD for a definition of what "Expenses" is). Shows only budget column, no actuals comparison.
-- "Expenses vs Budget": Like "All vs Budget", but only Expenses. Includes table view (Budget, Actual, %Spent columns) and chart view with special handling. Chart is a double bar chart: X axis shows top-level expense categories in descending total budget amount (all subcategory budgets roll up to parent), Y axis is $ amount. Each X-axis stop has a PAIR of bars showing "Actual" and "Budget" for that top-level category. Mixed-level budgets are additive (e.g., $10k Transportation + $3k Transportation:Repairs:Jeep = $13k total rolled up to Transportation bar).
+**Hierarchy and Rollup Rules:**
+- [ ] Budget values roll up additively: parent budget + sum of all descendant budgets (per Story 3 additive model)
+- [ ] Actual values roll up ALL spending in category tree including unbudgeted subcategories
+- [ ] Categories without budget line items show appropriate indicators (see Feature Deep-Dive for display behavior)
 
 ### Story 3: User - Allocates budget at any category hierarchy level
 **As a** User who is watching my spending
@@ -343,9 +341,10 @@ Budget feature introduces a new entity for tracking spending targets per categor
 
 ## Open Questions
 
-- [ ] **Story 2: Report Location - What Goes and What Stays?** - Budget report specifications will be split between Budgets PRD and Reports PRD. Need to determine precisely which content stays in Story 2 here vs which detailed specifications move to Reports PRD. For each of the 4 pre-defined budget reports ("Full Budget", "All vs Budget", "Expenses Budget", "Expenses vs Budget"), decide what level of detail belongs in each document. Consider: high-level descriptions vs detailed column specs, chart specifications, rollup behavior details, filtering rules, etc.
+**All questions have been resolved and integrated into the appropriate sections.**
 
 **Resolved Questions** (moved to appropriate sections):
+- ✅ **Story 2: Report Location** → Budget report display specifications moved to [`PRD-REPORTS.md`](../reports/PRD-REPORTS.md) Story 5. Budgets PRD Story 2 focuses on budget data calculations and availability.
 - ✅ **Budget accumulation model** → Business Rule #1
 - ✅ **Annual renewal** → Business Rule #2
 - ✅ **Additive hierarchy** → Business Rule #3 and Story 2 report descriptions

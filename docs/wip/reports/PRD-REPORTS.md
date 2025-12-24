@@ -133,15 +133,40 @@ This is an "income statement" made easier to use for lay users. The sections are
 - [ ] Summary report includes a collection of high-level report sections
 - [ ] From each section which is backed by an underlying report, there is an affordance for me to drill into that and directly view a dedicated report at a lower level of detail.
 
-### Story 5: User - Views budget reports [SUPERSEDED]
+### Story 5: User - Views budget reports
 **As a** user
 **I want** to see how I'm doing against my budget plan
 **So that** I can adjust my spending to stay on target
 
-**NOTE** This story has been superseded by [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md), which provides comprehensive budget management including budget reports.
+**NOTE**: This story depends on budget line items being implemented. See [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md) for budget line item CRUD and business rules.
 
 **Acceptance Criteria**:
-- 🚫 Superseded - See [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md) for budget reporting requirements
+
+**Report Selection:**
+- [ ] User can select from pre-defined budget reports comparing actual spending against budgeted spending
+
+**Report Column Definitions:**
+- [ ] Budget column shows cumulative budget available from budget line item StartDate to report date (sum of all elapsed periods based on frequency)
+- [ ] Actual column shows cumulative spending from Jan 1 to report date (always full year regardless of budget StartDate)
+- [ ] %Spent column shows percentage of budget consumed (Actual / Budget × 100%)
+- [ ] Example: Budget $50, Actual $30, %Spent 60%
+- [ ] Mid-year budget example: Budget starting 7/1 with $2000 yearly shows $2000 budget on 12/31, but Actual shows all spending from 1/1 (may exceed 100%)
+
+**Report Header Information:**
+- [ ] Budget reports show % complete of the year so far in header
+- [ ] Users can compare spent% versus year% to assess pacing (e.g., 60% through year with 60% spent = on track)
+
+**Pre-defined Budget Reports:**
+- [ ] **"Full Budget"**: Shows hierarchy of categories with any budget applied within them, with rollup totals. Shows 2 columns: Category (with hierarchy), and Budget (total annual budget for entire year). No actuals comparison.
+- [ ] **"All vs Budget"**: Shows all categories (Income, Expenses, Taxes, Savings, etc.) which have a budget, and rollup totals. Columns: Budget (cumulative to date), Actual, %Spent. Budget column cannot have zero values (categories without budgets are excluded).
+- [ ] **"Expenses Budget"**: Like "Full Budget" but only shows expense categories (all categories except Income, Taxes, Savings, Transfer). Shows only budget column, no actuals comparison.
+- [ ] **"Expenses vs Budget"**: Like "All vs Budget", but only Expenses. Includes both table view and chart view. Chart is double bar chart: X axis shows top-level expense categories in descending total budget amount, Y axis is $ amount. Each X-axis category shows pair of bars for "Actual" and "Budget". Mixed-level budgets are additive (e.g., $10k Transportation + $3k Transportation:Repairs:Jeep = $13k total rolled up to Transportation bar).
+
+**Hierarchy and Rollup Behavior:**
+- [ ] Budget column rolls up all budget line items in category tree (additive model per [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md) Story 3)
+- [ ] Actual column rolls up ALL transactions in category tree (includes unbudgeted subcategories)
+- [ ] Parent categories without direct budgets automatically show rolled-up values from children
+- [ ] Users can adjust report hierarchy depth to drill into subcategories (follows existing report depth control from Story 2)
 
 ### Story 6: User - Views complete history of income/expenses over time
 **As a** user
