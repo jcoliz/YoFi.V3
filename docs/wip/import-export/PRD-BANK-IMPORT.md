@@ -136,8 +136,6 @@ Users need a streamlined import process with duplicate detection and review capa
 - QFX / OFX 1.x (SGML-like)
 
 **Category handling**:
-- Categories are **ad-hoc** - no validation against existing category list
-- User can enter any valid category value (as defined by Transaction Record PRD)
 - Bank files typically don't include category data; field left blank initially
 
 ### Layers Affected

@@ -28,13 +28,14 @@ on their understanding of each transaction.
 
 All of these will be considered as separate features. The goal of this is to get started with the basics.
 
-- Split transactions (single transaction into multiple categories)
-- Automated categorization or machine learning suggestions
-- Transaction attachments (receipts, images)
-- Multi-currency support
+- Split transactions (see [Transaction Splits PRD](./PRD-TRANSACTION-SPLITS.md))
+- Automated categorization (see [Payee Matching Rules PRD](../payee-rules/PRD-PAYEE-RULES.md))
+- Transaction attachments (receipts, images) (see [Receipts Inbox PRD](./PRD-TRANSACTION-ATTACHMENTS.md))
+- Generation of reports from categorized transactions (see [Reports PRD](../reports/PRD-REPORTS.md))
+- Budget tracking or alerts (see [Budgets PRD](../budgets/PRD-BUDGETS.md))
 - Recurring transaction templates
-- Budget tracking or alerts
-- Generation of reports from categorized transactions
+- Multi-currency support
+- Automatic machine learning suggestions
 
 ---
 
@@ -58,7 +59,7 @@ All of these will be considered as separate features. The goal of this is to get
 **So that** I can later group and sort, or search by that information, or so that I can later remember more details about it.
 
 **Acceptance Criteria**:
-- [ ] Can add free text categories, at unlimited depth, separated by `:`
+- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits
 - [ ] Can add a memorandum (memo) field with additional text to provide additional context
 
 ### Story 3: User - Manage transactions
