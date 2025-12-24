@@ -354,44 +354,19 @@ These tests validate API contracts using HTTP requests against the controller wi
 public async Task GetSplitById_AsViewer_ReturnsOK()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: A transaction with a split exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-    var split = await CreateTestSplit(transaction.Key, amount: 100m, category: "Food");
-
     // When: User requests split by ID
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split.Key}");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should contain split data
-    var result = await response.Content.ReadFromJsonAsync<SplitResultDto>();
-    Assert.That(result, Is.Not.Null);
-    Assert.That(result!.Amount, Is.EqualTo(100m));
-    Assert.That(result.Category, Is.EqualTo("Food"));
 }
 
 [Test]
 public async Task GetSplitById_DifferentTenant_Returns404()
 {
     // Given: User has Editor role for tenant A
-    SwitchToEditor();
-    var tenantA = _testTenantKey;
-
     // And: Split belongs to tenant B
-    var tenantB = await CreateTestTenant();
-    var transactionB = await CreateTestTransaction(tenantB, amount: 100m);
-    var splitB = await CreateTestSplit(transactionB.Key, amount: 100m, category: "Food");
-
     // When: User attempts to access split from tenant B using tenant A context
-    var response = await _client.GetAsync(
-        $"/api/tenant/{tenantA}/splits/{splitB.Key}");
-
     // Then: 404 Not Found should be returned (tenant isolation)
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
 }
 ```
 
@@ -404,89 +379,33 @@ public async Task GetSplitById_DifferentTenant_Returns404()
 public async Task CreateSplit_AsEditor_ReturnsCreated()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: A transaction exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-
     // And: Valid split data
-    var newSplit = new SplitEditDto(
-        Amount: 50m,
-        Category: "Food",
-        Memo: "Groceries"
-    );
-
     // When: User creates a split
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/transactions/{transaction.Key}/splits",
-        newSplit);
-
     // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: Response should contain the created split
-    var created = await response.Content.ReadFromJsonAsync<SplitResultDto>();
-    Assert.That(created, Is.Not.Null);
-    Assert.That(created!.Amount, Is.EqualTo(50m));
-    Assert.That(created.Category, Is.EqualTo("Food"));
-    Assert.That(created.Key, Is.Not.EqualTo(Guid.Empty));
-
     // And: Location header should point to the created resource
-    Assert.That(response.Headers.Location, Is.Not.Null);
 }
 
 [Test]
 public async Task CreateSplit_AsViewer_ReturnsForbidden()
 {
     // Given: User has Viewer role for tenant (read-only)
-    SwitchToViewer();
-
     // And: A transaction exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-
     // And: Valid split data
-    var newSplit = new SplitEditDto(
-        Amount: 50m,
-        Category: "Food",
-        Memo: "Groceries"
-    );
-
     // When: Viewer attempts to create a split
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/transactions/{transaction.Key}/splits",
-        newSplit);
-
     // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
 }
 
 [Test]
 public async Task CreateSplit_NegativeAmount_ReturnsCreated()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: A transaction exists (e.g., paystub)
-    var transaction = await CreateTestTransaction(amount: 5000m);
-
     // And: Split with negative amount (deduction)
-    var newSplit = new SplitEditDto(
-        Amount: -500m,
-        Category: "Taxes",
-        Memo: "Federal withholding"
-    );
-
     // When: User creates a split with negative amount
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/transactions/{transaction.Key}/splits",
-        newSplit);
-
     // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: Negative amount should be preserved
-    var created = await response.Content.ReadFromJsonAsync<SplitResultDto>();
-    Assert.That(created!.Amount, Is.EqualTo(-500m));
 }
 ```
 
@@ -499,34 +418,11 @@ public async Task CreateSplit_NegativeAmount_ReturnsCreated()
 public async Task UpdateSplit_AsEditor_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: A transaction with a split exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-    var split = await CreateTestSplit(transaction.Key, amount: 50m, category: "Food");
-
     // And: Updated split data
-    var updateDto = new SplitEditDto(
-        Amount: 75m,
-        Category: "Groceries",
-        Memo: "Updated memo"
-    );
-
     // When: User updates the split
-    var response = await _client.PutAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split.Key}",
-        updateDto);
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Split should be updated
-    var getResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split.Key}");
-    var updated = await getResponse.Content.ReadFromJsonAsync<SplitResultDto>();
-    Assert.That(updated!.Amount, Is.EqualTo(75m));
-    Assert.That(updated.Category, Is.EqualTo("Groceries"));
-    Assert.That(updated.Memo, Is.EqualTo("Updated memo"));
 }
 ```
 
@@ -539,46 +435,20 @@ public async Task UpdateSplit_AsEditor_ReturnsNoContent()
 public async Task DeleteSplit_MultipleExist_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: A transaction with 2 splits exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-    var split1 = await CreateTestSplit(transaction.Key, amount: 60m, category: "Food");
-    var split2 = await CreateTestSplit(transaction.Key, amount: 40m, category: "Home");
-
     // When: User deletes one split
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split1.Key}");
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Split should no longer exist
-    var getResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split1.Key}");
-    Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
 }
 
 [Test]
 public async Task DeleteSplit_LastSplit_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: A transaction with only 1 split exists
-    var transaction = await CreateTestTransaction(amount: 100m);
-    var split = await CreateTestSplit(transaction.Key, amount: 100m, category: "Food");
-
     // When: User attempts to delete the last split
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/splits/{split.Key}");
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error message should explain business rule
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("last split"));
 }
 ```
 
@@ -591,32 +461,11 @@ public async Task DeleteSplit_LastSplit_ReturnsBadRequest()
 public async Task GetTransactions_IncludesBalanceStatus()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: A balanced transaction exists
-    var balancedTxn = await CreateTestTransaction(amount: 100m);
-    await CreateTestSplit(balancedTxn.Key, amount: 60m, category: "Food");
-    await CreateTestSplit(balancedTxn.Key, amount: 40m, category: "Home");
-
     // And: An unbalanced transaction exists
-    var unbalancedTxn = await CreateTestTransaction(amount: 100m);
-    await CreateTestSplit(unbalancedTxn.Key, amount: 60m, category: "Food");
-    await CreateTestSplit(unbalancedTxn.Key, amount: 30m, category: "Home"); // Only 90 total
-
     // When: User requests transactions
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/transactions");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should include IsBalanced flag for each transaction
-    var transactions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<TransactionResultDto>>();
-    var balanced = transactions!.First(t => t.Key == balancedTxn.Key);
-    var unbalanced = transactions!.First(t => t.Key == unbalancedTxn.Key);
-
-    Assert.That(balanced.IsBalanced, Is.True);
-    Assert.That(unbalanced.IsBalanced, Is.False);
 }
 ```
 
@@ -653,37 +502,16 @@ These tests validate pure business logic in isolation with mocked dependencies. 
 public void ValidateSplit_ValidAmount_ReturnsNoErrors()
 {
     // Given: Valid split data
-    var split = new SplitEditDto(
-        Amount: 50m,
-        Category: "Food",
-        Memo: "Groceries"
-    );
-
     // When: Split is validated
-    var validator = new SplitValidator();
-    var result = validator.Validate(split);
-
     // Then: Validation should pass
-    Assert.That(result.IsValid, Is.True);
 }
 
 [Test]
 public void ValidateSplit_AmountExceedsLimit_ReturnsError()
 {
     // Given: Split with amount exceeding limit
-    var split = new SplitEditDto(
-        Amount: 1_000_001m,
-        Category: "Food",
-        Memo: "Invalid amount"
-    );
-
     // When: Split is validated
-    var validator = new SplitValidator();
-    var result = validator.Validate(split);
-
     // Then: Validation should fail with amount error
-    Assert.That(result.IsValid, Is.False);
-    Assert.That(result.Errors.Any(e => e.PropertyName == nameof(SplitEditDto.Amount)), Is.True);
 }
 ```
 
@@ -696,54 +524,27 @@ public void ValidateSplit_AmountExceedsLimit_ReturnsError()
 public void CalculateBalance_SplitsMatchTransaction_ReturnsBalanced()
 {
     // Given: Transaction amount
-    var transactionAmount = 100m;
-
     // And: Splits that sum to transaction amount
-    var splits = new List<decimal> { 60m, 40m };
-
     // When: Balance is calculated
-    var isBalanced = TransactionBalanceCalculator.IsBalanced(transactionAmount, splits);
-
     // Then: Transaction should be balanced
-    Assert.That(isBalanced, Is.True);
 }
 
 [Test]
 public void CalculateBalance_SplitsDontMatch_ReturnsUnbalanced()
 {
     // Given: Transaction amount
-    var transactionAmount = 100m;
-
     // And: Splits that don't sum to transaction amount
-    var splits = new List<decimal> { 60m, 30m }; // Only 90 total
-
     // When: Balance is calculated
-    var isBalanced = TransactionBalanceCalculator.IsBalanced(transactionAmount, splits);
-
     // Then: Transaction should be unbalanced
-    Assert.That(isBalanced, Is.False);
 }
 
 [Test]
 public void CalculateBalance_WithNegativeSplits_CalculatesCorrectly()
 {
     // Given: Transaction amount (paystub gross)
-    var transactionAmount = 5000m;
-
     // And: Splits with positive and negative amounts
-    var splits = new List<decimal>
-    {
-        5000m,   // Gross salary
-        -500m,   // Federal tax
-        -300m,   // State tax
-        -200m    // Insurance
-    }; // Net = 4000m
-
     // When: Balance is calculated
-    var isBalanced = TransactionBalanceCalculator.IsBalanced(transactionAmount, splits);
-
     // Then: Should be unbalanced (splits sum to 4000, not 5000)
-    Assert.That(isBalanced, Is.False);
 }
 ```
 
@@ -756,55 +557,24 @@ public void CalculateBalance_WithNegativeSplits_CalculatesCorrectly()
 public void ParseExcelSplits_ValidFormat_ReturnsListOfSplits()
 {
     // Given: Valid Excel file stream with 3 splits
-    var excelData = CreateTestExcelFile(new[]
-    {
-        new { Category = "Food", Amount = 50m, Memo = "Groceries" },
-        new { Category = "Home", Amount = 30m, Memo = "Supplies" },
-        new { Category = "Gas", Amount = 20m, Memo = "" }
-    });
-
     // When: Excel is parsed
-    var parser = new ExcelSplitParser();
-    var result = parser.Parse(excelData);
-
     // Then: Should return 3 splits
-    Assert.That(result.IsSuccess, Is.True);
-    Assert.That(result.Splits.Count, Is.EqualTo(3));
-    Assert.That(result.Splits[0].Category, Is.EqualTo("Food"));
-    Assert.That(result.Splits[0].Amount, Is.EqualTo(50m));
 }
 
 [Test]
 public void ParseExcelSplits_MissingRequiredColumn_ReturnsError()
 {
     // Given: Excel file missing required "Amount" column
-    var excelData = CreateTestExcelFileWithColumns(new[] { "Category", "Memo" });
-
     // When: Excel is parsed
-    var parser = new ExcelSplitParser();
-    var result = parser.Parse(excelData);
-
     // Then: Should return error
-    Assert.That(result.IsSuccess, Is.False);
-    Assert.That(result.ErrorMessage, Does.Contain("Amount"));
 }
 
 [Test]
 public void ParseExcelSplits_ExtraColumns_IgnoresThemSuccessfully()
 {
     // Given: Excel file with extra columns
-    var excelData = CreateTestExcelFile(new[]
-    {
-        new { Category = "Food", Amount = 50m, Memo = "Test", Extra1 = "Ignored", Extra2 = 123 }
-    });
-
     // When: Excel is parsed
-    var parser = new ExcelSplitParser();
-    var result = parser.Parse(excelData);
-
     // Then: Should succeed and ignore extra columns
-    Assert.That(result.IsSuccess, Is.True);
-    Assert.That(result.Splits.Count, Is.EqualTo(1));
 }
 ```
 
@@ -886,27 +656,9 @@ The matching algorithm is the heart of this feature and requires extensive unit 
 public void MatchReceipt_ExactDatePayeeAmount_ReturnsHighConfidence()
 {
     // Given: Receipt with date, payee, and amount parsed from filename
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.43m
-    );
-
     // And: Transaction with exact matching data
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -75.43m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should return high confidence match
-    Assert.That(result.ConfidenceScore, Is.GreaterThanOrEqualTo(0.9));
-    Assert.That(result.MatchedTransaction, Is.EqualTo(transaction));
 }
 ```
 
@@ -917,53 +669,18 @@ public void MatchReceipt_ExactDatePayeeAmount_ReturnsHighConfidence()
 public void MatchReceipt_DateWithin7Days_ReturnsMediumConfidence()
 {
     // Given: Receipt dated January 15
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.43m
-    );
-
     // And: Transaction dated January 20 (5 days later)
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 20),
-        Payee = "Safeway",
-        Amount = -75.43m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should return medium confidence match (within ±7 day window)
-    Assert.That(result.ConfidenceScore, Is.InRange(0.5, 0.8));
-    Assert.That(result.MatchedTransaction, Is.EqualTo(transaction));
 }
 
 [Test]
 public void MatchReceipt_DateBeyond7Days_ReturnsNoMatch()
 {
     // Given: Receipt dated January 15
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.43m
-    );
-
     // And: Transaction dated January 30 (15 days later)
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 30),
-        Payee = "Safeway",
-        Amount = -75.43m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should return no match (outside ±7 day window)
-    Assert.That(result.ConfidenceScore, Is.LessThan(0.3));
 }
 ```
 
@@ -974,27 +691,9 @@ public void MatchReceipt_DateBeyond7Days_ReturnsNoMatch()
 public void MatchReceipt_PartialPayeeMatch_ReturnsReducedConfidence()
 {
     // Given: Receipt with short payee name
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.43m
-    );
-
     // And: Transaction with longer payee name
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway Store #4521 - Portland OR",
-        Amount = -75.43m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should match with slightly reduced confidence (substring match)
-    Assert.That(result.ConfidenceScore, Is.GreaterThan(0.7));
-    Assert.That(result.MatchedTransaction, Is.EqualTo(transaction));
 }
 ```
 
@@ -1005,53 +704,18 @@ public void MatchReceipt_PartialPayeeMatch_ReturnsReducedConfidence()
 public void MatchReceipt_AmountWithin10Percent_ReturnsMatch()
 {
     // Given: Receipt with amount $75.00
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.00m
-    );
-
     // And: Transaction with amount $77.50 (3.3% higher - added tip)
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -77.50m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should match with reduced confidence (within ±10% tolerance)
-    Assert.That(result.ConfidenceScore, Is.GreaterThan(0.6));
-    Assert.That(result.MatchedTransaction, Is.EqualTo(transaction));
 }
 
 [Test]
 public void MatchReceipt_AmountBeyond10Percent_ReturnsNoMatch()
 {
     // Given: Receipt with amount $75.00
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.00m
-    );
-
     // And: Transaction with amount $90.00 (20% higher - too different)
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -90.00m
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should not match (beyond ±10% tolerance)
-    Assert.That(result.ConfidenceScore, Is.LessThan(0.5));
 }
 ```
 
@@ -1062,27 +726,9 @@ public void MatchReceipt_AmountBeyond10Percent_ReturnsNoMatch()
 public void MatchReceipt_RefundAmount_MatchesWithAbsoluteValue()
 {
     // Given: Receipt showing refund with positive amount
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.43m
-    );
-
     // And: Transaction showing refund (positive amount in our system)
-    var transaction = new Transaction
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway Refund",
-        Amount = 75.43m // Positive = money coming in
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, new[] { transaction });
-
     // Then: Should match using absolute value comparison
-    Assert.That(result.ConfidenceScore, Is.GreaterThan(0.7));
-    Assert.That(result.MatchedTransaction, Is.EqualTo(transaction));
 }
 ```
 
@@ -1093,36 +739,9 @@ public void MatchReceipt_RefundAmount_MatchesWithAbsoluteValue()
 public void MatchReceipt_MultipleMatches_ReturnsHighestConfidence()
 {
     // Given: Receipt from Safeway
-    var receipt = new ReceiptParseResult(
-        Date: new DateTime(2024, 1, 15),
-        Payee: "Safeway",
-        Amount: 75.00m
-    );
-
     // And: Multiple transactions from Safeway on similar dates
-    var transactions = new[]
-    {
-        new Transaction // Exact match
-        {
-            Date = new DateTime(2024, 1, 15),
-            Payee = "Safeway",
-            Amount = -75.00m
-        },
-        new Transaction // Close but not exact
-        {
-            Date = new DateTime(2024, 1, 16),
-            Payee = "Safeway",
-            Amount = -78.00m
-        }
-    };
-
     // When: Matching algorithm runs
-    var matcher = new ReceiptMatcher();
-    var result = matcher.FindMatch(receipt, transactions);
-
     // Then: Should return the exact match (highest confidence)
-    Assert.That(result.MatchedTransaction.Date, Is.EqualTo(new DateTime(2024, 1, 15)));
-    Assert.That(result.MatchedTransaction.Amount, Is.EqualTo(-75.00m));
 }
 ```
 
@@ -1133,38 +752,18 @@ public void MatchReceipt_MultipleMatches_ReturnsHighestConfidence()
 public void ParseReceiptFilename_NoYear_InfersCurrentYear()
 {
     // Given: Receipt filename with month/day but no year
-    var filename = "Safeway-01-15-$75.43.jpg";
-
     // And: Current year is 2024
-    var currentYear = 2024;
-
     // When: Filename is parsed
-    var parser = new ReceiptFilenameParser();
-    var result = parser.Parse(filename, currentYear);
-
     // Then: Should infer current year
-    Assert.That(result.Date.Year, Is.EqualTo(2024));
-    Assert.That(result.Date.Month, Is.EqualTo(1));
-    Assert.That(result.Date.Day, Is.EqualTo(15));
 }
 
 [Test]
 public void ParseReceiptFilename_FutureDate_InfersPreviousYear()
 {
     // Given: Receipt filename dated December 31
-    var filename = "Safeway-12-31-$75.43.jpg";
-
     // And: Current date is January 5, 2024
-    var currentDate = new DateTime(2024, 1, 5);
-
     // When: Filename is parsed
-    var parser = new ReceiptFilenameParser();
-    var result = parser.Parse(filename, currentDate.Year);
-
     // Then: Should infer previous year (2023, not 2024)
-    Assert.That(result.Date.Year, Is.EqualTo(2023));
-    Assert.That(result.Date.Month, Is.EqualTo(12));
-    Assert.That(result.Date.Day, Is.EqualTo(31));
 }
 ```
 
@@ -1183,73 +782,30 @@ public void ParseReceiptFilename_FutureDate_InfersPreviousYear()
 public async Task UploadAttachment_ValidImage_ReturnsCreated()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Valid image file (JPEG)
-    var imageContent = CreateTestImageFile();
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(imageContent), "file", "receipt.jpg");
-
     // When: User uploads attachment
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/upload",
-        multipartContent);
-
     // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: Response should contain attachment metadata
-    var created = await response.Content.ReadFromJsonAsync<AttachmentResultDto>();
-    Assert.That(created!.Key, Is.Not.EqualTo(Guid.Empty));
-    Assert.That(created.Filename, Is.EqualTo("receipt.jpg"));
 }
 
 [Test]
 public async Task UploadAttachment_InvalidMimeType_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Invalid file type (executable)
-    var fileContent = CreateTestFile("not-an-image.exe");
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(fileContent), "file", "not-an-image.exe");
-
     // When: User attempts to upload non-image file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/upload",
-        multipartContent);
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error should mention MIME type validation
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("MIME type"));
 }
 
 [Test]
 public async Task UploadAttachment_ExceedsSizeLimit_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Image exceeding size limit (e.g., 10 MB)
-    var largeImageContent = CreateLargeTestImageFile(11 * 1024 * 1024); // 11 MB
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(largeImageContent), "file", "huge-receipt.jpg");
-
     // When: User attempts to upload oversized file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/upload",
-        multipartContent);
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error should mention size limit
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("size"));
 }
 ```
 
@@ -1260,27 +816,11 @@ public async Task UploadAttachment_ExceedsSizeLimit_ReturnsBadRequest()
 public async Task GetInbox_UnmatchedReceiptsOnly_ReturnsOK()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: One unmatched attachment exists
-    var unmatchedAttachment = await CreateTestAttachment("receipt1.jpg");
-
     // And: One matched attachment exists (attached to transaction)
-    var matchedAttachment = await CreateTestAttachment("receipt2.jpg");
-    var transaction = await CreateTestTransaction(amount: 100m);
-    await AttachReceiptToTransaction(transaction.Key, matchedAttachment.Key);
-
     // When: User requests inbox
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/inbox");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should contain only unmatched attachment
-    var inbox = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<AttachmentResultDto>>();
-    Assert.That(inbox!.Count, Is.EqualTo(1));
-    Assert.That(inbox.First().Key, Is.EqualTo(unmatchedAttachment.Key));
 }
 ```
 
@@ -1291,55 +831,21 @@ public async Task GetInbox_UnmatchedReceiptsOnly_ReturnsOK()
 public async Task MatchAttachment_AsEditor_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Unmatched attachment and transaction exist
-    var attachment = await CreateTestAttachment("receipt.jpg");
-    var transaction = await CreateTestTransaction(amount: 100m);
-
     // When: User matches attachment to transaction
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}/match",
-        new { TransactionKey = transaction.Key });
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Attachment should no longer appear in inbox
-    var inboxResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/inbox");
-    var inbox = await inboxResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<AttachmentResultDto>>();
-    Assert.That(inbox!.Any(a => a.Key == attachment.Key), Is.False);
 }
 
 [Test]
 public async Task MatchAttachment_RaceCondition_ReturnsConflict()
 {
     // Given: Two users (both Editors) in same tenant
-    SwitchToEditor();
-    var user1Client = _client;
-
     // And: Unmatched attachment exists
-    var attachment = await CreateTestAttachment("receipt.jpg");
-    var transaction = await CreateTestTransaction(amount: 100m);
-
     // When: User 1 matches the attachment
-    var response1 = await user1Client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}/match",
-        new { TransactionKey = transaction.Key });
-
     // And: User 2 attempts to match same attachment simultaneously
-    SwitchToSecondEditor();
-    var user2Client = _client;
-    var response2 = await user2Client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}/match",
-        new { TransactionKey = transaction.Key });
-
     // Then: First request should succeed
-    Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Second request should return 409 Conflict (already matched)
-    Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
 }
 ```
 
@@ -1350,47 +856,20 @@ public async Task MatchAttachment_RaceCondition_ReturnsConflict()
 public async Task DeleteAttachment_FromInbox_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Unmatched attachment exists in inbox
-    var attachment = await CreateTestAttachment("receipt.jpg");
-
     // When: User deletes attachment
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}");
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Attachment should no longer exist
-    var getResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}");
-    Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
 }
 
 [Test]
 public async Task DeleteAttachment_FromTransaction_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Matched attachment exists (attached to transaction)
-    var attachment = await CreateTestAttachment("receipt.jpg");
-    var transaction = await CreateTestTransaction(amount: 100m);
-    await AttachReceiptToTransaction(transaction.Key, attachment.Key);
-
     // When: User deletes attachment from transaction
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/attachments/{attachment.Key}");
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Transaction should no longer have attachment
-    var txnResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/transactions/{transaction.Key}");
-    var txnResult = await txnResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
-    Assert.That(txnResult!.HasAttachment, Is.False);
 }
 ```
 
@@ -1524,140 +1003,50 @@ This example demonstrates:
 public async Task UploadBankFile_ValidOFX_ReturnsCreated()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Valid OFX file with 3 transactions
-    var ofxContent = CreateTestOFXFile(new[]
-    {
-        new { Date = "20240115", Payee = "Safeway", Amount = -75.43m, FITID = "TXN001" },
-        new { Date = "20240116", Payee = "Shell", Amount = -45.00m, FITID = "TXN002" },
-        new { Date = "20240117", Payee = "Salary", Amount = 5000.00m, FITID = "TXN003" }
-    });
-
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(ofxContent), "file", "bank.ofx");
-
     // When: User uploads OFX file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/import/upload",
-        multipartContent);
-
     // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: Response should indicate 3 transactions ready for review
-    var result = await response.Content.ReadFromJsonAsync<ImportUploadResultDto>();
-    Assert.That(result!.TransactionsImported, Is.EqualTo(3));
-    Assert.That(result.TransactionsFailed, Is.EqualTo(0));
 }
 
 [Test]
 public async Task UploadBankFile_QFXFormat_ReturnsCreated()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Valid QFX file (SGML-like OFX 1.x format)
-    var qfxContent = CreateTestQFXFile(new[]
-    {
-        new { Date = "20240115", Payee = "Safeway", Amount = -75.43m, FITID = "TXN001" }
-    });
-
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(qfxContent), "file", "bank.qfx");
-
     // When: User uploads QFX file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/import/upload",
-        multipartContent);
-
     // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: QFX should be parsed successfully
-    var result = await response.Content.ReadFromJsonAsync<ImportUploadResultDto>();
-    Assert.That(result!.TransactionsImported, Is.EqualTo(1));
 }
 
 [Test]
 public async Task UploadBankFile_CorruptedFile_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Corrupted OFX file (invalid XML)
-    var corruptedContent = Encoding.UTF8.GetBytes("<OFX><CORRUPTED");
-
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(corruptedContent), "file", "corrupt.ofx");
-
     // When: User uploads corrupted file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/import/upload",
-        multipartContent);
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error message should indicate parsing failure
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("parse").IgnoreCase);
 }
 
 [Test]
 public async Task UploadBankFile_UnsupportedFormat_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Unsupported file format (CSV instead of OFX/QFX)
-    var csvContent = Encoding.UTF8.GetBytes("Date,Payee,Amount\n2024-01-15,Safeway,-75.43");
-
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(csvContent), "file", "bank.csv");
-
     // When: User uploads CSV file
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/import/upload",
-        multipartContent);
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error message should indicate unsupported format
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("OFX or QFX").IgnoreCase);
 }
 
 [Test]
 public async Task UploadBankFile_PartialFailure_ReturnsPartialSuccess()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: OFX file with 2 valid and 1 invalid transaction (missing amount)
-    var ofxContent = CreateTestOFXFileWithInvalidTransaction(
-        validCount: 2,
-        invalidTransaction: new { Date = "20240115", Payee = "BadTxn", Amount = (decimal?)null, FITID = "TXN003" }
-    );
-
-    var multipartContent = new MultipartFormDataContent();
-    multipartContent.Add(new ByteArrayContent(ofxContent), "file", "bank.ofx");
-
     // When: User uploads file with partial failures
-    var response = await _client.PostAsync(
-        $"/api/tenant/{_testTenantKey}/import/upload",
-        multipartContent);
-
     // Then: 201 Created should be returned (partial success)
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
     // And: Response should indicate which transactions succeeded/failed
-    var result = await response.Content.ReadFromJsonAsync<ImportUploadResultDto>();
-    Assert.That(result!.TransactionsImported, Is.EqualTo(2));
-    Assert.That(result.TransactionsFailed, Is.EqualTo(1));
-    Assert.That(result.FailureDetails, Has.Count.EqualTo(1));
-    Assert.That(result.FailureDetails[0], Does.Contain("amount").IgnoreCase);
 }
 ```
 
@@ -1668,66 +1057,31 @@ public async Task UploadBankFile_PartialFailure_ReturnsPartialSuccess()
 public async Task GetImportReview_WithPendingTransactions_ReturnsOK()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: 3 transactions in review state
-    await UploadTestOFXFile(transactionCount: 3);
-
     // When: User requests import review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should contain 3 pending transactions
-    var review = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-    Assert.That(review!.Count, Is.EqualTo(3));
 }
 
 [Test]
 public async Task GetImportReview_NoPendingTransactions_ReturnsEmptyList()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: No transactions in review state
-
     // When: User requests import review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should be empty list
-    var review = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-    Assert.That(review!.Count, Is.EqualTo(0));
 }
 
 [Test]
 public async Task GetImportReview_PersistsAcrossSessions_ReturnsOK()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: User uploaded transactions yesterday
-    await UploadTestOFXFile(transactionCount: 5);
-
     // When: User logs out and logs back in (new session)
-    // (Simulated by creating new HTTP client with fresh auth token)
-    await LoginAgain();
-
     // And: User requests import review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Pending transactions should still be there
-    var review = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-    Assert.That(review!.Count, Is.EqualTo(5));
 }
 ```
 
@@ -1738,152 +1092,49 @@ public async Task GetImportReview_PersistsAcrossSessions_ReturnsOK()
 public async Task GetReviewCategorized_WithNewTransactions_ReturnsOK()
 {
     // Given: User has Viewer role for tenant
-    SwitchToViewer();
-
     // And: Imported transactions that are all new (no duplicates)
-    await UploadTestOFXFile(transactionCount: 3);
-
     // When: User requests categorized review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review/categorized");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: All transactions should be in "New" category
-    var categorized = await response.Content.ReadFromJsonAsync<CategorizedImportDto>();
-    Assert.That(categorized!.NewTransactions.Count, Is.EqualTo(3));
-    Assert.That(categorized.ExactDuplicates.Count, Is.EqualTo(0));
-    Assert.That(categorized.PotentialDuplicates.Count, Is.EqualTo(0));
 }
 
 [Test]
 public async Task GetReviewCategorized_WithExactDuplicates_ReturnsOK()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Existing transaction in workspace
-    await CreateTestTransaction(
-        date: new DateTime(2024, 1, 15),
-        payee: "Safeway",
-        amount: -75.43m,
-        fitId: "TXN001"
-    );
-
     // And: Imported transaction that's exact duplicate (same FITID, same data)
-    await UploadTestOFXFile(new[]
-    {
-        new { Date = "20240115", Payee = "Safeway", Amount = -75.43m, FITID = "TXN001" }
-    });
-
     // When: User requests categorized review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review/categorized");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Transaction should be in "ExactDuplicates" category
-    var categorized = await response.Content.ReadFromJsonAsync<CategorizedImportDto>();
-    Assert.That(categorized!.NewTransactions.Count, Is.EqualTo(0));
-    Assert.That(categorized.ExactDuplicates.Count, Is.EqualTo(1));
-    Assert.That(categorized.PotentialDuplicates.Count, Is.EqualTo(0));
-
     // And: Exact duplicate should be deselected by default
-    Assert.That(categorized.ExactDuplicates[0].IsSelectedForImport, Is.False);
 }
 
 [Test]
 public async Task GetReviewCategorized_WithPotentialDuplicates_ReturnsOK()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Existing transaction in workspace
-    await CreateTestTransaction(
-        date: new DateTime(2024, 1, 15),
-        payee: "Safeway Store #4521",
-        amount: -75.43m,
-        fitId: "TXN001"
-    );
-
     // And: Imported transaction with same FITID but different payee
-    await UploadTestOFXFile(new[]
-    {
-        new { Date = "20240115", Payee = "Safeway", Amount = -75.43m, FITID = "TXN001" }
-    });
-
     // When: User requests categorized review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review/categorized");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Transaction should be in "PotentialDuplicates" category
-    var categorized = await response.Content.ReadFromJsonAsync<CategorizedImportDto>();
-    Assert.That(categorized!.NewTransactions.Count, Is.EqualTo(0));
-    Assert.That(categorized.ExactDuplicates.Count, Is.EqualTo(0));
-    Assert.That(categorized.PotentialDuplicates.Count, Is.EqualTo(1));
-
     // And: Potential duplicate should be deselected by default
-    Assert.That(categorized.PotentialDuplicates[0].IsSelectedForImport, Is.False);
-
     // And: Should include comparison data (existing vs. imported)
-    Assert.That(categorized.PotentialDuplicates[0].ExistingTransaction, Is.Not.Null);
-    Assert.That(categorized.PotentialDuplicates[0].ExistingTransaction!.Payee, Is.EqualTo("Safeway Store #4521"));
 }
 
 [Test]
 public async Task GetReviewCategorized_WithMixedCategories_ReturnsOK()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Existing transaction (exact duplicate)
-    await CreateTestTransaction(
-        date: new DateTime(2024, 1, 15),
-        payee: "Safeway",
-        amount: -75.43m,
-        fitId: "TXN001"
-    );
-
     // And: Existing transaction (potential duplicate - different amount)
-    await CreateTestTransaction(
-        date: new DateTime(2024, 1, 16),
-        payee: "Shell",
-        amount: -40.00m,
-        fitId: "TXN002"
-    );
-
     // And: Import with 1 new, 1 exact duplicate, 1 potential duplicate
-    await UploadTestOFXFile(new[]
-    {
-        new { Date = "20240115", Payee = "Safeway", Amount = -75.43m, FITID = "TXN001" }, // Exact
-        new { Date = "20240116", Payee = "Shell", Amount = -45.00m, FITID = "TXN002" },    // Potential
-        new { Date = "20240117", Payee = "Salary", Amount = 5000.00m, FITID = "TXN003" }   // New
-    });
-
     // When: User requests categorized review
-    var response = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review/categorized");
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Transactions should be properly categorized
-    var categorized = await response.Content.ReadFromJsonAsync<CategorizedImportDto>();
-    Assert.That(categorized!.NewTransactions.Count, Is.EqualTo(1));
-    Assert.That(categorized.ExactDuplicates.Count, Is.EqualTo(1));
-    Assert.That(categorized.PotentialDuplicates.Count, Is.EqualTo(1));
-
     // And: New transactions should be selected by default
-    Assert.That(categorized.NewTransactions[0].IsSelectedForImport, Is.True);
-
     // And: Duplicates should be deselected by default
-    Assert.That(categorized.ExactDuplicates[0].IsSelectedForImport, Is.False);
-    Assert.That(categorized.PotentialDuplicates[0].IsSelectedForImport, Is.False);
 }
 ```
 
@@ -1894,81 +1145,32 @@ public async Task GetReviewCategorized_WithMixedCategories_ReturnsOK()
 public async Task AcceptImport_SelectedTransactions_ReturnsOK()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: 3 transactions in review state
-    await UploadTestOFXFile(transactionCount: 3);
-    var reviewResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-    var pendingTransactions = await reviewResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-
     // And: User selects 2 of the 3 transactions
-    var selectedKeys = pendingTransactions!.Take(2).Select(t => t.Key).ToList();
-
     // When: User accepts selected transactions
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/import/accept",
-        new { TransactionKeys = selectedKeys });
-
     // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
     // And: Response should indicate 2 transactions accepted
-    var result = await response.Content.ReadFromJsonAsync<ImportAcceptResultDto>();
-    Assert.That(result!.TransactionsAccepted, Is.EqualTo(2));
-    Assert.That(result.TransactionsRemaining, Is.EqualTo(1));
-
     // And: Accepted transactions should appear in main transaction list
-    var transactionsResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/transactions");
-    var transactions = await transactionsResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<TransactionResultDto>>();
-    Assert.That(transactions!.Count, Is.EqualTo(2));
-
     // And: Review queue should have 1 transaction remaining
-    var remainingReviewResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-    var remainingTransactions = await remainingReviewResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-    Assert.That(remainingTransactions!.Count, Is.EqualTo(1));
 }
 
 [Test]
 public async Task AcceptImport_AsViewer_ReturnsForbidden()
 {
     // Given: User has Viewer role for tenant (read-only)
-    SwitchToViewer();
-
     // And: Transactions exist in review state
-    await UploadTestOFXFileAsEditor(transactionCount: 2);
-
     // When: Viewer attempts to accept transactions
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/import/accept",
-        new { TransactionKeys = new[] { Guid.NewGuid() } });
-
     // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
 }
 
 [Test]
 public async Task AcceptImport_EmptySelection_ReturnsBadRequest()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: Transactions exist in review state
-    await UploadTestOFXFile(transactionCount: 3);
-
     // When: User accepts with empty selection
-    var response = await _client.PostAsJsonAsync(
-        $"/api/tenant/{_testTenantKey}/import/accept",
-        new { TransactionKeys = Array.Empty<Guid>() });
-
     // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
     // And: Error should indicate empty selection
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails!.Title, Does.Contain("select").IgnoreCase);
 }
 ```
 
@@ -1979,37 +1181,18 @@ public async Task AcceptImport_EmptySelection_ReturnsBadRequest()
 public async Task DeleteReviewQueue_AsEditor_ReturnsNoContent()
 {
     // Given: User has Editor role for tenant
-    SwitchToEditor();
-
     // And: 5 transactions in review state
-    await UploadTestOFXFile(transactionCount: 5);
-
     // When: User deletes entire review queue
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-
     // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
     // And: Review queue should be empty
-    var reviewResponse = await _client.GetAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-    var review = await reviewResponse.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportTransactionDto>>();
-    Assert.That(review!.Count, Is.EqualTo(0));
 }
 
 [Test]
 public async Task DeleteReviewQueue_AsViewer_ReturnsForbidden()
 {
     // Given: User has Viewer role for tenant (read-only)
-    SwitchToViewer();
-
     // When: Viewer attempts to delete review queue
-    var response = await _client.DeleteAsync(
-        $"/api/tenant/{_testTenantKey}/import/review");
-
     // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
 }
 ```
 
@@ -2030,80 +1213,18 @@ public async Task DeleteReviewQueue_AsViewer_ReturnsForbidden()
 public void ParseOFXFile_ValidFormat_ReturnsTransactions()
 {
     // Given: Valid OFX 2.x file (XML-based)
-    var ofxXml = @"
-        <OFX>
-            <BANKMSGSRSV1>
-                <STMTTRNRS>
-                    <STMTRS>
-                        <BANKTRANLIST>
-                            <STMTTRN>
-                                <TRNTYPE>DEBIT</TRNTYPE>
-                                <DTPOSTED>20240115</DTPOSTED>
-                                <TRNAMT>-75.43</TRNAMT>
-                                <FITID>TXN001</FITID>
-                                <NAME>Safeway</NAME>
-                                <MEMO>Groceries</MEMO>
-                            </STMTTRN>
-                        </BANKTRANLIST>
-                    </STMTRS>
-                </STMTTRNRS>
-            </BANKMSGSRSV1>
-        </OFX>";
-
     // When: OFX is parsed
-    var parser = new OFXParser();
-    var result = parser.Parse(ofxXml);
-
     // Then: Should return 1 transaction
-    Assert.That(result.IsSuccess, Is.True);
-    Assert.That(result.Transactions.Count, Is.EqualTo(1));
-
     // And: Transaction data should be extracted correctly
-    var txn = result.Transactions[0];
-    Assert.That(txn.Date, Is.EqualTo(new DateTime(2024, 1, 15)));
-    Assert.That(txn.Amount, Is.EqualTo(-75.43m));
-    Assert.That(txn.Payee, Is.EqualTo("Safeway"));
-    Assert.That(txn.Memo, Is.EqualTo("Groceries"));
-    Assert.That(txn.FitId, Is.EqualTo("TXN001"));
 }
 
 [Test]
 public void ParseQFXFile_SGMLFormat_ReturnsTransactions()
 {
     // Given: Valid QFX file (SGML-like OFX 1.x format)
-    var qfxSgml = @"
-        OFXHEADER:100
-        DATA:OFXSGML
-        <OFX>
-        <BANKMSGSRSV1>
-        <STMTTRNRS>
-        <STMTRS>
-        <BANKTRANLIST>
-        <STMTTRN>
-        <TRNTYPE>DEBIT
-        <DTPOSTED>20240115
-        <TRNAMT>-75.43
-        <FITID>TXN001
-        <NAME>Safeway
-        </STMTTRN>
-        </BANKTRANLIST>
-        </STMTRS>
-        </STMTTRNRS>
-        </BANKMSGSRSV1>
-        </OFX>";
-
     // When: QFX is parsed
-    var parser = new OFXParser();
-    var result = parser.Parse(qfxSgml);
-
     // Then: Should return 1 transaction
-    Assert.That(result.IsSuccess, Is.True);
-    Assert.That(result.Transactions.Count, Is.EqualTo(1));
-
     // And: Transaction data should be extracted correctly
-    var txn = result.Transactions[0];
-    Assert.That(txn.Date, Is.EqualTo(new DateTime(2024, 1, 15)));
-    Assert.That(txn.Amount, Is.EqualTo(-75.43m));
 }
 ```
 
@@ -2114,70 +1235,24 @@ public void ParseQFXFile_SGMLFormat_ReturnsTransactions()
 public void GenerateDuplicateKey_WithFITID_UsesFITID()
 {
     // Given: Transaction data with FITID provided
-    var transaction = new ImportTransactionData
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -75.43m,
-        FitId = "TXN001"
-    };
-
     // When: Duplicate key is generated
-    var keyGenerator = new DuplicateKeyGenerator();
-    var key = keyGenerator.GenerateKey(transaction);
-
     // Then: Should use FITID as key
-    Assert.That(key, Is.EqualTo("FITID:TXN001"));
 }
 
 [Test]
 public void GenerateDuplicateKey_WithoutFITID_GeneratesHash()
 {
     // Given: Transaction data without FITID
-    var transaction = new ImportTransactionData
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -75.43m,
-        FitId = null
-    };
-
     // When: Duplicate key is generated
-    var keyGenerator = new DuplicateKeyGenerator();
-    var key = keyGenerator.GenerateKey(transaction);
-
     // Then: Should generate hash from Date + Amount + Payee
-    Assert.That(key, Does.StartWith("HASH:"));
-    Assert.That(key.Length, Is.GreaterThan(10)); // SHA256 hash should be long
 }
 
 [Test]
 public void GenerateDuplicateKey_SameData_GeneratesSameHash()
 {
     // Given: Two transactions with identical data but no FITID
-    var transaction1 = new ImportTransactionData
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -75.43m,
-        FitId = null
-    };
-
-    var transaction2 = new ImportTransactionData
-    {
-        Date = new DateTime(2024, 1, 15),
-        Payee = "Safeway",
-        Amount = -75.43m,
-        FitId = null
-    };
-
     // When: Duplicate keys are generated
-    var keyGenerator = new DuplicateKeyGenerator();
-    var key1 = keyGenerator.GenerateKey(transaction1);
-    var key2 = keyGenerator.GenerateKey(transaction2);
-
     // Then: Should generate identical hashes (deterministic)
-    Assert.That(key1, Is.EqualTo(key2));
 }
 ```
 
@@ -2188,40 +1263,16 @@ public void GenerateDuplicateKey_SameData_GeneratesSameHash()
 public void ExtractTransactionData_MissingAmount_ReturnsError()
 {
     // Given: OFX transaction element missing amount field
-    var ofxElement = CreateOFXTransactionElement(
-        date: "20240115",
-        payee: "Safeway",
-        amount: null, // Missing
-        fitId: "TXN001"
-    );
-
     // When: Transaction data is extracted
-    var extractor = new OFXTransactionExtractor();
-    var result = extractor.Extract(ofxElement);
-
     // Then: Should return error
-    Assert.That(result.IsSuccess, Is.False);
-    Assert.That(result.ErrorMessage, Does.Contain("amount").IgnoreCase);
 }
 
 [Test]
 public void ExtractTransactionData_MissingDate_ReturnsError()
 {
     // Given: OFX transaction element missing date field
-    var ofxElement = CreateOFXTransactionElement(
-        date: null, // Missing
-        payee: "Safeway",
-        amount: -75.43m,
-        fitId: "TXN001"
-    );
-
     // When: Transaction data is extracted
-    var extractor = new OFXTransactionExtractor();
-    var result = extractor.Extract(ofxElement);
-
     // Then: Should return error
-    Assert.That(result.IsSuccess, Is.False);
-    Assert.That(result.ErrorMessage, Does.Contain("date").IgnoreCase);
 }
 ```
 
@@ -2536,21 +1587,10 @@ Assert.That(statusCode, Is.EqualTo(HttpStatusCode.OK));
 public async Task GetTransactions_InvalidTenantIdFormat_Returns404WithProblemDetails()
 {
     // Given: A request with an invalid tenant ID format (not a valid GUID)
-
     // When: API Client requests transactions with invalid tenant ID format
-    var response = await _client.GetAsync("/api/tenant/1/transactions");
-
     // Then: 404 Not Found should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-
     // And: Response should contain problem details (not empty body)
-    var content = await response.Content.ReadAsStringAsync();
-    Assert.That(content, Is.Not.Empty, "Response body should not be empty");
-
     // And: Response should be valid problem details JSON
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails, Is.Not.Null, "Response should be deserializable as ProblemDetails");
-    Assert.That(problemDetails!.Status, Is.EqualTo(404));
 }
 ```
 
