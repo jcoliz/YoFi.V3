@@ -36,9 +36,17 @@ Users need a way to plan and monitor their spending against category-specific ta
 
 ## Feature Deep-Dive
 
-The entire answer to "how am I doing on my budget?" is presented through reports. Therefore, it's essential to understand how reports works to help understand how budgeting fits in. Let's walk through a narrative
+The entire answer to "how am I doing on my budget?" is presented through reports. Therefore, it's essential to understand how reports work to help understand how budgeting fits in. Let's walk through a narrative showing how budgets interact with category hierarchies across multiple years.
 
-### Year 1
+### Understanding Report Hierarchy Levels
+
+Reports can display categories at different hierarchy depths. A **ONE-LEVEL report** shows only the immediate children of a root category, rolling up any deeper subcategories. For example, if viewing an "Income" report at ONE-LEVEL depth, transactions in "Income:Side Gigs:Babysitting" would roll up and display under "Side Gigs".
+
+The special **"-" (dash) row** represents splits assigned directly to the root category with no subcategory (e.g., transactions tagged as just "Income" rather than "Income:Salary"). This is distinct from rollups.
+
+Specific reports default to certain hierarchy levels, but users can always adjust the depth to drill down into more detail.
+
+### Year 1: Basic Categorization
 
 At the end of the year, my "Income" report looks like this:
 
@@ -49,11 +57,11 @@ At the end of the year, my "Income" report looks like this:
 | - | 2000 | 3.23% |
 | **Total** | **62000** | **100%** |
 
-I picked up a little cash for babysitting and lawn mowing, but it wasn't big enough to put in its own category. I could have put it in "Income:Others", but I didn't. I just put it in "Income".
+I picked up a little cash for babysitting and lawn mowing, but it wasn't big enough to put in its own category. I could have put it in "Income:Others", but I didn't. I just put it in "Income" (no subcategory).
 
-### Year 2
+### Year 2: Introduction to Budgeting
 
-This year, I discovered budgetting. I had YoFi copy over my actuals from Year 1 to make up my Year 2 budget. Now I will look at a hypothetical "Income vs Budget" report.
+This year, I discovered budgeting. I had YoFi copy over my actuals from Year 1 to make up my Year 2 budget. Now I will look at a hypothetical "Income vs Budget" report.
 
 | **Income** | **Actual** | **Budget** | **% Progress** |
 |------------|------------|------------|----------------|
@@ -62,13 +70,13 @@ This year, I discovered budgetting. I had YoFi copy over my actuals from Year 1 
 | -      | 3,500  | 2,000  | 175.00% |
 | **Total** | **70,500** | **62,000** | **113.71%** |
 
-In this case, I added budget line items for "Income:Salary", "Income:Bonus", and "Income" (no subcategory) at the amounts noted above. The system inteprets "Income" category to mean "Income with no subcategory".
+I added budget line items for "Income:Salary", "Income:Bonus", and "Income" (no subcategory) at the amounts shown. The system interprets "Income" as a category to mean "Income with no subcategory".
 
-I've "over budget" in all my areas. I got a raise, got a bigger bonus, and did more lawn mowing. Good for me!
+I'm "over budget" in all my areas. I got a raise, got a bigger bonus, and did more side gigs. Good for me!
 
-### Year 3
+### Year 3: Category Refinement and Budget Orphaning
 
-This year, I created the budget from last years actuals, BUT I am making enough that I will break out each of the additional items into their own category. Here's how "Income vs Budget" looks at the end of the year.
+This year, I created the budget from last year's actuals, BUT I'm making enough that I'll break out each of the additional items into their own category. Here's how "Income vs Budget" looks at the end of the year.
 
 | **Income**   | **Actual** | **Budget** | **% Progress** |
 |--------------|------------|------------|----------------|
@@ -79,51 +87,17 @@ This year, I created the budget from last years actuals, BUT I am making enough 
 | -            | 0          | 3,500      | 0%             |
 | **Total**    | **74,000** | **70,500** | **105%**       |
 
-The $3500 uncategorized budget didn't help me track how I was doing on my smaller items, but that's OK. It contributes to the overall totals, so I can see I'm still just a little over budget (good!) on income this year.
+This demonstrates an important scenario: **budget line items remain tied to specific category paths and don't automatically follow spending when categorization changes**. The $3,500 budgeted for "Income" (no subcategory) now shows 0% spent because I moved all actuals into "Babysitting" and "Lawn mowing" subcategories.
 
-**Q**: The $3,500 budgeted for "Income" (no subcategory) becomes unused because actuals moved to subcategories. Is this the intended teaching point — that budgets don't automatically adjust when users refine their categorization?
+The orphaned budget still contributes to the overall totals, so I can see I'm still a little over budget (good!) on income this year. This is working as designed—there's often a lag between when users change their budget structure and when actual spending patterns shift.
 
-**A**: While it's true that budgets do not automatically adjust, the teaching point is to see what is the result when we have budget in a top-level category, but no transactions in the top-level category.
+**Note on display**: Categories without budget line items show "0" in the Budget column (this may change to blank or "—" as a UI refinement). The "—" in % Progress indicates division by zero (can't calculate percentage when budget is zero).
 
-**Q** Why show budget "0" instead of "—" (dash) to indicate "no budget exists"?
-**A** Perhaps a blank would be better
+**Category rename scenario**: If I had budgeted for "Income:Side gigs" but actually recorded transactions in "Income:Babysitting", the report would show both rows—"Babysitting" with actuals but no budget, and "Side Gigs" with budget but no actuals. Users can always edit budget line items mid-year when they realize categorization has changed.
 
-**Q** Is "0" the actual budget value, or is it showing "0" because no budget line item exists?
-**A** As described here, it's because no budget line item exists
+### Year 3.5: Mid-Year Budget Adoption
 
-**Q** The "—" in %Progress makes sense (can't divide by zero),
-**A** Correct
-
-**Q** but shouldn't budget column also show "—"?
-**A** Well, Progress column is Actual/Budget, so technically that's zero
-
-**Q**: Is this the intended behavior to demonstrate that budgets remain tied to their specific category paths and don't "follow" spending when users change categorization habits? This is a valuable real-world scenario showing budget maintenance requirements.
-**A** Again, this is mostly to show what the system does given varying inputs. This narrative is an observed path of how things are actually used. There is often a lag between when user makes a change to their budget system, and then the world shifts the next year.
-
-**Q** Is there any UI affordance to help users identify "orphaned" budgets (budgets with zero spending because categorization changed)? Or is this left to users to notice via the 0% spent indicator?
-**A** No, only because additional affordances provide clutter more than clarity in my view. For year 3, this is prime example. We don't need a callout on the "Income" (no subcategory) budget. It's getting caught in the roll-up, so the user gets the info they need in this case.
-
-**Q** Edge case: What if user had transactions in "Income:Side gigs" in Year 2, then renamed the category to "Income:Babysitting" in Year 3? The budget system would show budget for "Side gigs" and actuals for "Babysitting" (no match). Is this expected, or should there be category rename/merge tooling?
-**A** This depends on what the user did when setting the Year 3 budget. If the user set their budget with "Side gigs", but in fact put transactions in "Babysitting", then yes you'd see this:
-
-| **Income**   | **Actual** | **Budget** | **% Progress** |
-|--------------|------------|------------|----------------|
-| Salary       | 60,000     | 55,000     | 109%           |
-| Bonus        | 10,000     | 12,000     | 83%            |
-| Babysitting  | 2,000      | 0          | —              |
-| Lawn mowing  | 2,000      | 0          | —              |
-| Side Gigs    | 0          | 3,500      | 0%             |
-| **Total**    | **74,000** | **70,500** | **105%**       |
-
-User can always go CHANGE the budget mid-year when they realize they are tracking a different way than expected.
-
-**Q** Partial Year Budget Creation
-The narrative shows budgets created at the start of the year. What if user creates the "Income:Babysitting" budget mid-year (July 1)?
-- Would it show partial budget accumulation (Jul-Dec only)?
-- How would %Progress be calculated against a partial-year budget when comparing to full-year actuals?
-This scenario isn't covered in the narrative but could be common (users adopt budgeting mid-year).
-
-**A** For simplicity, let's say user entered "Income:Babysitting" as "yearly" budget line item, with date 7/1, and amount $2000. It's now 12/31. User received $500 for babysitting on 3/1, 6/1, 9/1, and 12/1. For simplicity, let's say no other side gigs. Then we'd have this:
+Consider a common scenario: creating a budget mid-year. If I create an "Income:Babysitting" budget line item on 7/1 with yearly frequency and $2,000 amount, and I've received babysitting income throughout the year ($500 on 3/1, 6/1, 9/1, and 12/1), the report on 12/31 would show:
 
 | **Income**   | **Actual** | **Budget** | **% Progress** |
 |--------------|------------|------------|----------------|
@@ -132,26 +106,13 @@ This scenario isn't covered in the narrative but could be common (users adopt bu
 | Babysitting  | 2,000      | 2,000      | 100%           |
 | **Total**    | **72,000** | **69,000** | **104%**       |
 
-**Q**: Why does Actual show full-year spending ($2k including March and June) against partial-year budget ($2k starting July)?
-**A**: This might make a bit more sense if I had used a spending case instead of an income case. Let me switch over to a spending example for this answer. Consider a budget line item as "permission to spend". On 7/1 I received permission to spend $2000. From that day forward, I have that permission, and I can spend it whenever I want. What would happen if I viewed a report on 6/31? I'd have spent $1000 already against a 0 budget, so I am $1000 over budget (bad!). Now on 7/1, I have spent $1000 against a $2000 budget, so I am at 50% of by budget half way through the year--perfect!
+**Critical behavior**: The Actual column **always shows cumulative spending from Jan 1 to report date**, regardless of when the budget line item started. Think of budget as "permission to spend"—on 7/1 I received permission to spend (or expectation to earn) $2,000. Before 7/1, I had already earned $1,000 against a $0 budget (over budget!). After 7/1, I had earned $1,000 against a $2,000 budget (50% spent, right on track).
 
-But yes, in your options this is option A: (Actual = full year regardless of budget start date). This is important because it means users adopting budgeting mid-year will often see >100% spent on partial-year budgets.
+This means users adopting budgeting mid-year will often see >100% spent on partial-year budgets, which is expected and acceptable behavior.
 
-**Recommendation**: Confirm Option A is intended, and consider adding this as explicit behavior in Story 2 acceptance criteria: "Actual column always shows cumulative spending from Jan 1 to report date, regardless of budget line item StartDate."
+### Year 4: Hierarchy Restructuring
 
-Yes, all the stories need an update. That's why I wrote this, to have a reference to update the stories.
-
-**A** Budget Display for Categories Without Budget Line Items. Yes, we will leave this as an open question for now. This is only a UI decision and shouldn't affect the design of the feature.
-
-### Year 4
-
-**Q** Inferred rule: Actual column shows transactions directly assigned to that exact category path, WITHOUT rolling up from children** (different from Budget column, which DOES roll up): Is this the correct interpretation? This is a critical behavioral difference between Budget (rolls up) and Actual (doesn't roll up) columns.
-**A** NO. Let me add Year 4 to try to explain.
-
-In year 4, I decide to clump all my side-gigs under a "Income:Side Gigs", e.g. "Income:Side Gigs:Babysitting," and "Income:Side Gigs:Lawn Mowing". I made $2000 babysitting and $3000 lawn mowing.
-At the end of the year "Income vs Budget" looks like this.
-
-Because this is a ONE-LEVEL report, all subcategories are rolled up. '-' is a special case, covering uncategorized splits in the parent.
+In year 4, I decide to organize all my side gigs under a parent category. I create "Income:Side Gigs:Babysitting" and "Income:Side Gigs:Lawn Mowing". I made $2,000 babysitting and $3,000 lawn mowing. At the end of the year, my "Income vs Budget" report looks like this:
 
 | **Income**   | **Actual** | **Budget** | **% Progress** |
 |--------------|------------|------------|----------------|
@@ -160,8 +121,21 @@ Because this is a ONE-LEVEL report, all subcategories are rolled up. '-' is a sp
 | Side Gigs    | $5,000     | $4,000     | 125%           |
 | **Total**    | **$85,000** | **$74,000** | **115%**       |
 
-**Q** Are report depth levels user-configurable, or are specific reports pre-defined at specific depths? (This may be covered in Reports PRD, so acceptable to leave unanswered here)
-**A** Both. Specific reports default to certain hierarchy levels, but user can always change. Note that in year 3, we are STILL only showing a ONE-LEVEL report. In that case, we put splits into "Income:Babysitting" and "Income:Lawn Mowing".
+This is still a ONE-LEVEL report. The "Side Gigs" row represents the rollup of all transactions and budgets from "Income:Side Gigs:Babysitting" ($2,000 actual) and "Income:Side Gigs:Lawn Mowing" ($3,000 actual).
+
+**Key insight**: Both Budget AND Actual columns roll up hierarchically in reports. When displaying at ONE-LEVEL depth, all subcategories are aggregated into their parent category.
+
+### Summary: Report Behavior
+
+- **ONE-LEVEL reports**: Show immediate children of root category, roll up deeper levels
+- **Budget column**: Rolls up all budget line items in category tree (additive)
+- **Actual column**: Rolls up all transactions in category tree
+- **Special "-" row**: Transactions directly assigned to parent with no subcategory
+- **Hierarchy control**: Users can adjust report depth to drill into subcategories
+- **Mid-year budgets**: Actual always shows full year Jan 1 to report date
+- **Category changes**: Budget line items remain tied to original category paths
+
+---
 
 ## User Stories
 
@@ -199,10 +173,11 @@ Because this is a ONE-LEVEL report, all subcategories are rolled up. '-' is a sp
 - [ ] User can select from pre-defined budget reports comparing actual spending against budgeted spending
 
 **Report Column Definitions:**
-- [ ] Budget column shows cumulative budget available from year start to report date (sum of all elapsed periods based on frequency)
-- [ ] Actual column shows cumulative spending from year start to report date (same time period as budget column)
+- [ ] Budget column shows cumulative budget available from budget line item StartDate to report date (sum of all elapsed periods based on frequency)
+- [ ] Actual column shows cumulative spending from Jan 1 to report date (always full year regardless of budget StartDate)
 - [ ] %Spent column shows percentage of budget consumed (Actual / Budget × 100%)
 - [ ] Example: Budget $50, Actual $30, %Spent 60%
+- [ ] Mid-year budget example: Budget starting 7/1 with $2000 yearly shows $2000 budget on 12/31, but Actual shows all spending from 1/1 (may exceed 100%)
 
 **Report Header Information:**
 - [ ] Budget reports show % complete of the year so far in header
@@ -231,15 +206,18 @@ Because this is a ONE-LEVEL report, all subcategories are rolled up. '-' is a sp
 
 **Mixed-Level Budgets (Additive Model):**
 - [ ] User can specify budgets at multiple hierarchy levels within same category tree
-- [ ] Example: $10k at "Transportation" + $3k at "Transportation:Repairs:Jeep" = $13k total at Transportation level
+- [ ] Example: $10k at "Transportation" + $3k at "Transportation:Repairs:Jeep" = $13k total Budget at Transportation level
 - [ ] Budget column shows additive rollup: parent budget + sum of all descendant budgets
+- [ ] Actual column shows ALL spending in category tree: Transportation direct + Fuel + Repairs + Insurance + all subcategories
 
 **Automatic Rollup Behavior:**
 - [ ] Parent categories without direct budgets automatically show rolled-up values from children
-- [ ] Example: Only "Transportation:Repairs:Jeep" budgeted at $3k → "Transportation" and "Transportation:Repairs" show $3k rolled up
+- [ ] Example: Only "Transportation:Repairs:Jeep" budgeted at $3k → "Transportation" shows $3k Budget rolled up
+- [ ] Actual column at "Transportation" level shows ALL Transportation spending (including unbudgeted categories like Fuel, Insurance)
 
 **Spent% Calculation:**
 - [ ] Spent% at any level = (All category spending including children) / (Sum of all budget line items for that category tree)
+- [ ] Example: $3k budget at "Repairs:Jeep" only, but $15k total Transportation spending → Transportation shows 500% spent
 
 ### Story 4: User - Creates new budget based on historical data [Post V3]
 **As a** User who is watching my budget
@@ -367,13 +345,6 @@ Budget feature introduces a new entity for tracking spending targets per categor
 
 - [ ] **Story 2: Report Location - What Goes and What Stays?** - Budget report specifications will be split between Budgets PRD and Reports PRD. Need to determine precisely which content stays in Story 2 here vs which detailed specifications move to Reports PRD. For each of the 4 pre-defined budget reports ("Full Budget", "All vs Budget", "Expenses Budget", "Expenses vs Budget"), decide what level of detail belongs in each document. Consider: high-level descriptions vs detailed column specs, chart specifications, rollup behavior details, filtering rules, etc.
 
-- [ ] **Story 3: Actual Spending Rollup for Mixed-Level Budgets** - When "Transportation" has $10k direct budget AND "Transportation:Repairs:Jeep" has $3k budget (total $13k rolled-up budget), what does the "Actual" column at "Transportation" level show?
-  - Option A: ALL Transportation spending including all children (e.g., $15k total)
-  - Option B: Only spending for categories with budgets, rolled up (e.g., $8k if only Transportation direct + Jeep have spending)
-  - This affects spent% calculation: Actual / $13k
-
-- [ ] **Story 3: Spent% for Partially-Budgeted Category Trees** - When only "Transportation:Repairs:Jeep" has $3k budget (no budget at "Transportation" or "Transportation:Repairs" levels), the parent categories show $3k rolled-up budget but ALL Transportation spending in Actual column (including Fuel, Insurance, unbudgeted Repairs, etc.). This could create misleadingly high spent% (e.g., $15k actual / $3k budget = 500%). Is this intended behavior, or should Actual column only show spending for categories that have budgets?
-
 **Resolved Questions** (moved to appropriate sections):
 - ✅ **Budget accumulation model** → Business Rule #1
 - ✅ **Annual renewal** → Business Rule #2
@@ -392,6 +363,10 @@ Budget feature introduces a new entity for tracking spending targets per categor
 - ✅ **Story 4: Category name changes** → System creates budgets for categories as they exist in historical data; users expected to move transactions when renaming categories
 - ✅ **Story 5: R² threshold** → 0.7 is acceptable starting point, can tune based on real outcomes
 - ✅ **BudgetLineItem.Amount semantics** → Per-period amount (Frequency=Monthly, Amount=$500 means $500/month)
+- ✅ **Actual spending rollup** → Feature Deep-Dive Year 4 demonstrates both Budget AND Actual columns roll up hierarchically (Option A: ALL spending including all children)
+- ✅ **Mid-year budget behavior** → Feature Deep-Dive Year 3.5 demonstrates Actual always shows Jan 1 to report date regardless of budget StartDate
+- ✅ **Report hierarchy control** → Feature Deep-Dive clarifies users can adjust report depth; specific reports default to ONE-LEVEL
+- ✅ **Partially-budgeted trees** → Intended behavior; high spent% (e.g., 500%) indicates user needs to add more budget line items or reflects deliberate partial tracking
 
 ---
 
