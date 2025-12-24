@@ -13,12 +13,31 @@ This document provides architectural recommendations for implementing transactio
 - **No default date filter** - Document specifies "default to prior 12 months" but not implemented
 
 ### Requirements from Document
-1. **Single text search** (most common) - Multi-field search across payee, category, memo, amount
-2. **Category blank/whitespace filter** - Find uncategorized transactions
-3. **Specific year filter** - Most common, often combined with other filters
-4. **Single field substring search** - Targeted field-specific search
-5. **Exact amount search** - Find specific transaction amounts
-6. **Date range filter** - Less common but needed
+1. **Single text search** (most common) - Multi-field search across payee, split categories, split memos, transaction memo, amount
+2. **Category blank/whitespace filter** - Find transactions with any uncategorized splits
+3. **Balance status filter** - Find transactions where splits don't sum to transaction amount
+4. **Specific year filter** - Most common, often combined with other filters
+5. **Single field substring search** - Targeted field-specific search (payee, split category, split memo, transaction memo)
+6. **Exact amount search** - Find specific transaction amounts (matches transaction amount, not split amounts)
+7. **Date range filter** - Less common but needed
+
+### Split-Aware Considerations (NEW)
+**Transactions now have splits** - Each transaction contains one or more splits, where each split has:
+- Amount (portion of transaction amount)
+- Category (categorization for that portion)
+- Memo (optional split-specific notes)
+
+**Transaction-level fields**:
+- Payee (transaction level)
+- Amount (transaction level - authoritative source of truth)
+- Memo (transaction level - optional notes about entire transaction)
+- Date (transaction level)
+
+**Filtering implications**:
+- Category searches must check ALL splits (match if ANY split matches)
+- Memo searches must check transaction memo AND all split memos
+- Uncategorized filter finds transactions where ANY split has empty category
+- Balance status shows whether splits sum equals transaction amount
 
 ## Recommended UI Pattern: Collapsible Filter Bar
 
@@ -40,16 +59,18 @@ This document provides architectural recommendations for implementing transactio
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
-│  [🔍 Search all fields...]                      [⚙️ Filters (2)] │  ← Expanded State
+│  [🔍 Search all fields...]                      [⚙️ Filters (3)] │  ← Expanded State
 ├─────────────────────────────────────────────────────────────────┤
 │  Date Range:                                                     │
 │  [Last 30d] [Last 3mo] [Last 12mo] [This year] [All time]       │
 │  Or custom: From [        ]  To [        ]                      │
 │                                                                  │
 │  Search specific field:                                         │
-│  Payee: [          ]  Category: [          ]  Memo: [        ]  │
+│  Payee: [              ]  Category (splits): [              ]   │
+│  Memo (transaction): [              ]  Memo (splits): [      ]  │
 │                                                                  │
-│  Amount: [      ]     ☐ Uncategorized                           │
+│  Amount: [      ]  Balance: [All ▾] [Balanced/Unbalanced]       │
+│  ☐ Has uncategorized splits                                     │
 │                                                                  │
 │  [Reset to Defaults]  [Clear All Filters]                       │
 └─────────────────────────────────────────────────────────────────┘
@@ -88,7 +109,7 @@ graph TB
 - Full-width text input with search icon
 - Placeholder: "Search all fields..." to indicate it searches everywhere
 - Real-time search (debounced 300ms) or search-on-blur/Enter
-- **Multi-field substring search** across: payee, category, memo, amount (if parseable as decimal)
+- **Multi-field substring search** across: payee, split categories, split memos, transaction memo, amount (if parseable as decimal)
 - Clear button (×) appears when text is present
 - Focus on mount if no transactions visible
 
@@ -98,7 +119,7 @@ graph TB
   <input
     v-model="searchText"
     type="text"
-    placeholder="Search all fields... (payee, category, memo, amount)"
+    placeholder="Search all fields... (payee, split categories, memos, amount)"
     class="form-control form-control-lg"
     @input="debouncedSearch"
     data-test-id="transaction-search"
@@ -109,16 +130,20 @@ graph TB
 </div>
 ```
 
-**Search Behavior**: Backend performs substring search
+**Search Behavior**: Backend performs substring search across transaction AND split data
 - Frontend sends search text as query parameter: `?search=starbucks`
 - Backend performs **case-insensitive substring search** (SQL `LIKE '%searchterm%'`)
-- Searches across: payee, category, memo
+- Searches across:
+  - Transaction-level: payee, memo (transaction), amount
+  - Split-level: categories (ANY split), memos (ANY split)
+- **Split matching logic**: Uses EF Core `.Any()` - `t.Splits.Any(s => s.Category.Contains(searchTerm))`
 - **Amount search**: Backend attempts to parse search text as decimal first:
-  - If parse succeeds → Compare as decimal: `t.Amount == parsedAmount`
+  - If parse succeeds → Compare transaction amount as decimal: `t.Amount == parsedAmount`
   - If parse fails → Skip amount field in search (only search text fields)
+  - Note: Does NOT search split amounts (transaction amount is authoritative)
   - This avoids inefficient string conversion of amount column
-- Returns transactions matching ANY field (OR condition)
-- Benefits: Works with pagination, efficient at database level, type-safe amount comparison
+- Returns transactions matching ANY field (OR condition across all transaction and split fields)
+- Benefits: Works with pagination, efficient at database level, type-safe amount comparison, leverages EF Core navigation properties
 
 ### 2. **Collapsible Filter Panel** (Hidden by Default)
 
@@ -131,20 +156,25 @@ graph TB
 
 **Panel Content** (Priority Order):
 1. **Date Range Section** - Quick-select buttons (Last 30 days, Last 3 months, **Last 12 months**, This year, All time) + custom From/To date inputs
-2. **Field-Specific Search Section** - Three text inputs for **substring search**:
-   - **Payee** text input - Searches only payee field (substring match)
-   - **Category** text input - Searches only category field (substring match)
-   - **Memo** text input - Searches only memo field (substring match)
+2. **Field-Specific Search Section** - Four text inputs for **substring search**:
+   - **Payee** text input - Searches only transaction payee field (substring match)
+   - **Category (splits)** text input - Searches split categories (matches if ANY split category matches, substring)
+   - **Memo (transaction)** text input - Searches only transaction-level memo field (substring match)
+   - **Memo (splits)** text input - Searches split memos (matches if ANY split memo matches, substring)
    - Note: These are AND conditions (all specified fields must match)
-3. **Amount Input** - Exact match search (equals comparison)
-4. **Uncategorized Toggle** - Checkbox for blank/whitespace categories
-5. **Reset to Defaults Button** - Clears all filters AND restores default 12-month filter
-6. **Clear All Button** - Reset all advanced filters to "All time" (no date restriction)
+3. **Amount Input** - Exact match search on transaction amount (equals comparison, not split amounts)
+4. **Balance Status Dropdown** - Filter by balance status:
+   - All (default) - Show all transactions
+   - Balanced only - Show only transactions where splits sum = transaction amount
+   - Unbalanced only - Show only transactions where splits sum ≠ transaction amount
+5. **Uncategorized Toggle** - Checkbox for transactions with ANY uncategorized splits (blank/whitespace category in any split)
+6. **Reset to Defaults Button** - Clears all filters AND restores default 12-month filter
+7. **Clear All Button** - Reset all advanced filters to "All time" (no date restriction)
 
 **Important Distinction**:
-- **Primary search bar** (always visible) - Multi-field OR search (fast, finds anything)
-- **Field-specific inputs** (in panel) - Single-field AND search (precise, narrow results)
-- Example: Panel inputs `Payee: "starbucks"` AND `Category: "dining"` finds only Starbucks transactions categorized as dining
+- **Primary search bar** (always visible) - Multi-field OR search across ALL transaction and split fields (fast, finds anything)
+- **Field-specific inputs** (in panel) - Single-field AND search with split-awareness (precise, narrow results)
+- Example: Panel inputs `Payee: "starbucks"` AND `Category (splits): "dining"` finds Starbucks transactions that have at least one split categorized as dining
 
 **Animation**: Smooth slide-down/slide-up with 200ms transition
 
@@ -159,9 +189,9 @@ graph TB
 **Display** active filters as dismissible chips below the search bar:
 
 ```
-[🔍 Search...]  [⚙️ Filters (3)]
+[🔍 Search...]  [⚙️ Filters (4)]
 
-[Year: 2024 ×]  [Category: Groceries ×]  [Uncategorized ×]
+[Year: 2024 ×]  [Split Category: Groceries ×]  [Unbalanced ×]  [Has Uncategorized ×]
 ```
 
 **Benefits**:
@@ -346,19 +376,23 @@ See detailed design above.
 ```vue
 <script setup lang="ts">
 interface FilterOptions {
-  // Multi-field search (primary search bar)
+  // Multi-field search (primary search bar) - searches all transaction and split fields
   searchText: string
 
   // Field-specific substring searches
-  payee: string | null
-  category: string | null
-  memo: string | null
+  payee: string | null                    // Transaction payee
+  splitCategory: string | null            // Split categories (matches if ANY split matches)
+  transactionMemo: string | null          // Transaction-level memo
+  splitMemo: string | null                // Split memos (matches if ANY split matches)
 
   // Exact match and date filters
-  amount: number | null
+  amount: number | null                   // Transaction amount (not split amounts)
   fromDate: Date | null
   toDate: Date | null
-  uncategorizedOnly: boolean
+
+  // Split-aware filters
+  uncategorizedOnly: boolean              // Transactions with ANY uncategorized splits
+  balanceStatus: 'all' | 'balanced' | 'unbalanced'  // Balance status filter
 }
 
 const emit = defineEmits<{
@@ -379,21 +413,25 @@ const emit = defineEmits<{
 ```csharp
 [HttpGet()]
 public async Task<IActionResult> GetTransactions(
-    [FromQuery] string? search = null,           // Multi-field OR search (payee, category, memo, amount)
-    [FromQuery] string? payee = null,            // Field-specific substring search
-    [FromQuery] string? category = null,         // Field-specific substring search
-    [FromQuery] string? memo = null,             // Field-specific substring search
-    [FromQuery] decimal? amount = null,          // Exact amount match
-    [FromQuery] DateTime? fromDate = null,       // Date range start
-    [FromQuery] DateTime? toDate = null,         // Date range end
-    [FromQuery] bool? uncategorizedOnly = null)  // Filter for blank/whitespace category
+    [FromQuery] string? search = null,              // Multi-field OR search (payee, split categories, split memos, transaction memo, amount)
+    [FromQuery] string? payee = null,               // Field-specific: transaction payee substring search
+    [FromQuery] string? splitCategory = null,       // Field-specific: split categories (matches if ANY split matches)
+    [FromQuery] string? transactionMemo = null,     // Field-specific: transaction-level memo substring search
+    [FromQuery] string? splitMemo = null,           // Field-specific: split memos (matches if ANY split matches)
+    [FromQuery] decimal? amount = null,             // Exact match on transaction amount (not split amounts)
+    [FromQuery] DateTime? fromDate = null,          // Date range start
+    [FromQuery] DateTime? toDate = null,            // Date range end
+    [FromQuery] bool? uncategorizedOnly = null,     // Filter for transactions with ANY uncategorized splits
+    [FromQuery] string? balanceStatus = null)       // "all" (default), "balanced", "unbalanced"
 ```
 
 **Filter Logic**:
-- **`search`** parameter: Substring match on (payee OR category OR memo OR amount) - Fast, broad search
-- **`payee`, `category`, `memo`** parameters: Substring match on specific fields with AND logic
-- **`amount`** parameter: Exact match (equals comparison)
-- **`uncategorizedOnly`** parameter: Overrides `category` parameter, finds blank/whitespace categories
+- **`search`** parameter: Substring match on (payee OR split categories OR split memos OR transaction memo OR amount) - Fast, broad search using `.Any()` for splits
+- **`payee`**, **`transactionMemo`** parameters: Substring match on transaction-level fields with AND logic
+- **`splitCategory`**, **`splitMemo`** parameters: Substring match on split fields using `.Any()` (matches if ANY split matches)
+- **`amount`** parameter: Exact match on transaction amount (equals comparison)
+- **`uncategorizedOnly`** parameter: Finds transactions where ANY split has blank/whitespace category using `.Any(s => string.IsNullOrWhiteSpace(s.Category))`
+- **`balanceStatus`** parameter: Filters by balance status (calculated in Application layer, not SQL query)
 - All filters combined with AND logic (narrow results progressively)
 
 **Date Range Calculation**: Frontend calculates actual dates and sends to backend
@@ -427,9 +465,11 @@ function applyLast3Months() {
 public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsync(
     TransactionFilterDto filters)
 {
-    var query = dbContext.Transactions.AsQueryable();
+    var query = dbContext.Transactions
+        .Include(t => t.Splits)  // Required for split-aware filtering
+        .AsQueryable();
 
-    // Multi-field OR search (primary search bar)
+    // Multi-field OR search (primary search bar) - searches transaction AND split fields
     if (!string.IsNullOrWhiteSpace(filters.Search))
     {
         // Try to parse search text as decimal for amount comparison
@@ -437,20 +477,22 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
 
         if (isNumericSearch)
         {
-            // Search text is a valid decimal - include amount field in search
+            // Search text is a valid decimal - include transaction amount in search
             query = query.Where(t =>
                 t.Payee.Contains(filters.Search) ||
-                t.Category.Contains(filters.Search) ||
                 t.Memo.Contains(filters.Search) ||
-                t.Amount == searchAmount);  // Decimal comparison, not string conversion
+                t.Splits.Any(s => s.Category.Contains(filters.Search)) ||
+                t.Splits.Any(s => s.Memo != null && s.Memo.Contains(filters.Search)) ||
+                t.Amount == searchAmount);  // Transaction amount only, not split amounts
         }
         else
         {
             // Search text is not a decimal - search only text fields
             query = query.Where(t =>
                 t.Payee.Contains(filters.Search) ||
-                t.Category.Contains(filters.Search) ||
-                t.Memo.Contains(filters.Search));
+                t.Memo.Contains(filters.Search) ||
+                t.Splits.Any(s => s.Category.Contains(filters.Search)) ||
+                t.Splits.Any(s => s.Memo != null && s.Memo.Contains(filters.Search)));
         }
     }
 
@@ -460,17 +502,24 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
         query = query.Where(t => t.Payee.Contains(filters.Payee));
     }
 
-    if (!string.IsNullOrWhiteSpace(filters.Category))
+    if (!string.IsNullOrWhiteSpace(filters.SplitCategory))
     {
-        query = query.Where(t => t.Category.Contains(filters.Category));
+        // Matches if ANY split category matches
+        query = query.Where(t => t.Splits.Any(s => s.Category.Contains(filters.SplitCategory)));
     }
 
-    if (!string.IsNullOrWhiteSpace(filters.Memo))
+    if (!string.IsNullOrWhiteSpace(filters.TransactionMemo))
     {
-        query = query.Where(t => t.Memo.Contains(filters.Memo));
+        query = query.Where(t => t.Memo.Contains(filters.TransactionMemo));
     }
 
-    // Exact amount match (field-specific filter)
+    if (!string.IsNullOrWhiteSpace(filters.SplitMemo))
+    {
+        // Matches if ANY split memo matches
+        query = query.Where(t => t.Splits.Any(s => s.Memo != null && s.Memo.Contains(filters.SplitMemo)));
+    }
+
+    // Exact amount match on transaction amount (not split amounts)
     if (filters.Amount.HasValue)
     {
         query = query.Where(t => t.Amount == filters.Amount.Value);
@@ -487,22 +536,51 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
         query = query.Where(t => t.Date <= filters.ToDate.Value);
     }
 
-    // Uncategorized filter (blank/whitespace category)
+    // Uncategorized filter - finds transactions with ANY uncategorized splits
     if (filters.UncategorizedOnly == true)
     {
-        query = query.Where(t => string.IsNullOrWhiteSpace(t.Category));
+        query = query.Where(t => t.Splits.Any(s => string.IsNullOrWhiteSpace(s.Category)));
     }
 
-    return await query.ToListNoTrackingAsync();
+    // Execute query and materialize results
+    var transactions = await query.ToListNoTrackingAsync();
+
+    // Balance status filtering (post-query, in memory)
+    if (filters.BalanceStatus == "balanced")
+    {
+        transactions = transactions.Where(t =>
+            t.Splits.Sum(s => s.Amount) == t.Amount
+        ).ToList();
+    }
+    else if (filters.BalanceStatus == "unbalanced")
+    {
+        transactions = transactions.Where(t =>
+            t.Splits.Sum(s => s.Amount) != t.Amount
+        ).ToList();
+    }
+
+    // Map to DTOs (including IsBalanced property)
+    return transactions.Select(t => new TransactionResultDto
+    {
+        // ... other properties
+        IsBalanced = t.Splits.Sum(s => s.Amount) == t.Amount,
+        HasMultipleSplits = t.Splits.Count > 1,
+        SingleSplitCategory = t.Splits.Count == 1 ? t.Splits.First().Category : null
+    }).ToList();
 }
 ```
 
 **Key Implementation Notes**:
+- **`.Include(t => t.Splits)`** - Required to load split data for filtering
+- **`.Any()`** - EF Core generates efficient SQL with EXISTS clauses for split filtering
 - `.Contains()` performs case-insensitive substring search in SQL (maps to `LIKE '%term%'`)
+- **Split category filtering**: `t.Splits.Any(s => s.Category.Contains(term))` matches if ANY split matches
+- **Split memo filtering**: `t.Splits.Any(s => s.Memo != null && s.Memo.Contains(term))` handles nullable memos
+- **Uncategorized filter**: `t.Splits.Any(s => string.IsNullOrWhiteSpace(s.Category))` finds ANY uncategorized split
+- **Balance status filtering**: Performed in-memory after query execution (requires calculating split sums)
 - **Amount search optimization**: Parse search text as decimal in memory first, then use decimal comparison in query
-  - Avoids inefficient `t.Amount.ToString().Contains()` which forces string conversion on every row
-  - Only includes amount field in search if text is a valid decimal
-  - Example: Search "42.50" matches amount field; search "coffee" skips amount field
+  - Only searches transaction amount, NOT split amounts (transaction amount is authoritative)
+  - Avoids inefficient string conversion
 - Field-specific filters use AND logic (progressively narrow results)
 - Multi-field search uses OR logic (broaden results)
 - All filters combined with AND at top level
@@ -513,9 +591,11 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
 2. **Server-side filtering** - All filtering done in database for performance
 3. **Index strategy** - Add database indexes on commonly filtered columns:
    - `Transaction.Payee`
-   - `Transaction.Category`
    - `Transaction.Date`
+   - `Split.Category` ← NEW for split filtering
+   - Consider composite index on `(Transaction.TenantId, Transaction.Date)` for tenant-scoped date queries
 4. **Result pagination** - Consider adding pagination if transaction count grows (>1000 rows)
+5. **Split query performance** - EF Core's `.Any()` generates efficient SQL EXISTS clauses, but monitor query performance with large datasets
 
 ### Accessibility
 

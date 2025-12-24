@@ -16,10 +16,11 @@ Users need to find specific transactions quickly from potentially hundreds or th
 ## Goals & Non-Goals
 
 ### Goals
-- [ ] Enable fast multi-field text search (payee, category, memo, amount) - most common use case
-- [ ] Support finding uncategorized transactions
+- [ ] Enable fast multi-field text search (payee, split categories, split memos, memo, amount) - most common use case
+- [ ] Support finding uncategorized transactions (transactions with any splits having empty categories)
 - [ ] Provide date range filtering with smart defaults (last 12 months)
 - [ ] Allow field-specific searches for precision filtering
+- [ ] Support filtering by balance status (balanced vs. unbalanced transactions)
 - [ ] Maintain minimal, uncluttered UI (progressive disclosure)
 
 ### Non-Goals
@@ -38,7 +39,8 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 **Acceptance Criteria**:
 - [ ] Single search bar always visible at top of transactions page
-- [ ] Searches across payee, category, memo, and amount fields
+- [ ] Searches across payee, split categories, split memos, transaction memo, and amount fields
+- [ ] When a transaction has multiple splits, match if ANY split matches the search criteria
 - [ ] Results update as user types (debounced)
 - [ ] Clear button (×) appears when text is present
 
@@ -49,7 +51,8 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 **Acceptance Criteria**:
 - [ ] Checkbox filter for "Uncategorized only"
-- [ ] Finds transactions with blank or whitespace category
+- [ ] Finds transactions where ANY split has blank or whitespace category
+- [ ] Transactions with mixed categorized/uncategorized splits ARE included (they need attention)
 - [ ] Works in combination with other filters (date range, text search)
 
 ### Story 3: User - Default Date Range
@@ -70,18 +73,30 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 **Acceptance Criteria**:
 - [ ] Collapsible filter panel hidden by default
-- [ ] Field-specific inputs for payee, category, memo
-- [ ] Exact amount search
+- [ ] Field-specific inputs for payee, split category, split memo, transaction memo
+- [ ] Exact amount search (matches transaction amount, not split amounts)
+- [ ] Balance status filter: All / Balanced only / Unbalanced only
 - [ ] Date range quick-select buttons (Last 30d, 3mo, 12mo, This year, All time)
 - [ ] Custom date range inputs (From/To)
 - [ ] "Clear All" button resets all filters
 
-### Story 5: Reports User - Investigates underlying transactions [NEW]
+### Story 5: User - Filter by Balance Status
+**As a** user
+**I want** to find transactions where splits don't balance
+**So that** I can quickly fix data entry errors
+
+**Acceptance Criteria**:
+- [ ] Filter option for "Unbalanced only" (splits sum ≠ transaction amount)
+- [ ] Filter option for "Balanced only" (splits sum = transaction amount)
+- [ ] Balance status visible in transaction list (indicator or badge)
+- [ ] Works in combination with other filters (date range, text search, uncategorized)
+
+### Story 6: Reports User - Investigates underlying transactions [NEW]
 **As a** User
 **I want** discover which transactions exactly comprise one of the numbers shown
 **So that** I can understand what underlying actions caused the result I'm seeing
 
-See [PRD-REPORTS](../reports/PRD-REPORTS.md).
+See [`PRD-REPORTS`](../reports/PRD-REPORTS.md).
 
 **Acceptance Criteria**:
 - [ ] When viewing a report, user can select any number to understand what transactions comprise that total.
@@ -96,8 +111,8 @@ Implement collapsible filter bar pattern with search-first UX (similar to Monarc
 **Layers Affected**:
 - [x] Frontend (Vue/Nuxt) - Filter bar component with collapsible panel
 - [x] Controllers (API endpoints) - Add query parameters to GetTransactions
-- [x] Application (Features) - Filter logic in TransactionsFeature
-- [ ] Database (Indexes) - Add indexes on Payee, Category for performance
+- [x] Application (Features) - Filter logic in TransactionsFeature with split-aware queries
+- [ ] Database (Indexes) - Add indexes on Payee, Split.Category for performance
 
 **Key Components**:
 - **New**: `src/FrontEnd.Nuxt/app/components/TransactionFilterBar.vue` - Filter UI component
@@ -107,15 +122,18 @@ Implement collapsible filter bar pattern with search-first UX (similar to Monarc
 
 **API Design**:
 ```
-GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2024-12-31&uncategorizedOnly=true
+GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2024-12-31&uncategorizedOnly=true&balanceStatus=unbalanced
 ```
 
 **Filter Parameters**:
-- `search` - Multi-field substring search (OR logic)
-- `payee`, `category`, `memo` - Field-specific substring search (AND logic)
-- `amount` - Exact amount match
-- `fromDate`, `toDate` - Date range
-- `uncategorizedOnly` - Boolean for blank/whitespace categories
+- `search` - Multi-field substring search across payee, split categories, split memos, transaction memo, amount (OR logic within transaction/splits)
+- `payee` - Field-specific substring search on transaction payee (AND logic)
+- `category` - Field-specific substring search on split categories (matches if ANY split matches)
+- `memo` - Field-specific substring search on transaction memo OR split memos (matches if ANY matches)
+- `amount` - Exact amount match on transaction amount (not split amounts)
+- `fromDate`, `toDate` - Date range on transaction date
+- `uncategorizedOnly` - Boolean: if true, only transactions where ANY split has empty category
+- `balanceStatus` - Enum: `all` (default), `balanced`, `unbalanced` (compares sum of split amounts to transaction amount)
 
 ---
 
@@ -128,7 +146,19 @@ GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2
   **A**: Collapsible panel. Aligns with minimal/modern preference and industry best practices.
 
 - [x] **Q**: How to handle amount search in multi-field search?
-  **A**: Parse search text as decimal first. If valid, include amount field with exact match. Otherwise skip amount field.
+  **A**: Parse search text as decimal first. If valid, include transaction amount field with exact match. Otherwise skip amount field. Do NOT search split amounts.
+
+- [x] **Q**: How to search split data efficiently?
+  **A**: Use EF Core's `.Any()` on the Splits navigation property. Example: `query.Where(t => t.Splits.Any(s => s.Category.Contains(searchTerm)))`. EF Core will generate efficient SQL with EXISTS clauses.
+
+- [x] **Q**: Should category filter match partial split categories or require all splits to match?
+  **A**: Category filter matches if ANY split matches (OR logic across splits). This is intuitive - user searching for "Food" wants transactions that include food, even if they also include other categories.
+
+- [x] **Q**: Should uncategorizedOnly require ALL splits to be uncategorized or just ANY split uncategorized?
+  **A**: ANY split uncategorized. Transactions with mixed categorized/uncategorized splits need attention just as much as fully uncategorized transactions.
+
+- [x] **Q**: How to handle balance status filtering performance?
+  **A**: Add computed property `IsBalanced` to `TransactionResultDto` (calculated in Application layer during query). Frontend filters based on DTO property. Backend doesn't need SQL-level filtering for balance status (calculation requires loading splits anyway).
 
 - [ ] **Q**: Should filters be shareable via URL parameters?
   **A**: YES (future enhancement) - Enable bookmarking and sharing filtered views.
@@ -151,28 +181,32 @@ GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2
 ## Dependencies & Constraints
 
 **Dependencies**:
-- Transaction splits implementation (category field)
+- ✅ Transaction Record implementation (memo, source, externalId fields) - COMPLETED
+- ✅ Transaction Splits implementation (Split entity with category, memo, amount) - COMPLETED
 - Existing transaction list infrastructure
 
 **Constraints**:
-- Must maintain fast performance with 10k+ transactions
+- Must maintain fast performance with 10k+ transactions (including splits)
 - Mobile-friendly filter UI required
 - Backend must use database-level filtering (not client-side)
+- Split searches must use efficient SQL (EF Core `.Any()` generates EXISTS clauses)
 
 ---
 
 ## Notes & Context
 
 **Design Documents**:
-- UI design: [`docs/wip/transactions/TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md`](TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) (comprehensive 651-line spec)
-- Initial requirements: [`docs/wip/transactions/TRANSACTION-FILTERING.md`](TRANSACTION-FILTERING.md)
+- UI design: [`TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md`](TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) (comprehensive 651-line spec - NEEDS REVIEW for splits compatibility)
+- Initial requirements: [`TRANSACTION-FILTERING.md`](TRANSACTION-FILTERING.md)
 
 **Key Design Decisions**:
 1. **Search-first UX** - Always-visible search bar, collapsible advanced filters (progressive disclosure)
-2. **Multi-field OR search** - Primary search bar searches all fields with OR logic (broad, fast)
+2. **Multi-field OR search** - Primary search bar searches all transaction and split fields with OR logic (broad, fast)
 3. **Field-specific AND search** - Advanced panel provides field-specific inputs with AND logic (precise, narrow)
-4. **Backend filtering** - All filtering at database level for performance (not client-side)
-5. **Smart defaults** - 12-month date range by default, user can clear or adjust
+4. **Split-aware filtering** - Category and memo searches check both transaction-level AND all splits (matches if ANY split matches)
+5. **Backend filtering** - All filtering at database level for performance (not client-side)
+6. **Smart defaults** - 12-month date range by default, user can clear or adjust
+7. **Balance status awareness** - Expose balance status as filterable property (leverages splits feature)
 
 **Industry Patterns**:
 - Monarch Money, YNAB use collapsible filter pattern
@@ -186,10 +220,14 @@ GET /api/tenant/{key}/transactions?search=starbucks&fromDate=2024-01-01&toDate=2
 Implementation planning complete:
 - [x] UI pattern selected (collapsible filter bar)
 - [x] Component architecture designed
-- [x] API contract defined
-- [x] Filter logic specified
-- [x] Performance considerations documented
+- [x] API contract defined (UPDATED for splits)
+- [x] Filter logic specified (UPDATED for splits)
+- [x] Performance considerations documented (UPDATED for split queries)
 - [x] Mobile responsive strategy defined
 - [x] Accessibility requirements specified
 
-**Reference**: See [`TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md`](TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) for complete implementation details including component structure, API changes, and phase-by-phase rollout plan.
+**Action Required**: Review [`TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md`](TRANSACTION-FILTERING-UI-RECOMMENDATIONS.md) to ensure it reflects split-aware filtering patterns. The 651-line spec was written before splits were implemented and may need updates for:
+- Split category filtering UI/UX
+- Split memo searching
+- Balance status indicators in list view
+- Filter panel terminology (distinguish transaction memo vs split memos)
