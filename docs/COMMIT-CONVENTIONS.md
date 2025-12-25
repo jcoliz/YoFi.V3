@@ -59,16 +59,27 @@ Use when changes are isolated to a single layer:
 
 Use when changes span multiple layers for a single feature:
 
+**Generic Feature Scopes** (for general work):
 - **auth**: Authentication and authorization
 - **tenancy**: Managing tenants, user role assignments, invitations
-- **transactions**: Transaction management features
-- **reports**: Reporting functionality
-- **budget**: Budget tracking features
+- **transactions**: Transaction management features (general)
+- **reports**: Reporting functionality (general)
+- **budgets**: Budget tracking features (general)
 - **payees**: Payee management
 - **categories**: Category management
-- **imports**: Data import functionality
+- **imports**: Data import functionality (general)
 
-**Note**: Feature scopes are preferred when implementing or modifying functionality that cuts across multiple architectural layers (e.g., entities, app layer, controllers, frontend). This makes it easier to track the complete implementation of a feature in git history.
+**PRD-Specific Feature Scopes** (use when implementing a specific PRD):
+- **transaction-record**: Transaction CRUD operations (PRD-TRANSACTION-RECORD.md)
+- **transaction-splits**: Transaction split functionality (PRD-TRANSACTION-SPLITS.md)
+- **transaction-filtering**: Transaction filtering and search (PRD-TRANSACTION-FILTERING.md)
+- **transaction-attachments**: Transaction attachments (PRD-TRANSACTION-ATTACHMENTS.md)
+- **payee-rules**: Payee rules and categorization (PRD-PAYEE-RULES.md)
+- **bank-import**: Bank statement import (PRD-BANK-IMPORT.md)
+- **tenant-data-admin**: Tenant data administration (PRD-TENANT-DATA-ADMIN.md)
+- **export-api**: Data export API (PRD-EXPORT-API.md)
+
+**Note**: Feature scopes are preferred when implementing or modifying functionality that cuts across multiple architectural layers (e.g., entities, app layer, controllers, frontend). **When implementing a specific PRD, always use the PRD-specific feature slug** (e.g., `feat(transaction-record): add create endpoint`) rather than the generic scope (e.g., `feat(transactions): ...`). This makes commit history much more meaningful and easier to scan for specific feature work.
 
 ### Choosing the Right Scope
 
@@ -95,8 +106,15 @@ The subject line should:
 feat(frontend): add weather forecast display component
 fix(backend): resolve null reference in weather controller
 docs(contributing): move prerequisites to separate section
-feat(transactions): implement recurring transaction support
-refactor(budget): simplify budget calculation across all layers
+feat(transaction-record): add create transaction endpoint
+feat(transaction-splits): implement split allocation logic
+refactor(payee-rules): simplify rule matching across all layers
+```
+
+✅ **Also Good** (generic scopes for non-PRD work):
+```
+feat(transactions): add transaction export utility
+fix(budgets): correct budget calculation edge case
 ```
 
 ❌ **Bad**:

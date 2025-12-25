@@ -57,20 +57,27 @@ For implementation patterns, refer to existing features:
 
 **Suggested Commit Messages by Step (for user's reference):**
 
-**IMPORTANT:** Always include the short feature name in the subject line so commits are easily findable later.
+**IMPORTANT:** Use the PRD feature slug (e.g., `transaction-record`, `payee-rules`) in the scope for all non-test commits. Test commits always use layer scopes (`test(unit)`, `test(integration)`, `test(functional)`).
 
-- **Step 3 (Entities):** `feat(entities): add [EntityName] for [FeatureName]`
-- **Step 4 (Data Layer):** `feat(data): add [EntityName] EF Core config for [FeatureName]`
-- **Step 5 (Data Integration Tests):** `test(data): add [EntityName] tests for [FeatureName]`
-- **Step 6 (Application Layer):** `feat(app): implement [FeatureName] business logic`
-- **Step 7 (Unit Tests):** `test(unit): add [FeatureName] unit tests`
-- **Step 8 (Controllers):** `feat(api): add [FeatureName] API endpoints`
-- **Step 8.5 (API Client):** `build(api): regenerate client for [FeatureName]`
-- **Step 9 (Controller Integration Tests):** `test(api): add [FeatureName] integration tests`
-- **Step 10 (Frontend):** `feat(ui): implement [FeatureName] UI`
-- **Step 11 (Functional Tests):** `test(e2e): add [FeatureName] functional tests`
-- **Step 11.5 (Documentation):** `docs: update docs for [FeatureName]`
-- **Step 12 (Wrap-up):** `feat([scope]): complete [FeatureName] implementation`
+- **Step 3 (Entities):** `feat([feature-slug]): add [EntityName] entity`
+- **Step 4 (Data Layer):** `feat([feature-slug]): add [EntityName] EF Core configuration`
+- **Step 5 (Data Integration Tests):** `test(integration): add [EntityName] data tests`
+- **Step 6 (Application Layer):** `feat([feature-slug]): implement business logic`
+- **Step 7 (Unit Tests):** `test(unit): add [feature] validation and logic tests`
+- **Step 8 (Controllers):** `feat([feature-slug]): add API endpoints`
+- **Step 8.5 (API Client):** `build([feature-slug]): regenerate API client`
+- **Step 9 (Controller Integration Tests):** `test(integration): add API endpoint tests`
+- **Step 10 (Frontend):** `feat([feature-slug]): implement UI`
+- **Step 11 (Functional Tests):** `test(functional): add [feature] user workflow tests`
+- **Step 11.5 (Documentation):** `docs([feature-slug]): update documentation`
+- **Step 12 (Wrap-up):** `feat([feature-slug]): complete implementation`
+
+**Examples:**
+- `feat(transaction-record): add Transaction entity`
+- `test(integration): add Transaction data persistence tests`
+- `feat(payee-rules): implement rule matching logic`
+- `test(unit): add payee rule validation tests`
+- `test(functional): add transaction creation workflow`
 
 **Benefits of Commit-Per-Step:**
 - Provides rollback points if issues arise
