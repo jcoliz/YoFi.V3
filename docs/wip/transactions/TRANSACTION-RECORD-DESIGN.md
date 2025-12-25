@@ -1,3 +1,7 @@
+---
+status: Approved
+---
+
 # Transaction Record Design
 
 ## Overview
@@ -26,8 +30,6 @@ This document defines the database schema, DTO design, validation rules, and mig
 - **ExternalId field**: For duplicate detection - importer's responsibility
 - **Memo field**: 1000 chars, nullable, plain text only
 - **No audit trail**: Edit-in-place with no history tracking (future enhancement if needed)
-
-
 
 ## Current State Analysis
 
@@ -195,9 +197,6 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
         entity.HasIndex(t => t.TenantId);
         entity.HasIndex(t => new { t.TenantId, t.Date });
 
-        // NEW: Index on ExternalId for duplicate detection
-        entity.HasIndex(t => t.ExternalId);
-
         // NEW: Composite index on TenantId + ExternalId for efficient duplicate checks
         entity.HasIndex(t => new { t.TenantId, t.ExternalId });
     });
@@ -211,15 +210,12 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 2. `IX_Transactions_TenantId` - Tenant isolation
 3. `IX_Transactions_TenantId_Date` (Composite) - Date range queries
 
-**New Indexes**:
-4. **`IX_Transactions_ExternalId`** - Duplicate detection
-   - **Purpose**: Quick lookup by bank's transaction ID
-   - **Queries**: `WHERE ExternalId = @externalId`
-
-5. **`IX_Transactions_TenantId_ExternalId`** (Composite) - Tenant-scoped duplicate detection
+**New Index**:
+4. **`IX_Transactions_TenantId_ExternalId`** (Composite) - Tenant-scoped duplicate detection
    - **Purpose**: Efficient duplicate checking within tenant during import
    - **Queries**: `WHERE TenantId = @tenantId AND ExternalId = @externalId`
    - **Benefits**: Covering index for duplicate detection (most common import scenario)
+   - **Note**: No standalone `ExternalId` index needed since all queries include `TenantId`
 
 ## DTO Design
 
@@ -390,24 +386,29 @@ var transaction = await context.Transactions
 **Indexes used**: `IX_Transactions_TenantId`, `IX_Transactions_Key`
 **Performance**: Fast - single row lookup
 
-### Pattern 3: Check for Duplicate ExternalId
+### Pattern 3: Check for Duplicate ExternalId (Importer Use Only)
 
-Duplicate detection during import.
+Query to check for duplicate ExternalId before import. **This is the importer's responsibility, NOT the Transaction API.**
 
 ```csharp
-// Check if transaction with ExternalId already exists for tenant
+// Importer checks for existing transaction with same ExternalId
 var exists = await context.Transactions
     .AsNoTracking()
     .AnyAsync(t => t.TenantId == tenantId && t.ExternalId == externalId);
 
 if (exists)
 {
-    throw new DuplicateTransactionException(externalId);
+    // Importer skips this transaction (duplicate)
+    continue;
 }
+
+// Importer creates transaction via API
+await transactionApi.CreateTransactionAsync(tenantId, transactionDto);
 ```
 
 **Index used**: `IX_Transactions_TenantId_ExternalId` (covering index)
 **Performance**: Very fast - composite index covers query entirely
+**Note**: The Transaction API itself does NOT enforce ExternalId uniqueness. This is the importer's responsibility per the PRD.
 
 ### Pattern 4: Create Transaction
 
@@ -595,8 +596,7 @@ Deletes transaction.
    - `ExternalId` (nvarchar(100), nullable)
    - `Memo` (nvarchar(1000), nullable)
 
-2. **Create new indexes**:
-   - `IX_Transactions_ExternalId` (single column)
+2. **Create new index**:
    - `IX_Transactions_TenantId_ExternalId` (composite)
 
 3. **Update existing rows** (if any):
@@ -604,8 +604,8 @@ Deletes transaction.
    - Existing transactions will have `NULL` for new fields
 
 **Entity Framework Migration Command**:
-```bash
-dotnet ef migrations add AddTransactionRecordFields --project src/Data/Sqlite --startup-project src/BackEnd
+```powershell
+.\scripts\Add-Migration.ps1 -Name AddTransactionRecordFields
 ```
 
 ### Phase 2: Update Application Code
@@ -637,11 +637,7 @@ dotnet ef migrations add AddTransactionRecordFields --project src/Data/Sqlite --
 
 ### Phase 3: Testing
 
-1. **Unit tests** in [`tests/Unit/`](tests/Unit/):
-   - Test TransactionsFeature with new fields
-   - Test ExternalId duplicate detection logic
-
-2. **Integration tests** in [`tests/Integration.Controller/`](tests/Integration.Controller/):
+1. **Integration tests** in [`tests/Integration.Controller/`](tests/Integration.Controller/):
    - Test CRUD operations with all new fields
    - Test validation rules for new fields
 
@@ -650,10 +646,266 @@ dotnet ef migrations add AddTransactionRecordFields --project src/Data/Sqlite --
    - Test indexes (externalId)
    - Test nullable field handling
 
-### Phase 4: Frontend Updates (Separate Task)
+### Phase 4: Frontend Updates
 
-1. Update transaction detail/edit form to include all new fields
-2. Update import workflow to populate Source and ExternalId
+#### 4.1 Regenerate API Client
+
+**Location**: `src/FrontEnd.Nuxt/app/utils/apiclient.ts` (auto-generated, do not edit manually)
+
+**Action**: Build WireApiHost to regenerate TypeScript client with updated DTOs
+
+**Command**:
+```bash
+# From src/WireApiHost directory
+dotnet build
+```
+
+**Note**: The build process automatically generates a new `apiclient.ts` file as build output. See [`src/WireApiHost/README.md`](src/WireApiHost/README.md) for details.
+
+**Expected Changes**:
+- `TransactionResultDto` remains unchanged (list view doesn't need new fields)
+- `TransactionEditDto` gains three new optional properties: `memo`, `source`, `externalId`
+- New `TransactionDetailDto` interface created with all fields
+
+#### 4.2 Update Transaction List View - Add Memo Column
+
+**Location**: `src/FrontEnd.Nuxt/app/pages/transactions.vue`
+
+**Current Behavior**: List view shows Date, Payee, Amount only
+**New Behavior**: Add Memo column to list view
+
+**Decision**:
+- ✅ **Memo** - Add to list view (user notes are valuable at a glance)
+- ❌ **Source** - Do NOT add to list view (internal tracking detail, not needed in list)
+- ❌ **ExternalId** - Do NOT add to list view (internal tracking detail, not needed in list)
+
+**Backend Change Required**: Update `GetTransactions` endpoint to return `TransactionDetailDto` instead of `TransactionResultDto` OR create a new intermediate DTO that includes Memo but not Source/ExternalId.
+
+**Recommended Approach**: Create new `TransactionListDto` with Date, Payee, Amount, Memo (excluding Source and ExternalId to minimize data transfer).
+
+**Frontend List View Update**:
+```vue
+<template>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Payee</th>
+        <th>Amount</th>
+        <th>Memo</th> <!-- NEW -->
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="txn in transactions" :key="txn.key">
+        <td>{{ formatDate(txn.date) }}</td>
+        <td>{{ txn.payee }}</td>
+        <td>{{ formatCurrency(txn.amount) }}</td>
+        <td class="memo-cell">{{ txn.memo || '' }}</td> <!-- NEW -->
+      </tr>
+    </tbody>
+  </table>
+</template>
+
+<style scoped>
+.memo-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+```
+
+**Note**: Memo column should truncate long text with ellipsis in list view. Full memo visible in detail view.
+
+#### 4.3 Update Transaction Detail/Edit Form (Required)
+
+**Location**: `src/FrontEnd.Nuxt/app/pages/transactions/[id].vue` or similar
+
+**Current Form Fields**: Date, Payee, Amount
+**New Form Fields**: Memo (textarea), Source (text input), ExternalId (text input, read-only for imported transactions)
+
+**Example Form Implementation**:
+```vue
+<template>
+  <form @submit.prevent="saveTransaction">
+    <!-- Existing Fields -->
+    <div class="form-group">
+      <label for="date">Date</label>
+      <input type="date" id="date" v-model="form.date" required />
+    </div>
+
+    <div class="form-group">
+      <label for="payee">Payee</label>
+      <input type="text" id="payee" v-model="form.payee" required maxlength="200" />
+    </div>
+
+    <div class="form-group">
+      <label for="amount">Amount</label>
+      <input type="number" id="amount" v-model="form.amount" step="0.01" required />
+    </div>
+
+    <!-- NEW FIELDS -->
+    <div class="form-group">
+      <label for="source">Source</label>
+      <input
+        type="text"
+        id="source"
+        v-model="form.source"
+        placeholder="e.g., Chase Checking 1234"
+        maxlength="200"
+      />
+      <small class="form-help">Bank account this transaction came from (optional)</small>
+    </div>
+
+    <div class="form-group">
+      <label for="memo">Memo</label>
+      <textarea
+        id="memo"
+        v-model="form.memo"
+        placeholder="Add notes about this transaction..."
+        maxlength="1000"
+        rows="3"
+      ></textarea>
+      <small class="form-help">{{ form.memo?.length || 0 }} / 1000 characters</small>
+    </div>
+
+    <div class="form-group" v-if="form.externalId">
+      <label for="externalId">External ID</label>
+      <input
+        type="text"
+        id="externalId"
+        v-model="form.externalId"
+        maxlength="100"
+        :readonly="isImportedTransaction"
+        :title="isImportedTransaction ? 'Cannot edit bank transaction ID' : ''"
+      />
+      <small class="form-help" v-if="isImportedTransaction">
+        Bank transaction ID (read-only for imported transactions)
+      </small>
+    </div>
+
+    <button type="submit" :disabled="!isValid">Save Transaction</button>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { apiClient } from '~/utils/apiclient'
+
+const router = useRouter()
+const props = defineProps<{ id?: string }>()
+
+const form = ref({
+  date: '',
+  payee: '',
+  amount: 0,
+  source: null as string | null,
+  memo: null as string | null,
+  externalId: null as string | null
+})
+
+// If editing existing transaction, load it
+if (props.id) {
+  const transaction = await apiClient.getTransactionById(tenantKey, props.id)
+  form.value = {
+    date: transaction.date,
+    payee: transaction.payee,
+    amount: transaction.amount,
+    source: transaction.source,
+    memo: transaction.memo,
+    externalId: transaction.externalId
+  }
+}
+
+const isImportedTransaction = computed(() => {
+  return !!form.value.externalId && !!form.value.source
+})
+
+const isValid = computed(() => {
+  return form.value.payee.trim().length > 0 &&
+         form.value.amount !== 0 &&
+         (form.value.memo?.length || 0) <= 1000 &&
+         (form.value.source?.length || 0) <= 200 &&
+         (form.value.externalId?.length || 0) <= 100
+})
+
+async function saveTransaction() {
+  try {
+    if (props.id) {
+      await apiClient.updateTransaction(tenantKey, props.id, form.value)
+    } else {
+      await apiClient.createTransaction(tenantKey, form.value)
+    }
+    router.push('/transactions')
+  } catch (error) {
+    // Handle validation errors
+    console.error('Failed to save transaction:', error)
+  }
+}
+</script>
+```
+
+#### 4.4 UI/UX Considerations
+
+**Field Visibility**:
+- **Source**: Show only if transaction has Source OR user explicitly expands "Advanced Details" section
+- **Memo**: Always visible (common field for user notes)
+- **ExternalId**: Show only if present (imported transactions). Hide for manual entries.
+
+**Field Editability**:
+- **Source**: Editable (user may correct import errors or add manually)
+- **Memo**: Always editable
+- **ExternalId**: Read-only for imported transactions (to preserve bank reference), editable for manual entries if user wants to add it
+
+**Validation Feedback**:
+- Show character count for Memo (xxx / 1000)
+- Show validation errors inline below each field
+- Disable Save button if validation fails
+
+**Empty State Messaging**:
+- If Memo is empty: No message needed
+- If Source is empty: Show placeholder "e.g., Chase Checking 1234" as hint
+- If ExternalId is empty: Hide the field entirely (not relevant for manual entries)
+
+#### 4.5 Import Workflow Integration (Future Feature)
+
+**When Bank Import feature is implemented**, the importer will:
+
+1. **Populate Source field** with bank name + account type + last 4 digits
+   - Example: "Chase Checking 1234", "Amex Card 9876"
+
+2. **Populate ExternalId field** with bank's FITID or transaction ID
+   - Example: "20241220.ABC123", "TXN-2024-001234"
+
+3. **Optionally populate Memo field** if bank provides transaction notes/memo in OFX/QFX file
+   - Some banks include memo/notes fields that could be imported
+   - User can edit or add to memo after reviewing imported transactions
+
+**Frontend Import Review Page** (separate task):
+- Show Source and ExternalId for each imported transaction
+- Allow user to edit Source if importer guessed wrong
+- Do NOT allow editing ExternalId (preserve bank reference)
+- Allow user to add Memo during review
+
+#### 4.6 Testing Frontend Changes
+
+**Manual Testing Checklist**:
+- [ ] Create transaction with all fields populated
+- [ ] Create transaction with minimal fields (Date, Payee, Amount only)
+- [ ] Edit transaction and update Memo
+- [ ] Verify character limits enforced (Memo 1000, Source 200, ExternalId 100)
+- [ ] Verify validation errors shown for invalid input
+- [ ] Verify nullable fields can be cleared (set to null)
+- [ ] Verify ExternalId is read-only for imported transactions
+- [ ] Verify detail view displays all fields correctly
+- [ ] Verify list view displays Memo column with truncation
+- [ ] Verify list view does NOT display Source or ExternalId columns
+
+**Functional Test Updates**:
+- Update `TransactionsPage.cs` page object to include new form fields
+- Functional test scenarios will be determined during implementation following the test strategy
 
 ## Testing Strategy
 
@@ -673,11 +925,12 @@ Follow existing pattern from [`tests/Unit/Tests/TransactionsTests.cs`](tests/Uni
 **Query Operations**:
 - `GetTransactionByKeyAsync_ReturnsAllFields()` - Verify TransactionDetailDto includes all fields
 
-**Duplicate Detection**:
-- `CheckDuplicateAsync_ExistingExternalId_ReturnsTrue()` - Duplicate detection works
-- `CheckDuplicateAsync_NewExternalId_ReturnsFalse()` - New transaction allowed
-- `CheckDuplicateAsync_SameTenant_DetectsDuplicate()` - Tenant-scoped detection
-- `CheckDuplicateAsync_DifferentTenant_AllowsDuplicate()` - ExternalId can exist in different tenants
+**ExternalId Handling**:
+- `AddTransactionAsync_DuplicateExternalId_AllowsCreation()` - API does NOT reject duplicates
+- `AddTransactionAsync_SameExternalIdDifferentTenants_AllowsCreation()` - ExternalId can exist across tenants
+- `AddTransactionAsync_NullExternalId_AllowsCreation()` - Manual entries without ExternalId
+
+**Note**: Duplicate detection tests belong in the **importer feature tests**, not Transaction API tests. The Transaction API allows duplicate ExternalId values per the PRD.
 
 **Validation**:
 - `AddTransactionAsync_MemoTooLong_ThrowsValidationException()` - Max 1000 chars
@@ -706,15 +959,17 @@ Test API endpoints with new fields:
 - PUT transaction (update all fields)
 - DELETE transaction
 
-**Validation**:
-- POST with missing required fields (400 Bad Request)
-- POST with field length violations (400 Bad Request)
-- POST with invalid date range (400 Bad Request)
+**Validation** (Feature throws ArgumentException → Middleware returns 400 Bad Request):
+- POST with missing required fields (Payee empty/whitespace)
+- POST with field length violations (Memo > 1000 chars, Source > 200 chars, ExternalId > 100 chars, Payee > 200 chars)
+- POST with invalid date range (Date outside 50 years past / 5 years future)
+- POST with zero amount (business rule violation)
 
 **Tenant Isolation**:
 - Cannot access other tenant's transactions
 - Cannot update other tenant's transactions
-- ExternalId can be same across different tenants
+- Same ExternalId can exist across different tenants
+- Same ExternalId can exist within same tenant (API allows duplicates)
 
 ### Integration Tests (Data Layer)
 
@@ -727,11 +982,12 @@ Test database operations:
 - Delete transaction
 
 **Indexes**:
-- ExternalId index used for duplicate detection
-- Composite TenantId+ExternalId index used for import
+- Composite TenantId+ExternalId index exists and performs efficiently
+- Index supports queries filtering by both TenantId and ExternalId
 
 **Queries**:
-- Check for duplicate ExternalId within tenant
+- Query for existing ExternalId within tenant (for importer use)
+- No uniqueness constraint enforced (allows duplicates)
 
 ## Performance Considerations
 
@@ -771,5 +1027,6 @@ This design provides:
 ✅ **Migration path** - Clear steps for adding fields to existing transactions
 ✅ **Testing strategy** - Comprehensive coverage of all new functionality
 ✅ **Consistent patterns** - Follows established project conventions
+✅ **Frontend implementation** - Complete Vue component examples and UX guidance
 
-**Design is complete and ready for implementation.** All PRD requirements are addressed with clear implementation guidance for each layer of the stack.
+**Design is complete and ready for implementation.** All PRD requirements are addressed with clear implementation guidance for each layer of the stack: Database → Entities → Application → Controllers → API → Frontend → Tests.
