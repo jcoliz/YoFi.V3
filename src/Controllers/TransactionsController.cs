@@ -53,7 +53,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpGet("{key:guid}")]
     [RequireTenantRole(TenantRole.Viewer)]
-    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetTransactionById(Guid key)
     {
@@ -72,7 +72,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// <param name="transaction">The transaction data including date, amount, and payee.</param>
     [HttpPost()]
     [RequireTenantRole(TenantRole.Editor)]
-    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateTransaction([FromRoute] Guid tenantKey, [FromBody] TransactionEditDto transaction)
     {
@@ -92,17 +92,17 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpPut("{key:guid}")]
     [RequireTenantRole(TenantRole.Editor)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateTransaction(Guid key, [FromBody] TransactionEditDto transaction)
     {
         LogStartingKey(key);
 
-        await transactionsFeature.UpdateTransactionAsync(key, transaction);
+        var updated = await transactionsFeature.UpdateTransactionAsync(key, transaction);
 
         LogOkKey(key);
-        return NoContent();
+        return Ok(updated);
     }
 
     /// <summary>

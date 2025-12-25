@@ -160,7 +160,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
         // And: Response should contain the created transaction
-        var created = await response.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
         Assert.That(created, Is.Not.Null);
         Assert.That(created!.Payee, Is.EqualTo("Test Payee"));
         Assert.That(created.Amount, Is.EqualTo(123.45m));
@@ -217,7 +217,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
         // And: Response should contain the created transaction
-        var created = await response.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
         Assert.That(created, Is.Not.Null);
         Assert.That(created!.Payee, Is.EqualTo("Owner Transaction"));
     }
@@ -227,7 +227,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
     #region PUT Tests with Authorization
 
     [Test]
-    public async Task UpdateTransaction_AsEditor_ReturnsNoContent()
+    public async Task UpdateTransaction_AsEditor_ReturnsOK()
     {
         // Given: User has Editor role for tenant
         SwitchToEditor();
@@ -242,7 +242,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
         // And: Updated transaction data
         var updateDto = new TransactionEditDto(
@@ -257,14 +257,15 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         // When: User updates the transaction
         var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}", updateDto);
 
-        // Then: 204 No Content should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Transaction should be updated
-        var getResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{created.Key}");
-        var updated = await getResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
+        // And: Response should contain the updated transaction
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
         Assert.That(updated!.Payee, Is.EqualTo("Updated Payee"));
         Assert.That(updated.Amount, Is.EqualTo(200m));
+        Assert.That(updated.Key, Is.EqualTo(created.Key));
     }
 
     [Test]
@@ -281,7 +282,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
         // And: User switches to Viewer role
         SwitchToViewer();
@@ -349,7 +350,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
         // When: User deletes the transaction
         var response = await _client.DeleteAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}");
@@ -376,7 +377,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
-        var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
         // And: User switches to Viewer role
         SwitchToViewer();

@@ -1049,7 +1049,7 @@ export class TransactionsClient {
      * @param tenantKey The unique identifier of the tenant (from route).
      * @param transaction The transaction data including date, amount, and payee.
      */
-    createTransaction(tenantKey: string, transaction: TransactionEditDto): Promise<TransactionResultDto> {
+    createTransaction(tenantKey: string, transaction: TransactionEditDto): Promise<TransactionDetailDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
@@ -1072,14 +1072,14 @@ export class TransactionsClient {
         });
     }
 
-    protected processCreateTransaction(response: Response): Promise<TransactionResultDto> {
+    protected processCreateTransaction(response: Response): Promise<TransactionDetailDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = TransactionResultDto.fromJS(resultData201);
+            result201 = TransactionDetailDto.fromJS(resultData201);
             return result201;
             });
         } else if (status === 400) {
@@ -1115,14 +1115,14 @@ export class TransactionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<TransactionResultDto>(null as any);
+        return Promise.resolve<TransactionDetailDto>(null as any);
     }
 
     /**
      * Retrieves a specific transaction by its unique key.
      * @param key The unique identifier of the transaction.
      */
-    getTransactionById(key: string, tenantKey: string): Promise<TransactionResultDto> {
+    getTransactionById(key: string, tenantKey: string): Promise<TransactionDetailDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
         if (key === undefined || key === null)
             throw new globalThis.Error("The parameter 'key' must be defined.");
@@ -1144,14 +1144,14 @@ export class TransactionsClient {
         });
     }
 
-    protected processGetTransactionById(response: Response): Promise<TransactionResultDto> {
+    protected processGetTransactionById(response: Response): Promise<TransactionDetailDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = TransactionResultDto.fromJS(resultData200);
+            result200 = TransactionDetailDto.fromJS(resultData200);
             return result200;
             });
         } else if (status === 401) {
@@ -1187,7 +1187,7 @@ export class TransactionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<TransactionResultDto>(null as any);
+        return Promise.resolve<TransactionDetailDto>(null as any);
     }
 
     /**
@@ -1195,7 +1195,7 @@ export class TransactionsClient {
      * @param key The unique identifier of the transaction to update.
      * @param transaction The updated transaction data including date, amount, and payee.
      */
-    updateTransaction(key: string, tenantKey: string, transaction: TransactionEditDto): Promise<void> {
+    updateTransaction(key: string, tenantKey: string, transaction: TransactionEditDto): Promise<TransactionDetailDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
         if (key === undefined || key === null)
             throw new globalThis.Error("The parameter 'key' must be defined.");
@@ -1212,6 +1212,7 @@ export class TransactionsClient {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             }
         };
 
@@ -1220,12 +1221,15 @@ export class TransactionsClient {
         });
     }
 
-    protected processUpdateTransaction(response: Response): Promise<void> {
+    protected processUpdateTransaction(response: Response): Promise<TransactionDetailDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 204) {
+        if (status === 200) {
             return response.text().then((_responseText) => {
-            return;
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TransactionDetailDto.fromJS(resultData200);
+            return result200;
             });
         } else if (status === 400) {
             return response.text().then((_responseText) => {
@@ -1267,7 +1271,7 @@ export class TransactionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<TransactionDetailDto>(null as any);
     }
 
     /**
@@ -2715,6 +2719,66 @@ export interface IErrorCodeInfo {
     code?: string;
     /** Description of what error will be generated */
     description?: string;
+}
+
+export class TransactionDetailDto implements ITransactionDetailDto {
+    key?: string;
+    date?: Date;
+    amount?: number;
+    payee?: string;
+    memo?: string | undefined;
+    source?: string | undefined;
+    externalId?: string | undefined;
+
+    constructor(data?: ITransactionDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
+            this.amount = _data["amount"];
+            this.payee = _data["payee"];
+            this.memo = _data["memo"];
+            this.source = _data["source"];
+            this.externalId = _data["externalId"];
+        }
+    }
+
+    static fromJS(data: any): TransactionDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["date"] = this.date ? formatDate(this.date) : undefined as any;
+        data["amount"] = this.amount;
+        data["payee"] = this.payee;
+        data["memo"] = this.memo;
+        data["source"] = this.source;
+        data["externalId"] = this.externalId;
+        return data;
+    }
+}
+
+export interface ITransactionDetailDto {
+    key?: string;
+    date?: Date;
+    amount?: number;
+    payee?: string;
+    memo?: string | undefined;
+    source?: string | undefined;
+    externalId?: string | undefined;
 }
 
 export class TransactionEditDto implements ITransactionEditDto {

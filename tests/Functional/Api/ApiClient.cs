@@ -2634,7 +2634,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
         /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction);
+        System.Threading.Tasks.Task<TransactionDetailDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -2643,14 +2643,14 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
         /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<TransactionDetailDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Retrieves a specific transaction by its unique key.
         /// </summary>
         /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey);
+        System.Threading.Tasks.Task<TransactionDetailDto> GetTransactionByIdAsync(System.Guid key, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -2658,7 +2658,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// </summary>
         /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<TransactionDetailDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Updates an existing transaction in the tenant workspace.
@@ -2666,7 +2666,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="key">The unique identifier of the transaction to update.</param>
         /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction);
+        System.Threading.Tasks.Task<TransactionDetailDto> UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -2675,7 +2675,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="key">The unique identifier of the transaction to update.</param>
         /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<TransactionDetailDto> UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes a transaction from the tenant workspace.
@@ -2889,7 +2889,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
         /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction)
+        public virtual System.Threading.Tasks.Task<TransactionDetailDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction)
         {
             return CreateTransactionAsync(tenantKey, transaction, System.Threading.CancellationToken.None);
         }
@@ -2901,7 +2901,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
         /// <param name="transaction">The transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TransactionResultDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<TransactionDetailDto> CreateTransactionAsync(System.Guid tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
         {
             if (tenantKey == null)
                 throw new System.ArgumentNullException("tenantKey");
@@ -2954,7 +2954,7 @@ namespace YoFi.V3.Tests.Functional.Generated
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 201)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TransactionResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<TransactionDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -3026,7 +3026,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// </summary>
         /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey)
+        public virtual System.Threading.Tasks.Task<TransactionDetailDto> GetTransactionByIdAsync(System.Guid key, string tenantKey)
         {
             return GetTransactionByIdAsync(key, tenantKey, System.Threading.CancellationToken.None);
         }
@@ -3037,7 +3037,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// </summary>
         /// <param name="key">The unique identifier of the transaction.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<TransactionResultDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<TransactionDetailDto> GetTransactionByIdAsync(System.Guid key, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
             if (key == null)
                 throw new System.ArgumentNullException("key");
@@ -3087,7 +3087,7 @@ namespace YoFi.V3.Tests.Functional.Generated
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<TransactionResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<TransactionDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -3160,7 +3160,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="key">The unique identifier of the transaction to update.</param>
         /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction)
+        public virtual System.Threading.Tasks.Task<TransactionDetailDto> UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction)
         {
             return UpdateTransactionAsync(key, tenantKey, transaction, System.Threading.CancellationToken.None);
         }
@@ -3172,7 +3172,7 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <param name="key">The unique identifier of the transaction to update.</param>
         /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<TransactionDetailDto> UpdateTransactionAsync(System.Guid key, string tenantKey, TransactionEditDto transaction, System.Threading.CancellationToken cancellationToken)
         {
             if (key == null)
                 throw new System.ArgumentNullException("key");
@@ -3194,6 +3194,7 @@ namespace YoFi.V3.Tests.Functional.Generated
                     content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
                     request_.Content = content_;
                     request_.Method = new System.Net.Http.HttpMethod("PUT");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
 
                     var urlBuilder_ = new System.Text.StringBuilder();
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
@@ -3226,9 +3227,14 @@ namespace YoFi.V3.Tests.Functional.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 204)
+                        if (status_ == 200)
                         {
-                            return;
+                            var objectResponse_ = await ReadObjectResponseAsync<TransactionDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 400)
@@ -5435,6 +5441,34 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string Description { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TransactionDetailDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public System.Guid Key { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("date")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Date { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("amount")]
+        public decimal Amount { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("payee")]
+        public string Payee { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("memo")]
+        public string Memo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
+        public string ExternalId { get; set; }
 
     }
 
