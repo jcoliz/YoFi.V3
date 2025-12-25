@@ -444,4 +444,363 @@ public class TransactionTests
         Assert.That(allKeys, Is.Unique);
         Assert.That(allKeys, Has.Count.EqualTo(2));
     }
+
+    [Test]
+    public async Task Transaction_CanCreateWithAllFields()
+    {
+        // Given: A transaction with all fields populated
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100.50m,
+            Source = "Chase Checking 1234",
+            ExternalId = "TXN20241225-ABC123",
+            Memo = "Weekly grocery shopping",
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: All fields should be persisted
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Payee, Is.EqualTo("Test Payee"));
+        Assert.That(retrieved.Amount, Is.EqualTo(100.50m));
+        Assert.That(retrieved.Source, Is.EqualTo("Chase Checking 1234"));
+        Assert.That(retrieved.ExternalId, Is.EqualTo("TXN20241225-ABC123"));
+        Assert.That(retrieved.Memo, Is.EqualTo("Weekly grocery shopping"));
+    }
+
+    [Test]
+    public async Task Transaction_CanCreateWithMinimalFields()
+    {
+        // Given: A transaction with only required fields (Date, Payee, Amount)
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            TenantId = _tenant1.Id
+            // Source, ExternalId, Memo intentionally not set (should be null)
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: Transaction should be saved with nullable fields as null
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Payee, Is.EqualTo("Test Payee"));
+        Assert.That(retrieved.Source, Is.Null);
+        Assert.That(retrieved.ExternalId, Is.Null);
+        Assert.That(retrieved.Memo, Is.Null);
+    }
+
+    [Test]
+    public async Task Transaction_CanUpdateAllFields()
+    {
+        // Given: An existing transaction with initial values
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Original Payee",
+            Amount = 100m,
+            Source = "Original Source",
+            ExternalId = "ORIG-123",
+            Memo = "Original memo",
+            TenantId = _tenant1.Id
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // When: Updating all fields
+        transaction.Payee = "Updated Payee";
+        transaction.Amount = 200m;
+        transaction.Source = "Updated Source";
+        transaction.ExternalId = "UPDATED-456";
+        transaction.Memo = "Updated memo";
+        await _context.SaveChangesAsync();
+
+        // Then: All fields should be updated
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Payee, Is.EqualTo("Updated Payee"));
+        Assert.That(retrieved.Amount, Is.EqualTo(200m));
+        Assert.That(retrieved.Source, Is.EqualTo("Updated Source"));
+        Assert.That(retrieved.ExternalId, Is.EqualTo("UPDATED-456"));
+        Assert.That(retrieved.Memo, Is.EqualTo("Updated memo"));
+    }
+
+    [Test]
+    public async Task Transaction_CanClearNullableFields()
+    {
+        // Given: An existing transaction with all fields populated
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            Source = "Chase Checking 1234",
+            ExternalId = "TXN-123",
+            Memo = "Test memo",
+            TenantId = _tenant1.Id
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // When: Clearing nullable fields
+        transaction.Source = null;
+        transaction.ExternalId = null;
+        transaction.Memo = null;
+        await _context.SaveChangesAsync();
+
+        // Then: Nullable fields should be null
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Source, Is.Null);
+        Assert.That(retrieved.ExternalId, Is.Null);
+        Assert.That(retrieved.Memo, Is.Null);
+    }
+
+    [Test]
+    public async Task Transaction_SourceMaxLengthIs200()
+    {
+        // Given: A transaction with Source exactly at max length (200 chars)
+        var source200 = new string('A', 200);
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            Source = source200,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: Source should be saved without truncation
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Source, Is.EqualTo(source200));
+        Assert.That(retrieved.Source!.Length, Is.EqualTo(200));
+    }
+
+    [Test]
+    public async Task Transaction_ExternalIdMaxLengthIs100()
+    {
+        // Given: A transaction with ExternalId exactly at max length (100 chars)
+        var externalId100 = new string('B', 100);
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            ExternalId = externalId100,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: ExternalId should be saved without truncation
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.ExternalId, Is.EqualTo(externalId100));
+        Assert.That(retrieved.ExternalId!.Length, Is.EqualTo(100));
+    }
+
+    [Test]
+    public async Task Transaction_MemoMaxLengthIs1000()
+    {
+        // Given: A transaction with Memo exactly at max length (1000 chars)
+        var memo1000 = new string('C', 1000);
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            Memo = memo1000,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: Memo should be saved without truncation
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Memo, Is.EqualTo(memo1000));
+        Assert.That(retrieved.Memo!.Length, Is.EqualTo(1000));
+    }
+
+    [Test]
+    public async Task Transaction_DuplicateExternalIdWithinSameTenant_IsAllowed()
+    {
+        // Given: Two transactions with the same ExternalId in the same tenant
+        var externalId = "DUPLICATE-123";
+        var transaction1 = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Payee 1",
+            Amount = 100m,
+            ExternalId = externalId,
+            TenantId = _tenant1.Id
+        };
+        var transaction2 = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Payee 2",
+            Amount = 200m,
+            ExternalId = externalId,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving both transactions
+        _context.Transactions.AddRange(transaction1, transaction2);
+        await _context.SaveChangesAsync();
+
+        // Then: Both should be saved (no uniqueness constraint on ExternalId)
+        var duplicates = await _context.Transactions
+            .Where(t => t.TenantId == _tenant1.Id && t.ExternalId == externalId)
+            .ToListAsync();
+        Assert.That(duplicates, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Transaction_SameExternalIdAcrossDifferentTenants_IsAllowed()
+    {
+        // Given: Transactions with the same ExternalId in different tenants
+        var externalId = "SHARED-123";
+        var transaction1 = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Tenant 1 Payee",
+            Amount = 100m,
+            ExternalId = externalId,
+            TenantId = _tenant1.Id
+        };
+        var transaction2 = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Tenant 2 Payee",
+            Amount = 200m,
+            ExternalId = externalId,
+            TenantId = _tenant2.Id
+        };
+
+        // When: Saving both transactions
+        _context.Transactions.AddRange(transaction1, transaction2);
+        await _context.SaveChangesAsync();
+
+        // Then: Both should be saved successfully
+        var tenant1Transaction = await _context.Transactions
+            .FirstAsync(t => t.TenantId == _tenant1.Id && t.ExternalId == externalId);
+        var tenant2Transaction = await _context.Transactions
+            .FirstAsync(t => t.TenantId == _tenant2.Id && t.ExternalId == externalId);
+
+        Assert.That(tenant1Transaction.Payee, Is.EqualTo("Tenant 1 Payee"));
+        Assert.That(tenant2Transaction.Payee, Is.EqualTo("Tenant 2 Payee"));
+    }
+
+    [Test]
+    public async Task Transaction_CanQueryByTenantIdAndExternalId()
+    {
+        // Given: Multiple transactions with different ExternalIds
+        _context.Transactions.AddRange(
+            new Transaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Payee 1", Amount = 100m, ExternalId = "EXT-001", TenantId = _tenant1.Id },
+            new Transaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Payee 2", Amount = 200m, ExternalId = "EXT-002", TenantId = _tenant1.Id },
+            new Transaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Payee 3", Amount = 300m, ExternalId = "EXT-001", TenantId = _tenant2.Id }
+        );
+        await _context.SaveChangesAsync();
+
+        // When: Querying by TenantId and ExternalId (importer duplicate check pattern)
+        var exists = await _context.Transactions
+            .AnyAsync(t => t.TenantId == _tenant1.Id && t.ExternalId == "EXT-001");
+
+        // Then: Should find the matching transaction
+        Assert.That(exists, Is.True);
+
+        // And: Composite index should make this query efficient
+        var transaction = await _context.Transactions
+            .FirstOrDefaultAsync(t => t.TenantId == _tenant1.Id && t.ExternalId == "EXT-001");
+        Assert.That(transaction, Is.Not.Null);
+        Assert.That(transaction!.Payee, Is.EqualTo("Payee 1"));
+    }
+
+    [Test]
+    public async Task Transaction_CompositeIndexOnTenantIdExternalIdExists()
+    {
+        // Given: Database with Transaction table
+
+        // When: Checking for the composite index
+        var connection = _context.Database.GetDbConnection();
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT name FROM sqlite_master
+            WHERE type='index'
+            AND tbl_name='YoFi.V3.Transactions'
+            AND name LIKE '%TenantId_ExternalId%'";
+        var indexName = await command.ExecuteScalarAsync();
+
+        // Then: Composite index should exist
+        Assert.That(indexName, Is.Not.Null);
+        Assert.That(indexName!.ToString(), Does.Contain("TenantId_ExternalId"));
+    }
+
+    [Test]
+    public async Task Transaction_MemoCanContainSpecialCharacters()
+    {
+        // Given: A transaction with memo containing special characters
+        var specialMemo = "Test memo with special chars: !@#$%^&*()_+-=[]{}|;':\",./<>?";
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            Memo = specialMemo,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: Memo with special characters should be preserved
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Memo, Is.EqualTo(specialMemo));
+    }
+
+    [Test]
+    public async Task Transaction_MemoCanContainMultilineText()
+    {
+        // Given: A transaction with multi-line memo
+        var multilineMemo = "Line 1\nLine 2\nLine 3";
+        var transaction = new Transaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            Memo = multilineMemo,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: Multi-line memo should be preserved
+        var retrieved = await _context.Transactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Memo, Is.EqualTo(multilineMemo));
+    }
 }
