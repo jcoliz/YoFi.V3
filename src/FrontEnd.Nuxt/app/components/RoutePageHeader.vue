@@ -4,8 +4,6 @@
  *
  * If no title is defined, will not display
  */
-
-const route = useRoute()
 </script>
 <template>
   <BasePageHeader v-if="$route.meta.title">{{ $route.meta.title }}</BasePageHeader>
