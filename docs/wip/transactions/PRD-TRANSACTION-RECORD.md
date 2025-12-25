@@ -1,7 +1,7 @@
 ---
 status: Approved (Detailed design complete)
-owner: James Coliz
 target_release: Alpha 1
+design_document: TRANSACTION-RECORD-DESIGN.md
 ado: "[Link to ADO Item]"
 ---
 
