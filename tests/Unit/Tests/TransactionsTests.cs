@@ -438,6 +438,296 @@ public class TransactionsTests
         Assert.That(result.Amount, Is.EqualTo(-100m));
     }
 
+    [Test]
+    public async Task AddTransactionAsync_AllFieldsPopulated_CreatesTransactionWithAllFields()
+    {
+        // Given: A transaction with all fields populated
+
+        // When: Transaction is created with all fields
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 150m,
+            Payee: "Test Payee",
+            Memo: "This is a test memo",
+            Source: "Chase Checking 1234",
+            ExternalId: "TXN20241220-ABC123"
+        );
+
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // Then: All fields should be persisted
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions, Has.Count.EqualTo(1));
+        Assert.That(transactions[0].Memo, Is.EqualTo("This is a test memo"));
+        Assert.That(transactions[0].Source, Is.EqualTo("Chase Checking 1234"));
+        Assert.That(transactions[0].ExternalId, Is.EqualTo("TXN20241220-ABC123"));
+
+        // And: Result should contain all fields
+        Assert.That(result.Memo, Is.EqualTo("This is a test memo"));
+        Assert.That(result.Source, Is.EqualTo("Chase Checking 1234"));
+        Assert.That(result.ExternalId, Is.EqualTo("TXN20241220-ABC123"));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_NullableFieldsNull_CreatesTransactionSuccessfully()
+    {
+        // Given: A transaction with only required fields (nullable fields are null)
+
+        // When: Transaction is created with minimal fields
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 150m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
+        );
+
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // Then: Transaction should be created with null nullable fields
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions, Has.Count.EqualTo(1));
+        Assert.That(transactions[0].Memo, Is.Null);
+        Assert.That(transactions[0].Source, Is.Null);
+        Assert.That(transactions[0].ExternalId, Is.Null);
+
+        // And: Result should contain null values for nullable fields
+        Assert.That(result.Memo, Is.Null);
+        Assert.That(result.Source, Is.Null);
+        Assert.That(result.ExternalId, Is.Null);
+    }
+
+    [Test]
+    public void AddTransactionAsync_MemoTooLong_ThrowsArgumentException()
+    {
+        // Given: A transaction with memo exceeding max length
+
+        // When: Memo exceeds 1000 characters
+        var longMemo = new string('A', 1001);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: longMemo,
+            Source: null,
+            ExternalId: null
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("memo cannot exceed 1000 characters"));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_MemoExactly1000Characters_Succeeds()
+    {
+        // Given: A transaction with memo at exactly max length
+
+        // When: Memo is exactly 1000 characters
+        var memo1000 = new string('A', 1000);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: memo1000,
+            Source: null,
+            ExternalId: null
+        );
+
+        // Then: Transaction should be created successfully
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // And: Memo should be stored correctly
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions[0].Memo, Is.EqualTo(memo1000));
+        Assert.That(result.Memo, Is.EqualTo(memo1000));
+    }
+
+    [Test]
+    public void AddTransactionAsync_SourceTooLong_ThrowsArgumentException()
+    {
+        // Given: A transaction with source exceeding max length
+
+        // When: Source exceeds 200 characters
+        var longSource = new string('A', 201);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: longSource,
+            ExternalId: null
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("source cannot exceed 200 characters"));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_SourceExactly200Characters_Succeeds()
+    {
+        // Given: A transaction with source at exactly max length
+
+        // When: Source is exactly 200 characters
+        var source200 = new string('A', 200);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: source200,
+            ExternalId: null
+        );
+
+        // Then: Transaction should be created successfully
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // And: Source should be stored correctly
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions[0].Source, Is.EqualTo(source200));
+        Assert.That(result.Source, Is.EqualTo(source200));
+    }
+
+    [Test]
+    public void AddTransactionAsync_ExternalIdTooLong_ThrowsArgumentException()
+    {
+        // Given: A transaction with externalId exceeding max length
+
+        // When: ExternalId exceeds 100 characters
+        var longExternalId = new string('A', 101);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: longExternalId
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.AddTransactionAsync(dto));
+
+        Assert.That(ex!.Message, Does.Contain("externalId cannot exceed 100 characters"));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_ExternalIdExactly100Characters_Succeeds()
+    {
+        // Given: A transaction with externalId at exactly max length
+
+        // When: ExternalId is exactly 100 characters
+        var externalId100 = new string('A', 100);
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: externalId100
+        );
+
+        // Then: Transaction should be created successfully
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // And: ExternalId should be stored correctly
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions[0].ExternalId, Is.EqualTo(externalId100));
+        Assert.That(result.ExternalId, Is.EqualTo(externalId100));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_DuplicateExternalId_AllowsCreation()
+    {
+        // Given: An existing transaction with an ExternalId
+        var existingDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "First Transaction",
+            Memo: null,
+            Source: "Chase Checking 1234",
+            ExternalId: "DUPLICATE-ID"
+        );
+        await _transactionsFeature.AddTransactionAsync(existingDto);
+
+        // When: A second transaction with the same ExternalId is created
+        var duplicateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 200m,
+            Payee: "Second Transaction",
+            Memo: null,
+            Source: "Chase Checking 1234",
+            ExternalId: "DUPLICATE-ID"
+        );
+
+        // Then: Transaction should be created successfully (API allows duplicates)
+        var result = await _transactionsFeature.AddTransactionAsync(duplicateDto);
+
+        // And: Both transactions should exist
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions, Has.Count.EqualTo(2));
+        Assert.That(transactions.Count(t => t.ExternalId == "DUPLICATE-ID"), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_SameExternalIdDifferentTenants_AllowsCreation()
+    {
+        // Given: A transaction in current tenant with an ExternalId
+        var currentTenantDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Current Tenant Transaction",
+            Memo: null,
+            Source: null,
+            ExternalId: "SHARED-ID"
+        );
+        await _transactionsFeature.AddTransactionAsync(currentTenantDto);
+
+        // And: A transaction in a different tenant with the same ExternalId
+        var otherTenantTransaction = CreateTransaction(
+            DateOnly.FromDateTime(DateTime.Now),
+            200m,
+            "Other Tenant Transaction"
+        );
+        otherTenantTransaction.TenantId = 999L;
+        otherTenantTransaction.ExternalId = "SHARED-ID";
+        _dataProvider.Add(otherTenantTransaction);
+
+        // Then: Both transactions should coexist successfully
+        var allTransactions = _dataProvider.Transactions.ToList();
+        Assert.That(allTransactions.Count(t => t.ExternalId == "SHARED-ID"), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task AddTransactionAsync_NullExternalId_AllowsCreation()
+    {
+        // Given: A manually entered transaction without ExternalId
+
+        // When: Transaction is created without ExternalId
+        var dto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Manual Entry",
+            Memo: "Manually entered transaction",
+            Source: null,
+            ExternalId: null
+        );
+
+        var result = await _transactionsFeature.AddTransactionAsync(dto);
+
+        // Then: Transaction should be created successfully
+        var transactions = _dataProvider.Transactions.ToList();
+        Assert.That(transactions, Has.Count.EqualTo(1));
+        Assert.That(transactions[0].ExternalId, Is.Null);
+        Assert.That(result.ExternalId, Is.Null);
+    }
+
     #endregion
 
     #region UpdateTransactionAsync Tests
@@ -671,6 +961,195 @@ public class TransactionsTests
         // Assert
         var updated = _dataProvider.Transactions.First(t => t.Key == transaction.Key);
         Assert.That(updated.Amount, Is.EqualTo(-150m));
+    }
+
+    [Test]
+    public async Task UpdateTransactionAsync_UpdatesAllFields_SuccessfullyUpdates()
+    {
+        // Given: An existing transaction with initial values
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Original Payee");
+        transaction.Memo = "Original memo";
+        transaction.Source = "Original Source";
+        transaction.ExternalId = "ORIGINAL-ID";
+        _dataProvider.Add(transaction);
+
+        // When: All fields are updated
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
+            Amount: 250m,
+            Payee: "Updated Payee",
+            Memo: "Updated memo",
+            Source: "Updated Source",
+            ExternalId: "UPDATED-ID"
+        );
+
+        var result = await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
+
+        // Then: All fields should be updated
+        var updated = _dataProvider.Transactions.First(t => t.Key == transaction.Key);
+        Assert.That(updated.Payee, Is.EqualTo("Updated Payee"));
+        Assert.That(updated.Amount, Is.EqualTo(250m));
+        Assert.That(updated.Date, Is.EqualTo(DateOnly.FromDateTime(DateTime.Now.AddDays(1))));
+        Assert.That(updated.Memo, Is.EqualTo("Updated memo"));
+        Assert.That(updated.Source, Is.EqualTo("Updated Source"));
+        Assert.That(updated.ExternalId, Is.EqualTo("UPDATED-ID"));
+
+        // And: Result should reflect updated values
+        Assert.That(result.Payee, Is.EqualTo("Updated Payee"));
+        Assert.That(result.Memo, Is.EqualTo("Updated memo"));
+        Assert.That(result.Source, Is.EqualTo("Updated Source"));
+        Assert.That(result.ExternalId, Is.EqualTo("UPDATED-ID"));
+    }
+
+    [Test]
+    public async Task UpdateTransactionAsync_NullFields_ClearsValues()
+    {
+        // Given: An existing transaction with all fields populated
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Original Payee");
+        transaction.Memo = "Original memo";
+        transaction.Source = "Original Source";
+        transaction.ExternalId = "ORIGINAL-ID";
+        _dataProvider.Add(transaction);
+
+        // When: Optional fields are set to null
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
+        );
+
+        var result = await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
+
+        // Then: Optional fields should be cleared
+        var updated = _dataProvider.Transactions.First(t => t.Key == transaction.Key);
+        Assert.That(updated.Memo, Is.Null);
+        Assert.That(updated.Source, Is.Null);
+        Assert.That(updated.ExternalId, Is.Null);
+
+        // And: Result should reflect null values
+        Assert.That(result.Memo, Is.Null);
+        Assert.That(result.Source, Is.Null);
+        Assert.That(result.ExternalId, Is.Null);
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_MemoTooLong_ThrowsArgumentException()
+    {
+        // Given: An existing transaction
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
+        _dataProvider.Add(transaction);
+
+        // When: Update with memo exceeding 1000 characters
+        var longMemo = new string('A', 1001);
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Updated Payee",
+            Memo: longMemo,
+            Source: null,
+            ExternalId: null
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("memo cannot exceed 1000 characters"));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_SourceTooLong_ThrowsArgumentException()
+    {
+        // Given: An existing transaction
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
+        _dataProvider.Add(transaction);
+
+        // When: Update with source exceeding 200 characters
+        var longSource = new string('A', 201);
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: longSource,
+            ExternalId: null
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("source cannot exceed 200 characters"));
+    }
+
+    [Test]
+    public void UpdateTransactionAsync_ExternalIdTooLong_ThrowsArgumentException()
+    {
+        // Given: An existing transaction
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
+        _dataProvider.Add(transaction);
+
+        // When: Update with externalId exceeding 100 characters
+        var longExternalId = new string('A', 101);
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.Now),
+            Amount: 100m,
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: longExternalId
+        );
+
+        // Then: ArgumentException should be thrown
+        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
+
+        Assert.That(ex!.Message, Does.Contain("externalId cannot exceed 100 characters"));
+    }
+
+    #endregion
+
+    #region GetTransactionByKeyAsync Tests - New Fields
+
+    [Test]
+    public async Task GetTransactionByKeyAsync_ReturnsAllFields()
+    {
+        // Given: A transaction with all fields populated
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
+        transaction.Memo = "Test memo";
+        transaction.Source = "Chase Checking 1234";
+        transaction.ExternalId = "TXN-123";
+        _dataProvider.Add(transaction);
+
+        // When: Transaction is retrieved by key
+        var result = await _transactionsFeature.GetTransactionByKeyAsync(transaction.Key);
+
+        // Then: All fields should be returned
+        Assert.That(result.Key, Is.EqualTo(transaction.Key));
+        Assert.That(result.Payee, Is.EqualTo("Test Payee"));
+        Assert.That(result.Amount, Is.EqualTo(100m));
+        Assert.That(result.Memo, Is.EqualTo("Test memo"));
+        Assert.That(result.Source, Is.EqualTo("Chase Checking 1234"));
+        Assert.That(result.ExternalId, Is.EqualTo("TXN-123"));
+    }
+
+    [Test]
+    public async Task GetTransactionByKeyAsync_NullableFieldsNull_ReturnsNullValues()
+    {
+        // Given: A transaction with only required fields
+        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
+        _dataProvider.Add(transaction);
+
+        // When: Transaction is retrieved by key
+        var result = await _transactionsFeature.GetTransactionByKeyAsync(transaction.Key);
+
+        // Then: Nullable fields should be null
+        Assert.That(result.Memo, Is.Null);
+        Assert.That(result.Source, Is.Null);
+        Assert.That(result.ExternalId, Is.Null);
     }
 
     #endregion
