@@ -1,7 +1,7 @@
 ---
-status: Draft | In Review | Approved | Implemented
-owner: [Your Name]
+status: Draft # Draft | In Review | Approved | Implemented
 target_release: [Release Milestone when predominance of work is expected]
+design_document: [Link to design document]
 ado: [Link to ADO Item]
 ---
 
@@ -105,8 +105,8 @@ ado: [Link to ADO Item]
 [Any additional context, links to related documents, or background information]
 
 **Related Documents**:
-- [Link to companion Design Document if it exists]
 - [Link to related PRDs]
+- [Link to analysis documents]
 
 ---
 

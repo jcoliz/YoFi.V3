@@ -900,6 +900,20 @@ finally {
    - `docs/adr/` - For Architecture Decision Records
    - Project-specific README files in relevant directories
 
+5. **YAML frontmatter for metadata** - All documents (PRDs, design documents, analysis documents, etc.) MUST use YAML frontmatter for metadata. Document metadata (status, dates, authors, links) belongs in YAML frontmatter at the top of the document, NOT as explicit text in the document body:
+   ```yaml
+   ---
+   status: Draft # Draft | In Review | Approved | Implemented
+   target_release: [Release milestone]
+   design_document: [Link to design document]
+   ado: [Link to ADO Item]
+   ---
+   ```
+   - Use YAML frontmatter for machine-readable metadata tracking
+   - Keep document body focused on content, not metadata
+   - Metadata fields can vary by document type (PRDs, design docs, analysis docs)
+   - See [`docs/wip/PRD-TEMPLATE.md`](docs/wip/PRD-TEMPLATE.md) for PRD-specific metadata structure
+
 ### Examples
 
 **Correct locations:**
