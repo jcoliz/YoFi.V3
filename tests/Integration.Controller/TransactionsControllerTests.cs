@@ -147,7 +147,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var newTransaction = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 123.45m,
-            Payee: "Test Payee"
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: User creates a transaction
@@ -178,7 +181,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var newTransaction = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 123.45m,
-            Payee: "Test Payee"
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: User attempts to create a transaction
@@ -198,7 +204,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var newTransaction = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 99.99m,
-            Payee: "Owner Transaction"
+            Payee: "Owner Transaction",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: User creates a transaction
@@ -227,7 +236,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var createDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100m,
-            Payee: "Original Payee"
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
@@ -236,7 +248,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)),
             Amount: 200m,
-            Payee: "Updated Payee"
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: User updates the transaction
@@ -260,7 +275,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var createDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100m,
-            Payee: "Original Payee"
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
@@ -272,7 +290,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 200m,
-            Payee: "Updated Payee"
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: Viewer attempts to update the transaction
@@ -295,7 +316,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 200m,
-            Payee: "Updated Payee"
+            Payee: "Updated Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // When: User attempts to update non-existent transaction
@@ -319,7 +343,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var createDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100m,
-            Payee: "To Be Deleted"
+            Payee: "To Be Deleted",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();
@@ -343,7 +370,10 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var createDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100m,
-            Payee: "Protected Transaction"
+            Payee: "Protected Transaction",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionResultDto>();

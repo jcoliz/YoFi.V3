@@ -530,11 +530,14 @@ public partial class TestControlController(
             var transaction = new TransactionEditDto(
                 Date: baseDate.AddDays(random.Next(0, 30)),
                 Amount: Math.Round((decimal)(random.NextDouble() * 490 + 10), 2),
-                Payee: $"{request.PayeePrefix} {i}"
+                Payee: $"{request.PayeePrefix} {i}",
+                Memo: null,
+                Source: null,
+                ExternalId: null
             );
 
             var result = await transactionsFeature.AddTransactionAsync(transaction);
-            createdTransactions.Add(result);
+            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee));
         }
 
         LogOkCount(createdTransactions.Count);

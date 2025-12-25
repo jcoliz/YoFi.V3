@@ -52,8 +52,9 @@ For implementation patterns, refer to existing features:
 1. Verify all tests pass (if applicable to that step)
 2. Review changes for completeness
 3. **Present summary of changes to user**
-4. **Ask user to review and commit** using conventional commit format (see [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)). ALWAYS keep commit messages under 100 words (I know it's hard!)
-5. Wait for user confirmation before proceeding to next step
+4. **Create a commit message for the work** using conventional commit format (see [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)). ALWAYS keep commit messages under 100 words (I know it's hard!)
+5. **Ask user to review and commit**
+6. Wait for user confirmation before proceeding to next step
 
 **Suggested Commit Messages by Step (for user's reference):**
 
@@ -153,7 +154,7 @@ For implementation patterns, refer to existing features:
 
 1. Implement Application Layer business logic
 2. Follow existing patterns: [`src/Application/Features/TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
-3. Update unit tests when modifying existing Application code (per Application Layer Change Pattern in `.roorules`)
+3. Update all tests to ensure they build and pass. No new tests needed at this point, that will come in the following step.
 
 **Checkpoint:** Confirm core business logic is correct before UI work.
 

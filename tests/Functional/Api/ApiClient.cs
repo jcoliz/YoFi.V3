@@ -5452,6 +5452,15 @@ namespace YoFi.V3.Tests.Functional.Generated
         [System.Text.Json.Serialization.JsonPropertyName("payee")]
         public string Payee { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("memo")]
+        public string Memo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
+        public string ExternalId { get; set; }
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]

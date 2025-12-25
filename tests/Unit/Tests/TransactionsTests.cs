@@ -223,7 +223,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 150m,
-            Payee: "NewPayee"
+            Payee: "NewPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act
@@ -250,7 +253,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 0m,
-            Payee: "TestPayee"
+            Payee: "TestPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -267,7 +273,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: ""
+            Payee: "",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -284,7 +293,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: "   "
+            Payee: "   ",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -302,7 +314,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: longPayee
+            Payee: longPayee,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -320,7 +335,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: payee200
+            Payee: payee200,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act
@@ -342,7 +360,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
             Amount: 100m,
-            Payee: "TestPayee"
+            Payee: "TestPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -359,7 +380,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(6)),
             Amount: 100m,
-            Payee: "TestPayee"
+            Payee: "TestPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -376,7 +400,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: null!
+            Payee: null!,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -393,7 +420,10 @@ public class TransactionsTests
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: -100m,
-            Payee: "RefundPayee"
+            Payee: "RefundPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act
@@ -422,7 +452,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
             Amount: 250m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act
@@ -443,7 +476,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -461,7 +497,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 0m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -481,7 +520,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: ""
+            Payee: "",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -503,7 +545,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 200m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -521,7 +566,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
             Amount: 100m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -542,7 +590,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: longPayee
+            Payee: longPayee,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -562,7 +613,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: "   "
+            Payee: "   ",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -582,7 +636,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: null!
+            Payee: null!,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act & Assert
@@ -602,7 +659,10 @@ public class TransactionsTests
         var updateDto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: -150m,
-            Payee: "UpdatedPayee"
+            Payee: "UpdatedPayee",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         // Act

@@ -26,7 +26,10 @@ public class ValidationDebugTest
         var dto = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.Now),
             Amount: 100m,
-            Payee: longPayee
+            Payee: longPayee,
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         Assert.That(dto.Payee.Length, Is.EqualTo(201), "DTO creation should succeed with 201 chars");

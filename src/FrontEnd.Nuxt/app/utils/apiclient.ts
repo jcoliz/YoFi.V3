@@ -2721,6 +2721,9 @@ export class TransactionEditDto implements ITransactionEditDto {
     date?: Date;
     amount?: number;
     payee?: string;
+    memo?: string | undefined;
+    source?: string | undefined;
+    externalId?: string | undefined;
 
     constructor(data?: ITransactionEditDto) {
         if (data) {
@@ -2736,6 +2739,9 @@ export class TransactionEditDto implements ITransactionEditDto {
             this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
             this.amount = _data["amount"];
             this.payee = _data["payee"];
+            this.memo = _data["memo"];
+            this.source = _data["source"];
+            this.externalId = _data["externalId"];
         }
     }
 
@@ -2751,6 +2757,9 @@ export class TransactionEditDto implements ITransactionEditDto {
         data["date"] = this.date ? formatDate(this.date) : undefined as any;
         data["amount"] = this.amount;
         data["payee"] = this.payee;
+        data["memo"] = this.memo;
+        data["source"] = this.source;
+        data["externalId"] = this.externalId;
         return data;
     }
 }
@@ -2759,6 +2768,9 @@ export interface ITransactionEditDto {
     date?: Date;
     amount?: number;
     payee?: string;
+    memo?: string | undefined;
+    source?: string | undefined;
+    externalId?: string | undefined;
 }
 
 export class BaseModel implements IBaseModel {

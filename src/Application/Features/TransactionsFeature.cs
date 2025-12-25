@@ -57,24 +57,32 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     }
 
     /// <summary>
-    /// Gets a specific transaction by its unique key.
+    /// Gets a specific transaction by its unique key with all fields.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
-    /// <returns>The requested transaction.</returns>
+    /// <returns>The requested transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
-    public async Task<TransactionResultDto> GetTransactionByKeyAsync(Guid key)
+    public async Task<TransactionDetailDto> GetTransactionByKeyAsync(Guid key)
     {
         var transaction = await GetTransactionByKeyInternalAsync(key);
 
-        return new TransactionResultDto(transaction.Key, transaction.Date, transaction.Amount, transaction.Payee);
+        return new TransactionDetailDto(
+            transaction.Key,
+            transaction.Date,
+            transaction.Amount,
+            transaction.Payee,
+            transaction.Memo,
+            transaction.Source,
+            transaction.ExternalId
+        );
     }
 
     /// <summary>
     /// Adds a new transaction for the current tenant.
     /// </summary>
     /// <param name="transaction">The transaction data to add.</param>
-    /// <returns>The created transaction.</returns>
-    public async Task<TransactionResultDto> AddTransactionAsync(TransactionEditDto transaction)
+    /// <returns>The created transaction with all fields.</returns>
+    public async Task<TransactionDetailDto> AddTransactionAsync(TransactionEditDto transaction)
     {
         ValidateTransactionEditDto(transaction);
 
@@ -83,12 +91,23 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             Date = transaction.Date,
             Amount = transaction.Amount,
             Payee = transaction.Payee,
+            Memo = transaction.Memo,
+            Source = transaction.Source,
+            ExternalId = transaction.ExternalId,
             TenantId = _currentTenant.Id
         };
         dataProvider.Add(newTransaction);
         await dataProvider.SaveChangesAsync();
 
-        return new TransactionResultDto(newTransaction.Key, newTransaction.Date, newTransaction.Amount, newTransaction.Payee);
+        return new TransactionDetailDto(
+            newTransaction.Key,
+            newTransaction.Date,
+            newTransaction.Amount,
+            newTransaction.Payee,
+            newTransaction.Memo,
+            newTransaction.Source,
+            newTransaction.ExternalId
+        );
     }
 
     /// <summary>
@@ -96,20 +115,34 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
     /// <param name="transaction">The updated transaction data.</param>
+    /// <returns>The updated transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
-    public async Task UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
+    public async Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
     {
         ValidateTransactionEditDto(transaction);
 
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
-        // Update properties
+        // Update all properties (all fields are editable per Story 3)
         existingTransaction.Date = transaction.Date;
         existingTransaction.Amount = transaction.Amount;
         existingTransaction.Payee = transaction.Payee;
+        existingTransaction.Memo = transaction.Memo;
+        existingTransaction.Source = transaction.Source;
+        existingTransaction.ExternalId = transaction.ExternalId;
 
         dataProvider.UpdateRange([existingTransaction]);
         await dataProvider.SaveChangesAsync();
+
+        return new TransactionDetailDto(
+            existingTransaction.Key,
+            existingTransaction.Date,
+            existingTransaction.Amount,
+            existingTransaction.Payee,
+            existingTransaction.Memo,
+            existingTransaction.Source,
+            existingTransaction.ExternalId
+        );
     }
 
     /// <summary>
@@ -184,16 +217,40 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         // Validate Payee max length first (before whitespace check) - from constructor parameter
         var payeeParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Payee));
-        var maxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (maxLengthAttr != null && transaction.Payee != null && transaction.Payee.Length > maxLengthAttr.Length)
+        var payeeMaxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (payeeMaxLengthAttr != null && transaction.Payee != null && transaction.Payee.Length > payeeMaxLengthAttr.Length)
         {
-            throw new ArgumentException($"Transaction payee cannot exceed {maxLengthAttr.Length} characters.");
+            throw new ArgumentException($"Transaction payee cannot exceed {payeeMaxLengthAttr.Length} characters.");
         }
 
         // Validate Payee - must not be empty or whitespace
         if (string.IsNullOrWhiteSpace(transaction.Payee))
         {
             throw new ArgumentException("Transaction payee cannot be empty.");
+        }
+
+        // Validate Memo max length (nullable field)
+        var memoParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Memo));
+        var memoMaxLengthAttr = memoParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (memoMaxLengthAttr != null && transaction.Memo != null && transaction.Memo.Length > memoMaxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction memo cannot exceed {memoMaxLengthAttr.Length} characters.");
+        }
+
+        // Validate Source max length (nullable field)
+        var sourceParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Source));
+        var sourceMaxLengthAttr = sourceParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (sourceMaxLengthAttr != null && transaction.Source != null && transaction.Source.Length > sourceMaxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction source cannot exceed {sourceMaxLengthAttr.Length} characters.");
+        }
+
+        // Validate ExternalId max length (nullable field)
+        var externalIdParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.ExternalId));
+        var externalIdMaxLengthAttr = externalIdParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (externalIdMaxLengthAttr != null && transaction.ExternalId != null && transaction.ExternalId.Length > externalIdMaxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction externalId cannot exceed {externalIdMaxLengthAttr.Length} characters.");
         }
     }
 

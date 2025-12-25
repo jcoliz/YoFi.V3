@@ -158,12 +158,18 @@ public class EndToEndAuthenticationTests
         var transaction1 = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow),
             Amount: 100.50m,
-            Payee: "Test Payee 1"
+            Payee: "Test Payee 1",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
         var transaction2 = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
             Amount: 250.75m,
-            Payee: "Test Payee 2"
+            Payee: "Test Payee 2",
+            Memo: null,
+            Source: null,
+            ExternalId: null
         );
 
         var addTx1Response = await authenticatedClient.PostAsJsonAsync(
