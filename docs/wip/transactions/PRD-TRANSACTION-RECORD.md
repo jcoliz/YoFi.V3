@@ -47,11 +47,11 @@ All of these will be considered as separate features. The goal of this is to get
 **So that** I can later reason over all of my financial records in one place
 
 **Acceptance Criteria**:
-- [ ] Bank date information retained
-- [ ] Bank transaction amount retained
-- [ ] Bank account source information retained: what bank and account did this come from? Free text, typically populated with Bank Name, Account Type, and Account number, but can be any text.
-- [ ] Bank payee retained
-- [ ] Bank unique identifier (to protect against duplicates)
+- [x] Bank date information retained (`Date` field - DateOnly)
+- [x] Bank transaction amount retained (`Amount` field - decimal)
+- [x] Bank account source information retained: what bank and account did this come from? Free text, typically populated with Bank Name, Account Type, and Account number, but can be any text. (`Source` field - string?, 200 chars)
+- [x] Bank payee retained (`Payee` field - string, required)
+- [x] Bank unique identifier (to protect against duplicates) (`ExternalId` field - string?, 100 chars)
 
 ### Story 2: User - Add additional information
 **As a** user
@@ -59,8 +59,10 @@ All of these will be considered as separate features. The goal of this is to get
 **So that** I can later group and sort, or search by that information, or so that I can later remember more details about it.
 
 **Acceptance Criteria**:
-- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits
-- [ ] Can add a memorandum (memo) field with additional text to provide additional context
+- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits (see [PRD-TRANSACTION-SPLITS.md](./PRD-TRANSACTION-SPLITS.md))
+- [x] Can add a memorandum (memo) field with additional text to provide additional context (`Memo` field - string?, 1000 chars, backend complete)
+
+**Note**: Frontend UI for editing memo not yet implemented.
 
 ### Story 3: User - Manage transactions
 **As a** user
@@ -68,8 +70,10 @@ All of these will be considered as separate features. The goal of this is to get
 **So that** I can reconcile my system to my understanding of what actually happened
 
 **Acceptance Criteria**:
-- [ ] Edit all fields
-- [ ] Delete a transaction
+- [x] Edit all fields (PUT endpoint implemented, all fields editable via API)
+- [x] Delete a transaction (DELETE endpoint implemented)
+
+**Note**: Frontend UI for transaction management not yet implemented.
 
 ---
 
