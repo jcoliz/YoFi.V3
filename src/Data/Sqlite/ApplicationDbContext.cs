@@ -115,9 +115,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             // Index on TenantId and date for common queries
             entity.HasIndex(e => new { e.TenantId, e.Date });
 
+            // Composite index on TenantId + ExternalId for efficient duplicate checks
+            entity.HasIndex(e => new { e.TenantId, e.ExternalId });
+
+            // Payee is required
             entity.Property(a => a.Payee)
                 .IsRequired()
                 .HasMaxLength(200);
+
+            // Amount precision for currency
+            entity.Property(a => a.Amount)
+                .HasPrecision(18, 2);
+
+            // Source (nullable, max 200 chars)
+            entity.Property(t => t.Source)
+                .HasMaxLength(200);
+
+            // ExternalId (nullable, max 100 chars)
+            entity.Property(t => t.ExternalId)
+                .HasMaxLength(100);
+
+            // Memo (nullable, max 1000 chars)
+            entity.Property(t => t.Memo)
+                .HasMaxLength(1000);
 
             // Foreign key relationship to Tenant
             entity.HasOne(t => t.Tenant)

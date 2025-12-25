@@ -113,6 +113,7 @@ For implementation patterns, refer to existing features:
 
 1. Implement Entities, as designed
 2. Follow existing patterns: [`src/Entities/Models/BaseTenantModel.cs`](../../src/Entities/Models/BaseTenantModel.cs) or [`src/Entities/Models/BaseModel.cs`](../../src/Entities/Models/BaseModel.cs)
+3. Build project and run unit tests. Note that integration tests would fail until next step is completed.
 
 **Commit:** Present entity implementation to user for review and commit.
 
