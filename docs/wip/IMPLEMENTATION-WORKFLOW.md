@@ -339,19 +339,30 @@ For implementation patterns, refer to existing features:
    - Target: 60-70% Controller Integration, 19-25% Unit, 10-15% Functional
    - Actual distribution will vary by feature type (see TESTING-STRATEGY.md examples)
 3. Review any uncompleted acceptance tests, propose how we should cover them
-4. Update PRD status:
-   - Check off all completed acceptance criteria
-   - Mark individual stories as "Implemented" when vast majority of acceptance tests pass
-   - When entire PRD complete, update YAML metadata: `status: Implemented`
-5. Update [`docs/PRODUCT-ROADMAP.md`](../PRODUCT-ROADMAP.md) with completion status
-6. Create final commit with conventional commit message per [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)
-   - Format: `type(scope): subject` (under 100 words total)
-   - Examples: `feat(transactions): add split transaction support`, `fix(auth): resolve token refresh race condition`
-7. Provide implementation summary:
+4. Provide implementation summary:
    - Features implemented
    - Test coverage metrics (count by layer)
    - Any known limitations or future work
    - Links to PRD and detailed design (if applicable)
+4. Update PRD status:
+   - Check off all completed acceptance criteria
+   - Mark individual stories as "Implemented" when vast majority of acceptance tests pass
+   - When entire PRD complete, update YAML metadata: `status: Implemented`
+5. Update design document:
+   - Create or update implementation summary in design document. Should be the final section of design document
+   - When entire PRD complete, update YAML metadata in design document: `status: Implemented`
+6. Update [`docs/PRODUCT-ROADMAP.md`](../PRODUCT-ROADMAP.md) with completion status
+7. Create final commit with conventional commit message per [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)
+   - Format: `type(scope): subject` (under 100 words total)
+   ```
+   feat([feature-slug]): finish implementation [of {name them} stories]
+
+   *** IMPLEMENTATION COMPLETE ***
+   All user stores in {feature}.PRD complete
+   -or-
+   Following stories in {feature}.PRD now complete
+   - list stories
+   ```
 
 **Final Commit:** Present complete implementation summary to user for final review and commit.
 
