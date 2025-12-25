@@ -39,23 +39,28 @@ Tenant/workspace management for the current authenticated user.
 Test data management for functional testing (only available in test environments).
 
 **User Management:**
+
 - `createUser(): Promise<TestUserCredentials>` - Create a test user with auto-generated username
 - `deleteUsers(): Promise<void>` - Deletes all test users from the system
 - `createBulkUsers(usernames: string[]): Promise<TestUserCredentials[]>` - Create multiple test users in bulk with credentials
 - `approveUser(username): Promise<void>` - Approve a test user
 
 **Workspace Management:**
+
 - `createWorkspaceForUser(username, request: WorkspaceCreateRequest): Promise<TenantResultDto>` - Create a workspace for a test user with specified role
 - `assignUserToWorkspace(username, workspaceKey, assignment: UserRoleAssignment): Promise<void>` - Assign a user to an existing workspace with a specific role
 - `bulkWorkspaceSetup(username, workspaces: WorkspaceSetupRequest[]): Promise<WorkspaceSetupResult[]>` - Create multiple workspaces for a user in a single request
 
 **Transaction Seeding:**
+
 - `seedTransactions(username, tenantKey, request: TransactionSeedRequest): Promise<TransactionResultDto[]>` - Seed test transactions in a workspace for a user
 
 **Data Cleanup:**
+
 - `deleteAllTestData(): Promise<void>` - Delete all test data including test users and test workspaces
 
 **Error Testing:**
+
 - `listErrors(): Promise<ErrorCodeInfo[]>` - List available error codes that can be generated for testing
 - `returnError(code): Promise<void>` - Generate various error codes for testing purposes
 
@@ -126,7 +131,7 @@ const authClient = new AuthClient()
 // Login
 const loginRequest = new LoginRequest({
   username: 'user@example.com',
-  password: 'password123'
+  password: 'password123',
 })
 const response = await authClient.login(loginRequest)
 // Store response.token.accessToken and response.token.refreshToken
@@ -136,7 +141,7 @@ const session = await authClient.getSession()
 
 // Refresh tokens
 const refreshRequest = new RefreshRequest({
-  refreshToken: storedRefreshToken
+  refreshToken: storedRefreshToken,
 })
 const refreshed = await authClient.refreshTokens(refreshRequest)
 
@@ -163,15 +168,15 @@ const filtered = await client.getTransactions(fromDate, toDate, tenantKey)
 // Create transaction
 const newTx = new TransactionEditDto({
   date: new Date(),
-  amount: 100.50,
-  payee: 'Coffee Shop'
+  amount: 100.5,
+  payee: 'Coffee Shop',
 })
 const created = await client.createTransaction(tenantKey, newTx)
 
 // Update transaction
 await client.updateTransaction(created.key!, tenantKey, {
   ...newTx,
-  amount: 150.00
+  amount: 150.0,
 })
 
 // Delete transaction
@@ -191,7 +196,7 @@ const tenants = await client.getTenants()
 // Create new tenant
 const newTenant = new TenantEditDto({
   name: 'My Workspace',
-  description: 'Personal finances'
+  description: 'Personal finances',
 })
 const created = await client.createTenant(newTenant)
 
@@ -201,7 +206,7 @@ const tenant = await client.getTenant(created.key!)
 // Update tenant (requires Owner role)
 await client.updateTenant(created.key!, {
   name: 'Updated Workspace',
-  description: 'Updated description'
+  description: 'Updated description',
 })
 
 // Delete tenant (requires Owner role)
@@ -223,15 +228,14 @@ const user = await client.createUser()
 const workspace = await client.createWorkspaceForUser(user.username!, {
   name: '__TEST__MyWorkspace',
   description: 'Test workspace',
-  role: 'Owner'
+  role: 'Owner',
 })
 
 // Seed transactions
-const transactions = await client.seedTransactions(
-  user.username!,
-  workspace.key!,
-  { count: 10, payeePrefix: 'Test Payee' }
-)
+const transactions = await client.seedTransactions(user.username!, workspace.key!, {
+  count: 10,
+  payeePrefix: 'Test Payee',
+})
 
 // Cleanup all test data
 await client.deleteAllTestData()
@@ -263,7 +267,7 @@ try {
     console.error('API Error:', {
       status: error.status,
       message: error.message,
-      detail: error.result?.detail
+      detail: error.result?.detail,
     })
   }
 }

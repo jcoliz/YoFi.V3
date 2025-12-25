@@ -54,6 +54,7 @@ onMounted(() => {
 ### Examples from Production
 
 **Login Page** ([`app/pages/login.vue`](./app/pages/login.vue)):
+
 ```vue
 <script setup lang="ts">
 const ready = ref(false)
@@ -97,6 +98,7 @@ See [`.roorules`](./.roorules) for complete testing patterns.
 ## Complete Documentation
 
 For comprehensive documentation including:
+
 - Detailed explanation of the SSR/hydration timing issue
 - Test-side implementation in Page Object Models
 - Troubleshooting guide
