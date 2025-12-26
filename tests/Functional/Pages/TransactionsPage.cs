@@ -258,12 +258,44 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
     /// <remarks>
-    /// Waits for the New Transaction button to become enabled, indicating client hydration is complete.
-    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// Waits for the Clear Filters button to become enabled, indicating client hydration is complete.
+    /// The Clear Filters button is always present regardless of user permissions, making it a reliable
+    /// ready indicator for all roles (Owner, Editor, Viewer). This ensures the Vue client has finished
+    /// hydrating and the page is interactive.
+    /// See: tests/Functional/NUXT-SSR-TESTING-PATTERN.md
     /// </remarks>
     public async Task WaitForPageReadyAsync(float timeout = 5000)
     {
-        await WaitForNewTransactionButtonEnabledAsync(timeout);
+        await WaitForClearFiltersButtonEnabledAsync(timeout);
+    }
+
+    /// <summary>
+    /// Waits until the Clear Filters button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
+    /// This button is always present regardless of permissions, making it suitable as a ready indicator
+    /// for all user roles. This ensures the Vue client has finished hydrating and the page is interactive.
+    /// </remarks>
+    public async Task WaitForClearFiltersButtonEnabledAsync(float timeout = 5000)
+    {
+        await ClearFiltersButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await ClearFiltersButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the button is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await ClearFiltersButton.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return; // Button is now enabled - page is ready
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Clear Filters button did not become enabled within {timeout}ms");
     }
 
     /// <summary>
@@ -272,7 +304,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
     /// <remarks>
     /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
-    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// Note: This method is only useful for users with Editor or Owner roles who have the button.
+    /// For general page readiness, use WaitForPageReadyAsync() which works for all permission levels.
     /// </remarks>
     public async Task WaitForNewTransactionButtonEnabledAsync(float timeout = 5000)
     {

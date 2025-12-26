@@ -398,8 +398,16 @@ function formatCurrency(amount: number | undefined): string {
               <button
                 class="btn btn-secondary"
                 data-test-id="clear-filters-button"
+                :disabled="loading || !ready"
                 @click="clearFilters"
               >
+                <!--
+                  IMPORTANT: Keep :disabled="loading || !ready" on this button.
+                  This is the ready signal for functional tests to detect client hydration.
+                  The Clear Filters button is always present regardless of user permissions,
+                  making it a reliable indicator that the page is interactive.
+                  See: tests/Functional/NUXT-SSR-TESTING-PATTERN.md
+                -->
                 Clear Filters
               </button>
             </div>

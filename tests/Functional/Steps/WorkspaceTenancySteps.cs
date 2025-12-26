@@ -655,9 +655,12 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
-        var newDate = DateTime.Today.ToString("yyyy-MM-dd");
         var newPayee = "Updated " + payee;
-        await transactionsPage.UpdateTransactionAsync(payee, newDate, newPayee, 200.00m);
+
+        // Use quick edit workflow (only Payee and Memo fields available in modal from transactions page)
+        await transactionsPage.OpenEditModalAsync(payee);
+        await transactionsPage.FillEditPayeeAsync(newPayee);
+        await transactionsPage.SubmitEditFormAsync();
 
         // Wait for the updated transaction to appear in the list
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
