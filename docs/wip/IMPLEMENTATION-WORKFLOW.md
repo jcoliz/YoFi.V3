@@ -196,7 +196,8 @@ For implementation patterns, refer to existing features:
 
 ## [ ] 8.5. API Client Generation & Frontend Compatibility
 
-1. Build the WireApiHost project to generate the updated TypeScript API client: `dotnet build src/WireApiHost`
+1. Regenerate the TypeScript API client using the script: `pwsh -File ./scripts/Generate-ApiClient.ps1`
+   - Alternative: Build WireApiHost project directly: `dotnet build src/WireApiHost`
 2. Verify the API client was regenerated successfully
    - Location: [`src/FrontEnd.Nuxt/app/utils/apiclient.ts`](../../src/FrontEnd.Nuxt/app/utils/apiclient.ts)
    - Check that new endpoints/DTOs are included
@@ -248,26 +249,27 @@ For implementation patterns, refer to existing features:
 
 ## [ ] 10. Front End
 
-1. Verify API client is up-to-date (regenerated from NSwag after controller changes)
+1. **Review frontend-specific rules** in [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules) to understand patterns and conventions before implementing
+2. Verify API client is up-to-date (regenerated from NSwag after controller changes)
+   - Regenerate using script: `pwsh -File ./scripts/Generate-ApiClient.ps1`
    - Location: [`src/FrontEnd.Nuxt/app/utils/apiclient.ts`](../../src/FrontEnd.Nuxt/app/utils/apiclient.ts)
    - **DO NOT edit manually** - auto-generated file
-2. Implement Vue pages/components following patterns in [`src/FrontEnd.Nuxt/app/pages/`](../../src/FrontEnd.Nuxt/app/pages/)
-3. **Look for opportunities to abstract functionality into reusable components**
+3. Implement Vue pages/components following patterns in [`src/FrontEnd.Nuxt/app/pages/`](../../src/FrontEnd.Nuxt/app/pages/)
+4. **Look for opportunities to abstract functionality into reusable components**
    - Review if UI patterns can be extracted to [`src/FrontEnd.Nuxt/app/components/`](../../src/FrontEnd.Nuxt/app/components/)
    - Consider modals, forms, data tables, or repeated UI patterns
    - Reference existing components: [`ModalDialog.vue`](../../src/FrontEnd.Nuxt/app/components/ModalDialog.vue), [`ErrorDisplay.vue`](../../src/FrontEnd.Nuxt/app/components/ErrorDisplay.vue)
-4. **Add `data-test-id` attributes to all interactive elements** that users will interact with
+5. **Add `data-test-id` attributes to all interactive elements** that users will interact with
    - Buttons, inputs, links, form fields, etc.
    - Format: `data-test-id="descriptive-action-name"` (kebab-case)
    - Example: `data-test-id="create-transaction-button"`, `data-test-id="payee-input"`
    - **Purpose:** Functional tests will need these selectors in Page Object Models
-5. Use composables for shared logic (see [`src/FrontEnd.Nuxt/app/composables/`](../../src/FrontEnd.Nuxt/app/composables/))
-6. Format and lint frontend code (from FrontEnd.Nuxt directory):
+6. Use composables for shared logic (see [`src/FrontEnd.Nuxt/app/composables/`](../../src/FrontEnd.Nuxt/app/composables/))
+7. Format and lint frontend code (from FrontEnd.Nuxt directory):
    - Run formatter: `pnpm format`
    - Run linter: `pnpm lint`
    - Fix any linting errors before proceeding
-7. Build frontend to verify no errors: `pnpm run build` (from FrontEnd.Nuxt directory)
-8. Review frontend-specific rules in [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules)
+8. Build frontend to verify no errors: `pnpm run build` (from FrontEnd.Nuxt directory)
 
 **Commit:** Present frontend implementation to user for review and commit.
 
@@ -297,24 +299,39 @@ For implementation patterns, refer to existing features:
 ## [ ] 11. Functional Tests
 
 1. Locate the functional test plan. Ensure it's marked `status: Approved` in the YAML front matter
-2. **Implement scenarios ONE AT A TIME (never multiple simultaneously):**
-   - For the current scenario only:
+2. **Review test generation pattern**: Read [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md) to understand how this project generates functional tests from Gherkin feature files. Key points:
+   - This project does NOT use SpecFlow or SpecFlow attributes
+   - Tests are generated manually from Gherkin using a custom template system
+   - Step definitions are methods in base classes (in [`tests/Functional/Steps/`](../../tests/Functional/Steps/)) matched by XML comments, not attributes
+   - Page Object Models in [`tests/Functional/Pages/`](../../tests/Functional/Pages/) provide selectors and interactions
+3. **IMPLEMENT AND TEST ONE SCENARIO AT A TIME (CRITICAL - never implement multiple scenarios simultaneously):**
+   - **For the FIRST scenario only:**
+     - Ask user to run `.\scripts\Start-LocalDev.ps1` and wait for confirmation that app is running
      - Write Gherkin scenario in feature file [`tests/Functional/Features/`](../../tests/Functional/Features/) based on test plan
-     - Create or update Page Object Models in [`tests/Functional/Pages/`](../../tests/Functional/Pages/)
-     - Write step definitions in [`tests/Functional/Steps/`](../../tests/Functional/Steps/)
+     - Create or update Page Object Models in [`tests/Functional/Pages/`](../../tests/Functional/Pages/) with necessary selectors
+     - Write ONLY the step definitions needed for THIS scenario in [`tests/Functional/Steps/`](../../tests/Functional/Steps/)
      - Use Gherkin comments (Given/When/Then/And) in step implementations
-   - Complete and verify one scenario before moving to the next
-3. **ITERATIVE TESTING PROCESS (for each scenario):**
-   - First functional test only: Ask user to run .\scripts\Start-LocalDev.ps1 and wait for confirmation
-   - Subsequent tests reuse the running application
-   - Implement one scenario at a time
-   - Run ONLY the scenario you're working on: `dotnet test tests/Functional --filter "DisplayName~ScenarioName"`
-     - Example: `dotnet test tests/Functional --filter "DisplayName~CreateNewTransaction"`
-     - This runs against the local development environment (fast feedback loop)
-   - Review test results and fix issues immediately
-   - Iterate on that one scenario until it passes
-   - Move to next scenario and repeat
-4. **FULL TEST SUITE VERIFICATION:**
+     - **If you need new test control endpoints** (e.g., to seed data or reset state):
+       - Add methods to [`src/Controllers/TestControlController.cs`](../../src/Controllers/TestControlController.cs)
+       - Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
+       - This updates BOTH frontend and functional test API clients so tests can call the new endpoints
+     - Run ONLY this scenario: `dotnet test tests/Functional --filter "DisplayName~ScenarioName"`
+       - Example: `dotnet test tests/Functional --filter "DisplayName~CreateNewTransaction"`
+       - This runs against the local development environment (fast feedback loop)
+     - Review test results and fix issues immediately
+     - Iterate on THIS scenario until it passes
+     - **DO NOT proceed to next scenario until this one passes**
+   - **For each SUBSEQUENT scenario:**
+     - Application remains running from step 1 (reuse it)
+     - Write Gherkin scenario for THIS scenario only
+     - Update Page Object Models if new selectors needed
+     - Write ONLY the step definitions for THIS scenario (do NOT write step definitions for other scenarios)
+     - If new test control endpoints needed, add them and regenerate API client (same as above)
+     - Run ONLY this scenario using the filter command
+     - Iterate until THIS scenario passes
+     - Repeat for next scenario
+   - **Key principle:** Implement → Test → Fix → Pass → Move to next. One scenario at a time, never batch multiple scenarios.
+3. **FULL TEST SUITE VERIFICATION:**
    - Once all scenarios pass locally, ask user to run full suite against container: `.\scripts\Run-FunctionalTestsVsContainer.ps1`
    - This ensures tests work in CI/CD environment
    - Wait for user to report results
