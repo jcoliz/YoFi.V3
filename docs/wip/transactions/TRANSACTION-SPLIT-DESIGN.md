@@ -1,33 +1,108 @@
+---
+status: Approved
+---
 # Transaction Split Design
 
 ## Overview
 
-This document defines the database schema, indexing strategy, query patterns, and API design for implementing transaction splits in YoFi.V3. Transactions can be split across multiple categories, allowing users to categorize portions of a single transaction differently.
+This document defines the database schema, indexing strategy, query patterns, and API design for implementing transaction splits in YoFi.V3, phased across **Alpha 1** and **Beta 2** milestones.
+
+**Alpha 1 (Stories 3 & 5)**: Implements Split entity and backend foundation. Frontend shows single-split workflows only (category field in dialogs). User never thinks about splits.
+
+**Beta 2 (Stories 1, 4, 6)**: Adds full split UI - transaction detail page with split editor, balance warnings, Excel upload, manual split management.
+
+## Milestone Phasing
+
+### Alpha 1: Backend Foundation + Single-Split UI (Stories 3 & 5)
+
+**Goal**: Implement Split entity and database schema, expose single-split workflows through existing dialogs. User never thinks about splits.
+
+**Backend Implementation (A1)**:
+- ✅ Create Split entity with full schema (table, indexes, relationships)
+- ✅ Transaction.Splits navigation collection
+- ✅ Every transaction automatically gets one split on creation
+- ✅ Backend enforces "at least one split" rule
+- ✅ Category cleanup per ad-hoc category rules (from [`PRD-TRANSACTION-RECORD.md`](PRD-TRANSACTION-RECORD.md:95-130))
+- ✅ Individual split CRUD endpoints (GET/POST/PUT/DELETE for splits) - available but not used by UI yet
+- ✅ Transaction endpoints updated to work with splits
+- ✅ **Single-split synchronization**: When transaction has only one split, Amount edits automatically update split amount (user never sees split complexity)
+
+**Frontend Implementation (A1)** - Single-Split Workflows Only:
+- ✅ **New Transaction dialog**: Add optional Category field → flows to single split on creation
+- ✅ **Quick Edit dialog**: Add Category field → updates single split's category
+- ✅ **Edit Transaction dialog**: Add Category field → updates single split's category, Amount edits update split amount
+- ✅ **List view**: Show category from single split in display
+- ❌ **NO transaction detail page with split editor** (deferred to Beta 2)
+- ❌ **NO multi-split UI** - category field always edits the single split (Beta 2 will disable field when multiple splits exist)
+- ❌ **NO balance warnings in UI** (splits always balance in A1 since single split always equals transaction amount)
+
+**Story 3 Acceptance Criteria** (A1):
+- [x] Creating transaction automatically creates single split (backend handles complexity) ✅
+- [x] Editing single-category transaction amount updates the single split automatically ✅
+- [x] UI hides split complexity for single-split transactions ✅
+- [x] Can optionally provide category on transaction creation (flows to the split) ✅
+
+**Story 5 Acceptance Criteria** (A1 - Backend Ready):
+- [x] Imported transactions have single uncategorized split by default ✅ (Backend ready, importer feature not implemented in A1)
+- [ ] User can add splits to imported transactions ⏭️ (Deferred to Beta 2 - no split editor UI yet)
+
+### Beta 2: Full Split UI (Stories 1, 4, 6)
+
+**Goal**: Enable multi-category splits with explicit split management UI and advanced features.
+
+**What's Added in Beta 2**:
+- ✅ **Transaction detail page** with split editor UI
+- ✅ **Add/Edit/Delete multiple splits** through UI
+- ✅ **Category field in dialogs disabled** when transaction has multiple splits (user must use split editor)
+- ✅ **Amount field behavior change**: When multiple splits exist, Amount edits do NOT automatically adjust splits (creates imbalance warning)
+- ✅ **Balance warnings** - UI prominently shows when splits don't sum to transaction amount
+- ✅ **Upload splits from Excel** spreadsheet
+- ✅ **Split reordering** UI (drag-and-drop)
+
+**Story 1 Acceptance Criteria** (Beta 2):
+- [ ] User can add multiple splits to existing transaction
+- [ ] Each split has its own amount and category
+- [ ] Entire list of splits viewed from transaction detail page
+- [ ] Splits can be edited individually (amount, category, memo)
+- [ ] Splits can be deleted (except the last one)
+- [ ] UI shows warning when splits don't sum to transaction amount
+
+**Story 4 Acceptance Criteria** (Beta 2):
+- [ ] List view shows visual indicator for unbalanced transactions
+- [ ] Detail view shows transaction amount, splits total, and balance status
+- [ ] Warning is prominent but doesn't block saving
+- [ ] After editing split amount, balance status updates immediately
+
+**Story 6 Acceptance Criteria** (Beta 2):
+- [ ] User can upload Excel .xlsx with split data
+- [ ] Required columns: Category, Amount (optional: Memo)
+- [ ] Invalid input cancels entire import with error message
+- [ ] Uploaded splits append to existing splits
+- [ ] UI provides downloadable template file
 
 ## Requirements Summary
 
 ### Core Concepts
 
-1. **Transaction** remains the primary entity with properties: Date, Payee, Amount, Memo, Source
-2. **Split** is a new entity representing a portion of a transaction with properties: Amount, Category, Memo
+1. **Transaction** remains the primary entity with properties: Date, Payee, Amount, Memo, Source, ExternalId (from Transaction Record PRD)
+2. **Split** is a new entity representing a portion of a transaction with properties: Amount, Category, Memo, Order
 3. **Transaction.Amount** is authoritative (imported from bank or manually entered)
-4. **Every transaction MUST have at least one split** - enforced by database and application
-5. **Single-split transactions** hide complexity - user edits transaction directly, backend updates the single split
-6. **Multi-split transactions** require explicit split management UI
-7. **⚠️ CRITICAL: Unbalanced transactions are a significant error state** - Splits MUST sum to Transaction.Amount
-   - Backend always calculates and returns `IsBalanced` flag
-   - UI must prominently display warnings for unbalanced transactions
-   - UI should make it difficult to ignore unbalanced state (visual indicators, modal warnings, etc.)
-   - Goal: Guide user to fix balance discrepancies immediately, not later
+4. **Every transaction MUST have at least one split** - enforced by application layer
+5. **Single-split transactions** (A1): Category field in dialogs directly edits the single split; Amount edits update split amount
+6. **Multi-split transactions** (Beta 2): Category field in dialogs is **disabled**; Amount edits do NOT adjust splits (creates imbalance)
+7. **⚠️ Unbalanced transactions** (Beta 2 only): Splits sum should match Transaction.Amount (warning in UI, not enforced)
 
 ### Key Design Decisions from Discussion
 
 - **Source property**: Stays at Transaction level (entire transaction came from one import source)
-- **At least one split**: Database enforces via check constraint, application validates at save time
-- **Category property**: NOT NULL with empty string for uncategorized (better performance than NULL, consistent with Payee pattern)
-- **Split primary key**: Use Guid Key for consistency with Transaction pattern, enables future API flexibility
-- **API design**: Individual split CRUD operations (POST/PUT/DELETE) are primary pattern; atomic replacement also supported
-- **Amount behavior**: Transaction.Amount is editable (user can correct mistakes on manual entry); splits can total to different amount (warning state for user)
+- **At least one split**: Application validates at save time (enforced by backend in A1)
+- **Category property**: NOT NULL with empty string for uncategorized (better performance than NULL)
+- **Category cleanup**: Ad-hoc categories cleaned up per rules in [`PRD-TRANSACTION-RECORD.md`](PRD-TRANSACTION-RECORD.md:95-130)
+- **Split primary key**: Use Guid Key for consistency with Transaction pattern
+- **API design**: Individual split CRUD operations (POST/PUT/DELETE) available in A1, UI in Beta 2
+- **Amount behavior**:
+  - **A1 (single-split)**: Amount edits automatically update the single split amount (keep in sync, user never sees splits)
+  - **Beta 2 (multi-split)**: Amount edits do NOT adjust splits (creates imbalance warning, user must manually fix)
 
 ## Database Schema
 
@@ -214,6 +289,18 @@ modelBuilder.Entity<Transaction>(entity =>
 SQLite doesn't support check constraints that reference other tables. Instead, we'll enforce the "at least one split" rule in the application layer and rely on cascade delete to prevent orphaned transactions.
 
 **Application-level validation**: Before `SaveChangesAsync()`, verify that every transaction has at least one split.
+
+> **TODO - PostgreSQL Migration**: When migrating to PostgreSQL, add a check constraint to enforce "at least one split" rule at the database level. This will provide an additional safety net beyond application-level validation. Example constraint:
+> ```sql
+> ALTER TABLE "YoFi.V3.Transactions" ADD CONSTRAINT chk_transaction_has_splits
+> CHECK (
+>     EXISTS (
+>         SELECT 1 FROM "YoFi.V3.Splits"
+>         WHERE "YoFi.V3.Splits"."TransactionId" = "YoFi.V3.Transactions"."Id"
+>     )
+> );
+> ```
+> Note: This constraint should be added during migration along with a data verification step to ensure no existing transactions violate the rule.
 
 ## Indexing Strategy
 
@@ -541,9 +628,43 @@ return new SplitOperationResultDto(
 
 ## DTO Design
 
+### Alpha 1 vs Beta 2 DTO Differences
+
+**Alpha 1 DTOs**: Simplified for single-split workflows. Category field exposed directly, no split complexity.
+
+**Beta 2 DTOs**: Add split indicators (`HasMultipleSplits`, `IsBalanced`) and Splits collection for multi-split support.
+
 ### TransactionResultDto (List View)
 
-Used for list views where split details aren't shown, but split indicators are needed.
+**Alpha 1 Version** (Single-split only):
+
+```csharp
+/// <summary>
+/// Transaction data for list views (output-only).
+/// </summary>
+/// <param name="Key">Unique identifier for the transaction</param>
+/// <param name="Date">Date the transaction occurred</param>
+/// <param name="Amount">Transaction amount (can be negative for credits/refunds)</param>
+/// <param name="Payee">Recipient or payee of the transaction</param>
+/// <param name="Memo">Optional memo for additional context</param>
+/// <param name="Category">Category from the single split (empty string for uncategorized)</param>
+/// <remarks>
+/// Alpha 1 list view DTO. Every transaction has exactly one split, so Category is shown directly.
+/// No HasMultipleSplits or IsBalanced fields needed - all transactions are balanced in A1.
+///
+/// For complete transaction details, see <see cref="TransactionDetailDto"/>.
+/// </remarks>
+public record TransactionResultDto(
+    Guid Key,
+    DateOnly Date,
+    decimal Amount,
+    string Payee,
+    string? Memo,
+    string Category
+);
+```
+
+**Beta 2 Version** (Multi-split support):
 
 ```csharp
 /// <summary>
@@ -553,17 +674,15 @@ Used for list views where split details aren't shown, but split indicators are n
 /// <param name="Date">Date the transaction occurred</param>
 /// <param name="Amount">Transaction amount (authoritative imported value)</param>
 /// <param name="Payee">Recipient or payee of the transaction</param>
+/// <param name="Memo">Optional memo for additional context</param>
 /// <param name="HasMultipleSplits">True if transaction has more than one split</param>
-/// <param name="SingleSplitCategory">Category of the single split (if HasMultipleSplits is false)</param>
+/// <param name="SingleSplitCategory">Category of the single split (if HasMultipleSplits is false, otherwise null)</param>
 /// <param name="IsBalanced">True if splits total matches transaction amount</param>
 /// <remarks>
-/// List view DTO that provides UI hints:
-/// - HasMultipleSplits: Indicates whether to show split indicator icon (allows inline category editing if false)
+/// Beta 2 list view DTO that provides UI hints for multi-split transactions:
+/// - HasMultipleSplits: Indicates whether to show split indicator icon
 /// - SingleSplitCategory: For single-split transactions, shows category directly (null if multiple splits)
-/// - IsBalanced: CRITICAL - False indicates splits don't add up to transaction amount (serious data quality issue)
-///
-/// IsBalanced is always calculated and returned to highlight unbalanced transactions in the list view.
-/// Unbalanced transactions should be visually flagged to prompt user correction.
+/// - IsBalanced: False indicates splits don't add up to transaction amount (data quality issue)
 ///
 /// For full transaction details with splits, use <see cref="TransactionDetailDto"/>.
 /// </remarks>
@@ -572,6 +691,7 @@ public record TransactionResultDto(
     DateOnly Date,
     decimal Amount,
     string Payee,
+    string? Memo,
     bool HasMultipleSplits,
     string? SingleSplitCategory,
     bool IsBalanced
@@ -617,30 +737,87 @@ public record TransactionDetailDto(
 
 ### TransactionEditDto (Create/Update Input)
 
-Input DTO for creating/updating transactions.
+**Alpha 1 Version** (Single-split with Category field):
+
+```csharp
+/// <summary>
+/// Transaction data for creating or updating transactions (input DTO).
+/// </summary>
+/// <param name="Date">Date the transaction occurred (max 50 years in past, 5 years in future)</param>
+/// <param name="Amount">Transaction amount (cannot be zero; can be negative for credits/refunds)</param>
+/// <param name="Payee">Recipient or payee of the transaction (required, cannot be whitespace, max 200 chars)</param>
+/// <param name="Memo">Optional memo for additional context (max 1000 chars)</param>
+/// <param name="Source">Source of the transaction (optional, max 200 chars, typically from importer)</param>
+/// <param name="ExternalId">Bank's unique identifier (optional, max 100 chars, for duplicate detection)</param>
+/// <param name="Category">Category for the single split (optional, max 200 chars, empty string for uncategorized)</param>
+/// <remarks>
+/// Alpha 1 input DTO with validation attributes. Used for creating new transactions
+/// and updating existing single-split transactions.
+///
+/// **Single-split behavior:**
+/// - Category field directly edits the single split's category
+/// - Amount edits automatically update the single split amount (keep in sync)
+/// - Backend automatically creates/maintains the single split (user never sees split complexity)
+///
+/// Validation rules:
+/// - Date: Must be within 50 years in the past and 5 years in the future
+/// - Amount: Must be non-zero (transaction level)
+/// - Payee: Required, cannot be empty or whitespace, max 200 characters
+/// - Memo: Optional, max 1000 characters, plain text only
+/// - Source: Optional, max 200 characters (readonly after creation - not in update DTO)
+/// - ExternalId: Optional, max 100 characters (readonly after creation - not in update DTO)
+/// - Category: Optional, max 200 characters, cleaned up per ad-hoc category rules
+/// </remarks>
+public record TransactionEditDto(
+    [DateRange(50, 5, ErrorMessage = "Transaction date must be within 50 years in the past and 5 years in the future")]
+    DateOnly Date,
+
+    [Range(typeof(decimal), "-999999999", "999999999", ErrorMessage = "Amount must be a valid value")]
+    decimal Amount,
+
+    [Required(ErrorMessage = "Payee is required")]
+    [NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
+    [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
+    string Payee,
+
+    [MaxLength(1000, ErrorMessage = "Memo cannot exceed 1000 characters")]
+    string? Memo,
+
+    [MaxLength(200, ErrorMessage = "Source cannot exceed 200 characters")]
+    string? Source,
+
+    [MaxLength(100, ErrorMessage = "ExternalId cannot exceed 100 characters")]
+    string? ExternalId,
+
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
+    string? Category
+);
+```
+
+**Beta 2 Version** (Multi-split with Splits collection):
 
 ```csharp
 /// <summary>
 /// Transaction data for creating or updating transactions (input DTO).
 /// </summary>
 /// <param name="Date">Date the transaction occurred</param>
-/// <param name="Amount">Transaction amount (required for creation, readonly after creation)</param>
+/// <param name="Amount">Transaction amount (authoritative value, can be negative for credits)</param>
 /// <param name="Payee">Recipient or payee of the transaction</param>
 /// <param name="Memo">Optional memo for the transaction</param>
-/// <param name="Source">Source of the transaction (e.g., "MegaBankCorp Checking 0123456789-00", "Manual Entry")</param>
+/// <param name="Source">Source of the transaction (readonly after creation)</param>
+/// <param name="ExternalId">Bank's unique identifier (readonly after creation)</param>
 /// <param name="Splits">Collection of splits categorizing this transaction</param>
 /// <remarks>
-/// Input DTO with validation attributes. Used for both creating new transactions
-/// and updating existing transactions.
+/// Beta 2 input DTO for multi-split transactions. Used for atomic replacement of all splits.
 ///
-/// For updates:
-/// - Amount and Source are readonly after creation (imported values)
-/// - Date, Payee, Memo, and Splits can be modified
+/// **Multi-split behavior:**
+/// - Amount edits do NOT automatically adjust splits (creates imbalance warning)
+/// - Splits collection replaces all existing splits atomically
 /// - At least one split is required
 ///
 /// Validation rules:
 /// - Date: Must be within 50 years in the past and 5 years in the future
-/// - Amount: Must be non-zero (for creation only)
+/// - Amount: Can be any value including zero (offsetting splits are valid)
 /// - Payee: Required, cannot be empty or whitespace, max 200 characters
 /// - Splits: At least one split required; each split must have valid Amount and Category
 /// </remarks>
@@ -656,31 +833,98 @@ public record TransactionEditDto(
     [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
     string Payee,
 
-    [MaxLength(500, ErrorMessage = "Memo cannot exceed 500 characters")]
+    [MaxLength(1000, ErrorMessage = "Memo cannot exceed 1000 characters")]
     string? Memo,
 
-    [MaxLength(100, ErrorMessage = "Source cannot exceed 100 characters")]
+    [MaxLength(200, ErrorMessage = "Source cannot exceed 200 characters")]
     string? Source,
+
+    [MaxLength(100, ErrorMessage = "ExternalId cannot exceed 100 characters")]
+    string? ExternalId,
 
     [MinLength(1, ErrorMessage = "Transaction must have at least one split")]
     IReadOnlyCollection<SplitEditDto> Splits
 );
 ```
 
+### TransactionQuickEditDto (Quick Edit Input)
+
+**Alpha 1 Version** (With Category field):
+
+```csharp
+/// <summary>
+/// Transaction data for quick editing from list view (payee, memo, and category).
+/// </summary>
+/// <param name="Payee">Recipient or payee of the transaction (required, cannot be whitespace, max 200 chars)</param>
+/// <param name="Memo">Optional memo for additional context (max 1000 chars)</param>
+/// <param name="Category">Category for the single split (optional, max 200 chars)</param>
+/// <remarks>
+/// Alpha 1 specialized input DTO for "light" edits from the transaction list view.
+/// Allows updating Payee, Memo, and Category fields, preserving all other transaction
+/// properties (Date, Amount, Source, ExternalId) unchanged.
+///
+/// Category field directly edits the single split's category (user never sees split complexity).
+///
+/// For full transaction updates, use <see cref="TransactionEditDto"/>.
+/// </remarks>
+public record TransactionQuickEditDto(
+    [Required(ErrorMessage = "Payee is required")]
+    [NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
+    [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
+    string Payee,
+
+    [MaxLength(1000, ErrorMessage =="Memo cannot exceed 1000 characters")]
+    string? Memo,
+
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
+    string? Category
+);
+```
+
+**Beta 2 Version** (Category disabled for multi-split):
+
+```csharp
+/// <summary>
+/// Transaction data for quick editing from list view (payee and memo; category only for single-split).
+/// </summary>
+/// <param name="Payee">Recipient or payee of the transaction (required, cannot be whitespace, max 200 chars)</param>
+/// <param name="Memo">Optional memo for additional context (max 1000 chars)</param>
+/// <param name="Category">Category for the single split (optional, only valid if transaction has single split)</param>
+/// <remarks>
+/// Beta 2 quick edit DTO. Category field is only allowed for single-split transactions.
+/// Backend will reject Category updates if transaction has multiple splits (must use split editor).
+///
+/// For full transaction updates including multi-split management, use split CRUD endpoints.
+/// </remarks>
+public record TransactionQuickEditDto(
+    [Required(ErrorMessage = "Payee is required")]
+    [NotWhiteSpace(ErrorMessage = "Payee cannot be empty")]
+    [MaxLength(200, ErrorMessage = "Payee cannot exceed 200 characters")]
+    string Payee,
+
+    [MaxLength(1000, ErrorMessage = "Memo cannot exceed 1000 characters")]
+    string? Memo,
+
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
+    string? Category
+);
+```
+
 ### SplitResultDto (Output)
 
-Output DTO for split data.
+Output DTO for split data (same for A1 and Beta 2).
 
 ```csharp
 /// <summary>
 /// Split data returned from queries (output-only).
 /// </summary>
 /// <param name="Key">Unique identifier for the split</param>
-/// <param name="Amount">Amount allocated to this category</param>
+/// <param name="Amount">Amount allocated to this category (can be zero or negative)</param>
 /// <param name="Category">Category for this split (empty string for uncategorized)</param>
 /// <param name="Memo">Optional memo specific to this split</param>
 /// <remarks>
 /// Output DTO for split data. Order is implicitly defined by collection order.
+/// Used in both A1 (backend only) and Beta 2 (frontend and backend).
 /// </remarks>
 public record SplitResultDto(
     Guid Key,
@@ -692,29 +936,29 @@ public record SplitResultDto(
 
 ### SplitEditDto (Input)
 
-Input DTO for split data.
+Input DTO for split data (Beta 2 only - not used in A1 UI).
 
 ```csharp
 /// <summary>
 /// Split data for creating or updating splits (input DTO).
 /// </summary>
-/// <param name="Amount">Amount allocated to this category</param>
-/// <param name="Category">Category for this split (empty string for uncategorized)</param>
-/// <param name="Memo">Optional memo specific to this split</param>
+/// <param name="Amount">Amount allocated to this category (can be zero or negative for offsetting splits)</param>
+/// <param name="Category">Category for this split (empty string for uncategorized, max 200 chars)</param>
+/// <param name="Memo">Optional memo specific to this split (max 500 chars)</param>
 /// <remarks>
-/// Input DTO with validation attributes. Used within <see cref="TransactionEditDto"/>
-/// and for individual split operations (POST/PUT).
+/// Beta 2 input DTO with validation attributes. Used for individual split operations (POST/PUT)
+/// and within atomic transaction updates.
 ///
 /// Validation rules:
-/// - Amount: Must be non-zero
-/// - Category: Max 100 characters (empty string allowed for uncategorized)
+/// - Amount: Can be any value including zero (offsetting splits like +$100 and -$100 are valid)
+/// - Category: Max 200 characters (empty string allowed for uncategorized)
 /// - Memo: Optional, max 500 characters
 /// </remarks>
 public record SplitEditDto(
     [Range(typeof(decimal), "-999999999", "999999999", ErrorMessage = "Split amount must be a valid value")]
     decimal Amount,
 
-    [MaxLength(100, ErrorMessage = "Category cannot exceed 100 characters")]
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
     string Category,
 
     [MaxLength(500, ErrorMessage = "Memo cannot exceed 500 characters")]
