@@ -84,9 +84,9 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// </summary>
     /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId.</param>
     /// <remarks>
-    /// Parses transaction data from table, seeds via Test Control API, stores transaction
-    /// details in object store for later verification, navigates to transactions page,
-    /// and selects the workspace. Default amount is 100.00 if not specified.
+    /// Parses transaction data from table, seeds via Test Control API, and stores transaction
+    /// details in object store for later verification. Does NOT navigate to transactions page -
+    /// use "And I am on the transactions page" step separately. Default amount is 100.00 if not specified.
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
     protected async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
@@ -141,15 +141,6 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         // Store the transaction key for later reference
         _objectStore.Add(KEY_TRANSACTION_KEY, seededTransaction.Key.ToString());
-
-        // And: Navigate to transactions page
-        var transactionsPage = GetOrCreatePage<TransactionsPage>();
-        await transactionsPage.NavigateAsync();
-        await transactionsPage.WaitForLoadingCompleteAsync();
-
-        // And: Select the workspace
-        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
-        await transactionsPage.WaitForLoadingCompleteAsync();
     }
 
     /// <summary>
@@ -166,6 +157,9 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     {
         // Given: Seed the transaction using the existing step
         await GivenIHaveAWorkspaceWithATransaction(transactionTable);
+
+        // And: Navigate to transactions page
+        await GivenIAmOnTheTransactionsPage();
 
         // When: Click on the transaction row to navigate to details page
         await WhenIClickOnTheTransactionRow();

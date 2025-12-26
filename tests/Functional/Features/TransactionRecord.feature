@@ -20,6 +20,7 @@ Rule: Quick Edit Modal
             | Payee  | Coffee Shop     |
             | Amount | 5.50            |
             | Memo   | Morning coffee  |
+        And I am on the transactions page
         When I click the "Edit" button on the transaction
         Then I should see a modal titled "Quick Edit Transaction"
         And I should only see fields for "Payee" and "Memo"
@@ -33,6 +34,7 @@ Rule: Quick Edit Modal
             | Memo       | Morning latte  |
             | Source     | Chase Checking |
             | ExternalId | CHK-001        |
+        And I am on the transactions page
         When I quick edit the "Coffee Co" transaction
         And I change Memo to "Large latte with extra shot"
         And I click "Update"
@@ -47,6 +49,7 @@ Rule: Quick Edit Modal
             | Memo       | Fuel up        |
             | Source     | Chase Checking |
             | ExternalId | CHK-002        |
+        And I am on the transactions page
         When I click on the transaction row
         Then I should navigate to the transaction details page
         And I should see all the expected transaction fields displayed
