@@ -30,6 +30,9 @@ const { baseUrl } = useApiBaseUrl()
 const authFetch = useAuthFetch()
 const transactionsClient = new TransactionsClient(baseUrl, authFetch)
 
+// Page ready state (for SSR/hydration)
+const ready = ref(false)
+
 // State
 const transaction = ref<TransactionDetailDto | null>(null)
 const loading = ref(false)
@@ -70,6 +73,7 @@ const canEditTransactions = computed(() => {
 
 // Load transaction on mount
 onMounted(async () => {
+  ready.value = true
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value && transactionKey.value) {
     await loadTransaction()
@@ -255,7 +259,7 @@ function formatCurrency(amount: number | undefined): string {
           <button
             class="btn btn-primary me-2"
             data-test-id="edit-button"
-            :disabled="loading"
+            :disabled="loading || !ready"
             @click="startEditing"
           >
             <FeatherIcon

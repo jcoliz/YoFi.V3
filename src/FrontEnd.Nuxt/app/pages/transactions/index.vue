@@ -30,6 +30,9 @@ const { baseUrl } = useApiBaseUrl()
 const authFetch = useAuthFetch()
 const transactionsClient = new TransactionsClient(baseUrl, authFetch)
 
+// Page ready state (for SSR/hydration)
+const ready = ref(false)
+
 // State
 const transactions = ref<TransactionResultDto[]>([])
 const loading = ref(false)
@@ -83,6 +86,7 @@ watch(currentTenantKey, async (newKey) => {
 
 // Load transactions on mount
 onMounted(async () => {
+  ready.value = true
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value) {
     await loadTransactions()
@@ -321,7 +325,7 @@ function formatCurrency(amount: number | undefined): string {
           v-if="canEditTransactions"
           class="btn btn-primary"
           data-test-id="new-transaction-button"
-          :disabled="loading"
+          :disabled="loading || !ready"
           @click="openCreateModal"
         >
           <FeatherIcon

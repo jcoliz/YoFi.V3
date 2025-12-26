@@ -145,6 +145,21 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator CreateAmountInput => Page!.GetByTestId("create-transaction-amount");
 
     /// <summary>
+    /// Memo textarea in create modal
+    /// </summary>
+    public ILocator CreateMemoInput => Page!.GetByTestId("create-transaction-memo");
+
+    /// <summary>
+    /// Source input in create modal
+    /// </summary>
+    public ILocator CreateSourceInput => Page!.GetByTestId("create-transaction-source");
+
+    /// <summary>
+    /// External ID input in create modal
+    /// </summary>
+    public ILocator CreateExternalIdInput => Page!.GetByTestId("create-transaction-external-id");
+
+    /// <summary>
     /// Create button in modal
     /// </summary>
     public ILocator CreateButton => CreateModal.GetByTestId("create-submit-button");
@@ -172,6 +187,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// Payee input in edit modal
     /// </summary>
     public ILocator EditPayeeInput => Page!.GetByTestId("edit-transaction-payee");
+
+    /// <summary>
+    /// Memo textarea in edit modal
+    /// </summary>
+    public ILocator EditMemoInput => Page!.GetByTestId("edit-transaction-memo");
 
     /// <summary>
     /// Amount input in edit modal
@@ -219,12 +239,59 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Navigates to the transactions page
     /// </summary>
-    public async Task NavigateAsync()
+    /// <param name="waitForReady">Whether to wait for the page to be ready after navigation</param>
+    public async Task NavigateAsync(bool waitForReady = true)
     {
         await WaitForApi(async () =>
         {
             await Page!.GotoAsync("/transactions");
         }, TransactionsApiRegex());
+
+        if (waitForReady)
+        {
+            await WaitForPageReadyAsync();
+        }
+    }
+
+    /// <summary>
+    /// Waits for the page to be ready for interaction
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Waits for the New Transaction button to become enabled, indicating client hydration is complete.
+    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// </remarks>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await WaitForNewTransactionButtonEnabledAsync(timeout);
+    }
+
+    /// <summary>
+    /// Waits until the New Transaction button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
+    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// </remarks>
+    public async Task WaitForNewTransactionButtonEnabledAsync(float timeout = 5000)
+    {
+        await NewTransactionButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await NewTransactionButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the button is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await NewTransactionButton.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return; // Button is now enabled - page is ready
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"New Transaction button did not become enabled within {timeout}ms");
     }
 
     #endregion
@@ -278,6 +345,42 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task FillCreateAmountAsync(decimal amount)
     {
         await CreateAmountInput.FillAsync(amount.ToString("F2"));
+    }
+
+    /// <summary>
+    /// Fills the memo field in the create transaction modal
+    /// </summary>
+    /// <param name="memo">Transaction memo</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateMemoAsync(string memo)
+    {
+        await CreateMemoInput.FillAsync(memo);
+    }
+
+    /// <summary>
+    /// Fills the source field in the create transaction modal
+    /// </summary>
+    /// <param name="source">Transaction source (bank account)</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateSourceAsync(string source)
+    {
+        await CreateSourceInput.FillAsync(source);
+    }
+
+    /// <summary>
+    /// Fills the external ID field in the create transaction modal
+    /// </summary>
+    /// <param name="externalId">Bank's unique transaction identifier</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateExternalIdAsync(string externalId)
+    {
+        await CreateExternalIdInput.FillAsync(externalId);
     }
 
     /// <summary>
@@ -431,6 +534,19 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task FillEditPayeeAsync(string newPayee)
     {
         await EditPayeeInput.FillAsync(newPayee);
+    }
+
+    /// <summary>
+    /// Fills the memo field in the edit transaction modal
+    /// </summary>
+    /// <param name="newMemo">New memo text</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form updates or validation.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task FillEditMemoAsync(string newMemo)
+    {
+        await EditMemoInput.FillAsync(newMemo);
     }
 
     /// <summary>
@@ -652,6 +768,18 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         var row = GetTransactionRowByPayee(payeeName);
         var amountCell = row.Locator("td.text-end").First;
         return await amountCell.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the memo text from a transaction row by payee name
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction</param>
+    /// <returns>The memo text as displayed in the table (may be truncated)</returns>
+    public async Task<string?> GetTransactionMemoAsync(string payeeName)
+    {
+        var row = GetTransactionRowByPayee(payeeName);
+        var memoCell = row.Locator("td.memo-cell");
+        return await memoCell.TextContentAsync();
     }
 
     /// <summary>
