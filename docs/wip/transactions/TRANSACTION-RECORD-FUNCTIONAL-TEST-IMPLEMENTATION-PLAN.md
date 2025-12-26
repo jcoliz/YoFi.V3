@@ -1,5 +1,5 @@
 ---
-status: In Progress - 3 of 8 scenarios complete
+status: In Progress - 4 of 8 scenarios complete
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -27,7 +27,7 @@ This document provides a detailed implementation plan for the 8 approved functio
 - ✅ **Scenario 1: Quick edit modal shows only Payee and Memo fields** - COMPLETE
 - ✅ **Scenario 2: User updates Memo via quick edit modal** - COMPLETE
 - ✅ **Scenario 3: User navigates from transaction list to details page** - COMPLETE
-- ⏳ **Scenario 4: User edits all fields on transaction details page** - PENDING
+- ✅ **Scenario 4: User edits all fields on transaction details page** - COMPLETE
 - ⏳ **Scenario 5: User returns to list from transaction details page** - PENDING
 - ⏳ **Scenario 6: User sees all fields in create transaction modal** - PENDING
 - ⏳ **Scenario 7: User creates transaction with all fields populated** - PENDING
@@ -555,41 +555,19 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 4: User edits all fields on transaction details page
 
-**Steps to Implement**:
+**Status: ✅ COMPLETE - Implemented and passing (3s duration)**
 
-1. **`GivenIAmViewingTheDetailsPageForATransactionWith(DataTable)`**:
-   - Create workspace and transaction (reuse logic from Scenario 1)
-   - Navigate directly to details page: `await detailsPage.NavigateAsync(transactionKey)`
-   - Wait for page ready
+**Implementation Notes**:
+- Reused [`GivenIHaveAWorkspaceWithATransaction`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:91) to seed transaction and navigate to transactions page
+- Used [`WhenIClickOnTheTransactionRow`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:334) to navigate to details page (mimics user behavior)
+- Added [`KEY_EDIT_MODE`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:31) to object store to track which page mode we're in
+- Implemented [`WhenIClickSave`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:327) with mode detection to support both quick edit modal and details page
+- Created helper methods [`WhenIClickSaveInTransactionDetails`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:347) and [`WhenIClickSaveInEditForm`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:358) for specific save contexts
+- [`ThenIShouldSeeValueAsField`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:927) uses switch expression to support multiple field names
 
-2. **`WhenIClickTheEditButton()`**:
-   - Get TransactionDetailsPage
-   - Click Edit button: `await detailsPage.StartEditingAsync()`
-   - Wait for edit mode to activate
+**Key Design Decision**: Instead of navigating directly to the details page URL, the step reuses existing infrastructure to navigate to transactions page → select workspace → click row. This mimics actual user behavior and avoids workspace context issues.
 
-3. **`WhenIChangeSourceTo(string newSource)`**:
-   - Get TransactionDetailsPage
-   - Fill source field: `await detailsPage.FillSourceAsync(newSource)`
-   - Store new source in object store
-
-4. **`WhenIChangeExternalIdTo(string newExternalId)`**:
-   - Get TransactionDetailsPage
-   - Fill external ID field: `await detailsPage.FillExternalIdAsync(newExternalId)`
-   - Store new external ID in object store
-
-5. **`WhenIClickSave()`**:
-   - Get TransactionDetailsPage
-   - Click Save button: `await detailsPage.SaveAsync()`
-   - Wait for save to complete (display mode returns)
-
-6. **`ThenIShouldSeeValueAsField(string expectedValue, string fieldName)`**:
-   - Get TransactionDetailsPage
-   - Based on fieldName, call appropriate getter:
-     - "Source" → `await detailsPage.GetDisplayedSourceAsync()`
-     - "ExternalId" → `await detailsPage.GetDisplayedExternalIdAsync()`
-   - Assert value matches expected
-
-**Run Test**: `dotnet test tests/Functional --filter "Name~edits_all_fields_on_transaction_details"`
+**Run Test**: `dotnet test tests/Functional --filter "Name~UserEditsAllFieldsOnTransactionDetailsPage"`
 
 ---
 

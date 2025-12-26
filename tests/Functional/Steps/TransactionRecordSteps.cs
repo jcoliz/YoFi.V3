@@ -28,6 +28,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     protected const string KEY_TRANSACTION_SOURCE = "TransactionSource";
     protected const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
     protected const string KEY_TRANSACTION_KEY = "TransactionKey";
+    protected const string KEY_EDIT_MODE = "EditMode"; // "TransactionDetailsPage" or "TransactionsPage"
 
     #endregion
 
@@ -151,6 +152,32 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         await transactionsPage.WaitForLoadingCompleteAsync();
     }
 
+    /// <summary>
+    /// Sets up a logged-in user with Editor role, creates a transaction, and navigates to its details page.
+    /// </summary>
+    /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId.</param>
+    /// <remarks>
+    /// Complete setup for testing transaction details page. Creates workspace, seeds transaction,
+    /// stores transaction data in object store, navigates to transactions page, and clicks on the
+    /// transaction row to reach the details page (mimics user behavior).
+    /// </remarks>
+    [Given("I am viewing the details page for a transaction with:")]
+    protected async Task GivenIAmViewingTheDetailsPageForATransactionWith(DataTable transactionTable)
+    {
+        // Given: Seed the transaction using the existing step
+        await GivenIHaveAWorkspaceWithATransaction(transactionTable);
+
+        // When: Click on the transaction row to navigate to details page
+        await WhenIClickOnTheTransactionRow();
+
+        // And: Wait for the transaction details page to be ready
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.WaitForPageReadyAsync();
+
+        // And: Mark that we're in transaction details page mode
+        _objectStore.Add(KEY_EDIT_MODE, "TransactionDetailsPage");
+    }
+
     #endregion
 
     #region When Steps
@@ -243,14 +270,105 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// </summary>
     /// <remarks>
     /// Submits the currently open edit form. Used with both quick edit modal
-    /// and full details page.
+    /// and full details page. Uses object store to determine which mode we're in.
     /// </remarks>
     [When("I click \"Save\"")]
     protected async Task WhenIClickSave()
     {
-        // When: Submit the edit form
+        // When: Check object store for edit mode
+        if (_objectStore.Contains<string>(KEY_EDIT_MODE))
+        {
+            var editMode = _objectStore.Get<string>(KEY_EDIT_MODE);
+            if (editMode == "TransactionDetailsPage")
+            {
+                await WhenIClickSaveInTransactionDetails();
+            }
+            else
+            {
+                await WhenIClickSaveInEditForm();
+            }
+        }
+        else
+        {
+            // Default to edit form for backward compatibility
+            await WhenIClickSaveInEditForm();
+        }
+    }
+
+    /// <summary>
+    /// Saves transaction changes from the transaction details page.
+    /// </summary>
+    /// <remarks>
+    /// Submits the full details page edit form (PUT endpoint).
+    /// </remarks>
+    protected async Task WhenIClickSaveInTransactionDetails()
+    {
+        // When: Save from details page edit mode
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.SaveAsync();
+    }
+
+    /// <summary>
+    /// Saves transaction changes from the quick edit modal.
+    /// </summary>
+    /// <remarks>
+    /// Submits the quick edit modal form (PATCH endpoint).
+    /// </remarks>
+    protected async Task WhenIClickSaveInEditForm()
+    {
+        // When: Submit edit form from transactions page modal
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         await transactionsPage.SubmitEditFormAsync();
+    }
+
+    /// <summary>
+    /// Clicks the Edit button on the transaction details page.
+    /// </summary>
+    /// <remarks>
+    /// Transitions from display mode to edit mode on the details page.
+    /// </remarks>
+    [When("I click the \"Edit\" button")]
+    protected async Task WhenIClickTheEditButton()
+    {
+        // When: Click the Edit button to enter edit mode
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.StartEditingAsync();
+    }
+
+    /// <summary>
+    /// Changes the Source field to the specified value.
+    /// </summary>
+    /// <param name="newSource">The new source value.</param>
+    /// <remarks>
+    /// Fills the source field and stores the new value in object store for verification.
+    /// </remarks>
+    [When("I change Source to {newSource}")]
+    protected async Task WhenIChangeSourceTo(string newSource)
+    {
+        // When: Fill the source field
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.FillSourceAsync(newSource);
+
+        // And: Store the new source for verification
+        _objectStore.Add(KEY_TRANSACTION_SOURCE, newSource);
+    }
+
+    /// <summary>
+    /// Changes the ExternalId field to the specified value.
+    /// </summary>
+    /// <param name="newExternalId">The new external ID value.</param>
+    /// <remarks>
+    /// Fills the external ID field and stores the new value in object store for verification.
+    /// </remarks>
+    [When("I change ExternalId to {newExternalId}")]
+    protected async Task WhenIChangeExternalIdTo(string newExternalId)
+    {
+        // When: Fill the external ID field
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.FillExternalIdAsync(newExternalId);
+
+        // And: Store the new external ID for verification
+        _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, newExternalId);
     }
 
     /// <summary>
@@ -748,6 +866,34 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         var hasTransaction = await transactionsPage.HasTransactionAsync(newPayee);
         Assert.That(hasTransaction, Is.True, $"Transaction with payee '{newPayee}' should exist in the list");
+    }
+
+    /// <summary>
+    /// Verifies that a specific field displays the expected value on the transaction details page.
+    /// </summary>
+    /// <param name="expectedValue">The expected value to see.</param>
+    /// <param name="fieldName">The field name (e.g., "Source", "ExternalId").</param>
+    /// <remarks>
+    /// Retrieves the field value from the transaction details page and verifies it matches
+    /// the expected value. Supports "Source" and "ExternalId" field names.
+    /// </remarks>
+    [Then("I should see {expectedValue} as the {fieldName}")]
+    protected async Task ThenIShouldSeeValueAsField(string expectedValue, string fieldName)
+    {
+        // Then: Get the TransactionDetailsPage
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+
+        // And: Get the field value based on field name
+        string? actualValue = fieldName switch
+        {
+            "Source" => await detailsPage.GetSourceAsync(),
+            "ExternalId" => await detailsPage.GetExternalIdAsync(),
+            _ => throw new ArgumentException($"Unsupported field name: {fieldName}")
+        };
+
+        // And: Verify the field displays the expected value
+        Assert.That(actualValue?.Trim(), Is.EqualTo(expectedValue),
+            $"{fieldName} field should be '{expectedValue}' but was '{actualValue}'");
     }
 
     #endregion

@@ -50,3 +50,18 @@ Rule: Quick Edit Modal
         When I click on the transaction row
         Then I should navigate to the transaction details page
         And I should see all the expected transaction fields displayed
+
+    Scenario: User edits all fields on transaction details page
+        Given I am viewing the details page for a transaction with:
+            | Field      | Value          |
+            | Payee      | Gas Mart       |
+            | Amount     | -40.00         |
+            | Memo       | Fuel up        |
+            | Source     | Chase Checking |
+            | ExternalId | CHK-002        |
+        When I click the "Edit" button
+        And I change Source to "Chase Visa"
+        And I change ExternalId to "VISA-123"
+        And I click "Save"
+        Then I should see "Chase Visa" as the Source
+        And I should see "VISA-123" as the ExternalId

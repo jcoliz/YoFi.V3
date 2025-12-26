@@ -113,5 +113,41 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
     }
 
+    /// <summary>
+    /// User edits all fields on transaction details page
+    /// </summary>
+    [Test]
+    public async Task UserEditsAllFieldsOnTransactionDetailsPage()
+    {
+        // Given I am viewing the details page for a transaction with:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Gas Mart"],
+            ["Amount", "-40.00"],
+            ["Memo", "Fuel up"],
+            ["Source", "Chase Checking"],
+            ["ExternalId", "CHK-002"]
+        );
+        await GivenIAmViewingTheDetailsPageForATransactionWith(table);
+
+        // When I click the "Edit" button
+        await WhenIClickTheEditButton();
+
+        // And I change Source to "Chase Visa"
+        await WhenIChangeSourceTo("Chase Visa");
+
+        // And I change ExternalId to "VISA-123"
+        await WhenIChangeExternalIdTo("VISA-123");
+
+        // And I click "Save"
+        await WhenIClickSave();
+
+        // Then I should see "Chase Visa" as the Source
+        await ThenIShouldSeeValueAsField("Chase Visa", "Source");
+
+        // And I should see "VISA-123" as the ExternalId
+        await ThenIShouldSeeValueAsField("VISA-123", "ExternalId");
+    }
+
     #endregion
 }
