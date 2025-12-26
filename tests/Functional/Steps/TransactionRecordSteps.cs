@@ -178,6 +178,26 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         _objectStore.Add(KEY_EDIT_MODE, "TransactionDetailsPage");
     }
 
+    /// <summary>
+    /// Sets up a logged-in user with Editor role, creates a transaction, and navigates to its details page.
+    /// </summary>
+    /// <remarks>
+    /// Simplified version without DataTable parameter. Seeds a basic transaction and navigates to the details page.
+    /// </remarks>
+    [Given("I am viewing the details page for a transaction")]
+    protected async Task GivenIAmViewingTheDetailsPageForATransaction()
+    {
+        // Given: Create a basic transaction DataTable
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Test Transaction"],
+            ["Amount", "100.00"]
+        );
+
+        // When: Use existing step to seed transaction and navigate to details page
+        await GivenIAmViewingTheDetailsPageForATransactionWith(table);
+    }
+
     #endregion
 
     #region When Steps
@@ -472,6 +492,20 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // When: Submit the create form
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         await transactionsPage.SubmitCreateFormAsync();
+    }
+
+    /// <summary>
+    /// Clicks the "Back to Transactions" button to return to the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Navigates from the transaction details page back to the transactions list page.
+    /// </remarks>
+    [When("I click \"Back to Transactions\"")]
+    protected async Task WhenIClickBackToTransactions()
+    {
+        // When: Click the back button to return to transactions list
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.GoBackAsync();
     }
 
     #endregion
@@ -894,6 +928,41 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // And: Verify the field displays the expected value
         Assert.That(actualValue?.Trim(), Is.EqualTo(expectedValue),
             $"{fieldName} field should be '{expectedValue}' but was '{actualValue}'");
+    }
+
+    /// <summary>
+    /// Verifies that the user returned to the transaction list page.
+    /// </summary>
+    /// <remarks>
+    /// Waits for the transactions page to be ready after navigation.
+    /// </remarks>
+    [Then("I should return to the transaction list")]
+    protected async Task ThenIShouldReturnToTheTransactionList()
+    {
+        // Then: Get TransactionsPage and wait for it to be ready
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForPageReadyAsync();
+    }
+
+    /// <summary>
+    /// Verifies that the transaction created in the Given step is visible in the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the payee from object store and verifies the transaction is present in the list.
+    /// </remarks>
+    [Then("I should see all my transactions")]
+    protected async Task ThenIShouldSeeAllMyTransactions()
+    {
+        // Then: Get the expected payee from object store
+        var expectedPayee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+
+        // And: Get TransactionsPage
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+
+        // And: Verify the transaction is visible in the list
+        var hasTransaction = await transactionsPage.HasTransactionAsync(expectedPayee);
+        Assert.That(hasTransaction, Is.True,
+            $"Should see transaction with payee '{expectedPayee}' in the list");
     }
 
     #endregion

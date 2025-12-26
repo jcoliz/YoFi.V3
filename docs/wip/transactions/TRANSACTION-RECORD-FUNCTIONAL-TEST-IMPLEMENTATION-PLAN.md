@@ -1,5 +1,5 @@
 ---
-status: In Progress - 4 of 8 scenarios complete
+status: In Progress - 5 of 8 scenarios complete
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -28,7 +28,7 @@ This document provides a detailed implementation plan for the 8 approved functio
 - ✅ **Scenario 2: User updates Memo via quick edit modal** - COMPLETE
 - ✅ **Scenario 3: User navigates from transaction list to details page** - COMPLETE
 - ✅ **Scenario 4: User edits all fields on transaction details page** - COMPLETE
-- ⏳ **Scenario 5: User returns to list from transaction details page** - PENDING
+- ✅ **Scenario 5: User returns to list from transaction details page** - COMPLETE
 - ⏳ **Scenario 6: User sees all fields in create transaction modal** - PENDING
 - ⏳ **Scenario 7: User creates transaction with all fields populated** - PENDING
 - ⏳ **Scenario 8: Created transaction displays all fields on details page** - PENDING
@@ -573,26 +573,18 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 5: User returns to list from transaction details page
 
-**Steps to Implement**:
+**Status: ✅ COMPLETE - Implemented and passing (3s duration)**
 
-1. Reuse: `GivenIAmViewingTheDetailsPageForATransactionWith(DataTable)` (already implemented)
+**Implementation Notes**:
+- Created simplified [`GivenIAmViewingTheDetailsPageForATransaction()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:185) without DataTable parameter
+- Implemented [`WhenIClickBackToTransactions()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:507) using TransactionDetailsPage.GoBackAsync()
+- Updated [`TransactionDetailsPage.GoBackAsync()`](../../../tests/Functional/Pages/TransactionDetailsPage.cs:250) to handle client-side routing (Vue Router/NuxtLink) by polling URL change instead of waiting for navigation event
+- Implemented [`ThenIShouldReturnToTheTransactionList()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:932) to wait for page ready state
+- Implemented [`ThenIShouldSeeAllMyTransactions()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:943) to verify the seeded transaction is visible in the list (retrieves payee from object store)
 
-2. **`WhenIClickBackToTransactions()`**:
-   - Get TransactionDetailsPage
-   - Click back button/link (need to add to POM if missing)
-   - OR: Navigate directly to list page
+**Key Design Decision**: The back button uses client-side routing (NuxtLink), so `GoBackAsync()` polls the URL until it changes to `/transactions` (without the GUID suffix) rather than waiting for a page navigation event. This handles Vue Router's client-side transitions correctly.
 
-3. **`ThenIShouldReturnToTheTransactionList()`**:
-   - Assert URL is `/transactions` (list page)
-   - Get TransactionsPage
-   - Wait for page ready: `await transactionsPage.WaitForPageReadyAsync()`
-
-4. **`ThenIShouldSeeAllMyTransactions()`**:
-   - Get TransactionsPage
-   - Get transaction count: `await transactionsPage.GetTransactionCountAsync()`
-   - Assert count is greater than 0
-
-**Run Test**: `dotnet test tests/Functional --filter "Name~returns_to_list_from_transaction_details"`
+**Run Test**: `dotnet test tests/Functional --filter "Name~UserReturnsToListFromTransactionDetailsPage"`
 
 ---
 

@@ -149,5 +149,24 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await ThenIShouldSeeValueAsField("VISA-123", "ExternalId");
     }
 
+    /// <summary>
+    /// User returns to list from transaction details page
+    /// </summary>
+    [Test]
+    public async Task UserReturnsToListFromTransactionDetailsPage()
+    {
+        // Given I am viewing the details page for a transaction
+        await GivenIAmViewingTheDetailsPageForATransaction();
+
+        // When I click "Back to Transactions"
+        await WhenIClickBackToTransactions();
+
+        // Then I should return to the transaction list
+        await ThenIShouldReturnToTheTransactionList();
+
+        // And I should see all my transactions
+        await ThenIShouldSeeAllMyTransactions();
+    }
+
     #endregion
 }

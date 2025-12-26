@@ -65,3 +65,9 @@ Rule: Quick Edit Modal
         And I click "Save"
         Then I should see "Chase Visa" as the Source
         And I should see "VISA-123" as the ExternalId
+
+    Scenario: User returns to list from transaction details page
+        Given I am viewing the details page for a transaction
+        When I click "Back to Transactions"
+        Then I should return to the transaction list
+        And I should see all my transactions

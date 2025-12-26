@@ -247,10 +247,27 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Navigates back to the transactions list
     /// </summary>
+    /// <remarks>
+    /// Uses client-side routing (NuxtLink), so checks URL change rather than waiting for navigation event.
+    /// </remarks>
     public async Task GoBackAsync()
     {
         await BackButton.ClickAsync();
-        await Page!.WaitForURLAsync("**/transactions");
+
+        // For client-side routing, poll the URL until it changes to transactions list (not details)
+        var deadline = DateTime.UtcNow.AddMilliseconds(5000);
+        while (DateTime.UtcNow < deadline)
+        {
+            var currentUrl = Page!.Url;
+            // Check if URL ends with /transactions (not /transactions/{guid})
+            if (currentUrl.EndsWith("/transactions"))
+            {
+                return; // Successfully navigated to transactions list
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Did not navigate to transactions list within 5000ms. Current URL: {Page!.Url}");
     }
 
     #endregion
