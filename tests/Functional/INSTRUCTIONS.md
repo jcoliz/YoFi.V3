@@ -111,18 +111,22 @@ await ThenIShouldSeeMyAccountInformation(table);
 
 Each step in the feature file must be mapped to a corresponding method in the base class:
 
-1. **Locate the method BY XML COMMENT**: Find the method in `@baseclass` file whose XML summary comment (e.g., `/// <summary>Given: I am on the home page</summary>`) matches the step text pattern. The XML comment format is `{Keyword}: {step text}`.
-   - **CRITICAL**: The XML comment is the authoritative pattern matcher, NOT the method name
-   - **CRITICAL**: Match against the XML comment text, which may use regex patterns like `(.+)` for capturing groups
-   - The method name may differ from the step text (e.g., XML comment says "containing (.+)" but method is named `ThenIShouldSeeAnErrorMessage`)
-   - When creating new step methods, ensure the XML comment matches the Gherkin step pattern exactly
+1. **Locate the method BY CUSTOM ATTRIBUTE**: Find the method in `@baseclass` file whose custom step attribute (e.g., `[Given("I am on the home page")]`) matches the step text pattern.
+   - **CRITICAL**: The step attribute pattern is the authoritative pattern matcher, NOT the method name or XML comments
+   - **CRITICAL**: Match against the attribute pattern text, which may use regex patterns like `(.+)` for capturing groups or `{placeholder}` for parameters
+   - The method name may differ from the step text (e.g., attribute says `[Then("I should see an error message containing {errorMessage}")]` but method is named `ThenIShouldSeeAnErrorMessage`)
+   - Step attributes are: `[Given("pattern")]`, `[When("pattern")]`, `[Then("pattern")]`
+   - Methods can have multiple attributes if they serve multiple step patterns
+   - When creating new step methods, add the appropriate attribute with a pattern matching the Gherkin step exactly
 2. **Handle `And` keyword correctly**: When a scenario step uses the `And` keyword, interpret this as the most recent non-`And` keyword encountered. For example:
    - If a `Then` step is followed by `And` steps, interpret those `And` steps as `Then` steps when searching for matching methods
    - If a `Given` step is followed by `And` steps, interpret those `And` steps as `Given` steps when searching for matching methods
-   - When searching the base class, look for methods with XML comments like `/// <summary>Then: {step text}</summary>` even though the original step says `And`
+   - When searching the base class, look for methods with attributes like `[Then("step text")]` even though the original step says `And`
 3. **Use exact method names**: Use the exact method name as it appears in the `@baseclass` file. Do NOT modify or infer method names.
-4. **Extract parameters**: Identify quoted strings (`"text"`) or placeholder values (`<variable>`) in the step text, matching capture groups in the XML comment pattern
-5. **Handle data tables**: If the step is followed by a table, create a `DataTable` object and pass it as a parameter
+4. **Extract parameters**: Identify quoted strings (`"text"`) or placeholder values (`<variable>`) in the step text, matching:
+   - Capture groups in regex patterns: `(.+)` matches any text
+   - Parameter placeholders: `{parameterName}` matches and names the parameter
+5. **Handle data tables**: If the step is followed by a table (indicated by a trailing colon `:` in the pattern), create a `DataTable` object and pass it as a parameter
 6. **Generate method call**: Call the method with extracted parameters (including DataTable if present)
 7. **Add step comments**: Before each method call, add a comment with the original step text (keeping `And` as written in the feature file)
 8. **Add blank lines**: Add a blank line after each step's method call for readability
@@ -130,16 +134,35 @@ Each step in the feature file must be mapped to a corresponding method in the ba
 
 ### Step Mapping Examples
 
-| Gherkin Step | XML Comment in Base Class | Base Class Method | Generated Code |
-|--------------|---------------------------|-------------------|----------------|
-| `Given user has launched site` | `/// <summary>Given: user has launched site</summary>` | `GivenLaunchedSite()` | `// Given user has launched site`<br>`await GivenLaunchedSite();`<br>(blank line) |
-| `When user launches site` | `/// <summary>When: user launches site</summary>` | `WhenUserLaunchesSite()` | `// When user launches site`<br>`await WhenUserLaunchesSite();`<br>(blank line) |
-| `When user selects option "Weather" in nav bar` | `/// <summary>When: user selects option {option} in nav bar</summary>` | `SelectOptionInNavbar(string option)` | `// When user selects option "Weather" in nav bar`<br>`await SelectOptionInNavbar("Weather");`<br>(blank line) |
-| `Then page loaded ok` | `/// <summary>Then: page loaded ok</summary>` | `ThenPageLoadedOk()` | `// Then page loaded ok`<br>`await ThenPageLoadedOk();`<br>(blank line) |
-| `And page heading is "Home"` (after a `Then` step) | `/// <summary>Then: page heading is {text}</summary>` | `PageHeadingIs(string text)` | `// And page heading is "Home"`<br>`await PageHeadingIs("Home");`<br>(blank line) |
-| `Then I should see an error message containing "Invalid"` | `/// <summary>Then: I should see an error message containing (.+)</summary>` | `ThenIShouldSeeAnErrorMessage(string errorMessage)` | `// Then I should see an error message containing "Invalid"`<br>`await ThenIShouldSeeAnErrorMessage("Invalid");`<br>(blank line) |
+| Gherkin Step | Step Attribute in Base Class | Base Class Method | Generated Code |
+|--------------|------------------------------|-------------------|----------------|
+| `Given user has launched site` | `[Given("user has launched site")]` | `GivenLaunchedSite()` | `// Given user has launched site`<br>`await GivenLaunchedSite();`<br>(blank line) |
+| `When user launches site` | `[When("user launches site")]` | `WhenUserLaunchesSite()` | `// When user launches site`<br>`await WhenUserLaunchesSite();`<br>(blank line) |
+| `When user selects option "Weather" in nav bar` | `[When("user selects option {option} in nav bar")]` | `SelectOptionInNavbar(string option)` | `// When user selects option "Weather" in nav bar`<br>`await SelectOptionInNavbar("Weather");`<br>(blank line) |
+| `Then page loaded ok` | `[Then("page loaded ok")]` | `ThenPageLoadedOk()` | `// Then page loaded ok`<br>`await ThenPageLoadedOk();`<br>(blank line) |
+| `And page heading is "Home"` (after a `Then` step) | `[Then("page heading is {text}")]` | `PageHeadingIs(string text)` | `// And page heading is "Home"`<br>`await PageHeadingIs("Home");`<br>(blank line) |
+| `Then I should see an error message containing "Invalid"` | `[Then("I should see an error message containing {errorMessage}")]` | `ThenIShouldSeeAnErrorMessage(string errorMessage)` | `// Then I should see an error message containing "Invalid"`<br>`await ThenIShouldSeeAnErrorMessage("Invalid");`<br>(blank line) |
+| `Given "alice" has access to these workspaces:` (with table) | `[Given("{username} has access to these workspaces:")]` | `GivenUserHasAccessToTheseWorkspaces(string username, DataTable table)` | `// Given "alice" has access to these workspaces:`<br>`var table = new DataTable();`<br>`table.AddRow(...);`<br>`await GivenUserHasAccessToTheseWorkspaces("alice", table);`<br>(blank line) |
 
-**Note**: In the last example, the XML comment uses the pattern "containing (.+)" while the method name is `ThenIShouldSeeAnErrorMessage`. Always match based on the XML comment pattern, not the method name.
+### Pattern Syntax in Attributes
+
+- **Literal text**: Matches exactly (e.g., `[Given("the application is running")]`)
+- **Parameter placeholder**: `{name}` captures text and passes to parameter (e.g., `[Given("I am logged in as {username}")]`)
+- **Regex capture group**: `(.+)` captures any text (legacy pattern, prefer `{name}` for new code)
+- **Trailing colon**: Indicates DataTable parameter follows (e.g., `[Given("I have a workspace with a transaction:")]`)
+
+### Multiple Patterns Per Method
+
+Some methods serve multiple step variations using multiple attributes:
+
+```csharp
+[Given("has user launched site")]
+[Given("the application is running")]
+[Given("I am on the home page")]
+protected async Task GivenLaunchedSite() { ... }
+```
+
+All three Gherkin steps map to the same C# method.
 
 ### Handling Scenario Outlines
 

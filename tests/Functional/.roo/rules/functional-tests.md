@@ -155,18 +155,19 @@ await WhenIEnterValidRegistrationDetails(table);
 
 ### Mapping Gherkin Steps to C# Methods
 
-**CRITICAL RULE**: Match steps to methods by their XML summary comment, NOT by method name.
+**CRITICAL RULE**: Match steps to methods by their custom step attribute, NOT by method name or XML comments.
 
-1. **Find Method by XML Comment**: Search for methods whose XML `<summary>` matches the step pattern
-   - XML comment format: `/// <summary>{Keyword}: {step pattern}</summary>`
+1. **Find Method by Step Attribute**: Search for methods whose `[Given]`, `[When]`, or `[Then]` attribute matches the step pattern
+   - Attribute format: `[Given("step pattern")]`, `[When("step pattern")]`, `[Then("step pattern")]`
    - The pattern may include regex like `(.+)` or placeholders like `{text}`
-   - Example: `/// <summary>Then: I should see an error message containing (.+)</summary>`
+   - Example: `[Then("I should see an error message containing {errorMessage}")]`
+   - Methods can have multiple attributes for different step variations
 
 2. **Handle `And` Keyword**: Interpret `And` as the most recent non-`And` keyword
    - After `Then`, interpret `And` as `Then` when searching for methods
    - After `Given`, interpret `And` as `Given` when searching for methods
 
-3. **Extract Parameters**: Identify quoted strings (`"text"`) or placeholders matching capture groups
+3. **Extract Parameters**: Identify quoted strings (`"text"`) or placeholders matching capture groups or `{name}` placeholders
 
 4. **Generate Method Call**:
    - Add comment with original step text (preserve `And` keyword)
@@ -177,14 +178,14 @@ await WhenIEnterValidRegistrationDetails(table);
 
 **Mapping Examples:**
 
-| Gherkin Step | XML Comment | Method Name | Generated Code |
-|--------------|-------------|-------------|----------------|
-| `Given user has launched site` | `/// <summary>Given: user has launched site</summary>` | `GivenLaunchedSite()` | `// Given user has launched site`<br>`await GivenLaunchedSite();` |
-| `When user selects option "Weather" in nav bar` | `/// <summary>When: user selects option {option} in nav bar</summary>` | `SelectOptionInNavbar(string option)` | `// When user selects option "Weather" in nav bar`<br>`await SelectOptionInNavbar("Weather");` |
-| `And page heading is "Home"` (after `Then`) | `/// <summary>Then: page heading is {text}</summary>` | `PageHeadingIs(string text)` | `// And page heading is "Home"`<br>`await PageHeadingIs("Home");` |
-| `Then I should see an error message containing "Invalid"` | `/// <summary>Then: I should see an error message containing (.+)</summary>` | `ThenIShouldSeeAnErrorMessage(string errorMessage)` | `// Then I should see an error message containing "Invalid"`<br>`await ThenIShouldSeeAnErrorMessage("Invalid");` |
+| Gherkin Step | Step Attribute | Method Name | Generated Code |
+|--------------|----------------|-------------|----------------|
+| `Given user has launched site` | `[Given("user has launched site")]` | `GivenLaunchedSite()` | `// Given user has launched site`<br>`await GivenLaunchedSite();` |
+| `When user selects option "Weather" in nav bar` | `[When("user selects option {option} in nav bar")]` | `SelectOptionInNavbar(string option)` | `// When user selects option "Weather" in nav bar`<br>`await SelectOptionInNavbar("Weather");` |
+| `And page heading is "Home"` (after `Then`) | `[Then("page heading is {text}")]` | `PageHeadingIs(string text)` | `// And page heading is "Home"`<br>`await PageHeadingIs("Home");` |
+| `Then I should see an error message containing "Invalid"` | `[Then("I should see an error message containing {errorMessage}")]` | `ThenIShouldSeeAnErrorMessage(string errorMessage)` | `// Then I should see an error message containing "Invalid"`<br>`await ThenIShouldSeeAnErrorMessage("Invalid");` |
 
-**Note**: In the last example, the XML comment pattern is "containing (.+)" while the method is `ThenIShouldSeeAnErrorMessage`. Always match by XML comment, not method name.
+**Note**: In the last example, the attribute pattern includes `{errorMessage}` placeholder while the method is `ThenIShouldSeeAnErrorMessage`. Always match by step attribute, not method name.
 
 ### Scenario Outlines
 
@@ -220,26 +221,27 @@ Include in generated files:
 
 When implementing or updating step methods in the `Steps/` directory:
 
-### XML Comment Pattern Matching (CRITICAL)
+### Step Attribute Pattern Matching (CRITICAL)
 
-1. **XML Comments Are Authoritative - Method Names Are Irrelevant**: The XML summary comment is the ONLY thing that matters for matching Gherkin steps to methods. Method names are for code readability only.
-   - ✅ CORRECT: Match steps ONLY by XML comment: `/// <summary>Then: I should see an error message containing (.+)</summary>`
+1. **Step Attributes Are Authoritative - Method Names Are Irrelevant**: The step attribute (`[Given]`, `[When]`, `[Then]`) is the ONLY thing that matters for matching Gherkin steps to methods. Method names are for code readability only.
+   - ✅ CORRECT: Match steps ONLY by attribute: `[Then("I should see an error message containing {errorMessage}")]`
    - ❌ WRONG: Assume method must be named `ThenIShouldSeeAnErrorMessageContaining`
    - **There is ABSOLUTELY NO expectation or requirement that method names match step patterns**
    - Method names should be clear and concise for developers, NOT mirror the Gherkin text
    - This separation allows refactoring method names without breaking step matching
 
-2. **Multiple Step Patterns in One Method**: A single method can match multiple Gherkin step patterns by including multiple lines in the XML comment.
+2. **Multiple Step Patterns in One Method**: A single method can match multiple Gherkin step patterns by including multiple step attributes (using `AllowMultiple = true`).
    - Use this to consolidate duplicate/alias methods into a single implementation
-   - Each line in the `<summary>` tag represents a different step pattern that maps to this method
+   - Each attribute represents a different step pattern that maps to this method
 
    **Example:**
    ```csharp
    /// <summary>
-   /// Given: I have a workspace called {workspaceName}
-   /// Given: I own a workspace called {workspaceName}
-   /// Given: I own {workspaceName}
+   /// Establishes that the user owns a workspace.
    /// </summary>
+   [Given("I have a workspace called {workspaceName}")]
+   [Given("I own a workspace called {workspaceName}")]
+   [Given("I own {workspaceName}")]
    protected async Task GivenIHaveAWorkspaceCalled(string workspaceName)
    {
        // Single implementation handles all three step variations
@@ -261,51 +263,78 @@ When implementing or updating step methods in the `Steps/` directory:
    - Steps might diverge in behavior later
    - Clarity would be compromised
 
-3. **Exact Matching Required**: Each XML comment line must match its Gherkin step text exactly, including all words and adverbs.
-   - ✅ CORRECT: `When: I try to navigate directly to the login page` matches Gherkin step exactly
-   - ❌ WRONG: Assuming `When: I try to navigate to the login page` matches when Gherkin says "directly"
+3. **Exact Matching Required**: Each attribute pattern must match its Gherkin step text exactly, including all words and adverbs.
+   - ✅ CORRECT: `[When("I try to navigate directly to the login page")]` matches Gherkin step exactly
+   - ❌ WRONG: Assuming `[When("I try to navigate to the login page")]` matches when Gherkin says "directly"
    - **Why**: Words like "directly" may indicate different behavior (e.g., bypass redirects, force navigation)
    - If similar steps exist with slightly different wording, create a new step method with the exact pattern
 
 4. **Method Names Should Be Clear, Not Literal**: Method names should be descriptive for code maintainability, NOT verbatim copies of Gherkin steps.
-   - **Good**: XML `When: I try to navigate directly to the login page` → Method `WhenITryToNavigateToLoginPage()`
-   - **Bad**: XML `When: I try to navigate directly to the login page` → Method `WhenITryToNavigateDirectlyToTheLoginPage()`
-   - **Good**: XML `Then: I should see an error message containing (.+)` → Method `ThenIShouldSeeAnErrorMessage(string message)`
-   - **Bad**: XML `Then: I should see an error message containing (.+)` → Method `ThenIShouldSeeAnErrorMessageContaining(string message)`
+   - **Good**: `[When("I try to navigate directly to the login page")]` → Method `WhenITryToNavigateToLoginPage()`
+   - **Bad**: `[When("I try to navigate directly to the login page")]` → Method `WhenITryToNavigateDirectlyToTheLoginPage()`
+   - **Good**: `[Then("I should see an error message containing {errorMessage}")]` → Method `ThenIShouldSeeAnErrorMessage(string message)`
+   - **Bad**: `[Then("I should see an error message containing {errorMessage}")]` → Method `ThenIShouldSeeAnErrorMessageContaining(string message)`
    - Keep method names concise - omit words like "directly", "containing", "exactly" if they don't add clarity
-   - The XML comment pattern captures the exact step text; the method name serves code readability
+   - The attribute pattern captures the exact step text; the method name serves code readability
 
 5. **Creating New Step Methods**:
-   - Write XML comment to match the **exact** Gherkin step pattern word-for-word
+   - Add the appropriate step attribute (`[Given]`, `[When]`, or `[Then]`) with a pattern matching the **exact** Gherkin step text word-for-word
    - Include all adverbs, adjectives, and qualifiers from the Gherkin step
-   - Use regex patterns like `(.+)`, `{text}`, `{value}` for parameters only
+   - Use placeholders like `{text}`, `{value}`, `{parameterName}` for parameters
+   - For steps with DataTable parameters, add a trailing colon `:` to the pattern
    - Method name should be descriptive but doesn't need to include every word if clear from context
+   - XML comments remain for human-readable documentation
 
 6. **Finding Existing Steps**:
-   - Always search for methods by their XML comment pattern first
-   - Use `list_code_definition_names` or `search_files` to find methods by XML comment
+   - Always search for methods by their step attribute pattern first
+   - Use `search_files` to find methods by attribute pattern: `\[Given\("pattern"\)\]`
    - Don't create duplicate methods just because the name doesn't match exactly
-   - **Do** create a new method if the XML comment doesn't match the Gherkin step exactly
+   - **Do** create a new method if no attribute matches the Gherkin step exactly
+   - Use [`scripts/Analyze-StepPatterns.ps1`](../../scripts/Analyze-StepPatterns.ps1) to verify no duplicate patterns exist
 
 ### Examples
 
 ```csharp
-// ✅ CORRECT: XML comment matches Gherkin, method name is concise
+// ✅ CORRECT: Attribute pattern matches Gherkin, method name is concise, XML comment for documentation
 /// <summary>
-/// Then: I should see an error message containing (.+)
+/// Verifies that an error message containing specific text is displayed.
 /// </summary>
+/// <param name="errorMessage">The expected error message text (or substring).</param>
+[Then("I should see an error message containing {errorMessage}")]
 protected async Task ThenIShouldSeeAnErrorMessage(string errorMessage)
 {
     // Implementation
 }
 
-// ❌ WRONG: Unnecessarily verbose method name
+// ❌ WRONG: Unnecessarily verbose method name (attribute pattern is fine)
 /// <summary>
-/// Then: I should see an error message containing (.+)
+/// Verifies that an error message containing specific text is displayed.
 /// </summary>
+[Then("I should see an error message containing {errorMessage}")]
 protected async Task ThenIShouldSeeAnErrorMessageContaining(string errorMessage)
 {
     // This creates confusion and is redundant
+}
+
+// ✅ CORRECT: Multiple attributes for step variations
+/// <summary>
+/// Establishes that the user owns a workspace with the specified name.
+/// </summary>
+[Given("{username} owns a workspace called {workspaceName}")]
+[Given("{username} owns {workspaceName}")]
+protected async Task GivenUserOwnsAWorkspaceCalled(string username, string workspaceName)
+{
+    // Single implementation handles both patterns
+}
+
+// ✅ CORRECT: DataTable step with trailing colon
+/// <summary>
+/// Sets up multiple workspace access assignments from a table.
+/// </summary>
+[Given("{username} has access to these workspaces:")]
+protected async Task GivenUserHasAccessToTheseWorkspaces(string username, DataTable workspacesTable)
+{
+    // Process table data
 }
 ```
 

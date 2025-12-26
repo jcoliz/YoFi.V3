@@ -44,13 +44,32 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
+    /// Clicks the login button to submit the login form.
+    /// </summary>
+    /// <remarks>
+    /// Used after WhenIEnterMyCredentials to explicitly submit the form.
+    /// Assumes credentials have already been entered into the form fields.
+    /// </remarks>
+    [When("I click the login button")]
+    protected override async Task WhenIClickTheLoginButton()
+    {
+        var loginPage = GetOrCreateLoginPage();
+        await loginPage.ClickLoginButtonAsync();
+    }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
     /// Enters test user credentials into the login form without submitting.
     /// </summary>
     /// <remarks>
     /// Retrieves test user credentials from the object store and fills the login form fields.
     /// Does not submit the form - use with WhenIClickTheLoginButton for submission.
+    /// This is a helper method, not a Gherkin step. The pattern "I enter my credentials"
+    /// is handled by AuthenticationSteps.WhenIEnterMyCredentials(DataTable).
     /// </remarks>
-    [When("I enter my credentials")]
     protected override async Task WhenIEnterMyCredentials()
     {
         var loginPage = GetOrCreateLoginPage();
@@ -66,8 +85,9 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     /// <remarks>
     /// Retrieves test user credentials from the object store and performs the full
     /// login action (entering credentials and submitting the form in one operation).
+    /// This is a helper method, not a Gherkin step. The pattern "I enter my credentials"
+    /// is handled by AuthenticationSteps.WhenIEnterMyCredentials(DataTable).
     /// </remarks>
-    [When("I enter my credentials")]
     protected override async Task WhenILoginWithMyCredentials()
     {
         var loginPage = GetOrCreateLoginPage();
@@ -75,21 +95,6 @@ public abstract class CommonWhenSteps : CommonGivenSteps
         var testuser = It<Generated.TestUserCredentials>();
 
         await loginPage.LoginAsync(testuser.Username, testuser.Password);
-    }
-
-    /// <summary>
-    /// Clicks the login button to submit the login form.
-    /// </summary>
-    /// <remarks>
-    /// Used after WhenIEnterMyCredentials to explicitly submit the form.
-    /// Assumes credentials have already been entered into the form fields.
-    /// </remarks>
-    [When("I click the login button")]
-    protected override async Task WhenIClickTheLoginButton()
-    {
-        var loginPage = GetOrCreateLoginPage();
-        await loginPage.ClickLoginButtonAsync();
-
     }
 
     #endregion
