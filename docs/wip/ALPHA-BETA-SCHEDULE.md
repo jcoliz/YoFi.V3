@@ -51,7 +51,7 @@ Based on analysis of 6 approved PRDs and historical development velocity (Phase 
 
 | Feature | Stories | Acceptance Criteria | Complexity | Estimated Weeks |
 |---------|---------|---------------------|------------|----------------|
-| **Transaction Record** | 3 | 7 criteria | Low | 1-2 weeks |
+| **Transaction Record** | 3 | 7 criteria | Low | ✅ **Complete** |
 | **Transaction Splits** | 6 (1 superseded) | 50+ criteria | High | 3-4 weeks |
 | **Transaction Filtering** | 5 | 20+ criteria | Medium | 2-3 weeks |
 | **Bank Import** | 4 | 34 criteria | High | 3-4 weeks |
@@ -62,12 +62,16 @@ Based on analysis of 6 approved PRDs and historical development velocity (Phase 
 
 ### Complexity Factors
 
-**Transaction Record** (Low Complexity):
-- ✅ Entity schema mostly exists (Date, Payee, Amount already present)
-- Add 4 new fields (Category, Memo, Source, ExternalId)
-- Category cleanup logic (whitespace normalization)
-- Plumb through existing CRUD stack
-- **Estimate**: 1-2 weeks
+**Transaction Record** (✅ **COMPLETE**):
+- ✅ Entity schema updated (Date, Payee, Amount already existed)
+- ✅ Added 3 new fields (Memo, Source, ExternalId)
+- ✅ Category cleanup logic (whitespace normalization) - deferred to Transaction Splits
+- ✅ Plumbed through existing CRUD stack (DTOs, Feature, Controller)
+- ✅ Frontend UI (details page, quick edit)
+- ✅ Comprehensive tests (unit, integration, functional - 8 scenarios)
+- **Actual time**: **2 days** (Dec 25-26, 2025)
+- **Original estimate**: 1-2 weeks
+- **Velocity insight**: Well-designed feature with existing patterns = much faster than estimated
 
 **Transaction Splits** (High Complexity):
 - New Split entity with many-to-one relationship
@@ -150,8 +154,8 @@ Based on analysis of 6 approved PRDs and historical development velocity (Phase 
 **Goal**: Happy path works end-to-end. First reviewable version.
 
 **Features Required**:
-1. **Transaction Record** (Stories 1, 2, 3) - 1-2 weeks
-2. **Transaction Splits** (Story 3 - Simple Single-Category Workflow, Story 5 - Import with Splits) - 2 weeks
+1. ✅ **Transaction Record** (Stories 1, 2, 3) - **COMPLETE**
+2. **Transaction Splits** (Story 3 - Simple Single-Category Workflow, Story 5 - Import with Splits) - 2-3 weeks
 3. **Bank Import** (Story 1 - Upload Bank File) - 2-3 weeks
 4. **Payee Rules** (Story 2 - Auto-categorize on Import) - 2 weeks
 5. **Tenant Data Admin** (Story 4 - Load Sample Data) - 1 week
@@ -159,10 +163,10 @@ Based on analysis of 6 approved PRDs and historical development velocity (Phase 
 7. **Reports** (Story 1 - View Built-in Income/Expense Report) - 2 weeks
 
 **Iteration Breakdown**:
-- **Iteration 1** (Weeks 1-3): Transaction Record, Transaction Splits (simple workflow), Bank Import (Story 1)
-- **Iteration 2** (Weeks 3-5): Tenant Data Admin (sample data), Transaction Filtering (quick search)
-- **Iteration 3** (Weeks 5-7): Payee Rules (auto-categorize), Bank Import integration
-- **Iteration 4** (Weeks 7-10): Reports (income/expense), polish, testing, evaluation guide
+- **Iteration 1** (Weeks 1-3): ✅ Transaction Record (complete), Transaction Splits (simple workflow - A1 foundation)
+- **Iteration 2** (Weeks 3-5): Bank Import (Story 1), Tenant Data Admin (sample data)
+- **Iteration 3** (Weeks 5-7): Payee Rules (auto-categorize), Transaction Filtering (quick search)
+- **Iteration 4** (Weeks 7-9): Reports (income/expense), polish, testing, evaluation guide
 
 **System Readiness**:
 - Docker publishing path working
@@ -293,7 +297,7 @@ Transaction Record → Transaction Splits → Bank Import → Payee Rules
 
 ### High Confidence (±10%)
 
-- **Transaction Record**: 1-2 weeks (entity changes, plumbing through stack)
+- ✅ **Transaction Record**: **COMPLETE** (entity changes, plumbing through stack)
 - **Transaction Filtering** (Story 1 - Quick Search): 1 week (single search bar, backend filtering)
 - **Tenant Data Admin** (Story 4 - Sample Data): 1 week (hardcoded data loading)
 
@@ -317,8 +321,8 @@ Transaction Record → Transaction Splits → Bank Import → Payee Rules
 ### Prioritize Critical Path
 
 Focus on features that unlock other features:
-1. **Transaction Record** (unlocks everything)
-2. **Transaction Splits** (simple workflow only for Alpha 1)
+1. ✅ **Transaction Record** (unlocks everything) - **COMPLETE**
+2. **Transaction Splits** (simple workflow only for Alpha 1) - **NEXT**
 3. **Bank Import** (Story 1 - Upload only)
 4. **Payee Rules** (Story 2 - Auto-categorize)
 
