@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using NUnit.Framework;
+using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
 
@@ -9,10 +10,12 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// Step definitions for Transaction Record field tests (Memo, Source, ExternalId).
 /// </summary>
 /// <remarks>
-/// Inherits from WorkspaceTenancySteps to reuse user/workspace setup infrastructure.
-/// Tests the two-tier editing model:
-/// - Quick Edit Modal: Only Payee and Memo fields (PATCH endpoint)
-/// - Full Details Page: All fields including Source and ExternalId (PUT endpoint)
+/// <para>Inherits from WorkspaceTenancySteps to reuse user/workspace setup infrastructure.</para>
+/// <para><strong>Tests the two-tier editing model:</strong></para>
+/// <list type="bullet">
+/// <item>Quick Edit Modal: Only Payee and Memo fields (PATCH endpoint)</item>
+/// <item>Full Details Page: All fields including Source and ExternalId (PUT endpoint)</item>
+/// </list>
 /// </remarks>
 public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 {
@@ -31,8 +34,14 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     #region Given Steps
 
     /// <summary>
-    /// Given: I am logged in as a user with "Editor" role
+    /// Sets up a logged-in user with Editor role in a test workspace.
     /// </summary>
+    /// <remarks>
+    /// Comprehensive setup step that: clears existing test data, creates an editor user,
+    /// creates a test workspace with Editor role, stores credentials and workspace key,
+    /// and performs login. Used as the standard starting point for transaction record tests.
+    /// </remarks>
+    [Given("I am logged in as a user with \"Editor\" role")]
     protected async Task GivenIAmLoggedInAsAUserWithEditorRole()
     {
         // Given: Clear existing test data
@@ -70,8 +79,15 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Given: I have a workspace with a transaction:
+    /// Seeds a transaction with specified fields into the current workspace.
     /// </summary>
+    /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId.</param>
+    /// <remarks>
+    /// Parses transaction data from table, seeds via Test Control API, stores transaction
+    /// details in object store for later verification, navigates to transactions page,
+    /// and selects the workspace. Default amount is 100.00 if not specified.
+    /// </remarks>
+    [Given("I have a workspace with a transaction:")]
     protected async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
     {
         // Given: Parse transaction data from table
@@ -136,8 +152,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     #region When Steps
 
     /// <summary>
-    /// When: I click the "Edit" button on the transaction
+    /// Opens the quick edit modal for the current transaction.
     /// </summary>
+    /// <remarks>
+    /// Retrieves transaction payee from object store (KEY_TRANSACTION_PAYEE) and
+    /// opens the edit modal. Tests the quick edit workflow (PATCH endpoint).
+    /// </remarks>
+    [When("I click the \"Edit\" button on the transaction")]
     protected async Task WhenIClickTheEditButtonOnTheTransaction()
     {
         // When: Get the payee from object store
@@ -149,8 +170,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I update the memo to {newMemo}
+    /// Updates the memo field in the quick edit modal.
     /// </summary>
+    /// <param name="newMemo">The new memo value.</param>
+    /// <remarks>
+    /// Fills the memo field and stores the new value in object store for verification.
+    /// </remarks>
+    [When("I update the memo to {newMemo}")]
     protected async Task WhenIUpdateTheMemoTo(string newMemo)
     {
         // When: Fill the memo field
@@ -162,8 +188,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I click "Save"
+    /// Submits the edit form (quick edit or full details).
     /// </summary>
+    /// <remarks>
+    /// Submits the currently open edit form. Used with both quick edit modal
+    /// and full details page.
+    /// </remarks>
+    [When("I click \"Save\"")]
     protected async Task WhenIClickSave()
     {
         // When: Submit the edit form
@@ -172,8 +203,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I click on the transaction row
+    /// Clicks on the transaction row to navigate to the details page.
     /// </summary>
+    /// <remarks>
+    /// Retrieves transaction payee from object store, finds the transaction row,
+    /// and clicks it to navigate to the full details page (PUT endpoint).
+    /// </remarks>
+    [When("I click on the transaction row")]
     protected async Task WhenIClickOnTheTransactionRow()
     {
         // When: Get the payee from object store
@@ -186,8 +222,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I click the "New Transaction" button
+    /// Opens the create transaction modal.
     /// </summary>
+    /// <remarks>
+    /// Opens the "New Transaction" modal which includes all transaction fields
+    /// (Date, Payee, Amount, Memo, Source, ExternalId).
+    /// </remarks>
+    [When("I click the \"New Transaction\" button")]
     protected async Task WhenIClickTheNewTransactionButton()
     {
         // When: Open the create modal
@@ -196,8 +237,15 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I fill in the transaction fields:
+    /// Fills transaction fields in the create modal from a DataTable.
     /// </summary>
+    /// <param name="fieldsTable">DataTable with optional Date, Payee, Amount, Memo, Source, ExternalId.</param>
+    /// <remarks>
+    /// Conditionally fills each field if present in the table. Stores new payee
+    /// in object store for verification. Used for testing transaction creation
+    /// with all available fields.
+    /// </remarks>
+    [When("I fill in the transaction fields")]
     protected async Task WhenIFillInTheTransactionFields(DataTable fieldsTable)
     {
         // When: Parse field values from table
@@ -227,8 +275,12 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// When: I click "Create"
+    /// Submits the create transaction form.
     /// </summary>
+    /// <remarks>
+    /// Submits the "New Transaction" modal form to create a new transaction.
+    /// </remarks>
+    [When("I click \"Create\"")]
     protected async Task WhenIClickCreate()
     {
         // When: Submit the create form
@@ -241,8 +293,14 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     #region Then Steps
 
     /// <summary>
-    /// Then: I should see a modal titled {expectedTitle}
+    /// Verifies that a modal with the expected title is displayed.
     /// </summary>
+    /// <param name="expectedTitle">The expected modal title text.</param>
+    /// <remarks>
+    /// Waits for edit modal to be visible, extracts the title from modal header,
+    /// and stores it in object store for later verification.
+    /// </remarks>
+    [Then("I should see a modal titled {expectedTitle}")]
     protected async Task ThenIShouldSeeAModalTitled(string expectedTitle)
     {
         // Then: Wait for the edit modal to be visible
@@ -260,8 +318,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: I should only see fields for "Payee" and "Memo"
+    /// Verifies that only Payee and Memo fields are visible in the quick edit modal.
     /// </summary>
+    /// <remarks>
+    /// Tests the quick edit modal constraint - only Payee and Memo fields should
+    /// be editable via the modal (PATCH endpoint).
+    /// </remarks>
+    [Then("I should only see fields for \"Payee\" and \"Memo\"")]
     protected async Task ThenIShouldOnlySeeFieldsForPayeeAndMemo()
     {
         // Then: Verify Payee field is visible
@@ -275,8 +338,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: I should not see fields for "Date", "Amount", "Source", or "ExternalId"
+    /// Verifies that Date, Amount, Source, and ExternalId fields are NOT in the quick edit modal.
     /// </summary>
+    /// <remarks>
+    /// Tests that the quick edit modal excludes fields that require full details page.
+    /// These fields are only editable via the PUT endpoint on the details page.
+    /// </remarks>
+    [Then("I should not see fields for \"Date\", \"Amount\", \"Source\", or \"ExternalId\"")]
     protected async Task ThenIShouldNotSeeFieldsForDateAmountSourceOrExternalId()
     {
         // Then: Verify Date field is not visible (doesn't exist in quick edit modal)
@@ -298,8 +366,14 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: the memo should be updated to {expectedMemo}
+    /// Verifies that the memo field was updated to the expected value.
     /// </summary>
+    /// <param name="expectedMemo">The expected memo value.</param>
+    /// <remarks>
+    /// Retrieves transaction payee from object store, gets memo from transaction list,
+    /// and verifies it matches expected value (after trimming whitespace).
+    /// </remarks>
+    [Then("the memo should be updated to {expectedMemo}")]
     protected async Task ThenTheMemoShouldBeUpdatedTo(string expectedMemo)
     {
         // Then: Get the payee from object store
@@ -314,8 +388,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: I should see the Transaction Details page
+    /// Verifies that navigation to the Transaction Details page occurred.
     /// </summary>
+    /// <remarks>
+    /// Waits for URL change to transactions details pattern and verifies URL contains
+    /// a GUID path segment, confirming navigation to the full details page.
+    /// </remarks>
+    [Then("I should see the Transaction Details page")]
     protected async Task ThenIShouldSeeTheTransactionDetailsPage()
     {
         // Then: Wait for navigation to details page
@@ -328,8 +407,14 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: I should see all transaction fields:
+    /// Verifies that all transaction fields on the details page match expected values.
     /// </summary>
+    /// <param name="expectedFieldsTable">DataTable with optional Date, Payee, Amount, Memo, Source, ExternalId.</param>
+    /// <remarks>
+    /// Waits for TransactionDetailsPage to load and verifies each field specified
+    /// in the table. Tests the full details page display (all fields visible).
+    /// </remarks>
+    [Then("I should see all transaction fields")]
     protected async Task ThenIShouldSeeAllTransactionFields(DataTable expectedFieldsTable)
     {
         // Then: Get the TransactionDetailsPage
@@ -375,8 +460,14 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: I should see all create modal fields visible
+    /// Verifies that all fields are visible in the create transaction modal.
     /// </summary>
+    /// <remarks>
+    /// Tests that the create modal includes all transaction fields: Date, Payee,
+    /// Amount, Memo, Source, and ExternalId. Unlike quick edit, creation allows
+    /// all fields to be set.
+    /// </remarks>
+    [Then("I should see all create modal fields visible")]
     protected async Task ThenIShouldSeeAllCreateModalFieldsVisible()
     {
         // Then: Verify all fields are visible in create modal
@@ -402,8 +493,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Then: the transaction should be created with those values
+    /// Verifies that the transaction was created and appears in the list.
     /// </summary>
+    /// <remarks>
+    /// Retrieves new payee from object store (set during WhenIFillInTheTransactionFields),
+    /// waits for transaction to appear, and verifies presence in transactions list.
+    /// </remarks>
+    [Then("the transaction should be created with those values")]
     protected async Task ThenTheTransactionShouldBeCreatedWithThoseValues()
     {
         // Then: Get the new payee from object store

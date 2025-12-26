@@ -17,7 +17,7 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task Background()
     {
         // Given the application is running
-        await GivenTheApplicationIsRunning();
+        await GivenLaunchedSite();
 
         // And I am not logged in
         await GivenIAmNotLoggedIn();

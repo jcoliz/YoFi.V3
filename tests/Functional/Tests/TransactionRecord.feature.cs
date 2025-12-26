@@ -16,7 +16,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     public async Task SetupAsync()
     {
         // Given the application is running
-        await GivenTheApplicationIsRunning();
+        await GivenLaunchedSite();
 
         // And I am logged in as a user with "Editor" role
         await GivenIAmLoggedInAsAUserWithEditorRole();

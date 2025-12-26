@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Generated;
@@ -8,14 +9,16 @@ using NUnit.Framework.Internal;
 namespace YoFi.V3.Tests.Functional.Steps;
 
 /// <summary>
-/// Step definitions for Workspace Tenancy feature tests
+/// Step definitions for Workspace Tenancy feature tests.
 /// </summary>
 /// <remarks>
-/// TEST PREFIX HANDLING PATTERN:
-/// - DataTable values in feature files are user-readable (e.g., "alice", "Personal Budget")
-/// - The __TEST__ prefix is added immediately upon entering step methods using AddTestPrefix()
-/// - All internal storage (_userCredentials, _workspaceKeys, _objectStore) uses FULL names with prefix
-/// - This ensures consistency with what the Test Controller API and UI expect
+/// <para><strong>TEST PREFIX HANDLING PATTERN:</strong></para>
+/// <list type="bullet">
+/// <item>DataTable values in feature files are user-readable (e.g., "alice", "Personal Budget")</item>
+/// <item>The __TEST__ prefix is added immediately upon entering step methods using AddTestPrefix()</item>
+/// <item>All internal storage (_userCredentials, _workspaceKeys, _objectStore) uses FULL names with prefix</item>
+/// <item>This ensures consistency with what the Test Controller API and UI expect</item>
+/// </list>
 /// </remarks>
 public abstract class WorkspaceTenancySteps : CommonThenSteps
 {
@@ -112,8 +115,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     #region Steps: GIVEN
 
     /// <summary>
-    /// Given: these users exist
+    /// Creates multiple test users and clears existing test data.
     /// </summary>
+    /// <param name="usersTable">DataTable containing user names (single column).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to all usernames before API calls. Clears all existing
+    /// test data first to ensure clean state. Stores full credentials in _userCredentials
+    /// dictionary using prefixed usernames as keys.
+    /// </remarks>
+    [Given("these users exist")]
     protected async Task GivenTheseUsersExist(DataTable usersTable)
     {
         // Clear existing users and workspaces to avoid conflicts
@@ -134,8 +144,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: I am logged in as {username}
+    /// Logs in as the specified user.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to match stored credentials. Navigates to login page,
+    /// performs login, waits for redirect, and stores full username in object store.
+    /// Requires user to have been created in Background section.
+    /// </remarks>
+    [Given("I am logged in as {username}")]
     protected async Task GivenIAmLoggedInAs(string username)
     {
         // Add __TEST__ prefix to match stored credentials
@@ -159,9 +176,17 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {username} owns a workspace called {workspaceName}
-    /// Given: {username} owns {workspaceName}
+    /// Creates a workspace owned by the specified user.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to both username and workspace name. Creates workspace
+    /// via Test Control API with Owner role. Stores workspace key and sets current
+    /// workspace context and pending user context in object store.
+    /// </remarks>
+    [Given("{username} owns a workspace called {workspaceName}")]
+    [Given("{username} owns {workspaceName}")]
     protected async Task GivenUserOwnsAWorkspaceCalled(string username, string workspaceName)
     {
         var fullUsername = AddTestPrefix(username);
@@ -199,8 +224,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {username} has access to these workspaces
+    /// Sets up multiple workspaces with specified roles for a user.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="workspacesTable">DataTable with columns: Workspace Name, My Role.</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to username and all workspace names. Creates workspaces
+    /// via bulk setup API. Stores all workspace keys and sets pending user context.
+    /// </remarks>
+    [Given("{username} has access to these workspaces:")]
     protected async Task GivenUserHasAccessToTheseWorkspaces(string username, DataTable workspacesTable)
     {
         var fullUsername = AddTestPrefix(username);
@@ -231,8 +263,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {username} has access to {workspaceName}
+    /// Grants a user access to a workspace with Viewer role (default minimum access).
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
+    /// setup API with Viewer role. Stores workspace key and sets pending user context.
+    /// </remarks>
+    [Given("{username} has access to {workspaceName}")]
     protected async Task GivenUserHasAccessTo(string username, string workspaceName)
     {
         var fullUsername = AddTestPrefix(username);
@@ -261,8 +300,16 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {username} can edit data in {workspaceName}
+    /// Grants a user Editor role access to a workspace.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
+    /// setup API with Editor role. Stores workspace key, sets current workspace,
+    /// and sets pending user context.
+    /// </remarks>
+    [Given("{username} can edit data in {workspaceName}")]
     protected async Task GivenUserCanEditDataIn(string username, string workspaceName)
     {
         var fullUsername = AddTestPrefix(username);
@@ -292,8 +339,16 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {username} can view data in {workspaceName}
+    /// Grants a user Viewer role access to a workspace.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
+    /// setup API with Viewer role. Stores workspace key, sets current workspace,
+    /// and sets pending user context.
+    /// </remarks>
+    [Given("{username} can view data in {workspaceName}")]
     protected async Task GivenUserCanViewDataIn(string username, string workspaceName)
     {
         var fullUsername = AddTestPrefix(username);
@@ -323,8 +378,16 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: there is a workspace called {workspaceName} that {username} doesn't have access to
+    /// Creates a workspace owned by a different user to test access denial.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <param name="username">The username that should NOT have access (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to both parameters. Finds a different user from
+    /// _userCredentials and creates the workspace for them. Used to test scenarios
+    /// where a user attempts to access workspaces they don't own.
+    /// </remarks>
+    [Given("there is a workspace called {workspaceName} that {username} doesn't have access to")]
     protected async Task GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo(string workspaceName, string username)
     {
         var fullUsername = AddTestPrefix(username);
@@ -354,8 +417,16 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: {workspaceName} contains {transactionCount} transactions
+    /// Seeds a workspace with test transactions.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <param name="transactionCount">Number of transactions to create.</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to workspace name. Uses Test Control API to seed
+    /// transactions with "Test Transaction" payee prefix. Requires workspace key
+    /// to exist in _workspaceKeys dictionary.
+    /// </remarks>
+    [Given("{workspaceName} contains {transactionCount} transactions")]
     protected async Task GivenWorkspaceContainsTransactions(string workspaceName, int transactionCount)
     {
         var currentUsername = GetCurrentTestUsername();
@@ -376,8 +447,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Given: there are other workspaces in the system
+    /// Creates multiple workspaces owned by different users.
     /// </summary>
+    /// <param name="workspacesTable">DataTable with columns: Workspace Name, Owner.</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to all usernames and workspace names. Creates workspaces
+    /// via Test Control API for each owner. Stores all workspace keys in _workspaceKeys.
+    /// Used to set up multi-tenant scenarios.
+    /// </remarks>
+    [Given("there are other workspaces in the system")]
     protected async Task GivenThereAreOtherWorkspacesInTheSystem(DataTable workspacesTable)
     {
         foreach (var row in workspacesTable)
@@ -411,8 +489,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     #region Steps: WHEN
 
     /// <summary>
-    /// When: a new user {username} registers and logs in
+    /// Registers a new user and logs them in.
     /// </summary>
+    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix, generates credentials, navigates to registration page,
+    /// completes registration, stores credentials, and performs login. New users
+    /// automatically get a personalized workspace named after their username.
+    /// </remarks>
+    [When("a new user {username} registers and logs in")]
     protected async Task WhenANewUserRegistersAndLogsIn(string username)
     {
         // Add __TEST__ prefix
@@ -443,8 +528,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I create a new workspace called {name} for {description}
+    /// Creates a new workspace with specified name and description.
     /// </summary>
+    /// <param name="name">The workspace name (without __TEST__ prefix).</param>
+    /// <param name="description">The workspace description.</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to name. Navigates to workspaces page, creates workspace,
+    /// waits for it to appear in the list, and stores it as current workspace.
+    /// </remarks>
+    [When("I create a new workspace called {name} for {description}")]
     protected async Task WhenICreateANewWorkspaceCalledFor(string name, string description)
     {
         var workspaceName = AddTestPrefix(name);
@@ -461,16 +553,27 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I create a workspace called {name}
+    /// Creates a new workspace with specified name and default description.
     /// </summary>
+    /// <param name="name">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Convenience method that calls WhenICreateANewWorkspaceCalledFor with a
+    /// generated description. Adds __TEST__ prefix to name.
+    /// </remarks>
+    [When("I create a workspace called {name}")]
     protected async Task WhenICreateAWorkspaceCalled(string name)
     {
         await WhenICreateANewWorkspaceCalledFor(name, $"__TEST__ Test workspace: {name}");
     }
 
     /// <summary>
-    /// When: I view my workspace list
+    /// Navigates to the workspaces list page.
     /// </summary>
+    /// <remarks>
+    /// Simply navigates to the workspaces page to view available workspaces.
+    /// TODO: Add verification that the page loaded successfully.
+    /// </remarks>
+    [When("I view my workspace list")]
     protected async Task WhenIViewMyWorkspaceList()
     {
         // TODO: Use WorkspacesPage page object
@@ -479,8 +582,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I view the details of {workspaceName}
+    /// Views the details of a specific workspace.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to workspaces page, selects the workspace
+    /// in the workspace selector, and stores it as current workspace.
+    /// </remarks>
+    [When("I view the details of {workspaceName}")]
     protected async Task WhenIViewTheDetailsOf(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -496,8 +605,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I rename it to {newName}
+    /// Renames the current workspace.
     /// </summary>
+    /// <param name="newName">The new workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix to new name. Gets current workspace from object store,
+    /// performs rename via workspaces page, waits for updated name to appear, and
+    /// updates current workspace context.
+    /// </remarks>
+    [When("I rename it to {newName}")]
     protected async Task WhenIRenameItTo(string newName)
     {
         var fullNewName = AddTestPrefix(newName);
@@ -520,8 +636,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I update the description to {newDescription}
+    /// Updates the description of the current workspace.
     /// </summary>
+    /// <param name="newDescription">The new workspace description.</param>
+    /// <remarks>
+    /// Gets current or newly renamed workspace name from object store and updates
+    /// its description while keeping the same name. Waits for update to complete.
+    /// </remarks>
+    [When("I update the description to {newDescription}")]
     protected async Task WhenIUpdateTheDescriptionTo(string newDescription)
     {
         var workspaceName = GetCurrentOrNewWorkspaceName();
@@ -537,8 +659,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I try to change the workspace name or description
+    /// Attempts to change workspace name or description (permission check).
     /// </summary>
+    /// <remarks>
+    /// Navigates to workspaces page and checks if edit button is available for
+    /// current workspace. Stores permission check result in object store for
+    /// later assertion.
+    /// </remarks>
+    [When("I try to change the workspace name or description")]
     protected async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
@@ -552,8 +680,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I delete {workspaceName}
+    /// Deletes a workspace.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to workspaces page and performs delete
+    /// operation. Used for positive test cases where deletion is expected to succeed.
+    /// </remarks>
+    [When("I delete {workspaceName}")]
     protected async Task WhenIDelete(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -564,8 +698,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I try to delete {workspaceName}
+    /// Attempts to delete a workspace (permission check).
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to workspaces page and checks if delete
+    /// button is available. Stores permission check result for later assertion.
+    /// Used for negative test cases where deletion should be blocked.
+    /// </remarks>
+    [When("I try to delete {workspaceName}")]
     protected async Task WhenITryToDelete(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -580,8 +721,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I view transactions in {workspaceName}
+    /// Views transactions in a specific workspace.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
+    /// waits for loading to complete, and stores as current workspace.
+    /// </remarks>
+    [When("I view transactions in {workspaceName}")]
     protected async Task WhenIViewTransactionsIn(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -597,8 +744,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I try to view transactions in {workspaceName}
+    /// Attempts to view transactions in a workspace (permission check).
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to transactions page and checks if workspace
+    /// is in the available workspaces list. Stores access check result for later
+    /// assertion. Used for negative test cases.
+    /// </remarks>
+    [When("I try to view transactions in {workspaceName}")]
     protected async Task WhenITryToViewTransactionsIn(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -613,8 +767,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I try to add or edit transactions
+    /// Attempts to add or edit transactions (permission check).
     /// </summary>
+    /// <remarks>
+    /// Checks if New Transaction button is available on transactions page. Stores
+    /// permission check result for later assertion. Used for role-based access tests.
+    /// TODO: Add edit button availability check for existing transactions.
+    /// </remarks>
+    [When("I try to add or edit transactions")]
     protected async Task WhenITryToAddOrEditTransactions()
     {
         var transactionsPage = GetOrCreateTransactionsPage();
@@ -628,8 +788,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I add a transaction to {workspaceName}
+    /// Adds a test transaction to a workspace.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
+    /// creates transaction with today's date, unique payee name, and $100 amount.
+    /// Stores payee name in object store for later reference.
+    /// </remarks>
+    [When("I add a transaction to {workspaceName}")]
     protected async Task WhenIAddATransactionTo(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -648,8 +815,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I update that transaction
+    /// Updates the previously added transaction.
     /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store, opens edit modal,
+    /// updates payee name by prepending "Updated ", submits form, waits for
+    /// transaction to appear, and stores new payee name.
+    /// </remarks>
+    [When("I update that transaction")]
     protected async Task WhenIUpdateThatTransaction()
     {
         var payee = GetLastTransactionPayee();
@@ -670,8 +843,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// When: I delete that transaction
+    /// Deletes the previously added/updated transaction.
     /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store and performs delete
+    /// operation via transactions page.
+    /// </remarks>
+    [When("I delete that transaction")]
     protected async Task WhenIDeleteThatTransaction()
     {
         var payee = GetLastTransactionPayee();
@@ -685,8 +863,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     #region Steps: THEN
 
     /// <summary>
-    /// Then: user should have a workspace ready to use
+    /// Verifies that the user has at least one workspace available.
     /// </summary>
+    /// <remarks>
+    /// Navigates to transactions page and checks that the "no workspace" message
+    /// is not visible, indicating at least one workspace exists.
+    /// </remarks>
+    [Then("user should have a workspace ready to use")]
     protected async Task ThenUserShouldHaveAWorkspaceReadyToUse()
     {
         var transactionsPage = GetOrCreateTransactionsPage();
@@ -699,8 +882,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: the workspace should be personalized with the name {expectedName}
+    /// Verifies that the workspace name contains the expected personalized name.
     /// </summary>
+    /// <param name="expectedName">The expected name portion (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to transactions page, waits for workspace
+    /// selector to show a name (up to 5 seconds), and verifies name contains
+    /// expected value. Used after registration to verify personalized workspace creation.
+    /// </remarks>
+    [Then("the workspace should be personalized with the name {expectedName}")]
     protected async Task ThenTheWorkspaceShouldBePersonalizedWithTheName(string expectedName)
     {
         var fullExpectedName = AddTestPrefix(expectedName);
@@ -717,8 +907,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see {workspaceName} in my workspace list
+    /// Verifies that a workspace appears in the user's workspace list.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Checks workspaces page for presence of workspace.
+    /// Note: May occasionally fail if list hasn't fully updated after spinner hides.
+    /// </remarks>
+    [Then("I should see {workspaceName} in my workspace list")]
     protected async Task ThenIShouldSeeInMyWorkspaceList(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -732,8 +928,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should be able to manage that workspace
+    /// Verifies that the user has Owner permissions on the current workspace.
     /// </summary>
+    /// <remarks>
+    /// Retrieves current workspace from object store, navigates to workspaces page,
+    /// and verifies the user's role is "Owner".
+    /// </remarks>
+    [Then("I should be able to manage that workspace")]
     protected async Task ThenIShouldBeAbleToManageThatWorkspace()
     {
         // Check that we have Owner permissions on the workspace
@@ -751,10 +952,16 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should have {expectedCount} workspaces available
-    /// Then: I should see all {expectedCount} workspaces
-    /// Then: the workspace count should be {expectedCount}
+    /// Verifies that the user has exactly the expected number of workspaces.
     /// </summary>
+    /// <param name="expectedCount">The expected workspace count.</param>
+    /// <remarks>
+    /// Navigates to workspaces page and counts visible workspaces.
+    /// Supports multiple step phrasings via additional attributes on
+    /// ThenIShouldSeeAllWorkspaces.
+    /// </remarks>
+    [Then("I should have {expectedCount} workspaces available")]
+    [Then("the workspace count should be {expectedCount}")]
     protected async Task ThenIShouldHaveWorkspacesAvailable(int expectedCount)
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
@@ -766,8 +973,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I can work with either workspace independently
+    /// Verifies that the user can switch between at least 2 workspaces.
     /// </summary>
+    /// <remarks>
+    /// Navigates to transactions page and checks that workspace selector shows
+    /// at least 2 available workspaces, confirming workspace independence.
+    /// </remarks>
+    [Then("I can work with either workspace independently")]
     protected async Task ThenICanWorkWithEitherWorkspaceIndependently()
     {
         // Verify we can switch between workspaces
@@ -779,15 +991,22 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see all {expectedCount} workspaces
-    /// Then: the workspace count should be {expectedCount}
+    /// Alias for ThenIShouldHaveWorkspacesAvailable - verifies workspace count.
     /// </summary>
+    /// <param name="expectedCount">The expected workspace count.</param>
+    [Then("I should see all {expectedCount} workspaces")]
     protected async Task ThenIShouldSeeAllWorkspaces(int expectedCount)
         => await ThenIShouldHaveWorkspacesAvailable(expectedCount);
 
     /// <summary>
-    /// Then: I should see what I can do in each workspace
+    /// Verifies that role badges are displayed for all workspaces.
     /// </summary>
+    /// <remarks>
+    /// Navigates to workspaces page and verifies each workspace in _workspaceKeys
+    /// has a valid role badge (Owner, Editor, or Viewer). Confirms at least one
+    /// workspace exists.
+    /// </remarks>
+    [Then("I should see what I can do in each workspace")]
     protected async Task ThenIShouldSeeWhatICanDoInEachWorkspace()
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
@@ -808,11 +1027,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see the workspace information
+    /// Verifies that the workspace selector shows the expected workspace.
     /// </summary>
     /// <remarks>
-    /// ...for the expected workspace!
+    /// Retrieves expected workspace name from object store (KEY_CURRENT_WORKSPACE)
+    /// and verifies the workspace selector displays it correctly.
     /// </remarks>
+    [Then("I should see the workspace information")]
     protected async Task ThenIShouldSeeTheWorkspaceInformation()
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
@@ -825,8 +1046,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see when it was created
+    /// Verifies that the workspace displays a valid creation date.
     /// </summary>
+    /// <remarks>
+    /// Retrieves current workspace from object store, navigates to workspaces page,
+    /// gets the created date from workspace card, and verifies it's a valid DateTime.
+    /// </remarks>
+    [Then("I should see when it was created")]
     protected async Task ThenIShouldSeeWhenItWasCreated()
     {
         var workspacesPage = GetOrCreateWorkspacesPage();
@@ -842,8 +1068,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: the workspace should reflect the changes
+    /// Verifies that workspace rename or description update was successful.
     /// </summary>
+    /// <remarks>
+    /// Retrieves new workspace name from object store (KEY_NEW_WORKSPACE_NAME),
+    /// navigates to workspaces page, and verifies the updated workspace is visible.
+    /// </remarks>
+    [Then("the workspace should reflect the changes")]
     protected async Task ThenTheWorkspaceShouldReflectTheChanges()
     {
         var newName = GetRequiredFromStore(KEY_NEW_WORKSPACE_NAME);
@@ -856,16 +1087,26 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should not be able to make those changes
+    /// Verifies that the user cannot make desired changes (negative permission check).
     /// </summary>
+    /// <remarks>
+    /// Retrieves permission check result from object store (KEY_CAN_MAKE_DESIRED_CHANGES)
+    /// and asserts it's false. Used for role-based access control tests.
+    /// </remarks>
+    [Then("I should not be able to make those changes")]
     protected async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
         AssertCannotPerformAction(KEY_CAN_MAKE_DESIRED_CHANGES, "User should not be able to make desired changes");
     }
 
     /// <summary>
-    /// Then: {workspaceName} should no longer appear in my list
+    /// Verifies that a workspace no longer appears in the user's list after deletion.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Checks workspaces page and verifies workspace is absent.
+    /// </remarks>
+    [Then("{workspaceName} should no longer appear in my list")]
     protected async Task ThenShouldNoLongerAppearInMyList(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -877,16 +1118,26 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: the workspace should remain intact
+    /// Verifies that the user cannot delete the workspace (negative permission check).
     /// </summary>
+    /// <remarks>
+    /// Retrieves permission check result from object store (KEY_CAN_DELETE_WORKSPACE)
+    /// and asserts it's false. Used for role-based deletion tests.
+    /// </remarks>
+    [Then("the workspace should remain intact")]
     protected async Task ThenTheWorkspaceShouldRemainIntact()
     {
         AssertCannotPerformAction(KEY_CAN_DELETE_WORKSPACE, "User should not be able to delete the workspace");
     }
 
     /// <summary>
-    /// Then: I should see exactly {expectedCount} transactions
+    /// Verifies that exactly the expected number of transactions are displayed.
     /// </summary>
+    /// <param name="expectedCount">The expected transaction count.</param>
+    /// <remarks>
+    /// Counts transactions on current transactions page and asserts exact match.
+    /// </remarks>
+    [Then("I should see exactly {expectedCount} transactions")]
     protected async Task ThenIShouldSeeExactlyTransactions(int expectedCount)
     {
         var transactionsPage = GetOrCreateTransactionsPage();
@@ -895,8 +1146,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: they should all be from {workspaceName} workspace
+    /// Verifies that the currently viewed transactions belong to the specified workspace.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Checks that workspace selector shows the expected
+    /// workspace, confirming transaction-workspace association.
+    /// </remarks>
+    [Then("they should all be from {workspaceName} workspace")]
     protected async Task ThenTheyShouldAllBeFromWorkspace(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -908,8 +1165,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should not see any transactions from {workspaceName}
+    /// Verifies that no transactions from the specified workspace are visible.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Verifies workspace selector does NOT show the specified
+    /// workspace, confirming workspace isolation.
+    /// </remarks>
+    [Then("I should not see any transactions from {workspaceName}")]
     protected async Task ThenIShouldNotSeeAnyTransactionsFrom(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -921,16 +1184,25 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should not be able to access that data
+    /// Verifies that the user cannot access workspace data (negative permission check).
     /// </summary>
+    /// <remarks>
+    /// Retrieves permission check result from object store (KEY_HAS_WORKSPACE_ACCESS)
+    /// and asserts it's false. Used for workspace access control tests.
+    /// </remarks>
+    [Then("I should not be able to access that data")]
     protected async Task ThenIShouldNotBeAbleToAccessThatData()
     {
         AssertCannotPerformAction(KEY_HAS_WORKSPACE_ACCESS, "User should not have access to the workspace");
     }
 
     /// <summary>
-    /// Then: I should see the transactions
+    /// Verifies that at least some transactions are visible.
     /// </summary>
+    /// <remarks>
+    /// Counts transactions on current page and asserts count is greater than zero.
+    /// </remarks>
+    [Then("I should see the transactions")]
     protected async Task ThenIShouldSeeTheTransactions()
     {
         var transactionsPage = GetOrCreateTransactionsPage();
@@ -939,8 +1211,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: the transaction should be saved successfully
+    /// Verifies that the last added transaction is visible in the list.
     /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store, waits for it to appear
+    /// in the list, and verifies visibility. Includes explicit wait to handle
+    /// UI update timing.
+    /// </remarks>
+    [Then("the transaction should be saved successfully")]
     protected async Task ThenTheTransactionShouldBeSavedSuccessfully()
     {
         var payee = GetLastTransactionPayee();
@@ -956,8 +1234,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: my changes should be saved
+    /// Verifies that transaction update was saved successfully.
     /// </summary>
+    /// <remarks>
+    /// Retrieves last (updated) transaction payee from object store and verifies
+    /// it's visible in the list. Note: May need additional wait time for UI updates.
+    /// </remarks>
+    [Then("my changes should be saved")]
     protected async Task ThenMyChangesShouldBeSaved()
     {
         var payee = GetLastTransactionPayee();
@@ -972,8 +1255,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: it should be removed
+    /// Verifies that the transaction was removed from the list.
     /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store and verifies it's no
+    /// longer visible after deletion.
+    /// </remarks>
+    [Then("it should be removed")]
     protected async Task ThenItShouldBeRemoved()
     {
         var payee = GetLastTransactionPayee();
@@ -984,8 +1272,15 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I can add, edit, and delete transactions
+    /// Verifies that Owner role can add, edit, and delete transactions.
     /// </summary>
+    /// <remarks>
+    /// Comprehensive permission check: navigates to transactions page, selects
+    /// current workspace, verifies New Transaction button is available, confirms
+    /// at least one transaction exists, and verifies Edit and Delete buttons are
+    /// available for the first transaction.
+    /// </remarks>
+    [Then("I can add, edit, and delete transactions")]
     protected async Task ThenICanAddEditAndDeleteTransactions()
     {
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
@@ -1019,8 +1314,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I can change workspace settings
+    /// Verifies that Owner role can change workspace settings.
     /// </summary>
+    /// <remarks>
+    /// Retrieves current workspace from object store, navigates to workspaces page,
+    /// and verifies Edit button is available.
+    /// </remarks>
+    [Then("I can change workspace settings")]
     protected async Task ThenICanChangeWorkspaceSettings()
     {
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
@@ -1033,8 +1333,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I can remove the workspace if needed
+    /// Verifies that Owner role can delete the workspace.
     /// </summary>
+    /// <remarks>
+    /// Retrieves current workspace from object store, navigates to workspaces page,
+    /// and verifies Delete button is available.
+    /// </remarks>
+    [Then("I can remove the workspace if needed")]
     protected async Task ThenICanRemoveTheWorkspaceIfNeeded()
     {
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
@@ -1047,8 +1352,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see only {workspaceName} in my list
+    /// Verifies that only one specific workspace is visible in the list.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to workspaces page, verifies count is exactly 1,
+    /// and confirms it's the expected workspace. Used for access isolation tests.
+    /// </remarks>
+    [Then("I should see only {workspaceName} in my list")]
     protected async Task ThenIShouldSeeOnlyInMyList(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -1067,8 +1378,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should not see {workspaceName} in my list
+    /// Verifies that a specific workspace is not visible in the list.
     /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Checks workspaces page and verifies workspace is absent.
+    /// Used for access control and isolation tests.
+    /// </remarks>
+    [Then("I should not see {workspaceName} in my list")]
     protected async Task ThenIShouldNotSeeInMyList(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);

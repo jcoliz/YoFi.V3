@@ -1,39 +1,28 @@
 using Microsoft.Playwright;
+using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Steps.Common;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
 /// <summary>
-/// Step definitions for Weather feature tests
+/// Step definitions for Weather feature tests.
 /// </summary>
 public abstract class WeatherSteps : CommonThenSteps
 {
-    #region Steps: GIVEN
-
-    /// <summary>
-    /// Given: I am on the home page
-    /// </summary>
-    protected async Task GivenIAmOnTheHomePage()
-    {
-        await GivenLaunchedSite();
-    }
-
-    /// <summary>
-    /// Given: I am viewing weather forecasts
-    /// </summary>
-    protected async Task GivenIAmViewingWeatherForecasts()
-    {
-        await WhenINavigateToViewTheWeatherForecast();
-    }
-
-    #endregion
-
     #region Steps: WHEN
 
     /// <summary>
-    /// When: I navigate to view the weather forecast
+    /// Navigates to the weather forecast page.
     /// </summary>
+    /// <remarks>
+    /// Creates or retrieves the WeatherPage instance from the object store
+    /// and navigates to the weather forecast view.
+    /// Can be used as a When step (for navigation action) or Given step
+    /// (for establishing precondition of being on the weather page).
+    /// </remarks>
+    [When("I navigate to view the weather forecast")]
+    [Given("I am viewing weather forecasts")]
     protected async Task WhenINavigateToViewTheWeatherForecast()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -45,8 +34,13 @@ public abstract class WeatherSteps : CommonThenSteps
     #region Steps: THEN
 
     /// <summary>
-    /// Then: I should see upcoming weather predictions
+    /// Verifies that the weather page displays at least one weather forecast.
     /// </summary>
+    /// <remarks>
+    /// Retrieves the forecast count from the WeatherPage and asserts
+    /// that at least one forecast is visible to the user.
+    /// </remarks>
+    [Then("I should see upcoming weather predictions")]
     protected async Task ThenIShouldSeeUpcomingWeatherPredictions()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -55,8 +49,13 @@ public abstract class WeatherSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: each forecast should show the date, temperature, and conditions
+    /// Verifies that each forecast row displays date, temperature, and weather conditions.
     /// </summary>
+    /// <remarks>
+    /// Iterates through all forecast rows and validates that each row contains
+    /// at least 3 cells with non-empty date, temperature, and conditions data.
+    /// </remarks>
+    [Then("each forecast should show the date, temperature, and conditions")]
     protected async Task ThenEachForecastShouldShowTheDateTemperatureAndConditions()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -78,8 +77,13 @@ public abstract class WeatherSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: each forecast should display temperature in both Celsius and Fahrenheit
+    /// Verifies that each forecast displays temperature in both Celsius and Fahrenheit.
     /// </summary>
+    /// <remarks>
+    /// Checks that each forecast row contains both °C and °F temperature values.
+    /// Validates that the temperature string can be parsed for both units.
+    /// </remarks>
+    [Then("each forecast should display temperature in both Celsius and Fahrenheit")]
     protected async Task ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -99,8 +103,13 @@ public abstract class WeatherSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: the temperature conversions should be accurate
+    /// Verifies that the Celsius to Fahrenheit temperature conversions are mathematically correct.
     /// </summary>
+    /// <remarks>
+    /// Applies the formula F = C * 9/5 + 32 to validate conversions.
+    /// Allows for rounding differences within 1 degree to account for display precision.
+    /// </remarks>
+    [Then("the temperature conversions should be accurate")]
     protected async Task ThenTheTemperatureConversionsShouldBeAccurate()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -128,8 +137,13 @@ public abstract class WeatherSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: I should see forecasts for at least the next 5 days
+    /// Verifies that forecasts are displayed for at least the next 5 days.
     /// </summary>
+    /// <remarks>
+    /// Waits for at least 5 forecast rows to render before checking the count.
+    /// This ensures the page has fully loaded before making the assertion.
+    /// </remarks>
+    [Then("I should see forecasts for at least the next 5 days")]
     protected async Task ThenIShouldSeeForecastsForAtLeastTheNext5Days()
     {
         var weatherPage = GetOrCreateWeatherPage();
@@ -143,8 +157,13 @@ public abstract class WeatherSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Then: forecasts should be ordered chronologically
+    /// Verifies that forecast dates are displayed in chronological order (earliest to latest).
     /// </summary>
+    /// <remarks>
+    /// Parses the dates from all forecast rows and verifies each date is later
+    /// than the previous one in the sequence.
+    /// </remarks>
+    [Then("forecasts should be ordered chronologically")]
     protected async Task ThenForecastsShouldBeOrderedChronologically()
     {
         var weatherPage = GetOrCreateWeatherPage();

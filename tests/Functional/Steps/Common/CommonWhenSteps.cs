@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps.Common;
@@ -11,8 +12,13 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     #region Steps: WHEN
 
     /// <summary>
-    /// When: User launches site
+    /// Launches the application site and stores the page response.
     /// </summary>
+    /// <remarks>
+    /// Creates a BasePage instance, navigates to the site, and stores both
+    /// the page model and response in the object store for verification.
+    /// </remarks>
+    [When("User launches site")]
     protected override async Task WhenUserLaunchesSite()
     {
         var pageModel = It<BasePage>();
@@ -22,10 +28,15 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
-    /// When: user visits the (\S+) page, or
-    /// Given: user visited the (\S+) page
+    /// Navigates to a specific page by selecting an option from the navigation bar.
     /// </summary>
-    /// <param name="option">Displayed text of navbar item to click</param>
+    /// <param name="option">The displayed text of the navbar item to click.</param>
+    /// <remarks>
+    /// Uses the site header navigation component to select and navigate to the specified page.
+    /// Can be used as either a When or Given step depending on test context.
+    /// </remarks>
+    [When("user visits the {option} page")]
+    [Given("user visited the {option} page")]
     protected async Task VisitPage(string option)
     {
         var pageModel = It<BasePage>();
@@ -33,8 +44,13 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
-    /// When: I enter my credentials
+    /// Enters test user credentials into the login form without submitting.
     /// </summary>
+    /// <remarks>
+    /// Retrieves test user credentials from the object store and fills the login form fields.
+    /// Does not submit the form - use with WhenIClickTheLoginButton for submission.
+    /// </remarks>
+    [When("I enter my credentials")]
     protected override async Task WhenIEnterMyCredentials()
     {
         var loginPage = GetOrCreateLoginPage();
@@ -45,8 +61,13 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
-    /// When: I enter my credentials
+    /// Performs a complete login operation with test user credentials.
     /// </summary>
+    /// <remarks>
+    /// Retrieves test user credentials from the object store and performs the full
+    /// login action (entering credentials and submitting the form in one operation).
+    /// </remarks>
+    [When("I enter my credentials")]
     protected override async Task WhenILoginWithMyCredentials()
     {
         var loginPage = GetOrCreateLoginPage();
@@ -57,8 +78,13 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     }
 
     /// <summary>
-    /// When: I click the login button
+    /// Clicks the login button to submit the login form.
     /// </summary>
+    /// <remarks>
+    /// Used after WhenIEnterMyCredentials to explicitly submit the form.
+    /// Assumes credentials have already been entered into the form fields.
+    /// </remarks>
+    [When("I click the login button")]
     protected override async Task WhenIClickTheLoginButton()
     {
         var loginPage = GetOrCreateLoginPage();

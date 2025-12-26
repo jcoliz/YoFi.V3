@@ -16,7 +16,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task Background()
     {
         // Given the application is running
-        await GivenTheApplicationIsRunning();
+        await GivenLaunchedSite();
 
         // And these users exist:
         var table = new DataTable(
@@ -38,7 +38,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task NewUserAutomaticallyHasAPersonalWorkspace()
     {
         // Given the application is running
-        await GivenTheApplicationIsRunning();
+        await GivenLaunchedSite();
 
         // When a new user "david" registers and logs in
         await WhenANewUserRegistersAndLogsIn("david");

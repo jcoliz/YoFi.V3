@@ -17,7 +17,7 @@ public class WeatherForecasts : WeatherSteps
     public async Task Background()
     {
         // Given the application is running
-        await GivenTheApplicationIsRunning();
+        await GivenLaunchedSite();
 
         // And I am logged in
         await GivenIAmLoggedIn();
@@ -46,7 +46,7 @@ public class WeatherForecasts : WeatherSteps
     public async Task ForecastsShowBothCelsiusAndFahrenheit()
     {
         // Given I am viewing weather forecasts
-        await GivenIAmViewingWeatherForecasts();
+        await WhenINavigateToViewTheWeatherForecast();
 
         // Then each forecast should display temperature in both Celsius and Fahrenheit
         await ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
@@ -62,7 +62,7 @@ public class WeatherForecasts : WeatherSteps
     public async Task MultiDayForecastIsAvailable()
     {
         // Given I am viewing weather forecasts
-        await GivenIAmViewingWeatherForecasts();
+        await WhenINavigateToViewTheWeatherForecast();
 
         // Then I should see forecasts for at least the next 5 days
         await ThenIShouldSeeForecastsForAtLeastTheNext5Days();
