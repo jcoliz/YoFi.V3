@@ -321,6 +321,7 @@ For implementation patterns, refer to existing features:
        - This runs against the local development environment (fast feedback loop)
      - Review test results and fix issues immediately
      - Iterate on THIS scenario until it passes
+     - Once complete, update the status to indicate the test is complete. If there is a functional test implementation plan, do it there, otherwise do it in functional test plan.
      - **DO NOT proceed to next scenario until this one passes**
    - **For each SUBSEQUENT scenario:**
      - Application remains running from step 1 (reuse it)
@@ -330,9 +331,10 @@ For implementation patterns, refer to existing features:
      - If new test control endpoints needed, add them and regenerate API client (same as above)
      - Run ONLY this scenario using the filter command
      - Iterate until THIS scenario passes
+     - Once complete, update the status to indicate the test is complete. If there is a functional test implementation plan, do it there, otherwise do it in functional test plan.
      - Repeat for next scenario
    - **Key principle:** Implement → Test → Fix → Pass → Move to next. One scenario at a time, never batch multiple scenarios.
-3. **FULL TEST SUITE VERIFICATION:**
+4. **FULL TEST SUITE VERIFICATION:**
    - Once all scenarios pass locally, ask user to run full suite against container: `.\scripts\Run-FunctionalTestsVsContainer.ps1`
    - This ensures tests work in CI/CD environment
    - Wait for user to report results

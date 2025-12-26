@@ -86,5 +86,32 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await ThenIShouldSeeTheUpdatedMemoInTheTransactionList();
     }
 
+    /// <summary>
+    /// User navigates from transaction list to details page
+    /// </summary>
+    [Test]
+    public async Task UserNavigatesFromTransactionListToDetailsPage()
+    {
+        // Given I have a workspace with a transaction:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Gas Mart"],
+            ["Amount", "-40.00"],
+            ["Memo", "Fuel up"],
+            ["Source", "Chase Checking"],
+            ["ExternalId", "CHK-002"]
+        );
+        await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // When I click on the transaction row
+        await WhenIClickOnTheTransactionRow();
+
+        // Then I should navigate to the transaction details page
+        await ThenIShouldNavigateToTheTransactionDetailsPage();
+
+        // And I should see all the expected transaction fields displayed
+        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+    }
+
     #endregion
 }

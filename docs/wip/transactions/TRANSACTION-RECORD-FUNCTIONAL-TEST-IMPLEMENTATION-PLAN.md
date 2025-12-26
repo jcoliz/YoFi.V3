@@ -1,5 +1,5 @@
 ---
-status: Ready for Implementation
+status: In Progress - 3 of 8 scenarios complete
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -19,6 +19,19 @@ This document provides a detailed implementation plan for the 8 approved functio
 - Test data seeding: Supported via TestControlController (needs enhancement for new fields)
 
 **Implementation Approach**: One scenario at a time, with test execution after each to verify correctness.
+
+---
+
+## Implementation Status
+
+- ✅ **Scenario 1: Quick edit modal shows only Payee and Memo fields** - COMPLETE
+- ✅ **Scenario 2: User updates Memo via quick edit modal** - COMPLETE
+- ✅ **Scenario 3: User navigates from transaction list to details page** - COMPLETE
+- ⏳ **Scenario 4: User edits all fields on transaction details page** - PENDING
+- ⏳ **Scenario 5: User returns to list from transaction details page** - PENDING
+- ⏳ **Scenario 6: User sees all fields in create transaction modal** - PENDING
+- ⏳ **Scenario 7: User creates transaction with all fields populated** - PENDING
+- ⏳ **Scenario 8: Created transaction displays all fields on details page** - PENDING
 
 ---
 
@@ -438,6 +451,8 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 1: User quick edits Payee and Memo from transaction list
 
+**Status: ✅ COMPLETE - Implemented and passing (4s duration)**
+
 **Steps to Implement**:
 
 1. **`GivenIHaveAWorkspaceWithThisTransaction(DataTable)`**:
@@ -472,6 +487,8 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 2: User updates Memo via quick edit modal
 
+**Status: ✅ COMPLETE - Implemented and passing (4s duration)**
+
 **Steps to Implement**:
 
 1. Reuse: `GivenIHaveAWorkspaceWithThisTransaction(DataTable)` (already implemented)
@@ -505,6 +522,8 @@ Rule: User can create new transactions with all optional fields and see them dis
 ---
 
 ### Scenario 3: User navigates from transaction list to details page
+
+**Status: ✅ COMPLETE - Implemented and passing (5s duration)**
 
 **Steps to Implement**:
 

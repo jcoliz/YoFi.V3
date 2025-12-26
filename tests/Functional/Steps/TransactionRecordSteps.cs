@@ -101,16 +101,6 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         transactionTable.TryGetKeyValue("Source", out var source);
         transactionTable.TryGetKeyValue("ExternalId", out var externalId);
 
-        // And: Store transaction data for verification
-        _objectStore.Add(KEY_TRANSACTION_PAYEE, payee);
-        _objectStore.Add(KEY_TRANSACTION_AMOUNT, amount.ToString("F2"));
-        if (!string.IsNullOrEmpty(memo))
-            _objectStore.Add(KEY_TRANSACTION_MEMO, memo);
-        if (!string.IsNullOrEmpty(source))
-            _objectStore.Add(KEY_TRANSACTION_SOURCE, source);
-        if (!string.IsNullOrEmpty(externalId))
-            _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, externalId);
-
         // And: Get workspace key
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
         var workspaceKey = _workspaceKeys[workspaceName];
@@ -133,9 +123,23 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             seedRequest
         );
 
+        // And: Get the actual seeded transaction data from the response
+        var seededTransaction = seededTransactions.First();
+        var actualPayee = seededTransaction.Payee;
+        var actualAmount = seededTransaction.Amount;
+
+        // And: Store actual transaction data for verification (from seeded response, not input table)
+        _objectStore.Add(KEY_TRANSACTION_PAYEE, actualPayee);
+        _objectStore.Add(KEY_TRANSACTION_AMOUNT, actualAmount.ToString("F2"));
+        if (!string.IsNullOrEmpty(memo))
+            _objectStore.Add(KEY_TRANSACTION_MEMO, memo);
+        if (!string.IsNullOrEmpty(source))
+            _objectStore.Add(KEY_TRANSACTION_SOURCE, source);
+        if (!string.IsNullOrEmpty(externalId))
+            _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, externalId);
+
         // Store the transaction key for later reference
-        var transactionKey = seededTransactions.First().Key;
-        _objectStore.Add(KEY_TRANSACTION_KEY, transactionKey.ToString());
+        _objectStore.Add(KEY_TRANSACTION_KEY, seededTransaction.Key.ToString());
 
         // And: Navigate to transactions page
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
@@ -263,6 +267,23 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         var payee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
 
         // And: Click on the transaction row to navigate to details
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        var row = transactionsPage.GetTransactionRowByPayee(payee);
+        await row.ClickAsync();
+    }
+
+    /// <summary>
+    /// Clicks on a specific transaction row to navigate to its details page.
+    /// </summary>
+    /// <param name="payee">The payee name of the transaction to click.</param>
+    /// <remarks>
+    /// Locates the transaction by payee name and clicks the row to navigate to
+    /// the full details page (PUT endpoint).
+    /// </remarks>
+    [When("I click on the {payee} transaction row")]
+    protected async Task WhenIClickOnTheTransactionRow(string payee)
+    {
+        // When: Click on the transaction row to navigate to details
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         var row = transactionsPage.GetTransactionRowByPayee(payee);
         await row.ClickAsync();
@@ -497,6 +518,20 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
+    /// Verifies that navigation to the transaction details page occurred.
+    /// </summary>
+    /// <remarks>
+    /// Waits for page ready state to ensure page is interactive after navigation.
+    /// </remarks>
+    [Then("I should navigate to the transaction details page")]
+    protected async Task ThenIShouldNavigateToTheTransactionDetailsPage()
+    {
+        // Then: Wait for the transaction details page to be ready
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.WaitForPageReadyAsync();
+    }
+
+    /// <summary>
     /// Verifies that all transaction fields on the details page match expected values.
     /// </summary>
     /// <param name="expectedFieldsTable">DataTable with optional Date, Payee, Amount, Memo, Source, ExternalId.</param>
@@ -546,6 +581,118 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         {
             var externalIdValue = await detailsPage.GetExternalIdAsync();
             Assert.That(externalIdValue, Is.EqualTo(expectedExternalId), $"ExternalId field should be '{expectedExternalId}'");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that all transaction fields are displayed on the details page.
+    /// </summary>
+    /// <param name="fieldTable">DataTable with optional Date, Payee, Amount, Memo, Source, ExternalId.</param>
+    /// <remarks>
+    /// Parses the DataTable to extract expected field values and verifies each field
+    /// on the transaction details page using the TransactionDetailsPage query methods.
+    /// </remarks>
+    [Then("I should see all transaction fields displayed:")]
+    protected async Task ThenIShouldSeeAllTransactionFieldsDisplayed(DataTable fieldTable)
+    {
+        // Then: Get the TransactionDetailsPage
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+
+        // And: Verify each field from the table
+        if (fieldTable.TryGetKeyValue("Date", out var expectedDate))
+        {
+            var dateValue = await detailsPage.GetDateAsync();
+            Assert.That(dateValue?.Trim(), Does.Contain(expectedDate!),
+                $"Date field should contain '{expectedDate}'");
+        }
+
+        if (fieldTable.TryGetKeyValue("Payee", out var expectedPayee))
+        {
+            var payeeValue = await detailsPage.GetPayeeAsync();
+            Assert.That(payeeValue?.Trim(), Is.EqualTo(expectedPayee),
+                $"Payee field should be '{expectedPayee}'");
+        }
+
+        if (fieldTable.TryGetKeyValue("Amount", out var expectedAmount))
+        {
+            var amountValue = await detailsPage.GetAmountAsync();
+            Assert.That(amountValue?.Trim(), Does.Contain(expectedAmount!),
+                $"Amount field should contain '{expectedAmount}'");
+        }
+
+        if (fieldTable.TryGetKeyValue("Memo", out var expectedMemo))
+        {
+            var memoValue = await detailsPage.GetMemoAsync();
+            Assert.That(memoValue?.Trim(), Is.EqualTo(expectedMemo),
+                $"Memo field should be '{expectedMemo}'");
+        }
+
+        if (fieldTable.TryGetKeyValue("Source", out var expectedSource))
+        {
+            var sourceValue = await detailsPage.GetSourceAsync();
+            Assert.That(sourceValue?.Trim(), Is.EqualTo(expectedSource),
+                $"Source field should be '{expectedSource}'");
+        }
+
+        if (fieldTable.TryGetKeyValue("ExternalId", out var expectedExternalId))
+        {
+            var externalIdValue = await detailsPage.GetExternalIdAsync();
+            Assert.That(externalIdValue?.Trim(), Is.EqualTo(expectedExternalId),
+                $"ExternalId field should be '{expectedExternalId}'");
+        }
+    }
+
+    /// <summary>
+    /// Verifies that all expected transaction fields are displayed on the details page.
+    /// </summary>
+    /// <remarks>
+    /// Uses the seeded transaction data stored in the object store (from GivenIHaveAWorkspaceWithATransaction)
+    /// to verify all fields match what was seeded. This handles cases where the seed API modifies
+    /// values (e.g., appending numbers to payee names).
+    /// </remarks>
+    [Then("I should see all the expected transaction fields displayed")]
+    protected async Task ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed()
+    {
+        // Then: Get the TransactionDetailsPage
+        var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
+
+        // And: Get expected values from object store (seeded transaction data)
+        var expectedPayee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+        var expectedAmount = GetRequiredFromStore(KEY_TRANSACTION_AMOUNT);
+
+        // And: Verify payee
+        var payeeValue = await detailsPage.GetPayeeAsync();
+        Assert.That(payeeValue?.Trim(), Is.EqualTo(expectedPayee),
+            $"Payee field should be '{expectedPayee}'");
+
+        // And: Verify amount
+        var amountValue = await detailsPage.GetAmountAsync();
+        Assert.That(amountValue?.Trim(), Does.Contain(expectedAmount),
+            $"Amount field should contain '{expectedAmount}'");
+
+        // And: Verify optional fields if they were seeded
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_MEMO))
+        {
+            var expectedMemo = _objectStore.Get<string>(KEY_TRANSACTION_MEMO);
+            var memoValue = await detailsPage.GetMemoAsync();
+            Assert.That(memoValue?.Trim(), Is.EqualTo(expectedMemo),
+                $"Memo field should be '{expectedMemo}'");
+        }
+
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_SOURCE))
+        {
+            var expectedSource = _objectStore.Get<string>(KEY_TRANSACTION_SOURCE);
+            var sourceValue = await detailsPage.GetSourceAsync();
+            Assert.That(sourceValue?.Trim(), Is.EqualTo(expectedSource),
+                $"Source field should be '{expectedSource}'");
+        }
+
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_EXTERNAL_ID))
+        {
+            var expectedExternalId = _objectStore.Get<string>(KEY_TRANSACTION_EXTERNAL_ID);
+            var externalIdValue = await detailsPage.GetExternalIdAsync();
+            Assert.That(externalIdValue?.Trim(), Is.EqualTo(expectedExternalId),
+                $"ExternalId field should be '{expectedExternalId}'");
         }
     }
 

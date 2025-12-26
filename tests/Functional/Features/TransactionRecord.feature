@@ -38,3 +38,15 @@ Rule: Quick Edit Modal
         And I click "Update"
         Then the modal should close
         And I should see the updated memo in the transaction list
+
+    Scenario: User navigates from transaction list to details page
+        Given I have a workspace with a transaction:
+            | Field      | Value          |
+            | Payee      | Gas Mart       |
+            | Amount     | -40.00         |
+            | Memo       | Fuel up        |
+            | Source     | Chase Checking |
+            | ExternalId | CHK-002        |
+        When I click on the transaction row
+        Then I should navigate to the transaction details page
+        And I should see all the expected transaction fields displayed
