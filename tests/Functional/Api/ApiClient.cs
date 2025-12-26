@@ -5539,6 +5539,24 @@ namespace YoFi.V3.Tests.Functional.Generated
         [System.Text.Json.Serialization.JsonPropertyName("payeePrefix")]
         public string PayeePrefix { get; set; }
 
+        /// <summary>
+        /// Optional memo text to apply to all seeded transactions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("memo")]
+        public string Memo { get; set; }
+
+        /// <summary>
+        /// Optional source text to apply to all seeded transactions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public string Source { get; set; }
+
+        /// <summary>
+        /// Optional external ID text to apply to all seeded transactions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("externalId")]
+        public string ExternalId { get; set; }
+
     }
 
     /// <summary>

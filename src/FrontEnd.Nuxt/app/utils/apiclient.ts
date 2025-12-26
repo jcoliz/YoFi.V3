@@ -2619,6 +2619,12 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
     count?: number;
     /** Prefix for payee names (default: "Test Transaction"). */
     payeePrefix?: string;
+    /** Optional memo text to apply to all seeded transactions. */
+    memo?: string | undefined;
+    /** Optional source text to apply to all seeded transactions. */
+    source?: string | undefined;
+    /** Optional external ID text to apply to all seeded transactions. */
+    externalId?: string | undefined;
 
     constructor(data?: ITransactionSeedRequest) {
         if (data) {
@@ -2633,6 +2639,9 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
         if (_data) {
             this.count = _data["count"];
             this.payeePrefix = _data["payeePrefix"];
+            this.memo = _data["memo"];
+            this.source = _data["source"];
+            this.externalId = _data["externalId"];
         }
     }
 
@@ -2647,6 +2656,9 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
         data = typeof data === 'object' ? data : {};
         data["count"] = this.count;
         data["payeePrefix"] = this.payeePrefix;
+        data["memo"] = this.memo;
+        data["source"] = this.source;
+        data["externalId"] = this.externalId;
         return data;
     }
 }
@@ -2657,6 +2669,12 @@ export interface ITransactionSeedRequest {
     count?: number;
     /** Prefix for payee names (default: "Test Transaction"). */
     payeePrefix?: string;
+    /** Optional memo text to apply to all seeded transactions. */
+    memo?: string | undefined;
+    /** Optional source text to apply to all seeded transactions. */
+    source?: string | undefined;
+    /** Optional external ID text to apply to all seeded transactions. */
+    externalId?: string | undefined;
 }
 
 /** Result of workspace setup including key, name, and assigned role. */

@@ -79,7 +79,16 @@ public record UserRoleAssignment(string Role);
 /// </summary>
 /// <param name="Count">Number of transactions to create.</param>
 /// <param name="PayeePrefix">Prefix for payee names (default: "Test Transaction").</param>
-public record TransactionSeedRequest(int Count, string PayeePrefix = "Test Transaction");
+/// <param name="Memo">Optional memo text to apply to all seeded transactions.</param>
+/// <param name="Source">Optional source text to apply to all seeded transactions.</param>
+/// <param name="ExternalId">Optional external ID text to apply to all seeded transactions.</param>
+public record TransactionSeedRequest(
+    int Count,
+    string PayeePrefix = "Test Transaction",
+    string? Memo = null,
+    string? Source = null,
+    string? ExternalId = null
+);
 
 /// <summary>
 /// Request for setting up a workspace with a specific role.
@@ -531,9 +540,9 @@ public partial class TestControlController(
                 Date: baseDate.AddDays(random.Next(0, 30)),
                 Amount: Math.Round((decimal)(random.NextDouble() * 490 + 10), 2),
                 Payee: $"{request.PayeePrefix} {i}",
-                Memo: null,
-                Source: null,
-                ExternalId: null
+                Memo: request.Memo,
+                Source: request.Source,
+                ExternalId: request.ExternalId
             );
 
             var result = await transactionsFeature.AddTransactionAsync(transaction);

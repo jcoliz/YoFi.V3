@@ -2,6 +2,7 @@
 status: Approved
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 prd: PRD-TRANSACTION-RECORD.md
+implementation_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
 approved_scenarios: 8 scenarios (Priority 1 and 2)
 deferred_scenarios: Priority 3 (Memo truncation)
 estimated_coverage: 10-15% of acceptance criteria

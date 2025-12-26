@@ -22,10 +22,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     #region Test Data Storage
 
     // Store user credentials created in Background (keys are FULL usernames with __TEST__ prefix)
-    private readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
+    protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
     // Store workspace keys for later reference (keys are FULL workspace names as returned by API)
-    private readonly Dictionary<string, Guid> _workspaceKeys = new();
+    protected readonly Dictionary<string, Guid> _workspaceKeys = new();
 
     [SetUp]
     public void SetupWorkspaceTenancySteps()
@@ -39,14 +39,14 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
     #region Object Store Keys
 
-    private const string KEY_LOGGED_IN_AS = "LoggedInAs";
-    private const string KEY_PENDING_USER_CONTEXT = "PendingUserContext"; // User context for pre-login steps
-    private const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
-    private const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
-    private const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
-    private const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
-    private const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
-    private const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
+    protected const string KEY_LOGGED_IN_AS = "LoggedInAs";
+    protected const string KEY_PENDING_USER_CONTEXT = "PendingUserContext"; // User context for pre-login steps
+    protected const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
+    protected const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
+    protected const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
+    protected const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
+    protected const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
+    protected const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
 
     #endregion
 
@@ -55,12 +55,12 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// <summary>
     /// Adds the __TEST__ prefix to a name for test controller API calls
     /// </summary>
-    private static string AddTestPrefix(string name) => $"__TEST__{name}";
+    protected static string AddTestPrefix(string name) => $"__TEST__{name}";
 
     /// <summary>
     /// Get or create a page object of type T from the object store
     /// </summary>
-    private T GetOrCreatePage<T>() where T : class
+    protected T GetOrCreatePage<T>() where T : class
     {
         if (!_objectStore.Contains<T>())
         {
@@ -73,7 +73,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// <summary>
     /// Gets a required value from the object store, throwing if not found
     /// </summary>
-    private string GetRequiredFromStore(string key)
+    protected string GetRequiredFromStore(string key)
     {
         return _objectStore.Get<string>(key)
             ?? throw new InvalidOperationException($"Required value '{key}' not found in object store");
@@ -82,7 +82,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// <summary>
     /// Gets the current or newly renamed workspace name from object store
     /// </summary>
-    private string GetCurrentOrNewWorkspaceName()
+    protected string GetCurrentOrNewWorkspaceName()
     {
         return _objectStore.Contains<string>(KEY_NEW_WORKSPACE_NAME)
             ? _objectStore.Get<string>(KEY_NEW_WORKSPACE_NAME)!
@@ -92,7 +92,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// <summary>
     /// Gets the last transaction payee from object store
     /// </summary>
-    private string GetLastTransactionPayee()
+    protected string GetLastTransactionPayee()
     {
         return GetRequiredFromStore(KEY_LAST_TRANSACTION_PAYEE);
     }
