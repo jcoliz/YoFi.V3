@@ -40,6 +40,9 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         );
         await GivenIHaveAWorkspaceWithATransaction(table);
 
+        // And I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
         // When I click the "Edit" button on the transaction
         await WhenIClickTheEditButtonOnTheTransaction();
 
@@ -69,6 +72,9 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["ExternalId", "CHK-001"]
         );
         await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // And I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
 
         // When I quick edit the "Coffee Co" transaction
         await WhenIQuickEditTheTransaction("Coffee Co");
@@ -102,6 +108,9 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["ExternalId", "CHK-002"]
         );
         await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // And I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
 
         // When I click on the transaction row
         await WhenIClickOnTheTransactionRow();
@@ -198,6 +207,40 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["External ID"]
         );
         await ThenIShouldSeeTheFollowingFieldsInTheCreateForm(fieldsTable);
+    }
+
+    /// <summary>
+    /// User creates transaction with all fields populated
+    /// </summary>
+    [Test]
+    public async Task User_creates_transaction_with_all_fields_populated()
+    {
+        // Given I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
+        // When I click the "Add Transaction" button
+        await WhenIClickTheAddTransactionButton();
+
+        // And I fill in the following transaction fields:
+        var fieldsTable = new DataTable(
+            ["Field", "Value"],
+            ["Date", "2024-06-15"],
+            ["Payee", "Office Depot"],
+            ["Amount", "250.75"],
+            ["Memo", "Printer paper and toner"],
+            ["Source", "Business Card"],
+            ["External ID", "OD-2024-0615-001"]
+        );
+        await WhenIFillInTheFollowingTransactionFields(fieldsTable);
+
+        // And I click "Save"
+        await WhenIClickSave();
+
+        // Then the modal should close
+        await ThenTheModalShouldClose();
+
+        // And I should see a transaction with Payee "Office Depot"
+        await ThenIShouldSeeATransactionWithPayee("Office Depot");
     }
 
     #endregion

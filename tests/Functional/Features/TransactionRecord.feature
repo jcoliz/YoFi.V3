@@ -94,13 +94,28 @@ Rule: Users can create new transactions with all transaction record fields
         Given I am on the transactions page
         When I click the "Add Transaction" button
         And I fill in the following transaction fields:
-            | Field       | Value           |
-            | Date        | 2024-06-15      |
-            | Payee       | __TEST__NewCorp |
-            | Amount      | 250.75          |
-            | Memo        | __TEST__memo    |
-            | Source      | __TEST__src     |
-            | External ID | __TEST__extid   |
+            | Field       | Value                   |
+            | Date        | 2024-06-15              |
+            | Payee       | Office Depot            |
+            | Amount      | 250.75                  |
+            | Memo        | Printer paper and toner |
+            | Source      | Business Card           |
+            | External ID | OD-2024-0615-001        |
         And I click "Save"
         Then the modal should close
-        And I should see a transaction with Payee "__TEST__NewCorp"
+        And I should see a transaction with Payee "Office Depot"
+
+    Scenario: Created transaction displays all fields on details page
+        Given I am on the transactions page
+        When I click the "Add Transaction" button
+        And I fill in the following transaction fields:
+            | Field       | Value                   |
+            | Date        | 2024-06-15              |
+            | Payee       | Office Depot            |
+            | Amount      | 250.75                  |
+            | Memo        | Printer paper and toner |
+            | Source      | Business Card           |
+            | External ID | OD-2024-0615-001        |
+        And I click "Save"
+        And I click on the transaction row
+        Then I should see all the expected transaction fields displayed

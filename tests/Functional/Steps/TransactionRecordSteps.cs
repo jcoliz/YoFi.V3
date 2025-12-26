@@ -28,7 +28,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     protected const string KEY_TRANSACTION_SOURCE = "TransactionSource";
     protected const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
     protected const string KEY_TRANSACTION_KEY = "TransactionKey";
-    protected const string KEY_EDIT_MODE = "EditMode"; // "TransactionDetailsPage" or "TransactionsPage"
+    protected const string KEY_EDIT_MODE = "EditMode"; // "TransactionDetailsPage", "TransactionsPage", or "CreateModal"
 
     #endregion
 
@@ -303,10 +303,10 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Submits the edit form (quick edit or full details).
+    /// Submits the edit form (quick edit, create modal, or full details).
     /// </summary>
     /// <remarks>
-    /// Submits the currently open edit form. Used with both quick edit modal
+    /// Submits the currently open form. Used with quick edit modal, create modal,
     /// and full details page. Uses object store to determine which mode we're in.
     /// </remarks>
     [When("I click \"Save\"")]
@@ -319,6 +319,10 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             if (editMode == "TransactionDetailsPage")
             {
                 await WhenIClickSaveInTransactionDetails();
+            }
+            else if (editMode == "CreateModal")
+            {
+                await WhenIClickSaveInCreateModal();
             }
             else
             {
@@ -356,6 +360,19 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // When: Submit edit form from transactions page modal
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         await transactionsPage.SubmitEditFormAsync();
+    }
+
+    /// <summary>
+    /// Saves new transaction from the create modal.
+    /// </summary>
+    /// <remarks>
+    /// Submits the create modal form (POST endpoint).
+    /// </remarks>
+    protected async Task WhenIClickSaveInCreateModal()
+    {
+        // When: Submit create form from transactions page modal
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.SubmitCreateFormAsync();
     }
 
     /// <summary>
@@ -538,6 +555,69 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // When: Click the Add Transaction button to open create modal
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         await transactionsPage.OpenCreateModalAsync();
+
+        // And: Mark that we're in create modal mode
+        _objectStore.Add(KEY_EDIT_MODE, "CreateModal");
+    }
+
+    /// <summary>
+    /// Fills transaction fields in the create modal from a DataTable.
+    /// </summary>
+    /// <param name="dataTable">DataTable with columns "Field" and "Value" containing field names and values.</param>
+    /// <remarks>
+    /// Parses the DataTable to extract field-value pairs and fills the corresponding fields
+    /// in the create transaction modal. Supports: Date, Payee, Amount, Memo, Source, External ID.
+    /// Stores all values in object store for later verification in Scenario 8.
+    /// </remarks>
+    [When("I fill in the following transaction fields:")]
+    protected async Task WhenIFillInTheFollowingTransactionFields(DataTable dataTable)
+    {
+        // When: Get the TransactionsPage
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+
+        // And: Process each row in the data table
+        foreach (var row in dataTable.Rows)
+        {
+            var fieldName = row["Field"];
+            var value = row["Value"];
+
+            // And: Fill the appropriate field based on field name
+            switch (fieldName)
+            {
+                case "Date":
+                    await transactionsPage.FillCreateDateAsync(value);
+                    // Store for Scenario 8 verification (date is stored but not used in Scenario 7)
+                    break;
+
+                case "Payee":
+                    await transactionsPage.FillCreatePayeeAsync(value);
+                    _objectStore.Add(KEY_TRANSACTION_PAYEE, value);
+                    break;
+
+                case "Amount":
+                    await transactionsPage.FillCreateAmountAsync(decimal.Parse(value));
+                    _objectStore.Add(KEY_TRANSACTION_AMOUNT, value);
+                    break;
+
+                case "Memo":
+                    await transactionsPage.FillCreateMemoAsync(value);
+                    _objectStore.Add(KEY_TRANSACTION_MEMO, value);
+                    break;
+
+                case "Source":
+                    await transactionsPage.FillCreateSourceAsync(value);
+                    _objectStore.Add(KEY_TRANSACTION_SOURCE, value);
+                    break;
+
+                case "External ID":
+                    await transactionsPage.FillCreateExternalIdAsync(value);
+                    _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, value);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unsupported field name: {fieldName}");
+            }
+        }
     }
 
     #endregion
@@ -1047,6 +1127,29 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
             Assert.That(isVisible, Is.True, $"{fieldName} field should be visible in create modal");
         }
+    }
+
+    /// <summary>
+    /// Verifies that a transaction with the specified payee appears in the transaction list.
+    /// </summary>
+    /// <param name="payee">The payee name to search for.</param>
+    /// <remarks>
+    /// Waits for the transaction to appear in the list and verifies it is visible.
+    /// Used after creating a new transaction to verify it was successfully added.
+    /// </remarks>
+    [Then("I should see a transaction with Payee {payee}")]
+    protected async Task ThenIShouldSeeATransactionWithPayee(string payee)
+    {
+        // Then: Get the TransactionsPage
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+
+        // And: Wait for the transaction to appear in the list
+        await transactionsPage.WaitForTransactionAsync(payee);
+
+        // And: Verify the transaction is visible
+        var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+        Assert.That(hasTransaction, Is.True,
+            $"Transaction with payee '{payee}' should be visible in the transaction list");
     }
 
     #endregion

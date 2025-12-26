@@ -273,7 +273,7 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present frontend implementation to user for review and commit.
 
-> [!TODO]: Need to add a step here to ensure existing functional tests pass. It's reasonably common for a new feature implementation to break an existing feature implementation. We need to fix all those before continuing!
+> [!TODO]: Need to add a step here to ensure existing functional tests pass. It's reasonably common for a new feature implementation to break an existing feature implementation. We need to fix all those before continuing! We should ask user to run-localdev, and then we iterate on tests. Note that some tests are (sadly) flaky, so if we fail a test, we can run it again to ensure it's a true failure.
 
 ---
 
@@ -296,7 +296,7 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present functional test plan to user for review and commit.
 
-> [!TODO]: Add a functional tests implementation. Even for something as simple as transaction record, the agents decided to go build a functional test implementation plan. Need to add a step here to formalize that.
+> [!TODO]: Add a functional tests implementation. Even for something as simple as transaction record, the agents decided to go build a functional test implementation plan. Need to add a step here to formalize that. We should add the plan to PRD front matter as well.
 
 ---
 
@@ -355,6 +355,8 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present functional tests to user for review and commit.
 
+> [!TODO]: Needs explicit instruction here to DO NOT proceed to next scenario until giving user a commit message for the scenario we just implemented, and get explicit permission to move on.
+
 ---
 
 ## [ ] 11.5. Documentation Updates
@@ -411,6 +413,8 @@ For implementation patterns, refer to existing features:
    ```
 
 **Final Commit:** Present complete implementation summary to user for final review and commit.
+
+> [!TODO]: is there any reason not to renumber these tests? No value in "X.5" is there?
 
 ---
 

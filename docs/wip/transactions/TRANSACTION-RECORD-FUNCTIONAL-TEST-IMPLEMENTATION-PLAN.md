@@ -1,5 +1,5 @@
 ---
-status: In Progress - 6 of 8 scenarios complete
+status: In Progress - 7 of 8 scenarios complete
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -30,7 +30,7 @@ This document provides a detailed implementation plan for the 8 approved functio
 - ✅ **Scenario 4: User edits all fields on transaction details page** - COMPLETE
 - ✅ **Scenario 5: User returns to list from transaction details page** - COMPLETE
 - ✅ **Scenario 6: User sees all fields in create transaction modal** - COMPLETE
-- ⏳ **Scenario 7: User creates transaction with all fields populated** - PENDING
+- ✅ **Scenario 7: User creates transaction with all fields populated** - COMPLETE
 - ⏳ **Scenario 8: Created transaction displays all fields on details page** - PENDING
 
 ---
@@ -608,41 +608,21 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 7: User creates transaction with all fields populated
 
-**Steps to Implement**:
+**Status: ✅ COMPLETE - Implemented and passing (3s duration)**
 
-1. **`GivenIHaveAnEmptyWorkspace()`**:
-   - Create workspace for logged-in user
-   - Do NOT seed any transactions
-   - Store workspace key/name
+**Implementation Notes**:
+- Created [`WhenIFillInTheFollowingTransactionFields(DataTable)`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:555) to parse and fill all transaction fields from a DataTable
+- Updated [`WhenIClickTheAddTransactionButton()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:541) to set `KEY_EDIT_MODE` to "CreateModal" in object store
+- Enhanced [`WhenIClickSave()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:318) to detect create modal context and call `WhenIClickSaveInCreateModal()`
+- Created [`WhenIClickSaveInCreateModal()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:372) to submit create form via TransactionsPage.SubmitCreateFormAsync()
+- Created [`ThenIShouldSeeATransactionWithPayee(string)`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:1117) to verify transaction appears in list after creation
+- Reused existing [`ThenTheModalShouldClose()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:654) for modal closure verification
+- Used realistic test data (Office Depot, Business Card, etc.) instead of `__TEST__` prefixes since these are user-created transactions
+- Field values stored in object store using existing KEY_TRANSACTION_* constants for potential use in Scenario 8
 
-2. **`WhenICreateANewTransactionWith(DataTable)`**:
-   - Get TransactionsPage
-   - Navigate to transactions page
-   - Click New Transaction button
-   - Parse DataTable to get field values
-   - Fill all fields:
-     - `await transactionsPage.FillCreateDateAsync(date)`
-     - `await transactionsPage.FillCreatePayeeAsync(payee)`
-     - `await transactionsPage.FillCreateAmountAsync(amount)`
-     - `await transactionsPage.FillCreateMemoAsync(memo)`
-     - `await transactionsPage.FillCreateSourceAsync(source)`
-     - `await transactionsPage.FillCreateExternalIdAsync(externalId)`
-   - Click Create/Save button
-   - Store payee and memo in object store
+**Key Design Decision**: The `WhenIClickSave()` method now detects three contexts: TransactionDetailsPage (full edit), CreateModal (new transaction), and default (quick edit modal). This unified save method reduces code duplication and makes the step definitions more maintainable.
 
-3. Reuse: `ThenTheModalShouldClose()` (already implemented)
-
-4. **`ThenIShouldSeeInTheTransactionList(string payee)`** (might already exist):
-   - Get TransactionsPage
-   - Assert transaction with payee is visible: `await transactionsPage.HasTransactionAsync(payee)`
-
-5. **`ThenTheMemoColumnShouldDisplay(string expectedMemo)`**:
-   - Get TransactionsPage
-   - Get memo from object store (or use parameter)
-   - Get memo value from transaction row
-   - Assert memo matches expected value
-
-**Run Test**: `dotnet test tests/Functional --filter "Name~creates_transaction_with_all_fields"`
+**Run Test**: `dotnet test tests/Functional --filter "Name~User_creates_transaction_with_all_fields_populated"`
 
 ---
 
