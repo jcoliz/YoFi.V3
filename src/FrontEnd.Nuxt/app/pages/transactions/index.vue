@@ -281,6 +281,11 @@ async function deleteTransaction() {
   }
 }
 
+function navigateToDetails(key: string | undefined) {
+  if (!key) return
+  navigateTo(`/transactions/${key}`)
+}
+
 function clearFilters() {
   fromDate.value = ''
   toDate.value = ''
@@ -469,6 +474,8 @@ function formatCurrency(amount: number | undefined): string {
                   v-for="transaction in transactions"
                   :key="transaction.key"
                   :data-test-id="`transaction-row-${transaction.key}`"
+                  class="clickable-row"
+                  @click="navigateToDetails(transaction.key)"
                 >
                   <td>{{ formatDate(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
@@ -485,9 +492,9 @@ function formatCurrency(amount: number | undefined): string {
                   >
                     <button
                       class="btn btn-sm btn-outline-primary me-1"
-                      title="Edit"
+                      title="Quick Edit"
                       data-test-id="edit-transaction-button"
-                      @click="openEditModal(transaction)"
+                      @click.stop="openEditModal(transaction)"
                     >
                       <FeatherIcon
                         icon="edit"
@@ -498,7 +505,7 @@ function formatCurrency(amount: number | undefined): string {
                       class="btn btn-sm btn-outline-danger"
                       title="Delete"
                       data-test-id="delete-transaction-button"
-                      @click="openDeleteModal(transaction)"
+                      @click.stop="openDeleteModal(transaction)"
                     >
                       <FeatherIcon
                         icon="trash-2"
@@ -783,5 +790,13 @@ function formatCurrency(amount: number | undefined): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: #f8f9fa;
 }
 </style>
