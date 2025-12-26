@@ -3,6 +3,7 @@ status: Approved (Detailed design complete)
 target_release: Alpha 1
 design_document: TRANSACTION-RECORD-DESIGN.md
 functional_test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
+functional_test_implementation_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
 ado: "[Link to ADO Item]"
 ---
 

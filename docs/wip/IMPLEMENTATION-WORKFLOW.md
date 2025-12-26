@@ -299,6 +299,7 @@ For implementation patterns, refer to existing features:
 ## [ ] 11. Functional Tests
 
 1. Locate the functional test plan. Ensure it's marked `status: Approved` in the YAML front matter
+1. **Review fucntional test-specific rules** in [`tests/Functional/.roorules`](../../tests/Functional/.roorules) to understand patterns and conventions before implementing
 2. **Review test generation pattern**: Read [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md) to understand how this project generates functional tests from Gherkin feature files. Key points:
    - This project does NOT use SpecFlow or SpecFlow attributes
    - Tests are generated manually from Gherkin using a custom template system

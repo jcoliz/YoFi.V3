@@ -1054,9 +1054,9 @@ starting at Step 10 (Frontend). Steps 1-9 are complete and committed.
 - Step 8: Controllers (updated DTOs) ✅
 - Step 8.5: API Client Regeneration & Frontend Compatibility ✅
 - Step 9: Controller Integration Tests (69 tests passing) ✅
+- Step 10: Frontend UI (implement transaction pages with new fields) ✅
 
 **⏭️ Next Steps (10-12):**
-- Step 10: Frontend UI (implement transaction pages with new fields)
 - Step 11: Functional Tests (critical user workflows)
 - Step 12: Wrap-up (final verification, PRD status update)
 

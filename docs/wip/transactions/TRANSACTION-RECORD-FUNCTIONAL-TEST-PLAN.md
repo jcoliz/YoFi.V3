@@ -33,7 +33,7 @@ The following acceptance criteria are **already adequately tested** and do NOT n
 
 ## Critical UI Workflows Requiring Functional Tests
 
-### Priority 1: Two-Tier Editing UX ✅ APPROVED FOR IMPLEMENTATION
+### Rule 1: Two-Tier Editing UX ✅ APPROVED FOR IMPLEMENTATION
 
 **Justification**: This is a unique UX pattern (quick edit vs full edit) that requires verifying:
 - Clicking row navigates to details page (cannot be tested at API level)
@@ -105,7 +105,7 @@ Scenario: User returns to list from transaction details page
     And I should see all my transactions
 ```
 
-### Priority 2: New Transaction with All Fields ✅ APPROVED FOR IMPLEMENTATION
+### Rule 2: New Transaction with All Fields ✅ APPROVED FOR IMPLEMENTATION
 
 **Justification**: Verifies the complete create workflow including:
 - All new fields (Memo, Source, ExternalId) are visible and editable in create modal
@@ -155,7 +155,7 @@ Scenario: Created transaction displays all fields on details page
         | ExternalId | WF-DEC-20241225-001          |
 ```
 
-### Priority 3: Memo Truncation in List View ⏸️ DEFERRED (Future Consideration)
+### Rule 3: Memo Truncation in List View ⏸️ DEFERRED (Future Consideration)
 
 **Justification**: Verifies UI-specific behavior:
 - Long memos truncate with ellipsis in table view
@@ -169,11 +169,11 @@ Scenario: Created transaction displays all fields on details page
 ## Implementation Plan
 
 **Approved for Implementation**:
-- ✅ **Priority 1**: Two-Tier Editing UX - 5 scenarios
-- ✅ **Priority 2**: New Transaction with All Fields - 3 scenarios
+- ✅ **Rule 1**: Two-Tier Editing UX - 5 scenarios
+- ✅ **Rule 2**: New Transaction with All Fields - 3 scenarios
 
 **Deferred (Future Consideration)**:
-- ⏸️ **Priority 3**: Memo Truncation - manual testing sufficient for now
+- ⏸️ **Rule 3**: Memo Truncation - manual testing sufficient for now
 
 **Total Scenarios**: 8 focused scenarios
 **Estimated Coverage**: ~10% of acceptance criteria (appropriate for functional tests)
@@ -201,3 +201,8 @@ Scenario: Created transaction displays all fields on details page
 **Browser Requirements**:
 - Chromium only (existing functional test setup)
 - No special browser features required (standard form input/navigation)
+
+## Status
+
+### Rule 1: Two-Tier Editing UX
+- ✅ **Complete** Scenario: User sees all fields in create transaction modal
