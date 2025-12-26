@@ -1555,6 +1555,188 @@ The estimated 259-331 tests for ~288 acceptance criteria reflects a **1.1x multi
 
 ---
 
+## Functional Test Gherkin Language Strategy
+
+### Recommendation: Pragmatic Tiered Approach
+
+YoFi.V3 uses a **pragmatic three-tier approach** to Gherkin scenario language, balancing behavior-driven principles with practical UI contract verification needs.
+
+**Philosophy:** Not all functional tests need pure BDD language. The appropriate language tier depends on what risk the scenario addresses and whether the feature is fundamentally about business logic or UI behavior.
+
+#### Tier 1: Strong BDD Language (Business Logic Risk)
+
+**Use for:** Authentication, Authorization, Tenancy, Business Rules, Data Flows
+
+**Characteristics:**
+- User-centric language focused on goals and capabilities
+- Abstracts away UI implementation details
+- Describes business outcomes and domain concepts
+- Avoids specific button labels, modal titles, field names
+- Tests remain valid even if UI is redesigned
+
+**Example - Authentication (Strong BDD):**
+```gherkin
+Scenario: User logs into an existing account
+  Given I have an existing account
+  And I am on the login page
+  When I enter my credentials
+  And I click the login button
+  Then I should see the home page
+  And I should be successfully logged in
+```
+
+**Why Tier 1:** Authentication is a core business capability that transcends UI implementation. The scenario describes what the user can accomplish, not how the UI presents it.
+
+**Example - Tenancy (Strong BDD):**
+```gherkin
+Scenario: User creates a workspace for a specific purpose
+  Given I am logged in as "alice"
+  When I create a new workspace called "Alice's Finances" for "My personal finances"
+  Then I should see "Alice's Finances" in my workspace list
+  And I should be able to manage that workspace
+```
+
+**Why Tier 1:** Workspace management is a business capability. The language focuses on user intent and domain concepts (workspace, manage) rather than UI controls.
+
+#### Tier 2: Implementation-Aware Language (UI Contract Risk)
+
+**Use for:** Field-level CRUD, Form layouts, Validation UI, Display logic, Modal behaviors
+
+**Characteristics:**
+- Explicitly mentions specific controls, fields, and UI elements
+- Tests UI contract requirements from PRDs
+- Verifies field presence/absence in specific contexts
+- Acceptable to reference button labels, modal titles, form fields
+- Complements PRD documentation (PRD explains "why", test verifies "what")
+
+**Example - TransactionRecord (Implementation-Aware):**
+```gherkin
+Scenario: Quick edit modal shows only Payee and Memo fields
+  Given I have a workspace with a transaction
+  And I am on the transactions page
+  When I click the "Edit" button on the transaction
+  Then I should see a modal titled "Quick Edit Transaction"
+  And I should only see fields for "Payee" and "Memo"
+  And I should not see fields for "Date", "Amount", "Source", or "ExternalId"
+```
+
+**Why Tier 2:** The business requirement IS the UI behavior - PRD specifies that quick edit must be intentionally limited to specific fields for rapid updates. Controller Integration tests already verify the API accepts all fields. This test verifies the PRD-specified UX constraint.
+
+**Example - Field Management (Implementation-Aware):**
+```gherkin
+Scenario: User sees all fields in create transaction modal
+  Given I am on the transactions page
+  When I click the "Add Transaction" button
+  Then I should see a create transaction modal
+  And I should see the following fields in the create form:
+    | Field       |
+    | Date        |
+    | Payee       |
+    | Amount      |
+    | Memo        |
+    | Source      |
+    | External ID |
+```
+
+**Why Tier 2:** Field presence in specific forms is the requirement. The test serves as a UI contract verification.
+
+#### Tier 3: Test Infrastructure (Technical)
+
+**Use for:** Test setup, seeding, cleanup, error injection
+
+**Characteristics:**
+- Pure technical language with no BDD pretense
+- Used for test control endpoints and infrastructure
+- Not user-facing scenarios
+
+**Not covered by feature files** - These are typically helper methods in step definitions or test control endpoints.
+
+### Decision Criteria: Choosing the Right Tier
+
+When planning functional tests (Implementation Workflow Step 10.5), use these questions to select the appropriate language tier:
+
+#### Question 1: What layer of risk does this scenario address?
+
+**Business logic risk** → Use **Tier 1 (Strong BDD)**
+- Authentication flows (login, logout, registration)
+- Authorization boundaries (role-based access, permissions)
+- Multi-user collaboration (workspace sharing, data isolation)
+- Business rules (budget calculations, categorization logic)
+- Data integrity across workflows (isolation, consistency)
+
+**UI contract risk** → Use **Tier 2 (Implementation-Aware)**
+- Field presence/absence in forms or modals
+- UI component behavior (modals, dropdowns, validation messages)
+- Form layout and control visibility
+- Display formatting and data presentation
+- UI-specific business requirements (e.g., "quick edit limited to two fields")
+
+#### Question 2: Is the scenario testing "can the user accomplish X?" or "does control Y appear correctly?"
+
+**"Can the user accomplish X?"** → **Tier 1**
+- Example: "User can create a workspace for different financial purposes"
+- Example: "User cannot access another user's private financial data"
+- Focus: User capability and business outcome
+
+**"Does control Y appear correctly?"** → **Tier 2**
+- Example: "Quick edit modal shows only Payee and Memo fields"
+- Example: "Create transaction form includes Source and External ID fields"
+- Focus: UI contract compliance
+
+### Guidance for Test Planning (Step 10.5)
+
+When creating the functional test plan in [`IMPLEMENTATION-WORKFLOW.md`](wip/IMPLEMENTATION-WORKFLOW.md) Step 10.5, for each scenario include:
+
+**In the justification paragraph, explicitly state:**
+
+1. **Risk category**: "This scenario addresses [business logic | UI contract] risk"
+2. **Language tier**: "Use [Tier 1 Strong BDD | Tier 2 Implementation-Aware] language"
+3. **Rationale**: Brief explanation why this tier is appropriate
+
+**Example Tier 1 Justification:**
+```markdown
+**Scenario:** User logs into an existing account
+**Risk:** Business logic - Authentication flow failure prevents access to entire application
+**Language Tier:** Tier 1 (Strong BDD) - Focus on user capability ("enter credentials", "click login") not specific controls
+**Rationale:** Authentication is a core business capability that transcends UI implementation. The scenario should remain valid even if we redesign the login form.
+```
+
+**Example Tier 2 Justification:**
+```markdown
+**Scenario:** Quick edit modal shows only Payee and Memo fields
+**Risk:** UI contract - PRD specifies quick edit should be limited to specific fields for rapid updates
+**Language Tier:** Tier 2 (Implementation-Aware) - Explicitly verify field presence/absence
+**Rationale:** The business requirement IS the UI behavior (which fields appear in which context). Controller Integration tests already verify the API accepts all fields. This test verifies the PRD-specified UX constraint that quick edit is intentionally limited.
+```
+
+### Benefits of the Tiered Approach
+
+**Abstraction where it matters:**
+- Business flows (Tier 1) remain stakeholder-readable and UI-independent
+- Tests survive UI redesigns when behavior stays the same
+
+**Specificity where it helps:**
+- UI contracts (Tier 2) get precise verification against PRD requirements
+- Clear what breaks when UI changes (intentional coupling)
+
+**Clear separation of concerns:**
+- PRDs document the business "why"
+- Tests document and verify the technical "what"
+- Page Objects isolate UI implementation details
+
+**Maintainability:**
+- Tier 1 tests rarely need updates (business logic is stable)
+- Tier 2 tests update when UI requirements change (expected)
+- Both tiers use Page Objects to isolate selector changes
+
+### Real-World Examples from YoFi.V3
+
+**Strong BDD (Tier 1):** [`tests/Functional/Features/Authentication.feature`](../tests/Functional/Features/Authentication.feature), [`tests/Functional/Features/Tenancy.feature`](../tests/Functional/Features/Tenancy.feature)
+
+**Implementation-Aware (Tier 2):** [`tests/Functional/Features/TransactionRecord.feature`](../tests/Functional/Features/TransactionRecord.feature)
+
+---
+
 ## Test Documentation Standards
 
 All tests in YoFi.V3 must follow consistent documentation patterns to ensure readability and maintainability across the entire test suite.

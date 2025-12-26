@@ -330,11 +330,29 @@ For implementation patterns, refer to existing features:
 4. Decide the list of critical scenarios. PRIORITIZE them. List them in priority order in the test plan
 5. For each scenario:
    - Provide a justification for why we should spend valuable cycles maintaining this test in perpetuity. What risk do we take by not implementing it? Why is this scenario not sufficiently covered in the other layers?
+   - **Determine Gherkin language tier** using the Decision Criteria in [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md#decision-criteria-choosing-the-right-tier):
+     - **Tier 1 (Strong BDD):** Business logic risk - authentication, authorization, business rules, data flows (abstract UI details)
+     - **Tier 2 (Implementation-Aware):** UI contract risk - field presence, form layout, modal behaviors (explicit UI elements OK)
+   - **In the justification, explicitly state:** Risk category (business logic OR UI contract) and Language tier (Tier 1 OR Tier 2)
    - **Ensure single responsibility:** The scenario should test exactly ONE workflow or acceptance criterion
    - **Keep scenarios focused:** If you find yourself writing multiple When/Then cycles, split into multiple scenarios
-   - Write a proposed Gherkin test block
-   - Review Gherkin to ensure a high quality of behavior-driven language
+   - Write a proposed Gherkin test block following the selected language tier
+   - Review Gherkin to ensure appropriate language tier (abstraction for Tier 1, specificity for Tier 2)
    - DO NOT write any C# code
+
+**Example Tier 1 Justification (Strong BDD):**
+```markdown
+**Scenario:** User logs into an existing account
+**Justification:** Authentication flow failure prevents access to entire application. Not covered by Controller tests which mock authentication. Critical business capability that transcends UI implementation.
+**Risk:** Business logic | **Language Tier:** Tier 1 (Strong BDD)
+```
+
+**Example Tier 2 Justification (Implementation-Aware):**
+```markdown
+**Scenario:** Quick edit modal shows only Payee and Memo fields
+**Justification:** PRD specifies quick edit must be limited to specific fields for rapid updates. Controller tests verify API accepts all fields, but not that UI intentionally hides them in this context. The business requirement IS the UI behavior.
+**Risk:** UI contract | **Language Tier:** Tier 2 (Implementation-Aware)
+```
 
 **Example of TOO LONG (Anti-Pattern with multiple When/Then cycles):**
 ```gherkin
