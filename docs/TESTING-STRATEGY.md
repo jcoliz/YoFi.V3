@@ -1559,6 +1559,95 @@ The estimated 259-331 tests for ~288 acceptance criteria reflects a **1.1x multi
 
 All tests in YoFi.V3 must follow consistent documentation patterns to ensure readability and maintainability across the entire test suite.
 
+### Functional Test Scenario Design Principles
+
+**Single Responsibility Principle:**
+Each Gherkin scenario should test exactly ONE user workflow or acceptance criterion.
+
+**Anti-Pattern - Long Multi-Purpose Scenarios with Multiple When/Then Cycles:**
+
+Example showing BAD practice - Multiple When/Then cycles make it hard to debug failures:
+```gherkin
+Scenario: User manages transaction with all features
+  Given user is logged in and viewing transactions page
+  When user creates transaction with amount $100.00
+  Then transaction should appear in list
+
+  When user clicks edit button
+  And user changes payee to "New Payee"
+  And user adds category "Food"
+  And user adds memo "Grocery shopping"
+  Then transaction should show all changes
+
+  When user uploads receipt
+  Then transaction should show receipt attached
+
+  When user edits amount to $105.00
+  Then transaction should show updated amount
+
+  When user marks as reconciled
+  Then transaction should show reconciled badge
+```
+
+This scenario has **5 When/Then cycles** testing completely different operations.
+When this test fails, which operation broke?
+
+**Best Practice - Focused Single-Purpose Scenarios:**
+
+Example showing GOOD practice - Each scenario tests one clear workflow:
+```gherkin
+Rule: Transaction Management
+
+Scenario: User creates a new transaction
+  Given user is logged in and viewing transactions page
+  When user creates transaction with amount $100.00 and payee "Safeway"
+  Then transaction should appear in transaction list
+  And transaction should show amount $100.00
+
+Scenario: User edits transaction details
+  Given user is logged in and transaction exists
+  When user edits transaction and changes payee to "New Payee"
+  And user sets category to "Food"
+  And user adds memo "Grocery shopping"
+  Then transaction should show payee "New Payee"
+  And transaction should show category "Food"
+  And transaction should show memo "Grocery shopping"
+
+Scenario: User uploads receipt for transaction
+  Given user is logged in and transaction exists
+  When user uploads receipt image "receipt.jpg"
+  Then receipt should be attached to transaction
+  And transaction should show receipt thumbnail
+```
+
+**Benefits of Focused Scenarios:**
+- Clear test failure messages (know exactly what broke)
+- Easy to debug (small surface area)
+- Tests can run independently
+- Easy to maintain and update
+- Better test documentation
+
+**Using Gherkin Rule for Organization:**
+Use the Rule keyword to group related scenarios that test the same business rule or feature area:
+
+Example:
+```gherkin
+Rule: Transaction CRUD Operations
+  Scenario: Create transaction
+  Scenario: Edit transaction
+  Scenario: Delete transaction
+
+Rule: Transaction Categories
+  Scenario: Add category to transaction
+  Scenario: Change transaction category
+  Scenario: Remove category from transaction
+```
+
+**Rule of Thumb:**
+- If you cannot describe the scenario purpose in one sentence, it should be split into multiple scenarios
+- If a scenario has more than one When/Then cycle, it should be split
+- Each scenario should test exactly ONE thing
+
 ### Gherkin-Style Comments Required
 
 **All tests (unit, integration, functional) MUST use Gherkin-style comments (Given/When/Then/And) to document test scenarios.** Do NOT use the traditional Arrange/Act/Assert pattern.

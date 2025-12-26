@@ -69,8 +69,10 @@ For implementation patterns, refer to existing features:
 - **Step 8.5 (API Client):** `build([feature-slug]): regenerate API client`
 - **Step 9 (Controller Integration Tests):** `test(integration): add API endpoint tests`
 - **Step 10 (Frontend):** `feat([feature-slug]): implement UI`
+- **Step 10.4 (Verify Existing Functional Tests):** `fix([feature-slug]): resolve functional test failures`
 - **Step 10.5 (Functional Tests Plan):** `test(functional): add [feature] test plan`
-- **Step 11 (Functional Tests):** `test(functional): add [feature] user workflow tests`
+- **Step 10.6 (Functional Test Implementation Plan):** `test(functional): add [feature] implementation plan`
+- **Step 11 (Functional Tests):** `test(functional): implement [feature] - [scenario name]` (one commit per scenario)
 - **Step 11.5 (Documentation):** `docs([feature-slug]): update documentation`
 - **Step 12 (Wrap-up):** `feat([feature-slug]): complete implementation`
 
@@ -273,13 +275,51 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present frontend implementation to user for review and commit.
 
-> [!TODO]: Need to add a step here to ensure existing functional tests pass. It's reasonably common for a new feature implementation to break an existing feature implementation. We need to fix all those before continuing! We should ask user to run-localdev, and then we iterate on tests. Note that some tests are (sadly) flaky, so if we fail a test, we can run it again to ensure it's a true failure.
+---
+
+## [ ] 10.4. Verify Existing Functional Tests
+
+**Purpose:** Ensure new frontend changes don't break existing functionality before planning new tests.
+
+1. **Ask user to start local development environment:**
+   - Request: `.\scripts\Start-LocalDev.ps1`
+   - Wait for confirmation that app is running
+
+2. **Run existing functional tests locally:**
+   - Command: `dotnet test tests/Functional`
+   - This runs against local dev environment for fast feedback
+
+3. **Analyze failures:**
+   - **If all tests pass:** Proceed to Step 10.5 (Functional Tests Plan)
+   - **If tests fail:** Investigate each failure
+   - **Known flaky tests:** Re-run failed tests once to verify they're true failures
+   - **True failures:** Fix frontend breaking changes immediately
+
+4. **Iterate until all existing tests pass:**
+   - Fix breaking changes in frontend code
+   - Re-run tests: `dotnet test tests/Functional`
+   - DO NOT proceed to Step 10.5 until all existing functional tests are green
+
+5. **Why this step matters:**
+   - Prevents cascading failures in existing features
+   - Catches breaking changes early (before planning new tests)
+   - Ensures feature doesn't break existing workflows
+   - Faster to fix now than after implementing new tests
+
+**Commit:** Present any fixes to existing test failures to user for review and commit.
 
 ---
 
 ## [ ] 10.5. Functional Tests Plan
 
 **Mode Assignment:** This step should be performed by the **Architect** agent.
+
+**CRITICAL: Single-Responsibility Scenarios**
+- Each scenario should test ONE user workflow or ONE acceptance criterion
+- Avoid creating long scenarios with multiple When/Then cycles
+- If a scenario has more than 3-4 When steps, it should be split into multiple scenarios
+- Each scenario should have a single, clear purpose that can be described in one sentence
+- Use Gherkin **Rule** keyword to group related scenarios that test the same feature area
 
 1. Review [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) to identify critical workflows worthy of functional tests
    - **Target:** 10-15% of total tests
@@ -290,17 +330,108 @@ For implementation patterns, refer to existing features:
 4. Decide the list of critical scenarios. PRIORITIZE them. List them in priority order in the test plan
 5. For each scenario:
    - Provide a justification for why we should spend valuable cycles maintaining this test in perpetuity. What risk do we take by not implementing it? Why is this scenario not sufficiently covered in the other layers?
+   - **Ensure single responsibility:** The scenario should test exactly ONE workflow or acceptance criterion
+   - **Keep scenarios focused:** If you find yourself writing multiple When/Then cycles, split into multiple scenarios
    - Write a proposed Gherkin test block
    - Review Gherkin to ensure a high quality of behavior-driven language
    - DO NOT write any C# code
 
-**Commit:** Present functional test plan to user for review and commit.
+**Example of TOO LONG (Anti-Pattern with multiple When/Then cycles):**
+```gherkin
+Scenario: Complete transaction workflow (BAD - multiple When/Then cycles)
+  Given user is logged in and viewing transactions page
+  When user creates transaction with amount $50.00
+  Then transaction should appear in list
 
-> [!TODO]: Architect mode made some really LONG scenarios with LOTS of When/Then loops. I had to go back and tell it to divide into single responsibility tests. We should tell Architect that from the start. Should we do that HERE or in the project test strategy? It does apply to the project at large, so I am thinking project test strategy.
+  When user clicks edit on the transaction
+  And user changes payee to "New Payee"
+  Then transaction should show updated payee
+
+  When user adds category "Food"
+  Then transaction should show category "Food"
+
+  When user uploads receipt
+  Then transaction should show receipt attached
+
+  When user marks transaction as reconciled
+  Then transaction should show reconciled badge
+```
+This scenario has **5 When/Then cycles** - too much! Each cycle should be its own scenario.
+
+**Example of FOCUSED (Best Practice with Rule grouping):**
+```gherkin
+Rule: Transaction CRUD Operations
+
+Scenario: User creates a new transaction
+  Given user is logged in and viewing transactions page
+  When user creates transaction with amount $50.00 and payee "Safeway"
+  Then transaction should appear in transaction list
+
+Scenario: User edits transaction details
+  Given user is logged in and transaction exists
+  When user edits transaction and changes payee to "New Payee"
+  Then transaction should show updated payee "New Payee"
+
+Scenario: User adds category to transaction
+  Given user is logged in and transaction exists
+  When user edits transaction and sets category to "Food"
+  Then transaction should show category "Food"
+
+Scenario: User uploads receipt for transaction
+  Given user is logged in and transaction exists
+  When user uploads receipt image "receipt.jpg"
+  Then receipt should be attached to transaction
+```
+Note: Use Gherkin **Rule** keyword to group related scenarios that test the same feature area.
+
+**Commit:** Present functional test plan to user for review and commit.
 
 ---
 
-> [!TODO]: Add a functional tests implementation. Even for something as simple as transaction record, the agents decided to go build a functional test implementation plan. Need to add a step here to formalize that. We should add the plan to PRD front matter as well.
+## [ ] 10.6. Functional Test Implementation Plan
+
+**Mode Assignment:** This step should be performed by the **Architect** agent.
+
+**Purpose:** Create detailed implementation plan bridging from Gherkin scenarios to C# test code.
+
+1. **Review project documentation before starting:**
+   - Read [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md) - Test generation patterns, step definition matching, Page Object Models
+   - Review [`docs/TESTING-STRATEGY.md`](../../docs/TESTING-STRATEGY.md) - When to use functional tests, scenario design principles, test distribution guidance
+   - Understand this project's approach: Custom test generation (NOT SpecFlow), XML comment-based step matching
+
+2. **Review functional test plan:** Ensure it's marked `status: Approved` in YAML front matter
+
+3. **Analyze implementation requirements for ALL scenarios:**
+   - **Page Object Models:** What selectors are needed? Do they exist or need creation?
+   - **Step Definitions:** What step definition methods are needed? Can existing steps be reused?
+   - **Test Control Endpoints:** What data seeding or state management is needed?
+   - **Test Data:** What test data needs to be created? Can it be generated or requires specific setup?
+
+4. **Create implementation plan document:**
+   - Location: Same directory as functional test plan
+   - Filename: `{FEATURE}-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md`
+   - YAML front matter: `status: Draft`
+   - Content structure: Overview section, per-scenario analysis (Gherkin link, POMs, step definitions, test control endpoints, test data, dependencies), implementation order, risk assessment
+
+5. **Update PRD YAML front matter:**
+   - Add: `functional_test_implementation_plan: {filename}.md`
+
+6. **Review with user:**
+   - Present implementation plan
+   - Discuss complexity and approach
+   - Get approval before proceeding
+
+7. **Mark approved:**
+   - Update YAML: `status: Approved`
+
+**Commit:** Present functional test implementation plan to user for review and commit.
+
+**Why this step matters:**
+- Identifies technical gaps before coding starts
+- Prevents mid-implementation surprises
+- Clarifies dependencies between scenarios
+- Estimates true complexity (not just Gherkin complexity)
+- Enables better implementation order decisions
 
 ---
 
@@ -330,7 +461,19 @@ For implementation patterns, refer to existing features:
      - Review test results and fix issues immediately
      - Iterate on THIS scenario until it passes
      - Once complete, update the status to indicate the test is complete. If there is a functional test implementation plan, do it there, otherwise do it in functional test plan.
-     - **DO NOT proceed to next scenario until this one passes**
+     - **STOP: Create commit message for THIS scenario:**
+       ```
+       test(functional): implement [feature] - [scenario name]
+
+       Implements functional test scenario: "[Full Scenario Name]"
+       - Page Object Models: [list changes]
+       - Step definitions: [list new methods]
+       - Test control endpoints: [list any additions]
+
+       Status: [1 of Y scenarios complete]
+       ```
+     - **Present commit message to user for review and commit**
+     - **Wait for explicit user approval before proceeding to next scenario**
    - **For each SUBSEQUENT scenario:**
      - Application remains running from step 1 (reuse it)
      - Write Gherkin scenario for THIS scenario only
@@ -340,8 +483,21 @@ For implementation patterns, refer to existing features:
      - Run ONLY this scenario using the filter command
      - Iterate until THIS scenario passes
      - Once complete, update the status to indicate the test is complete. If there is a functional test implementation plan, do it there, otherwise do it in functional test plan.
+     - **STOP: Create commit message for THIS scenario:**
+       ```
+       test(functional): implement [feature] - [scenario name]
+
+       Implements functional test scenario: "[Full Scenario Name]"
+       - Page Object Models: [list changes]
+       - Step definitions: [list new methods]
+       - Test control endpoints: [list any additions]
+
+       Status: [X of Y scenarios complete]
+       ```
+     - **Present commit message to user for review and commit**
+     - **Wait for explicit user approval before proceeding to next scenario**
      - Repeat for next scenario
-   - **Key principle:** Implement → Test → Fix → Pass → Move to next. One scenario at a time, never batch multiple scenarios.
+   - **Key principle:** One scenario → One commit → User approval → Next scenario. Implement → Test → Fix → Pass → Commit → Next.
 4. **FULL TEST SUITE VERIFICATION:**
    - Once all scenarios pass locally, ask user to run full suite against container: `.\scripts\Run-FunctionalTestsVsContainer.ps1`
    - This ensures tests work in CI/CD environment
@@ -355,11 +511,14 @@ For implementation patterns, refer to existing features:
 - High maintenance overhead
 - Most API behavior already verified by Controller Integration tests
 
+**Benefits of per-scenario commits:**
+- Clear progress tracking (one commit per scenario)
+- Easy rollback if scenario is problematic
+- User maintains control over pace
+- Prevents agent from "running ahead"
+- Natural breakpoints for feedback
+
 **Checkpoint:** Confirm all critical user workflows are verified.
-
-**Commit:** Present functional tests to user for review and commit.
-
-> [!TODO]: Needs explicit instruction here to DO NOT proceed to next scenario until giving user a commit message for the scenario we just implemented, and get explicit permission to move on.
 
 ---
 
@@ -417,8 +576,6 @@ For implementation patterns, refer to existing features:
    ```
 
 **Final Commit:** Present complete implementation summary to user for final review and commit.
-
-> [!TODO]: is there any reason not to renumber these tests? No value in "X.5" is there?
 
 ---
 
