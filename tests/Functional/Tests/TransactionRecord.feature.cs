@@ -169,4 +169,36 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     }
 
     #endregion
+
+    #region Rule: Users can create new transactions with all transaction record fields
+
+    /// <summary>
+    /// User sees all fields in create transaction modal
+    /// </summary>
+    [Test]
+    public async Task UserSeesAllFieldsInCreateTransactionModal()
+    {
+        // Given I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
+        // When I click the "Add Transaction" button
+        await WhenIClickTheAddTransactionButton();
+
+        // Then I should see a create transaction modal
+        await ThenIShouldSeeACreateTransactionModal();
+
+        // And I should see the following fields in the create form:
+        var fieldsTable = new DataTable(
+            ["Field"],
+            ["Date"],
+            ["Payee"],
+            ["Amount"],
+            ["Memo"],
+            ["Source"],
+            ["External ID"]
+        );
+        await ThenIShouldSeeTheFollowingFieldsInTheCreateForm(fieldsTable);
+    }
+
+    #endregion
 }

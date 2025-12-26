@@ -198,6 +198,29 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         await GivenIAmViewingTheDetailsPageForATransactionWith(table);
     }
 
+    /// <summary>
+    /// Navigates to the transactions page with a workspace selected.
+    /// </summary>
+    /// <remarks>
+    /// Sets up minimal state to be on the transactions page: navigates to the page and
+    /// selects the current workspace. Does not seed any transactions.
+    /// </remarks>
+    [Given("I am on the transactions page")]
+    protected async Task GivenIAmOnTheTransactionsPage()
+    {
+        // Given: Get workspace name
+        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+
+        // And: Navigate to transactions page
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // And: Select the workspace
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        await transactionsPage.WaitForLoadingCompleteAsync();
+    }
+
     #endregion
 
     #region When Steps
@@ -506,6 +529,21 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // When: Click the back button to return to transactions list
         var detailsPage = GetOrCreatePage<TransactionDetailsPage>();
         await detailsPage.GoBackAsync();
+    }
+
+    /// <summary>
+    /// Clicks the "Add Transaction" button to open the create transaction modal.
+    /// </summary>
+    /// <remarks>
+    /// Navigates to transactions page if not already there, and clicks the "Add Transaction"
+    /// button which opens the create modal with all transaction fields.
+    /// </remarks>
+    [When("I click the \"Add Transaction\" button")]
+    protected async Task WhenIClickTheAddTransactionButton()
+    {
+        // When: Click the Add Transaction button to open create modal
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.OpenCreateModalAsync();
     }
 
     #endregion
@@ -963,6 +1001,58 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         var hasTransaction = await transactionsPage.HasTransactionAsync(expectedPayee);
         Assert.That(hasTransaction, Is.True,
             $"Should see transaction with payee '{expectedPayee}' in the list");
+    }
+
+    /// <summary>
+    /// Verifies that the create transaction modal is visible.
+    /// </summary>
+    /// <remarks>
+    /// Checks that the create modal has appeared after clicking the "Add Transaction" button.
+    /// </remarks>
+    [Then("I should see a create transaction modal")]
+    protected async Task ThenIShouldSeeACreateTransactionModal()
+    {
+        // Then: Verify the create modal is visible
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        var isVisible = await transactionsPage.CreateModal.IsVisibleAsync();
+        Assert.That(isVisible, Is.True, "Create transaction modal should be visible");
+    }
+
+    /// <summary>
+    /// Verifies that all specified fields are present in the create transaction modal.
+    /// </summary>
+    /// <param name="fieldsTable">DataTable with a "Field" column listing field names to verify.</param>
+    /// <remarks>
+    /// Iterates through each field name in the table and verifies its corresponding input
+    /// element is visible in the create modal. Supports: Date, Payee, Amount, Category, Memo,
+    /// Source, and External ID.
+    /// </remarks>
+    [Then("I should see the following fields in the create form:")]
+    protected async Task ThenIShouldSeeTheFollowingFieldsInTheCreateForm(DataTable fieldsTable)
+    {
+        // Then: Get the TransactionsPage
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+
+        // And: Verify each field from the table is visible
+        foreach (var row in fieldsTable.Rows)
+        {
+            var fieldName = row["Field"];
+            bool isVisible;
+
+            // And: Check field visibility based on field name
+            isVisible = fieldName switch
+            {
+                "Date" => await transactionsPage.CreateDateInput.IsVisibleAsync(),
+                "Payee" => await transactionsPage.CreatePayeeInput.IsVisibleAsync(),
+                "Amount" => await transactionsPage.CreateAmountInput.IsVisibleAsync(),
+                "Memo" => await transactionsPage.CreateMemoInput.IsVisibleAsync(),
+                "Source" => await transactionsPage.CreateSourceInput.IsVisibleAsync(),
+                "External ID" => await transactionsPage.CreateExternalIdInput.IsVisibleAsync(),
+                _ => throw new ArgumentException($"Unsupported field name: {fieldName}")
+            };
+
+            Assert.That(isVisible, Is.True, $"{fieldName} field should be visible in create modal");
+        }
     }
 
     #endregion

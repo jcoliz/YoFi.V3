@@ -71,3 +71,33 @@ Rule: Quick Edit Modal
         When I click "Back to Transactions"
         Then I should return to the transaction list
         And I should see all my transactions
+
+Rule: Users can create new transactions with all transaction record fields
+
+    Scenario: User sees all fields in create transaction modal
+        Given I am on the transactions page
+        When I click the "Add Transaction" button
+        Then I should see a create transaction modal
+        And I should see the following fields in the create form:
+            | Field       |
+            | Date        |
+            | Payee       |
+            | Amount      |
+            | Memo        |
+            | Source      |
+            | External ID |
+
+    Scenario: User creates transaction with all fields populated
+        Given I am on the transactions page
+        When I click the "Add Transaction" button
+        And I fill in the following transaction fields:
+            | Field       | Value           |
+            | Date        | 2024-06-15      |
+            | Payee       | __TEST__NewCorp |
+            | Amount      | 250.75          |
+            | Memo        | __TEST__memo    |
+            | Source      | __TEST__src     |
+            | External ID | __TEST__extid   |
+        And I click "Save"
+        Then the modal should close
+        And I should see a transaction with Payee "__TEST__NewCorp"

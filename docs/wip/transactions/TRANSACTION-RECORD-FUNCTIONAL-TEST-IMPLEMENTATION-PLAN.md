@@ -1,5 +1,5 @@
 ---
-status: In Progress - 5 of 8 scenarios complete
+status: In Progress - 6 of 8 scenarios complete
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -29,7 +29,7 @@ This document provides a detailed implementation plan for the 8 approved functio
 - ✅ **Scenario 3: User navigates from transaction list to details page** - COMPLETE
 - ✅ **Scenario 4: User edits all fields on transaction details page** - COMPLETE
 - ✅ **Scenario 5: User returns to list from transaction details page** - COMPLETE
-- ⏳ **Scenario 6: User sees all fields in create transaction modal** - PENDING
+- ✅ **Scenario 6: User sees all fields in create transaction modal** - COMPLETE
 - ⏳ **Scenario 7: User creates transaction with all fields populated** - PENDING
 - ⏳ **Scenario 8: Created transaction displays all fields on details page** - PENDING
 
@@ -590,29 +590,19 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 6: User sees all fields in create transaction modal
 
-**Steps to Implement**:
+**Status: ✅ COMPLETE - Implemented and passing (2s duration)**
 
-1. **`GivenIHaveAWorkspace()`** (might already exist in WorkspaceTenancySteps):
-   - Create workspace for logged-in user
-   - Store workspace key/name
+**Implementation Notes**:
+- Created [`GivenIAmOnTheTransactionsPage()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:205) to navigate to transactions page with workspace selected (simplified from "I have a workspace with a transaction")
+- Created [`WhenIClickTheAddTransactionButton()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:515) to open the create modal
+- Created [`ThenIShouldSeeACreateTransactionModal()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:975) to verify modal visibility
+- Created [`ThenIShouldSeeTheFollowingFieldsInTheCreateForm(DataTable)`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:988) to verify all fields from DataTable are visible
+- Updated Gherkin to remove "Category" field (superseded - belongs to Transaction Splits feature, not Transaction Record)
+- Field verification uses switch expression to map field names to POM locators: Date, Payee, Amount, Memo, Source, External ID
 
-2. **`WhenIClickNewTransaction()`**:
-   - Get TransactionsPage
-   - Navigate to transactions page
-   - Click New Transaction button: `await transactionsPage.ClickNewTransactionAsync()`
-   - Wait for modal to appear
+**Key Design Decision**: Originally the Gherkin had "Given I have a workspace with a transaction" which was pragmatic but semantically odd. Updated to "Given I am on the transactions page" which better expresses the minimal state needed to test the create modal fields.
 
-3. **`ThenIShouldSeeRequiredFields()`**:
-   - Assert CreateDateInput is visible
-   - Assert CreatePayeeInput is visible
-   - Assert CreateAmountInput is visible
-
-4. **`ThenIShouldSeeOptionalFields()`**:
-   - Assert CreateMemoInput is visible
-   - Assert CreateSourceInput is visible
-   - Assert CreateExternalIdInput is visible
-
-**Run Test**: `dotnet test tests/Functional --filter "Name~sees_all_fields_in_create"`
+**Run Test**: `dotnet test tests/Functional --filter "Name~UserSeesAllFieldsInCreateTransactionModal"`
 
 ---
 

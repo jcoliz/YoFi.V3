@@ -273,6 +273,8 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present frontend implementation to user for review and commit.
 
+> [!TODO]: Need to add a step here to ensure existing functional tests pass. It's reasonably common for a new feature implementation to break an existing feature implementation. We need to fix all those before continuing!
+
 ---
 
 ## [ ] 10.5. Functional Tests Plan
@@ -293,6 +295,8 @@ For implementation patterns, refer to existing features:
    - DO NOT write any C# code
 
 **Commit:** Present functional test plan to user for review and commit.
+
+> [!TODO]: Add a functional tests implementation. Even for something as simple as transaction record, the agents decided to go build a functional test implementation plan. Need to add a step here to formalize that.
 
 ---
 
