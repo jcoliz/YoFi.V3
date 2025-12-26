@@ -106,6 +106,27 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     /// <summary>
+    /// Quick edit: updates only payee and memo, preserving all other transaction fields.
+    /// </summary>
+    /// <param name="key">The unique identifier of the transaction to update.</param>
+    /// <param name="quickEdit">The updated payee and memo values.</param>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
+    [HttpPatch("{key:guid}")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> QuickEditTransaction(Guid key, [FromBody] TransactionQuickEditDto quickEdit)
+    {
+        LogStartingKey(key);
+
+        var updated = await transactionsFeature.QuickEditTransactionAsync(key, quickEdit);
+
+        LogOkKey(key);
+        return Ok(updated);
+    }
+
+    /// <summary>
     /// Deletes a transaction from the tenant workspace.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to delete.</param>

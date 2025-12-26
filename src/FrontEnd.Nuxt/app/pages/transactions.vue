@@ -8,6 +8,7 @@
 import {
   TransactionsClient,
   TransactionEditDto,
+  TransactionQuickEditDto,
   TenantRole,
   type TransactionResultDto,
   type IProblemDetails,
@@ -215,7 +216,21 @@ async function createTransaction() {
 }
 
 async function updateTransaction() {
-  if (!validateForm()) return
+  // For quick edit, only validate payee and memo
+  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  let isValid = true
+
+  if (!formData.value.payee || !formData.value.payee.trim()) {
+    formErrors.value.payee = 'Payee is required'
+    isValid = false
+  }
+
+  if (formData.value.memo && formData.value.memo.length > 1000) {
+    formErrors.value.memo = 'Memo cannot exceed 1000 characters'
+    isValid = false
+  }
+
+  if (!isValid) return
   if (!selectedTransaction.value?.key || !currentTenantKey.value) return
 
   loading.value = true
@@ -223,16 +238,13 @@ async function updateTransaction() {
   showError.value = false
 
   try {
-    const dto = new TransactionEditDto({
-      date: new Date(formData.value.date),
-      amount: formData.value.amount,
+    // Use quick edit endpoint: only sends payee and memo
+    const dto = new TransactionQuickEditDto({
       payee: formData.value.payee.trim(),
       memo: formData.value.memo.trim() || undefined,
-      source: formData.value.source.trim() || undefined,
-      externalId: formData.value.externalId.trim() || undefined,
     })
 
-    await transactionsClient.updateTransaction(
+    await transactionsClient.quickEditTransaction(
       selectedTransaction.value.key,
       currentTenantKey.value,
       dto,
@@ -655,10 +667,10 @@ function formatCurrency(amount: number | undefined): string {
       </div>
     </ModalDialog>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal (Light Edit - Payee and Memo only) -->
     <ModalDialog
       v-model:show="showEditModal"
-      title="Edit Transaction"
+      title="Quick Edit Transaction"
       :loading="loading"
       :primary-button-text="loading ? 'Updating...' : 'Update'"
       primary-button-test-id="edit-submit-button"
@@ -666,27 +678,6 @@ function formatCurrency(amount: number | undefined): string {
       test-id="edit-transaction-modal"
       @primary="updateTransaction"
     >
-      <div class="mb-3">
-        <label
-          for="editDate"
-          class="form-label"
-          >Date</label
-        >
-        <input
-          id="editDate"
-          v-model="formData.date"
-          type="date"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.date }"
-          data-test-id="edit-transaction-date"
-        />
-        <div
-          v-if="formErrors.date"
-          class="invalid-feedback"
-        >
-          {{ formErrors.date }}
-        </div>
-      </div>
       <div class="mb-3">
         <label
           for="editPayee"
@@ -707,29 +698,6 @@ function formatCurrency(amount: number | undefined): string {
           class="invalid-feedback"
         >
           {{ formErrors.payee }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <label
-          for="editAmount"
-          class="form-label"
-          >Amount</label
-        >
-        <input
-          id="editAmount"
-          v-model.number="formData.amount"
-          type="number"
-          step="0.01"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.amount }"
-          placeholder="0.00"
-          data-test-id="edit-transaction-amount"
-        />
-        <div
-          v-if="formErrors.amount"
-          class="invalid-feedback"
-        >
-          {{ formErrors.amount }}
         </div>
       </div>
       <div class="mb-3">
@@ -756,55 +724,14 @@ function formatCurrency(amount: number | undefined): string {
           {{ formErrors.memo }}
         </div>
       </div>
-      <div class="mb-3">
-        <label
-          for="editSource"
-          class="form-label"
-          >Source</label
+      <div class="alert alert-info">
+        <small
+          ><FeatherIcon
+            icon="info"
+            size="14"
+            class="me-1"
+          />Click on a transaction row to view and edit all details</small
         >
-        <input
-          id="editSource"
-          v-model="formData.source"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.source }"
-          placeholder="e.g., Chase Checking 1234"
-          maxlength="200"
-          data-test-id="edit-transaction-source"
-        />
-        <small class="form-text text-muted"
-          >Bank account this transaction came from (optional)</small
-        >
-        <div
-          v-if="formErrors.source"
-          class="invalid-feedback"
-        >
-          {{ formErrors.source }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <label
-          for="editExternalId"
-          class="form-label"
-          >External ID</label
-        >
-        <input
-          id="editExternalId"
-          v-model="formData.externalId"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.externalId }"
-          placeholder="Bank transaction ID"
-          maxlength="100"
-          data-test-id="edit-transaction-external-id"
-        />
-        <small class="form-text text-muted">Bank's unique identifier (optional)</small>
-        <div
-          v-if="formErrors.externalId"
-          class="invalid-feedback"
-        >
-          {{ formErrors.externalId }}
-        </div>
       </div>
     </ModalDialog>
 

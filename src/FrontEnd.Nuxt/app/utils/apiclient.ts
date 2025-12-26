@@ -1275,6 +1275,90 @@ export class TransactionsClient {
     }
 
     /**
+     * Quick edit: updates only payee and memo, preserving all other transaction fields.
+     * @param key The unique identifier of the transaction to update.
+     * @param quickEdit The updated payee and memo values.
+     */
+    quickEditTransaction(key: string, tenantKey: string, quickEdit: TransactionQuickEditDto): Promise<TransactionDetailDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(quickEdit);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQuickEditTransaction(_response);
+        });
+    }
+
+    protected processQuickEditTransaction(response: Response): Promise<TransactionDetailDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TransactionDetailDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TransactionDetailDto>(null as any);
+    }
+
+    /**
      * Deletes a transaction from the tenant workspace.
      * @param key The unique identifier of the transaction to delete.
      */
@@ -2839,6 +2923,46 @@ export interface ITransactionEditDto {
     memo?: string | undefined;
     source?: string | undefined;
     externalId?: string | undefined;
+}
+
+export class TransactionQuickEditDto implements ITransactionQuickEditDto {
+    payee?: string;
+    memo?: string | undefined;
+
+    constructor(data?: ITransactionQuickEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.payee = _data["payee"];
+            this.memo = _data["memo"];
+        }
+    }
+
+    static fromJS(data: any): TransactionQuickEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionQuickEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["payee"] = this.payee;
+        data["memo"] = this.memo;
+        return data;
+    }
+}
+
+export interface ITransactionQuickEditDto {
+    payee?: string;
+    memo?: string | undefined;
 }
 
 export class BaseModel implements IBaseModel {
