@@ -52,7 +52,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 
 | Script | Synopsis |
 |--------|----------|
-| [`Generate-ApiClient.ps1`](Generate-ApiClient.ps1) | Generates TypeScript and C# API clients from backend API specification using NSwag |
+| [`Generate-ApiClient.ps1`](Generate-ApiClient.ps1) | Generates TypeScript API client for frontend from backend API specification using NSwag |
 
 ### Build Utilities
 
@@ -110,7 +110,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 ### Code Generation
 
 ```powershell
-# Generate API clients (TypeScript for frontend, C# for functional tests)
+# Generate TypeScript API client for frontend
 .\Generate-ApiClient.ps1
 
 # Generate with Release configuration
@@ -142,9 +142,9 @@ This folder contains scripts of many different kinds. Often these would be scatt
 
 ### API Client Generation
 
-The `Generate-ApiClient.ps1` script regenerates both the frontend TypeScript client and the functional test C# client. These clients are automatically regenerated when you build the `WireApiHost` project, but this script provides an explicit way to trigger regeneration.
+The `Generate-ApiClient.ps1` script regenerates the frontend TypeScript client. The TypeScript client is automatically regenerated when you build the `WireApiHost` project, but this script provides an explicit way to trigger regeneration.
 
-**Note:** The current API client generation approach has known technical debt (generated files are checked into source control). See [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](../docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) for details.
+The C# API client for functional tests is automatically generated during the test project build (see [`tests/Functional/YoFi.V3.Tests.Functional.csproj`](../tests/Functional/YoFi.V3.Tests.Functional.csproj) for the MSBuild configuration).
 
 ## Documentation
 

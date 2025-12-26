@@ -137,4 +137,4 @@ For frontend issues, check the browser console logs. Occasionally useful notes a
 
 ## Benchmarking performance
 
-Both dockerfiles use intelligent layer caching. While the very first run can take 5+ minutes, it's much faster in subsequent iterations. In my experience, it takes about 60 seconds total to rebuild both containers in the worst case rebuilding all the backend projects and regenerating the frontend. This compares with about 5 minutes on the CI machine to clone, build, publish and deploy a new version. On larger apps, I have seen an even greater savings.
+Both dockerfiles use intelligent layer caching. While the very first run can take 5+ minutes, it's much faster in subsequent iterations. In my experience, it takes about 30 seconds total to rebuild both containers in the worst case rebuilding all the backend projects and regenerating the frontend. This compares with about 5 minutes on the CI machine to clone, build, publish and deploy a new version. On larger apps, I have seen an even greater savings.

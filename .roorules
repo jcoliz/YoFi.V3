@@ -104,42 +104,66 @@ YoFi.V3/
 
 ## API Client Generation Pattern
 
-**Always use the Generate-ApiClient.ps1 script to regenerate API clients when backend APIs change.**
+**Two separate API clients are generated from the backend OpenAPI specification, each using a different generation approach.**
 
-1. **Two API clients are generated** - Building the [`src/WireApiHost`](src/WireApiHost/) project generates both:
-   - **TypeScript client**: [`src/FrontEnd.Nuxt/app/utils/apiclient.ts`](src/FrontEnd.Nuxt/app/utils/apiclient.ts) - For the Nuxt frontend
-   - **C# client**: [`tests/Functional/Api/ApiClient.cs`](tests/Functional/Api/ApiClient.cs) - For functional tests
+### TypeScript Client (Frontend)
 
-2. **NEVER edit generated clients manually** - These files are auto-generated and will be overwritten:
-   - Frontend: `src/FrontEnd.Nuxt/app/utils/apiclient.ts`
-   - Tests: `tests/Functional/Api/ApiClient.cs`
+**Location**: [`src/FrontEnd.Nuxt/app/utils/apiclient.ts`](src/FrontEnd.Nuxt/app/utils/apiclient.ts)
 
-3. **Use the script to regenerate** - When you need to regenerate API clients after backend changes:
-   ```bash
-   pwsh -File ./scripts/Generate-ApiClient.ps1
-   ```
+**Generation**: Built by [`src/WireApiHost`](src/WireApiHost/) project using NSwag
 
-4. **Automatic regeneration** - The clients are automatically regenerated when you build the WireApiHost project:
-   ```bash
-   cd src/WireApiHost
-   dotnet build
-   ```
+**When regenerated**:
+- Automatically when building WireApiHost project
+- Manually by running `pwsh -File ./scripts/Generate-ApiClient.ps1`
 
-5. **When to regenerate**:
-   - After adding, modifying, or removing API endpoints in Controllers
-   - After changing request/response DTOs
-   - After updating API documentation or annotations
-   - When functional tests report missing or outdated client types
+**NEVER edit this file manually** - It will be overwritten on regeneration
 
-6. **Known technical debt** - The current generation approach has known limitations (generated files checked into source control, cross-project dependencies). See [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) for detailed analysis.
+### C# Client (Functional Tests)
+
+**Location**: `tests/Functional/obj/Generated/ApiClient.cs` (NOT in source control)
+
+**Generation**: Automatically generated during functional tests project build using MSBuild targets
+
+**When regenerated**:
+- Automatically when building the Functional tests project
+- Automatically during `dotnet build` or `dotnet test` on the solution
+
+**Configuration**: [`tests/Functional/Api/nswag.json`](tests/Functional/Api/nswag.json)
+
+**This file is never checked into source control** - It lives only in the `obj/` directory
+
+### When to Regenerate Clients
+
+After making backend API changes:
+- Adding, modifying, or removing API endpoints in Controllers
+- Changing request/response DTOs
+- Updating API documentation or annotations
+
+**To regenerate TypeScript client**:
+```bash
+pwsh -File ./scripts/Generate-ApiClient.ps1
+```
+
+**To regenerate C# client**:
+```bash
+cd tests/Functional
+dotnet build
+```
 
 ### Example Workflow
 
 When adding a new API endpoint:
 1. Add the controller method in `src/Controllers/`
-2. Build the solution (or run `./scripts/Generate-ApiClient.ps1`)
-3. Verify both clients were regenerated (check git diff)
-4. Update frontend/tests to use the new API client methods
+2. Build WireApiHost (or run `./scripts/Generate-ApiClient.ps1`) to regenerate TypeScript client
+3. Build Functional tests to regenerate C# client (happens automatically)
+4. Verify TypeScript client was regenerated (check git diff - only `apiclient.ts` should change)
+5. Update frontend/tests to use the new API client methods
+
+### Technical Details
+
+For implementation details and rationale, see:
+- [`tests/Functional/Api/README.md`](tests/Functional/Api/README.md) - C# client generation details
+- [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) - Complete implementation analysis
 
 ## Testing Framework Pattern
 
