@@ -44,12 +44,18 @@ const formData = ref({
   date: '',
   amount: 0,
   payee: '',
+  memo: '',
+  source: '',
+  externalId: '',
 })
 
 const formErrors = ref({
   date: '',
   amount: '',
   payee: '',
+  memo: '',
+  source: '',
+  externalId: '',
 })
 
 // Date range filters
@@ -116,8 +122,11 @@ function openCreateModal() {
     date: today || '',
     amount: 0,
     payee: '',
+    memo: '',
+    source: '',
+    externalId: '',
   }
-  formErrors.value = { date: '', amount: '', payee: '' }
+  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
   showCreateModal.value = true
 }
 
@@ -128,8 +137,11 @@ function openEditModal(transaction: TransactionResultDto) {
     date: dateStr || '',
     amount: transaction.amount || 0,
     payee: transaction.payee || '',
+    memo: transaction.memo || '',
+    source: '',
+    externalId: '',
   }
-  formErrors.value = { date: '', amount: '', payee: '' }
+  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
   showEditModal.value = true
 }
 
@@ -139,7 +151,7 @@ function openDeleteModal(transaction: TransactionResultDto) {
 }
 
 function validateForm(): boolean {
-  formErrors.value = { date: '', amount: '', payee: '' }
+  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
   let isValid = true
 
   if (!formData.value.date) {
@@ -149,6 +161,24 @@ function validateForm(): boolean {
 
   if (!formData.value.payee || !formData.value.payee.trim()) {
     formErrors.value.payee = 'Payee is required'
+    isValid = false
+  }
+
+  // Validate memo length (max 1000 characters)
+  if (formData.value.memo && formData.value.memo.length > 1000) {
+    formErrors.value.memo = 'Memo cannot exceed 1000 characters'
+    isValid = false
+  }
+
+  // Validate source length (max 200 characters)
+  if (formData.value.source && formData.value.source.length > 200) {
+    formErrors.value.source = 'Source cannot exceed 200 characters'
+    isValid = false
+  }
+
+  // Validate externalId length (max 100 characters)
+  if (formData.value.externalId && formData.value.externalId.length > 100) {
+    formErrors.value.externalId = 'External ID cannot exceed 100 characters'
     isValid = false
   }
 
@@ -168,6 +198,9 @@ async function createTransaction() {
       date: new Date(formData.value.date),
       amount: formData.value.amount,
       payee: formData.value.payee.trim(),
+      memo: formData.value.memo.trim() || undefined,
+      source: formData.value.source.trim() || undefined,
+      externalId: formData.value.externalId.trim() || undefined,
     })
 
     await transactionsClient.createTransaction(currentTenantKey.value, dto)
@@ -194,6 +227,9 @@ async function updateTransaction() {
       date: new Date(formData.value.date),
       amount: formData.value.amount,
       payee: formData.value.payee.trim(),
+      memo: formData.value.memo.trim() || undefined,
+      source: formData.value.source.trim() || undefined,
+      externalId: formData.value.externalId.trim() || undefined,
     })
 
     await transactionsClient.updateTransaction(
@@ -407,6 +443,7 @@ function formatCurrency(amount: number | undefined): string {
                   <th>Date</th>
                   <th>Payee</th>
                   <th class="text-end">Amount</th>
+                  <th>Memo</th>
                   <th
                     v-if="canEditTransactions"
                     class="text-end"
@@ -424,6 +461,12 @@ function formatCurrency(amount: number | undefined): string {
                   <td>{{ formatDate(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
+                  <td
+                    class="memo-cell"
+                    :title="transaction.memo || ''"
+                  >
+                    {{ transaction.memo || '' }}
+                  </td>
                   <td
                     v-if="canEditTransactions"
                     class="text-end"
@@ -536,6 +579,80 @@ function formatCurrency(amount: number | undefined): string {
           {{ formErrors.amount }}
         </div>
       </div>
+      <div class="mb-3">
+        <label
+          for="createMemo"
+          class="form-label"
+          >Memo</label
+        >
+        <textarea
+          id="createMemo"
+          v-model="formData.memo"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.memo }"
+          placeholder="Add notes about this transaction..."
+          rows="3"
+          maxlength="1000"
+          data-test-id="create-transaction-memo"
+        ></textarea>
+        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
+        <div
+          v-if="formErrors.memo"
+          class="invalid-feedback"
+        >
+          {{ formErrors.memo }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="createSource"
+          class="form-label"
+          >Source</label
+        >
+        <input
+          id="createSource"
+          v-model="formData.source"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.source }"
+          placeholder="e.g., Chase Checking 1234"
+          maxlength="200"
+          data-test-id="create-transaction-source"
+        />
+        <small class="form-text text-muted"
+          >Bank account this transaction came from (optional)</small
+        >
+        <div
+          v-if="formErrors.source"
+          class="invalid-feedback"
+        >
+          {{ formErrors.source }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="createExternalId"
+          class="form-label"
+          >External ID</label
+        >
+        <input
+          id="createExternalId"
+          v-model="formData.externalId"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.externalId }"
+          placeholder="Bank transaction ID"
+          maxlength="100"
+          data-test-id="create-transaction-external-id"
+        />
+        <small class="form-text text-muted">Bank's unique identifier (optional)</small>
+        <div
+          v-if="formErrors.externalId"
+          class="invalid-feedback"
+        >
+          {{ formErrors.externalId }}
+        </div>
+      </div>
     </ModalDialog>
 
     <!-- Edit Modal -->
@@ -615,6 +732,80 @@ function formatCurrency(amount: number | undefined): string {
           {{ formErrors.amount }}
         </div>
       </div>
+      <div class="mb-3">
+        <label
+          for="editMemo"
+          class="form-label"
+          >Memo</label
+        >
+        <textarea
+          id="editMemo"
+          v-model="formData.memo"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.memo }"
+          placeholder="Add notes about this transaction..."
+          rows="3"
+          maxlength="1000"
+          data-test-id="edit-transaction-memo"
+        ></textarea>
+        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
+        <div
+          v-if="formErrors.memo"
+          class="invalid-feedback"
+        >
+          {{ formErrors.memo }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="editSource"
+          class="form-label"
+          >Source</label
+        >
+        <input
+          id="editSource"
+          v-model="formData.source"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.source }"
+          placeholder="e.g., Chase Checking 1234"
+          maxlength="200"
+          data-test-id="edit-transaction-source"
+        />
+        <small class="form-text text-muted"
+          >Bank account this transaction came from (optional)</small
+        >
+        <div
+          v-if="formErrors.source"
+          class="invalid-feedback"
+        >
+          {{ formErrors.source }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="editExternalId"
+          class="form-label"
+          >External ID</label
+        >
+        <input
+          id="editExternalId"
+          v-model="formData.externalId"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.externalId }"
+          placeholder="Bank transaction ID"
+          maxlength="100"
+          data-test-id="edit-transaction-external-id"
+        />
+        <small class="form-text text-muted">Bank's unique identifier (optional)</small>
+        <div
+          v-if="formErrors.externalId"
+          class="invalid-feedback"
+        >
+          {{ formErrors.externalId }}
+        </div>
+      </div>
     </ModalDialog>
 
     <!-- Delete Modal -->
@@ -658,5 +849,12 @@ function formatCurrency(amount: number | undefined): string {
 .btn-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+}
+
+.memo-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

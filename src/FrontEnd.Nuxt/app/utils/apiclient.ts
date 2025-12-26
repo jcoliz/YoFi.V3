@@ -2482,6 +2482,7 @@ export class TransactionResultDto implements ITransactionResultDto {
     date?: Date;
     amount?: number;
     payee?: string;
+    memo?: string | undefined;
 
     constructor(data?: ITransactionResultDto) {
         if (data) {
@@ -2498,6 +2499,7 @@ export class TransactionResultDto implements ITransactionResultDto {
             this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
             this.amount = _data["amount"];
             this.payee = _data["payee"];
+            this.memo = _data["memo"];
         }
     }
 
@@ -2514,6 +2516,7 @@ export class TransactionResultDto implements ITransactionResultDto {
         data["date"] = this.date ? formatDate(this.date) : undefined as any;
         data["amount"] = this.amount;
         data["payee"] = this.payee;
+        data["memo"] = this.memo;
         return data;
     }
 }
@@ -2523,6 +2526,7 @@ export interface ITransactionResultDto {
     date?: Date;
     amount?: number;
     payee?: string;
+    memo?: string | undefined;
 }
 
 /** Request to seed transactions in a workspace. */

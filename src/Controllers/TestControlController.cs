@@ -537,7 +537,7 @@ public partial class TestControlController(
             );
 
             var result = await transactionsFeature.AddTransactionAsync(transaction);
-            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee));
+            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee, result.Memo));
         }
 
         LogOkCount(createdTransactions.Count);

@@ -5346,6 +5346,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         [System.Text.Json.Serialization.JsonPropertyName("payee")]
         public string Payee { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("memo")]
+        public string Memo { get; set; }
+
     }
 
     /// <summary>

@@ -255,5 +255,5 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     }
 
     private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
-        t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee);
+        t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee, t.Memo);
 }
