@@ -102,6 +102,45 @@ YoFi.V3/
 ✅ **Always find frontend in**:
 - `src/FrontEnd.Nuxt/app/` - All Vue application code
 
+## API Client Generation Pattern
+
+**Always use the Generate-ApiClient.ps1 script to regenerate API clients when backend APIs change.**
+
+1. **Two API clients are generated** - Building the [`src/WireApiHost`](src/WireApiHost/) project generates both:
+   - **TypeScript client**: [`src/FrontEnd.Nuxt/app/utils/apiclient.ts`](src/FrontEnd.Nuxt/app/utils/apiclient.ts) - For the Nuxt frontend
+   - **C# client**: [`tests/Functional/Api/ApiClient.cs`](tests/Functional/Api/ApiClient.cs) - For functional tests
+
+2. **NEVER edit generated clients manually** - These files are auto-generated and will be overwritten:
+   - Frontend: `src/FrontEnd.Nuxt/app/utils/apiclient.ts`
+   - Tests: `tests/Functional/Api/ApiClient.cs`
+
+3. **Use the script to regenerate** - When you need to regenerate API clients after backend changes:
+   ```bash
+   pwsh -File ./scripts/Generate-ApiClient.ps1
+   ```
+
+4. **Automatic regeneration** - The clients are automatically regenerated when you build the WireApiHost project:
+   ```bash
+   cd src/WireApiHost
+   dotnet build
+   ```
+
+5. **When to regenerate**:
+   - After adding, modifying, or removing API endpoints in Controllers
+   - After changing request/response DTOs
+   - After updating API documentation or annotations
+   - When functional tests report missing or outdated client types
+
+6. **Known technical debt** - The current generation approach has known limitations (generated files checked into source control, cross-project dependencies). See [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) for detailed analysis.
+
+### Example Workflow
+
+When adding a new API endpoint:
+1. Add the controller method in `src/Controllers/`
+2. Build the solution (or run `./scripts/Generate-ApiClient.ps1`)
+3. Verify both clients were regenerated (check git diff)
+4. Update frontend/tests to use the new API client methods
+
 ## Testing Framework Pattern
 
 **Always use NUnit for all testing recommendations and examples.**

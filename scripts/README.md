@@ -47,6 +47,12 @@ This folder contains scripts of many different kinds. Often these would be scatt
 | [`Provision-Resources.ps1`](Provision-Resources.ps1) | Provisions Azure resources for the YoFi.V3 application using Bicep templates |
 | [`Rotate-JwtKey.ps1`](Rotate-JwtKey.ps1) | Rotates the JWT signing key for a deployed application (invalidates all tokens) |
 
+### Code Generation
+
+| Script | Synopsis |
+|--------|----------|
+| [`Generate-ApiClient.ps1`](Generate-ApiClient.ps1) | Generates TypeScript and C# API clients from backend API specification using NSwag |
+
 ### Build Utilities
 
 | Script | Synopsis |
@@ -100,6 +106,16 @@ This folder contains scripts of many different kinds. Often these would be scatt
 .\Stop-Container.ps1
 ```
 
+### Code Generation
+
+```powershell
+# Generate API clients (TypeScript for frontend, C# for functional tests)
+.\Generate-ApiClient.ps1
+
+# Generate with Release configuration
+.\Generate-ApiClient.ps1 -Configuration Release
+```
+
 ### Azure Deployment
 
 ```powershell
@@ -120,6 +136,14 @@ This folder contains scripts of many different kinds. Often these would be scatt
 - **Node.js** 24+ with pnpm
 - **Docker Desktop** (for container-based workflows)
 - **Azure CLI** (for Azure deployment scripts)
+
+## Notes
+
+### API Client Generation
+
+The `Generate-ApiClient.ps1` script regenerates both the frontend TypeScript client and the functional test C# client. These clients are automatically regenerated when you build the `WireApiHost` project, but this script provides an explicit way to trigger regeneration.
+
+**Note:** The current API client generation approach has known technical debt (generated files are checked into source control). See [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](../docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) for details.
 
 ## Documentation
 
