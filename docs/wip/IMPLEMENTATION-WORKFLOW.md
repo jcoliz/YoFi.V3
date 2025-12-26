@@ -296,6 +296,10 @@ For implementation patterns, refer to existing features:
 
 **Commit:** Present functional test plan to user for review and commit.
 
+> [!TODO]: Architect mode made some really LONG scenarios with LOTS of When/Then loops. I had to go back and tell it to divide into single responsibility tests. We should tell Architect that from the start. Should we do that HERE or in the project test strategy? It does apply to the project at large, so I am thinking project test strategy.
+
+---
+
 > [!TODO]: Add a functional tests implementation. Even for something as simple as transaction record, the agents decided to go build a functional test implementation plan. Need to add a step here to formalize that. We should add the plan to PRD front matter as well.
 
 ---

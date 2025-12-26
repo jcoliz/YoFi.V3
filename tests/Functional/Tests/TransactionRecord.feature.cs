@@ -243,5 +243,39 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await ThenIShouldSeeATransactionWithPayee("Office Depot");
     }
 
+    /// <summary>
+    /// Created transaction displays all fields on details page
+    /// </summary>
+    [Test]
+    public async Task Created_transaction_displays_all_fields_on_details_page()
+    {
+        // Given I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
+        // When I click the "Add Transaction" button
+        await WhenIClickTheAddTransactionButton();
+
+        // And I fill in the following transaction fields:
+        var fieldsTable = new DataTable(
+            ["Field", "Value"],
+            ["Date", "2024-06-15"],
+            ["Payee", "Office Depot"],
+            ["Amount", "250.75"],
+            ["Memo", "Printer paper and toner"],
+            ["Source", "Business Card"],
+            ["External ID", "OD-2024-0615-001"]
+        );
+        await WhenIFillInTheFollowingTransactionFields(fieldsTable);
+
+        // And I click "Save"
+        await WhenIClickSave();
+
+        // And I click on the transaction row
+        await WhenIClickOnTheTransactionRow();
+
+        // Then I should see all the expected transaction fields displayed
+        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+    }
+
     #endregion
 }

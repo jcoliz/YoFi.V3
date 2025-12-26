@@ -1,5 +1,5 @@
 ---
-status: In Progress - 7 of 8 scenarios complete
+status: Complete - All 8 scenarios implemented and passing
 feature: Transaction Record Fields (Memo, Source, ExternalId)
 test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 implementation_mode: code
@@ -31,7 +31,7 @@ This document provides a detailed implementation plan for the 8 approved functio
 - ✅ **Scenario 5: User returns to list from transaction details page** - COMPLETE
 - ✅ **Scenario 6: User sees all fields in create transaction modal** - COMPLETE
 - ✅ **Scenario 7: User creates transaction with all fields populated** - COMPLETE
-- ⏳ **Scenario 8: Created transaction displays all fields on details page** - PENDING
+- ✅ **Scenario 8: Created transaction displays all fields on details page** - COMPLETE
 
 ---
 
@@ -628,27 +628,22 @@ Rule: User can create new transactions with all optional fields and see them dis
 
 ### Scenario 8: Created transaction displays all fields on details page
 
-**Steps to Implement**:
+**Status: ✅ COMPLETE - Implemented and passing (3s duration)**
 
-1. **`GivenIHaveCreatedATransactionWithMemoSourceAndExternalId()`**:
-   - Create workspace
-   - Create transaction with all fields populated (reuse create logic)
-   - Store transaction key for navigation
+**Implementation Notes**:
+- **Reused ALL existing steps** - No new step definitions needed
+- Reused [`GivenIAmOnTheTransactionsPage()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:203) from Scenario 6
+- Reused [`WhenIClickTheAddTransactionButton()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:552) from Scenario 6/7
+- Reused [`WhenIFillInTheFollowingTransactionFields(DataTable)`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:572) from Scenario 7 (stores values in object store)
+- Reused [`WhenIClickSave()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:312) from Scenario 7 (handles create modal)
+- Reused [`WhenIClickOnTheTransactionRow()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:435) from Scenario 3
+- Reused [`ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed()`](../../../tests/Functional/Steps/TransactionRecordSteps.cs:917) from Scenario 3 (retrieves values from object store)
+- Object store pattern allows field values to flow from fill→save→verify without additional code
+- Uses same realistic test data as Scenario 7 (Office Depot, Business Card, etc.)
 
-2. **`WhenIClickOnThatTransactionRow()`**:
-   - Get TransactionsPage
-   - Get payee from object store
-   - Click transaction row: `await transactionsPage.ClickTransactionRowAsync(payee)`
+**Key Design Decision**: This scenario demonstrates the power of the object store pattern - all field values stored during Scenario 7's "fill" step are automatically available for verification in the details page, requiring zero additional code.
 
-3. Reuse: `ThenIShouldNavigateToTheTransactionDetailsPage()` (already implemented)
-
-4. **`ThenIShouldSeeAllFieldsDisplayedCorrectly(DataTable)`**:
-   - Get TransactionDetailsPage
-   - Parse DataTable to get expected field values
-   - For each field, assert displayed value matches expected
-   - Similar to Scenario 3 but only checking Memo, Source, ExternalId
-
-**Run Test**: `dotnet test tests/Functional --filter "Name~Created_transaction_displays_all_fields"`
+**Run Test**: `dotnet test tests/Functional --filter "Name~Created_transaction_displays_all_fields_on_details_page"`
 
 ---
 
