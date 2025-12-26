@@ -69,6 +69,7 @@ For implementation patterns, refer to existing features:
 - **Step 8.5 (API Client):** `build([feature-slug]): regenerate API client`
 - **Step 9 (Controller Integration Tests):** `test(integration): add API endpoint tests`
 - **Step 10 (Frontend):** `feat([feature-slug]): implement UI`
+- **Step 10.5 (Functional Tests Plan):** `test(functional): add [feature] test plan`
 - **Step 11 (Functional Tests):** `test(functional): add [feature] user workflow tests`
 - **Step 11.5 (Documentation):** `docs([feature-slug]): update documentation`
 - **Step 12 (Wrap-up):** `feat([feature-slug]): complete implementation`
@@ -261,28 +262,49 @@ For implementation patterns, refer to existing features:
    - Example: `data-test-id="create-transaction-button"`, `data-test-id="payee-input"`
    - **Purpose:** Functional tests will need these selectors in Page Object Models
 5. Use composables for shared logic (see [`src/FrontEnd.Nuxt/app/composables/`](../../src/FrontEnd.Nuxt/app/composables/))
-6. Build frontend to verify no errors: `pnpm run build` (from FrontEnd.Nuxt directory)
-7. Review frontend-specific rules in [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules)
+6. Format and lint frontend code (from FrontEnd.Nuxt directory):
+   - Run formatter: `pnpm format`
+   - Run linter: `pnpm lint`
+   - Fix any linting errors before proceeding
+7. Build frontend to verify no errors: `pnpm run build` (from FrontEnd.Nuxt directory)
+8. Review frontend-specific rules in [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules)
 
 **Commit:** Present frontend implementation to user for review and commit.
 
 ---
 
-## [ ] 11. Functional Tests
+## [ ] 10.5. Functional Tests Plan
+
+**Mode Assignment:** This step should be performed by the **Architect** agent.
 
 1. Review [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) to identify critical workflows worthy of functional tests
    - **Target:** 10-15% of total tests
    - **Focus:** UI-dependent workflows only (login, registration, critical feature paths)
    - **Avoid:** Testing API behavior that's already covered by Controller Integration tests
-2. Write complete Gherkin feature file in [`tests/Functional/Features/`](../../tests/Functional/Features/)
-   - **Note:** One `.feature` file usually maps to one PRD
-3. **Implement scenarios ONE AT A TIME (never multiple simultaneously):**
+2. Find the functional test plan for the PRD if it exists, or create a new one in the same directory as the PRD
+3. Add `functional_test_plan:` to YAML front matter, if needed, with name of the functional test plan document
+4. Decide the list of critical scenarios. PRIORITIZE them. List them in priority order in the test plan
+5. For each scenario:
+   - Provide a justification for why we should spend valuable cycles maintaining this test in perpetuity. What risk do we take by not implementing it? Why is this scenario not sufficiently covered in the other layers?
+   - Write a proposed Gherkin test block
+   - Review Gherkin to ensure a high quality of behavior-driven language
+   - DO NOT write any C# code
+
+**Commit:** Present functional test plan to user for review and commit.
+
+---
+
+## [ ] 11. Functional Tests
+
+1. Locate the functional test plan. Ensure it's marked `status: Approved` in the YAML front matter
+2. **Implement scenarios ONE AT A TIME (never multiple simultaneously):**
    - For the current scenario only:
+     - Write Gherkin scenario in feature file [`tests/Functional/Features/`](../../tests/Functional/Features/) based on test plan
      - Create or update Page Object Models in [`tests/Functional/Pages/`](../../tests/Functional/Pages/)
      - Write step definitions in [`tests/Functional/Steps/`](../../tests/Functional/Steps/)
      - Use Gherkin comments (Given/When/Then/And) in step implementations
    - Complete and verify one scenario before moving to the next
-4. **ITERATIVE TESTING PROCESS (for each scenario):**
+3. **ITERATIVE TESTING PROCESS (for each scenario):**
    - First functional test only: Ask user to run .\scripts\Start-LocalDev.ps1 and wait for confirmation
    - Subsequent tests reuse the running application
    - Implement one scenario at a time
@@ -292,12 +314,12 @@ For implementation patterns, refer to existing features:
    - Review test results and fix issues immediately
    - Iterate on that one scenario until it passes
    - Move to next scenario and repeat
-5. **FULL TEST SUITE VERIFICATION:**
+4. **FULL TEST SUITE VERIFICATION:**
    - Once all scenarios pass locally, ask user to run full suite against container: `.\scripts\Run-FunctionalTestsVsContainer.ps1`
    - This ensures tests work in CI/CD environment
    - Wait for user to report results
    - Fix any container-specific issues
-6. Check off any completed acceptance tests in PRD
+5. Check off any completed acceptance tests in PRD
 
 **Why functional tests are minimal:**
 - Slow execution (seconds per test)
