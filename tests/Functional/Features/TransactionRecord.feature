@@ -24,3 +24,17 @@ Rule: Quick Edit Modal
         Then I should see a modal titled "Quick Edit Transaction"
         And I should only see fields for "Payee" and "Memo"
         And I should not see fields for "Date", "Amount", "Source", or "ExternalId"
+
+    Scenario: User updates Memo via quick edit modal
+        Given I have a workspace with a transaction:
+            | Field      | Value          |
+            | Payee      | Coffee Co      |
+            | Amount     | -5.50          |
+            | Memo       | Morning latte  |
+            | Source     | Chase Checking |
+            | ExternalId | CHK-001        |
+        When I quick edit the "Coffee Co" transaction
+        And I change Memo to "Large latte with extra shot"
+        And I click "Update"
+        Then the modal should close
+        And I should see the updated memo in the transaction list

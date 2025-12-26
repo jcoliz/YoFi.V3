@@ -53,5 +53,38 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await ThenIShouldNotSeeFieldsForDateAmountSourceOrExternalId();
     }
 
+    /// <summary>
+    /// User updates Memo via quick edit modal
+    /// </summary>
+    [Test]
+    public async Task UserUpdatesMemoViaQuickEditModal()
+    {
+        // Given I have a workspace with a transaction:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Coffee Co"],
+            ["Amount", "-5.50"],
+            ["Memo", "Morning latte"],
+            ["Source", "Chase Checking"],
+            ["ExternalId", "CHK-001"]
+        );
+        await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // When I quick edit the "Coffee Co" transaction
+        await WhenIQuickEditTheTransaction("Coffee Co");
+
+        // And I change Memo to "Large latte with extra shot"
+        await WhenIChangeMemoTo("Large latte with extra shot");
+
+        // And I click "Update"
+        await WhenIClickUpdate();
+
+        // Then the modal should close
+        await ThenTheModalShouldClose();
+
+        // And I should see the updated memo in the transaction list
+        await ThenIShouldSeeTheUpdatedMemoInTheTransactionList();
+    }
+
     #endregion
 }

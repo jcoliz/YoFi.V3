@@ -170,6 +170,39 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
+    /// Opens the quick edit modal for the specified transaction.
+    /// </summary>
+    /// <param name="payee">The payee name of the transaction to edit.</param>
+    /// <remarks>
+    /// Locates the transaction by payee and opens the edit modal.
+    /// </remarks>
+    [When("I quick edit the {payee} transaction")]
+    protected async Task WhenIQuickEditTheTransaction(string payee)
+    {
+        // When: Locate and click the edit button for the transaction
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.OpenEditModalAsync(payee);
+    }
+
+    /// <summary>
+    /// Changes the memo field in the quick edit modal.
+    /// </summary>
+    /// <param name="newMemo">The new memo value.</param>
+    /// <remarks>
+    /// Fills the memo field and stores the new value in object store for verification.
+    /// </remarks>
+    [When("I change Memo to {newMemo}")]
+    protected async Task WhenIChangeMemoTo(string newMemo)
+    {
+        // When: Fill the memo field
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.FillEditMemoAsync(newMemo);
+
+        // And: Store the new memo for verification
+        _objectStore.Add(KEY_TRANSACTION_MEMO, newMemo);
+    }
+
+    /// <summary>
     /// Updates the memo field in the quick edit modal.
     /// </summary>
     /// <param name="newMemo">The new memo value.</param>
@@ -185,6 +218,20 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         // And: Store the new memo for verification
         _objectStore.Add("NewMemo", newMemo);
+    }
+
+    /// <summary>
+    /// Clicks the Update button on the edit modal.
+    /// </summary>
+    /// <remarks>
+    /// Submits the edit form and waits for the modal to close.
+    /// </remarks>
+    [When("I click \"Update\"")]
+    protected async Task WhenIClickUpdate()
+    {
+        // When: Submit the edit form
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.SubmitEditFormAsync();
     }
 
     /// <summary>
@@ -381,6 +428,49 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         // And: Verify the memo in the transaction list
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        var actualMemo = await transactionsPage.GetTransactionMemoAsync(payee);
+
+        Assert.That(actualMemo?.Trim(), Is.EqualTo(expectedMemo),
+            $"Expected memo to be '{expectedMemo}' but was '{actualMemo}'");
+    }
+
+    /// <summary>
+    /// Verifies that the edit modal has closed.
+    /// </summary>
+    /// <remarks>
+    /// Waits for the modal to disappear and verifies it's no longer visible.
+    /// </remarks>
+    [Then("the modal should close")]
+    protected async Task ThenTheModalShouldClose()
+    {
+        // Then: Wait for the edit modal to be hidden
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.EditModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 5000 });
+
+        // And: Verify modal is not visible
+        var isVisible = await transactionsPage.EditModal.IsVisibleAsync();
+        Assert.That(isVisible, Is.False, "Edit modal should be closed");
+    }
+
+    /// <summary>
+    /// Verifies that the updated memo appears in the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the payee and new memo from object store, waits for page to update,
+    /// and verifies the memo in the transaction list matches the updated value.
+    /// </remarks>
+    [Then("I should see the updated memo in the transaction list")]
+    protected async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
+    {
+        // Then: Get the payee and new memo from object store
+        var payee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+        var expectedMemo = GetRequiredFromStore(KEY_TRANSACTION_MEMO);
+
+        // And: Wait for page to update (loading spinner to hide)
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // And: Verify the memo in the transaction list
         var actualMemo = await transactionsPage.GetTransactionMemoAsync(payee);
 
         Assert.That(actualMemo?.Trim(), Is.EqualTo(expectedMemo),
