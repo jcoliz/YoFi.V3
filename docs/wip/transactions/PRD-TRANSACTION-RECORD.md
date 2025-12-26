@@ -1,10 +1,14 @@
 ---
-status: Approved (Detailed design complete)
+status: Implemented
 target_release: Alpha 1
 design_document: TRANSACTION-RECORD-DESIGN.md
 functional_test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 functional_test_implementation_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
 ado: "[Link to ADO Item]"
+implementation_notes: |
+  All 8 functional test scenarios implemented and passing in both local and container environments.
+  Backend API endpoints, Application Features, Entity models, and database schema all complete.
+  Frontend UI for transaction details page implemented with full CRUD support for all fields.
 ---
 
 # Product Requirements Document: Transaction Record
@@ -64,8 +68,6 @@ All of these will be considered as separate features. The goal of this is to get
 - [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits (see [PRD-TRANSACTION-SPLITS.md](./PRD-TRANSACTION-SPLITS.md))
 - [x] Can add a memorandum (memo) field with additional text to provide additional context (`Memo` field - string?, 1000 chars, backend complete)
 
-**Note**: Frontend UI for editing memo not yet implemented.
-
 ### Story 3: User - Manage transactions
 **As a** user
 **I want** to edit transaction details or delete them
@@ -75,13 +77,9 @@ All of these will be considered as separate features. The goal of this is to get
 - [x] Edit all fields (PUT endpoint implemented, all fields editable via API)
 - [x] Delete a transaction (DELETE endpoint implemented)
 
-**Note**: Frontend UI for transaction management not yet implemented.
-
 ---
 
 ## Technical Approach (Optional)
-
-[Brief description of the intended technical approach, if you have one in mind]
 
 **Layers Affected**:
 - [X] Frontend (Vue/Nuxt)
