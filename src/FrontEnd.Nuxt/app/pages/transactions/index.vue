@@ -49,6 +49,7 @@ const formData = ref({
   amount: 0,
   payee: '',
   memo: '',
+  category: '',
   source: '',
   externalId: '',
 })
@@ -58,6 +59,7 @@ const formErrors = ref({
   amount: '',
   payee: '',
   memo: '',
+  category: '',
   source: '',
   externalId: '',
 })
@@ -128,10 +130,19 @@ function openCreateModal() {
     amount: 0,
     payee: '',
     memo: '',
+    category: '',
     source: '',
     externalId: '',
   }
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   showCreateModal.value = true
 }
 
@@ -143,10 +154,19 @@ function openEditModal(transaction: TransactionResultDto) {
     amount: transaction.amount || 0,
     payee: transaction.payee || '',
     memo: transaction.memo || '',
+    category: transaction.category || '',
     source: '',
     externalId: '',
   }
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   showEditModal.value = true
 }
 
@@ -156,7 +176,15 @@ function openDeleteModal(transaction: TransactionResultDto) {
 }
 
 function validateForm(): boolean {
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   let isValid = true
 
   if (!formData.value.date) {
@@ -172,6 +200,12 @@ function validateForm(): boolean {
   // Validate memo length (max 1000 characters)
   if (formData.value.memo && formData.value.memo.length > 1000) {
     formErrors.value.memo = 'Memo cannot exceed 1000 characters'
+    isValid = false
+  }
+
+  // Validate category length (max 100 characters)
+  if (formData.value.category && formData.value.category.length > 100) {
+    formErrors.value.category = 'Category cannot exceed 100 characters'
     isValid = false
   }
 
@@ -204,6 +238,7 @@ async function createTransaction() {
       amount: formData.value.amount,
       payee: formData.value.payee.trim(),
       memo: formData.value.memo.trim() || undefined,
+      category: formData.value.category.trim() || undefined,
       source: formData.value.source.trim() || undefined,
       externalId: formData.value.externalId.trim() || undefined,
     })
@@ -220,8 +255,16 @@ async function createTransaction() {
 }
 
 async function updateTransaction() {
-  // For quick edit, only validate payee and memo
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  // For quick edit, validate payee, memo, and category
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   let isValid = true
 
   if (!formData.value.payee || !formData.value.payee.trim()) {
@@ -234,6 +277,11 @@ async function updateTransaction() {
     isValid = false
   }
 
+  if (formData.value.category && formData.value.category.length > 100) {
+    formErrors.value.category = 'Category cannot exceed 100 characters'
+    isValid = false
+  }
+
   if (!isValid) return
   if (!selectedTransaction.value?.key || !currentTenantKey.value) return
 
@@ -242,10 +290,11 @@ async function updateTransaction() {
   showError.value = false
 
   try {
-    // Use quick edit endpoint: only sends payee and memo
+    // Use quick edit endpoint: sends payee, memo, and category
     const dto = new TransactionQuickEditDto({
       payee: formData.value.payee.trim(),
       memo: formData.value.memo.trim() || undefined,
+      category: formData.value.category.trim() || undefined,
     })
 
     await transactionsClient.quickEditTransaction(
@@ -472,6 +521,7 @@ function formatCurrency(amount: number | undefined): string {
                   <th>Date</th>
                   <th>Payee</th>
                   <th class="text-end">Amount</th>
+                  <th>Category</th>
                   <th>Memo</th>
                   <th
                     v-if="canEditTransactions"
@@ -492,6 +542,7 @@ function formatCurrency(amount: number | undefined): string {
                   <td>{{ formatDate(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
+                  <td>{{ transaction.category || '' }}</td>
                   <td
                     class="memo-cell"
                     :title="transaction.memo || ''"
@@ -636,6 +687,30 @@ function formatCurrency(amount: number | undefined): string {
       </div>
       <div class="mb-3">
         <label
+          for="createCategory"
+          class="form-label"
+          >Category</label
+        >
+        <input
+          id="createCategory"
+          v-model="formData.category"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.category }"
+          placeholder="Category (optional)"
+          maxlength="100"
+          data-test-id="create-transaction-category"
+        />
+        <small class="form-text text-muted">Optional category for this transaction</small>
+        <div
+          v-if="formErrors.category"
+          class="invalid-feedback"
+        >
+          {{ formErrors.category }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
           for="createSource"
           class="form-label"
           >Source</label
@@ -741,6 +816,30 @@ function formatCurrency(amount: number | undefined): string {
           class="invalid-feedback"
         >
           {{ formErrors.memo }}
+        </div>
+      </div>
+      <div class="mb-3">
+        <label
+          for="editCategory"
+          class="form-label"
+          >Category</label
+        >
+        <input
+          id="editCategory"
+          v-model="formData.category"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.category }"
+          placeholder="Category (optional)"
+          maxlength="100"
+          data-test-id="edit-transaction-category"
+        />
+        <small class="form-text text-muted">Optional category for this transaction</small>
+        <div
+          v-if="formErrors.category"
+          class="invalid-feedback"
+        >
+          {{ formErrors.category }}
         </div>
       </div>
       <div class="alert alert-info">
