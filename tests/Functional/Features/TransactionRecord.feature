@@ -14,16 +14,18 @@ Background:
 Rule: Quick Edit Modal
     The quick edit modal should only show Payee and Memo fields for rapid updates
 
-    Scenario: Quick edit modal shows only Payee and Memo fields
+    Scenario: Quick edit modal shows Payee, Category, and Memo fields
         Given I have a workspace with a transaction:
-            | Field  | Value           |
-            | Payee  | Coffee Shop     |
-            | Amount | 5.50            |
-            | Memo   | Morning coffee  |
+            | Field    | Value           |
+            | Payee    | Coffee Shop     |
+            | Amount   | 5.50            |
+            | Category | Beverages       |
+            | Memo     | Morning coffee  |
         And I am on the transactions page
         When I click the "Edit" button on the transaction
         Then I should see a modal titled "Quick Edit Transaction"
-        And I should only see fields for "Payee" and "Memo"
+        And I should only see fields for "Payee", "Category", and "Memo"
+        And the fields match the expected values
         And I should not see fields for "Date", "Amount", "Source", or "ExternalId"
 
     Scenario: User updates Memo via quick edit modal
