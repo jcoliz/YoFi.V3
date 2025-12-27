@@ -12,23 +12,27 @@ Proposal to consolidate workspace switching functionality into the [`LoginState.
 ## Current State
 
 Currently, workspace switching is handled by:
-- **[`WorkspaceSelector.vue`](../../src/FrontEnd.Nuxt/app/components/WorkspaceSelector.vue)** - Separate component in header with dropdown menu showing current workspace details and select dropdown for switching
+- **[`WorkspaceSelector.vue`](../../src/FrontEnd.Nuxt/app/components/WorkspaceSelector.vue)** - Component shown on specific pages (transactions, workspaces) with dropdown menu showing current workspace details and select dropdown for switching
 - **[`workspaces.vue`](../../src/FrontEnd.Nuxt/app/pages/workspaces.vue)** - Full page for workspace management (CRUD operations)
-- **[`LoginState.vue`](../../src/FrontEnd.Nuxt/app/components/LoginState.vue)** - User menu with Profile and Sign Out only
+- **[`LoginState.vue`](../../src/FrontEnd.Nuxt/app/components/LoginState.vue)** - User menu in global header with Profile and Sign Out only
 
 **Current Layout:**
 ```
-Header:
-├─ [Logo] [Nav Links] ... [Workspace: Personal ⋮] [User Icon: John ⋮]
+Global Header:
+├─ [Logo] [Nav Links] ... [User Icon: John ⋮]
+
+Page Content (e.g., transactions page):
+├─ [Workspace: Personal ⋮]  ← WorkspaceSelector
+├─ [Page-specific content]
 ```
 
 ## Problem Statement
 
 The current implementation separates workspace switching from user account actions, resulting in:
-1. **Separate dropdowns** - User must remember two different menu locations
-2. **Header clutter** - Two dropdown triggers in header take up space
-3. **Inconsistent patterns** - Most SaaS apps consolidate these in one menu
-4. **Mobile challenges** - Multiple dropdowns harder to manage on small screens
+1. **Separate locations** - Workspace switching only available on specific pages, not globally accessible
+2. **Inconsistent UX** - User must remember which pages have the workspace selector
+3. **Inconvenient access** - To switch workspaces, user must first navigate to a page that has the selector
+4. **Not industry standard** - Most SaaS apps consolidate workspace switching with user menu for global access
 
 ## Proposed Solution: Hybrid Approach
 
