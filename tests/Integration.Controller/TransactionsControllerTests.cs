@@ -1066,4 +1066,743 @@ public class TransactionsControllerTests : AuthenticatedTestBase
     }
 
     #endregion
+
+    #region Category Field Tests
+
+    [Test]
+    public async Task CreateTransaction_WithCategory_AutoCreatesSplitWithSanitizedCategory()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data with category needing sanitization
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 50.00m,
+            Payee: "Test Store",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "  food : groceries  " // Needs sanitization
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Response should contain transaction with sanitized category
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created, Is.Not.Null);
+        Assert.That(created!.Category, Is.EqualTo("Food:Groceries"));
+        Assert.That(created.Payee, Is.EqualTo("Test Store"));
+        Assert.That(created.Amount, Is.EqualTo(50.00m));
+    }
+
+    [Test]
+    public async Task CreateTransaction_WithoutCategory_AutoCreatesSplitWithEmptyCategory()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data without category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 75.00m,
+            Payee: "Store Without Category",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Response should contain transaction with empty category
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created, Is.Not.Null);
+        Assert.That(created!.Category, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public async Task CreateTransaction_CategoryWithMultipleSpaces_SanitizesToSingleSpaces()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data with category containing multiple spaces
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Home    and   Garden"
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Category should have single spaces between words
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo("Home And Garden"));
+    }
+
+    [Test]
+    public async Task CreateTransaction_CategoryLowercase_CapitalizesWords()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data with lowercase category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "homeandgarden"
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Category should have first letter capitalized
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo("Homeandgarden"));
+    }
+
+    [Test]
+    public async Task CreateTransaction_CategoryWithEmptyTerm_RemovesEmptyTerm()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data with category containing empty term after colon
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Home: "
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Empty term should be removed
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo("Home"));
+    }
+
+    [Test]
+    public async Task CreateTransaction_CategoryWhitespaceOnly_ReturnsEmptyString()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Transaction data with whitespace-only category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "   "
+        );
+
+        // When: User creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Category should be empty string
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public async Task UpdateTransaction_WithNewCategory_UpdatesSplitCategory()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Updated transaction data with new category
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Dining"
+        );
+
+        // When: User updates the transaction
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}", updateDto);
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should be updated
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo("Dining"));
+        Assert.That(updated.Key, Is.EqualTo(created.Key));
+    }
+
+    [Test]
+    public async Task UpdateTransaction_FromNullCategoryToValue_UpdatesSplitCategory()
+    {
+        // Given: User has Editor role and creates a transaction without category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo(string.Empty));
+
+        // And: Updated transaction data with category
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Entertainment"
+        );
+
+        // When: User updates the transaction
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created.Key}", updateDto);
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should now be set
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo("Entertainment"));
+    }
+
+    [Test]
+    public async Task UpdateTransaction_FromValueToNullCategory_ClearsSplitCategory()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Shopping"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created!.Category, Is.EqualTo("Shopping"));
+
+        // And: Updated transaction data without category
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+
+        // When: User updates the transaction
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created.Key}", updateDto);
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should now be empty
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_WithNewCategory_UpdatesSplitCategory()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: "Original Memo",
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with new category
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Updated Payee",
+            Memo: "Updated Memo",
+            Category: "Dining"
+        );
+
+        // When: User quick edits the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should be updated
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo("Dining"));
+        Assert.That(updated.Payee, Is.EqualTo("Updated Payee"));
+        Assert.That(updated.Memo, Is.EqualTo("Updated Memo"));
+
+        // And: Other fields should remain unchanged
+        Assert.That(updated.Amount, Is.EqualTo(100m));
+        Assert.That(updated.Date, Is.EqualTo(created.Date));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_CategoryOnly_UpdatesOnlyCategory()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: "Original Memo",
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with only category changed
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Original Payee",  // Same
+            Memo: "Original Memo",    // Same
+            Category: "Groceries"     // Changed
+        );
+
+        // When: User quick edits the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Only category should be updated
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo("Groceries"));
+        Assert.That(updated.Payee, Is.EqualTo("Original Payee"));
+        Assert.That(updated.Memo, Is.EqualTo("Original Memo"));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_WithSanitizedCategory_AppliesSanitization()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with category needing sanitization
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Test Payee",
+            Memo: null,
+            Category: "  dining : out  "
+        );
+
+        // When: User quick edits the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should be sanitized
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Category, Is.EqualTo("Dining:Out"));
+    }
+
+    [Test]
+    public async Task GetTransactionsList_ReturnsCategoryFromSplits()
+    {
+        // Given: User has Editor role and creates multiple transactions with categories
+        SwitchToEditor();
+        var transaction1 = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Store 1",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var transaction2 = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
+            Amount: 200m,
+            Payee: "Store 2",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Entertainment"
+        );
+        var transaction3 = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2)),
+            Amount: 50m,
+            Payee: "Store 3",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+
+        var response1 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction1);
+        var created1 = await response1.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        var response2 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction2);
+        var created2 = await response2.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        var response3 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction3);
+        var created3 = await response3.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // When: User requests transaction list
+        var listResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions");
+
+        // Then: 200 OK should be returned
+        Assert.That(listResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: All transactions should include their category
+        var transactions = await listResponse.Content.ReadFromJsonAsync<ICollection<TransactionResultDto>>();
+        Assert.That(transactions, Is.Not.Null);
+
+        var txn1 = transactions!.FirstOrDefault(t => t.Key == created1!.Key);
+        Assert.That(txn1, Is.Not.Null);
+        Assert.That(txn1!.Category, Is.EqualTo("Food"));
+
+        var txn2 = transactions.FirstOrDefault(t => t.Key == created2!.Key);
+        Assert.That(txn2, Is.Not.Null);
+        Assert.That(txn2!.Category, Is.EqualTo("Entertainment"));
+
+        var txn3 = transactions.FirstOrDefault(t => t.Key == created3!.Key);
+        Assert.That(txn3, Is.Not.Null);
+        Assert.That(txn3!.Category, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public async Task GetTransactionById_ReturnsCategoryFromSplit()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 150m,
+            Payee: "Detail Test Store",
+            Memo: "Test memo",
+            Source: "Test Source",
+            ExternalId: "TEST-001",
+            Category: "Shopping:Online"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // When: User retrieves the transaction by ID
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should include category from split
+        var retrieved = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Key, Is.EqualTo(created.Key));
+        Assert.That(retrieved.Category, Is.EqualTo("Shopping:Online"));
+    }
+
+    [Test]
+    public async Task GetTransactionById_WithEmptyCategory_ReturnsEmptyString()
+    {
+        // Given: User has Editor role and creates a transaction without category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 150m,
+            Payee: "No Category Store",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // When: User retrieves the transaction by ID
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Category should be empty string
+        var retrieved = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Category, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
+    public async Task CreateTransaction_WithCategory_AsViewer_ReturnsForbidden()
+    {
+        // Given: User has Viewer role for tenant (read-only)
+        SwitchToViewer();
+
+        // And: Valid transaction data with category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Test Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+
+        // When: Viewer attempts to create a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task CreateTransaction_WithCategory_AsOwner_ReturnsCreated()
+    {
+        // Given: User has Owner role for tenant
+        SwitchToOwner();
+
+        // And: Valid transaction data with category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Owner Transaction",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Business:Travel"
+        );
+
+        // When: Owner creates a transaction
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
+
+        // Then: 201 Created should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        // And: Category should be properly sanitized
+        var created = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created, Is.Not.Null);
+        Assert.That(created!.Category, Is.EqualTo("Business:Travel"));
+    }
+
+    [Test]
+    public async Task UpdateTransaction_WithCategory_AsViewer_ReturnsForbidden()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: User switches to Viewer role
+        SwitchToViewer();
+
+        // And: Updated transaction data with new category
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Updated",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Dining"
+        );
+
+        // When: Viewer attempts to update the transaction
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}", updateDto);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_WithCategory_AsViewer_ReturnsForbidden()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: User switches to Viewer role
+        SwitchToViewer();
+
+        // And: Quick edit data with new category
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Updated",
+            Memo: null,
+            Category: "Dining"
+        );
+
+        // When: Viewer attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task CreateTransaction_WithCategory_InOtherTenant_ReturnsForbidden()
+    {
+        // Given: User has Editor role for their tenant
+        SwitchToEditor();
+
+        // And: Create a different tenant (user doesn't have access)
+        var otherTenantKey = await CreateTestTenantAsync("Other Tenant", "Second tenant for isolation testing");
+
+        // And: Transaction data with category
+        var newTransaction = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Isolation Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+
+        // When: User attempts to create transaction in other tenant
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{otherTenantKey}/transactions", newTransaction);
+
+        // Then: 403 Forbidden should be returned (user doesn't have access to other tenant)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task UpdateTransaction_WithCategory_InOtherTenant_ReturnsForbidden()
+    {
+        // Given: User has Editor role and creates a transaction with category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Food"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Create a different tenant (user doesn't have access)
+        var otherTenantKey = await CreateTestTenantAsync("Other Tenant", "Second tenant for isolation testing");
+
+        // And: Updated transaction data with new category
+        var updateDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Updated",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Dining"
+        );
+
+        // When: User attempts to update transaction via other tenant's endpoint
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{otherTenantKey}/transactions/{created!.Key}", updateDto);
+
+        // Then: 403 Forbidden should be returned (user doesn't have access to other tenant)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    #endregion
 }
