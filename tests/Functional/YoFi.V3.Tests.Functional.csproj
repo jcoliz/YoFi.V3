@@ -22,10 +22,10 @@
     <Using Include="NUnit.Framework" />
   </ItemGroup>
   <ItemGroup>
-    <!--  Removing this reference. If controllers change, manually rebuild the wireapihost to generate
-          a new ApiClient.cs file in this project. Having this be automatic causes needless refreshes
-          on the controllers, and thus on the main project. -->
-    <!-- ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" / -->
+    <!-- Project reference to ensure WireApiHost builds before API client generation.
+         ReferenceOutputAssembly="false" prevents assembly coupling (we only need the built project for NSwag metadata extraction).
+         This only establishes build order dependency, doesn't cause unnecessary rebuilds. -->
+    <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup>

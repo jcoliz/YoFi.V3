@@ -9,7 +9,7 @@
       "configuration": "$(Configuration)",
       "runtime": null,
       "targetFramework": null,
-      "noBuild": false,
+      "noBuild": true,
       "msBuildOutputPath": null,
       "verbose": true,
       "workingDirectory": null,
