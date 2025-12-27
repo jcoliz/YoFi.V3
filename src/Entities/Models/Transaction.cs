@@ -9,7 +9,7 @@ namespace YoFi.V3.Entities.Models;
 /// </summary>
 /// <remarks>
 /// Transactions represent financial events imported from bank/credit card sources
-/// or entered manually. Each transaction can be annotated with additional user context.
+/// or entered manually. Each transaction has one or more splits for categorization.
 /// </remarks>
 [Table("YoFi.V3.Transactions")]
 public record Transaction : BaseTenantModel
@@ -29,11 +29,14 @@ public record Transaction : BaseTenantModel
     public string Payee { get; set; } = string.Empty;
 
     /// <summary>
-    /// Amount of the transaction.
+    /// Total amount of the transaction (authoritative imported value).
     /// </summary>
     /// <remarks>
-    /// Can be negative for credits/refunds. YoFi is single-currency for now,
-    /// so no currency code is stored.
+    /// This is the amount imported from the bank/source and represents the authoritative
+    /// transaction value. Can be negative for credits/refunds. Splits may total to a
+    /// different amount (validation warning for user).
+    ///
+    /// YoFi is single-currency for now, so no currency code is stored.
     /// </remarks>
     public decimal Amount { get; set; } = 0;
 
@@ -60,15 +63,29 @@ public record Transaction : BaseTenantModel
     public string? ExternalId { get; set; }
 
     /// <summary>
-    /// Optional memo for additional transaction context.
+    /// Optional memo for the entire transaction.
     /// </summary>
     /// <remarks>
-    /// Plain text field for user notes. Most transactions won't have memos.
+    /// Transaction-level notes for user context. Most transactions won't have memos.
     /// Examples: "Reimbursable", "Split with roommate", "Gift for John's birthday".
+    /// For split-specific notes, use Split.Memo instead.
     /// </remarks>
     [MaxLength(1000)]
     public string? Memo { get; set; }
 
     // Navigation properties
+
+    /// <summary>
+    /// Navigation property to the parent tenant.
+    /// </summary>
     public virtual Tenant? Tenant { get; set; }
+
+    /// <summary>
+    /// Splits categorizing this transaction.
+    /// </summary>
+    /// <remarks>
+    /// Every transaction must have at least one split. In the most common case
+    /// (single split), the UI hides split complexity and edits the split directly.
+    /// </remarks>
+    public virtual ICollection<Split> Splits { get; set; } = new List<Split>();
 }
