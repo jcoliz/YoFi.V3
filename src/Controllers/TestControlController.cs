@@ -542,11 +542,12 @@ public partial class TestControlController(
                 Payee: $"{request.PayeePrefix} {i}",
                 Memo: request.Memo,
                 Source: request.Source,
-                ExternalId: request.ExternalId
+                ExternalId: request.ExternalId,
+                Category: null // Alpha-1: Optional category, defaults to empty
             );
 
             var result = await transactionsFeature.AddTransactionAsync(transaction);
-            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee, result.Memo));
+            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee, result.Memo, result.Category));
         }
 
         LogOkCount(createdTransactions.Count);

@@ -227,7 +227,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -257,7 +257,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -277,7 +277,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -297,7 +297,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -318,7 +318,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -339,7 +339,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -364,7 +364,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -384,7 +384,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -404,7 +404,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -424,7 +424,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -451,7 +451,7 @@ public class TransactionsTests
             Memo: "This is a test memo",
             Source: "Chase Checking 1234",
             ExternalId: "TXN20241220-ABC123"
-        );
+        ,            Category: null);
 
         var result = await _transactionsFeature.AddTransactionAsync(dto);
 
@@ -481,7 +481,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         var result = await _transactionsFeature.AddTransactionAsync(dto);
 
@@ -512,7 +512,7 @@ public class TransactionsTests
             Memo: longMemo,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -535,7 +535,7 @@ public class TransactionsTests
             Memo: memo1000,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: Transaction should be created successfully
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -560,7 +560,7 @@ public class TransactionsTests
             Memo: null,
             Source: longSource,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -583,7 +583,7 @@ public class TransactionsTests
             Memo: null,
             Source: source200,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: Transaction should be created successfully
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -608,7 +608,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: longExternalId
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -631,7 +631,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: externalId100
-        );
+        ,            Category: null);
 
         // Then: Transaction should be created successfully
         var result = await _transactionsFeature.AddTransactionAsync(dto);
@@ -653,7 +653,7 @@ public class TransactionsTests
             Memo: null,
             Source: "Chase Checking 1234",
             ExternalId: "DUPLICATE-ID"
-        );
+        ,            Category: null);
         await _transactionsFeature.AddTransactionAsync(existingDto);
 
         // When: A second transaction with the same ExternalId is created
@@ -664,7 +664,7 @@ public class TransactionsTests
             Memo: null,
             Source: "Chase Checking 1234",
             ExternalId: "DUPLICATE-ID"
-        );
+        ,            Category: null);
 
         // Then: Transaction should be created successfully (API allows duplicates)
         var result = await _transactionsFeature.AddTransactionAsync(duplicateDto);
@@ -686,7 +686,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: "SHARED-ID"
-        );
+        ,            Category: null);
         await _transactionsFeature.AddTransactionAsync(currentTenantDto);
 
         // And: A transaction in a different tenant with the same ExternalId
@@ -717,7 +717,7 @@ public class TransactionsTests
             Memo: "Manually entered transaction",
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         var result = await _transactionsFeature.AddTransactionAsync(dto);
 
@@ -746,7 +746,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act
         await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
@@ -770,7 +770,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
@@ -791,7 +791,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -814,7 +814,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -839,7 +839,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
@@ -860,7 +860,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -884,7 +884,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -907,7 +907,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -930,7 +930,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act & Assert
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -953,7 +953,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Act
         await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
@@ -981,7 +981,7 @@ public class TransactionsTests
             Memo: "Updated memo",
             Source: "Updated Source",
             ExternalId: "UPDATED-ID"
-        );
+        ,            Category: null);
 
         var result = await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
 
@@ -1019,7 +1019,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         var result = await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto);
 
@@ -1051,7 +1051,7 @@ public class TransactionsTests
             Memo: longMemo,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -1076,7 +1076,7 @@ public class TransactionsTests
             Memo: null,
             Source: longSource,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
@@ -1101,7 +1101,7 @@ public class TransactionsTests
             Memo: null,
             Source: null,
             ExternalId: longExternalId
-        );
+        ,            Category: null);
 
         // Then: ArgumentException should be thrown
         var ex = Assert.ThrowsAsync<ArgumentException>(async () =>

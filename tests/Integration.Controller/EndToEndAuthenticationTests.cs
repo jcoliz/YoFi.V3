@@ -161,7 +161,8 @@ public class EndToEndAuthenticationTests
             Payee: "Test Payee 1",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
         var transaction2 = new TransactionEditDto(
             Date: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
@@ -169,7 +170,8 @@ public class EndToEndAuthenticationTests
             Payee: "Test Payee 2",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         var addTx1Response = await authenticatedClient.PostAsJsonAsync(
