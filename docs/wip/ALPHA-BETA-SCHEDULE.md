@@ -1,10 +1,7 @@
-# YoFi.V3 Alpha/Beta Release Schedule
-
-**Document Version**: 1.0
-**Date**: December 2025
-**Status**: Draft - For Review and Approval
-
 ---
+status: Review
+---
+# YoFi.V3 Alpha/Beta Release Schedule
 
 ## Executive Summary
 

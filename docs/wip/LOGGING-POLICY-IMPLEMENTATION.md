@@ -1,8 +1,10 @@
-# Logging Policy Implementation Guide
+---
+status: Recommendations
+related:
+- ../LOGGING-POLICY.md
 
-**Status:** Recommendations
-**Date:** 2024-12-15
-**Related:** [`docs/LOGGING-POLICY.md`](../LOGGING-POLICY.md)
+---
+# Logging Policy Implementation Guide
 
 ## Overview
 

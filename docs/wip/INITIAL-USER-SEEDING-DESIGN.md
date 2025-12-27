@@ -1,8 +1,8 @@
+---
+status: Approved
+purpose: Design a scheme to seed an initial user that works across all environments (Development, Container, Production)
+---
 # Initial User Seeding Design
-
-**Status:** Approved
-**Created:** 2025-12-20
-**Purpose:** Design a scheme to seed an initial user that works across all environments (Development, Container, Production)
 
 ## Problem Statement
 

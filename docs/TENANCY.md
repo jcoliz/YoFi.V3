@@ -1,7 +1,11 @@
+---
+status: Implemented (Phase 1)
+related:
+    - "[ADR 0009: Multi-tenancy and Workspace Model](adr/0009-accounts-and-tenancy.md)"
+    - "[TODO: Remaining Tenancy Work](wip/tenancy/TENANCY-TODO.md) - Outstanding implementation tasks
+"
+---
 # Multi-Tenancy System
-
-**Status:** Production-ready for tenant isolation and authorization
-**Related:** [ADR 0009: Multi-tenancy and Workspace Model](adr/0009-accounts-and-tenancy.md)
 
 ## Overview
 
