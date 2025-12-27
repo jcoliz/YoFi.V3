@@ -76,6 +76,10 @@ private async Task<Transaction> GetTransactionByKeyInternalAsync(Guid key)
 }
 ```
 
+**Question**: "Isn't this safe because we have alrady thrown an exception if result is null?"
+
+**Updated Recommendation**: Remove or correct the comment on line 75. The document suggests .NET 10's enhanced nullable analysis might flag this, but actually this pattern should be recognized as safe. The real opportunities for nullable improvements would be elsewhere in cases where null checks are missing or flow analysis can't prove safety.
+
 #### Recommendation: **REVIEW AND ENHANCE** (Medium effort)
 - .NET 10's stricter analysis may surface more warnings
 - Review all `SingleOrDefaultAsync` usages for proper null handling
@@ -192,6 +196,16 @@ public record TransactionEditDto(
 ```
 
 **Estimated Impact:** 2-3 hours, ensures optimal JSON performance
+
+**Question:**"Can you explain [JsonConstructor]?"
+
+**Answer:** This example has a problem - the explicit constructor just delegates to itself (primary constructor), which is redundant. For simple records like this, [JsonConstructor] is not actually needed since System.Text.Json automatically uses the primary constructor.
+
+**Recommendation for YoFi.V3** The document's recommendation to add [JsonConstructor] to DTOs is optional and low-priority. Your current records work fine without it. Only add it if you encounter:
+
+- Multiple constructors where JSON should use a specific one
+- Performance profiling shows deserialization as a bottleneck
+- You're implementing source-generated JSON converters
 
 ---
 
