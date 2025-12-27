@@ -23,7 +23,14 @@ The technical debt described in this document has been successfully resolved. Th
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="NSwag.MSBuild" Version="14.2.5">
+  <!-- Project reference to ensure WireApiHost builds before API client generation.
+       ReferenceOutputAssembly="false" prevents assembly coupling (we only need the built project for NSwag metadata extraction).
+       This only establishes build order dependency, doesn't cause unnecessary rebuilds. -->
+  <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
+</ItemGroup>
+
+<ItemGroup>
+  <PackageReference Include="NSwag.MSBuild" Version="14.6.3">
     <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     <PrivateAssets>all</PrivateAssets>
   </PackageReference>
@@ -37,16 +44,24 @@ The technical debt described in this document has been successfully resolved. Th
 </PropertyGroup>
 
 <Target Name="GenerateApiClient" BeforeTargets="CoreCompile">
+  <!-- Ensure output directory exists -->
   <MakeDir Directories="$(ApiClientGeneratedDir)" />
-  <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
-        Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath)" />
+
+  <!-- Generate C# client from WireApiHost OpenAPI spec
+       Note: Pass full absolute path to avoid nswag.json relative path resolution issues
+       Pass Configuration variable so nswag.json can resolve $(Configuration) in the build path -->
+  <Exec WorkingDirectory="$(ProjectDir)"
+        Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath),Configuration=$(Configuration)" />
+
+  <!-- Include generated file in compilation -->
   <ItemGroup>
     <Compile Include="$(ApiClientOutputFile)" />
   </ItemGroup>
 </Target>
 
-<Target Name="CleanApiClient" AfterTargets="Clean">
-  <Delete Files="$(ApiClientOutputFile)" />
+<Target Name="CleanApiClient" BeforeTargets="CoreClean">
+  <!-- Remove generated API client file during clean -->
+  <Delete Files="$(ApiClientOutputFile)" Condition="Exists('$(ApiClientOutputFile)')" />
 </Target>
 ```
 
@@ -61,6 +76,40 @@ The technical debt described in this document has been successfully resolved. Th
 
 The original blocker (line 77: "But that's not working") was caused by using `$(IntermediateOutputPath)` in the PropertyGroup, which wasn't yet set at that point in the build process. The solution was to use `$(BaseIntermediateOutputPath)` (which resolves to `obj/`), as it's available early in the MSBuild evaluation.
 
+### Azure Pipelines CI/CD Fix (December 26, 2024)
+
+**Problem:** Initial implementation succeeded in local development but failed in Azure Pipelines CI/CD environment.
+
+**Root Cause Analysis:**
+
+1. **First Error:** "Unable to retrieve project metadata" - NSwag couldn't find WireApiHost build output due to parallel build race condition
+2. **Second Error:** "Project outputs could not be located in '/home/vsts/work/1/s/Solution/src/WireApiHost/bin/$(Configuration)/net10.0/'" - The `$(Configuration)` MSBuild variable wasn't being expanded
+
+**Solution:**
+
+1. **Added ProjectReference** to establish build order:
+   ```xml
+   <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
+   ```
+   - `ReferenceOutputAssembly="false"` prevents assembly coupling (we only need build order, not assembly reference)
+   - Ensures WireApiHost builds before GenerateApiClient target runs
+
+2. **Set `noBuild: true`** in [`tests/Functional/Api/nswag.json`](../../tests/Functional/Api/nswag.json):
+   ```json
+   "noBuild": true
+   ```
+   - Tells NSwag to use existing build output instead of rebuilding
+   - Avoids duplicate build and timing issues
+
+3. **Pass Configuration variable** to NSwag via `/variables` flag:
+   ```xml
+   Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath),Configuration=$(Configuration)"
+   ```
+   - MSBuild variables must be explicitly passed to NSwag
+   - Expands `$(Configuration)` in nswag.json to actual value (e.g., "Debug")
+
+**Result:** ✅ Build succeeds in both local development and Azure Pipelines CI/CD environments.
+
 ### Benefits Achieved
 
 ✅ **No more generated code in source control** - C# client lives only in `obj/` directory
@@ -69,6 +118,7 @@ The original blocker (line 77: "But that's not working") was caused by using `$(
 ✅ **No more merge conflicts** - Generated file is excluded from source control
 ✅ **Automatic regeneration** - Client regenerates on every test project build
 ✅ **Clean operation** - Generated file is properly cleaned during `dotnet clean`
+✅ **CI/CD compatibility** - Works reliably in Azure Pipelines parallel build environment
 
 ### Separation of Concerns
 

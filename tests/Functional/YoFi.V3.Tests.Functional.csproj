@@ -40,9 +40,10 @@
     <MakeDir Directories="$(ApiClientGeneratedDir)" />
 
     <!-- Generate C# client from WireApiHost OpenAPI spec
-         Note: Pass full absolute path to avoid nswag.json relative path resolution issues -->
+         Note: Pass full absolute path to avoid nswag.json relative path resolution issues
+         Pass Configuration variable so nswag.json can resolve $(Configuration) in the build path -->
     <Exec WorkingDirectory="$(ProjectDir)"
-          Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath)" />
+          Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath),Configuration=$(Configuration)" />
 
     <!-- Include generated file in compilation -->
     <ItemGroup>
