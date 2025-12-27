@@ -242,6 +242,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <param name="waitForReady">Whether to wait for the page to be ready after navigation</param>
     public async Task NavigateAsync(bool waitForReady = true)
     {
+        // AB#1981: Call stack here. API wait will never return because we are now on the login page.
         await WaitForApi(async () =>
         {
             await Page!.GotoAsync("/transactions");

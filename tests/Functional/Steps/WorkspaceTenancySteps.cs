@@ -522,7 +522,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         // Click the "Continue" button to proceed after registration
         await registerPage.ContinueButton.ClickAsync();
 
-        // Now we are on the login button and we should login
+        // Now we are on the login page and we should login
         var loginPage = new LoginPage(Page);
         await loginPage.LoginAsync(fullUsername, password);
     }
@@ -873,6 +873,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     protected async Task ThenUserShouldHaveAWorkspaceReadyToUse()
     {
         var transactionsPage = GetOrCreateTransactionsPage();
+
+        // AB#1981: Call stack here
         await transactionsPage.NavigateAsync();
 
         // Get the current workspace name

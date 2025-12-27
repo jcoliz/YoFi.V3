@@ -8,7 +8,10 @@
 
 const { data, status, signOut } = useAuth()
 
-// Fake login state for demo purposes
+const ready = ref(false)
+onMounted(() => {
+  ready.value = true
+})
 
 function systemLogin() {
   navigateTo('/login')
@@ -45,7 +48,11 @@ const systemLogout = async () => {
           icon="user"
           size="24"
           class="rounded-circle me-2"
+          :class="ready ? 'text-body' : 'text-primary'"
         />
+        <!-- AB#1981: Adding some extra state indication via color
+              for visual debugging. If the icon shows green in screen shots
+              we know we didnt wait long enough for the page to hydrate. -->
       </a>
     </template>
     <template #default>

@@ -76,6 +76,12 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     {
         await FillCredentialsWithVueWaitAsync(email, password);
         await ClickLoginButtonAsync();
+
+        // AB#1981: Let's wait to ensure we are fully logged in
+        await SiteHeader.LoginState.Username.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+        // And take a screenshot, just in case
+        await SaveScreenshotAsync("LoginComplete");
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
 using YoFi.V3.Tests.Functional.Helpers;
+using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -37,12 +38,22 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     [Test]
     public async Task NewUserAutomaticallyHasAPersonalWorkspace()
     {
+        // AB#1981: Flaky test
+
         // Given the application is running
         await GivenLaunchedSite();
 
         // When a new user "david" registers and logs in
         await WhenANewUserRegistersAndLogsIn("david");
 
+        // AB#1981: Maybe the login didn't succeed??
+        // We never actually wait for the login to complete, do we?
+
+        // Screen shot to ensure we are fully logged in.
+        var page = GetOrCreatePage<BasePage>();
+        await page.SaveScreenshotAsync("AfterLogin");
+
+        // AB#1981: Call Stack Here
         // Then user should have a workspace ready to use
         await ThenUserShouldHaveAWorkspaceReadyToUse();
 
