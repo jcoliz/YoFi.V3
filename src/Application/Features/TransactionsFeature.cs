@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
 using YoFi.V3.Application.Dto;
+using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
@@ -66,6 +67,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     {
         var transaction = await GetTransactionByKeyInternalAsync(key);
 
+        // Alpha-1: Get category from single split (Order = 0)
+        var category = transaction.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty;
+
         return new TransactionDetailDto(
             transaction.Key,
             transaction.Date,
@@ -73,7 +77,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             transaction.Payee,
             transaction.Memo,
             transaction.Source,
-            transaction.ExternalId
+            transaction.ExternalId,
+            category
         );
     }
 
@@ -86,6 +91,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     {
         ValidateTransactionEditDto(transaction);
 
+        // Alpha-1: Sanitize category
+        var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
+
         var newTransaction = new Transaction
         {
             Date = transaction.Date,
@@ -96,6 +104,16 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             ExternalId = transaction.ExternalId,
             TenantId = _currentTenant.Id
         };
+
+        // Alpha-1: Auto-create single split (Order = 0, Amount = transaction.Amount)
+        newTransaction.Splits.Add(new Split
+        {
+            Amount = transaction.Amount,
+            Category = sanitizedCategory,
+            Memo = null,
+            Order = 0
+        });
+
         dataProvider.Add(newTransaction);
         await dataProvider.SaveChangesAsync();
 
@@ -106,7 +124,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             newTransaction.Payee,
             newTransaction.Memo,
             newTransaction.Source,
-            newTransaction.ExternalId
+            newTransaction.ExternalId,
+            sanitizedCategory
         );
     }
 
@@ -123,6 +142,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
+        // Alpha-1: Sanitize category
+        var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
+
         // Update all properties (all fields are editable per Story 3)
         existingTransaction.Date = transaction.Date;
         existingTransaction.Amount = transaction.Amount;
@@ -130,6 +152,14 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         existingTransaction.Memo = transaction.Memo;
         existingTransaction.Source = transaction.Source;
         existingTransaction.ExternalId = transaction.ExternalId;
+
+        // Alpha-1: Update single split (Order = 0) - sync amount and category
+        var split = existingTransaction.Splits.FirstOrDefault(s => s.Order == 0);
+        if (split != null)
+        {
+            split.Amount = transaction.Amount;
+            split.Category = sanitizedCategory;
+        }
 
         dataProvider.UpdateRange([existingTransaction]);
         await dataProvider.SaveChangesAsync();
@@ -141,7 +171,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             existingTransaction.Payee,
             existingTransaction.Memo,
             existingTransaction.Source,
-            existingTransaction.ExternalId
+            existingTransaction.ExternalId,
+            sanitizedCategory
         );
     }
 
@@ -158,9 +189,19 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
-        // Update only payee and memo, preserve all other fields (Date, Amount, Source, ExternalId)
+        // Alpha-1: Sanitize category
+        var sanitizedCategory = CategoryHelper.SanitizeCategory(quickEdit.Category);
+
+        // Update only payee, memo, and category, preserve all other fields (Date, Amount, Source, ExternalId)
         existingTransaction.Payee = quickEdit.Payee;
         existingTransaction.Memo = quickEdit.Memo;
+
+        // Alpha-1: Update single split's category (Order = 0)
+        var split = existingTransaction.Splits.FirstOrDefault(s => s.Order == 0);
+        if (split != null)
+        {
+            split.Category = sanitizedCategory;
+        }
 
         dataProvider.UpdateRange([existingTransaction]);
         await dataProvider.SaveChangesAsync();
@@ -172,7 +213,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             existingTransaction.Payee,
             existingTransaction.Memo,
             existingTransaction.Source,
-            existingTransaction.ExternalId
+            existingTransaction.ExternalId,
+            sanitizedCategory
         );
     }
 
@@ -283,6 +325,14 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         {
             throw new ArgumentException($"Transaction externalId cannot exceed {externalIdMaxLengthAttr.Length} characters.");
         }
+
+        // Validate Category max length (nullable field)
+        var categoryParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Category));
+        var categoryMaxLengthAttr = categoryParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (categoryMaxLengthAttr != null && transaction.Category != null && transaction.Category.Length > categoryMaxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction category cannot exceed {categoryMaxLengthAttr.Length} characters.");
+        }
     }
 
     private static void ValidateTransactionQuickEditDto(TransactionQuickEditDto quickEdit)
@@ -312,8 +362,24 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         {
             throw new ArgumentException($"Transaction memo cannot exceed {memoMaxLengthAttr.Length} characters.");
         }
+
+        // Validate Category max length (nullable field)
+        var categoryParameter = parameters.First(p => p.Name == nameof(TransactionQuickEditDto.Category));
+        var categoryMaxLengthAttr = categoryParameter.GetCustomAttribute<MaxLengthAttribute>();
+        if (categoryMaxLengthAttr != null && quickEdit.Category != null && quickEdit.Category.Length > categoryMaxLengthAttr.Length)
+        {
+            throw new ArgumentException($"Transaction category cannot exceed {categoryMaxLengthAttr.Length} characters.");
+        }
     }
 
     private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
-        t => new TransactionResultDto(t.Key, t.Date, t.Amount, t.Payee, t.Memo);
+        t => new TransactionResultDto(
+            t.Key,
+            t.Date,
+            t.Amount,
+            t.Payee,
+            t.Memo,
+            // Alpha-1: Get category from single split (Order = 0), default to empty string
+            t.Splits.Where(s => s.Order == 0).Select(s => s.Category).FirstOrDefault() ?? string.Empty
+        );
 }

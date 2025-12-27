@@ -2567,6 +2567,7 @@ export class TransactionResultDto implements ITransactionResultDto {
     amount?: number;
     payee?: string;
     memo?: string | undefined;
+    category?: string;
 
     constructor(data?: ITransactionResultDto) {
         if (data) {
@@ -2584,6 +2585,7 @@ export class TransactionResultDto implements ITransactionResultDto {
             this.amount = _data["amount"];
             this.payee = _data["payee"];
             this.memo = _data["memo"];
+            this.category = _data["category"];
         }
     }
 
@@ -2601,6 +2603,7 @@ export class TransactionResultDto implements ITransactionResultDto {
         data["amount"] = this.amount;
         data["payee"] = this.payee;
         data["memo"] = this.memo;
+        data["category"] = this.category;
         return data;
     }
 }
@@ -2611,6 +2614,7 @@ export interface ITransactionResultDto {
     amount?: number;
     payee?: string;
     memo?: string | undefined;
+    category?: string;
 }
 
 /** Request to seed transactions in a workspace. */
@@ -2835,6 +2839,7 @@ export class TransactionDetailDto implements ITransactionDetailDto {
     memo?: string | undefined;
     source?: string | undefined;
     externalId?: string | undefined;
+    category?: string;
 
     constructor(data?: ITransactionDetailDto) {
         if (data) {
@@ -2854,6 +2859,7 @@ export class TransactionDetailDto implements ITransactionDetailDto {
             this.memo = _data["memo"];
             this.source = _data["source"];
             this.externalId = _data["externalId"];
+            this.category = _data["category"];
         }
     }
 
@@ -2873,6 +2879,7 @@ export class TransactionDetailDto implements ITransactionDetailDto {
         data["memo"] = this.memo;
         data["source"] = this.source;
         data["externalId"] = this.externalId;
+        data["category"] = this.category;
         return data;
     }
 }
@@ -2885,6 +2892,7 @@ export interface ITransactionDetailDto {
     memo?: string | undefined;
     source?: string | undefined;
     externalId?: string | undefined;
+    category?: string;
 }
 
 export class TransactionEditDto implements ITransactionEditDto {
@@ -2894,6 +2902,7 @@ export class TransactionEditDto implements ITransactionEditDto {
     memo?: string | undefined;
     source?: string | undefined;
     externalId?: string | undefined;
+    category?: string | undefined;
 
     constructor(data?: ITransactionEditDto) {
         if (data) {
@@ -2912,6 +2921,7 @@ export class TransactionEditDto implements ITransactionEditDto {
             this.memo = _data["memo"];
             this.source = _data["source"];
             this.externalId = _data["externalId"];
+            this.category = _data["category"];
         }
     }
 
@@ -2930,6 +2940,7 @@ export class TransactionEditDto implements ITransactionEditDto {
         data["memo"] = this.memo;
         data["source"] = this.source;
         data["externalId"] = this.externalId;
+        data["category"] = this.category;
         return data;
     }
 }
@@ -2941,11 +2952,13 @@ export interface ITransactionEditDto {
     memo?: string | undefined;
     source?: string | undefined;
     externalId?: string | undefined;
+    category?: string | undefined;
 }
 
 export class TransactionQuickEditDto implements ITransactionQuickEditDto {
     payee?: string;
     memo?: string | undefined;
+    category?: string | undefined;
 
     constructor(data?: ITransactionQuickEditDto) {
         if (data) {
@@ -2960,6 +2973,7 @@ export class TransactionQuickEditDto implements ITransactionQuickEditDto {
         if (_data) {
             this.payee = _data["payee"];
             this.memo = _data["memo"];
+            this.category = _data["category"];
         }
     }
 
@@ -2974,6 +2988,7 @@ export class TransactionQuickEditDto implements ITransactionQuickEditDto {
         data = typeof data === 'object' ? data : {};
         data["payee"] = this.payee;
         data["memo"] = this.memo;
+        data["category"] = this.category;
         return data;
     }
 }
@@ -2981,6 +2996,7 @@ export class TransactionQuickEditDto implements ITransactionQuickEditDto {
 export interface ITransactionQuickEditDto {
     payee?: string;
     memo?: string | undefined;
+    category?: string | undefined;
 }
 
 export class BaseModel implements IBaseModel {

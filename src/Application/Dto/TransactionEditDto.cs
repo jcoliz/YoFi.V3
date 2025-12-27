@@ -12,6 +12,7 @@ namespace YoFi.V3.Application.Dto;
 /// <param name="Memo">Optional memo for additional context (max 1000 chars)</param>
 /// <param name="Source">Source of the transaction (optional, max 200 chars, typically from importer)</param>
 /// <param name="ExternalId">Bank's unique identifier (optional, max 100 chars, for duplicate detection)</param>
+/// <param name="Category">Category for the single split (optional, max 200 chars, auto-sanitized)</param>
 /// <remarks>
 /// This is an input DTO with validation attributes. All properties are validated before
 /// being persisted to the database. For query results, see <see cref="TransactionResultDto"/>
@@ -24,6 +25,9 @@ namespace YoFi.V3.Application.Dto;
 /// - Memo: Optional, max 1000 characters, plain text only
 /// - Source: Optional, max 200 characters, typically set by importer
 /// - ExternalId: Optional, max 100 characters, for duplicate detection
+/// - Category: Optional, max 200 characters, automatically sanitized before saving
+///
+/// Alpha-1 (Stories 3 &amp; 5): Category edits the single split (Order = 0). User never sees split complexity.
 /// </remarks>
 public record TransactionEditDto(
     [DateRange(50, 5, ErrorMessage = "Transaction date must be within 50 years in the past and 5 years in the future")]
@@ -44,5 +48,8 @@ public record TransactionEditDto(
     string? Source,
 
     [MaxLength(100, ErrorMessage = "ExternalId cannot exceed 100 characters")]
-    string? ExternalId
+    string? ExternalId,
+
+    [MaxLength(200, ErrorMessage = "Category cannot exceed 200 characters")]
+    string? Category
 );

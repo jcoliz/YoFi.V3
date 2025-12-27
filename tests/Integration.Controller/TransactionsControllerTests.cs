@@ -151,7 +151,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Test Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User creates a transaction
@@ -185,7 +186,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Test Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User attempts to create a transaction
@@ -208,7 +210,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Owner Transaction",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User creates a transaction
@@ -240,7 +243,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Original Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
@@ -252,7 +256,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Updated Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User updates the transaction
@@ -280,7 +285,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Original Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
@@ -295,7 +301,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Updated Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: Viewer attempts to update the transaction
@@ -321,7 +328,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Updated Payee",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User attempts to update non-existent transaction
@@ -348,7 +356,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "To Be Deleted",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
@@ -375,7 +384,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Protected Transaction",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
@@ -427,7 +437,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Complete Transaction",
             Memo: "Transaction with all fields populated",
             Source: "Bank of America Checking",
-            ExternalId: "EXT-12345-ABC"
+            ExternalId: "EXT-12345-ABC",
+            Category: null
         );
 
         // When: User creates a transaction
@@ -460,7 +471,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Minimal Transaction",
             Memo: null,
             Source: null,
-            ExternalId: null
+            ExternalId: null,
+            Category: null
         );
 
         // When: User creates a transaction
@@ -490,7 +502,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "Get By ID Test",
             Memo: "Test memo content",
             Source: "Test Source",
-            ExternalId: "TEST-EXT-001"
+            ExternalId: "TEST-EXT-001",
+            Category: null
         );
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
@@ -522,7 +535,8 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Payee: "List Test",
             Memo: "Should not appear in list",
             Source: "Should not appear in list",
-            ExternalId: "SHOULD-NOT-APPEAR"
+            ExternalId: "SHOULD-NOT-APPEAR",
+            Category: null
         );
         await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
 
@@ -558,7 +572,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: "Original memo",
             Source: "Original source",
             ExternalId: "ORIG-001"
-        );
+        ,            Category: null);
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
@@ -570,7 +584,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: "Updated memo content",
             Source: "Updated source",
             ExternalId: "UPD-002"
-        );
+        ,            Category: null);
 
         // When: User updates the transaction
         var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}", updateDto);
@@ -601,7 +615,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: "Has memo",
             Source: "Has source",
             ExternalId: "HAS-EXT-001"
-        );
+        ,            Category: null);
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
@@ -613,7 +627,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User updates the transaction
         var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions/{created!.Key}", updateDto);
@@ -649,7 +663,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: longMemo,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -678,7 +692,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: longSource,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -707,7 +721,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: longExternalId
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -736,7 +750,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -764,7 +778,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -792,7 +806,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -821,7 +835,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -850,7 +864,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -878,7 +892,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to create the transaction
         var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", newTransaction);
@@ -908,7 +922,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
@@ -934,7 +948,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
         var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
         var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
 
@@ -949,7 +963,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: null
-        );
+        ,            Category: null);
 
         // When: User attempts to update the transaction via other tenant's endpoint
         var response = await _client.PutAsJsonAsync($"/api/tenant/{otherTenantKey}/transactions/{created!.Key}", updateDto);
@@ -971,7 +985,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: sharedExternalId
-        );
+        ,            Category: null);
         var response1 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction1);
 
         // Then: First transaction should be created successfully
@@ -996,7 +1010,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: sharedExternalId
-        );
+        ,            Category: null);
         var response2 = await multiTenantClient.PostAsJsonAsync($"/api/tenant/{secondTenantKey}/transactions", transaction2);
 
         // Then: Second transaction should also be created successfully
@@ -1023,7 +1037,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: duplicateExternalId
-        );
+        ,            Category: null);
         var response1 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction1);
 
         // Then: First transaction should be created successfully
@@ -1039,7 +1053,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
             Memo: null,
             Source: null,
             ExternalId: duplicateExternalId
-        );
+        ,            Category: null);
         var response2 = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction2);
 
         // Then: Second transaction should also be created successfully (API allows duplicates)

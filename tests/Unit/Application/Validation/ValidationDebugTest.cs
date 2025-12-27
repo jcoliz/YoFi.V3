@@ -29,8 +29,8 @@ public class ValidationDebugTest
             Payee: longPayee,
             Memo: null,
             Source: null,
-            ExternalId: null
-        );
+            ExternalId: null,
+            Category: null);
 
         Assert.That(dto.Payee.Length, Is.EqualTo(201), "DTO creation should succeed with 201 chars");
     }
