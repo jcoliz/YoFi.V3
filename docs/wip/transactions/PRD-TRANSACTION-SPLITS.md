@@ -3,6 +3,9 @@ status: Approved (Detailed design complete)
 owner: James Coliz
 target_release: Beta 2
 ado: "[Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits"
+functional_test_plan: TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
+functional_test_implementation_plan: TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
+
 ---
 
 # Product Requirements Document: Transaction Splits
