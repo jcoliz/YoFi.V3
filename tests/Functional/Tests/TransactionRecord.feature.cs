@@ -26,16 +26,17 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     // The quick edit modal should only show Payee and Memo fields for rapid updates
 
     /// <summary>
-    /// Quick edit modal shows only Payee and Memo fields
+    /// Quick edit modal shows Payee, Category, and Memo fields
     /// </summary>
     [Test]
-    public async Task QuickEditModalShowsOnlyPayeeAndMemoFields()
+    public async Task QuickEditModalShowsPayeeCategoryAndMemoFields()
     {
         // Given I have a workspace with a transaction:
         var table = new DataTable(
             ["Field", "Value"],
             ["Payee", "Coffee Shop"],
             ["Amount", "5.50"],
+            ["Category", "Beverages"],
             ["Memo", "Morning coffee"]
         );
         await GivenIHaveAWorkspaceWithATransaction(table);
@@ -49,8 +50,11 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         // Then I should see a modal titled "Quick Edit Transaction"
         await ThenIShouldSeeAModalTitled("Quick Edit Transaction");
 
-        // And I should only see fields for "Payee" and "Memo"
-        await ThenIShouldOnlySeeFieldsForPayeeAndMemo();
+        // And I should only see fields for "Payee", "Category", and "Memo"
+        await ThenIShouldOnlySeeFieldsForPayeeCategoryAndMemo();
+
+        // And the fields match the expected values
+        await ThenTheFieldsMatchTheExpectedValues();
 
         // And I should not see fields for "Date", "Amount", "Source", or "ExternalId"
         await ThenIShouldNotSeeFieldsForDateAmountSourceOrExternalId();

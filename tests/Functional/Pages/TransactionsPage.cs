@@ -189,6 +189,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator EditPayeeInput => Page!.GetByTestId("edit-transaction-payee");
 
     /// <summary>
+    /// Category input in edit modal
+    /// </summary>
+    public ILocator EditCategoryInput => Page!.GetByLabel("Category");
+
+    /// <summary>
     /// Memo textarea in edit modal
     /// </summary>
     public ILocator EditMemoInput => Page!.GetByTestId("edit-transaction-memo");

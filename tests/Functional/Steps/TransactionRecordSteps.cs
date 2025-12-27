@@ -27,6 +27,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     protected const string KEY_TRANSACTION_MEMO = "TransactionMemo";
     protected const string KEY_TRANSACTION_SOURCE = "TransactionSource";
     protected const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
+    protected const string KEY_TRANSACTION_CATEGORY = "TransactionCategory";
     protected const string KEY_TRANSACTION_KEY = "TransactionKey";
     protected const string KEY_EDIT_MODE = "EditMode"; // "TransactionDetailsPage", "TransactionsPage", or "CreateModal"
 
@@ -101,6 +102,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         transactionTable.TryGetKeyValue("Memo", out var memo);
         transactionTable.TryGetKeyValue("Source", out var source);
         transactionTable.TryGetKeyValue("ExternalId", out var externalId);
+        transactionTable.TryGetKeyValue("Category", out var category);
 
         // And: Get workspace key
         var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
@@ -115,7 +117,8 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             PayeePrefix = payee, // Use payee as prefix for single transaction
             Memo = memo,
             Source = source,
-            ExternalId = externalId
+            ExternalId = externalId,
+            Category = category
         };
 
         var seededTransactions = await testControlClient.SeedTransactionsAsync(
@@ -138,6 +141,8 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             _objectStore.Add(KEY_TRANSACTION_SOURCE, source);
         if (!string.IsNullOrEmpty(externalId))
             _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, externalId);
+        if (!string.IsNullOrEmpty(category))
+            _objectStore.Add(KEY_TRANSACTION_CATEGORY, category);
 
         // Store the transaction key for later reference
         _objectStore.Add(KEY_TRANSACTION_KEY, seededTransaction.Key.ToString());
@@ -650,23 +655,68 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     }
 
     /// <summary>
-    /// Verifies that only Payee and Memo fields are visible in the quick edit modal.
+    /// Verifies that only Payee, Category, and Memo fields are visible in the quick edit modal.
     /// </summary>
     /// <remarks>
-    /// Tests the quick edit modal constraint - only Payee and Memo fields should
+    /// Tests the quick edit modal constraint - only Payee, Category, and Memo fields should
     /// be editable via the modal (PATCH endpoint).
     /// </remarks>
-    [Then("I should only see fields for \"Payee\" and \"Memo\"")]
-    protected async Task ThenIShouldOnlySeeFieldsForPayeeAndMemo()
+    [Then("I should only see fields for \"Payee\", \"Category\", and \"Memo\"")]
+    protected async Task ThenIShouldOnlySeeFieldsForPayeeCategoryAndMemo()
     {
         // Then: Verify Payee field is visible
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         var payeeVisible = await transactionsPage.EditPayeeInput.IsVisibleAsync();
         Assert.That(payeeVisible, Is.True, "Payee field should be visible in quick edit modal");
 
+        // And: Verify Category field is visible
+        var categoryVisible = await transactionsPage.EditCategoryInput.IsVisibleAsync();
+        Assert.That(categoryVisible, Is.True, "Category field should be visible in quick edit modal");
+
         // And: Verify Memo field is visible
         var memoVisible = await transactionsPage.EditMemoInput.IsVisibleAsync();
         Assert.That(memoVisible, Is.True, "Memo field should be visible in quick edit modal");
+    }
+
+    /// <summary>
+    /// Verifies that the fields in the quick edit modal match the expected values from the object store.
+    /// </summary>
+    /// <remarks>
+    /// Checks Payee, Category, and Memo fields against values stored during transaction seeding.
+    /// Only verifies fields that were populated during seeding (checks object store for presence).
+    /// </remarks>
+    [Then("the fields match the expected values")]
+    protected async Task ThenTheFieldsMatchTheExpectedValues()
+    {
+        // Then: Get the transactions page
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+
+        // And: Verify Payee value if expected
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_PAYEE))
+        {
+            var expectedPayee = _objectStore.Get<string>(KEY_TRANSACTION_PAYEE);
+            var actualPayee = await transactionsPage.EditPayeeInput.InputValueAsync();
+            Assert.That(actualPayee, Is.EqualTo(expectedPayee),
+                $"Payee field should display '{expectedPayee}' but was '{actualPayee}'");
+        }
+
+        // And: Verify Category value if expected
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_CATEGORY))
+        {
+            var expectedCategory = _objectStore.Get<string>(KEY_TRANSACTION_CATEGORY);
+            var actualCategory = await transactionsPage.EditCategoryInput.InputValueAsync();
+            Assert.That(actualCategory, Is.EqualTo(expectedCategory),
+                $"Category field should display '{expectedCategory}' but was '{actualCategory}'");
+        }
+
+        // And: Verify Memo value if expected
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_MEMO))
+        {
+            var expectedMemo = _objectStore.Get<string>(KEY_TRANSACTION_MEMO);
+            var actualMemo = await transactionsPage.EditMemoInput.InputValueAsync();
+            Assert.That(actualMemo, Is.EqualTo(expectedMemo),
+                $"Memo field should display '{expectedMemo}' but was '{actualMemo}'");
+        }
     }
 
     /// <summary>

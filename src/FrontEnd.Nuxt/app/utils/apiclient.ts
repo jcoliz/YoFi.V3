@@ -2629,6 +2629,8 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
     source?: string | undefined;
     /** Optional external ID text to apply to all seeded transactions. */
     externalId?: string | undefined;
+    /** Optional category text to apply to all seeded transactions. */
+    category?: string | undefined;
 
     constructor(data?: ITransactionSeedRequest) {
         if (data) {
@@ -2646,6 +2648,7 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
             this.memo = _data["memo"];
             this.source = _data["source"];
             this.externalId = _data["externalId"];
+            this.category = _data["category"];
         }
     }
 
@@ -2663,6 +2666,7 @@ export class TransactionSeedRequest implements ITransactionSeedRequest {
         data["memo"] = this.memo;
         data["source"] = this.source;
         data["externalId"] = this.externalId;
+        data["category"] = this.category;
         return data;
     }
 }
@@ -2679,6 +2683,8 @@ export interface ITransactionSeedRequest {
     source?: string | undefined;
     /** Optional external ID text to apply to all seeded transactions. */
     externalId?: string | undefined;
+    /** Optional category text to apply to all seeded transactions. */
+    category?: string | undefined;
 }
 
 /** Result of workspace setup including key, name, and assigned role. */

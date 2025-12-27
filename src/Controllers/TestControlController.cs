@@ -82,12 +82,14 @@ public record UserRoleAssignment(string Role);
 /// <param name="Memo">Optional memo text to apply to all seeded transactions.</param>
 /// <param name="Source">Optional source text to apply to all seeded transactions.</param>
 /// <param name="ExternalId">Optional external ID text to apply to all seeded transactions.</param>
+/// <param name="Category">Optional category text to apply to all seeded transactions.</param>
 public record TransactionSeedRequest(
     int Count,
     string PayeePrefix = "Test Transaction",
     string? Memo = null,
     string? Source = null,
-    string? ExternalId = null
+    string? ExternalId = null,
+    string? Category = null
 );
 
 /// <summary>
@@ -543,7 +545,7 @@ public partial class TestControlController(
                 Memo: request.Memo,
                 Source: request.Source,
                 ExternalId: request.ExternalId,
-                Category: null // Alpha-1: Optional category, defaults to empty
+                Category: request.Category
             );
 
             var result = await transactionsFeature.AddTransactionAsync(transaction);
