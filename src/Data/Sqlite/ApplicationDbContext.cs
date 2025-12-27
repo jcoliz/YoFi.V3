@@ -76,6 +76,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         get; set;
     }
 
+    public DbSet<Split> Splits
+    {
+        get; set;
+    }
+
     /// <summary>
     /// Refresh tokens for Nuxt Identity
     /// </summary>
@@ -143,6 +148,42 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(t => t.Tenant)
                 .WithMany()
                 .HasForeignKey(t => t.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure Split
+        modelBuilder.Entity<Split>(entity =>
+        {
+            // Unique Guid key (standard pattern)
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
+
+            // Index on TransactionId for efficient split queries
+            entity.HasIndex(s => s.TransactionId);
+
+            // Composite index on TransactionId + Order for ordered split retrieval
+            entity.HasIndex(s => new { s.TransactionId, s.Order });
+
+            // Index on Category for category-based queries and reports
+            entity.HasIndex(s => s.Category);
+
+            // Category is required (empty string for uncategorized)
+            entity.Property(s => s.Category)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            // Memo is optional
+            entity.Property(s => s.Memo)
+                .HasMaxLength(500);
+
+            // Amount precision for currency
+            entity.Property(s => s.Amount)
+                .HasPrecision(18, 2);
+
+            // Foreign key relationship to Transaction
+            entity.HasOne(s => s.Transaction)
+                .WithMany(t => t.Splits)
+                .HasForeignKey(s => s.TransactionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
