@@ -254,10 +254,10 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <summary>
     /// Creates a base query for transactions filtered by the current tenant and ordered by date.
     /// </summary>
-    /// <returns>A queryable of transactions for the current tenant, ordered by date descending.</returns>
+    /// <returns>A queryable of transactions for the current tenant, ordered by date descending, with splits loaded.</returns>
     private IQueryable<Transaction> GetBaseTransactionQuery()
     {
-        return dataProvider.Get<Transaction>()
+        return dataProvider.GetTransactionsWithSplits()
             .Where(t => t.TenantId == _currentTenant.Id)
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);

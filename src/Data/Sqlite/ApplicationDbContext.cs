@@ -240,6 +240,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     IQueryable<T> IDataProvider.Get<T>()
         => base.Set<T>();
 
+    /// <inheritdoc />
+    IQueryable<Transaction> IDataProvider.GetTransactionsWithSplits()
+        => Transactions.Include(t => t.Splits);
+
     #endregion
 
     #region Modifiers
