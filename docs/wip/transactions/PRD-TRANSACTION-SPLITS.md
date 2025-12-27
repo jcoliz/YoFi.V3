@@ -114,6 +114,11 @@ Limits and constraints will be set during performance testing, as these constrai
 - Maximum splits per upload
 - Maximum upload
 
+### Stories under consideration
+
+- Drop-down selector for category edit on quick-edit (V1 parity) also should do this on transaction detail edit
+- Disable category edit in case of multiple splits
+
 ---
 
 ## Technical Approach

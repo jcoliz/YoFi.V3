@@ -48,6 +48,7 @@ const editData = ref({
   amount: 0,
   payee: '',
   memo: '',
+  category: '',
   source: '',
   externalId: '',
 })
@@ -57,6 +58,7 @@ const formErrors = ref({
   amount: '',
   payee: '',
   memo: '',
+  category: '',
   source: '',
   externalId: '',
 })
@@ -113,20 +115,45 @@ function startEditing() {
     amount: transaction.value.amount || 0,
     payee: transaction.value.payee || '',
     memo: transaction.value.memo || '',
+    category: transaction.value.category || '',
     source: transaction.value.source || '',
     externalId: transaction.value.externalId || '',
   }
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   isEditing.value = true
 }
 
 function cancelEditing() {
   isEditing.value = false
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
 }
 
 function validateForm(): boolean {
-  formErrors.value = { date: '', amount: '', payee: '', memo: '', source: '', externalId: '' }
+  formErrors.value = {
+    date: '',
+    amount: '',
+    payee: '',
+    memo: '',
+    category: '',
+    source: '',
+    externalId: '',
+  }
   let isValid = true
 
   if (!editData.value.date) {
@@ -141,6 +168,11 @@ function validateForm(): boolean {
 
   if (editData.value.memo && editData.value.memo.length > 1000) {
     formErrors.value.memo = 'Memo cannot exceed 1000 characters'
+    isValid = false
+  }
+
+  if (editData.value.category && editData.value.category.length > 100) {
+    formErrors.value.category = 'Category cannot exceed 100 characters'
     isValid = false
   }
 
@@ -171,6 +203,7 @@ async function saveTransaction() {
       amount: editData.value.amount,
       payee: editData.value.payee.trim(),
       memo: editData.value.memo.trim() || undefined,
+      category: editData.value.category.trim() || undefined,
       source: editData.value.source.trim() || undefined,
       externalId: editData.value.externalId.trim() || undefined,
     })
@@ -393,6 +426,13 @@ function formatCurrency(amount: number | undefined): string {
             </div>
 
             <div class="col-md-6 mb-3">
+              <label class="text-muted small">Category</label>
+              <div data-test-id="transaction-category">
+                {{ transaction.category || '(none)' }}
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
               <label class="text-muted small">Source</label>
               <div data-test-id="transaction-source">
                 {{ transaction.source || '(none)' }}
@@ -509,6 +549,31 @@ function formatCurrency(amount: number | undefined): string {
                 class="invalid-feedback"
               >
                 {{ formErrors.memo }}
+              </div>
+            </div>
+
+            <div class="col-12 mb-3">
+              <label
+                for="editCategory"
+                class="form-label"
+                >Category</label
+              >
+              <input
+                id="editCategory"
+                v-model="editData.category"
+                type="text"
+                class="form-control"
+                :class="{ 'is-invalid': formErrors.category }"
+                placeholder="Category (optional)"
+                maxlength="100"
+                data-test-id="edit-category"
+              />
+              <small class="form-text text-muted">Optional category for this transaction</small>
+              <div
+                v-if="formErrors.category"
+                class="invalid-feedback"
+              >
+                {{ formErrors.category }}
               </div>
             </div>
 
