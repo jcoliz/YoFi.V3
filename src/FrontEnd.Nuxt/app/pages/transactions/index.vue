@@ -761,7 +761,7 @@ function formatCurrency(amount: number | undefined): string {
       </div>
     </ModalDialog>
 
-    <!-- Edit Modal (Light Edit - Payee and Memo only) -->
+    <!-- Edit Modal (Quick Edit - Payee, Category, and Memo) -->
     <ModalDialog
       v-model:show="showEditModal"
       title="Quick Edit Transaction"
@@ -796,30 +796,6 @@ function formatCurrency(amount: number | undefined): string {
       </div>
       <div class="mb-3">
         <label
-          for="editMemo"
-          class="form-label"
-          >Memo</label
-        >
-        <textarea
-          id="editMemo"
-          v-model="formData.memo"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.memo }"
-          placeholder="Add notes about this transaction..."
-          rows="3"
-          maxlength="1000"
-          data-test-id="edit-transaction-memo"
-        ></textarea>
-        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
-        <div
-          v-if="formErrors.memo"
-          class="invalid-feedback"
-        >
-          {{ formErrors.memo }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <label
           for="editCategory"
           class="form-label"
           >Category</label
@@ -842,15 +818,70 @@ function formatCurrency(amount: number | undefined): string {
           {{ formErrors.category }}
         </div>
       </div>
-      <div class="alert alert-info">
-        <small
-          ><FeatherIcon
-            icon="info"
+      <div class="mb-3">
+        <label
+          for="editMemo"
+          class="form-label"
+          >Memo</label
+        >
+        <textarea
+          id="editMemo"
+          v-model="formData.memo"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.memo }"
+          placeholder="Add notes about this transaction..."
+          rows="3"
+          maxlength="1000"
+          data-test-id="edit-transaction-memo"
+        ></textarea>
+        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
+        <div
+          v-if="formErrors.memo"
+          class="invalid-feedback"
+        >
+          {{ formErrors.memo }}
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          type="button"
+          class="btn btn-outline-secondary me-auto"
+          data-test-id="edit-more-button"
+          :disabled="loading"
+          @click="navigateToDetails(selectedTransaction?.key)"
+        >
+          <FeatherIcon
+            icon="arrow-right"
             size="14"
             class="me-1"
-          />Click on a transaction row to view and edit all details</small
+          />
+          More
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-test-id="edit-cancel-button"
+          :disabled="loading"
+          @click="showEditModal = false"
         >
-      </div>
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-test-id="edit-submit-button"
+          :disabled="loading"
+          @click="updateTransaction"
+        >
+          <BaseSpinner
+            v-if="loading"
+            size="sm"
+            class="me-1"
+          />
+          {{ loading ? 'Updating...' : 'Update' }}
+        </button>
+      </template>
     </ModalDialog>
 
     <!-- Delete Modal -->
