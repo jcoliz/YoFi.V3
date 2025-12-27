@@ -65,7 +65,7 @@ All of these will be considered as separate features. The goal of this is to get
 **So that** I can later group and sort, or search by that information, or so that I can later remember more details about it.
 
 **Acceptance Criteria**:
-- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits (see [PRD-TRANSACTION-SPLITS.md](./PRD-TRANSACTION-SPLITS.md))
+- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits (see [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md))
 - [x] Can add a memorandum (memo) field with additional text to provide additional context (`Memo` field - string?, 1000 chars, backend complete)
 
 ### Story 3: User - Manage transactions
@@ -94,42 +94,9 @@ All of these will be considered as separate features. The goal of this is to get
 
 ### Key Business Rules
 
-#### Ad-hoc categories
+#### Ad-hoc categories [Moved to PRD-TRANSACTION-SPLITS.md]
 
-Throughout all of YoFi, categories are free text strings. User is not expected to match against existing categories. Categories are never validated against some list.
-
-If user includes a `:` character in them, this signified a hierarchy of categories, e.g. "Home:Utilities" signifies that the categorized split concerns "Utilities", and in reports it should be grouped and subtotaled under "Home". See [Reports PRD](../reports/PRD-REPORTS.md) for details.
-
-White-space requirements.
-- No white space to start or end the category
-- No white space surrounding a `:` separator
-- No more than one consecutive space inside a term, e.g. "Home  And Garden" should be "Home And Garden"
-
-Capitalization requirements
-- All words in categories are capitalized. e.g. "Home and garden" should be "Home And Garden"
-- Captilization inside words is optional. e.g. "HomeAndGarden" is ok.
-
-Empty term requirements
-- After diving a category up into delimited terms, and trimming/consolodation whitespace as described above, each term cannot be empty
-
-> [!IMPORTANT] Invalid categories are never rejected, nor are warnings generated. They are simply cleaned up to be valid before saving.
-
-**Examples**
-
-| Input | Cleaned up version saved to storage |
-| --- | --- |
-| homeAndGarden | HomeAndGarden |
-| Home andGarden | Home AndGarden |
-| Home and Garden | Home And Garden |
-| " " | <blank> |
-| Home: | Home |
-| :Home | Home |
-| : | <blank> |
-| Home::Garden | Home:Garden |
-
-**Expected Implementation**
-
-Best place to handle this cleanup is within the application layer (Transactions Feature).
+Categories are now attached to Splits, not Transactions. See the "Category Sanitization" section in [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md) for detailed category cleanup rules.
 
 ---
 
@@ -141,14 +108,14 @@ Best place to handle this cleanup is within the application layer (Transactions 
 - [x] **Q**: Should `Source` be a separate Account entity with its own table?
   **A**: NO. This will be populated by the importer, but can be any test. Precise account source isn't something that needs ongoing tracking.
 
-- [x] **Q**: Category as Single string field ("Bills:Utilities:Electric") or normalized table?
-  **A**: Single string field. A normalized table is overkill. User needs to rapidly enter whatever they want, and we'll figure it out.
+- [x] **Q**: Category as Single string field ("Bills:Utilities:Electric") or normalized table? [Moved to PRD-TRANSACTION-SPLITS.md]
+  **A**: Single string field. Categories are now on Splits. See [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md).
 
-- [x] **Q**: Category max length?
-  **A**: 200 is probably fine
+- [x] **Q**: Category max length? [Moved to PRD-TRANSACTION-SPLITS.md]
+  **A**: 200 characters. See [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md).
 
-- [x] **Q**: Pre-seeded common categories?
-  **A**: No seeding because there's no data. User constructs category structure by assigning categories to transactions on the fly
+- [x] **Q**: Pre-seeded common categories? [Moved to PRD-TRANSACTION-SPLITS.md]
+  **A**: No seeding. See [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md).
 
 - [x] **Q**: Memo length
   **A**: 1000 probably fine
@@ -224,10 +191,11 @@ Best place to handle this cleanup is within the application layer (Transactions 
 
 ### Summary
 
-**The PRD is complete and ready for implementation.** All handoff checklist items are satisfied. The document provides clear requirements for adding four new fields to the Transaction entity:
-- `Category` (string?, 200 chars) - User categorization
+**The PRD is complete and ready for implementation.** All handoff checklist items are satisfied. The document provides clear requirements for adding three new fields to the Transaction entity:
 - `Memo` (string?, 1000 chars) - Additional context
 - `Source` (string?, 200 chars) - Bank account source
 - `ExternalId` (string?, 100 chars) - Bank's unique ID
+
+Note: Categories are now attached to Splits (see [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md)), not directly to Transactions.
 
 Existing fields (Date, Payee, Amount) already satisfy Story 1 requirements. The feature can be implemented by updating the entity schema and plumbing the new fields through the existing CRUD stack.

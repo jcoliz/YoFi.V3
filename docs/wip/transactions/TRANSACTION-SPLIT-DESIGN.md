@@ -22,7 +22,7 @@ This document defines the database schema, indexing strategy, query patterns, an
 - ✅ Transaction.Splits navigation collection
 - ✅ Every transaction automatically gets one split on creation
 - ✅ Backend enforces "at least one split" rule
-- ✅ Category cleanup per ad-hoc category rules (from [`PRD-TRANSACTION-RECORD.md`](PRD-TRANSACTION-RECORD.md:95-130))
+- ✅ Category sanitization per rules in [`PRD-TRANSACTION-SPLITS.md`](PRD-TRANSACTION-SPLITS.md:155-200) - whitespace normalization, capitalization, empty term removal
 - ✅ Individual split CRUD endpoints (GET/POST/PUT/DELETE for splits) - available but not used by UI yet
 - ✅ Transaction endpoints updated to work with splits
 - ✅ **Single-split synchronization**: When transaction has only one split, Amount edits automatically update split amount (user never sees split complexity)
@@ -97,7 +97,7 @@ This document defines the database schema, indexing strategy, query patterns, an
 - **Source property**: Stays at Transaction level (entire transaction came from one import source)
 - **At least one split**: Application validates at save time (enforced by backend in A1)
 - **Category property**: NOT NULL with empty string for uncategorized (better performance than NULL)
-- **Category cleanup**: Ad-hoc categories cleaned up per rules in [`PRD-TRANSACTION-RECORD.md`](PRD-TRANSACTION-RECORD.md:95-130)
+- **Category sanitization**: Ad-hoc categories automatically cleaned up per rules in [`PRD-TRANSACTION-SPLITS.md`](PRD-TRANSACTION-SPLITS.md:155-200)
 - **Split primary key**: Use Guid Key for consistency with Transaction pattern
 - **API design**: Individual split CRUD operations (POST/PUT/DELETE) available in A1, UI in Beta 2
 - **Amount behavior**:
@@ -254,7 +254,7 @@ modelBuilder.Entity<Split>(entity =>
     // Category is required (empty string for uncategorized)
     entity.Property(s => s.Category)
         .IsRequired()
-        .HasMaxLength(100);
+        .HasMaxLength(200); // Updated from PRD: 200 characters max
 
     // Memo is optional
     entity.Property(s => s.Memo)
@@ -1271,6 +1271,40 @@ Reorders splits within a transaction.
 
 Test all TransactionsFeature methods with the following patterns from the existing [`tests/Unit/Tests/TransactionsTests.cs`](tests/Unit/Tests/TransactionsTests.cs:1):
 
+**Category Sanitization (Parameterized Test Required)**:
+- Use NUnit `[TestCase]` attribute with all examples from [`PRD-TRANSACTION-SPLITS.md`](PRD-TRANSACTION-SPLITS.md:177-192)
+- Test method: `SanitizeCategory_VariousInputs_ReturnsCleanedCategory(string input, string expected)`
+- Cover all rules: whitespace removal/consolidation, capitalization, empty term removal, colon handling
+- Include edge cases: empty string, whitespace-only, max length (200 chars), multiple consecutive colons
+- **Critical for data quality** - comprehensive coverage ensures consistent category storage
+
+Example parameterized test structure:
+```csharp
+[TestCase("homeAndGarden", "HomeAndGarden")]
+[TestCase("Home andGarden", "Home AndGarden")]
+[TestCase("Home and Garden", "Home And Garden")]
+[TestCase("Home    and Garden", "Home And Garden")]
+[TestCase(" ", "")]
+[TestCase("Home:", "Home")]
+[TestCase(":Home", "Home")]
+[TestCase(":", "")]
+[TestCase("Home::Garden", "Home:Garden")]
+[TestCase("Home :Garden", "Home:Garden")]
+[TestCase("Home : Garden", "Home:Garden")]
+[TestCase(" Home", "Home")]
+[TestCase("Home ", "Home")]
+public void SanitizeCategory_VariousInputs_ReturnsCleanedCategory(string input, string expected)
+{
+    // Given: Input category string with various formatting issues
+
+    // When: Category sanitization is applied
+    var result = CategorySanitizer.Sanitize(input);
+
+    // Then: Category is cleaned per sanitization rules
+    Assert.That(result, Is.EqualTo(expected));
+}
+```
+
 **Transaction Creation with Split**:
 - `AddTransactionAsync_ValidTransaction_CreatesTransactionWithSingleSplit()` - Verify single split created automatically
 - `AddTransactionAsync_WithCategory_CreatesSplitWithCategory()` - Category parameter flows to split
@@ -1375,18 +1409,30 @@ This design is comprehensive for backend implementation but has intentional gaps
 
 **Recommendation**: Address during frontend UI design phase. Consider user testing for warning prominence vs. annoyance balance.
 
-### 2. Category Text Normalization (Not Specified)
+**A** Transaction list should show the category for normal case. In this space, for imbalance transaction, we can display the text "UNBALANCED" in Red.
 
-**What's NOT specified**:
-- Case sensitivity: Is "Food" the same as "food"? Should categories be case-insensitive for matching?
-- Whitespace handling: Should "Food" and " Food " be treated as the same category?
-- Trimming: Should leading/trailing whitespace be stripped on save?
-- Duplicate detection: Should UI warn when creating near-duplicate categories ("Groceries" vs "Grocery")?
-- Maximum distinct categories: At what point does the category dropdown become unwieldy?
+### 2. Category Sanitization (Now Specified in PRD)
 
-**Impact**: Without normalization rules, users may create duplicate categories unintentionally, degrading category report quality.
+**Specified in [`PRD-TRANSACTION-SPLITS.md`](PRD-TRANSACTION-SPLITS.md:155-200)**:
 
-**Recommendation**: Define category normalization rules (case-insensitive comparison, trim on save) and implement in backend validation before frontend implementation.
+**Whitespace handling**:
+- Leading/trailing whitespace removed (e.g., " Home " → "Home")
+- Whitespace around `:` separator removed (e.g., "Home : Garden" → "Home:Garden")
+- Multiple consecutive spaces consolidated to single space (e.g., "Home  And  Garden" → "Home And Garden")
+
+**Capitalization**:
+- All words capitalized regardless of size (e.g., "food and dining" → "Food And Dining")
+- Capitalization inside words is optional (e.g., "HomeAndGarden" is valid)
+
+**Empty terms**:
+- After splitting by `:`, empty terms removed (e.g., "Home::Garden" → "Home:Garden", ":Home" → "Home")
+- Blank categories (only whitespace) become empty string
+
+**Implementation**: Backend automatically sanitizes categories before saving. No warnings or errors - invalid input is silently cleaned up.
+
+**Maximum length**: 200 characters
+
+**Note**: Categories are case-sensitive for storage but could be normalized for display/matching. Duplicate detection ("Groceries" vs "Grocery") not currently specified - consider as future enhancement based on user feedback.
 
 ### 3. Split Reordering User Experience (Limited Rationale)
 
@@ -1402,6 +1448,10 @@ This design is comprehensive for backend implementation but has intentional gaps
 - Whether reordering is common enough to warrant prominent UI real estate
 
 **Recommendation**: Gather user feedback during beta testing. Consider starting with minimal reordering UI and enhancing based on usage patterns.
+
+**A** Note that there is **no acceptance criteria** for user changing the order. Order is kept consistent from imported order. User editing of order is not currently expected.
+
+**Update**: Reorder endpoint exists for future flexibility but is not a current requirement. Can be hidden/deferred until user demand is proven.
 
 ### 4. Bulk Categorization Workflows (Out of Scope)
 
@@ -1419,6 +1469,8 @@ This design is comprehensive for backend implementation but has intentional gaps
 **Impact**: Power users importing 50+ transactions monthly may find individual categorization tedious.
 
 **Recommendation**: Track user feedback during beta testing. If bulk categorization is a common pain point, design and implement in future sprint.
+
+**A** This is a good point. Bulk re-categorization is a V1 feature. We should keep this around as an open item, to revisit in the design.
 
 ### 5. Mobile/Responsive Design (Not Covered)
 

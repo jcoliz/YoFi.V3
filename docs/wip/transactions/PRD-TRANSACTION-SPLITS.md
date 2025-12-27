@@ -65,6 +65,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Editing single-category transaction amount updates the single split automatically
 - [ ] UI hides split complexity for transactions with only one split
 - [ ] Can optionally provide category on transaction creation (flows to the split)
+- [ ] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)
 
 ### Story 4: User - Detect Unbalanced Transactions
 **As a** detail-oriented user
@@ -150,6 +151,57 @@ Split transactions will be implemented with a new `Split` entity that has a many
 - Category is empty string for uncategorized (not NULL)
 - Source property stays at Transaction level (entire transaction from one import)
 - Unbalanced transactions are warning state, not error (user's choice to resolve)
+
+#### Category Sanitization
+
+Throughout all of YoFi, categories are free text strings. User is not expected to match against existing categories. Categories are never validated against some list.
+
+If user includes a `:` character in them, this signifies a hierarchy of categories, e.g. "Home:Utilities" signifies that the categorized split concerns "Utilities", and in reports it should be grouped and subtotaled under "Home". See [`../reports/PRD-REPORTS.md`](../reports/PRD-REPORTS.md) for details.
+
+**Whitespace requirements:**
+- No whitespace to start or end the category
+- No whitespace surrounding a `:` separator
+- No more than one consecutive space inside a term
+
+**Capitalization requirements:**
+- All words in categories are capitalized, regardless of whether they are "small words". Just to keep it consistent.
+- Capitalization inside words is optional
+
+**Empty term requirements:**
+- After dividing a category up into delimited terms, and trimming/consolidating whitespace as described above, each term cannot be empty
+
+> [!IMPORTANT] Invalid categories are never rejected, nor are warnings generated. They are simply cleaned up to be valid before saving.
+
+**Examples**
+
+| Input | Cleaned up version saved to storage |
+| --- | --- |
+| homeAndGarden | HomeAndGarden |
+| Home andGarden | Home AndGarden |
+| Home and Garden | Home And Garden |
+| Home    and Garden | Home And Garden |
+| " " | \<blank\> |
+| Home: | Home |
+| :Home | Home |
+| : | \<blank\> |
+| Home::Garden | Home:Garden |
+| Home :Garden | Home:Garden |
+| Home : Garden | Home:Garden |
+| \<space\>Home | Home |
+| Home\<space\> | Home |
+
+**Expected Implementation**
+
+Best place to handle this cleanup is within the application layer (Transactions Feature or Splits Feature).
+
+**Category Properties:**
+- Maximum length: 200 characters
+- No pre-seeded categories - User constructs category structure by assigning categories to splits on the fly
+- Categories are not "created" or "exist" - they are simply text values assigned to splits
+- No maximum distinct categories: If there are many categories, we'll have to handle it on the backend (e.g. most commonly used) later on as a post-implementation refinement.
+
+**Category Matching**
+- Categories match without regard for case, e.g. "FOOD" matches "Food"
 
 ### Security considerations
 
@@ -285,3 +337,20 @@ I've reviewed the updated PRD for Story 6 "Upload splits". The updates comprehen
 ## No Further Questions
 
 The PRD is now complete and ready for implementation. All acceptance criteria are clear, open questions are resolved, and the scope is well-defined. The document properly separates product requirements from implementation details, and references related documentation appropriately.
+
+---
+
+## Resuming Implementation
+
+Taking a break from implementation to work on some design questions. Resumption
+prompt follows:
+
+```
+Continue implementing docs/wip/transactions/PRD-TRANSACTION-SPLITS.md
+following docs/wip/IMPLEMENTATION-WORKFLOW.md.
+
+We completed Steps 1-5 (Entities, Data Layer, Data Integration Tests).
+Continue with Step 6: Application Layer (DTOs and TransactionsFeature).
+
+Alpha-1 scope: Stories 3 & 5 only (single-split auto-creation, simple workflow).
+```
