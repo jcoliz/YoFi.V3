@@ -15,6 +15,12 @@ public interface IDataProvider
     IQueryable<TEntity> Get<TEntity>() where TEntity : class, IModel;
 
     /// <summary>
+    /// Retrieves a queryable set of Transaction objects with Splits navigation property loaded.
+    /// </summary>
+    /// <returns>Queryable set of Transaction objects with Splits included.</returns>
+    IQueryable<Transaction> GetTransactionsWithSplits();
+
+    /// <summary>
     /// Add an item
     /// </summary>
     /// <param name="item">Item to add</param>

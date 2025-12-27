@@ -388,6 +388,39 @@ public class SplitTests
         Assert.That(retrieved.Transaction.Payee, Is.EqualTo("Test Payee 1"));
     }
 
+    [Test]
+    public async Task Split_SingleOrDefaultAsync_LoadsSplits()
+    {
+        // Given: A transaction with a split
+        var split = new Split
+        {
+            TransactionId = _transaction1.Id,
+            Amount = 100.00m,
+            Category = "Groceries",
+            Order = 0
+        };
+        _context.Splits.Add(split);
+        await _context.SaveChangesAsync();
+
+        // Clear the context to simulate a fresh query (no tracking)
+        _context.ChangeTracker.Clear();
+
+        // When: Loading transaction using the pattern from GetTransactionByKeyInternalAsync
+        // Using .Include() to ensure splits are loaded
+        var transaction = await _context.Transactions
+            .Include(t => t.Splits)
+            .Where(t => t.Key == _transaction1.Key)
+            .SingleOrDefaultAsync();
+
+        // Then: Transaction should be found
+        Assert.That(transaction, Is.Not.Null);
+
+        // And: Splits SHOULD be loaded with .Include()
+        Assert.That(transaction!.Splits, Is.Not.Empty,
+            "Splits collection should be loaded when using .Include(t => t.Splits).");
+        Assert.That(transaction.Splits.First().Category, Is.EqualTo("Groceries"));
+    }
+
     #endregion
 
     #region Index Tests

@@ -56,6 +56,13 @@ public class InMemoryDataProvider : IDataProvider
         throw new NotSupportedException($"Entity type {typeof(TEntity)} is not supported.");
     }
 
+    IQueryable<Transaction> IDataProvider.GetTransactionsWithSplits()
+    {
+        // In-memory provider: Splits are already in memory with the transaction objects
+        // No need for explicit Include() since we're not using a real database
+        return _transactions.AsQueryable();
+    }
+
     public void Add(IModel item)
     {
         if (item is WeatherForecast forecast)
