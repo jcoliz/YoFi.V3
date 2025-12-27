@@ -14,214 +14,72 @@ public class CategoryHelperTests
 {
     #region Null/Empty/Whitespace Tests
 
-    [Test]
-    public void SanitizeCategory_Null_ReturnsEmpty()
+    [TestCase(null, "")]
+    [TestCase("", "")]
+    [TestCase(" ", "")]
+    [TestCase("  ", "")]
+    [TestCase("\t", "")]
+    [TestCase("\n", "")]
+    [TestCase(" \t\n ", "")]
+    public void SanitizeCategory_NullEmptyOrWhitespace_ReturnsEmpty(string? input, string expected)
     {
-        // Given: Null category input
+        // Given: Null, empty, or whitespace-only category input
 
         // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(null);
+        var result = CategoryHelper.SanitizeCategory(input);
 
         // Then: Empty string should be returned
-        Assert.That(result, Is.EqualTo(string.Empty));
-    }
-
-    [Test]
-    public void SanitizeCategory_EmptyString_ReturnsEmpty()
-    {
-        // Given: Empty string category input
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(string.Empty);
-
-        // Then: Empty string should be returned
-        Assert.That(result, Is.EqualTo(string.Empty));
-    }
-
-    [TestCase(" ")]
-    [TestCase("  ")]
-    [TestCase("\t")]
-    [TestCase("\n")]
-    [TestCase(" \t\n ")]
-    public void SanitizeCategory_WhitespaceOnly_ReturnsEmpty(string whitespace)
-    {
-        // Given: Whitespace-only category input
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(whitespace);
-
-        // Then: Empty string should be returned
-        Assert.That(result, Is.EqualTo(string.Empty));
+        Assert.That(result, Is.EqualTo(expected));
     }
 
     #endregion
 
-    #region Trimming Tests
+    #region Basic Sanitization Tests
 
+    // Trimming
     [TestCase(" Home", "Home")]
     [TestCase("Home ", "Home")]
     [TestCase(" Home ", "Home")]
     [TestCase("  Home  ", "Home")]
-    public void SanitizeCategory_LeadingOrTrailingWhitespace_TrimsWhitespace(string input, string expected)
-    {
-        // Given: Category with leading or trailing whitespace
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: Whitespace should be trimmed
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
-    #endregion
-
-    #region Space Consolidation Tests
-
+    // Space consolidation
     [TestCase("Home  Garden", "Home Garden")]
     [TestCase("Home   Garden", "Home Garden")]
     [TestCase("Home    Garden", "Home Garden")]
     [TestCase("Home     Garden", "Home Garden")]
-    public void SanitizeCategory_MultipleSpaces_ConsolidatesToSingleSpace(string input, string expected)
-    {
-        // Given: Category with multiple consecutive spaces
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: Multiple spaces should be consolidated to single space
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void SanitizeCategory_MultipleSpacesInMultipleLocations_ConsolidatesAll()
-    {
-        // Given: Category with multiple space sequences
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory("Home    And    Garden");
-
-        // Then: All multiple spaces should be consolidated
-        Assert.That(result, Is.EqualTo("Home And Garden"));
-    }
-
-    #endregion
-
-    #region Capitalization Tests
-
+    [TestCase("Home    And    Garden", "Home And Garden")]
+    // Capitalization - single word
     [TestCase("home", "Home")]
     [TestCase("HOME", "HOME")]
     [TestCase("Home", "Home")]
-    public void SanitizeCategory_SingleWord_CapitalizesFirstLetter(string input, string expected)
-    {
-        // Given: Single word category with various casing
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: First letter should be capitalized, rest preserved
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
+    [TestCase("homeAndGarden", "HomeAndGarden")]
+    // Capitalization - multiple words
     [TestCase("home garden", "Home Garden")]
     [TestCase("home and garden", "Home And Garden")]
     [TestCase("HOME AND GARDEN", "HOME AND GARDEN")]
-    public void SanitizeCategory_MultipleWords_CapitalizesEachWord(string input, string expected)
-    {
-        // Given: Multiple word category with various casing
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: First letter of each word should be capitalized
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void SanitizeCategory_CamelCase_CapitalizesFirstLetter()
-    {
-        // Given: CamelCase category input
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory("homeAndGarden");
-
-        // Then: First letter should be capitalized, rest preserved
-        Assert.That(result, Is.EqualTo("HomeAndGarden"));
-    }
-
-    #endregion
-
-    #region Colon Separator Normalization Tests
-
+    // Colon normalization
     [TestCase("Home : Garden", "Home:Garden")]
     [TestCase("Home  :  Garden", "Home:Garden")]
     [TestCase("Home:Garden", "Home:Garden")]
     [TestCase("Home :Garden", "Home:Garden")]
     [TestCase("Home: Garden", "Home:Garden")]
-    public void SanitizeCategory_ColonWithWhitespace_RemovesWhitespaceAroundColon(string input, string expected)
-    {
-        // Given: Category with whitespace around colon separator
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: Whitespace around colon should be removed
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void SanitizeCategory_MultipleColonTerms_NormalizesAll()
-    {
-        // Given: Category with multiple colon-separated terms and whitespace
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory("Home : Garden : Flowers");
-
-        // Then: All colons should be normalized
-        Assert.That(result, Is.EqualTo("Home:Garden:Flowers"));
-    }
-
-    #endregion
-
-    #region Empty Term Removal Tests
-
+    [TestCase("Home : Garden : Flowers", "Home:Garden:Flowers")]
+    // Empty term removal
     [TestCase("Home::", "Home")]
     [TestCase("::Home", "Home")]
     [TestCase("Home::Garden", "Home:Garden")]
-    public void SanitizeCategory_DoubleColons_RemovesEmptyTerms(string input, string expected)
-    {
-        // Given: Category with double colons (empty terms)
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(input);
-
-        // Then: Empty terms should be removed
-        Assert.That(result, Is.EqualTo(expected));
-    }
-
     [TestCase("Home: ", "Home")]
     [TestCase(" :Garden", "Garden")]
     [TestCase("Home: :Garden", "Home:Garden")]
-    public void SanitizeCategory_ColonWithWhitespaceOnly_RemovesEmptyTerms(string input, string expected)
+    [TestCase(":::", "")]
+    public void SanitizeCategory_ValidInput_AppliesSanitizationRules(string input, string expected)
     {
-        // Given: Category with colon followed/preceded by whitespace only
+        // Given: Category input requiring sanitization
 
         // When: Category is sanitized
         var result = CategoryHelper.SanitizeCategory(input);
 
-        // Then: Empty terms should be removed
+        // Then: Appropriate sanitization rules should be applied
         Assert.That(result, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void SanitizeCategory_OnlyColons_ReturnsEmpty()
-    {
-        // Given: Category with only colons and whitespace
-
-        // When: Category is sanitized
-        var result = CategoryHelper.SanitizeCategory(":::");
-
-        // Then: Empty string should be returned
-        Assert.That(result, Is.EqualTo(string.Empty));
     }
 
     #endregion
