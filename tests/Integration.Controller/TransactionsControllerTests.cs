@@ -906,6 +906,205 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         Assert.That(problemDetails!.Status, Is.EqualTo(400));
     }
 
+    [Test]
+    public async Task QuickEditTransaction_PayeeEmpty_Returns400BadRequest()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with empty Payee (required field)
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "",
+            Memo: null,
+            Category: null
+        );
+
+        // When: User attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_PayeeWhitespace_Returns400BadRequest()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with whitespace-only Payee (required field)
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "   ",
+            Memo: null,
+            Category: null
+        );
+
+        // When: User attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_PayeeTooLong_Returns400BadRequest()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with Payee exceeding 200 characters
+        var longPayee = new string('P', 201);
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: longPayee,
+            Memo: null,
+            Category: null
+        );
+
+        // When: User attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_MemoTooLong_Returns400BadRequest()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with Memo exceeding 1000 characters
+        var longMemo = new string('M', 1001);
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Test Payee",
+            Memo: longMemo,
+            Category: null
+        );
+
+        // When: User attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task QuickEditTransaction_CategoryTooLong_Returns400BadRequest()
+    {
+        // Given: User has Editor role and creates a transaction
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Original Payee",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: null
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        // And: Quick edit data with Category exceeding 200 characters
+        var longCategory = new string('C', 201);
+        var quickEditDto = new TransactionQuickEditDto(
+            Payee: "Test Payee",
+            Memo: null,
+            Category: longCategory
+        );
+
+        // When: User attempts to quick edit the transaction
+        var response = await _client.PatchAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}",
+            JsonContent.Create(quickEditDto)
+        );
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+
     #endregion
 
     #region Tenant Isolation Tests
@@ -1806,3 +2005,4 @@ public class TransactionsControllerTests : AuthenticatedTestBase
 
     #endregion
 }
+

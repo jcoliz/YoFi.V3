@@ -1,6 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
-using System.Reflection;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Exceptions;
@@ -174,10 +172,11 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     }
 
     /// <summary>
-    /// Quick edit: updates only payee and memo, preserving all other transaction fields.
+    /// Quick edit: updates only payee, memo, and category, preserving all other transaction fields.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
-    /// <param name="quickEdit">The updated payee and memo values.</param>
+    /// <param name="quickEdit">The updated payee, memo, and category values. MUST be validated before calling this method.
+    /// See <see cref="YoFi.V3.Application.Validation.TransactionQuickEditDtoValidator"/> for validation rules.</param>
     /// <returns>The updated transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task<TransactionDetailDto> QuickEditTransactionAsync(Guid key, TransactionQuickEditDto quickEdit)
@@ -256,43 +255,6 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             .Where(t => t.TenantId == _currentTenant.Id)
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);
-    }
-
-    private static void ValidateTransactionQuickEditDto(TransactionQuickEditDto quickEdit)
-    {
-        // Get constructor parameters for record type validation attributes
-        var constructor = typeof(TransactionQuickEditDto).GetConstructors()[0];
-        var parameters = constructor.GetParameters();
-
-        // Validate Payee max length first (before whitespace check)
-        var payeeParameter = parameters.First(p => p.Name == nameof(TransactionQuickEditDto.Payee));
-        var payeeMaxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (payeeMaxLengthAttr != null && quickEdit.Payee != null && quickEdit.Payee.Length > payeeMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction payee cannot exceed {payeeMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate Payee - must not be empty or whitespace
-        if (string.IsNullOrWhiteSpace(quickEdit.Payee))
-        {
-            throw new ArgumentException("Transaction payee cannot be empty.");
-        }
-
-        // Validate Memo max length (nullable field)
-        var memoParameter = parameters.First(p => p.Name == nameof(TransactionQuickEditDto.Memo));
-        var memoMaxLengthAttr = memoParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (memoMaxLengthAttr != null && quickEdit.Memo != null && quickEdit.Memo.Length > memoMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction memo cannot exceed {memoMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate Category max length (nullable field)
-        var categoryParameter = parameters.First(p => p.Name == nameof(TransactionQuickEditDto.Category));
-        var categoryMaxLengthAttr = categoryParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (categoryMaxLengthAttr != null && quickEdit.Category != null && quickEdit.Category.Length > categoryMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction category cannot exceed {categoryMaxLengthAttr.Length} characters.");
-        }
     }
 
     private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
