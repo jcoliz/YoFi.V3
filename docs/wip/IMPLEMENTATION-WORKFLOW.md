@@ -542,6 +542,8 @@ Note: Use Gherkin **Rule** keyword to group related scenarios that test the same
 
 **Checkpoint:** Confirm all critical user workflows are verified.
 
+> [!TODO] After 2nd round these are the learnings: GOOD that Orchestrator takes over every step. It hands off each step to Code agent, and gives it instructions. BAD that the instructions miss a LOT of details? Are there too many details in the above step for Orchestrator to hand off?
+
 ---
 
 ## [ ] 11.5. Documentation Updates
