@@ -83,8 +83,8 @@ foreach (var account in document.Accounts)
             Payee = transaction.Name ?? transaction.Memo,
             Memo = transaction.Memo,
             Source = source, // Account-level metadata
-            // Use FITID as Key for duplicate detection
-            Key = Guid.Parse(transaction.FITID) // May need hash if not GUID
+            // Use FITID directly as string for duplicate detection
+            // Note: FITID format varies by bank - no assumptions about format
         };
     }
 }
