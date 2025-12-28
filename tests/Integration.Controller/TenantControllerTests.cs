@@ -685,6 +685,303 @@ public class TenantControllerTests
 
     #endregion
 
+    #region Validation Tests
+
+    [Test]
+    public async Task CreateTenant_NameEmpty_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with empty Name (required field)
+        var tenantDto = new TenantEditDto(
+            Name: "",
+            Description: "Valid Description"
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task CreateTenant_NameWhitespace_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with whitespace-only Name (required field)
+        var tenantDto = new TenantEditDto(
+            Name: "   ",
+            Description: "Valid Description"
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task CreateTenant_NameTooLong_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with Name exceeding 100 characters
+        var longName = new string('N', 101);
+        var tenantDto = new TenantEditDto(
+            Name: longName,
+            Description: "Valid Description"
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task CreateTenant_DescriptionEmpty_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with empty Description (required field)
+        var tenantDto = new TenantEditDto(
+            Name: "Valid Name",
+            Description: ""
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task CreateTenant_DescriptionWhitespace_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with whitespace-only Description (required field)
+        var tenantDto = new TenantEditDto(
+            Name: "Valid Name",
+            Description: "   "
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task CreateTenant_DescriptionTooLong_Returns400BadRequest()
+    {
+        // Given: An authenticated user
+        var userIdForTest = Guid.NewGuid();
+        using var testClient = _factory.CreateAuthenticatedClient(
+            Array.Empty<(Guid, TenantRole)>(),
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Tenant data with Description exceeding 500 characters
+        var longDescription = new string('D', 501);
+        var tenantDto = new TenantEditDto(
+            Name: "Valid Name",
+            Description: longDescription
+        );
+
+        // When: User attempts to create the tenant
+        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task UpdateTenant_NameEmpty_Returns400BadRequest()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Update data with empty Name (required field)
+        var updateDto = new TenantEditDto(
+            Name: "",
+            Description: "Valid Description"
+        );
+
+        // When: User attempts to update the tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task UpdateTenant_NameTooLong_Returns400BadRequest()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Update data with Name exceeding 100 characters
+        var longName = new string('N', 101);
+        var updateDto = new TenantEditDto(
+            Name: longName,
+            Description: "Valid Description"
+        );
+
+        // When: User attempts to update the tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task UpdateTenant_DescriptionEmpty_Returns400BadRequest()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Update data with empty Description (required field)
+        var updateDto = new TenantEditDto(
+            Name: "Valid Name",
+            Description: ""
+        );
+
+        // When: User attempts to update the tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task UpdateTenant_DescriptionTooLong_Returns400BadRequest()
+    {
+        // Given: An authenticated user with Owner role for a tenant
+        var userIdForTest = Guid.NewGuid();
+        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
+
+        using var testClient = _factory.CreateAuthenticatedClient(
+            new[] { (tenantKey, TenantRole.Owner) },
+            userId: userIdForTest.ToString(),
+            userName: "Test User");
+
+        // And: Update data with Description exceeding 500 characters
+        var longDescription = new string('D', 501);
+        var updateDto = new TenantEditDto(
+            Name: "Valid Name",
+            Description: longDescription
+        );
+
+        // When: User attempts to update the tenant
+        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    #endregion
+
+
     #region Helper Methods
 
     /// <summary>
@@ -721,3 +1018,4 @@ public class TenantControllerTests
 
     #endregion
 }
+
