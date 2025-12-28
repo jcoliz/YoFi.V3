@@ -29,7 +29,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     protected const string KEY_TRANSACTION_SOURCE = "TransactionSource";
     protected const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
     protected const string KEY_TRANSACTION_CATEGORY = "TransactionCategory";
-    protected const string KEY_TRANSACTION_KEY = "TransactionKey";
+    protected new const string KEY_TRANSACTION_KEY = "TransactionKey";
     protected const string KEY_EDIT_MODE = "EditMode"; // "TransactionDetailsPage", "TransactionsPage", or "CreateModal"
 
     #endregion
@@ -262,7 +262,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// Locates the transaction by payee and opens the edit modal.
     /// </remarks>
     [When("I quick edit the {payee} transaction")]
-    protected async Task WhenIQuickEditTheTransaction(string payee = null)
+    protected async Task WhenIQuickEditTheTransaction(string? payee = null)
     {
         var actualPayee = payee ?? GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
 
