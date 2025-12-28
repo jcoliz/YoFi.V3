@@ -247,87 +247,6 @@ public class TransactionsTests
     }
 
     [Test]
-    public void AddTransactionAsync_ZeroAmount_ThrowsArgumentException()
-    {
-        // Arrange
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 0m,
-            Payee: "TestPayee",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("amount cannot be zero"));
-    }
-
-    [Test]
-    public void AddTransactionAsync_EmptyPayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
-    }
-
-    [Test]
-    public void AddTransactionAsync_WhitespacePayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "   ",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
-    }
-
-    [Test]
-    public void AddTransactionAsync_PayeeTooLong_ThrowsArgumentException()
-    {
-        // Arrange
-        var longPayee = new string('A', 201);
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: longPayee,
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("cannot exceed 200 characters"));
-    }
-
-    [Test]
     public async Task AddTransactionAsync_PayeeExactly200Characters_Succeeds()
     {
         // Arrange
@@ -351,66 +270,6 @@ public class TransactionsTests
 
         // And: Result should contain the same payee
         Assert.That(result.Payee, Is.EqualTo(payee200));
-    }
-
-    [Test]
-    public void AddTransactionAsync_DateOutOfRange_ThrowsArgumentException()
-    {
-        // Arrange - Date too far in the past (more than 50 years)
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
-            Amount: 100m,
-            Payee: "TestPayee",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("must be within"));
-    }
-
-    [Test]
-    public void AddTransactionAsync_DateTooFarInFuture_ThrowsArgumentException()
-    {
-        // Arrange - Date too far in the future (more than 5 years)
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(6)),
-            Amount: 100m,
-            Payee: "TestPayee",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("must be within"));
-    }
-
-    [Test]
-    public void AddTransactionAsync_NullPayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: null!,
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
     }
 
     [Test]
@@ -499,29 +358,6 @@ public class TransactionsTests
     }
 
     [Test]
-    public void AddTransactionAsync_MemoTooLong_ThrowsArgumentException()
-    {
-        // Given: A transaction with memo exceeding max length
-
-        // When: Memo exceeds 1000 characters
-        var longMemo = new string('A', 1001);
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Test Payee",
-            Memo: longMemo,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("memo cannot exceed 1000 characters"));
-    }
-
-    [Test]
     public async Task AddTransactionAsync_MemoExactly1000Characters_Succeeds()
     {
         // Given: A transaction with memo at exactly max length
@@ -547,29 +383,6 @@ public class TransactionsTests
     }
 
     [Test]
-    public void AddTransactionAsync_SourceTooLong_ThrowsArgumentException()
-    {
-        // Given: A transaction with source exceeding max length
-
-        // When: Source exceeds 200 characters
-        var longSource = new string('A', 201);
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Test Payee",
-            Memo: null,
-            Source: longSource,
-            ExternalId: null
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("source cannot exceed 200 characters"));
-    }
-
-    [Test]
     public async Task AddTransactionAsync_SourceExactly200Characters_Succeeds()
     {
         // Given: A transaction with source at exactly max length
@@ -592,29 +405,6 @@ public class TransactionsTests
         var transactions = _dataProvider.Transactions.ToList();
         Assert.That(transactions[0].Source, Is.EqualTo(source200));
         Assert.That(result.Source, Is.EqualTo(source200));
-    }
-
-    [Test]
-    public void AddTransactionAsync_ExternalIdTooLong_ThrowsArgumentException()
-    {
-        // Given: A transaction with externalId exceeding max length
-
-        // When: ExternalId exceeds 100 characters
-        var longExternalId = new string('A', 101);
-        var dto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Test Payee",
-            Memo: null,
-            Source: null,
-            ExternalId: longExternalId
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.AddTransactionAsync(dto));
-
-        Assert.That(ex!.Message, Does.Contain("externalId cannot exceed 100 characters"));
     }
 
     [Test]
@@ -778,52 +568,6 @@ public class TransactionsTests
     }
 
     [Test]
-    public void UpdateTransactionAsync_ZeroAmount_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 0m,
-            Payee: "UpdatedPayee",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("amount cannot be zero"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_EmptyPayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
-    }
-
-    [Test]
     public async Task UpdateTransactionAsync_OtherTenantTransaction_ThrowsTransactionNotFoundException()
     {
         // Arrange
@@ -844,99 +588,6 @@ public class TransactionsTests
         // Act & Assert
         Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _transactionsFeature.UpdateTransactionAsync(otherTenantTransaction.Key, updateDto));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_DateOutOfRange_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-51)),
-            Amount: 100m,
-            Payee: "UpdatedPayee",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("must be within"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_PayeeTooLong_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var longPayee = new string('A', 201);
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: longPayee,
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("cannot exceed 200 characters"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_WhitespacePayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "   ",
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_NullPayee_ThrowsArgumentException()
-    {
-        // Arrange
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "TestPayee");
-        _dataProvider.Add(transaction);
-
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: null!,
-            Memo: null,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("payee cannot be empty"));
     }
 
     [Test]
@@ -1033,81 +684,6 @@ public class TransactionsTests
         Assert.That(result.Memo, Is.Null);
         Assert.That(result.Source, Is.Null);
         Assert.That(result.ExternalId, Is.Null);
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_MemoTooLong_ThrowsArgumentException()
-    {
-        // Given: An existing transaction
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
-        _dataProvider.Add(transaction);
-
-        // When: Update with memo exceeding 1000 characters
-        var longMemo = new string('A', 1001);
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Updated Payee",
-            Memo: longMemo,
-            Source: null,
-            ExternalId: null
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("memo cannot exceed 1000 characters"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_SourceTooLong_ThrowsArgumentException()
-    {
-        // Given: An existing transaction
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
-        _dataProvider.Add(transaction);
-
-        // When: Update with source exceeding 200 characters
-        var longSource = new string('A', 201);
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Updated Payee",
-            Memo: null,
-            Source: longSource,
-            ExternalId: null
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("source cannot exceed 200 characters"));
-    }
-
-    [Test]
-    public void UpdateTransactionAsync_ExternalIdTooLong_ThrowsArgumentException()
-    {
-        // Given: An existing transaction
-        var transaction = CreateTransaction(DateOnly.FromDateTime(DateTime.Now), 100m, "Test Payee");
-        _dataProvider.Add(transaction);
-
-        // When: Update with externalId exceeding 100 characters
-        var longExternalId = new string('A', 101);
-        var updateDto = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.Now),
-            Amount: 100m,
-            Payee: "Updated Payee",
-            Memo: null,
-            Source: null,
-            ExternalId: longExternalId
-        ,            Category: null);
-
-        // Then: ArgumentException should be thrown
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
-            await _transactionsFeature.UpdateTransactionAsync(transaction.Key, updateDto));
-
-        Assert.That(ex!.Message, Does.Contain("externalId cannot exceed 100 characters"));
     }
 
     #endregion

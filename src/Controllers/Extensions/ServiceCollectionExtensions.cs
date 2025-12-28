@@ -1,4 +1,7 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.Extensions.DependencyInjection;
+using YoFi.V3.Application.Validation;
 using YoFi.V3.Controllers.Middleware;
 
 namespace YoFi.V3.Controllers.Extensions;
@@ -17,6 +20,15 @@ public static class ServiceCollectionExtensions
     {
         // Register custom exception handler for application-specific exceptions
         services.AddExceptionHandler<CustomExceptionHandler>();
+
+        // Register FluentValidation validators from Application assembly
+        services.AddValidatorsFromAssemblyContaining<TransactionEditDtoValidator>();
+
+        // Add FluentValidation to ASP.NET Core model binding pipeline.
+        // This causes automatic validation at the controller boundary BEFORE controller actions execute.
+        // Invalid DTOs will return 400 Bad Request with validation error details, preventing
+        // invalid data from reaching controller methods or the Application layer.
+        services.AddFluentValidationAutoValidation();
 
         return services;
     }

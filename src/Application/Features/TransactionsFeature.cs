@@ -8,7 +8,6 @@ using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
-using YoFi.V3.Application.Validation;
 
 namespace YoFi.V3.Application.Features;
 
@@ -85,12 +84,11 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <summary>
     /// Adds a new transaction for the current tenant.
     /// </summary>
-    /// <param name="transaction">The transaction data to add.</param>
+    /// <param name="transaction">The transaction data to add. MUST be validated before calling this method.
+    /// See <see cref="YoFi.V3.Application.Validation.TransactionEditDtoValidator"/> for validation rules.</param>
     /// <returns>The created transaction with all fields.</returns>
     public async Task<TransactionDetailDto> AddTransactionAsync(TransactionEditDto transaction)
     {
-        ValidateTransactionEditDto(transaction);
-
         // Alpha-1: Sanitize category
         var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
 
@@ -133,13 +131,12 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// Updates an existing transaction.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
-    /// <param name="transaction">The updated transaction data.</param>
+    /// <param name="transaction">The updated transaction data. MUST be validated before calling this method.
+    /// See <see cref="YoFi.V3.Application.Validation.TransactionEditDtoValidator"/> for validation rules.</param>
     /// <returns>The updated transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
     {
-        ValidateTransactionEditDto(transaction);
-
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
         // Alpha-1: Sanitize category
@@ -185,8 +182,6 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     public async Task<TransactionDetailDto> QuickEditTransactionAsync(Guid key, TransactionQuickEditDto quickEdit)
     {
-        ValidateTransactionQuickEditDto(quickEdit);
-
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
         // Alpha-1: Sanitize category
@@ -261,78 +256,6 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             .Where(t => t.TenantId == _currentTenant.Id)
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);
-    }
-
-    private static void ValidateTransactionEditDto(TransactionEditDto transaction)
-    {
-        // Get constructor parameters for record type validation attributes
-        var constructor = typeof(TransactionEditDto).GetConstructors()[0];
-        var parameters = constructor.GetParameters();
-
-        // Validate Date using DateRangeAttribute (from constructor parameter)
-        var dateParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Date));
-        var dateRangeAttr = dateParameter.GetCustomAttribute<DateRangeAttribute>();
-        if (dateRangeAttr != null)
-        {
-            var dateValidationContext = new ValidationContext(transaction) { MemberName = nameof(TransactionEditDto.Date) };
-            var dateResult = dateRangeAttr.GetValidationResult(transaction.Date, dateValidationContext);
-            if (dateResult != ValidationResult.Success)
-            {
-                throw new ArgumentException(dateResult!.ErrorMessage!);
-            }
-        }
-
-        // Validate Amount - must be non-zero
-        if (transaction.Amount == 0)
-        {
-            throw new ArgumentException("Transaction amount cannot be zero.");
-        }
-
-        // Validate Payee max length first (before whitespace check) - from constructor parameter
-        var payeeParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Payee));
-        var payeeMaxLengthAttr = payeeParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (payeeMaxLengthAttr != null && transaction.Payee != null && transaction.Payee.Length > payeeMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction payee cannot exceed {payeeMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate Payee - must not be empty or whitespace
-        if (string.IsNullOrWhiteSpace(transaction.Payee))
-        {
-            throw new ArgumentException("Transaction payee cannot be empty.");
-        }
-
-        // Validate Memo max length (nullable field)
-        var memoParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Memo));
-        var memoMaxLengthAttr = memoParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (memoMaxLengthAttr != null && transaction.Memo != null && transaction.Memo.Length > memoMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction memo cannot exceed {memoMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate Source max length (nullable field)
-        var sourceParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Source));
-        var sourceMaxLengthAttr = sourceParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (sourceMaxLengthAttr != null && transaction.Source != null && transaction.Source.Length > sourceMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction source cannot exceed {sourceMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate ExternalId max length (nullable field)
-        var externalIdParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.ExternalId));
-        var externalIdMaxLengthAttr = externalIdParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (externalIdMaxLengthAttr != null && transaction.ExternalId != null && transaction.ExternalId.Length > externalIdMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction externalId cannot exceed {externalIdMaxLengthAttr.Length} characters.");
-        }
-
-        // Validate Category max length (nullable field)
-        var categoryParameter = parameters.First(p => p.Name == nameof(TransactionEditDto.Category));
-        var categoryMaxLengthAttr = categoryParameter.GetCustomAttribute<MaxLengthAttribute>();
-        if (categoryMaxLengthAttr != null && transaction.Category != null && transaction.Category.Length > categoryMaxLengthAttr.Length)
-        {
-            throw new ArgumentException($"Transaction category cannot exceed {categoryMaxLengthAttr.Length} characters.");
-        }
     }
 
     private static void ValidateTransactionQuickEditDto(TransactionQuickEditDto quickEdit)
