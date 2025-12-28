@@ -1054,28 +1054,40 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             $"Amount field should contain '{expectedAmount}'");
 
         // And: Verify optional fields if they were seeded
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_CATEGORY))
+        {
+            var expectedCategory = _objectStore.Get<string>(KEY_TRANSACTION_CATEGORY);
+            var categoryValue = await detailsPage.GetCategoryAsync();
+            var expectedDisplay = string.IsNullOrEmpty(expectedCategory) ? TransactionDetailsPage.EmptyFieldDisplay : expectedCategory;
+            Assert.That(categoryValue?.Trim(), Is.EqualTo(expectedDisplay),
+                $"Category field should be '{expectedDisplay}'");
+        }
+
         if (_objectStore.Contains<string>(KEY_TRANSACTION_MEMO))
         {
             var expectedMemo = _objectStore.Get<string>(KEY_TRANSACTION_MEMO);
             var memoValue = await detailsPage.GetMemoAsync();
-            Assert.That(memoValue?.Trim(), Is.EqualTo(expectedMemo),
-                $"Memo field should be '{expectedMemo}'");
+            var expectedDisplay = string.IsNullOrEmpty(expectedMemo) ? TransactionDetailsPage.EmptyFieldDisplay : expectedMemo;
+            Assert.That(memoValue?.Trim(), Is.EqualTo(expectedDisplay),
+                $"Memo field should be '{expectedDisplay}'");
         }
 
         if (_objectStore.Contains<string>(KEY_TRANSACTION_SOURCE))
         {
             var expectedSource = _objectStore.Get<string>(KEY_TRANSACTION_SOURCE);
             var sourceValue = await detailsPage.GetSourceAsync();
-            Assert.That(sourceValue?.Trim(), Is.EqualTo(expectedSource),
-                $"Source field should be '{expectedSource}'");
+            var expectedDisplay = string.IsNullOrEmpty(expectedSource) ? TransactionDetailsPage.EmptyFieldDisplay : expectedSource;
+            Assert.That(sourceValue?.Trim(), Is.EqualTo(expectedDisplay),
+                $"Source field should be '{expectedDisplay}'");
         }
 
         if (_objectStore.Contains<string>(KEY_TRANSACTION_EXTERNAL_ID))
         {
             var expectedExternalId = _objectStore.Get<string>(KEY_TRANSACTION_EXTERNAL_ID);
             var externalIdValue = await detailsPage.GetExternalIdAsync();
-            Assert.That(externalIdValue?.Trim(), Is.EqualTo(expectedExternalId),
-                $"ExternalId field should be '{expectedExternalId}'");
+            var expectedDisplay = string.IsNullOrEmpty(expectedExternalId) ? TransactionDetailsPage.EmptyFieldDisplay : expectedExternalId;
+            Assert.That(externalIdValue?.Trim(), Is.EqualTo(expectedDisplay),
+                $"ExternalId field should be '{expectedDisplay}'");
         }
     }
 
@@ -1151,6 +1163,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // And: Get the field value based on field name
         string? actualValue = fieldName switch
         {
+            "Category" => await detailsPage.GetCategoryAsync(),
             "Source" => await detailsPage.GetSourceAsync(),
             "ExternalId" => await detailsPage.GetExternalIdAsync(),
             _ => throw new ArgumentException($"Unsupported field name: {fieldName}")

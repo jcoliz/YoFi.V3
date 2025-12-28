@@ -18,6 +18,11 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
     private static partial Regex TransactionApiRegex();
 
+    /// <summary>
+    /// Display text shown for empty optional fields (Category, Memo, Source, ExternalId)
+    /// </summary>
+    public static string EmptyFieldDisplay => "(none)";
+
     #region Components
 
     /// <summary>
@@ -107,6 +112,11 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// Transaction memo field (display mode)
     /// </summary>
     public ILocator MemoDisplay => Page!.GetByTestId("transaction-memo");
+
+    /// <summary>
+    /// Transaction category field (display mode)
+    /// </summary>
+    public ILocator CategoryDisplay => Page!.GetByTestId("transaction-category");
 
     /// <summary>
     /// Transaction source field (display mode)
@@ -447,6 +457,15 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     public async Task<string?> GetMemoAsync()
     {
         return await MemoDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the category text from the details display
+    /// </summary>
+    /// <returns>The category text</returns>
+    public async Task<string?> GetCategoryAsync()
+    {
+        return await CategoryDisplay.TextContentAsync();
     }
 
     /// <summary>

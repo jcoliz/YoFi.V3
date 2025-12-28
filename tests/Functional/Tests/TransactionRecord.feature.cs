@@ -131,6 +131,34 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     }
 
     /// <summary>
+    /// Transaction details page displays category
+    /// </summary>
+    [Test]
+    public async Task TransactionDetailsPageDisplaysCategory()
+    {
+        // Given I have a workspace with a transaction:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Restaurant XYZ"],
+            ["Amount", "-32.50"],
+            ["Category", "Dining"]
+        );
+        await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // And I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
+        // When I click on the transaction row
+        await WhenIClickOnTheTransactionRow();
+
+        // Then I should navigate to the transaction details page
+        await ThenIShouldNavigateToTheTransactionDetailsPage();
+
+        // And I should see all the expected transaction fields displayed
+        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+    }
+
+    /// <summary>
     /// User navigates from transaction list to details page
     /// </summary>
     [Test]

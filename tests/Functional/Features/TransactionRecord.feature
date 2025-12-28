@@ -56,6 +56,17 @@ Rule: Quick Edit Modal
         Then the modal should close
         And I should see the updated category in the transaction list
 
+    Scenario: Transaction details page displays category
+        Given I have a workspace with a transaction:
+            | Field    | Value          |
+            | Payee    | Restaurant XYZ |
+            | Amount   | -32.50         |
+            | Category | Dining         |
+        And I am on the transactions page
+        When I click on the transaction row
+        Then I should navigate to the transaction details page
+        And I should see all the expected transaction fields displayed
+
     Scenario: User navigates from transaction list to details page
         Given I have a workspace with a transaction:
             | Field      | Value          |
