@@ -296,6 +296,209 @@ const systemLogout = async () => {
 </style>
 ```
 
+#### Alternative: Slot-Based Implementation (For Reusability)
+
+For maximum reusability across projects, use Vue slots to separate workspace logic from LoginState:
+
+**[`LoginState.vue`](../../src/FrontEnd.Nuxt/app/components/LoginState.vue)** with slot support:
+
+```vue
+<template>
+  <DropDownPortable
+    class="ms-2 my-1 d-flex align-items-center"
+    data-test-id="login-state"
+  >
+    <template #trigger>
+      <a
+        class="d-flex align-items-center link-body-emphasis text-decoration-none p-0 dropdown-toggle"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+      >
+        <template v-if="data">
+          <strong class="me-2" data-test-id="username">{{ data.name }}</strong>
+        </template>
+        <FeatherIcon
+          icon="user"
+          size="24"
+          class="rounded-circle me-2"
+          :class="ready ? 'text-body' : 'text-primary'"
+        />
+      </a>
+    </template>
+    <template #default>
+      <ul class="dropdown-menu dropdown-menu-end text-small shadow">
+        <template v-if="status === 'authenticated'">
+          <!-- Workspace slot - inject custom content -->
+          <slot name="workspace-section" />
+
+          <li v-if="$slots['workspace-section']"><hr class="dropdown-divider" /></li>
+
+          <!-- User Actions -->
+          <li>
+            <NuxtLink
+              class="dropdown-item"
+              to="/profile"
+              data-test-id="Profile"
+            >
+              Profile
+            </NuxtLink>
+          </li>
+          <li><hr class="dropdown-divider" /></li>
+          <li>
+            <a
+              class="dropdown-item"
+              data-test-id="SignOut"
+              @click="systemLogout"
+            >
+              Sign Out
+            </a>
+          </li>
+        </template>
+        <template v-else>
+          <li>
+            <a
+              class="dropdown-item"
+              data-test-id="SignIn"
+              @click="systemLogin"
+            >
+              Sign In
+            </a>
+          </li>
+          <li><hr class="dropdown-divider" /></li>
+          <li>
+            <NuxtLink
+              class="dropdown-item"
+              to="/register"
+              data-test-id="CreateAccount"
+            >
+              Request Account
+            </NuxtLink>
+          </li>
+        </template>
+      </ul>
+    </template>
+  </DropDownPortable>
+</template>
+```
+
+**Create separate [`WorkspaceMenuSection.vue`](../../src/FrontEnd.Nuxt/app/components/WorkspaceMenuSection.vue) component:**
+
+```vue
+<script setup lang="ts">
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
+
+const userPreferencesStore = useUserPreferencesStore()
+const workspaces = ref<TenantRoleResultDto[]>([])
+const loading = ref(false)
+
+onMounted(async () => {
+  await loadWorkspaces()
+})
+
+async function loadWorkspaces() {
+  loading.value = true
+  try {
+    const { baseUrl } = useApiBaseUrl()
+    const authFetch = useAuthFetch()
+    const client = new TenantClient(baseUrl, authFetch)
+    workspaces.value = await client.getTenants()
+  } catch (error) {
+    console.error('Failed to load workspaces:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const currentWorkspace = computed(() => userPreferencesStore.currentTenant)
+
+const otherWorkspaces = computed(() => {
+  const currentKey = currentWorkspace.value?.key
+  return workspaces.value.filter(w => w.key !== currentKey)
+})
+
+async function switchWorkspace(workspace: TenantRoleResultDto) {
+  userPreferencesStore.setCurrentTenant(workspace)
+  await navigateTo(window.location.pathname)
+}
+</script>
+
+<template>
+  <li class="px-3 py-2">
+    <div class="mb-2">
+      <small class="text-muted text-uppercase fw-bold">Workspace</small>
+    </div>
+
+    <!-- Current Workspace -->
+    <div v-if="currentWorkspace" class="workspace-current mb-2 p-2 bg-light rounded">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fw-semibold">{{ currentWorkspace.name }}</div>
+          <small class="text-muted">{{ currentWorkspace.role }}</small>
+        </div>
+        <FeatherIcon icon="check" size="16" class="text-success" />
+      </div>
+    </div>
+
+    <!-- Quick Switch List (max 4) -->
+    <div v-if="otherWorkspaces.length > 0" class="mb-2">
+      <a
+        v-for="workspace in otherWorkspaces.slice(0, 4)"
+        :key="workspace.key"
+        class="dropdown-item dropdown-item-sm py-1"
+        @click="switchWorkspace(workspace)"
+      >
+        {{ workspace.name }}
+      </a>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-2">
+      <BaseSpinner size="sm" />
+    </div>
+
+    <!-- Link to Full Page -->
+    <NuxtLink
+      to="/workspaces"
+      class="dropdown-item dropdown-item-sm text-primary"
+      data-test-id="all-workspaces-link"
+    >
+      <FeatherIcon icon="arrow-right" size="14" class="me-1" />
+      All Workspaces
+    </NuxtLink>
+  </li>
+</template>
+
+<style scoped>
+.workspace-current {
+  border-left: 3px solid var(--bs-success);
+}
+
+.dropdown-item-sm {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+}
+</style>
+```
+
+**Usage in app layout:**
+
+```vue
+<LoginState>
+  <template #workspace-section>
+    <WorkspaceMenuSection />
+  </template>
+</LoginState>
+```
+
+**Benefits of slot-based approach:**
+- 🔌 **Plug-and-play** - Drop WorkspaceMenuSection into any project with a user dropdown
+- ♻️ **Reusable** - LoginState works with or without workspace functionality
+- 🎯 **Single responsibility** - Workspace logic separated from user menu
+- 🧪 **Testable** - Test components independently
+- 📦 **Extractable** - Easy to publish as npm package or copy to other projects
+- 🎨 **Customizable** - Different projects can provide different workspace UI
+
 **[`WorkspaceSelector.vue`](../../src/FrontEnd.Nuxt/app/components/WorkspaceSelector.vue):**
 - **Option A:** Remove entirely (workspace switching only in LoginState)
 - **Option B:** Keep as simpler "current workspace display only" (no switching functionality)
