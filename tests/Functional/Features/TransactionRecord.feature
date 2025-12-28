@@ -98,6 +98,17 @@ Rule: Transaction Details Page
         Then I should see "Chase Visa" as the Source
         And I should see "VISA-123" as the ExternalId
 
+    Scenario: User edits category on transaction details page
+        Given I am viewing the details page for a transaction with:
+            | Field    | Value      |
+            | Payee    | Hardware   |
+            | Amount   | -89.99     |
+            | Category | Tools      |
+        When I click the "Edit" button
+        And I change Category to "Home Improvement"
+        And I click "Save"
+        Then I should see "Home Improvement" as the Category
+
     Scenario: User returns to list from transaction details page
         Given I am viewing the details page for a transaction
         When I click "Back to Transactions"

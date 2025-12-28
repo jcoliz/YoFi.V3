@@ -230,6 +230,34 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     }
 
     /// <summary>
+    /// User edits category on transaction details page
+    /// </summary>
+    [Test]
+    public async Task UserEditsCategoryOnTransactionDetailsPage()
+    {
+        // Given I am viewing the details page for a transaction with:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Hardware"],
+            ["Amount", "-89.99"],
+            ["Category", "Tools"]
+        );
+        await GivenIAmViewingTheDetailsPageForATransactionWith(table);
+
+        // When I click the "Edit" button
+        await WhenIClickTheEditButton();
+
+        // And I change Category to "Home Improvement"
+        await WhenIChangeCategoryTo("Home Improvement");
+
+        // And I click "Save"
+        await WhenIClickSave();
+
+        // Then I should see "Home Improvement" as the Category
+        await ThenIShouldSeeValueAsField("Home Improvement", "Category");
+    }
+
+    /// <summary>
     /// User returns to list from transaction details page
     /// </summary>
     [Test]
