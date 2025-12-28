@@ -622,7 +622,31 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>Locator for the transaction row</returns>
     public ILocator GetTransactionRow(string transactionKey)
     {
+        // TODO: Better would be to start from TransactionTable not Page
         return Page!.GetByTestId($"transaction-row-{transactionKey}");
+    }
+
+    public async Task WaitForTransactionRowByKeyAsync(Guid transactionKey, float timeout = 5000)
+    {
+        var row = GetTransactionRow(transactionKey.ToString());
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Clear cached table data to ensure fresh data on next query
+        _cachedTableData = null;
+    }
+
+    public async Task<Guid> GetTransactionKeyByPayeeAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        var testId = await row.GetAttributeAsync("data-test-id") ?? throw new InvalidOperationException("Transaction row missing data-test-id attribute");
+
+        // TODO: Compiled regex for consistency
+        var match = Regex.Match(testId, @"transaction-row-([0-9a-fA-F\-]{36})");
+        if (match.Success && Guid.TryParse(match.Groups[1].Value, out var transactionKey))
+        {
+            return transactionKey;
+        }
+        throw new ArgumentException($"Transaction key not found or invalid for payee '{payeeName}'");
     }
 
     /// <summary>
@@ -1057,8 +1081,17 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task WaitForTransactionAsync(string payeeName, float timeout = 5000)
     {
-        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        // We can't use GetTransactionCountAsync here because that now presumes the table is loaded.
+        // We need to make a locator for the specific row and wait for it to appear.
+
+        // The locator is TransactionRows filtered where 2nd TD has exact match on payeeName
+        var row = TransactionsTable.Locator($"tbody tr:has(td:nth-child(2):text-is('{payeeName}'))");
+
         await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // We only call this when we're loading. So clear the cached table to force
+        // a reload next time.
+        _cachedTableData = null;
     }
 
     /// <summary>

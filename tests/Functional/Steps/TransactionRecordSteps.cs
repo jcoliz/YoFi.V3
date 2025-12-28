@@ -449,18 +449,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // And: Click on the transaction row to navigate to details
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
 
-        // TODO: Refactor
-        var r = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee);
+        // And: Row is loaded
+        await transactionsPage.WaitForTransactionAsync(payee);
 
-        if (r == null)
-        {
-            // Need a better way to be *sure* the row is loaded.
-            await Task.Delay(100);
-            await transactionsPage.ReloadTransactionTableDataAsync();
-            r = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee) ?? throw new Exception($"Transaction row with payee '{payee}' not found.");
-        }
+        // And: Get the row data
+        var row = await transactionsPage.GetTransactionRowByPayeeAsync(payee);
 
-        await r.RowLocator.ClickAsync();
+        await row.ClickAsync();
     }
 
     /// <summary>
