@@ -557,7 +557,6 @@ Note: Use Gherkin **Rule** keyword to group related scenarios that test the same
    - Test project READMEs - New test patterns
 3. **Script Documentation:** If new scripts were created, update [`scripts/README.md`](../../scripts/README.md)
 4. **Architectural Decisions:** If significant design decisions were made, consider creating ADR in [`docs/adr/`](../adr/)
-5. **Product Roadmap:** Update [`docs/PRODUCT-ROADMAP.md`](../PRODUCT-ROADMAP.md) to reflect progress
 
 **Reference:** See XML Documentation Comments Pattern in [`.roorules`](../../.roorules)
 
@@ -600,6 +599,8 @@ Note: Use Gherkin **Rule** keyword to group related scenarios that test the same
    ```
 
 **Final Commit:** Present complete implementation summary to user for final review and commit.
+
+> [!TODO] Orchestrator failed to hand off updating the PRD. Also didn't instruct code mode to make a commit.
 
 ---
 

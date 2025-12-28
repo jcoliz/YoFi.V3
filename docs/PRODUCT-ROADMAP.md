@@ -206,12 +206,12 @@ My general practice is to break release miletones down into iterations as it app
 | Story 1 - Represent Imported Data               | A1        | 1         | ✅ Implemented       |
 | Story 2 - Add Additional Information            | A1        | 2         | ✅ Implemented       |
 | Story 3 - Manage Transactions                   | A1        | 3         | ✅ Implemented       |
-| **Transaction Splits**                          |           |           | 🎨 Design Complete   |
+| **Transaction Splits**                          |           |           | 🚧 In Progress       |
 | Story 1 - Split Single Transaction              | B2        |           | 🎨 Design Complete   |
 | Story 2 - View Category Reports                 | -         |           | 🚫 Superseded        |
-| Story 3 - Simple Single-Category Workflow       | A1        | 1         | 🎨 Design Complete   |
+| Story 3 - Simple Single-Category Workflow       | A1        | 1         | ✅ Implemented       |
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
-| Story 5 - Import Transactions with Splits       | A1        | 1         | 🎨 Design Complete   |
+| Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
 | Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
 | **Transaction Filtering**                       |           |           | 🎨 Design Complete   |
 | Story 1 - Quick Text Search                     | A1        | 2         | 🎨 Design Complete   |

@@ -1,11 +1,12 @@
 ---
-status: Approved (Detailed design complete)
+status: Implemented (Alpha-1)
 owner: James Coliz
 target_release: Beta 2
 ado: "[Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits"
-functional_test_plan: TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
-functional_test_implementation_plan: TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
-
+references:
+  - TRANSACTION-SPLIT-DESIGN.md
+  - TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
+  - TRANSACTION-SPLITS-ALPHA1-SUMMARY.md
 ---
 
 # Product Requirements Document: Transaction Splits
@@ -22,16 +23,61 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 ### Goals
 - [ ] Enable transactions to be split across multiple categories with individual amounts
-- [ ] Maintain simple UX for the common case (single category per transaction)
-- [ ] Support category-based reporting (primary use case for personal finance)
-- [ ] Preserve imported transaction amount as authoritative source of truth
-- [ ] Detect and warn users about unbalanced transactions (splits don't sum to transaction amount)
+- [x] Maintain simple UX for the common case (single category per transaction) - **Alpha-1 Complete**
+- [x] Support category-based reporting (primary use case for personal finance) - **Alpha-1 Complete**
+- [x] Preserve imported transaction amount as authoritative source of truth - **Alpha-1 Complete**
+- [ ] Detect and warn users about unbalanced transactions (splits don't sum to transaction amount) - **Beta-2 Planned**
 
 ### Non-Goals
 - Category hierarchies or parent/child relationships (future enhancement)
 - Split templates or saved patterns (future enhancement)
 - ML-based category suggestions (future enhancement)
 - Multi-currency support (out of scope for V3)
+
+---
+
+## Implementation Status
+
+### Alpha-1 Release ✅ Complete
+
+**Scope**: Single-split per transaction workflow (Stories 3 & 5)
+
+**Stories Implemented**:
+- ✅ **Story 3**: User - Simple Single-Category Workflow
+  - Transactions auto-create single split with category
+  - Category sanitization implemented (whitespace, capitalization, hierarchy delimiters)
+  - UI simplified for single-category use case
+
+- ✅ **Story 5**: User - Import Transactions with Splits
+  - Imported transactions get single uncategorized split
+  - Transaction amount preserved as authoritative
+  - Source field available for import tracking
+
+**Components Delivered**:
+- Database: Split entity, migration, indexes
+- Backend: TransactionsFeature with split auto-creation, CategoryHelper sanitization
+- Controllers: Updated CRUD endpoints with category support
+- Frontend: Transaction list/detail pages with category display/edit
+- Tests: 105 tests across all layers (39% unit, 30.5% data integration, 20% controller integration, 10.5% functional)
+
+**Documentation**:
+- [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) - Complete implementation details
+- [`TRANSACTION-SPLITS-ALPHA1-SUMMARY.md`](TRANSACTION-SPLITS-ALPHA1-SUMMARY.md) - Implementation summary
+
+### Beta-2 Release (Planned)
+
+**Remaining Stories**:
+- [ ] **Story 1**: User - Split Single Transaction (multi-split support)
+- [ ] **Story 2**: User - View Category Reports (superseded by Reports feature)
+- [ ] **Story 4**: User - Detect Unbalanced Transactions
+- [ ] **Story 6**: User - Upload splits (bulk import from Excel)
+
+**Planned Components**:
+- Split CRUD UI (add/edit/delete splits in transaction detail)
+- Multi-split display in transaction list
+- Balance validation and warnings
+- Excel upload endpoint and UI
+
 
 ---
 
@@ -58,17 +104,17 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 > [!WARNING] This story is superseded by the [Reports](../reports/PRD-REPORTS.md) feature.
 
-### Story 3: User - Simple Single-Category Workflow
+### Story 3: User - Simple Single-Category Workflow ✅ Alpha-1 Complete
 **As a** casual user
 **I want** to create and edit transactions without thinking about splits
 **So that** I can quickly record transactions without complexity
 
 **Acceptance Criteria**:
-- [ ] Creating a transaction automatically creates a single split (user doesn't see split complexity)
-- [ ] Editing single-category transaction amount updates the single split automatically
-- [ ] UI hides split complexity for transactions with only one split
-- [ ] Can optionally provide category on transaction creation (flows to the split)
-- [ ] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)
+- [x] Creating a transaction automatically creates a single split (user doesn't see split complexity)
+- [x] Editing single-category transaction amount updates the single split automatically
+- [x] UI hides split complexity for transactions with only one split
+- [x] Can optionally provide category on transaction creation (flows to the split)
+- [x] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)
 
 ### Story 4: User - Detect Unbalanced Transactions
 **As a** detail-oriented user
@@ -81,16 +127,18 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Warning is prominent but doesn't block saving (user's choice to fix later)
 - [ ] After editing split amount, balance status updates immediately
 
-### Story 5: User - Import Transactions with Splits
+### Story 5: User - Import Transactions with Splits ✅ Alpha-1 Complete
 **As a** power user
 **I want** to import transactions from my bank and then categorize them with splits
 **So that** I can efficiently process monthly statements
 
 **Acceptance Criteria**:
-- [ ] Imported transactions have single uncategorized split by default
-- [ ] Imported transaction amount is preserved (authoritative)
-- [ ] User can add splits to imported transactions
-- [ ] Source field indicates import origin (e.g., "MegaBankCorp Checking 0123456789-00")
+- [x] Imported transactions have single uncategorized split by default
+- [x] Imported transaction amount is preserved (authoritative)
+- [ ] User can add splits to imported transactions (Beta-2: multi-split UI)
+- [x] Source field indicates import origin (e.g., "MegaBankCorp Checking 0123456789-00")
+
+> [!NOTE]: This story covers *readiness* for importing. User cannot actually import anything until that feature is complete.
 
 ### Story 6: User - Upload splits
 **As a** detail-oriented user
