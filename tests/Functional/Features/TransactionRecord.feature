@@ -12,7 +12,7 @@ Background:
     And I am logged in as a user with "Editor" role
 
 Rule: Quick Edit Modal
-    The quick edit modal should only show Payee and Memo fields for rapid updates
+    The quick edit modal should only show Payee, Category, and Memo fields for rapid updates
 
     Scenario: Quick edit modal shows Payee, Category, and Memo fields
         Given I have a workspace with a transaction:
@@ -55,6 +55,9 @@ Rule: Quick Edit Modal
         And I click "Update"
         Then the modal should close
         And I should see the updated category in the transaction list
+
+Rule: Transaction Details Page
+    Users can view, edit, and navigate transaction details
 
     Scenario: Transaction details page displays category
         Given I have a workspace with a transaction:

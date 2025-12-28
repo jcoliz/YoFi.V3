@@ -23,7 +23,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     }
 
     #region Rule: Quick Edit Modal
-    // The quick edit modal should only show Payee and Memo fields for rapid updates
+    // The quick edit modal should only show Payee, Category, and Memo fields for rapid updates
 
     /// <summary>
     /// Quick edit modal shows Payee, Category, and Memo fields
@@ -129,6 +129,11 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         // And I should see the updated category in the transaction list
         await ThenIShouldSeeTheUpdatedCategoryInTheTransactionList();
     }
+
+    #endregion
+
+    #region Rule: Transaction Details Page
+    // Users can view, edit, and navigate transaction details
 
     /// <summary>
     /// Transaction details page displays category
