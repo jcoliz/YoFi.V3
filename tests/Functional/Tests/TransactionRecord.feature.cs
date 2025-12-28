@@ -80,8 +80,8 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         // And I am on the transactions page
         await GivenIAmOnTheTransactionsPage();
 
-        // When I quick edit the "Coffee Co" transaction
-        await WhenIQuickEditTheTransaction("Coffee Co");
+        // When I quick edit the transaction
+        await WhenIQuickEditTheTransaction();
 
         // And I change Memo to "Large latte with extra shot"
         await WhenIChangeMemoTo("Large latte with extra shot");
@@ -217,7 +217,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     /// User creates transaction with all fields populated
     /// </summary>
     [Test]
-    public async Task User_creates_transaction_with_all_fields_populated()
+    public async Task UserCreatesTransactionWithAllFieldsPopulated()
     {
         // Given I am on the transactions page
         await GivenIAmOnTheTransactionsPage();
@@ -231,6 +231,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Date", "2024-06-15"],
             ["Payee", "Office Depot"],
             ["Amount", "250.75"],
+            ["Category", "Office Supplies"],
             ["Memo", "Printer paper and toner"],
             ["Source", "Business Card"],
             ["External ID", "OD-2024-0615-001"]
@@ -245,13 +246,16 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
 
         // And I should see a transaction with Payee "Office Depot"
         await ThenIShouldSeeATransactionWithPayee("Office Depot");
+
+        // And it contains the expected list fields
+        await ThenItContainsTheExpectedListFields();
     }
 
     /// <summary>
     /// Created transaction displays all fields on details page
     /// </summary>
     [Test]
-    public async Task Created_transaction_displays_all_fields_on_details_page()
+    public async Task CreatedTransactionDisplaysAllFieldsOnDetailsPage()
     {
         // Given I am on the transactions page
         await GivenIAmOnTheTransactionsPage();
@@ -265,6 +269,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Date", "2024-06-15"],
             ["Payee", "Office Depot"],
             ["Amount", "250.75"],
+            ["Category", "Office Supplies"],
             ["Memo", "Printer paper and toner"],
             ["Source", "Business Card"],
             ["External ID", "OD-2024-0615-001"]

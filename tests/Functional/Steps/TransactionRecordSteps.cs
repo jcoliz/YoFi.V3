@@ -3,6 +3,7 @@ using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Helpers;
+using static YoFi.V3.Tests.Functional.Pages.TransactionsPage;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
@@ -131,18 +132,18 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         var seededTransaction = seededTransactions.First();
         var actualPayee = seededTransaction.Payee;
         var actualAmount = seededTransaction.Amount;
+        var actualCategory = seededTransaction.Category;
+        var actualMemo = seededTransaction.Memo;
 
         // And: Store actual transaction data for verification (from seeded response, not input table)
         _objectStore.Add(KEY_TRANSACTION_PAYEE, actualPayee);
         _objectStore.Add(KEY_TRANSACTION_AMOUNT, actualAmount.ToString("F2"));
-        if (!string.IsNullOrEmpty(memo))
-            _objectStore.Add(KEY_TRANSACTION_MEMO, memo);
+        _objectStore.Add(KEY_TRANSACTION_CATEGORY, actualCategory);
+        _objectStore.Add(KEY_TRANSACTION_MEMO, actualMemo);
         if (!string.IsNullOrEmpty(source))
             _objectStore.Add(KEY_TRANSACTION_SOURCE, source);
         if (!string.IsNullOrEmpty(externalId))
             _objectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, externalId);
-        if (!string.IsNullOrEmpty(category))
-            _objectStore.Add(KEY_TRANSACTION_CATEGORY, category);
 
         // Store the transaction key for later reference
         _objectStore.Add(KEY_TRANSACTION_KEY, seededTransaction.Key.ToString());
@@ -250,11 +251,13 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// Locates the transaction by payee and opens the edit modal.
     /// </remarks>
     [When("I quick edit the {payee} transaction")]
-    protected async Task WhenIQuickEditTheTransaction(string payee)
+    protected async Task WhenIQuickEditTheTransaction(string payee = null)
     {
+        var actualPayee = payee ?? GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+
         // When: Locate and click the edit button for the transaction
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
-        await transactionsPage.OpenEditModalAsync(payee);
+        await transactionsPage.OpenEditModalAsync(actualPayee);
     }
 
     /// <summary>
@@ -445,7 +448,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         // And: Click on the transaction row to navigate to details
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
-        var row = transactionsPage.GetTransactionRowByPayee(payee);
+        var row = await transactionsPage.GetTransactionRowByPayeeAsync(payee);
         await row.ClickAsync();
     }
 
@@ -462,7 +465,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     {
         // When: Click on the transaction row to navigate to details
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
-        var row = transactionsPage.GetTransactionRowByPayee(payee);
+        var row = await transactionsPage.GetTransactionRowByPayeeAsync(payee);
         await row.ClickAsync();
     }
 
@@ -602,6 +605,11 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
                 case "Amount":
                     await transactionsPage.FillCreateAmountAsync(decimal.Parse(value));
                     _objectStore.Add(KEY_TRANSACTION_AMOUNT, value);
+                    break;
+
+                case "Category":
+                    await transactionsPage.FillCreateCategoryAsync(value);
+                    _objectStore.Add(KEY_TRANSACTION_CATEGORY, value);
                     break;
 
                 case "Memo":
@@ -1169,6 +1177,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
                 "Date" => await transactionsPage.CreateDateInput.IsVisibleAsync(),
                 "Payee" => await transactionsPage.CreatePayeeInput.IsVisibleAsync(),
                 "Amount" => await transactionsPage.CreateAmountInput.IsVisibleAsync(),
+                "Category" => await transactionsPage.CreateCategoryInput.IsVisibleAsync(),
                 "Memo" => await transactionsPage.CreateMemoInput.IsVisibleAsync(),
                 "Source" => await transactionsPage.CreateSourceInput.IsVisibleAsync(),
                 "External ID" => await transactionsPage.CreateExternalIdInput.IsVisibleAsync(),
@@ -1184,7 +1193,8 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// </summary>
     /// <param name="payee">The payee name to search for.</param>
     /// <remarks>
-    /// Waits for the transaction to appear in the list and verifies it is visible.
+    /// Waits for the transaction to appear in the list, verifies it is visible, and stores
+    /// all list-visible fields (Date, Amount, Category, Memo) in the object store for later verification.
     /// Used after creating a new transaction to verify it was successfully added.
     /// </remarks>
     [Then("I should see a transaction with Payee {payee}")]
@@ -1194,12 +1204,70 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
 
         // And: Wait for the transaction to appear in the list
-        await transactionsPage.WaitForTransactionAsync(payee);
+        var rowData = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee);
+
+        if (rowData == null)
+        {
+            await Task.Delay(100);
+            rowData = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee) ?? throw new Exception($"Transaction with payee '{payee}' not found in the list");
+        }
 
         // And: Verify the transaction is visible
-        var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+        var hasTransaction = await rowData.RowLocator.IsVisibleAsync();
         Assert.That(hasTransaction, Is.True,
             $"Transaction with payee '{payee}' should be visible in the transaction list");
+
+        // And: Store expected values in object store for later verification
+        _objectStore.Add(rowData);
+
+    }
+
+    /// <summary>
+    /// Verifies that the transaction list fields match the expected values from object store.
+    /// </summary>
+    /// <remarks>
+    /// Compares the actual list fields (stored by ThenIShouldSeeATransactionWithPayee) against
+    /// the expected values (stored during transaction creation). Verifies Date, Amount, Category,
+    /// and Memo fields that are displayed in the transaction list.
+    /// </remarks>
+    [Then("it contains the expected list fields")]
+    protected async Task ThenItContainsTheExpectedListFields()
+    {
+        // Then: Get actual values from object store (fetched from page in previous step)
+        var rowData = _objectStore.Get<TransactionRowData>();
+
+        // And: Get expected values from object store (set during creation)
+
+        // And: Verify Category if it was set during creation
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_CATEGORY))
+        {
+            var actualCategory = rowData.Columns["category"];
+            var expectedCategory = _objectStore.Get<string>(KEY_TRANSACTION_CATEGORY);
+            Assert.That(actualCategory, Is.EqualTo(expectedCategory),
+                $"Category in list should be '{expectedCategory}' but was '{actualCategory}'");
+        }
+
+        // And: Verify Memo if it was set during creation
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_MEMO))
+        {
+            var actualMemo = rowData.Columns["memo"];
+            var expectedMemo = _objectStore.Get<string>(KEY_TRANSACTION_MEMO);
+            Assert.That(actualMemo, Is.EqualTo(expectedMemo),
+                $"Memo in list should be '{expectedMemo}' but was '{actualMemo}'");
+        }
+
+        // And: Verify Amount (always set during creation)
+        if (_objectStore.Contains<string>(KEY_TRANSACTION_AMOUNT))
+        {
+            var actualAmount = rowData.Columns["amount"].Replace("$","").Trim();
+            var expectedAmount = _objectStore.Get<string>(KEY_TRANSACTION_AMOUNT);
+            // Amount may have currency formatting, so check if actual contains expected
+            Assert.That(actualAmount, Does.Contain(expectedAmount),
+                $"Amount in list should contain '{expectedAmount}' but was '{actualAmount}'");
+        }
+
+        // Note: Date verification is complex due to formatting differences, skipping for now
+        await Task.CompletedTask;
     }
 
     #endregion

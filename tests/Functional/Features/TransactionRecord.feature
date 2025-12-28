@@ -37,7 +37,7 @@ Rule: Quick Edit Modal
             | Source     | Chase Checking |
             | ExternalId | CHK-001        |
         And I am on the transactions page
-        When I quick edit the "Coffee Co" transaction
+        When I quick edit the transaction
         And I change Memo to "Large latte with extra shot"
         And I click "Update"
         Then the modal should close
@@ -100,12 +100,14 @@ Rule: Users can create new transactions with all transaction record fields
             | Date        | 2024-06-15              |
             | Payee       | Office Depot            |
             | Amount      | 250.75                  |
+            | Category    | Office Supplies         |
             | Memo        | Printer paper and toner |
             | Source      | Business Card           |
             | External ID | OD-2024-0615-001        |
         And I click "Save"
         Then the modal should close
         And I should see a transaction with Payee "Office Depot"
+        And it contains the expected list fields
 
     Scenario: Created transaction displays all fields on details page
         Given I am on the transactions page

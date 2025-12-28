@@ -518,14 +518,20 @@ function formatCurrency(amount: number | undefined): string {
             >
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Payee</th>
-                  <th class="text-end">Amount</th>
-                  <th>Category</th>
-                  <th>Memo</th>
+                  <th data-test-id="date">Date</th>
+                  <th data-test-id="payee">Payee</th>
+                  <th
+                    data-test-id="amount"
+                    class="text-end"
+                  >
+                    Amount
+                  </th>
+                  <th data-test-id="category">Category</th>
+                  <th data-test-id="memo">Memo</th>
                   <th
                     v-if="canEditTransactions"
                     class="text-end"
+                    data-test-id="actions"
                   >
                     Actions
                   </th>

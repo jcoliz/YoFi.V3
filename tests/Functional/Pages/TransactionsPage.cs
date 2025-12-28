@@ -21,6 +21,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/Transactions/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
     private static partial Regex SingleTransactionApiRegex();
 
+    /// <summary>
+    /// Cached transaction table data to avoid reloading on every query
+    /// </summary>
+    private TransactionTableData? _cachedTableData;
+
     #region Components
 
     /// <summary>
@@ -158,6 +163,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// External ID input in create modal
     /// </summary>
     public ILocator CreateExternalIdInput => Page!.GetByTestId("create-transaction-external-id");
+
+    /// <summary>
+    /// Category input in create modal
+    /// </summary>
+    public ILocator CreateCategoryInput => Page!.GetByLabel("Category");
 
     /// <summary>
     /// Create button in modal
@@ -423,6 +433,18 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Fills the category field in the create transaction modal
+    /// </summary>
+    /// <param name="category">Transaction category</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form submission or validation.
+    /// </remarks>
+    public async Task FillCreateCategoryAsync(string category)
+    {
+        await CreateCategoryInput.FillAsync(category);
+    }
+
+    /// <summary>
     /// Clicks the create button and waits for the create transaction API call
     /// </summary>
     /// <remarks>
@@ -482,6 +504,118 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     #region Transaction Row Helpers
 
     /// <summary>
+    /// Represents a row in the transactions table with column data indexed by data-test-id
+    /// </summary>
+    public class TransactionRowData
+    {
+        /// <summary>
+        /// Dictionary of column data-test-id to cell text content
+        /// </summary>
+        public Dictionary<string, string> Columns { get; } = new();
+
+        /// <summary>
+        /// The row index (0-based) in the table
+        /// </summary>
+        public int RowIndex { get; set; }
+
+        /// <summary>
+        /// Gets the Playwright locator for this specific row
+        /// </summary>
+        public required ILocator RowLocator { get; init; }
+    }
+
+    /// <summary>
+    /// Represents the loaded transaction table data with column index mapping
+    /// </summary>
+    public class TransactionTableData
+    {
+        /// <summary>
+        /// List of all transaction rows
+        /// </summary>
+        public List<TransactionRowData> Rows { get; init; } = new();
+
+        /// <summary>
+        /// Mapping from column data-test-id to column index (0-based)
+        /// </summary>
+        public Dictionary<string, int> ColumnIndexMap { get; init; } = new();
+    }
+
+    /// <summary>
+    /// Loads all transaction table data into memory for LINQ querying
+    /// </summary>
+    /// <param name="forceReload">If true, bypasses cache and reloads from DOM</param>
+    /// <returns>Transaction table data with rows and column mappings</returns>
+    private async Task<TransactionTableData> LoadTransactionTableDataAsync(bool forceReload = false)
+    {
+        if (!forceReload && _cachedTableData != null)
+        {
+            return _cachedTableData;
+        }
+
+        var result = new TransactionTableData();
+
+        // Get column mapping: data-test-id -> index and index -> data-test-id
+        var headers = TransactionsTable.Locator("thead th");
+        var headerCount = await headers.CountAsync();
+        var indexToTestId = new Dictionary<int, string>(); // index -> data-test-id
+
+        for (int i = 0; i < headerCount; i++)
+        {
+            var header = headers.Nth(i);
+            var testId = await header.GetAttributeAsync("data-test-id");
+            if (!string.IsNullOrEmpty(testId))
+            {
+                indexToTestId[i] = testId;
+                result.ColumnIndexMap[testId] = i;
+            }
+        }
+
+        // Load all row data
+        var rows = TransactionRows;
+        var rowCount = await rows.CountAsync();
+
+        for (int rowIdx = 0; rowIdx < rowCount; rowIdx++)
+        {
+            var row = rows.Nth(rowIdx);
+            var rowData = new TransactionRowData
+            {
+                RowIndex = rowIdx,
+                RowLocator = row
+            };
+
+            var cells = row.Locator("td");
+            var cellCount = await cells.CountAsync();
+
+            for (int colIdx = 0; colIdx < cellCount; colIdx++)
+            {
+                if (indexToTestId.TryGetValue(colIdx, out var columnTestId))
+                {
+                    var cell = cells.Nth(colIdx);
+                    var cellText = await cell.TextContentAsync();
+                    rowData.Columns[columnTestId] = cellText?.Trim() ?? "";
+                }
+            }
+
+            result.Rows.Add(rowData);
+        }
+
+        _cachedTableData = result;
+        return result;
+    }
+
+    /// <summary>
+    /// Reloads the transaction table data from the DOM, bypassing the cache
+    /// </summary>
+    /// <remarks>
+    /// Call this method after operations that modify the table (create, update, delete)
+    /// to ensure subsequent queries reflect the current state of the table.
+    /// </remarks>
+    public async Task ReloadTransactionTableDataAsync()
+    {
+        await LoadTransactionTableDataAsync(forceReload: true);
+    }
+
+    /// <summary>
     /// Gets a transaction row by transaction key
     /// </summary>
     /// <param name="transactionKey">The key (GUID) of the transaction</param>
@@ -496,9 +630,66 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     /// <param name="payeeName">The payee name to search for</param>
     /// <returns>Locator for the transaction row</returns>
-    public ILocator GetTransactionRowByPayee(string payeeName)
+    public async Task<ILocator> GetTransactionRowByPayeeAsync(string payeeName)
     {
-        return TransactionRows.Filter(new() { HasText = payeeName });
+        var tableData = await LoadTransactionTableDataAsync();
+        var rowData = tableData.Rows.FirstOrDefault(r => r.Columns.TryGetValue("payee", out var payee) && payee == payeeName);
+
+        if (rowData == null)
+        {
+            // Return a locator that won't match anything
+            return TransactionRows.Filter(new() { HasText = $"__PAYEE_NOT_FOUND_{payeeName}__" });
+        }
+
+        return rowData.RowLocator;
+    }
+
+    /// <summary>
+    /// Gets a specific cell in the transactions table by row (payee) and column (data-test-id)
+    /// </summary>
+    /// <param name="payee">The payee name to identify the row</param>
+    /// <param name="column">The data-test-id of the column header (e.g., "category", "amount")</param>
+    /// <returns>Locator for the table cell at the intersection of the specified row and column</returns>
+    /// <remarks>
+    /// This method loads the table data and finds the correct cell by matching payee in the payee column,
+    /// then uses the pre-loaded column index mapping to efficiently locate the cell.
+    /// Example: TransactionsTableCell("Acme Corp", "category") returns the category cell for Acme Corp's row.
+    /// </remarks>
+    public async Task<ILocator> TransactionsTableCell(string payee, string column)
+    {
+        var tableData = await LoadTransactionTableDataAsync();
+        var rowData = tableData.Rows.FirstOrDefault(r => r.Columns.TryGetValue("payee", out var p) && p == payee);
+
+        if (rowData == null)
+        {
+            throw new ArgumentException($"Transaction row with payee '{payee}' not found");
+        }
+
+        if (!tableData.ColumnIndexMap.TryGetValue(column, out var columnIndex))
+        {
+            throw new ArgumentException($"Column with data-test-id '{column}' not found in table headers");
+        }
+
+        return rowData.RowLocator.Locator("td").Nth(columnIndex);
+    }
+
+    public async Task<string> TransactionsTableCellText(string payee, string column)
+    {
+        var tableData = await LoadTransactionTableDataAsync();
+        var rowData = tableData.Rows.FirstOrDefault(r => r.Columns.TryGetValue("payee", out var p) && p == payee);
+
+        if (rowData == null)
+        {
+            throw new ArgumentException($"Transaction row with payee '{payee}' not found");
+        }
+
+        return rowData.Columns.TryGetValue(column, out var cellText) ? cellText : throw new ArgumentException($"Column with data-test-id '{column}' not found in row for payee '{payee}'");
+    }
+
+    public async Task<TransactionRowData?> GetTransactionRowDataByPayeeAsync(string payeeName)
+    {
+        var tableData = await LoadTransactionTableDataAsync();
+        return tableData.Rows.FirstOrDefault(r => r.Columns.TryGetValue("payee", out var payee) && payee == payeeName);
     }
 
     /// <summary>
@@ -508,7 +699,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>True if the transaction is visible, false otherwise</returns>
     public async Task<bool> HasTransactionAsync(string payeeName)
     {
-        return await GetTransactionRowByPayee(payeeName).IsVisibleAsync();
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return await row.IsVisibleAsync();
     }
 
     /// <summary>
@@ -516,9 +708,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     /// <param name="payeeName">The payee name of the transaction</param>
     /// <returns>Locator for the Edit button</returns>
-    public ILocator GetEditButton(string payeeName)
+    public async Task<ILocator> GetEditButton(string payeeName)
     {
-        return GetTransactionRowByPayee(payeeName).GetByTestId("edit-transaction-button");
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return row.GetByTestId("edit-transaction-button");
     }
 
     /// <summary>
@@ -526,9 +719,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     /// <param name="payeeName">The payee name of the transaction</param>
     /// <returns>Locator for the Delete button</returns>
-    public ILocator GetDeleteButton(string payeeName)
+    public async Task<ILocator> GetDeleteButton(string payeeName)
     {
-        return GetTransactionRowByPayee(payeeName).GetByTestId("delete-transaction-button");
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return row.GetByTestId("delete-transaction-button");
     }
 
     #endregion
@@ -545,7 +739,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task OpenEditModalAsync(string payeeName)
     {
-        await GetEditButton(payeeName).ClickAsync();
+        var editButton = await GetEditButton(payeeName);
+        await editButton.ClickAsync();
         await EditModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
@@ -672,7 +867,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task OpenDeleteModalAsync(string payeeName)
     {
-        await GetDeleteButton(payeeName).ClickAsync();
+        var deleteButton = await GetDeleteButton(payeeName);
+        await deleteButton.ClickAsync();
         await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
@@ -792,7 +988,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>The date text as displayed in the table</returns>
     public async Task<string?> GetTransactionDateAsync(string payeeName)
     {
-        var row = GetTransactionRowByPayee(payeeName);
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
         var dateCell = row.Locator("td").First;
         return await dateCell.TextContentAsync();
     }
@@ -804,7 +1000,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>The amount text as displayed in the table (e.g., "$100.00")</returns>
     public async Task<string?> GetTransactionAmountAsync(string payeeName)
     {
-        var row = GetTransactionRowByPayee(payeeName);
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
         var amountCell = row.Locator("td.text-end").First;
         return await amountCell.TextContentAsync();
     }
@@ -816,9 +1012,22 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>The memo text as displayed in the table (may be truncated)</returns>
     public async Task<string?> GetTransactionMemoAsync(string payeeName)
     {
-        var row = GetTransactionRowByPayee(payeeName);
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
         var memoCell = row.Locator("td.memo-cell");
         return await memoCell.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the category text from a transaction row by payee name
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction</param>
+    /// <returns>The category text as displayed in the table</returns>
+    public async Task<string?> GetTransactionCategoryAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        // Category is the 3rd column (index 2): Date, Payee, Category, Amount, Memo, Actions
+        var categoryCell = row.Locator("td").Nth(2);
+        return await categoryCell.TextContentAsync();
     }
 
     /// <summary>
@@ -848,7 +1057,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task WaitForTransactionAsync(string payeeName, float timeout = 5000)
     {
-        await GetTransactionRowByPayee(payeeName).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        await row.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
     }
 
     /// <summary>
@@ -907,7 +1117,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// This button should only be available to users with Editor or Owner roles.
     /// Viewers should not have access to edit transactions.
     /// </remarks>
-    public Task<bool> IsEditAvailableAsync(string payeeName) => IsAvailableAsync(GetEditButton(payeeName));
+    public async Task<bool> IsEditAvailableAsync(string payeeName)
+    {
+        var editButton = await GetEditButton(payeeName);
+        return await IsAvailableAsync(editButton);
+    }
 
     /// <summary>
     /// Checks if the Delete button for a specific transaction is available for interaction.
@@ -918,7 +1132,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// This button should only be available to users with Owner role.
     /// Editors and Viewers should not have access to delete transactions.
     /// </remarks>
-    public Task<bool> IsDeleteAvailableAsync(string payeeName) => IsAvailableAsync(GetDeleteButton(payeeName));
+    public async Task<bool> IsDeleteAvailableAsync(string payeeName)
+    {
+        var deleteButton = await GetDeleteButton(payeeName);
+        return await IsAvailableAsync(deleteButton);
+    }
 
     #endregion
 }
