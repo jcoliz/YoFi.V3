@@ -84,11 +84,22 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
     /// <summary>
     /// Seeds a transaction with specified fields into the current workspace.
     /// </summary>
-    /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId.</param>
+    /// <param name="transactionTable">DataTable with Field/Value columns containing transaction properties.</param>
     /// <remarks>
-    /// Parses transaction data from table, seeds via Test Control API, and stores transaction
+    /// <para>Parses transaction data from table, seeds via Test Control API, and stores transaction
     /// details in object store for later verification. Does NOT navigate to transactions page -
-    /// use "And I am on the transactions page" step separately. Default amount is 100.00 if not specified.
+    /// use "And I am on the transactions page" step separately. Default amount is 100.00 if not specified.</para>
+    /// <para><strong>Table Format:</strong> Two columns "Field" and "Value" with rows for each property.</para>
+    /// <para><strong>Required Fields:</strong> Payee</para>
+    /// <para><strong>Optional Fields:</strong> Amount, Category, Memo, Source, ExternalId</para>
+    /// <para><strong>Example:</strong></para>
+    /// <code>
+    /// | Field    | Value           |
+    /// | Payee    | Coffee Shop     |
+    /// | Amount   | 5.50            |
+    /// | Category | Beverages       |
+    /// | Memo     | Morning coffee  |
+    /// </code>
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
     protected async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
@@ -258,6 +269,24 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         // When: Locate and click the edit button for the transaction
         var transactionsPage = GetOrCreatePage<TransactionsPage>();
         await transactionsPage.OpenEditModalAsync(actualPayee);
+    }
+
+    /// <summary>
+    /// Changes the category field in the quick edit modal.
+    /// </summary>
+    /// <param name="newCategory">The new category value.</param>
+    /// <remarks>
+    /// Fills the category field and stores the new value in object store for verification.
+    /// </remarks>
+    [When("I change Category to {newCategory}")]
+    protected async Task WhenIChangeCategoryTo(string newCategory)
+    {
+        // When: Fill the category field
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.FillEditCategoryAsync(newCategory);
+
+        // And: Store the new category for verification
+        _objectStore.Add(KEY_TRANSACTION_CATEGORY, newCategory);
     }
 
     /// <summary>
@@ -824,6 +853,32 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         Assert.That(actualMemo?.Trim(), Is.EqualTo(expectedMemo),
             $"Expected memo to be '{expectedMemo}' but was '{actualMemo}'");
+    }
+
+    /// <summary>
+    /// Verifies that the updated category appears in the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the payee and new category from object store, waits for page to update,
+    /// and verifies the category in the transaction list matches the updated value.
+    /// </remarks>
+    [Then("I should see the updated category in the transaction list")]
+    protected async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
+    {
+        // Then: Get the payee and new category from object store
+        var payee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+        var expectedCategory = GetRequiredFromStore(KEY_TRANSACTION_CATEGORY);
+
+        // And: Wait for page to update (loading spinner to hide)
+        var transactionsPage = GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+        await transactionsPage.WaitForTransactionAsync(payee);
+
+        // And: Verify the category in the transaction list
+        var actualCategory = await transactionsPage.GetTransactionCategoryAsync(payee);
+
+        Assert.That(actualCategory?.Trim(), Is.EqualTo(expectedCategory),
+            $"Expected category to be '{expectedCategory}' but was '{actualCategory}'");
     }
 
     /// <summary>

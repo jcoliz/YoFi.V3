@@ -821,6 +821,19 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Fills the category field in the edit transaction modal
+    /// </summary>
+    /// <param name="newCategory">New category name</param>
+    /// <remarks>
+    /// Single action method. Use this when you need to test partial form updates or validation.
+    /// Must be called after OpenEditModalAsync.
+    /// </remarks>
+    public async Task FillEditCategoryAsync(string newCategory)
+    {
+        await EditCategoryInput.FillAsync(newCategory);
+    }
+
+    /// <summary>
     /// Clicks the update button and waits for the update transaction API call
     /// </summary>
     /// <remarks>
@@ -1048,10 +1061,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>The category text as displayed in the table</returns>
     public async Task<string?> GetTransactionCategoryAsync(string payeeName)
     {
-        var row = await GetTransactionRowByPayeeAsync(payeeName);
-        // Category is the 3rd column (index 2): Date, Payee, Category, Amount, Memo, Actions
-        var categoryCell = row.Locator("td").Nth(2);
-        return await categoryCell.TextContentAsync();
+        return await TransactionsTableCellText(payeeName, "category");
     }
 
     /// <summary>

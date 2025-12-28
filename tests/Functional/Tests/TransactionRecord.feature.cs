@@ -97,6 +97,40 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     }
 
     /// <summary>
+    /// User edits category via quick edit and sees it in list
+    /// </summary>
+    [Test]
+    public async Task UserEditsCategoryViaQuickEditAndSeesItInList()
+    {
+        // Given I have a workspace with a transaction:
+        var table = new DataTable(
+            ["Field", "Value"],
+            ["Payee", "Grocery Co"],
+            ["Amount", "-45.67"],
+            ["Category", "Food"]
+        );
+        await GivenIHaveAWorkspaceWithATransaction(table);
+
+        // And I am on the transactions page
+        await GivenIAmOnTheTransactionsPage();
+
+        // When I quick edit the transaction
+        await WhenIQuickEditTheTransaction();
+
+        // And I change Category to "Groceries"
+        await WhenIChangeCategoryTo("Groceries");
+
+        // And I click "Update"
+        await WhenIClickUpdate();
+
+        // Then the modal should close
+        await ThenTheModalShouldClose();
+
+        // And I should see the updated category in the transaction list
+        await ThenIShouldSeeTheUpdatedCategoryInTheTransactionList();
+    }
+
+    /// <summary>
     /// User navigates from transaction list to details page
     /// </summary>
     [Test]

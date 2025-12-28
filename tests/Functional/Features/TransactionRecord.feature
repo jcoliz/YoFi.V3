@@ -43,6 +43,19 @@ Rule: Quick Edit Modal
         Then the modal should close
         And I should see the updated memo in the transaction list
 
+    Scenario: User edits category via quick edit and sees it in list
+        Given I have a workspace with a transaction:
+            | Field    | Value       |
+            | Payee    | Grocery Co  |
+            | Amount   | -45.67      |
+            | Category | Food        |
+        And I am on the transactions page
+        When I quick edit the transaction
+        And I change Category to "Groceries"
+        And I click "Update"
+        Then the modal should close
+        And I should see the updated category in the transaction list
+
     Scenario: User navigates from transaction list to details page
         Given I have a workspace with a transaction:
             | Field      | Value          |
