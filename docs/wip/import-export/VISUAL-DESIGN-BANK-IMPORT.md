@@ -73,6 +73,25 @@ When any potential duplicates exist, show alert box above table:
 
 **Comparison view**: Not implemented (deferred to future enhancement)
 
+**Selection Status Persistence**:
+- **Across pagination**: YES - Use client-side state (Vue reactive state)
+- **Across navigation**: YES - Use session storage (cleared on browser close)
+- **Across browser visits**: NO (Allowed, not required) - Session storage is cleared when browser closes
+
+> [!TODO]: Move below section to detailed design doc when we have that
+
+- **Implementation**: Session storage with tenant-scoped key `import-review-selections-{tenantKey}`
+  - Store array of selected transaction Keys: `["guid1", "guid2", "guid3"]`
+  - On page load: Restore selections from session storage
+  - On checkbox change: Update session storage immediately
+  - On import/delete: Clear session storage
+- **Why session storage instead of database**:
+  - Selection state is UI state, not domain data
+  - No need for server-side tracking or persistence
+  - Simpler implementation (no API calls on every checkbox toggle)
+  - Automatically cleared when user closes browser/tab
+  - Works offline (no network dependency for checkbox changes)
+
 ## Action Buttons
 
 **Placement**: Above table, right side
