@@ -50,6 +50,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     protected const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
     protected const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
     protected const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
+    protected const string KEY_TRANSACTION_TEST_ID = "TransactionTestId";
 
     #endregion
 
@@ -837,7 +838,10 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         // Wait for the updated transaction to appear in the list
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        await transactionsPage.WaitForTransactionAsync(newPayee);
+
+        // TODO: Refactor
+        var testid = _objectStore.Get<string>(KEY_TRANSACTION_TEST_ID);
+        await Page.GetByTestId(testid).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
 
         _objectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
     }
@@ -855,6 +859,11 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var payee = GetLastTransactionPayee();
 
         var transactionsPage = GetOrCreateTransactionsPage();
+
+        // TODO: Refactor
+        var testid = _objectStore.Get<string>(KEY_TRANSACTION_TEST_ID);
+        await Page.GetByTestId(testid).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
         await transactionsPage.DeleteTransactionAsync(payee);
     }
 
@@ -1229,7 +1238,24 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         // Wait for the transaction to appear in the list
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        await transactionsPage.WaitForTransactionAsync(payee);
+        // In fact we have no perfectly reliable way of waiting.
+
+        // TODO: Refactor
+        var r = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee);
+
+        if (r == null)
+        {
+            // Need a better way to be *sure* the row is loaded.
+            await Task.Delay(100);
+            await transactionsPage.ReloadTransactionTableDataAsync();
+            r = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee);
+            if (r == null)
+            {
+                Assert.Fail("Transaction row did not appear in the list after waiting");
+            }
+        }
+        var testId = await r!.RowLocator.GetAttributeAsync("data-test-id") ?? throw new InvalidOperationException("Transaction row missing data-test-id attribute");
+        _objectStore.Add(KEY_TRANSACTION_TEST_ID, testId);
 
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
         Assert.That(hasTransaction, Is.True, "Transaction should be visible in the list");
@@ -1251,6 +1277,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         // Prior operation awaits the loading spinner being being hidden.
         // Maybe that's not enough time for the updated transaction to appear.
+
+        // TODO: Refactor
+        var testid = _objectStore.Get<string>(KEY_TRANSACTION_TEST_ID);
+        await Page.GetByTestId(testid).WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+        await transactionsPage.ReloadTransactionTableDataAsync();
+
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
 
         Assert.That(hasTransaction, Is.True, "Updated transaction should be visible");
