@@ -14,4 +14,9 @@ public class OfxParsingError
     /// Error code or type.
     /// </summary>
     public string? Code { get; init; }
+
+    /// <summary>
+    /// Name of the file where the error occurred.
+    /// </summary>
+    public string? FileName { get; init; }
 }

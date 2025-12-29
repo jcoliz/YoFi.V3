@@ -63,6 +63,9 @@ public class OfxParsingServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Errors, Is.Not.Empty);
         Assert.That(result.Errors.Count, Is.GreaterThan(0));
+
+        // And: Error should include the file name
+        Assert.That(result.Errors.First().FileName, Is.EqualTo("invalid.ofx"));
     }
 
     [Test]
@@ -1029,6 +1032,80 @@ public class OfxParsingServiceTests
         var txn = result.Transactions.First();
         Assert.That(txn.UniqueId, Is.EqualTo("TXN001"),
             "When FITID is present, it should be used as UniqueId");
+    }
+
+    [Test]
+    public async Task ParseAsync_TransactionWithoutPayee_ErrorIncludesFileName()
+    {
+        // Given: An OFX document with a transaction that has no NAME and no MEMO
+        var ofxContent = """
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>Test Bank<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTID>9876543210
+            <ACCTTYPE>CHECKING
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20231101120000
+            <DTEND>20231130120000
+            <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20231115120000
+            <TRNAMT>-50.00
+            <FITID>TXN001
+            </STMTTRN>
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX document
+        var result = await service.ParseAsync(stream, "missing-payee.ofx");
+
+        // Then: Should have an error about missing payee
+        Assert.That(result.Errors, Is.Not.Empty);
+        Assert.That(result.Errors.First().Message, Does.Contain("has no payee"));
+
+        // And: Error should include the file name
+        Assert.That(result.Errors.First().FileName, Is.EqualTo("missing-payee.ofx"));
+
+        // And: Transaction should be skipped
+        Assert.That(result.Transactions, Is.Empty);
     }
 
     #endregion

@@ -126,7 +126,8 @@ public class OfxParsingService : IOfxParsingService
                                 var date = DateOnly.FromDateTime(dateTime);
                                 errors.Add(new OfxParsingError
                                 {
-                                    Message = $"Transaction on {date:yyyy-MM-dd} has no payee name (NAME and MEMO fields both missing or empty)"
+                                    Message = $"Transaction on {date:yyyy-MM-dd} has no payee name (NAME and MEMO fields both missing or empty)",
+                                    FileName = fileName
                                 });
                                 continue; // Skip this transaction
                             }
@@ -155,7 +156,8 @@ public class OfxParsingService : IOfxParsingService
         {
             errors.Add(new OfxParsingError
             {
-                Message = $"Failed to parse OFX document: {ex.Message}"
+                Message = $"Failed to parse OFX document: {ex.Message}",
+                FileName = fileName
             });
         }
 
