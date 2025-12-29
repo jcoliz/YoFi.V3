@@ -102,7 +102,14 @@ public async Task ParseAsync_ValidOFXFile_ReturnsTransactions()
 
 **File:** [`tests/Unit/ImportReviewFeatureTests.cs`](../../../tests/Unit/ImportReviewFeatureTests.cs) (new file)
 
-**Method Under Test:** `ImportReviewFeature.DetectDuplicate()` (private static method - test via public ImportFileAsync)
+**Method Under Test:** `ImportReviewFeature.DetectDuplicate()`
+
+**Testing Approach:** Make `DetectDuplicate()` `internal` and test it directly using `InternalsVisibleTo`. This provides better test isolation, clearer failure messages, and easier edge case setup compared to testing through the public `ImportFileAsync()` method.
+
+**Setup Required:**
+- Add `[assembly: InternalsVisibleTo("YoFi.V3.Tests.Unit")]` to Application project's AssemblyInfo.cs
+- Change method signature from `private static` to `internal static`
+- Test directly: `var duplicates = ImportReviewFeature.DetectDuplicate(importDto, existing, pending);`
 
 **Test Cases:**
 
@@ -116,65 +123,59 @@ Scenario: Import file async with new transaction is marked as new
     And transaction should have null DuplicateOfKey
 ```
 
-**Test 2: Exact duplicate (same FITID and same data)**
+**Test 2: Exact duplicate against main Transaction table**
 ```gherkin
-Scenario: Import file async with exact duplicate with FITID is marked as exact duplicate
-    Given existing transaction with FITID "FITID12345"
+Scenario: Import file async with exact duplicate in main table is marked as exact duplicate
+    Given existing transaction in main Transaction table with FITID "FITID12345"
+    And no pending import review transactions
     And OFX file with transaction having same FITID and matching data
     When file is imported
     Then transaction should be marked as DuplicateStatus.ExactDuplicate
     And should reference the existing transaction's Key
 ```
 
-**Test 3: Potential duplicate (same FITID, different amount)**
+**Test 3: Potential duplicate against main Transaction table**
 ```gherkin
-Scenario: Import file async with same FITID different amount is marked as potential duplicate
-    Given existing transaction with FITID "FITID12345" and amount $50.00
+Scenario: Import file async with potential duplicate in main table is marked as potential duplicate
+    Given existing transaction in main Transaction table with FITID "FITID12345" and amount $50.00
+    And no pending import review transactions
     And OFX file with same FITID but amount $55.00 (bank correction?)
     When file is imported
     Then transaction should be marked as DuplicateStatus.PotentialDuplicate
     And should reference the existing transaction's Key for user review
 ```
 
-**Test 4: Field-level duplicate (no FITID, same Date+Amount+Payee)**
+**Test 4: Exact duplicate against pending import review table**
 ```gherkin
-Scenario: Import file async with no FITID but same data is marked as potential duplicate
-    Given existing transaction without FITID (Date: 2024-01-15, Amount: $50.00, Payee: "Amazon")
-    And OFX file with transaction (no FITID) with matching Date, Amount, Payee
-    When file is imported
-    Then transaction should be marked as PotentialDuplicate (likely duplicate)
-    And should reference the existing transaction's Key
-```
-
-**Test 5: Duplicate in pending import review (prevents double import)**
-```gherkin
-Scenario: Import file async with duplicate in pending imports is marked as duplicate
-    Given pending import review transaction with FITID "FITID12345"
-    And OFX file with transaction having same FITID
+Scenario: Import file async with exact duplicate in pending imports is marked as exact duplicate
+    Given pending import review transaction with FITID "FITID12345" and amount $50.00
+    And OFX file with transaction having same FITID and matching data
     When second file is imported (same session)
-    Then transaction should be marked as duplicate of pending import
+    Then transaction should be marked as DuplicateStatus.ExactDuplicate
     And should reference the pending import transaction's Key
 ```
 
-### Test Group 3: Transaction Field Extraction and Validation
-
-**File:** [`tests/Unit/ImportReviewFeatureTests.cs`](../../../tests/Unit/ImportReviewFeatureTests.cs)
-
-**Test 6: Missing required field (amount)**
+**Test 5: Potential duplicate against pending import review table**
 ```gherkin
-Scenario: Import file async with missing amount returns error
-    Given OFX file with transaction missing amount field
-    When file is imported
-    Then should return error in parsing result
-    # Note: Error details handled by OFXParsingService
+Scenario: Import file async with potential duplicate in pending imports is marked as potential duplicate
+    Given pending import review transaction with FITID "FITID12345" and amount $50.00
+    And OFX file with same FITID but amount $55.00 (bank correction?)
+    When second file is imported (same session)
+    Then transaction should be marked as DuplicateStatus.PotentialDuplicate
+    And should reference the pending import transaction's Key for user review
 ```
 
-**Test 7: Missing required field (date)**
+**Test 6: One incoming transaction matches multiple existing duplicates**
 ```gherkin
-Scenario: Import file async with missing date returns error
-    Given OFX file with transaction missing date field
+Scenario: Import file async with one incoming transaction matching multiple existing duplicates
+    Given 3 existing transactions in main Transaction table all with FITID "FITID12345" with different dates
+    And transactions are dated: 2024-01-15, 2024-01-20, 2024-01-25
+    And no pending import review transactions
+    And OFX file with one transaction having FITID "FITID12345"
     When file is imported
-    Then should return error in parsing result
+    Then transaction should be marked as duplicate (ExactDuplicate or PotentialDuplicate based on data match)
+    And DuplicateOfKey should reference the most recent matching transaction (dated 2024-01-25)
+    And a warning should be logged indicating multiple matches were found
 ```
 
 ## Integration Tests - Data Layer (3-5 tests)
@@ -301,6 +302,8 @@ Scenario: Upload bank file unauthenticated returns unauthorized
     Then 401 Unauthorized should be returned
 ```
 
+**Note:** This test might return 403 Forbidden instead of 401 Unauthorized depending on the authentication middleware configuration. Both are acceptable responses for unauthenticated requests in this context.
+
 **Test 7: Tenant isolation - Different tenant forbidden**
 ```gherkin
 Scenario: Upload bank file different tenant returns forbidden
@@ -366,9 +369,10 @@ Scenario: Get import review as viewer returns forbidden
 **Test 13: Tenant isolation - Only shows user's tenant data**
 ```gherkin
 Scenario: Get import review different tenant returns empty
-    Given user has Editor role for tenant A
+    Given user A has Editor role for tenant A
+    And user A also has Editor role for tenant B
     And tenant B has pending import review transactions
-    When user A requests import review for their tenant
+    When user A requests import review for tenant A
     Then 200 OK should be returned
     And should not see tenant B's transactions (isolation)
 ```
@@ -416,7 +420,8 @@ Scenario: Complete review empty selection returns bad request
 **Test 17: Tenant isolation - Cannot complete other tenant's review**
 ```gherkin
 Scenario: Complete review different tenant returns forbidden
-    Given user has Editor role for tenant A
+    Given user A has Editor role for tenant A
+    And user A has no role on tenant B
     And tenant B has pending import review transactions
     When user A attempts to complete tenant B's review
     Then 403 Forbidden should be returned (tenant isolation)

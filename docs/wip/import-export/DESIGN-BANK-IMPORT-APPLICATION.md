@@ -246,37 +246,89 @@ Check if the incoming `TransactionImportDto.ExternalId` matches any existing `Tr
 
 ### Performance Strategy
 
-**Batch Query Approach:**
+**Batch Query Approach (SQL):**
 ```sql
--- Single batch query for ALL imported transactions
+-- Optimized queries that select only the most recent transaction per ExternalId
 -- Check Transaction table
 SELECT ExternalId, Key, Date, Amount, Payee
-FROM Transactions
-WHERE TenantId = @tenantId
-  AND ExternalId IN (@uniqueId1, @uniqueId2, ..., @uniqueIdN)
+FROM (
+    SELECT ExternalId, Key, Date, Amount, Payee,
+           ROW_NUMBER() OVER (PARTITION BY ExternalId ORDER BY Date DESC) AS rn
+    FROM Transactions
+    WHERE TenantId = @tenantId
+      AND ExternalId IN (@uniqueId1, @uniqueId2, ..., @uniqueIdN)
+) AS ranked
+WHERE rn = 1
 
 -- Check ImportReviewTransaction table
 SELECT ExternalId, Key, Date, Amount, Payee
-FROM ImportReviewTransactions
-WHERE TenantId = @tenantId
-  AND ExternalId IN (@uniqueId1, @uniqueId2, ..., @uniqueIdN)
+FROM (
+    SELECT ExternalId, Key, Date, Amount, Payee,
+           ROW_NUMBER() OVER (PARTITION BY ExternalId ORDER BY Date DESC) AS rn
+    FROM ImportReviewTransactions
+    WHERE TenantId = @tenantId
+      AND ExternalId IN (@uniqueId1, @uniqueId2, ..., @uniqueIdN)
+) AS ranked
+WHERE rn = 1
 ```
+
+**Equivalent LINQ Queries (Server-Side Translation):**
+```csharp
+// Get most recent existing transaction per ExternalId
+// Using subquery approach that translates reliably to SQL
+var existingTransactions = await dataProvider
+    .Query<Transaction>()
+    .Where(t => t.TenantId == tenantId && externalIds.Contains(t.ExternalId))
+    .Where(t => !dataProvider.Query<Transaction>()
+        .Any(t2 => t2.TenantId == tenantId
+                && t2.ExternalId == t.ExternalId
+                && t2.Date > t.Date))  // No other transaction with same ExternalId and later date
+    .ToDictionaryAsync(t => t.ExternalId, t => t);
+
+// Get most recent pending import per ExternalId
+var pendingImports = await dataProvider
+    .Query<ImportReviewTransaction>()
+    .Where(t => t.TenantId == tenantId && externalIds.Contains(t.ExternalId))
+    .Where(t => !dataProvider.Query<ImportReviewTransaction>()
+        .Any(t2 => t2.TenantId == tenantId
+                && t2.ExternalId == t.ExternalId
+                && t2.Date > t.Date))
+    .ToDictionaryAsync(t => t.ExternalId, t => t);
+```
+
+**Note:** These queries use a subquery with NOT EXISTS pattern that reliably translates to efficient SQL in all EF Core versions. The pattern selects transactions where no other transaction exists with the same ExternalId and a later Date, effectively selecting the most recent per ExternalId.
+
+**Translation:** EF Core translates this to SQL similar to:
+```sql
+SELECT * FROM Transactions t1
+WHERE TenantId = @tenantId
+  AND ExternalId IN (...)
+  AND NOT EXISTS (
+    SELECT 1 FROM Transactions t2
+    WHERE t2.TenantId = t1.TenantId
+      AND t2.ExternalId = t1.ExternalId
+      AND t2.Date > t1.Date
+  )
+```
+
+This approach is semantically equivalent to the ROW_NUMBER() window function but translates reliably across all EF Core versions and database providers.
 
 **Algorithm:**
 1. Parse entire OFX file to get all `TransactionImportDto` records
 2. Execute batch queries with all ExternalIds (one for Transactions, one for ImportReviewTransactions)
-3. Build in-memory lookups from results using `ILookup<string, Transaction>` and `ILookup<string, ImportReviewTransaction>` keyed by ExternalId (supports multiple transactions with same ExternalId)
-4. For each imported transaction, lookup importDto.ExternalId in both lookups (O(1) key lookup, returns all matches)
-5. For each match found, determine DuplicateStatus (ExactDuplicate, PotentialDuplicate, or New) based on field comparison
+   - Queries use ROW_NUMBER() window function to select only the most recent transaction per ExternalId
+3. Build in-memory dictionaries from results using `Dictionary<string, Transaction>` and `Dictionary<string, ImportReviewTransaction>` keyed by ExternalId
+4. For each imported transaction, lookup importDto.ExternalId in both dictionaries (O(1) key lookup, returns single most recent match)
+5. For the match found (if any), determine DuplicateStatus (ExactDuplicate, PotentialDuplicate, or New) based on field comparison
 6. Create ImportReviewTransaction records with appropriate DuplicateStatus
 
 **Performance Benefits:**
 - **2 queries total** regardless of import size (one per table)
 - No N+1 query problem
 - IN clause uses index seek (efficient for batches of 100-1000)
+- ROW_NUMBER() window function efficiently selects most recent per ExternalId
 - Tenant-scoped queries filter to small result sets
-- ILookup key lookup is O(1), returns all matches for that key (handles multiple duplicates efficiently)
-- For 500 transactions: ILookup = 500 O(1) lookups, Collection iteration = 500 * O(N) scans
+- Dictionary key lookup is O(1), returns single most recent match
 - All matching happens in-memory after data retrieval (fast)
 - Typical import (100-500 transactions) completes in milliseconds
 
@@ -415,16 +467,16 @@ public class ImportReviewFeature(
     /// Detects duplicate status for a single imported transaction by checking it against existing data.
     /// </summary>
     /// <param name="importDto">The imported transaction to check.</param>
-    /// <param name="existingTransactionsByExternalId">Lookup of existing transactions grouped by ExternalId (from batch query).</param>
-    /// <param name="pendingImportsByExternalId">Lookup of pending imports grouped by ExternalId (from batch query).</param>
+    /// <param name="existingTransactionsByExternalId">Dictionary of most recent existing transactions by ExternalId (from batch query with ROW_NUMBER filter).</param>
+    /// <param name="pendingImportsByExternalId">Dictionary of most recent pending imports by ExternalId (from batch query with ROW_NUMBER filter).</param>
     /// <returns>
     /// A tuple containing the duplicate status and the key of the duplicate transaction (if any).
     /// Returns (DuplicateStatus.New, null) if no duplicates are found.
     /// </returns>
-    private static (DuplicateStatus Status, Guid? DuplicateOfKey) DetectDuplicate(
+    internal static (DuplicateStatus Status, Guid? DuplicateOfKey) DetectDuplicate(
         TransactionImportDto importDto,
-        ILookup<string, Transaction> existingTransactionsByExternalId,
-        ILookup<string, ImportReviewTransaction> pendingImportsByExternalId);
+        IReadOnlyDictionary<string, Transaction> existingTransactionsByExternalId,
+        IReadOnlyDictionary<string, ImportReviewTransaction> pendingImportsByExternalId);
 }
 ```
 
@@ -460,9 +512,26 @@ Use this method when the user wants to completely cancel/discard the current imp
 
 ### DetectDuplicate Implementation Notes
 
-This is a helper method called once per imported transaction. The lookups passed to this method are built from batch query results in ImportFileAsync - this method performs O(1) key lookups only.
+This is a helper method called once per imported transaction. The dictionaries passed to this method are built from batch query results in `ImportFileAsync` - the database queries use ROW_NUMBER() window functions to select only the most recent transaction per ExternalId, so this method performs simple O(1) dictionary lookups.
 
-Performs O(1) lookup of importDto.ExternalId (FITID) in both lookups, which returns all transactions with that ExternalId (handles multiple duplicates). For each match found, compares Date/Amount/Payee to determine ExactDuplicate vs PotentialDuplicate. See "Duplicate Detection Strategy" section for detailed logic and example scenarios.
+**Algorithm:**
+1. Perform O(1) lookup of `importDto.ExternalId` (FITID) in `existingTransactionsByExternalId` dictionary
+2. If found, compare Date/Amount/Payee to determine ExactDuplicate vs PotentialDuplicate
+3. If not found in existing transactions, check `pendingImportsByExternalId` dictionary
+4. If found in pending imports, compare fields to determine duplicate status
+5. If not found in either dictionary, return DuplicateStatus.New
+
+**Handling Multiple Duplicate Matches:**
+
+The database queries (using ROW_NUMBER() with ORDER BY Date DESC) pre-select the **most recent transaction** per ExternalId before data reaches this method. This optimization:
+- Simplifies the duplicate detection logic (single match per ExternalId)
+- Ensures the most relevant duplicate is selected (most recent by date)
+- Eliminates the need for in-memory multiple-match handling
+- Improves performance (smaller dictionaries, faster lookups)
+
+The batch query approach handles the rare edge case of multiple duplicates with the same ExternalId at the database level, providing a clean single-match result to the application logic.
+
+See "Duplicate Detection Strategy" section for detailed matching logic and example scenarios.
 
 ## References
 

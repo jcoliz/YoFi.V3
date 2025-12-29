@@ -91,6 +91,11 @@ The page is organized into distinct components, each with a single responsibilit
    - "Delete All" and "Import" buttons
    - Props: `hasTransactions`, `hasSelections`, `loading`, `uploading`
    - Emits `@import`, `@deleteAll` to parent
+   - **Button states:**
+     - "Import" button is **disabled** when `hasSelections === false` (no transactions selected)
+     - "Import" button is **disabled** when `loading === true` or `uploading === true`
+     - "Delete All" button is **disabled** when `hasTransactions === false`
+     - "Delete All" button is **disabled** when `loading === true` or `uploading === true`
    - Import-specific because of button combination and enable/disable logic
 
 ### Component Organization
