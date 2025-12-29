@@ -52,9 +52,28 @@ public class OfxParsingService : IOfxParsingService
             var document = OfxDocumentReader.ReadFile(fileStream);
 
             // Extract transactions from all statements
-            // For now, just successfully parse the document (test 4)
-            // Transaction extraction will be added in later tests
-
+            if (document?.Statements != null)
+            {
+                foreach (var statement in document.Statements)
+                {
+                    if (statement?.Transactions != null)
+                    {
+                        foreach (var transaction in statement.Transactions)
+                        {
+                            // For now, only extract the date (Test 5)
+                            // More fields will be added in subsequent tests
+                            var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
+                            transactions.Add(new TransactionImportDto
+                            {
+                                Date = DateOnly.FromDateTime(dateTime),
+                                Amount = 0m,  // Will be implemented in Test 6
+                                Payee = string.Empty,  // Will be implemented in Test 7
+                                Source = string.Empty  // Will be implemented in Test 9
+                            });
+                        }
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {

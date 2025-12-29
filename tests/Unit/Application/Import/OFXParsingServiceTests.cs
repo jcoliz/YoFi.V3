@@ -120,11 +120,10 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 5 - Implement transaction date extraction")]
     public async Task ParseAsync_SingleTransaction_ExtractsDate()
     {
         // Given: An OFX document with a single transaction containing a date
-        var expectedDate = new DateTime(2023, 11, 15);
+        var expectedDate = new DateOnly(2023, 11, 15);
         var ofxContent = $"""
             OFXHEADER:100
             DATA:OFXSGML
@@ -147,6 +146,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -165,6 +169,10 @@ public class OfxParsingServiceTests
             <NAME>Test Payee
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -177,6 +185,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with correct date extracted
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.Count, Is.EqualTo(1));
         Assert.That(result.Transactions.First().Date, Is.EqualTo(expectedDate));

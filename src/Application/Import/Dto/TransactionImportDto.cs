@@ -6,9 +6,9 @@ namespace YoFi.V3.Application.Import.Dto;
 public class TransactionImportDto
 {
     /// <summary>
-    /// Transaction date.
+    /// Transaction date (date only, time component is discarded from OFX).
     /// </summary>
-    public required DateTime Date { get; init; }
+    public required DateOnly Date { get; init; }
 
     /// <summary>
     /// Transaction amount (negative for debits, positive for credits).
