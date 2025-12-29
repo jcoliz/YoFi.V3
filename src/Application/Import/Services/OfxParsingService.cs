@@ -60,14 +60,34 @@ public class OfxParsingService : IOfxParsingService
                     {
                         foreach (var transaction in statement.Transactions)
                         {
-                            // Extract date and amount (Tests 5-6)
-                            // More fields will be added in subsequent tests
+                            // Extract date, amount, and payee (Tests 5-7)
+                            // Payee is required - use NAME field, fallback to MEMO, otherwise skip with error
                             var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
+                            var payee = transaction.Name;
+
+                            // If NAME is missing or empty, try MEMO as fallback
+                            if (string.IsNullOrWhiteSpace(payee))
+                            {
+                                payee = transaction.Memo;
+                            }
+
+                            // If still no payee, skip this transaction with error
+                            if (string.IsNullOrWhiteSpace(payee))
+                            {
+                                var date = DateOnly.FromDateTime(dateTime);
+                                errors.Add(new OfxParsingError
+                                {
+                                    Message = $"Transaction on {date:yyyy-MM-dd} has no payee name (NAME and MEMO fields both missing or empty)"
+                                });
+                                continue; // Skip this transaction
+                            }
+
+                            // More fields will be added in subsequent tests
                             transactions.Add(new TransactionImportDto
                             {
                                 Date = DateOnly.FromDateTime(dateTime),
                                 Amount = transaction.Amount,
-                                Payee = string.Empty,  // Will be implemented in Test 7
+                                Payee = payee,
                                 Source = string.Empty  // Will be implemented in Test 9
                             });
                         }

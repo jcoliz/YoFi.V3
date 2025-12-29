@@ -263,7 +263,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 7 - Implement payee extraction from NAME field")]
     public async Task ParseAsync_SingleTransaction_ExtractsPayee()
     {
         // Given: An OFX document with a single transaction containing NAME field
@@ -329,6 +328,77 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with payee extracted from NAME field
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+        Assert.That(result.Transactions, Is.Not.Empty);
+        Assert.That(result.Transactions.First().Payee, Is.EqualTo(expectedPayee));
+    }
+
+    [Test]
+    public async Task ParseAsync_SingleTransaction_UsesMemoAsFallbackWhenNameMissing()
+    {
+        // Given: An OFX document with a transaction that has MEMO but no NAME field
+        var expectedPayee = "Transaction memo text";
+        var ofxContent = $"""
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>Test Bank<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTID>9876543210
+            <ACCTTYPE>CHECKING
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20231101120000
+            <DTEND>20231130120000
+            <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20231115120000
+            <TRNAMT>-50.00
+            <FITID>TXN001
+            <MEMO>{expectedPayee}
+            </STMTTRN>
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX document
+        var result = await service.ParseAsync(stream, "memo-fallback.ofx");
+
+        // Then: Should use MEMO as payee since NAME is missing
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.First().Payee, Is.EqualTo(expectedPayee));
