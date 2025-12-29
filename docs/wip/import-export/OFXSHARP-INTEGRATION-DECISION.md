@@ -184,14 +184,28 @@ This temporary approach provides maximum development flexibility while maintaini
 ## Implementation Plan
 
 **Completed so far**
-1.
+1. Added ofxsharp as submodule
 
 **Strict TDD Plan**
-1. Create unit tests which each cover an small increment of the expected OFX parsing functionality. Mark them as `[Explicit]`.
-2. Implement only the bare minimum OFXParsingService or IOFXParsingService as needed to **compile**.
-3. One at a time, get each test (in order) to passing by implementing *only* the bare minimum to get the test to pass. Iterate until all tests passing.
-4. Then add the example files to the test project
+1. Create unit tests which each cover an small increment of the expected OFX parsing functionality. Mark them as `[Explicit]`. Use Existing tests/Unit/
+2. Implement only the bare minimum OFXParsingService or IOFXParsingService as needed to **compile** in Service Location: src/Application/Import/Services/IOFXParsingService.cs and OFXParsingService.cs. Bodies should throw notimplemented exceptions
+3. One at a time, get each test (in order) to passing by implementing *only* the bare minimum to get the test to pass. Iterate until all tests passing. This applies to DTOs, and all code. We only implement the bare minimum needed to pass the test. If/when DTOs are needed to pass a test, we add it or expand existing DTO.
+4. Then add the example files to the test project, currently in docs\wip\import-export\examples but should move permanently to test sample data location.
 5. Add unit tests for each file. These *should* pass, if everything else we did above was correct. Else, iterate these to passing, one at a time.
+6. Service Registration: Add to ServiceCollectionExtensions.cs after all tests pass
+
+**Proposed Test Sequence (Simplest → Complex):**
+- Parse null/empty stream → returns empty result
+- Parse invalid OFX → returns error result
+- Parse OFX with zero transactions → returns empty transaction list
+- Parse OFX with single transaction → extracts Date
+- Parse OFX with single transaction → extracts Amount
+- Parse OFX with single transaction → extracts Payee (NAME field)
+- Parse OFX with single transaction → extracts Memo
+- Parse OFX with single transaction → builds Source string (bank + account type + ID)
+- Parse OFX with multiple transactions → returns all
+- Parse OFX with multiple accounts → handles each account separately
+- Parse all 6 example files → validates real-world data
 
 ### Phase 1: Add Submodule
 
