@@ -3,6 +3,12 @@ status: Approved
 owner: James Coliz
 target_release: Beta 2
 ado: TBD
+references:
+- VISUAL-DESIGN-BANK-IMPORT.md
+- MOCKUP-BANK-IMPORT.md
+- IMPORT-REVIEW-DATA-MODEL.md
+- OFX-LIBRARY-EVALUATION.md
+
 ---
 
 # Product Requirements Document: Transaction Bank Import

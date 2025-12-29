@@ -956,5 +956,80 @@ public class OfxParsingServiceTests
         Assert.That(result.Transactions.All(t => t.Amount != 0), Is.True);
     }
 
+    [Test]
+    public async Task ParseAsync_TransactionsWithFitid_UsesFitidAsUniqueId()
+    {
+        // Given: An OFX document with transactions that have valid FITIDs
+        var ofxContent = """
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>Test Bank<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTID>9876543210
+            <ACCTTYPE>CHECKING
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20231101120000
+            <DTEND>20231130120000
+            <STMTTRN>
+            <TRNTYPE>DEBIT
+            <DTPOSTED>20231115120000
+            <TRNAMT>-50.00
+            <FITID>TXN001
+            <NAME>Test Payee
+            <MEMO>Test memo
+            </STMTTRN>
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX document
+        var result = await service.ParseAsync(stream, "with-fitid.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+        Assert.That(result.Transactions.Count, Is.EqualTo(1));
+
+        // And: Transaction should use FITID as UniqueId (not generate a hash)
+        var txn = result.Transactions.First();
+        Assert.That(txn.UniqueId, Is.EqualTo("TXN001"),
+            "When FITID is present, it should be used as UniqueId");
+    }
+
     #endregion
 }

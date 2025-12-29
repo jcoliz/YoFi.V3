@@ -1,5 +1,7 @@
 namespace YoFi.V3.Application.Import.Services;
 
+using System.Security.Cryptography;
+using System.Text;
 using OfxSharp;
 using YoFi.V3.Application.Import.Dto;
 
@@ -129,9 +131,15 @@ public class OfxParsingService : IOfxParsingService
                                 continue; // Skip this transaction
                             }
 
+                            // Generate UniqueId: use FITID if available, otherwise hash the transaction data
+                            var uniqueId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
+                                ? transaction.TransactionId
+                                : GenerateTransactionHash(dateTime, transaction.Amount, payee, memo ?? string.Empty, source);
+
                             // All fields extracted (Tests 5-9)
                             transactions.Add(new TransactionImportDto
                             {
+                                UniqueId = uniqueId,
                                 Date = DateOnly.FromDateTime(dateTime),
                                 Amount = transaction.Amount,
                                 Payee = payee,
@@ -158,5 +166,24 @@ public class OfxParsingService : IOfxParsingService
         };
 
         return Task.FromResult(parseResult);
+    }
+
+    /// <summary>
+    /// Generates a unique hash for a transaction based on its key fields.
+    /// </summary>
+    /// <remarks>
+    /// Used when FITID is not available from the OFX file.
+    /// The hash is computed from date, amount, payee, memo, and source to ensure
+    /// identical transactions produce the same hash for duplicate detection.
+    /// </remarks>
+    private static string GenerateTransactionHash(DateTime date, decimal amount, string payee, string memo, string source)
+    {
+        // Create a stable string representation of the transaction
+        var dataString = $"{date:yyyy-MM-ddTHH:mm:ss}|{amount:F2}|{payee}|{memo}|{source}";
+        var bytes = Encoding.UTF8.GetBytes(dataString);
+        var hashBytes = SHA256.HashData(bytes);
+
+        // Convert to hex string
+        return Convert.ToHexString(hashBytes);
     }
 }
