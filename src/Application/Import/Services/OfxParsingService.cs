@@ -60,15 +60,22 @@ public class OfxParsingService : IOfxParsingService
                     {
                         foreach (var transaction in statement.Transactions)
                         {
-                            // Extract date, amount, and payee (Tests 5-7)
+                            // Extract date, amount, payee, and memo (Tests 5-8)
                             // Payee is required - use NAME field, fallback to MEMO, otherwise skip with error
                             var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
                             var payee = transaction.Name;
+                            string? memo = null;
 
-                            // If NAME is missing or empty, try MEMO as fallback
+                            // If NAME is missing or empty, try MEMO as fallback for payee
                             if (string.IsNullOrWhiteSpace(payee))
                             {
                                 payee = transaction.Memo;
+                                // When MEMO is used as payee, don't also put it in memo field
+                            }
+                            else
+                            {
+                                // NAME is present, so MEMO goes into memo field
+                                memo = transaction.Memo;
                             }
 
                             // If still no payee, skip this transaction with error
@@ -88,6 +95,7 @@ public class OfxParsingService : IOfxParsingService
                                 Date = DateOnly.FromDateTime(dateTime),
                                 Amount = transaction.Amount,
                                 Payee = payee,
+                                Memo = memo,
                                 Source = string.Empty  // Will be implemented in Test 9
                             });
                         }

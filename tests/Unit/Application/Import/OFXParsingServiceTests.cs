@@ -405,7 +405,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 8 - Implement memo extraction")]
     public async Task ParseAsync_SingleTransaction_ExtractsMemo()
     {
         // Given: An OFX document with a single transaction containing MEMO field
