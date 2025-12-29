@@ -622,7 +622,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 10 - Implement multiple transaction parsing")]
     public async Task ParseAsync_MultipleTransactions_ReturnsAll()
     {
         // Given: An OFX document with multiple transactions
@@ -710,7 +709,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 11 - Implement multi-account statement handling")]
     public async Task ParseAsync_MultipleAccounts_HandlesEachSeparately()
     {
         // Given: An OFX document with multiple account statements
