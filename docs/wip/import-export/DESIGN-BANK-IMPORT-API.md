@@ -80,7 +80,11 @@ Location: `src/Controllers/ImportController.cs`
 /// </summary>
 /// <param name="importReviewFeature">Feature providing import review workflow operations.</param>
 /// <param name="logger">Logger for diagnostic output.</param>
-[Route("api/import")]
+/// <remarks>
+/// All operations are scoped to a specific tenant identified by the tenantKey route parameter.
+/// Users must have Editor or Owner roles to access import endpoints.
+/// </remarks>
+[Route("api/tenant/{tenantKey:guid}/import")]
 [ApiController]
 [RequireTenantRole(TenantRole.Editor)]
 [Produces("application/json")]
@@ -148,14 +152,14 @@ This ensures the review workflow completes cleanly - selected transactions are i
 
 | Method | Path | Description | Request | Response | Status Codes |
 |--------|------|-------------|---------|----------|--------------|
-| POST | `/api/import/upload` | Upload OFX/QFX file for import | `multipart/form-data` with `file` field | [`ImportResultDto`](src/Application/Import/Dto/ImportResultDto.cs) | 200, 400, 401, 403 |
-| GET | `/api/import/review` | Get pending import review transactions (paginated) | Query: `pageNumber` (default: 1), `pageSize` (default: 50, max: 1000) | [`PaginatedResultDto<ImportReviewTransactionDto>`](src/Application/Common/Dto/PaginatedResultDto.cs) | 200, 401, 403 |
-| POST | `/api/import/review/complete` | Complete review: accept selected transactions and delete all | `IReadOnlyCollection<Guid>` (transaction keys to accept) | [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs) | 200, 400, 401, 403 |
-| DELETE | `/api/import/review` | Delete all pending review transactions without accepting any | None | None | 204, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/upload` | Upload OFX/QFX file for import | `multipart/form-data` with `file` field | [`ImportResultDto`](src/Application/Import/Dto/ImportResultDto.cs) | 200, 400, 401, 403 |
+| GET | `/api/tenant/{tenantKey}/import/review` | Get pending import review transactions (paginated) | Query: `pageNumber` (default: 1), `pageSize` (default: 50, max: 1000) | [`PaginatedResultDto<ImportReviewTransactionDto>`](src/Application/Common/Dto/PaginatedResultDto.cs) | 200, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/review/complete` | Complete review: accept selected transactions and delete all | `IReadOnlyCollection<Guid>` (transaction keys to accept) | [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs) | 200, 400, 401, 403 |
+| DELETE | `/api/tenant/{tenantKey}/import/review` | Delete all pending review transactions without accepting any | None | None | 204, 401, 403 |
 
 ### Endpoint Details
 
-#### POST /api/import/upload
+#### POST /api/tenant/{tenantKey}/import/upload
 
 **Frontend Calling Pattern:**
 
@@ -239,16 +243,16 @@ Then the page automatically refreshes the transaction list to show the newly imp
 - Invalid file extension (not .ofx or .qfx)
 - File size exceeds limit
 
-#### GET /api/import/review
+#### GET /api/tenant/{tenantKey}/import/review
 
 **Query Parameters:**
 - `pageNumber` (optional, default: 1) - The page number to retrieve (1-based)
 - `pageSize` (optional, default: 50, max: 1000) - Number of items per page
 
 **Examples:**
-- `GET /api/import/review` - Returns first 50 transactions
-- `GET /api/import/review?pageNumber=2&pageSize=100` - Returns transactions 101-200
-- `GET /api/import/review?pageSize=1000` - Returns first 1000 transactions (max page size)
+- `GET /api/tenant/{tenantKey}/import/review` - Returns first 50 transactions
+- `GET /api/tenant/{tenantKey}/import/review?pageNumber=2&pageSize=100` - Returns transactions 101-200
+- `GET /api/tenant/{tenantKey}/import/review?pageSize=1000` - Returns first 1000 transactions (max page size)
 
 **Validation:**
 - `pageNumber < 1` → Defaults to 1
@@ -297,7 +301,7 @@ Then the page automatically refreshes the transaction list to show the newly imp
 - Typical UX: "Load more" button, infinite scroll, or page number navigation
 - Frontend can display "Showing 1-50 of 150" using metadata
 
-#### POST /api/import/review/complete
+#### POST /api/tenant/{tenantKey}/import/review/complete
 
 **Purpose:** Completes the import review workflow by accepting selected transactions and clearing the review table.
 
@@ -340,7 +344,7 @@ Then the page automatically refreshes the transaction list to show the newly imp
 **Validation errors (400):**
 - Keys array is null or empty
 
-#### DELETE /api/import/review
+#### DELETE /api/tenant/{tenantKey}/import/review
 
 **Purpose:** Deletes all pending review transactions without accepting any. This is the "Delete All" functionality.
 
@@ -456,11 +460,11 @@ var result = await importReviewFeature.ImportFileAsync(stream, file.FileName);
 **Example:**
 ```csharp
 // User A (Tenant 1) uploads file
-POST /api/import/upload
+POST /api/tenant/{tenant1-guid}/import/upload
 → Stored with TenantId = Tenant 1
 
 // User B (Tenant 2) gets pending review
-GET /api/import/review
+GET /api/tenant/{tenant2-guid}/import/review
 → Returns only Tenant 2 imports (cannot see User A's imports)
 ```
 

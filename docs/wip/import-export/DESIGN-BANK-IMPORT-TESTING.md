@@ -25,7 +25,7 @@ This document defines the comprehensive testing strategy for the Bank Import fea
 - **15% Unit** - OFX parsing, duplicate key generation, field extraction
 - **15% Functional** - Upload → Review → Complete user workflows
 
-**Total Estimated Tests:** 37-39 tests (23 controller + 7 unit + 5 data + 9 functional)
+**Total Estimated Tests:** 41 tests (27 controller + 7 unit + 5 data + 9 functional)
 
 **Why Integration-heavy?** The Bank Import feature is primarily about API state management (upload → review → accept), duplicate detection (database queries), and multi-request workflows - all optimally tested at the integration level.
 
@@ -230,7 +230,7 @@ Scenario: Import review transaction stores duplicate status correctly
     Then DuplicateStatus should be preserved correctly
 ```
 
-## Integration Tests - Controller Layer (23 tests)
+## Integration Tests - Controller Layer (27 tests)
 
 **Location:** [`tests/Integration.Controller/`](../../../tests/Integration.Controller/)
 
@@ -248,21 +248,21 @@ Scenario: Import review transaction stores duplicate status correctly
 
 **Test 1: Success - Valid OFX file**
 ```gherkin
-Scenario: Upload bank file valid OFX returns created
+Scenario: Upload bank file valid OFX returns OK
     Given user has Editor role for tenant
     And valid OFX file with 3 transactions
     When user uploads OFX file
-    Then 201 Created should be returned
+    Then 200 OK should be returned
     And response should contain import summary
 ```
 
 **Test 2: Success - QFX format (SGML)**
 ```gherkin
-Scenario: Upload bank file QFX format returns created
+Scenario: Upload bank file QFX format returns OK
     Given user has Editor role for tenant
     And valid QFX file (SGML-like OFX 1.x format)
     When user uploads QFX file
-    Then 201 Created should be returned
+    Then 200 OK should be returned
 ```
 
 **Test 3: Error - Corrupted file**
@@ -319,7 +319,7 @@ Scenario: Upload bank file partial failure returns partial success
     Given user has Editor role for tenant
     And OFX file with 2 valid and 1 invalid transaction (missing amount)
     When user uploads file with partial failures
-    Then 201 Created should be returned (partial success)
+    Then 200 OK should be returned (partial success)
     And response should indicate which transactions succeeded/failed
 ```
 
@@ -377,7 +377,39 @@ Scenario: Get import review different tenant returns empty
     And should not see tenant B's transactions (isolation)
 ```
 
-### Test Group 3: POST /api/import/review/complete
+**Test 14: Pagination - Invalid page number defaults to 1**
+```gherkin
+Scenario: Get import review invalid page number defaults to first page
+    Given user has Editor role for tenant
+    And 100 transactions in review state
+    When user requests import review with pageNumber=0
+    Then 200 OK should be returned
+    And response should contain first page (pageNumber: 1)
+    And should return first 50 transactions (default page size)
+```
+
+**Test 15: Pagination - Invalid page size defaults to 50**
+```gherkin
+Scenario: Get import review invalid page size defaults to default
+    Given user has Editor role for tenant
+    And 100 transactions in review state
+    When user requests import review with pageSize=-5
+    Then 200 OK should be returned
+    And response should use default page size (pageSize: 50)
+```
+
+**Test 16: Pagination - Excessive page size clamped to maximum**
+```gherkin
+Scenario: Get import review excessive page size clamped to maximum
+    Given user has Editor role for tenant
+    And 2000 transactions in review state
+    When user requests import review with pageSize=5000
+    Then 200 OK should be returned
+    And response should use maximum page size (pageSize: 1000)
+    And should return first 1000 transactions
+```
+
+### Test Group 3: POST /api/tenant/{tenantId}/import/review/complete
 
 **Endpoint:** Complete review by accepting selected transactions and deleting all pending transactions
 
@@ -385,7 +417,7 @@ Scenario: Get import review different tenant returns empty
 1. Copies selected transactions to the main Transaction table
 2. Deletes ALL transactions from ImportReviewTransaction table (both selected and unselected)
 
-**Test 14: Success - Complete review with selected transactions**
+**Test 17: Success - Complete review with selected transactions**
 ```gherkin
 Scenario: Complete review selected transactions returns OK
     Given user has Editor role for tenant
@@ -398,7 +430,7 @@ Scenario: Complete review selected transactions returns OK
     And review queue should be completely empty
 ```
 
-**Test 15: Authorization - Viewer forbidden**
+**Test 18: Authorization - Viewer forbidden**
 ```gherkin
 Scenario: Complete review as viewer returns forbidden
     Given user has Viewer role for tenant (read-only)
@@ -407,7 +439,7 @@ Scenario: Complete review as viewer returns forbidden
     Then 403 Forbidden should be returned
 ```
 
-**Test 16: Validation - Empty selection**
+**Test 19: Validation - Empty selection**
 ```gherkin
 Scenario: Complete review empty selection returns bad request
     Given user has Editor role for tenant
@@ -417,7 +449,17 @@ Scenario: Complete review empty selection returns bad request
     And error should indicate empty selection
 ```
 
-**Test 17: Tenant isolation - Cannot complete other tenant's review**
+**Test 20: Validation - Null selection**
+```gherkin
+Scenario: Complete review null selection returns bad request
+    Given user has Editor role for tenant
+    And transactions exist in review state
+    When user completes review with null selection
+    Then 400 Bad Request should be returned
+    And error should indicate null or empty selection not allowed
+```
+
+**Test 21: Tenant isolation - Cannot complete other tenant's review**
 ```gherkin
 Scenario: Complete review different tenant returns forbidden
     Given user A has Editor role for tenant A
@@ -427,11 +469,11 @@ Scenario: Complete review different tenant returns forbidden
     Then 403 Forbidden should be returned (tenant isolation)
 ```
 
-### Test Group 4: DELETE /api/import/review
+### Test Group 4: DELETE /api/tenant/{tenantId}/import/review
 
 **Endpoint:** Delete all pending import review transactions without accepting any
 
-**Test 18: Success - Delete all pending transactions**
+**Test 22: Success - Delete all pending transactions**
 ```gherkin
 Scenario: Delete review queue as editor returns no content
     Given user has Editor role for tenant
@@ -441,7 +483,7 @@ Scenario: Delete review queue as editor returns no content
     And review queue should be empty
 ```
 
-**Test 19: Authorization - Viewer forbidden**
+**Test 23: Authorization - Viewer forbidden**
 ```gherkin
 Scenario: Delete review queue as viewer returns forbidden
     Given user has Viewer role for tenant (read-only)
@@ -450,7 +492,7 @@ Scenario: Delete review queue as viewer returns forbidden
     Then 403 Forbidden should be returned
 ```
 
-**Test 20: Idempotent - Delete empty queue succeeds**
+**Test 24: Idempotent - Delete empty queue succeeds**
 ```gherkin
 Scenario: Delete review queue empty queue returns no content
     Given user has Editor role for tenant
@@ -461,7 +503,7 @@ Scenario: Delete review queue empty queue returns no content
 
 ### Additional Integration Test Scenarios
 
-**Test 21: Multiple uploads merge into single review queue**
+**Test 25: Multiple uploads merge into single review queue**
 ```gherkin
 Scenario: Upload multiple files merges into single review queue
     Given user has Editor role for tenant
@@ -471,7 +513,7 @@ Scenario: Upload multiple files merges into single review queue
     And both uploads should be merged into single review session
 ```
 
-**Test 22: Transactions in review not included in transaction list**
+**Test 26: Transactions in review not included in transaction list**
 ```gherkin
 Scenario: Get transactions excludes review state transactions
     Given user has Editor role for tenant
@@ -482,7 +524,7 @@ Scenario: Get transactions excludes review state transactions
     And pending import review transactions should not be included
 ```
 
-**Test 23: Pagination for large import review lists**
+**Test 27: Pagination for large import review lists**
 ```gherkin
 Scenario: Get import review large import supports pagination
     Given user has Editor role for tenant
@@ -536,8 +578,7 @@ Feature: Bank Import
     And page displays 15 transactions
     And 12 transactions are selected by default
     When I click "Accept Selected Transactions" button
-    Then 12 transactions should be added to transaction list
-    And import review page should show "0 transactions remaining"
+    Then I should see a dialog reporting expected results
 
   Scenario: User uploads bank file with duplicates and sees marked potential duplicates
     Given I have existing transactions from January 1-15
@@ -580,8 +621,9 @@ Feature: Bank Import
   Scenario: Viewer cannot access import page
     Given I am logged in as a user with Viewer role for workspace
     When I attempt to navigate to import review page
-    Then I should see error message "Access denied - Editor or Owner role required"
-    And I should be redirected to transactions page
+    Then I should see error message "You do not have permission to import into this workspace. Editor role is required."
+    And I should remain on the import page
+    And import UI elements should be hidden
 
   Rule: Error Handling
 
@@ -720,13 +762,24 @@ public class BankImportSteps : CommonThenSteps
 
 **Sample OFX Files for Functional Tests:**
 
-**Location:** [`tests/Functional/SampleData/Ofx/`](../../../tests/Functional/SampleData/Ofx/) (copy from Unit tests)
+**Location:** [`tests/Functional/SampleData/Ofx/`](../../../tests/Functional/SampleData/Ofx/)
 
-**Files:**
-- `checking-jan-2024.ofx` - Standard checking account with 15 transactions (12 new, 3 duplicates)
-- `checking-jan-15-31.ofx` - Overlapping date range for duplicate detection testing
-- `invalid.ofx` - Corrupted file for error handling
-- `transactions.csv` - Wrong format for validation testing
+**New files to create for functional tests:**
+- `checking-jan-2024.ofx` - Standard checking account with 15 transactions (12 new, 3 duplicates) for upload and review scenarios
+- `checking-jan-15-31.ofx` - Overlapping date range for duplicate detection testing (23 total transactions: 8 new, 15 duplicates)
+- `invalid.ofx` - Corrupted file for error handling tests
+- `transactions.csv` - Wrong file format (CSV instead of OFX) for validation error testing
+
+**Existing files from unit tests** (can be reused if appropriate):
+
+**Location:** [`tests/Unit/SampleData/Ofx/`](../../../tests/Unit/SampleData/Ofx/)
+
+- `bank-banking-xml.ofx` - OFX 2.x XML format
+- `Bank1.ofx` - Standard checking account
+- `CC2.OFX` - Credit card transactions
+- `creditcard.ofx` - Credit card with multiple transactions
+- `issue-17.ofx` - Edge case for specific parsing issue
+- `itau.ofx` - International bank format
 
 **Seeding Strategy:**
 - Use Test Control API endpoints to seed existing transactions for duplicate detection scenarios
@@ -756,26 +809,30 @@ Comprehensive list of all tests to implement across all layers.
 ### Integration Tests - Controller Layer (23 tests)
 
 **Upload Endpoint (8 tests):**
-- [ ] Upload valid OFX file - Returns 201 Created
-- [ ] Upload valid QFX file - Returns 201 Created
+- [ ] Upload valid OFX file - Returns 200 OK
+- [ ] Upload valid QFX file - Returns 200 OK
 - [ ] Upload corrupted file - Returns 400 Bad Request
 - [ ] Upload unsupported format (CSV) - Returns 400 Bad Request
 - [ ] Upload as Viewer - Returns 403 Forbidden
 - [ ] Upload unauthenticated - Returns 401 Unauthorized
 - [ ] Upload to different tenant - Returns 403 Forbidden
-- [ ] Upload with partial failures - Returns 201 with partial success
+- [ ] Upload with partial failures - Returns 200 with partial success
 
-**Get Review Endpoint (5 tests):**
+**Get Review Endpoint (8 tests):**
 - [ ] Get pending transactions - Returns 200 OK with transactions
 - [ ] Get when empty - Returns 200 OK with empty list
 - [ ] Get persists across sessions - Returns same data
 - [ ] Get as Viewer - Returns 403 Forbidden
 - [ ] Get with different tenant - Returns empty (isolation)
+- [ ] Get with pageNumber < 1 - Defaults to page 1
+- [ ] Get with pageSize < 1 - Defaults to pageSize 50
+- [ ] Get with pageSize > 1000 - Clamped to pageSize 1000
 
-**Complete Review Endpoint (4 tests):**
+**Complete Review Endpoint (5 tests):**
 - [ ] Complete review with selected transactions - Returns 200 OK, accepts selected and deletes all
 - [ ] Complete review as Viewer - Returns 403 Forbidden
 - [ ] Complete review with empty selection - Returns 400 Bad Request
+- [ ] Complete review with null selection - Returns 400 Bad Request
 - [ ] Complete review for different tenant - Returns 403 Forbidden (isolation)
 
 **Delete Endpoint (3 tests):**

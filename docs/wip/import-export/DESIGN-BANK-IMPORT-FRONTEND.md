@@ -628,33 +628,6 @@ await importClient.completeReview(keysArray)
 await importClient.deleteAllPendingReview()
 ```
 
-## Testing Considerations
-
-**Functional tests (Playwright):**
-- File upload with valid OFX file (verify status pane displays results)
-- Review pending imports (verify table displays transactions)
-- Selection toggle (verify checkboxes work, session storage persists)
-- Pagination navigation (verify page changes load correct data)
-- Accept transactions (verify navigation to transactions page)
-- Delete all (verify confirmation modal, transactions removed)
-- Permission checks (verify Viewer role cannot access page)
-- Test file upload with valid/invalid files
-- Test session storage persistence across page reloads
-- Test workspace switching clears/restores selections
-
-**Component tests (Vue Test Utils):**
-- File selection handler
-- Checkbox toggle logic
-- Session storage save/restore
-- Default selection logic
-- Pagination calculations
-
-**Test patterns:**
-- Use `data-test-id` attributes for element selection
-- Mock API client responses
-- Test loading/error states
-- Verify computed properties
-
 ## Implementation Checklist
 
 - [ ] Create [`import.vue`](src/FrontEnd.Nuxt/app/pages/import.vue) page component
@@ -666,7 +639,6 @@ await importClient.deleteAllPendingReview()
 - [ ] Add action buttons (Import, Delete All)
 - [ ] Create delete all confirmation modal
 - [ ] Add navigation item to SiteHeader component
-- [ ] Write functional tests for import workflow
 
 ## References
 
