@@ -33,7 +33,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 2 - Implement error handling for invalid input")]
     public async Task ParseAsync_EmptyStream_ReturnsEmptyResult()
     {
         // Given: An empty stream
