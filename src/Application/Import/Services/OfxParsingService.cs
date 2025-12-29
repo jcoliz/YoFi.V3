@@ -14,6 +14,13 @@ public class OfxParsingService : IOfxParsingService
     /// <param name="fileName">The name of the file being parsed.</param>
     public Task<OfxParsingResult> ParseAsync(Stream fileStream, string fileName)
     {
-        throw new NotImplementedException();
+        // Handle null/empty streams
+        var result = new OfxParsingResult
+        {
+            Transactions = Array.Empty<TransactionImportDto>(),
+            Errors = Array.Empty<OfxParsingError>()
+        };
+
+        return Task.FromResult(result);
     }
 }

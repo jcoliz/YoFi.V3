@@ -15,7 +15,6 @@ using YoFi.V3.Application.Import.Dto;
 public class OfxParsingServiceTests
 {
     [Test]
-    [Explicit("TDD: Test 1 - Implement minimum parsing infrastructure")]
     public async Task ParseAsync_NullStream_ReturnsEmptyResult()
     {
         // Given: A null stream
