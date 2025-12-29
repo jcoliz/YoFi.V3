@@ -34,788 +34,106 @@ This document provides the complete frontend layer design for the Bank Import fe
 - Call API endpoints via authenticated fetch wrapper
 - Navigate to transactions page after successful import
 
-## Complete import.vue Page Component
-
-Location: `src/FrontEnd.Nuxt/app/pages/import.vue`
-
-```vue
-<script setup lang="ts">
-/**
- * Bank Import Page
- *
- * Allows users to upload OFX/QFX bank files, review imported transactions,
- * and selectively accept transactions into their workspace.
- */
-
-import {
-  ImportClient,
-  TenantRole,
-  type ImportReviewTransactionDto,
-  type PaginatedResultDto,
-  type ImportResultDto,
-  type IProblemDetails,
-  DuplicateStatus,
-} from '~/utils/apiclient'
-import { useUserPreferencesStore } from '~/stores/userPreferences'
-import { handleApiError } from '~/utils/errorHandler'
-
-definePageMeta({
-  title: 'Import',
-  order: 4,
-  auth: true,
-  layout: 'default',
-})
-
-const userPreferencesStore = useUserPreferencesStore()
-
-// API Client
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const importClient = new ImportClient(baseUrl, authFetch)
-
-// Page ready state (for SSR/hydration)
-const ready = ref(false)
-
-// File upload state
-const fileInput = ref<HTMLInputElement | null>(null)
-const selectedFiles = ref<File[]>([])
-const uploading = ref(false)
-const uploadStatus = ref<string[]>([])
-const showUploadStatus = ref(false)
-
-// Transaction review state
-const transactions = ref<ImportReviewTransactionDto[]>([])
-const loading = ref(false)
-const error = ref<IProblemDetails | undefined>(undefined)
-const showError = ref(false)
-
-// Selection state (tracked by transaction key)
-const selectedKeys = ref<Set<string>>(new Set())
-
-// Pagination state
-const currentPage = ref(1)
-const pageSize = ref(50)
-const totalCount = ref(0)
-const totalPages = ref(0)
-const hasPreviousPage = ref(false)
-const hasNextPage = ref(false)
-
-// Modal state
-const showDeleteAllModal = ref(false)
-
-// Computed
-const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
-const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
-const canImport = computed(() => {
-  const currentTenant = userPreferencesStore.getCurrentTenant
-  if (!currentTenant?.role) return false
-  return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
-})
-
-const hasPotentialDuplicates = computed(() => {
-  return transactions.value.some(
-    (t) => t.duplicateStatus === DuplicateStatus.PotentialDuplicate
-  )
-})
-
-const sessionStorageKey = computed(() => {
-  return currentTenantKey.value ? `import-review-selections-${currentTenantKey.value}` : null
-})
-
-// Watch for workspace changes
-watch(currentTenantKey, async (newKey) => {
-  if (newKey) {
-    await loadPendingReview()
-    restoreSelections()
-  } else {
-    transactions.value = []
-    selectedKeys.value.clear()
-  }
-})
-
-// Load pending review on mount
-onMounted(async () => {
-  ready.value = true
-  userPreferencesStore.loadFromStorage()
-  if (currentTenantKey.value) {
-    await loadPendingReview()
-    restoreSelections()
-  }
-})
-
-// Methods
-
-/**
- * Opens file picker dialog when "Browse..." button is clicked
- */
-function openFilePicker() {
-  fileInput.value?.click()
-}
-
-/**
- * Handles file selection from input element
- */
-function handleFileSelected(event: Event) {
-  const target = event.target as HTMLInputElement
-  if (target.files) {
-    selectedFiles.value = Array.from(target.files)
-    handleUpload()
-  }
-}
-
-/**
- * Uploads selected files and processes them
- */
-async function handleUpload() {
-  if (selectedFiles.value.length === 0) return
-  if (!currentTenantKey.value) return
-
-  uploading.value = true
-  uploadStatus.value = []
-  showUploadStatus.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    // Process files sequentially
-    for (const file of selectedFiles.value) {
-      // Validate file extension
-      const extension = file.name.toLowerCase().split('.').pop()
-      if (extension !== 'ofx' && extension !== 'qfx') {
-        uploadStatus.value.push(`❌ ${file.name}: Invalid file type (must be .ofx or .qfx)`)
-        continue
-      }
-
-      uploadStatus.value.push(`⏳ ${file.name}: Importing...`)
-
-      try {
-        const result: ImportResultDto = await importClient.uploadFile(file)
-
-        // Replace "Importing..." message with success message
-        const lastIndex = uploadStatus.value.length - 1
-        uploadStatus.value[lastIndex] = `✓ ${file.name} imported: ${result.importedCount} transactions added`
-      } catch (err) {
-        const lastIndex = uploadStatus.value.length - 1
-        uploadStatus.value[lastIndex] = `❌ ${file.name}: Upload failed`
-
-        error.value = handleApiError(err, 'Upload Failed', `Failed to upload ${file.name}`)
-        showError.value = true
-      }
-    }
-
-    // Reload pending review to show newly imported transactions
-    await loadPendingReview()
-
-    // Clear file input
-    selectedFiles.value = []
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
-  } finally {
-    uploading.value = false
-  }
-}
-
-/**
- * Loads pending import review transactions with pagination
- */
-async function loadPendingReview() {
-  if (!currentTenantKey.value) {
-    error.value = {
-      title: 'No workspace selected',
-      detail: 'Please select a workspace to view pending imports',
-    }
-    showError.value = true
-    return
-  }
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    const result: PaginatedResultDto<ImportReviewTransactionDto> =
-      await importClient.getPendingReview(currentPage.value, pageSize.value)
-
-    transactions.value = result.items || []
-    totalCount.value = result.totalCount || 0
-    totalPages.value = result.totalPages || 0
-    hasPreviousPage.value = result.hasPreviousPage || false
-    hasNextPage.value = result.hasNextPage || false
-
-    // Set default selections (new transactions selected by default)
-    setDefaultSelections()
-  } catch (err) {
-    error.value = handleApiError(err, 'Load Failed', 'Failed to load pending import review')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
- * Sets default checkbox selections based on duplicate status
- * - New: selected by default
- * - ExactDuplicate: deselected by default
- * - PotentialDuplicate: deselected by default
- */
-function setDefaultSelections() {
-  transactions.value.forEach((transaction) => {
-    // Only set default if not already in selectedKeys (from session storage or previous load)
-    if (!selectedKeys.value.has(transaction.key!)) {
-      if (transaction.duplicateStatus === DuplicateStatus.New) {
-        selectedKeys.value.add(transaction.key!)
-      }
-    }
-  })
-  saveSelections()
-}
-
-/**
- * Toggles selection for a single transaction
- */
-function toggleSelection(key: string) {
-  if (selectedKeys.value.has(key)) {
-    selectedKeys.value.delete(key)
-  } else {
-    selectedKeys.value.add(key)
-  }
-  saveSelections()
-}
-
-/**
- * Toggles all visible transactions on current page
- */
-function toggleAll() {
-  const allSelected = transactions.value.every((t) => selectedKeys.value.has(t.key!))
-
-  transactions.value.forEach((transaction) => {
-    if (allSelected) {
-      selectedKeys.value.delete(transaction.key!)
-    } else {
-      selectedKeys.value.add(transaction.key!)
-    }
-  })
-  saveSelections()
-}
-
-/**
- * Navigates to a specific page
- */
-async function goToPage(page: number) {
-  if (page < 1 || page > totalPages.value) return
-  currentPage.value = page
-  await loadPendingReview()
-}
-
-/**
- * Accepts selected transactions (copies to Transactions table, removes from review)
- */
-async function acceptTransactions() {
-  if (selectedKeys.value.size === 0) {
-    error.value = {
-      title: 'No transactions selected',
-      detail: 'Please select at least one transaction to import',
-    }
-    showError.value = true
-    return
-  }
-
-  if (!currentTenantKey.value) return
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    const keysArray = Array.from(selectedKeys.value)
-    await importClient.acceptTransactions(keysArray)
-
-    // Clear selections
-    clearSelections()
-
-    // Navigate to transactions page to see newly imported transactions
-    navigateTo('/transactions')
-  } catch (err) {
-    error.value = handleApiError(err, 'Import Failed', 'Failed to import selected transactions')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
- * Opens delete all confirmation modal
- */
-function openDeleteAllModal() {
-  showDeleteAllModal.value = true
-}
-
-/**
- * Deletes all pending import review transactions
- */
-async function deleteAllTransactions() {
-  if (!currentTenantKey.value) return
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    await importClient.deleteAllPendingReview()
-
-    // Clear selections and reload
-    clearSelections()
-    await loadPendingReview()
-
-    showDeleteAllModal.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Delete Failed', 'Failed to delete all pending imports')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-/**
- * Saves current selections to session storage
- */
-function saveSelections() {
-  if (!sessionStorageKey.value) return
-
-  try {
-    const keysArray = Array.from(selectedKeys.value)
-    sessionStorage.setItem(sessionStorageKey.value, JSON.stringify(keysArray))
-  } catch (err) {
-    console.warn('Failed to save selections to session storage:', err)
-  }
-}
-
-/**
- * Restores selections from session storage
- */
-function restoreSelections() {
-  if (!sessionStorageKey.value) return
-
-  try {
-    const stored = sessionStorage.getItem(sessionStorageKey.value)
-    if (stored) {
-      const keysArray = JSON.parse(stored) as string[]
-      selectedKeys.value = new Set(keysArray)
-    }
-  } catch (err) {
-    console.warn('Failed to restore selections from session storage:', err)
-  }
-}
-
-/**
- * Clears selections from state and session storage
- */
-function clearSelections() {
-  selectedKeys.value.clear()
-  if (sessionStorageKey.value) {
-    try {
-      sessionStorage.removeItem(sessionStorageKey.value)
-    } catch (err) {
-      console.warn('Failed to clear selections from session storage:', err)
-    }
-  }
-}
-
-/**
- * Formats date for display
- */
-function formatDate(date: Date | undefined): string {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString()
-}
-
-/**
- * Formats currency for display
- */
-function formatCurrency(amount: number | undefined): string {
-  if (amount === undefined) return '$0.00'
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
-}
-
-/**
- * Returns CSS class for row based on duplicate status
- */
-function getRowClass(transaction: ImportReviewTransactionDto): string {
-  if (transaction.duplicateStatus === DuplicateStatus.PotentialDuplicate) {
-    return 'table-warning'
-  }
-  return ''
-}
-</script>
-
-<template>
-  <div>
-    <!-- Main Content -->
-    <div class="container py-4">
-      <h1 data-test-id="page-heading">Import</h1>
-
-      <!-- No Workspace Warning -->
-      <div
-        v-if="!hasWorkspace"
-        class="alert alert-warning"
-        data-test-id="no-workspace-warning"
-      >
-        <FeatherIcon
-          icon="alert-circle"
-          size="16"
-          class="me-2"
-        />
-        Please select a workspace to import transactions
-      </div>
-
-      <!-- Permission Warning -->
-      <div
-        v-else-if="!canImport"
-        class="alert alert-warning"
-        data-test-id="permission-warning"
-      >
-        <FeatherIcon
-          icon="alert-circle"
-          size="16"
-          class="me-2"
-        />
-        You do not have permission to import transactions in this workspace
-      </div>
-
-      <!-- Error Display -->
-      <ErrorDisplay
-        v-model:show="showError"
-        :problem="error"
-        class="mb-4"
-      />
-
-      <!-- File Upload Section -->
-      <div
-        v-if="canImport"
-        class="mb-4"
-      >
-        <h5>Choose bank files to upload</h5>
-        <div class="d-flex align-items-center">
-          <div class="file-input-wrapper">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".ofx,.qfx"
-              multiple
-              class="d-none"
-              data-test-id="file-input"
-              @change="handleFileSelected"
-            />
-            <button
-              class="btn btn-secondary"
-              data-test-id="browse-button"
-              :disabled="uploading || loading || !ready"
-              @click="openFilePicker"
-            >
-              <FeatherIcon
-                icon="folder"
-                size="16"
-                class="me-1"
-              />
-              Choose Files (.ofx, .qfx)
-            </button>
-          </div>
-          <button
-            class="btn btn-outline-secondary ms-2"
-            data-test-id="browse-files-button"
-            :disabled="uploading || loading || !ready"
-            @click="openFilePicker"
-          >
-            Browse...
-          </button>
-        </div>
-      </div>
-
-      <!-- Upload Status Pane -->
-      <div
-        v-if="showUploadStatus && uploadStatus.length > 0"
-        class="alert alert-info alert-dismissible fade show"
-        data-test-id="upload-status-pane"
-      >
-        <button
-          type="button"
-          class="btn-close"
-          data-test-id="close-status-button"
-          @click="showUploadStatus = false"
-        ></button>
-        <div
-          v-for="(status, index) in uploadStatus"
-          :key="index"
-          data-test-id="upload-status-line"
-        >
-          {{ status }}
-        </div>
-      </div>
-
-      <!-- Potential Duplicates Alert -->
-      <div
-        v-if="hasPotentialDuplicates"
-        class="alert alert-warning"
-        data-test-id="potential-duplicates-alert"
-      >
-        <FeatherIcon
-          icon="alert-triangle"
-          size="16"
-          class="me-2"
-        />
-        Note: Potential duplicates detected and highlighted. Transactions have the same identifier
-        as another transaction, but differ in payee or amount.
-      </div>
-
-      <!-- Action Buttons (shown when transactions exist) -->
-      <div
-        v-if="transactions.length > 0"
-        class="d-flex justify-content-end mb-3"
-        data-test-id="action-buttons"
-      >
-        <button
-          class="btn btn-danger me-2"
-          data-test-id="delete-all-button"
-          :disabled="loading || uploading || !ready"
-          @click="openDeleteAllModal"
-        >
-          <FeatherIcon
-            icon="trash-2"
-            size="16"
-            class="me-1"
-          />
-          Delete All
-        </button>
-        <button
-          class="btn btn-primary"
-          data-test-id="import-button"
-          :disabled="loading || uploading || !ready || selectedKeys.size === 0"
-          @click="acceptTransactions"
-        >
-          <FeatherIcon
-            icon="check"
-            size="16"
-            class="me-1"
-          />
-          Import
-        </button>
-      </div>
-
-      <!-- Loading State -->
-      <div
-        v-if="loading"
-        class="text-center py-5"
-        data-test-id="loading-state"
-      >
-        <BaseSpinner />
-        <div class="mt-2">
-          <small
-            class="text-muted"
-            data-test-id="loading-text"
-            >Loading transactions...</small
-          >
-        </div>
-      </div>
-
-      <!-- Transactions Table -->
-      <div
-        v-else-if="hasWorkspace && canImport"
-        class="card"
-        data-test-id="transactions-card"
-      >
-        <div class="card-body">
-          <!-- Empty State -->
-          <div
-            v-if="transactions.length === 0"
-            class="text-center py-5 text-muted"
-            data-test-id="empty-state"
-          >
-            <FeatherIcon
-              icon="inbox"
-              size="48"
-              class="mb-3"
-            />
-            <p>No pending imports</p>
-            <p class="small">Upload bank files to get started</p>
-          </div>
-
-          <!-- Table -->
-          <div
-            v-else
-            class="table-responsive"
-          >
-            <table
-              class="table table-hover"
-              data-test-id="import-review-table"
-            >
-              <thead>
-                <tr>
-                  <th class="checkbox-column">
-                    <input
-                      type="checkbox"
-                      class="form-check-input"
-                      data-test-id="select-all-checkbox"
-                      :checked="transactions.every((t) => selectedKeys.has(t.key!))"
-                      :disabled="loading || uploading"
-                      @change="toggleAll"
-                    />
-                  </th>
-                  <th data-test-id="date-header">Date</th>
-                  <th data-test-id="payee-header">Payee</th>
-                  <th data-test-id="category-header">Category</th>
-                  <th
-                    data-test-id="amount-header"
-                    class="text-end"
-                  >
-                    Amount
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="transaction in transactions"
-                  :key="transaction.key"
-                  :class="getRowClass(transaction)"
-                  :data-test-id="`transaction-row-${transaction.key}`"
-                >
-                  <td class="checkbox-column">
-                    <input
-                      type="checkbox"
-                      class="form-check-input"
-                      :checked="selectedKeys.has(transaction.key!)"
-                      :disabled="loading || uploading"
-                      :data-test-id="`checkbox-${transaction.key}`"
-                      @change="toggleSelection(transaction.key!)"
-                    />
-                  </td>
-                  <td>
-                    <span v-if="transaction.duplicateStatus === DuplicateStatus.PotentialDuplicate">
-                      <FeatherIcon
-                        icon="alert-triangle"
-                        size="14"
-                        class="me-1 text-warning"
-                        data-test-id="duplicate-warning-icon"
-                      />
-                    </span>
-                    {{ formatDate(transaction.date) }}
-                  </td>
-                  <td>{{ transaction.payee }}</td>
-                  <td>{{ transaction.category || '' }}</td>
-                  <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Pagination -->
-          <div
-            v-if="totalPages > 1"
-            class="d-flex justify-content-between align-items-center mt-3"
-            data-test-id="pagination"
-          >
-            <div class="text-muted small">
-              Showing {{ (currentPage - 1) * pageSize + 1 }}-{{
-                Math.min(currentPage * pageSize, totalCount)
-              }}
-              of {{ totalCount }}
-            </div>
-            <nav>
-              <ul class="pagination mb-0">
-                <li
-                  class="page-item"
-                  :class="{ disabled: !hasPreviousPage }"
-                >
-                  <button
-                    class="page-link"
-                    data-test-id="previous-page-button"
-                    :disabled="!hasPreviousPage || loading"
-                    @click="goToPage(currentPage - 1)"
-                  >
-                    ◀
-                  </button>
-                </li>
-                <li
-                  v-for="page in totalPages"
-                  :key="page"
-                  class="page-item"
-                  :class="{ active: page === currentPage }"
-                >
-                  <button
-                    class="page-link"
-                    :data-test-id="`page-${page}-button`"
-                    :disabled="loading"
-                    @click="goToPage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </li>
-                <li
-                  class="page-item"
-                  :class="{ disabled: !hasNextPage }"
-                >
-                  <button
-                    class="page-link"
-                    data-test-id="next-page-button"
-                    :disabled="!hasNextPage || loading"
-                    @click="goToPage(currentPage + 1)"
-                  >
-                    ▶
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete All Confirmation Modal -->
-    <ModalDialog
-      v-model:show="showDeleteAllModal"
-      title="Delete All Pending Imports"
-      :loading="loading"
-      primary-button-variant="danger"
-      :primary-button-text="loading ? 'Deleting...' : 'Delete'"
-      primary-button-test-id="delete-all-submit-button"
-      secondary-button-test-id="delete-all-cancel-button"
-      test-id="delete-all-modal"
-      @primary="deleteAllTransactions"
-    >
-      <p>Are you sure you want to delete all pending import transactions?</p>
-      <p>This cannot be undone.</p>
-      <div
-        class="alert alert-warning"
-        data-test-id="delete-all-count"
-      >
-        <strong>{{ totalCount }} transactions will be deleted.</strong>
-      </div>
-    </ModalDialog>
-  </div>
-</template>
-
-<style scoped>
-.checkbox-column {
-  width: 40px;
-  text-align: center;
-}
-
-.file-input-wrapper {
-  display: inline-block;
-}
-
-.table th {
-  font-weight: 600;
-}
-
-.table-warning {
-  background-color: #fff3cd;
-}
-</style>
+## Page Architecture
+
+Location: [`src/FrontEnd.Nuxt/app/pages/import.vue`](src/FrontEnd.Nuxt/app/pages/import.vue)
+
+The import page uses a **component-based architecture** to break down the complex UI into smaller, manageable pieces. This is a NEW pattern for this project - previous pages (like [`transactions/index.vue`](src/FrontEnd.Nuxt/app/pages/transactions/index.vue)) contain all markup in a single large template, which becomes difficult to maintain.
+
+### Component Breakdown
+
+The page is organized into distinct components, each with a single responsibility:
+
+**Page component:** [`import.vue`](src/FrontEnd.Nuxt/app/pages/import.vue)
+- Owns all state (file upload, transactions, selections, pagination)
+- Provides state and callbacks to child components via props/events
+- Handles API calls and business logic
+- Minimal template - mostly just composition of child components
+
+**Child components:**
+
+1. **[`FileUploadSection.vue`](src/FrontEnd.Nuxt/app/components/FileUploadSection.vue)** (reusable)
+   - File picker UI with "Choose Files" and "Browse..." buttons
+   - Hidden input element with file type restrictions
+   - Emits `@filesSelected` event with File[] to parent
+   - Props: `disabled` (boolean), `accept` (string), `multiple` (boolean)
+   - Generic enough to reuse for other file upload scenarios
+
+2. **[`UploadStatusPane.vue`](src/FrontEnd.Nuxt/app/components/UploadStatusPane.vue)** (reusable)
+   - Dismissible Bootstrap alert showing upload status messages
+   - Props: `statusMessages` (string[]), `show` (boolean)
+   - Emits `@close` to parent when dismissed
+   - Can be reused for any multi-step upload/processing workflow
+
+3. **[`PaginationControls.vue`](src/FrontEnd.Nuxt/app/components/PaginationControls.vue)** (reusable)
+   - Previous/Next buttons and page number buttons
+   - Props: `currentPage`, `totalPages`, `totalCount`, `pageSize`, `hasPreviousPage`, `hasNextPage`, `loading`
+   - Emits `@pageChange(pageNumber)` to parent
+   - Generic component - can be reused across any paginated view
+
+4. **[`ImportReviewTable.vue`](src/FrontEnd.Nuxt/app/components/import/ImportReviewTable.vue)** (import-specific)
+   - Transaction table with checkbox column, date, payee, category, amount
+   - Props: `transactions` (array), `selectedKeys` (Set), `loading` (boolean)
+   - Emits `@toggleSelection(key)`, `@toggleAll()` to parent
+   - Row highlighting for potential duplicates
+   - Handles empty state display
+   - Import-specific because of duplicate status and default selections logic
+
+5. **[`ImportDuplicatesAlert.vue`](src/FrontEnd.Nuxt/app/components/import/ImportDuplicatesAlert.vue)** (import-specific)
+   - Bootstrap warning alert explaining potential duplicates
+   - Props: `show` (boolean - computed from `hasPotentialDuplicates`)
+   - No events needed (informational only)
+   - Import-specific because of duplicate detection domain logic
+
+6. **[`ImportActionButtons.vue`](src/FrontEnd.Nuxt/app/components/import/ImportActionButtons.vue)** (import-specific)
+   - "Delete All" and "Import" buttons
+   - Props: `hasTransactions`, `hasSelections`, `loading`, `uploading`
+   - Emits `@import`, `@deleteAll` to parent
+   - Import-specific because of button combination and enable/disable logic
+
+### Component Organization
+
+**Directory structure:**
 ```
+src/FrontEnd.Nuxt/app/
+├── pages/
+│   └── import.vue                              # Page orchestrator (minimal template)
+├── components/
+│   ├── FileUploadSection.vue                   # Generic file upload (reusable)
+│   ├── UploadStatusPane.vue                    # Generic status display (reusable)
+│   ├── PaginationControls.vue                  # Generic pagination (reusable)
+│   └── import/                                 # Import-specific components
+│       ├── ImportReviewTable.vue               # Import-specific table
+│       ├── ImportDuplicatesAlert.vue           # Import-specific alert
+│       └── ImportActionButtons.vue             # Import-specific actions
+```
+
+### Benefits of Component-Based Approach
+
+1. **Reduced cognitive load** - Each component is small enough to hold in your head
+2. **Easier testing** - Components can be tested in isolation with Vue Test Utils
+3. **Better reusability** - Generic components (FileUploadSection, UploadStatusPane, PaginationControls) can be used elsewhere
+4. **Clearer responsibilities** - Each component has a single, well-defined purpose
+5. **Simpler templates** - Page template becomes declarative composition of components
+6. **Easier maintenance** - Changes to one feature area (e.g., file upload) are isolated to one component
+
+### Architectural Decisions
+
+1. **Component-based decomposition** - NEW for this project. Break large page into focused components rather than single monolithic template.
+
+2. **Props down, events up** - Page owns all state, passes data down via props, receives updates via events. Standard Vue pattern for parent-child communication.
+
+3. **Reusable when possible** - Components like FileUploadSection, UploadStatusPane, PaginationControls are designed generically so they can be extracted for project-wide reuse.
+
+4. **Import prefix when specific** - Components specific to import workflow (ImportReviewTable, ImportActionButtons) are prefixed with "Import" to clarify scope.
+
+5. **Set-based selection tracking** - Uses `Set<string>` to track selected transaction keys rather than an array. Provides O(1) lookup/toggle performance and prevents duplicates naturally.
+
+6. **Sequential file processing** - Processes multiple files one at a time rather than in parallel. Simplifies error handling and status display.
+
+7. **Session storage for selections** - Stores checkbox selections in browser session storage scoped by tenant key. See [Session Storage Pattern](#session-storage-pattern) section for details.
+
+8. **Computed permissions** - Uses Vue computed properties to derive permission state (`canImport`) from user preferences store.
 
 ## Key Features
 
@@ -1043,92 +361,14 @@ The import page reuses components and patterns from [`transactions/index.vue`](s
 
 ## State Management
 
-### Reactive State (Vue refs)
+The page manages state using Vue 3 Composition API patterns:
 
-**File upload:**
-```typescript
-const fileInput = ref<HTMLInputElement | null>(null)
-const selectedFiles = ref<File[]>([])
-const uploading = ref(false)
-const uploadStatus = ref<string[]>([])
-const showUploadStatus = ref(false)
-```
-
-**Transaction review:**
-```typescript
-const transactions = ref<ImportReviewTransactionDto[]>([])
-const loading = ref(false)
-const error = ref<IProblemDetails | undefined>(undefined)
-const showError = ref(false)
-```
-
-**Selection:**
-```typescript
-const selectedKeys = ref<Set<string>>(new Set())
-```
-
-**Pagination:**
-```typescript
-const currentPage = ref(1)
-const pageSize = ref(50)
-const totalCount = ref(0)
-const totalPages = ref(0)
-const hasPreviousPage = ref(false)
-const hasNextPage = ref(false)
-```
-
-**Modals:**
-```typescript
-const showDeleteAllModal = ref(false)
-```
-
-### Computed Properties
-
-**Workspace context:**
-```typescript
-const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
-const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
-```
-
-**Permissions:**
-```typescript
-const canImport = computed(() => {
-  const currentTenant = userPreferencesStore.getCurrentTenant
-  if (!currentTenant?.role) return false
-  return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
-})
-```
-
-**Duplicate detection:**
-```typescript
-const hasPotentialDuplicates = computed(() => {
-  return transactions.value.some(
-    (t) => t.duplicateStatus === DuplicateStatus.PotentialDuplicate
-  )
-})
-```
-
-**Session storage key:**
-```typescript
-const sessionStorageKey = computed(() => {
-  return currentTenantKey.value ? `import-review-selections-${currentTenantKey.value}` : null
-})
-```
-
-### Watchers
-
-**Workspace changes:**
-```typescript
-watch(currentTenantKey, async (newKey) => {
-  if (newKey) {
-    await loadPendingReview()
-    restoreSelections()
-  } else {
-    transactions.value = []
-    selectedKeys.value.clear()
-  }
-})
-```
+- **File upload state** - Tracks selected files, upload progress, and status messages
+- **Transaction review state** - Loaded transactions, loading/error states
+- **Selection state** - `Set<string>` of selected transaction keys (persisted to session storage)
+- **Pagination state** - Current page, page size, total count, navigation flags
+- **Computed properties** - Workspace context, permissions (`canImport`), duplicate detection
+- **Watchers** - Workspace changes trigger reload and selection restoration
 
 ## Type Safety
 
@@ -1231,6 +471,9 @@ await importClient.deleteAllPendingReview()
 - Accept transactions (verify navigation to transactions page)
 - Delete all (verify confirmation modal, transactions removed)
 - Permission checks (verify Viewer role cannot access page)
+- Test file upload with valid/invalid files
+- Test session storage persistence across page reloads
+- Test workspace switching clears/restores selections
 
 **Component tests (Vue Test Utils):**
 - File selection handler
@@ -1256,12 +499,7 @@ await importClient.deleteAllPendingReview()
 - [ ] Add action buttons (Import, Delete All)
 - [ ] Create delete all confirmation modal
 - [ ] Add navigation item to SiteHeader component
-- [ ] Test file upload with valid/invalid files
-- [ ] Test pagination navigation
-- [ ] Test session storage persistence across page reloads
-- [ ] Test workspace switching clears/restores selections
 - [ ] Write functional tests for import workflow
-- [ ] Verify permission enforcement (Editor/Owner only)
 
 ## References
 
