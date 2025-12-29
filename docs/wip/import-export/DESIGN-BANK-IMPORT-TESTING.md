@@ -25,7 +25,7 @@ This document defines the comprehensive testing strategy for the Bank Import fea
 - **15% Unit** - OFX parsing, duplicate key generation, field extraction
 - **15% Functional** - Upload → Review → Complete user workflows
 
-**Total Estimated Tests:** 27-34 tests for 34 acceptance criteria
+**Total Estimated Tests:** 37-39 tests (23 controller + 7 unit + 5 data + 9 functional)
 
 **Why Integration-heavy?** The Bank Import feature is primarily about API state management (upload → review → accept), duplicate detection (database queries), and multi-request workflows - all optimally tested at the integration level.
 
@@ -229,7 +229,7 @@ Scenario: Import review transaction stores duplicate status correctly
     Then DuplicateStatus should be preserved correctly
 ```
 
-## Integration Tests - Controller Layer (23-26 tests)
+## Integration Tests - Controller Layer (23 tests)
 
 **Location:** [`tests/Integration.Controller/`](../../../tests/Integration.Controller/)
 
@@ -327,7 +327,7 @@ Scenario: Upload bank file partial failure returns partial success
 **Test 9: Success - Returns pending transactions**
 ```gherkin
 Scenario: Get import review with pending transactions returns OK
-    Given user has Viewer role for tenant
+    Given user has Editor role for tenant
     And 3 transactions in review state
     When user requests import review
     Then 200 OK should be returned
@@ -337,7 +337,7 @@ Scenario: Get import review with pending transactions returns OK
 **Test 10: Empty result - No pending transactions**
 ```gherkin
 Scenario: Get import review no pending transactions returns empty list
-    Given user has Viewer role for tenant
+    Given user has Editor role for tenant
     And no transactions in review state
     When user requests import review
     Then 200 OK should be returned
@@ -354,7 +354,16 @@ Scenario: Get import review persists across sessions returns OK
     And pending transactions should still be there
 ```
 
-**Test 12: Tenant isolation - Only shows user's tenant data**
+**Test 12: Authorization - Viewer role forbidden**
+```gherkin
+Scenario: Get import review as viewer returns forbidden
+    Given user has Viewer role for tenant (read-only)
+    And pending import review transactions exist
+    When viewer attempts to get import review
+    Then 403 Forbidden should be returned
+```
+
+**Test 13: Tenant isolation - Only shows user's tenant data**
 ```gherkin
 Scenario: Get import review different tenant returns empty
     Given user has Editor role for tenant A
@@ -372,7 +381,7 @@ Scenario: Get import review different tenant returns empty
 1. Copies selected transactions to the main Transaction table
 2. Deletes ALL transactions from ImportReviewTransaction table (both selected and unselected)
 
-**Test 13: Success - Complete review with selected transactions**
+**Test 14: Success - Complete review with selected transactions**
 ```gherkin
 Scenario: Complete review selected transactions returns OK
     Given user has Editor role for tenant
@@ -385,7 +394,7 @@ Scenario: Complete review selected transactions returns OK
     And review queue should be completely empty
 ```
 
-**Test 14: Authorization - Viewer forbidden**
+**Test 15: Authorization - Viewer forbidden**
 ```gherkin
 Scenario: Complete review as viewer returns forbidden
     Given user has Viewer role for tenant (read-only)
@@ -394,7 +403,7 @@ Scenario: Complete review as viewer returns forbidden
     Then 403 Forbidden should be returned
 ```
 
-**Test 15: Validation - Empty selection**
+**Test 16: Validation - Empty selection**
 ```gherkin
 Scenario: Complete review empty selection returns bad request
     Given user has Editor role for tenant
@@ -404,20 +413,20 @@ Scenario: Complete review empty selection returns bad request
     And error should indicate empty selection
 ```
 
-**Test 16: Tenant isolation - Cannot complete other tenant's review**
+**Test 17: Tenant isolation - Cannot complete other tenant's review**
 ```gherkin
-Scenario: Complete review different tenant transactions returns 404
+Scenario: Complete review different tenant returns forbidden
     Given user has Editor role for tenant A
     And tenant B has pending import review transactions
     When user A attempts to complete tenant B's review
-    Then should return error (tenant isolation - no transactions found)
+    Then 403 Forbidden should be returned (tenant isolation)
 ```
 
 ### Test Group 4: DELETE /api/import/review
 
 **Endpoint:** Delete all pending import review transactions without accepting any
 
-**Test 17: Success - Delete all pending transactions**
+**Test 18: Success - Delete all pending transactions**
 ```gherkin
 Scenario: Delete review queue as editor returns no content
     Given user has Editor role for tenant
@@ -427,7 +436,7 @@ Scenario: Delete review queue as editor returns no content
     And review queue should be empty
 ```
 
-**Test 18: Authorization - Viewer forbidden**
+**Test 19: Authorization - Viewer forbidden**
 ```gherkin
 Scenario: Delete review queue as viewer returns forbidden
     Given user has Viewer role for tenant (read-only)
@@ -436,7 +445,7 @@ Scenario: Delete review queue as viewer returns forbidden
     Then 403 Forbidden should be returned
 ```
 
-**Test 19: Idempotent - Delete empty queue succeeds**
+**Test 20: Idempotent - Delete empty queue succeeds**
 ```gherkin
 Scenario: Delete review queue empty queue returns no content
     Given user has Editor role for tenant
@@ -447,7 +456,7 @@ Scenario: Delete review queue empty queue returns no content
 
 ### Additional Integration Test Scenarios
 
-**Test 20: Multiple uploads merge into single review queue**
+**Test 21: Multiple uploads merge into single review queue**
 ```gherkin
 Scenario: Upload multiple files merges into single review queue
     Given user has Editor role for tenant
@@ -457,7 +466,7 @@ Scenario: Upload multiple files merges into single review queue
     And both uploads should be merged into single review session
 ```
 
-**Test 21: Transactions in review not included in transaction list**
+**Test 22: Transactions in review not included in transaction list**
 ```gherkin
 Scenario: Get transactions excludes review state transactions
     Given user has Editor role for tenant
@@ -468,7 +477,7 @@ Scenario: Get transactions excludes review state transactions
     And pending import review transactions should not be included
 ```
 
-**Test 22: Pagination for large import review lists**
+**Test 23: Pagination for large import review lists**
 ```gherkin
 Scenario: Get import review large import supports pagination
     Given user has Editor role for tenant
@@ -508,51 +517,40 @@ Feature: Bank Import
 
   Rule: File Upload and Import Workflow
 
-  Scenario: User uploads bank file and sees import review summary
+  Scenario: User uploads bank file and sees import review page
     Given I am on the transactions page
     When I click "Import from Bank" button
     And I upload OFX file "checking-jan-2024.ofx"
     Then I should be redirected to "Import Review" page
-    And page should show "12 New Transactions"
-    And page should show "3 Exact Duplicates"
-    And new transactions should be selected by default
-    And exact duplicates should be deselected by default
+    And page should display 15 transactions
+    And 12 transactions should be selected by default
+    And 3 transactions should be deselected by default
 
   Scenario: User accepts selected transactions from import review
     Given I am on the import review page
-    And page shows "12 New Transactions"
-    And page shows "3 Exact Duplicates"
-    And new transactions are selected by default
+    And page displays 15 transactions
+    And 12 transactions are selected by default
     When I click "Accept Selected Transactions" button
     Then 12 transactions should be added to transaction list
     And import review page should show "0 transactions remaining"
 
-  Scenario: User uploads bank file with duplicates and sees grouping
+  Scenario: User uploads bank file with duplicates and sees marked potential duplicates
     Given I have existing transactions from January 1-15
     And I am on the import review page
     When I upload bank file with overlapping dates "checking-jan-15-31.ofx"
-    Then Import Review page should show three sections:
-      | Section               | Count |
-      | New Transactions      | 8     |
-      | Exact Duplicates      | 14    |
-      | Potential Duplicates  | 1     |
-    And "New Transactions" section should be expanded by default
-    And "Exact Duplicates" section should be collapsed
+    Then page should display 23 total transactions
+    And 8 transactions should be selected by default
+    And 14 transactions should be deselected by default
+    And 1 transaction should be visually marked as "Potential Duplicate"
 
-  Scenario: User reviews potential duplicates with comparison view
+  Scenario: User accepts selected transactions and rejects duplicates
     Given I am on the import review page
-    And page shows "1 Potential Duplicates"
-    When I expand "Potential Duplicates" section
-    Then I should see comparison view showing existing vs. imported data
-
-  Scenario: User accepts only new transactions from mixed import
-    Given I am on the import review page
-    And page shows "8 New Transactions" selected
-    And page shows "14 Exact Duplicates" deselected
-    And page shows "1 Potential Duplicates" deselected
+    And page displays 23 transactions
+    And 8 transactions are selected by default
+    And 15 transactions are deselected by default
     When I click "Accept Selected" button
-    Then 8 transactions should be added
-    And import review queue should be cleared
+    Then 8 transactions should be added to transaction list
+    And import review queue should be completely cleared
 
   Scenario: User returns to pending import review after leaving and logging back in
     Given I have 15 pending import review transactions
@@ -570,6 +568,14 @@ Feature: Bank Import
     When I click "Delete All" button
     Then review queue should be cleared
     And page should show "No pending imports"
+
+  Rule: Authorization
+
+  Scenario: Viewer cannot access import page
+    Given I am logged in as a user with Viewer role for workspace
+    When I attempt to navigate to import review page
+    Then I should see error message "Access denied - Editor or Owner role required"
+    And I should be redirected to transactions page
 
   Rule: Error Handling
 
@@ -591,35 +597,35 @@ Feature: Bank Import
 **Priority-ordered implementation plan** - If implementing functional tests incrementally, build them in this order based on business value and risk coverage:
 
 **Priority 1 (Must Have):** Core happy path workflow
-- ✅ **"User uploads bank file and sees import review summary"** - Validates the entire upload flow and review UI grouping. This is the foundational workflow that must work for the feature to be usable.
+- ✅ **"User uploads bank file and sees import review page"** - Validates the entire upload flow and transaction display. This is the foundational workflow that must work for the feature to be usable.
 
 **Priority 2 (Must Have):** Complete the accept workflow
 - ✅ **"User accepts selected transactions from import review"** - Completes the upload → review → accept workflow. Without this, imports cannot be finalized.
 
-**Priority 3 (Should Have):** Duplicate detection UI verification
-- ✅ **"User uploads bank file with duplicates and sees grouping"** - Validates that duplicate detection works correctly in the UI and transactions are properly grouped (New/Exact/Potential).
+**Priority 3 (Must Have):** Authorization enforcement
+- ✅ **"Viewer cannot access import page"** - Validates that read-only users are properly blocked from import functionality. Critical security requirement.
 
-**Priority 4 (Should Have):** Error handling for user mistakes
+**Priority 4 (Should Have):** Duplicate detection UI verification
+- ✅ **"User uploads bank file with duplicates and sees marked potential duplicates"** - Validates that duplicate detection works correctly and potential duplicates are visually marked in the UI.
+
+**Priority 5 (Should Have):** Error handling for user mistakes
 - ✅ **"User uploads corrupted file and sees error message"** - Validates error handling for the most likely user error (corrupted/damaged files).
 
-**Priority 5 (Should Have):** Accept workflow with mixed groups
-- ✅ **"User accepts only new transactions from mixed import"** - Validates that default selection behavior works (new selected, duplicates deselected) and users can complete imports with mixed groups.
+**Priority 6 (Should Have):** Accept workflow with mixed selection
+- ✅ **"User accepts selected transactions and rejects duplicates"** - Validates that default selection behavior works (new selected, duplicates deselected) and users can complete imports with mixed selections.
 
-**Priority 6 (Nice to Have):** Validation error handling
+**Priority 7 (Nice to Have):** Validation error handling
 - ✅ **"User uploads unsupported file format"** - Less critical than corrupted file handling, as users are less likely to upload wrong file types.
 
-**Priority 7 (Nice to Have):** State persistence verification
+**Priority 8 (Nice to Have):** State persistence verification
 - ✅ **"User returns to pending import review after leaving and logging back in"** - Important for user experience but not essential for basic functionality.
-
-**Priority 8 (Nice to Have):** Potential duplicate comparison UI
-- ✅ **"User reviews potential duplicates with comparison view"** - Edge case UI that provides extra user value but is not in the critical path.
 
 **Priority 9 (Nice to Have):** Queue management
 - ✅ **"User deletes entire import review queue"** - Utility function for cleanup but not essential for basic workflow.
 
-**Minimal Viable Functional Tests:** Priorities 1-2 (upload and accept workflows)
+**Minimal Viable Functional Tests:** Priorities 1-3 (upload, accept, and authorization)
 
-**Recommended Functional Test Suite:** Priorities 1-5 (covers core workflows, duplicate detection, and error handling)
+**Recommended Functional Test Suite:** Priorities 1-6 (covers core workflows, authorization, duplicate detection, and error handling)
 
 **Complete Functional Test Suite:** All 9 scenarios (comprehensive coverage including edge cases and utility functions)
 
@@ -741,7 +747,7 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Index performance on (TenantId, ExternalId)
 - [ ] DuplicateStatus enum storage and retrieval
 
-### Integration Tests - Controller Layer (22 tests)
+### Integration Tests - Controller Layer (23 tests)
 
 **Upload Endpoint (8 tests):**
 - [ ] Upload valid OFX file - Returns 201 Created
@@ -753,17 +759,18 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Upload to different tenant - Returns 403 Forbidden
 - [ ] Upload with partial failures - Returns 201 with partial success
 
-**Get Review Endpoint (4 tests):**
+**Get Review Endpoint (5 tests):**
 - [ ] Get pending transactions - Returns 200 OK with transactions
 - [ ] Get when empty - Returns 200 OK with empty list
 - [ ] Get persists across sessions - Returns same data
+- [ ] Get as Viewer - Returns 403 Forbidden
 - [ ] Get with different tenant - Returns empty (isolation)
 
 **Complete Review Endpoint (4 tests):**
 - [ ] Complete review with selected transactions - Returns 200 OK, accepts selected and deletes all
 - [ ] Complete review as Viewer - Returns 403 Forbidden
 - [ ] Complete review with empty selection - Returns 400 Bad Request
-- [ ] Complete review for different tenant's transactions - Returns error (isolation)
+- [ ] Complete review for different tenant - Returns 403 Forbidden (isolation)
 
 **Delete Endpoint (3 tests):**
 - [ ] Delete all pending transactions - Returns 204 No Content
@@ -776,12 +783,12 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Pagination for large import review lists
 
 ### Functional Tests (9 tests)
-- [ ] Upload → Review summary - Upload and display workflow
+- [ ] Upload → Review page - Upload and display workflow
 - [ ] Accept selected transactions - Complete workflow
-- [ ] Upload with duplicates → See grouping - Duplicate detection UI
-- [ ] Review potential duplicates - Comparison view
-- [ ] Accept only new from mixed import - Selection behavior
+- [ ] Viewer cannot access import page - Authorization enforcement
+- [ ] Upload with duplicates → See marked potential duplicates - Duplicate detection UI
 - [ ] Upload corrupted file - Error handling
+- [ ] Accept selected and reject duplicates - Selection behavior
 - [ ] Upload unsupported format - Validation
 - [ ] Return to pending import later - State persistence
 - [ ] Delete entire review queue - Queue management

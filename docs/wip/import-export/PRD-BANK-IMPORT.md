@@ -62,6 +62,7 @@ Users need a streamlined import process with duplicate detection and review capa
 - [ ] User is redirected to Import Review page showing all imported transaction candidates
 - [ ] System extracts bank-provided transaction ID as Key when available
 - [ ] System generates hash Key from (Date + Amount + Payee) when bank ID not available
+- [ ] User must have Editor or Owner role to access import workflow (Viewer role is forbidden)
 
 ### Story 2: User - Review Imported Transactions Before Accepting
 

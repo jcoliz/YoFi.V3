@@ -137,6 +137,40 @@ src/FrontEnd.Nuxt/app/
 
 8. **Computed permissions** - Uses Vue computed properties to derive permission state (`canImport`) from user preferences store.
 
+## Authorization Requirements
+
+### Role-Based Access Control
+
+**Editor role required for all import operations:**
+- Users must have Editor or Owner role in the current workspace to access any import functionality
+- Viewer role users cannot interact with importing in any way
+- API enforces authorization via `[RequireTenantRole(TenantRole.Editor)]` on [`ImportController`](src/Controllers/ImportController.cs)
+
+**Frontend enforcement:**
+
+**1. Navigation bar visibility:**
+- Import link shown only when `canImport` is `true` (computed from user preferences)
+- `canImport` checks `userPrefs.currentTenant?.role` is `TenantRole.Editor` or `TenantRole.Owner`
+- Viewer role users will NOT see Import link in navigation bar
+
+**2. Direct navigation protection:**
+- If Viewer role user attempts to navigate directly to [`/import`](src/FrontEnd.Nuxt/app/pages/import.vue) (e.g., via bookmark or URL manipulation)
+- Page displays error message using [`ErrorDisplay`](src/FrontEnd.Nuxt/app/components/ErrorDisplay.vue) component
+- Error message: "You do not have permission to import into this workspace. Editor role is required."
+- All import UI elements (file upload, transaction table, action buttons) are hidden via `v-if="canImport"`
+- Empty state message is also hidden
+- Page remains accessible but shows only error message and workspace selector
+
+**3. Backend validation:**
+- Even if frontend protection is bypassed, API returns 403 Forbidden for unauthorized users
+- Frontend error handling displays ProblemDetails response to user
+
+**Benefits:**
+- Defense in depth - protection at navigation, page, and API layers
+- Clear user feedback when permission denied via error message
+- No exposure of import UI to unauthorized users
+- Consistent with existing authorization patterns (similar to transactions page hiding edit buttons for Viewers)
+
 ## Key Features
 
 ### File Upload
