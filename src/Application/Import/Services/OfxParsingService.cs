@@ -54,10 +54,42 @@ public class OfxParsingService : IOfxParsingService
             // Extract transactions from all statements
             if (document?.Statements != null)
             {
+                // Get bank name from signon (can be null)
+                var bankName = document.SignOn?.Institution?.Name;
+
                 foreach (var statement in document.Statements)
                 {
                     if (statement?.Transactions != null)
                     {
+                        // Build source string from available account info
+                        var sourceParts = new List<string>();
+
+                        if (!string.IsNullOrWhiteSpace(bankName))
+                        {
+                            sourceParts.Add(bankName);
+                        }
+
+                        if (statement.AccountFrom is Account.BankAccount bankAccount)
+                        {
+                            // Convert "CHECKING" to "Checking"
+                            var accountTypeStr = bankAccount.BankAccountType.ToString();
+                            var accountType = accountTypeStr.Length > 0
+                                ? char.ToUpper(accountTypeStr[0]) + accountTypeStr.Substring(1).ToLower()
+                                : accountTypeStr;
+                            var accountId = bankAccount.AccountId;
+
+                            if (!string.IsNullOrWhiteSpace(accountId))
+                            {
+                                sourceParts.Add($"{accountType} ({accountId})");
+                            }
+                            else if (!string.IsNullOrWhiteSpace(accountType))
+                            {
+                                sourceParts.Add(accountType);
+                            }
+                        }
+
+                        var source = sourceParts.Count > 0 ? string.Join(" - ", sourceParts) : string.Empty;
+
                         foreach (var transaction in statement.Transactions)
                         {
                             // Extract date, amount, payee, and memo (Tests 5-8)
@@ -97,14 +129,14 @@ public class OfxParsingService : IOfxParsingService
                                 continue; // Skip this transaction
                             }
 
-                            // More fields will be added in subsequent tests
+                            // All fields extracted (Tests 5-9)
                             transactions.Add(new TransactionImportDto
                             {
                                 Date = DateOnly.FromDateTime(dateTime),
                                 Amount = transaction.Amount,
                                 Payee = payee,
                                 Memo = memo,
-                                Source = string.Empty  // Will be implemented in Test 9
+                                Source = source
                             });
                         }
                     }

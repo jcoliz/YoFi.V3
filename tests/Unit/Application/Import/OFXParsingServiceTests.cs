@@ -551,7 +551,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 9 - Implement source string construction from account info")]
     public async Task ParseAsync_SingleTransaction_BuildsSourceString()
     {
         // Given: An OFX document with bank name, account type, and account ID
