@@ -1,7 +1,6 @@
 ---
-status: Draft
+status: Approved
 created: 2025-12-28
-prd: PRD-BANK-IMPORT.md
 related_docs:
   - PRD-BANK-IMPORT.md
   - IMPORT-REVIEW-DATA-MODEL.md
@@ -13,9 +12,13 @@ related_docs:
 
 # Design Document: Transaction Bank Import
 
+## Abstract
+
+This document provides the detailed technical design for implementing the Transaction Bank Import feature as specified in [`PRD-BANK-IMPORT.md`](PRD-BANK-IMPORT.md).
+
 ## Overview
 
-This document provides the detailed technical design for implementing the Transaction Bank Import feature as specified in [`PRD-BANK-IMPORT.md`](PRD-BANK-IMPORT.md). The feature enables users to upload OFX/QFX bank files, review imported transactions with duplicate detection, and selectively accept transactions into their workspace.
+The feature enables users to upload OFX/QFX bank files, review imported transactions with duplicate detection, and selectively accept transactions into their workspace.
 
 **Key capabilities:**
 - Parse OFX and QFX bank files to extract transaction data
@@ -31,7 +34,7 @@ The Bank Import feature follows Clean Architecture principles with clear separat
 - **ImportReviewTransaction entity** - Separate table for staging transactions during review
 - **DuplicateStatus enum** - Tracks whether transaction is New, ExactDuplicate, or PotentialDuplicate
 - **Migration** - Creates `YoFi.V3.ImportReviewTransactions` table with tenant isolation and indexes
-- **Repository methods** - CRUD operations for import review transactions
+- **DbContext** - Exposes ImportReviewTransactions DbSet as IQueryable for Application layer queries
 
 ### Application Layer
 - **OFXParsingService** - Parses OFX/QFX files using OfxSharp library
@@ -40,8 +43,8 @@ The Bank Import feature follows Clean Architecture principles with clear separat
 - **Validation** - Ensures parsed transactions meet schema requirements
 
 ### API Layer
-- **ImportController** - Endpoints for file upload, get pending review, accept, delete operations
-- **Authentication/Authorization** - Tenant-scoped access control via TenantContext middleware
+- **ImportController** - Endpoints for file upload, get pending review, complete, delete operations
+- **Authentication/Authorization** - Tenant-scoped access control via TenantContext middleware. Editor role is required to interact with import in any way.
 - **File upload handling** - Multipart form data processing with validation
 
 ### Frontend Layer
@@ -55,19 +58,20 @@ The Bank Import feature follows Clean Architecture principles with clear separat
 2. Backend parses file → OFXParsingService extracts transactions
 3. Duplicate detection → Compare against existing transactions and pending imports
 4. Store in staging → Insert into ImportReviewTransactions with DuplicateStatus
-5. Return to UI → Frontend displays transactions grouped by duplicate status
+5. Return to UI → Frontend displays transactions with initial selection state governed by duplicate status
 6. User reviews → Selects/deselects transactions, clicks "Import"
-7. Accept selected → Backend copies to Transactions table, deletes from ImportReviewTransactions
+7. Accept selected → Backend copies to Transactions table, clears  ImportReviewTransactions
 8. Navigate to transactions → User sees newly imported data in main transaction list
 
 ## Layer-Specific Design Documents
 
 Detailed implementation plans for each layer:
 
-1. **[DESIGN-BANK-IMPORT-DATA.md](DESIGN-BANK-IMPORT-DATA.md)** - Entity model, migration, repository methods, duplicate detection queries
+1. **[DESIGN-BANK-IMPORT-DATABASE.md](DESIGN-BANK-IMPORT-DATABASE.md)** - Entity model, migration, repository methods, duplicate detection queries
 2. **[DESIGN-BANK-IMPORT-APPLICATION.md](DESIGN-BANK-IMPORT-APPLICATION.md)** - OFXParsingService, ImportReviewFeature, DTOs, validation logic
 3. **[DESIGN-BANK-IMPORT-API.md](DESIGN-BANK-IMPORT-API.md)** - Controller endpoints, request/response contracts, error handling, logging
 4. **[DESIGN-BANK-IMPORT-FRONTEND.md](DESIGN-BANK-IMPORT-FRONTEND.md)** - Vue pages, components, state management, API integration, user interactions
+5. **[DESIGN-BANK-IMPORT-TESTING.md](DESIGN-BANK-IMPORT-TESTING.md)** - Testing strategy, unit tests, integration tests, functional tests
 
 ## Security Considerations
 
@@ -101,7 +105,6 @@ Detailed implementation plans for each layer:
 **Duplicate Detection:**
 - Query both Transactions and ImportReviewTransactions tables
 - Indexes on (TenantId, ExternalId) for fast lookups
-- In-memory comparison for field-level duplicate detection
 - Expected overhead: <2 seconds for 1,000 transaction import
 
 **UI Rendering:**
@@ -134,8 +137,8 @@ Detailed implementation plans for each layer:
 4. Collect telemetry on file formats, sizes, duplicate rates
 
 **YoFi V1 Migration:**
-- V1 used single table with `Imported` flag (not recommended for V3)
-- If migrating V1 data: Copy `Imported=false` transactions to ImportReviewTransactions, drop flag
+- YoFi V1 transactions with "Imported" flag will not be exported
+- Transaction review state is ephemeral, not migrated from V1
 
 ## Future Enhancements
 
@@ -146,7 +149,6 @@ See [`VISUAL-DESIGN-BANK-IMPORT.md`](VISUAL-DESIGN-BANK-IMPORT.md) for deferred 
 - Badge indicator in navigation showing pending import count
 - Help text/tooltips explaining import workflow
 - Responsive design optimizations for mobile/tablet
-- Real-time bank API integration (Plaid, etc.)
 - Scheduled/automated imports
 - Import from additional formats (CSV, XLSX via Tenant Data Admin)
 

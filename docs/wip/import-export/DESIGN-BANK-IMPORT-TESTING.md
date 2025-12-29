@@ -536,12 +536,13 @@ Feature: Bank Import
 
   Scenario: User uploads bank file with duplicates and sees marked potential duplicates
     Given I have existing transactions from January 1-15
+    And one existing transaction has been modified (payee changed from original import)
     And I am on the import review page
     When I upload bank file with overlapping dates "checking-jan-15-31.ofx"
     Then page should display 23 total transactions
     And 8 transactions should be selected by default
     And 14 transactions should be deselected by default
-    And 1 transaction should be visually marked as "Potential Duplicate"
+    And 1 transaction should be visually marked as "Potential Duplicate" (the modified one)
 
   Scenario: User accepts selected transactions and rejects duplicates
     Given I am on the import review page
@@ -608,11 +609,11 @@ Feature: Bank Import
 **Priority 4 (Should Have):** Duplicate detection UI verification
 - ✅ **"User uploads bank file with duplicates and sees marked potential duplicates"** - Validates that duplicate detection works correctly and potential duplicates are visually marked in the UI.
 
-**Priority 5 (Should Have):** Error handling for user mistakes
-- ✅ **"User uploads corrupted file and sees error message"** - Validates error handling for the most likely user error (corrupted/damaged files).
-
-**Priority 6 (Should Have):** Accept workflow with mixed selection
+**Priority 5 (Should Have):** Accept workflow with mixed selection
 - ✅ **"User accepts selected transactions and rejects duplicates"** - Validates that default selection behavior works (new selected, duplicates deselected) and users can complete imports with mixed selections.
+
+**Priority 6 (Should Have):** Error handling for user mistakes
+- ✅ **"User uploads corrupted file and sees error message"** - Validates error handling for the most likely user error (corrupted/damaged files).
 
 **Priority 7 (Nice to Have):** Validation error handling
 - ✅ **"User uploads unsupported file format"** - Less critical than corrupted file handling, as users are less likely to upload wrong file types.
