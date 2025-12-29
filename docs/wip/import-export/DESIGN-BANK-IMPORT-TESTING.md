@@ -10,6 +10,8 @@ related_docs:
   - DESIGN-BANK-IMPORT-API.md
   - DESIGN-BANK-IMPORT-FRONTEND.md
   - PRD-BANK-IMPORT.md
+  - VISUAL-DESIGN-BANK-IMPORT.md
+  - MOCKUP-BANK-IMPORT.md
 ---
 
 # Testing Strategy Design: Bank Import Feature
@@ -19,11 +21,11 @@ related_docs:
 This document defines the comprehensive testing strategy for the Bank Import feature as specified in [`PRD-BANK-IMPORT.md`](PRD-BANK-IMPORT.md). The strategy covers all test layers (Unit, Integration.Data, Integration.Controller, and Functional) with specific test cases, file locations, and verification criteria.
 
 **Test Distribution Target:**
-- **70% Controller Integration** - Import/review/accept API workflow, authorization, duplicate detection
+- **70% Controller Integration** - Import/review/complete API workflow, authorization, duplicate detection
 - **15% Unit** - OFX parsing, duplicate key generation, field extraction
-- **15% Functional** - Upload → Review → Accept user workflows
+- **15% Functional** - Upload → Review → Complete user workflows
 
-**Total Estimated Tests:** 31-38 tests for 34 acceptance criteria
+**Total Estimated Tests:** 27-34 tests for 34 acceptance criteria
 
 **Why Integration-heavy?** The Bank Import feature is primarily about API state management (upload → review → accept), duplicate detection (database queries), and multi-request workflows - all optimally tested at the integration level.
 
@@ -105,108 +107,53 @@ public async Task ParseAsync_ValidOFXFile_ReturnsTransactions()
 **Test Cases:**
 
 **Test 1: New transaction (no duplicates)**
-```csharp
-[Test]
-public async Task ImportFileAsync_NewTransaction_MarkedAsNew()
-{
-    // Given: OFX file with transaction that doesn't exist in database
-    // And: No pending import review transactions
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "test.ofx");
-
-    // Then: Transaction should be marked as DuplicateStatus.New
-    Assert.That(result.NewCount, Is.EqualTo(1));
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(0));
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(0));
-
-    // And: Transaction should have null DuplicateOfKey
-    var transaction = result.Transactions.First();
-    Assert.That(transaction.DuplicateStatus, Is.EqualTo(DuplicateStatus.New));
-    Assert.That(transaction.DuplicateOfKey, Is.Null);
-}
+```gherkin
+Scenario: Import file async with new transaction is marked as new
+    Given OFX file with transaction that doesn't exist in database
+    And no pending import review transactions
+    When file is imported
+    Then transaction should be marked as DuplicateStatus.New
+    And transaction should have null DuplicateOfKey
 ```
 
 **Test 2: Exact duplicate (same FITID and same data)**
-```csharp
-[Test]
-public async Task ImportFileAsync_ExactDuplicateWithFITID_MarkedAsExactDuplicate()
-{
-    // Given: Existing transaction with FITID "FITID12345"
-    // And: OFX file with transaction having same FITID and matching data
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "test.ofx");
-
-    // Then: Transaction should be marked as DuplicateStatus.ExactDuplicate
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(1));
-
-    // And: Should reference the existing transaction's Key
-    var transaction = result.Transactions.First();
-    Assert.That(transaction.DuplicateStatus, Is.EqualTo(DuplicateStatus.ExactDuplicate));
-    Assert.That(transaction.DuplicateOfKey, Is.EqualTo(existingTransaction.Key));
-}
+```gherkin
+Scenario: Import file async with exact duplicate with FITID is marked as exact duplicate
+    Given existing transaction with FITID "FITID12345"
+    And OFX file with transaction having same FITID and matching data
+    When file is imported
+    Then transaction should be marked as DuplicateStatus.ExactDuplicate
+    And should reference the existing transaction's Key
 ```
 
 **Test 3: Potential duplicate (same FITID, different amount)**
-```csharp
-[Test]
-public async Task ImportFileAsync_SameFITIDDifferentAmount_MarkedAsPotentialDuplicate()
-{
-    // Given: Existing transaction with FITID "FITID12345" and amount $50.00
-    // And: OFX file with same FITID but amount $55.00 (bank correction?)
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "test.ofx");
-
-    // Then: Transaction should be marked as DuplicateStatus.PotentialDuplicate
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
-
-    // And: Should reference the existing transaction's Key for user review
-    var transaction = result.Transactions.First();
-    Assert.That(transaction.DuplicateStatus, Is.EqualTo(DuplicateStatus.PotentialDuplicate));
-    Assert.That(transaction.DuplicateOfKey, Is.EqualTo(existingTransaction.Key));
-}
+```gherkin
+Scenario: Import file async with same FITID different amount is marked as potential duplicate
+    Given existing transaction with FITID "FITID12345" and amount $50.00
+    And OFX file with same FITID but amount $55.00 (bank correction?)
+    When file is imported
+    Then transaction should be marked as DuplicateStatus.PotentialDuplicate
+    And should reference the existing transaction's Key for user review
 ```
 
 **Test 4: Field-level duplicate (no FITID, same Date+Amount+Payee)**
-```csharp
-[Test]
-public async Task ImportFileAsync_NoFITIDButSameData_MarkedAsPotentialDuplicate()
-{
-    // Given: Existing transaction without FITID (Date: 2024-01-15, Amount: $50.00, Payee: "Amazon")
-    // And: OFX file with transaction (no FITID) with matching Date, Amount, Payee
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "test.ofx");
-
-    // Then: Transaction should be marked as PotentialDuplicate (likely duplicate)
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
-
-    // And: Should reference the existing transaction's Key
-    var transaction = result.Transactions.First();
-    Assert.That(transaction.DuplicateStatus, Is.EqualTo(DuplicateStatus.PotentialDuplicate));
-}
+```gherkin
+Scenario: Import file async with no FITID but same data is marked as potential duplicate
+    Given existing transaction without FITID (Date: 2024-01-15, Amount: $50.00, Payee: "Amazon")
+    And OFX file with transaction (no FITID) with matching Date, Amount, Payee
+    When file is imported
+    Then transaction should be marked as PotentialDuplicate (likely duplicate)
+    And should reference the existing transaction's Key
 ```
 
 **Test 5: Duplicate in pending import review (prevents double import)**
-```csharp
-[Test]
-public async Task ImportFileAsync_DuplicateInPendingImports_MarkedAsDuplicate()
-{
-    // Given: Pending import review transaction with FITID "FITID12345"
-    // And: OFX file with transaction having same FITID
-
-    // When: Second file is imported (same session)
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "test2.ofx");
-
-    // Then: Transaction should be marked as duplicate of pending import
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(1));
-
-    // And: Should reference the pending import transaction's Key
-    var transaction = result.Transactions.First();
-    Assert.That(transaction.DuplicateOfKey, Is.EqualTo(pendingImportTransaction.Key));
-}
+```gherkin
+Scenario: Import file async with duplicate in pending imports is marked as duplicate
+    Given pending import review transaction with FITID "FITID12345"
+    And OFX file with transaction having same FITID
+    When second file is imported (same session)
+    Then transaction should be marked as duplicate of pending import
+    And should reference the pending import transaction's Key
 ```
 
 ### Test Group 3: Transaction Field Extraction and Validation
@@ -214,34 +161,20 @@ public async Task ImportFileAsync_DuplicateInPendingImports_MarkedAsDuplicate()
 **File:** [`tests/Unit/ImportReviewFeatureTests.cs`](../../../tests/Unit/ImportReviewFeatureTests.cs)
 
 **Test 6: Missing required field (amount)**
-```csharp
-[Test]
-public async Task ImportFileAsync_MissingAmount_ReturnsError()
-{
-    // Given: OFX file with transaction missing amount field
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "invalid.ofx");
-
-    // Then: Should return error in parsing result
-    Assert.That(result.ImportedCount, Is.EqualTo(0));
-    // Note: Error details handled by OFXParsingService
-}
+```gherkin
+Scenario: Import file async with missing amount returns error
+    Given OFX file with transaction missing amount field
+    When file is imported
+    Then should return error in parsing result
+    # Note: Error details handled by OFXParsingService
 ```
 
 **Test 7: Missing required field (date)**
-```csharp
-[Test]
-public async Task ImportFileAsync_MissingDate_ReturnsError()
-{
-    // Given: OFX file with transaction missing date field
-
-    // When: File is imported
-    var result = await importReviewFeature.ImportFileAsync(fileStream, "invalid.ofx");
-
-    // Then: Should return error in parsing result
-    Assert.That(result.ImportedCount, Is.EqualTo(0));
-}
+```gherkin
+Scenario: Import file async with missing date returns error
+    Given OFX file with transaction missing date field
+    When file is imported
+    Then should return error in parsing result
 ```
 
 ## Integration Tests - Data Layer (3-5 tests)
@@ -257,115 +190,43 @@ public async Task ImportFileAsync_MissingDate_ReturnsError()
 ### Test Cases
 
 **Test 1: Create import review transaction with tenant isolation**
-```csharp
-[Test]
-public async Task AddImportReviewTransaction_WithTenantId_Success()
-{
-    // Given: A valid import review transaction with TenantId
-    var reviewTransaction = new ImportReviewTransaction
-    {
-        Key = Guid.NewGuid(),
-        TenantId = _testTenantId,
-        Date = new DateOnly(2024, 1, 15),
-        Payee = "Test Payee",
-        Amount = 50.00m,
-        ExternalId = "FITID12345",
-        DuplicateStatus = DuplicateStatus.New,
-        ImportedAt = DateTime.UtcNow,
-        CreatedAt = DateTime.UtcNow
-    };
-
-    // When: Transaction is added to database
-    await _dbContext.ImportReviewTransactions.AddAsync(reviewTransaction);
-    await _dbContext.SaveChangesAsync();
-
-    // Then: Transaction should be persisted
-    var saved = await _dbContext.ImportReviewTransactions
-        .FirstOrDefaultAsync(t => t.Key == reviewTransaction.Key);
-    Assert.That(saved, Is.Not.Null);
-    Assert.That(saved.TenantId, Is.EqualTo(_testTenantId));
-}
+```gherkin
+Scenario: Add import review transaction with tenant id success
+    Given a valid import review transaction with TenantId
+    When transaction is added to database
+    Then transaction should be persisted
 ```
 
 **Test 2: Query filters by tenant (isolation verification)**
-```csharp
-[Test]
-public async Task GetImportReviewTransactions_FiltersByTenant()
-{
-    // Given: Import review transactions for two different tenants
-    var tenant1Id = Guid.NewGuid();
-    var tenant2Id = Guid.NewGuid();
-
-    await SeedImportReviewTransaction(tenant1Id, "Tenant1-Transaction");
-    await SeedImportReviewTransaction(tenant2Id, "Tenant2-Transaction");
-
-    // When: Querying for tenant1's transactions
-    var tenant1Transactions = await _dbContext.ImportReviewTransactions
-        .Where(t => t.TenantId == tenant1Id)
-        .ToListAsync();
-
-    // Then: Should only return tenant1's transactions
-    Assert.That(tenant1Transactions.Count, Is.EqualTo(1));
-    Assert.That(tenant1Transactions.First().Payee, Is.EqualTo("Tenant1-Transaction"));
-}
+```gherkin
+Scenario: Get import review transactions filters by tenant
+    Given import review transactions for two different tenants
+    When querying for tenant1's transactions
+    Then should only return tenant1's transactions
 ```
 
 **Test 3: Cascade delete when tenant is deleted**
-```csharp
-[Test]
-public async Task DeleteTenant_CascadesDeleteImportReviewTransactions()
-{
-    // Given: A tenant with import review transactions
-    var tenant = new Tenant { Key = Guid.NewGuid(), Name = "Test Tenant" };
-    await _dbContext.Tenants.AddAsync(tenant);
-    await _dbContext.SaveChangesAsync();
-
-    await SeedImportReviewTransaction(tenant.Key, "Test Transaction");
-
-    // When: Tenant is deleted
-    _dbContext.Tenants.Remove(tenant);
-    await _dbContext.SaveChangesAsync();
-
-    // Then: Import review transactions should be cascade deleted
-    var remaining = await _dbContext.ImportReviewTransactions
-        .Where(t => t.TenantId == tenant.Key)
-        .ToListAsync();
-    Assert.That(remaining, Is.Empty);
-}
+```gherkin
+Scenario: Delete tenant cascades delete import review transactions
+    Given a tenant with import review transactions
+    When tenant is deleted
+    Then import review transactions should be cascade deleted
 ```
 
 **Test 4: Index performance on (TenantId, ExternalId)**
-```csharp
-[Test]
-public async Task QueryByTenantAndExternalId_UsesIndex()
-{
-    // Given: Multiple import review transactions
-    var tenantId = Guid.NewGuid();
-    await SeedImportReviewTransaction(tenantId, "Transaction1", "FITID001");
-    await SeedImportReviewTransaction(tenantId, "Transaction2", "FITID002");
-    await SeedImportReviewTransaction(tenantId, "Transaction3", "FITID003");
-
-    // When: Querying by TenantId and ExternalId (index should be used)
-    var transaction = await _dbContext.ImportReviewTransactions
-        .FirstOrDefaultAsync(t => t.TenantId == tenantId && t.ExternalId == "FITID002");
-
-    // Then: Should efficiently retrieve the correct transaction
-    Assert.That(transaction, Is.Not.Null);
-    Assert.That(transaction.Payee, Is.EqualTo("Transaction2"));
-}
+```gherkin
+Scenario: Query by tenant and external id uses index
+    Given multiple import review transactions
+    When querying by TenantId and ExternalId (index should be used)
+    Then should efficiently retrieve the correct transaction
 ```
 
 **Optional Test 5: DuplicateStatus enum storage**
-```csharp
-[Test]
-public async Task ImportReviewTransaction_StoresDuplicateStatusCorrectly()
-{
-    // Given: Import review transactions with all DuplicateStatus values
-
-    // When: Stored and retrieved
-
-    // Then: DuplicateStatus should be preserved correctly
-}
+```gherkin
+Scenario: Import review transaction stores duplicate status correctly
+    Given import review transactions with all DuplicateStatus values
+    When stored and retrieved
+    Then DuplicateStatus should be preserved correctly
 ```
 
 ## Integration Tests - Controller Layer (23-26 tests)
@@ -385,155 +246,78 @@ public async Task ImportReviewTransaction_StoresDuplicateStatusCorrectly()
 **Endpoint:** Upload OFX/QFX file
 
 **Test 1: Success - Valid OFX file**
-```csharp
-[Test]
-public async Task UploadBankFile_ValidOFX_ReturnsCreated()
-{
-    // Given: User has Editor role for tenant
-    // And: Valid OFX file with 3 transactions
-    var ofxContent = File.ReadAllBytes("SampleData/Ofx/Bank1.ofx");
-    var formData = new MultipartFormDataContent();
-    formData.Add(new ByteArrayContent(ofxContent), "file", "Bank1.ofx");
-
-    // When: User uploads OFX file
-    var response = await _client.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
-    // And: Response should contain import summary
-    var result = await response.Content.ReadFromJsonAsync<ImportResultDto>();
-    Assert.That(result, Is.Not.Null);
-    Assert.That(result.ImportedCount, Is.GreaterThan(0));
-    Assert.That(result.NewCount, Is.GreaterThan(0));
-}
+```gherkin
+Scenario: Upload bank file valid OFX returns created
+    Given user has Editor role for tenant
+    And valid OFX file with 3 transactions
+    When user uploads OFX file
+    Then 201 Created should be returned
+    And response should contain import summary
 ```
 
 **Test 2: Success - QFX format (SGML)**
-```csharp
-[Test]
-public async Task UploadBankFile_QFXFormat_ReturnsCreated()
-{
-    // Given: User has Editor role for tenant
-    // And: Valid QFX file (SGML-like OFX 1.x format)
-
-    // When: User uploads QFX file
-    var response = await _client.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 201 Created should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-}
+```gherkin
+Scenario: Upload bank file QFX format returns created
+    Given user has Editor role for tenant
+    And valid QFX file (SGML-like OFX 1.x format)
+    When user uploads QFX file
+    Then 201 Created should be returned
 ```
 
 **Test 3: Error - Corrupted file**
-```csharp
-[Test]
-public async Task UploadBankFile_CorruptedFile_ReturnsBadRequest()
-{
-    // Given: User has Editor role for tenant
-    // And: Corrupted OFX file (invalid XML)
-    var corruptedContent = Encoding.UTF8.GetBytes("<INVALID_XML>");
-    var formData = new MultipartFormDataContent();
-    formData.Add(new ByteArrayContent(corruptedContent), "file", "corrupted.ofx");
-
-    // When: User uploads corrupted file
-    var response = await _client.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-    // And: Error message should indicate parsing failure
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails, Is.Not.Null);
-    Assert.That(problemDetails.Detail, Does.Contain("parse"));
-}
+```gherkin
+Scenario: Upload bank file corrupted file returns bad request
+    Given user has Editor role for tenant
+    And corrupted OFX file (invalid XML)
+    When user uploads corrupted file
+    Then 400 Bad Request should be returned
+    And error message should indicate parsing failure
 ```
 
 **Test 4: Error - Unsupported format**
-```csharp
-[Test]
-public async Task UploadBankFile_UnsupportedFormat_ReturnsBadRequest()
-{
-    // Given: User has Editor role for tenant
-    // And: Unsupported file format (CSV instead of OFX/QFX)
-    var csvContent = Encoding.UTF8.GetBytes("Date,Payee,Amount\n2024-01-15,Test,50.00");
-    var formData = new MultipartFormDataContent();
-    formData.Add(new ByteArrayContent(csvContent), "file", "transactions.csv");
-
-    // When: User uploads CSV file
-    var response = await _client.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-}
+```gherkin
+Scenario: Upload bank file unsupported format returns bad request
+    Given user has Editor role for tenant
+    And unsupported file format (CSV instead of OFX/QFX)
+    When user uploads CSV file
+    Then 400 Bad Request should be returned
 ```
 
 **Test 5: Authorization - Viewer role forbidden**
-```csharp
-[Test]
-public async Task UploadBankFile_AsViewer_ReturnsForbidden()
-{
-    // Given: User has Viewer role for tenant (read-only)
-    // And: Valid OFX file
-
-    // When: Viewer attempts to upload file
-    var response = await _viewerClient.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-}
+```gherkin
+Scenario: Upload bank file as viewer returns forbidden
+    Given user has Viewer role for tenant (read-only)
+    And valid OFX file
+    When viewer attempts to upload file
+    Then 403 Forbidden should be returned
 ```
 
 **Test 6: Authorization - Unauthenticated**
-```csharp
-[Test]
-public async Task UploadBankFile_Unauthenticated_ReturnsUnauthorized()
-{
-    // Given: No authentication token provided
-    // And: Valid OFX file
-
-    // When: Request is made without authentication
-    var response = await _unauthenticatedClient.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 401 Unauthorized should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
-}
+```gherkin
+Scenario: Upload bank file unauthenticated returns unauthorized
+    Given no authentication token provided
+    And valid OFX file
+    When request is made without authentication
+    Then 401 Unauthorized should be returned
 ```
 
 **Test 7: Tenant isolation - Different tenant forbidden**
-```csharp
-[Test]
-public async Task UploadBankFile_DifferentTenant_ReturnsForbidden()
-{
-    // Given: User has Editor role for tenant A
-    // And: Valid OFX file
-
-    // When: User attempts to upload to tenant B
-    var response = await _client.PostAsync($"/api/tenant/{_otherTenantId}/import/upload", formData);
-
-    // Then: 403 Forbidden should be returned (tenant isolation)
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-}
+```gherkin
+Scenario: Upload bank file different tenant returns forbidden
+    Given user has Editor role for tenant A
+    And valid OFX file
+    When user attempts to upload to tenant B
+    Then 403 Forbidden should be returned (tenant isolation)
 ```
 
 **Test 8: Partial success (some transactions fail validation)**
-```csharp
-[Test]
-public async Task UploadBankFile_PartialFailure_ReturnsPartialSuccess()
-{
-    // Given: User has Editor role for tenant
-    // And: OFX file with 2 valid and 1 invalid transaction (missing amount)
-
-    // When: User uploads file with partial failures
-    var response = await _client.PostAsync($"/api/tenant/{_tenantId}/import/upload", formData);
-
-    // Then: 201 Created should be returned (partial success)
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
-    // And: Response should indicate which transactions succeeded/failed
-    var result = await response.Content.ReadFromJsonAsync<ImportResultDto>();
-    Assert.That(result.ImportedCount, Is.EqualTo(2));
-}
+```gherkin
+Scenario: Upload bank file partial failure returns partial success
+    Given user has Editor role for tenant
+    And OFX file with 2 valid and 1 invalid transaction (missing amount)
+    When user uploads file with partial failures
+    Then 201 Created should be returned (partial success)
+    And response should indicate which transactions succeeded/failed
 ```
 
 ### Test Group 2: GET /api/tenant/{tenantId}/import/review
@@ -541,402 +325,168 @@ public async Task UploadBankFile_PartialFailure_ReturnsPartialSuccess()
 **Endpoint:** Get pending import review transactions
 
 **Test 9: Success - Returns pending transactions**
-```csharp
-[Test]
-public async Task GetImportReview_WithPendingTransactions_ReturnsOK()
-{
-    // Given: User has Viewer role for tenant
-    // And: 3 transactions in review state
-    await SeedImportReviewTransactions(_tenantId, count: 3);
-
-    // When: User requests import review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Response should contain 3 pending transactions
-    var transactions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportReviewTransactionDto>>();
-    Assert.That(transactions, Is.Not.Null);
-    Assert.That(transactions.Count, Is.EqualTo(3));
-}
+```gherkin
+Scenario: Get import review with pending transactions returns OK
+    Given user has Viewer role for tenant
+    And 3 transactions in review state
+    When user requests import review
+    Then 200 OK should be returned
+    And response should contain 3 pending transactions
 ```
 
 **Test 10: Empty result - No pending transactions**
-```csharp
-[Test]
-public async Task GetImportReview_NoPendingTransactions_ReturnsEmptyList()
-{
-    // Given: User has Viewer role for tenant
-    // And: No transactions in review state
-
-    // When: User requests import review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Response should be empty list
-    var transactions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportReviewTransactionDto>>();
-    Assert.That(transactions, Is.Empty);
-}
+```gherkin
+Scenario: Get import review no pending transactions returns empty list
+    Given user has Viewer role for tenant
+    And no transactions in review state
+    When user requests import review
+    Then 200 OK should be returned
+    And response should be empty list
 ```
 
 **Test 11: Persistence - State persists across requests**
-```csharp
-[Test]
-public async Task GetImportReview_PersistsAcrossSessions_ReturnsOK()
-{
-    // Given: User has Editor role for tenant
-    // And: User uploaded transactions (previous request)
-    await UploadOFXFile(_tenantId, "Bank1.ofx");
-
-    // When: User requests import review (new request, simulates new session)
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Pending transactions should still be there
-    var transactions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportReviewTransactionDto>>();
-    Assert.That(transactions, Is.Not.Empty);
-}
+```gherkin
+Scenario: Get import review persists across sessions returns OK
+    Given user has Editor role for tenant
+    And user uploaded transactions (previous request)
+    When user requests import review (new request, simulates new session)
+    Then 200 OK should be returned
+    And pending transactions should still be there
 ```
 
 **Test 12: Tenant isolation - Only shows user's tenant data**
-```csharp
-[Test]
-public async Task GetImportReview_DifferentTenant_ReturnsEmpty()
-{
-    // Given: User has Editor role for tenant A
-    // And: Tenant B has pending import review transactions
-    await SeedImportReviewTransactions(_otherTenantId, count: 5);
-
-    // When: User A requests import review for their tenant
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Should not see tenant B's transactions (isolation)
-    var transactions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<ImportReviewTransactionDto>>();
-    Assert.That(transactions, Is.Empty);
-}
+```gherkin
+Scenario: Get import review different tenant returns empty
+    Given user has Editor role for tenant A
+    And tenant B has pending import review transactions
+    When user A requests import review for their tenant
+    Then 200 OK should be returned
+    And should not see tenant B's transactions (isolation)
 ```
 
-### Test Group 3: GET /api/tenant/{tenantId}/import/review/categorized
+### Test Group 3: POST /api/import/review/complete
 
-**Endpoint:** Get pending transactions grouped by duplicate status
+**Endpoint:** Complete review by accepting selected transactions and deleting all pending transactions
 
-**Test 13: All new transactions**
-```csharp
-[Test]
-public async Task GetReviewCategorized_WithNewTransactions_ReturnsOK()
-{
-    // Given: User has Viewer role for tenant
-    // And: Imported transactions that are all new (no duplicates)
-    await SeedImportReviewTransactions(_tenantId, count: 5, status: DuplicateStatus.New);
+**Note:** This endpoint performs two atomic operations:
+1. Copies selected transactions to the main Transaction table
+2. Deletes ALL transactions from ImportReviewTransaction table (both selected and unselected)
 
-    // When: User requests categorized review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review/categorized");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: All transactions should be in "New" category
-    var result = await response.Content.ReadFromJsonAsync<CategorizedImportResultDto>();
-    Assert.That(result.NewCount, Is.EqualTo(5));
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(0));
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(0));
-}
+**Test 13: Success - Complete review with selected transactions**
+```gherkin
+Scenario: Complete review selected transactions returns OK
+    Given user has Editor role for tenant
+    And 3 transactions in review state
+    And user selects 2 of the 3 transactions
+    When user completes review with selected transactions
+    Then 200 OK should be returned
+    And response should indicate 2 transactions accepted and 1 rejected
+    And accepted transactions should appear in main transaction list
+    And review queue should be completely empty
 ```
 
-**Test 14: Exact duplicates detection**
-```csharp
-[Test]
-public async Task GetReviewCategorized_WithExactDuplicates_ReturnsOK()
-{
-    // Given: User has Editor role for tenant
-    // And: Existing transaction in workspace
-    var existingTxn = await CreateTransaction(_tenantId, externalId: "FITID12345");
-
-    // And: Imported transaction that's exact duplicate (same FITID, same data)
-    await SeedImportReviewTransaction(_tenantId, externalId: "FITID12345",
-        status: DuplicateStatus.ExactDuplicate, duplicateOfKey: existingTxn.Key);
-
-    // When: User requests categorized review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review/categorized");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Transaction should be in "ExactDuplicates" category
-    var result = await response.Content.ReadFromJsonAsync<CategorizedImportResultDto>();
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(1));
-
-    // And: Exact duplicate should be deselected by default
-    var duplicate = result.ExactDuplicates.First();
-    Assert.That(duplicate.Selected, Is.False);
-}
+**Test 14: Authorization - Viewer forbidden**
+```gherkin
+Scenario: Complete review as viewer returns forbidden
+    Given user has Viewer role for tenant (read-only)
+    And transactions exist in review state
+    When viewer attempts to complete review
+    Then 403 Forbidden should be returned
 ```
 
-**Test 15: Potential duplicates with comparison data**
-```csharp
-[Test]
-public async Task GetReviewCategorized_WithPotentialDuplicates_IncludesComparisonData()
-{
-    // Given: User has Editor role for tenant
-    // And: Existing transaction in workspace
-    var existingTxn = await CreateTransaction(_tenantId, externalId: "FITID12345", amount: 50.00m);
-
-    // And: Imported transaction with same FITID but different payee (bank correction?)
-    await SeedImportReviewTransaction(_tenantId, externalId: "FITID12345", amount: 55.00m,
-        status: DuplicateStatus.PotentialDuplicate, duplicateOfKey: existingTxn.Key);
-
-    // When: User requests categorized review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review/categorized");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Transaction should be in "PotentialDuplicates" category
-    var result = await response.Content.ReadFromJsonAsync<CategorizedImportResultDto>();
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
-
-    // And: Should include comparison data (existing vs. imported)
-    var duplicate = result.PotentialDuplicates.First();
-    Assert.That(duplicate.ExistingTransaction, Is.Not.Null);
-    Assert.That(duplicate.ImportedTransaction, Is.Not.Null);
-}
+**Test 15: Validation - Empty selection**
+```gherkin
+Scenario: Complete review empty selection returns bad request
+    Given user has Editor role for tenant
+    And transactions exist in review state
+    When user completes review with empty selection
+    Then 400 Bad Request should be returned
+    And error should indicate empty selection
 ```
 
-**Test 16: Mixed categories**
-```csharp
-[Test]
-public async Task GetReviewCategorized_MixedCategories_ReturnsOK()
-{
-    // Given: User has Editor role for tenant
-    // And: Various import scenarios
-    await SeedImportReviewTransactions(_tenantId, count: 2, status: DuplicateStatus.New);
-    await SeedImportReviewTransactions(_tenantId, count: 1, status: DuplicateStatus.ExactDuplicate);
-    await SeedImportReviewTransactions(_tenantId, count: 1, status: DuplicateStatus.PotentialDuplicate);
-
-    // When: User requests categorized review
-    var response = await _client.GetAsync($"/api/tenant/{_tenantId}/import/review/categorized");
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Transactions should be properly categorized
-    var result = await response.Content.ReadFromJsonAsync<CategorizedImportResultDto>();
-    Assert.That(result.NewCount, Is.EqualTo(2));
-    Assert.That(result.ExactDuplicateCount, Is.EqualTo(1));
-    Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
-
-    // And: New transactions should be selected by default
-    Assert.That(result.NewTransactions.All(t => t.Selected), Is.True);
-
-    // And: Duplicates should be deselected by default
-    Assert.That(result.ExactDuplicates.All(t => !t.Selected), Is.True);
-    Assert.That(result.PotentialDuplicates.All(t => !t.Selected), Is.True);
-}
+**Test 16: Tenant isolation - Cannot complete other tenant's review**
+```gherkin
+Scenario: Complete review different tenant transactions returns 404
+    Given user has Editor role for tenant A
+    And tenant B has pending import review transactions
+    When user A attempts to complete tenant B's review
+    Then should return error (tenant isolation - no transactions found)
 ```
 
-### Test Group 4: POST /api/tenant/{tenantId}/import/accept
+### Test Group 4: DELETE /api/import/review
 
-**Endpoint:** Accept selected transactions from review into main transaction table
+**Endpoint:** Delete all pending import review transactions without accepting any
 
-**Test 17: Success - Accept selected transactions**
-```csharp
-[Test]
-public async Task AcceptImport_SelectedTransactions_ReturnsOK()
-{
-    // Given: User has Editor role for tenant
-    // And: 3 transactions in review state
-    var reviewKeys = await SeedImportReviewTransactions(_tenantId, count: 3);
-
-    // And: User selects 2 of the 3 transactions
-    var acceptRequest = new AcceptTransactionsRequestDto { Keys = reviewKeys.Take(2).ToList() };
-
-    // When: User accepts selected transactions
-    var response = await _client.PostAsJsonAsync($"/api/tenant/{_tenantId}/import/accept", acceptRequest);
-
-    // Then: 200 OK should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-    // And: Response should indicate 2 transactions accepted
-    var result = await response.Content.ReadFromJsonAsync<AcceptTransactionsResultDto>();
-    Assert.That(result.AcceptedCount, Is.EqualTo(2));
-    Assert.That(result.DeletedCount, Is.EqualTo(2));
-
-    // And: Accepted transactions should appear in main transaction list
-    var transactions = await GetTransactions(_tenantId);
-    Assert.That(transactions.Count, Is.GreaterThanOrEqualTo(2));
-
-    // And: Review queue should have 1 transaction remaining
-    var remainingReview = await GetImportReview(_tenantId);
-    Assert.That(remainingReview.Count, Is.EqualTo(1));
-}
+**Test 17: Success - Delete all pending transactions**
+```gherkin
+Scenario: Delete review queue as editor returns no content
+    Given user has Editor role for tenant
+    And 5 transactions in review state
+    When user deletes entire review queue
+    Then 204 No Content should be returned
+    And review queue should be empty
 ```
 
 **Test 18: Authorization - Viewer forbidden**
-```csharp
-[Test]
-public async Task AcceptImport_AsViewer_ReturnsForbidden()
-{
-    // Given: User has Viewer role for tenant (read-only)
-    // And: Transactions exist in review state
-    var reviewKeys = await SeedImportReviewTransactions(_tenantId, count: 2);
-    var acceptRequest = new AcceptTransactionsRequestDto { Keys = reviewKeys };
-
-    // When: Viewer attempts to accept transactions
-    var response = await _viewerClient.PostAsJsonAsync($"/api/tenant/{_tenantId}/import/accept", acceptRequest);
-
-    // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-}
+```gherkin
+Scenario: Delete review queue as viewer returns forbidden
+    Given user has Viewer role for tenant (read-only)
+    And transactions in review state
+    When viewer attempts to delete review queue
+    Then 403 Forbidden should be returned
 ```
 
-**Test 19: Validation - Empty selection**
-```csharp
-[Test]
-public async Task AcceptImport_EmptySelection_ReturnsBadRequest()
-{
-    // Given: User has Editor role for tenant
-    // And: Transactions exist in review state
-    var acceptRequest = new AcceptTransactionsRequestDto { Keys = new List<Guid>() };
-
-    // When: User accepts with empty selection
-    var response = await _client.PostAsJsonAsync($"/api/tenant/{_tenantId}/import/accept", acceptRequest);
-
-    // Then: 400 Bad Request should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-    // And: Error should indicate empty selection
-    var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-    Assert.That(problemDetails.Detail, Does.Contain("empty"));
-}
-```
-
-**Test 20: Tenant isolation - Cannot accept other tenant's transactions**
-```csharp
-[Test]
-public async Task AcceptImport_DifferentTenantTransactions_Returns404()
-{
-    // Given: User has Editor role for tenant A
-    // And: Tenant B has pending import review transactions
-    var otherTenantKeys = await SeedImportReviewTransactions(_otherTenantId, count: 2);
-    var acceptRequest = new AcceptTransactionsRequestDto { Keys = otherTenantKeys };
-
-    // When: User A attempts to accept tenant B's transactions
-    var response = await _client.PostAsJsonAsync($"/api/tenant/{_tenantId}/import/accept", acceptRequest);
-
-    // Then: Should return error (tenant isolation - no transactions found)
-    Assert.That(response.StatusCode, Is.Not.EqualTo(HttpStatusCode.OK));
-}
-```
-
-### Test Group 5: DELETE /api/tenant/{tenantId}/import/review
-
-**Endpoint:** Clear entire import review queue
-
-**Test 21: Success - Delete all pending transactions**
-```csharp
-[Test]
-public async Task DeleteReviewQueue_AsEditor_ReturnsNoContent()
-{
-    // Given: User has Editor role for tenant
-    // And: 5 transactions in review state
-    await SeedImportReviewTransactions(_tenantId, count: 5);
-
-    // When: User deletes entire review queue
-    var response = await _client.DeleteAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 204 No Content should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
-    // And: Review queue should be empty
-    var remaining = await GetImportReview(_tenantId);
-    Assert.That(remaining, Is.Empty);
-}
-```
-
-**Test 22: Authorization - Viewer forbidden**
-```csharp
-[Test]
-public async Task DeleteReviewQueue_AsViewer_ReturnsForbidden()
-{
-    // Given: User has Viewer role for tenant (read-only)
-    // And: Transactions in review state
-    await SeedImportReviewTransactions(_tenantId, count: 3);
-
-    // When: Viewer attempts to delete review queue
-    var response = await _viewerClient.DeleteAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 403 Forbidden should be returned
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-}
-```
-
-**Test 23: Idempotent - Delete empty queue succeeds**
-```csharp
-[Test]
-public async Task DeleteReviewQueue_EmptyQueue_ReturnsNoContent()
-{
-    // Given: User has Editor role for tenant
-    // And: No transactions in review state
-
-    // When: User deletes empty review queue
-    var response = await _client.DeleteAsync($"/api/tenant/{_tenantId}/import/review");
-
-    // Then: 204 No Content should be returned (idempotent)
-    Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-}
+**Test 19: Idempotent - Delete empty queue succeeds**
+```gherkin
+Scenario: Delete review queue empty queue returns no content
+    Given user has Editor role for tenant
+    And no transactions in review state
+    When user deletes empty review queue
+    Then 204 No Content should be returned (idempotent)
 ```
 
 ### Additional Integration Test Scenarios
 
-**Test 24: Multiple uploads merge into single review queue**
-```csharp
-[Test]
-public async Task UploadMultipleFiles_MergesIntoSingleQueue()
-{
-    // Given: User uploads first OFX file (3 transactions)
-    // When: User uploads second OFX file (2 transactions)
-    // Then: Review queue should contain 5 total transactions
-}
+**Test 20: Multiple uploads merge into single review queue**
+```gherkin
+Scenario: Upload multiple files merges into single review queue
+    Given user has Editor role for tenant
+    And user uploads first OFX file with 3 transactions
+    When user uploads second OFX file with 2 transactions
+    Then review queue should contain 5 total transactions
+    And both uploads should be merged into single review session
 ```
 
-**Test 25: Transactions in review not included in transaction list**
-```csharp
-[Test]
-public async Task GetTransactions_ExcludesReviewState()
-{
-    // Given: User has 10 accepted transactions
-    // And: User has 5 pending import review transactions
-    // When: User requests transaction list
-    // Then: Should return only 10 accepted transactions (not pending imports)
-}
+**Test 21: Transactions in review not included in transaction list**
+```gherkin
+Scenario: Get transactions excludes review state transactions
+    Given user has Editor role for tenant
+    And user has 10 accepted transactions in main table
+    And user has 5 pending import review transactions
+    When user requests transaction list via GET /api/tenant/{tenantId}/transactions
+    Then should return only 10 accepted transactions
+    And pending import review transactions should not be included
 ```
 
-**Test 26: Pagination for large import review lists**
-```csharp
-[Test]
-public async Task GetImportReview_LargeImport_SupportsPagination()
-{
-    // Given: User has 500 pending import review transactions
-    // When: User requests first page (50 items)
-    // Then: Should return 50 transactions with pagination metadata
-}
+**Test 22: Pagination for large import review lists**
+```gherkin
+Scenario: Get import review large import supports pagination
+    Given user has Editor role for tenant
+    And user has 500 pending import review transactions
+    When user requests first page with 50 items per page
+    Then should return 50 transactions
+    And response should include pagination metadata (total count, page number, page size)
 ```
 
 ## Functional Tests (3-5 tests)
 
 **Location:** [`tests/Functional/`](../../../tests/Functional/)
 
-**Technology:** Playwright + SpecFlow (Gherkin scenarios)
+**Technology:** Playwright + Gherkin (manually converted to C# test files)
 
 **Purpose:** Validate complete end-to-end user workflows through the browser, testing the entire stack from UI to database.
+
+**Note:** Gherkin feature files are written in [`tests/Functional/Features/`](../../../tests/Functional/Features/) and then manually converted to C# test classes in [`tests/Functional/Tests/`](../../../tests/Functional/Tests/) following the instructions in [`tests/Functional/INSTRUCTIONS.md`](../../../tests/Functional/INSTRUCTIONS.md).
 
 **Why minimal functional testing?** Most import workflow behavior can be verified via API integration tests. Functional tests focus on UI-specific requirements and critical user paths.
 
@@ -958,7 +508,7 @@ Feature: Bank Import
 
   Rule: File Upload and Import Workflow
 
-  Scenario: User imports bank file and accepts new transactions
+  Scenario: User uploads bank file and sees import review summary
     Given I am on the transactions page
     When I click "Import from Bank" button
     And I upload OFX file "checking-jan-2024.ofx"
@@ -967,28 +517,44 @@ Feature: Bank Import
     And page should show "3 Exact Duplicates"
     And new transactions should be selected by default
     And exact duplicates should be deselected by default
+
+  Scenario: User accepts selected transactions from import review
+    Given I am on the import review page
+    And page shows "12 New Transactions"
+    And page shows "3 Exact Duplicates"
+    And new transactions are selected by default
     When I click "Accept Selected Transactions" button
     Then 12 transactions should be added to transaction list
     And import review page should show "0 transactions remaining"
 
-  Scenario: User reviews duplicates and accepts only new transactions
+  Scenario: User uploads bank file with duplicates and sees grouping
     Given I have existing transactions from January 1-15
     And I am on the import review page
     When I upload bank file with overlapping dates "checking-jan-15-31.ofx"
-    Then Import Review page should show three categories:
-      | Category              | Count |
+    Then Import Review page should show three sections:
+      | Section               | Count |
       | New Transactions      | 8     |
       | Exact Duplicates      | 14    |
       | Potential Duplicates  | 1     |
     And "New Transactions" section should be expanded by default
     And "Exact Duplicates" section should be collapsed
+
+  Scenario: User reviews potential duplicates with comparison view
+    Given I am on the import review page
+    And page shows "1 Potential Duplicates"
     When I expand "Potential Duplicates" section
     Then I should see comparison view showing existing vs. imported data
+
+  Scenario: User accepts only new transactions from mixed import
+    Given I am on the import review page
+    And page shows "8 New Transactions" selected
+    And page shows "14 Exact Duplicates" deselected
+    And page shows "1 Potential Duplicates" deselected
     When I click "Accept Selected" button
     Then 8 transactions should be added
     And import review queue should be cleared
 
-  Scenario: User returns to pending import review after leaving
+  Scenario: User returns to pending import review after leaving and logging back in
     Given I have 15 pending import review transactions
     And I am on the import review page
     When I navigate to transactions page
@@ -997,6 +563,10 @@ Feature: Bank Import
     And I navigate to import review page
     Then page should still show 15 pending transactions
     And previous selection state should be preserved
+
+  Scenario: User deletes entire import review queue
+    Given I am on the import review page
+    And page shows 15 pending transactions
     When I click "Delete All" button
     Then review queue should be cleared
     And page should show "No pending imports"
@@ -1015,6 +585,43 @@ Feature: Bank Import
     Then I should see error message "Unsupported file format - expected OFX or QFX"
     And no transactions should be added to review queue
 ```
+
+### Functional Test Priority Ranking
+
+**Priority-ordered implementation plan** - If implementing functional tests incrementally, build them in this order based on business value and risk coverage:
+
+**Priority 1 (Must Have):** Core happy path workflow
+- ✅ **"User uploads bank file and sees import review summary"** - Validates the entire upload flow and review UI grouping. This is the foundational workflow that must work for the feature to be usable.
+
+**Priority 2 (Must Have):** Complete the accept workflow
+- ✅ **"User accepts selected transactions from import review"** - Completes the upload → review → accept workflow. Without this, imports cannot be finalized.
+
+**Priority 3 (Should Have):** Duplicate detection UI verification
+- ✅ **"User uploads bank file with duplicates and sees grouping"** - Validates that duplicate detection works correctly in the UI and transactions are properly grouped (New/Exact/Potential).
+
+**Priority 4 (Should Have):** Error handling for user mistakes
+- ✅ **"User uploads corrupted file and sees error message"** - Validates error handling for the most likely user error (corrupted/damaged files).
+
+**Priority 5 (Should Have):** Accept workflow with mixed groups
+- ✅ **"User accepts only new transactions from mixed import"** - Validates that default selection behavior works (new selected, duplicates deselected) and users can complete imports with mixed groups.
+
+**Priority 6 (Nice to Have):** Validation error handling
+- ✅ **"User uploads unsupported file format"** - Less critical than corrupted file handling, as users are less likely to upload wrong file types.
+
+**Priority 7 (Nice to Have):** State persistence verification
+- ✅ **"User returns to pending import review after leaving and logging back in"** - Important for user experience but not essential for basic functionality.
+
+**Priority 8 (Nice to Have):** Potential duplicate comparison UI
+- ✅ **"User reviews potential duplicates with comparison view"** - Edge case UI that provides extra user value but is not in the critical path.
+
+**Priority 9 (Nice to Have):** Queue management
+- ✅ **"User deletes entire import review queue"** - Utility function for cleanup but not essential for basic workflow.
+
+**Minimal Viable Functional Tests:** Priorities 1-2 (upload and accept workflows)
+
+**Recommended Functional Test Suite:** Priorities 1-5 (covers core workflows, duplicate detection, and error handling)
+
+**Complete Functional Test Suite:** All 9 scenarios (comprehensive coverage including edge cases and utility functions)
 
 ### Page Object Model
 
@@ -1062,41 +669,37 @@ public class BankImportSteps : CommonThenSteps
     [Given(@"I have existing transactions from (.*)")]
     public async Task GivenIHaveExistingTransactionsFrom(string dateRange)
     {
-        // Seed transactions via API
+        // Seed transactions via API for the specified date range
     }
 
     [Given(@"I have (.*) pending import review transactions")]
     public async Task GivenIHavePendingImportReviewTransactions(int count)
     {
-        // Seed import review transactions via API
+        // Seed the specified number of import review transactions via API
     }
 
     [When(@"I click ""(.*)"" button")]
     public async Task WhenIClickButton(string buttonName)
     {
-        if (buttonName == "Import from Bank")
-            await _importPage.ClickUploadButtonAsync();
-        // ...
+        // Click the specified button on the import page
     }
 
     [When(@"I upload OFX file ""(.*)""")]
     public async Task WhenIUploadOFXFile(string fileName)
     {
-        var filePath = Path.Combine("SampleData", "Ofx", fileName);
-        await _importPage.UploadFileAsync(filePath);
+        // Upload the specified OFX file from the SampleData/Ofx directory
     }
 
     [Then(@"page should show ""(.*) New Transactions""")]
     public async Task ThenPageShouldShowNewTransactions(int count)
     {
-        var actualCount = await _importPage.GetNewTransactionCountAsync();
-        Assert.That(actualCount, Is.EqualTo(count));
+        // Verify the page displays the expected count of new transactions
     }
 
     [Then(@"(.*) transactions should be added to transaction list")]
     public async Task ThenTransactionsShouldBeAdded(int count)
     {
-        // Verify via API or UI
+        // Verify the specified number of transactions were added to the transaction list
     }
 }
 ```
@@ -1138,7 +741,7 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Index performance on (TenantId, ExternalId)
 - [ ] DuplicateStatus enum storage and retrieval
 
-### Integration Tests - Controller Layer (26 tests)
+### Integration Tests - Controller Layer (22 tests)
 
 **Upload Endpoint (8 tests):**
 - [ ] Upload valid OFX file - Returns 201 Created
@@ -1156,17 +759,11 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Get persists across sessions - Returns same data
 - [ ] Get with different tenant - Returns empty (isolation)
 
-**Get Categorized Review Endpoint (4 tests):**
-- [ ] Get with all new transactions - Returns proper categorization
-- [ ] Get with exact duplicates - Shows deselected by default
-- [ ] Get with potential duplicates - Includes comparison data
-- [ ] Get with mixed categories - Proper categorization and selection state
-
-**Accept Endpoint (4 tests):**
-- [ ] Accept selected transactions - Returns 200 OK, adds to main table
-- [ ] Accept as Viewer - Returns 403 Forbidden
-- [ ] Accept with empty selection - Returns 400 Bad Request
-- [ ] Accept different tenant's transactions - Returns error (isolation)
+**Complete Review Endpoint (4 tests):**
+- [ ] Complete review with selected transactions - Returns 200 OK, accepts selected and deletes all
+- [ ] Complete review as Viewer - Returns 403 Forbidden
+- [ ] Complete review with empty selection - Returns 400 Bad Request
+- [ ] Complete review for different tenant's transactions - Returns error (isolation)
 
 **Delete Endpoint (3 tests):**
 - [ ] Delete all pending transactions - Returns 204 No Content
@@ -1178,31 +775,72 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Transactions in review excluded from transaction list
 - [ ] Pagination for large import review lists
 
-### Functional Tests (5 tests)
-- [ ] Upload → Review → Accept workflow - Complete happy path
-- [ ] Review duplicates → Accept only new - Duplicate detection UI
-- [ ] Return to pending import later - State persistence
+### Functional Tests (9 tests)
+- [ ] Upload → Review summary - Upload and display workflow
+- [ ] Accept selected transactions - Complete workflow
+- [ ] Upload with duplicates → See grouping - Duplicate detection UI
+- [ ] Review potential duplicates - Comparison view
+- [ ] Accept only new from mixed import - Selection behavior
 - [ ] Upload corrupted file - Error handling
 - [ ] Upload unsupported format - Validation
+- [ ] Return to pending import later - State persistence
+- [ ] Delete entire review queue - Queue management
 
 ## Test Execution Strategy
 
 ### Running Tests Locally
 
-**Unit Tests Only:**
+**Testing Workflow (Narrow → Broad):**
+
+When implementing tests, always run in this order:
+1. **Specific test** you're working on (fast feedback loop)
+2. **Entire test layer** (unit, integration.data, integration.controller)
+3. **Full test suite** (all unit + integration tests)
+
+**1. Run Specific Tests (While Developing):**
+
 ```powershell
-dotnet test tests/Unit --filter "FullyQualifiedName~ImportReview"
+# Unit tests - specific test class
+dotnet test tests/Unit --filter "FullyQualifiedName~ImportReviewFeatureTests"
+
+# Integration.Data - specific test class
+dotnet test tests/Integration.Data --filter "FullyQualifiedName~ImportReviewTransactionTests"
+
+# Integration.Controller - specific test class
+dotnet test tests/Integration.Controller --filter "FullyQualifiedName~ImportControllerTests"
+
+# Functional - specific scenario
+dotnet test tests/Functional --filter "DisplayName~UserUploadsBank"
 ```
 
-**Integration Tests (Data + Controller):**
+**2. Run Entire Test Layer:**
+
 ```powershell
+# All unit tests
+dotnet test tests/Unit
+
+# All data integration tests
+dotnet test tests/Integration.Data
+
+# All controller integration tests
+dotnet test tests/Integration.Controller
+
+# All functional tests (requires local dev server running)
+.\scripts\Start-LocalDev.ps1  # In separate terminal
+dotnet test tests/Functional
+```
+
+**3. Run Full Test Suite:**
+
+```powershell
+# All unit and integration tests (recommended for commits)
 pwsh -File ./scripts/Run-Tests.ps1
-```
 
-**Functional Tests (Against Container):**
-```powershell
+# Functional tests against container (for final verification)
 pwsh -File ./scripts/Run-FunctionalTestsVsContainer.ps1
 ```
+
+**Note:** Always use `./scripts/Run-Tests.ps1` for full unit+integration suite per [`docs/wip/IMPLEMENTATION-WORKFLOW.md`](../../IMPLEMENTATION-WORKFLOW.md). This script excludes functional tests which require special setup.
 
 ### CI/CD Pipeline
 

@@ -71,16 +71,12 @@ Users need a streamlined import process with duplicate detection and review capa
 
 **Acceptance Criteria**:
 - [ ] Import Review page displays all transactions from most recent import
-- [ ] Transactions are categorized into three groups:
+- [ ] Each transaction is handled based on its duplicate status:
   - **New transactions** - No conflicts, selected by default
   - **Exact duplicates** - Same Key/hash and same data, deselected by default
   - **Potential duplicates** - Same Key/hash but different data, highlighted and deselected by default
-- [ ] Each category is clearly labeled with count (e.g., "12 New Transactions", "3 Exact Duplicates")
-- [ ] User can expand/collapse each category section
 - [ ] User can select/deselect individual transactions for import
-- [ ] User can select/deselect all transactions in a category
-- [ ] Potential duplicates show comparison view (imported vs. existing data)
-- [ ] User can click "Accept Selected" to move approved transactions into primary transactions
+- [ ] User can click "Accept" to move approved transactions into primary transactions. This clears the import review.
 - [ ] System shows confirmation: "X transactions accepted, Y transactions remain in review"
 
 ### Story 3: User - Manage Import Review State
