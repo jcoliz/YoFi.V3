@@ -685,7 +685,7 @@ Feature: Bank Import
 ```csharp
 public class ImportPage : BasePage
 {
-    // Locators
+    #region Locators
     private ILocator UploadButton => Page.Locator("[data-testid='upload-button']");
     private ILocator FileInput => Page.Locator("input[type='file']");
     private ILocator AcceptButton => Page.Locator("[data-testid='accept-button']");
@@ -693,20 +693,23 @@ public class ImportPage : BasePage
     private ILocator NewTransactionsSection => Page.Locator("[data-testid='new-transactions']");
     private ILocator ExactDuplicatesSection => Page.Locator("[data-testid='exact-duplicates']");
     private ILocator PotentialDuplicatesSection => Page.Locator("[data-testid='potential-duplicates']");
+    #endregion
 
-    // Actions
+    #region Actions
     public async Task NavigateAsync() => await Page.GotoAsync("/import");
     public async Task UploadFileAsync(string filePath);
     public async Task ClickAcceptSelectedAsync();
     public async Task ClickDeleteAllAsync();
     public async Task ExpandSectionAsync(string sectionName);
+    #endregion
 
-    // Assertions
+    #region Assertions
     public async Task<int> GetNewTransactionCountAsync();
     public async Task<int> GetExactDuplicateCountAsync();
     public async Task<int> GetPotentialDuplicateCountAsync();
     public async Task<bool> IsTransactionSelectedAsync(Guid key);
     public async Task<string> GetErrorMessageAsync();
+    #endregion
 }
 ```
 
@@ -864,8 +867,9 @@ Comprehensive list of all tests to implement across all layers.
 
 When implementing tests, always run in this order:
 1. **Specific test** you're working on (fast feedback loop)
-2. **Entire test layer** (unit, integration.data, integration.controller)
-3. **Full test suite** (all unit + integration tests)
+2. **Entire test class** containing the test you're working on
+3. **Entire test layer** (unit, integration.data, or integration.controller)
+4. **Full test suite** (all unit + integration tests)
 
 **1. Run Specific Tests (While Developing):**
 
