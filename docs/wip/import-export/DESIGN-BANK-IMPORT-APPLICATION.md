@@ -67,7 +67,6 @@ Location: `src/Application/Import/Dto/ImportReviewTransactionDto.cs`
 - **Source** - Not displayed; user already knows which file/account they uploaded
 - **ExternalId** - Internal duplicate detection field, not relevant for user review
 - **Memo** - Not displayed in review UI to keep table simple; available after accepting transaction
-- **ImportedAt** - No UI need; transactions already ordered by Date
 
 **Category field:** Displayed in the "Matched Category" column. For the initial implementation, this will always be empty. In the future, it will be populated by the Payee Matching rules feature.
 

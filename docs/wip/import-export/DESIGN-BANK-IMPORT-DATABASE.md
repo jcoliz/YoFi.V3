@@ -7,6 +7,8 @@ related_docs:
   - DESIGN-BANK-IMPORT.md
   - IMPORT-REVIEW-DATA-MODEL.md
   - PRD-BANK-IMPORT.md
+  - VISUAL-DESIGN-BANK-IMPORT.md
+  - MOCKUP-BANK-IMPORT.md
 ---
 
 # Database Layer Design: Bank Import Feature
@@ -32,7 +34,7 @@ Location: `src/Entities/Models/ImportReviewTransaction.cs`
 **Why a separate table?** This separate table (rather than a status flag on the main Transaction table) ensures:
 - Clean separation of temporary staging data from production transaction data
 - No impact on main transaction queries, reports, or analytics
-- Additional import-specific metadata (DuplicateStatus, DuplicateOfKey, ImportedAt)
+- Additional import-specific metadata (DuplicateStatus, DuplicateOfKey)
 - Simple bulk operations (delete all pending imports for a tenant)
 
 See [`IMPORT-REVIEW-DATA-MODEL.md`](IMPORT-REVIEW-DATA-MODEL.md) for the complete analysis and decision rationale.
@@ -52,7 +54,6 @@ public record ImportReviewTransaction : BaseTenantModel
     public string? Memo { get; set; }
     public DuplicateStatus DuplicateStatus { get; set; } = DuplicateStatus.New;
     public Guid? DuplicateOfKey { get; set; }
-    public DateTime ImportedAt { get; set; } = DateTime.UtcNow;
     public virtual Tenant? Tenant { get; set; }
 }
 ```
@@ -66,7 +67,6 @@ public record ImportReviewTransaction : BaseTenantModel
 - **Memo** - Notes field from bank statement (nullable, max 1000 chars)
 - **DuplicateStatus** - Duplicate detection status determining default UI selection
 - **DuplicateOfKey** - Key of existing transaction if duplicate detected (nullable)
-- **ImportedAt** - Upload timestamp for batch tracking
 - **Tenant** - Navigation property to owning tenant
 
 ### DuplicateStatus Enum
@@ -114,7 +114,7 @@ public enum DuplicateStatus
 
 **Required indexes:**
 - `IX_ImportReviewTransactions_Key` (unique) - Business key lookup
-- `IX_ImportReviewTransactions_TenantId` - Tenant-scoped queries
+- `IX_ImportReviewTransactions_TenantId_Date` - Tenant-scoped queries ordered by date
 - `IX_ImportReviewTransactions_TenantId_ExternalId` - Duplicate detection by FITID
 
 **Additional migration needed:** Add `IX_Transactions_TenantId_ExternalId` index to existing Transactions table for duplicate detection performance.
@@ -123,15 +123,18 @@ public enum DuplicateStatus
 
 Location: `src/Data/Sqlite/ApplicationDbContext.cs`
 
-**Required changes:**
+**Required changes for ImportReviewTransactions:**
 - Add `DbSet<ImportReviewTransaction>` property
 - Configure entity in `OnModelCreating()` following existing patterns:
-  - Standard indexes (Key, TenantId, TenantId+ExternalId composite)
+  - Standard indexes (Key, TenantId+Date composite, TenantId+ExternalId composite)
   - DateOnly conversion for SQLite (ISO 8601 format)
-  - String length constraints matching entity annotations
+  - String length constraints as specified in field descriptions above
   - Decimal precision for Amount field
   - Enum conversion for DuplicateStatus
   - Foreign key with cascade delete to Tenant
+
+**Required changes for Transactions:**
+- Add `IX_Transactions_TenantId_ExternalId` composite index to existing Transaction entity configuration for duplicate detection performance
 
 Reference existing Transaction entity configuration for patterns.
 
@@ -154,7 +157,7 @@ Reference existing Transaction entity configuration for patterns.
 
 **Indexes created on ImportReviewTransactions table:**
 1. `IX_ImportReviewTransactions_Key` (unique) - Standard business key lookup
-2. `IX_ImportReviewTransactions_TenantId` - Tenant-scoped queries (get all pending imports)
+2. `IX_ImportReviewTransactions_TenantId_Date` - Tenant-scoped queries ordered by date (get all pending imports)
 3. `IX_ImportReviewTransactions_TenantId_ExternalId` - Duplicate detection by FITID
 
 **Index required on Transactions table:**
@@ -224,8 +227,6 @@ Reference existing Transaction entity configuration for patterns.
 | **Memo** | ✅ `string(1000)?` | ✅ `string(1000)?` | Nullable |
 | **DuplicateStatus** | ✅ `int` (enum) | ❌ | Import-specific |
 | **DuplicateOfKey** | ✅ `Guid?` | ❌ | Import-specific |
-| **ImportedAt** | ✅ `DateTime` | ❌ | Import-specific |
-| **CreatedAt** | ✅ `DateTime` | ✅ `DateTime` | Audit timestamp |
 | **Splits** | ❌ | ✅ `ICollection<Split>` | Added on accept |
 
 **Workflow:** When accepting transactions, copy all matching fields from ImportReviewTransaction → Transaction, generate default Split, then delete from ImportReviewTransactions.
@@ -262,7 +263,7 @@ Reference existing Transaction entity configuration for patterns.
 - [ ] Create `DuplicateStatus` enum in `src/Entities/Models/`
 - [ ] Add `DbSet<ImportReviewTransaction>` to [`ApplicationDbContext.cs`](src/Data/Sqlite/ApplicationDbContext.cs)
 - [ ] Add entity configuration to [`OnModelCreating()`](src/Data/Sqlite/ApplicationDbContext.cs)
-- [ ] Create EF Core migration using `dotnet ef migrations add AddImportReviewTable`
+- [ ] Create EF Core migration using `pwsh -File ./scripts/Add-Migration.ps1 -Name AddImportReviewTable`
 - [ ] Review generated migration SQL for correctness
 - [ ] Apply migration to development database
 
