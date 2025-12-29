@@ -66,7 +66,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 4 - Implement OFX document parsing structure")]
     public async Task ParseAsync_ValidOfxWithZeroTransactions_ReturnsEmptyTransactionList()
     {
         // Given: A valid OFX document with no transactions

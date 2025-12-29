@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Entities\YoFi.V3.Entities.csproj" />
+    <ProjectReference Include="..\..\submodules\OFXSharp\source\OfxSharp\OfxSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

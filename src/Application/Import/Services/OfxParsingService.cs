@@ -1,5 +1,6 @@
 namespace YoFi.V3.Application.Import.Services;
 
+using OfxSharp;
 using YoFi.V3.Application.Import.Dto;
 
 /// <summary>
@@ -15,6 +16,7 @@ public class OfxParsingService : IOfxParsingService
     public Task<OfxParsingResult> ParseAsync(Stream fileStream, string fileName)
     {
         var errors = new List<OfxParsingError>();
+        var transactions = new List<TransactionImportDto>();
 
         // Handle null stream
         if (fileStream == null)
@@ -27,12 +29,8 @@ public class OfxParsingService : IOfxParsingService
             return Task.FromResult(result);
         }
 
-        // Try to detect if this looks like valid OFX
-        using var reader = new StreamReader(fileStream, leaveOpen: true);
-        var content = reader.ReadToEnd();
-
-        // If empty, return empty result (not an error)
-        if (string.IsNullOrWhiteSpace(content))
+        // Check if stream is empty
+        if (fileStream.Length == 0 || (fileStream.CanSeek && fileStream.Position == fileStream.Length))
         {
             var emptyResult = new OfxParsingResult
             {
@@ -42,18 +40,33 @@ public class OfxParsingService : IOfxParsingService
             return Task.FromResult(emptyResult);
         }
 
-        // If doesn't contain OFX markers, add error
-        if (!content.Contains("<OFX>"))
+        // Try to parse with OFXSharp
+        try
+        {
+            // Reset stream position if seekable
+            if (fileStream.CanSeek)
+            {
+                fileStream.Position = 0;
+            }
+
+            var document = OfxDocumentReader.ReadFile(fileStream);
+
+            // Extract transactions from all statements
+            // For now, just successfully parse the document (test 4)
+            // Transaction extraction will be added in later tests
+
+        }
+        catch (Exception ex)
         {
             errors.Add(new OfxParsingError
             {
-                Message = "Invalid OFX format: Missing OFX header or content"
+                Message = $"Failed to parse OFX document: {ex.Message}"
             });
         }
 
         var parseResult = new OfxParsingResult
         {
-            Transactions = Array.Empty<TransactionImportDto>(),
+            Transactions = transactions,
             Errors = errors
         };
 
