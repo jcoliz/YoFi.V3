@@ -60,13 +60,13 @@ public class OfxParsingService : IOfxParsingService
                     {
                         foreach (var transaction in statement.Transactions)
                         {
-                            // For now, only extract the date (Test 5)
+                            // Extract date and amount (Tests 5-6)
                             // More fields will be added in subsequent tests
                             var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
                             transactions.Add(new TransactionImportDto
                             {
                                 Date = DateOnly.FromDateTime(dateTime),
-                                Amount = 0m,  // Will be implemented in Test 6
+                                Amount = transaction.Amount,
                                 Payee = string.Empty,  // Will be implemented in Test 7
                                 Source = string.Empty  // Will be implemented in Test 9
                             });

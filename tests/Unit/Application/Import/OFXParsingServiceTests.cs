@@ -192,7 +192,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 6 - Implement transaction amount extraction")]
     public async Task ParseAsync_SingleTransaction_ExtractsAmount()
     {
         // Given: An OFX document with a single transaction containing an amount
@@ -219,6 +218,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -237,6 +241,10 @@ public class OfxParsingServiceTests
             <NAME>Test Payee
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -249,6 +257,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with correct amount extracted
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.First().Amount, Is.EqualTo(expectedAmount));
     }
@@ -281,6 +290,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -299,6 +313,10 @@ public class OfxParsingServiceTests
             <NAME>{expectedPayee}
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -311,6 +329,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with payee extracted from NAME field
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.First().Payee, Is.EqualTo(expectedPayee));
     }
@@ -343,6 +362,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -362,6 +386,10 @@ public class OfxParsingServiceTests
             <MEMO>{expectedMemo}
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -374,6 +402,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with memo extracted
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.First().Memo, Is.EqualTo(expectedMemo));
     }
@@ -406,6 +435,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -424,6 +458,10 @@ public class OfxParsingServiceTests
             <NAME>Test Payee
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -436,6 +474,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with source formatted as 'Bank - AccountType (ID)'
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.First().Source, Is.EqualTo(expectedSource));
     }
@@ -467,6 +506,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -499,6 +543,10 @@ public class OfxParsingServiceTests
             <NAME>Payee Three
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -511,6 +559,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "multiple-transactions.ofx");
 
         // Then: Should return all transactions in result
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.Count, Is.EqualTo(3));
         Assert.That(result.Transactions.ElementAt(0).Payee, Is.EqualTo("Payee One"));
@@ -545,6 +594,11 @@ public class OfxParsingServiceTests
             </SIGNONMSGSRSV1>
             <BANKMSGSRSV1>
             <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -563,9 +617,18 @@ public class OfxParsingServiceTests
             <NAME>Checking Transaction
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             <STMTTRNRS>
+            <TRNUID>2
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
             <STMTRS>
             <CURDEF>USD
             <BANKACCTFROM>
@@ -584,6 +647,10 @@ public class OfxParsingServiceTests
             <NAME>Savings Transaction
             </STMTTRN>
             </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>2000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
             </STMTRS>
             </STMTTRNRS>
             </BANKMSGSRSV1>
@@ -596,6 +663,7 @@ public class OfxParsingServiceTests
         var result = await service.ParseAsync(stream, "multi-account.ofx");
 
         // Then: Should return transactions from all accounts with correct source for each
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions, Is.Not.Empty);
         Assert.That(result.Transactions.Count, Is.EqualTo(2));
 
