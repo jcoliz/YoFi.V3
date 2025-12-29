@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 layer: Frontend
 parent: DESIGN-BANK-IMPORT.md
 created: 2025-12-28
@@ -163,15 +163,43 @@ src/FrontEnd.Nuxt/app/
 - Dismissible via close button (Bootstrap alert-dismissible)
 - Remains visible after completion until user dismisses
 
-**Content:**
-- During upload: "⏳ filename.ofx: Importing..."
-- After success: "✓ filename.ofx imported: 150 transactions added"
-- After failure: "❌ filename.ofx: Upload failed"
+**Content formats:**
+- **During upload:** "⏳ filename.ofx: Importing..."
+- **Complete success:** "✓ filename.ofx: 150 transactions added"
+- **Partial success (with errors):** "⚠ filename.ofx: 140 transactions added, 10 errors detected [View Errors]"
+- **Complete failure:** "❌ filename.ofx: Upload failed"
 - Multiple files show multiple status lines
 
+**Error details handling:**
+- When parsing errors occur (partial success), status line includes clickable "[View Errors]" link
+- Clicking link opens a modal dialog showing detailed error list
+- Modal title: "Import Errors - filename.ofx"
+- Modal body: Scrollable list of error messages from `ImportResultDto.Errors[]`
+- Each error shows: line number (if available), transaction date/amount (if parsed), error message
+- Modal footer: "Close" button only (no action needed, errors are informational)
+- Use existing [`ModalDialog`](src/FrontEnd.Nuxt/app/components/ModalDialog.vue) component
+
+**Error modal content example:**
+```
+Import Errors - checking-2024-01.ofx
+
+1. Line 245: Invalid date format 'INVALID'
+2. Line 312: Missing required field FITID
+3. Transaction 2024-01-15 $125.50: Amount exceeds maximum allowed value
+4. Line 423: Duplicate transaction ID 'ABC123' (skipped)
+...
+```
+
 **Styling:**
-- Uses Bootstrap `.alert .alert-info` styling
+- Uses Bootstrap `.alert .alert-info` styling for normal status
+- Uses `.alert-warning` for partial success (has errors)
 - Dismissible via `.alert-dismissible` class
+- "[View Errors]" link styled as `btn-link btn-sm` for subtle appearance
+
+**API Response:**
+- `ImportResultDto` includes `Errors` property (array of error detail objects)
+- `ImportResultDto.ImportedCount` reflects successful transactions only
+- Frontend checks `Errors.length > 0` to determine if "[View Errors]" link should appear
 
 ### Potential Duplicates Alert
 
