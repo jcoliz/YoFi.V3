@@ -6,10 +6,10 @@ namespace YoFi.V3.Application.Import.Dto;
 public class TransactionImportDto
 {
     /// <summary>
-    /// Unique identifier for the transaction.
+    /// External (bank) identifier for the transaction.
     /// Contains the OFX FITID if available, otherwise a hash of the transaction data.
     /// </summary>
-    public required string UniqueId { get; init; }
+    public required string ExternalId { get; init; }
 
     /// <summary>
     /// Transaction date (date only, time component is discarded from OFX).

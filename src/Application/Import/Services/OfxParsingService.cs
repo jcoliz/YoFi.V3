@@ -132,15 +132,15 @@ public class OfxParsingService : IOfxParsingService
                                 continue; // Skip this transaction
                             }
 
-                            // Generate UniqueId: use FITID if available, otherwise hash the transaction data
-                            var uniqueId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
+                            // Generate ExternalId: use FITID if available, otherwise hash the transaction data
+                            var externalId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
                                 ? transaction.TransactionId
                                 : GenerateTransactionHash(dateTime, transaction.Amount, payee, memo ?? string.Empty, source);
 
                             // All fields extracted (Tests 5-9)
                             transactions.Add(new TransactionImportDto
                             {
-                                UniqueId = uniqueId,
+                                ExternalId = externalId,
                                 Date = DateOnly.FromDateTime(dateTime),
                                 Amount = transaction.Amount,
                                 Payee = payee,

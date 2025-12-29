@@ -960,7 +960,7 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    public async Task ParseAsync_TransactionsWithFitid_UsesFitidAsUniqueId()
+    public async Task ParseAsync_TransactionsWithFitid_UsesFitidAsExternalId()
     {
         // Given: An OFX document with transactions that have valid FITIDs
         var ofxContent = """
@@ -1028,10 +1028,10 @@ public class OfxParsingServiceTests
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
         Assert.That(result.Transactions.Count, Is.EqualTo(1));
 
-        // And: Transaction should use FITID as UniqueId (not generate a hash)
+        // And: Transaction should use FITID as ExternalId (not generate a hash)
         var txn = result.Transactions.First();
-        Assert.That(txn.UniqueId, Is.EqualTo("TXN001"),
-            "When FITID is present, it should be used as UniqueId");
+        Assert.That(txn.ExternalId, Is.EqualTo("TXN001"),
+            "When FITID is present, it should be used as ExternalId");
     }
 
     [Test]
