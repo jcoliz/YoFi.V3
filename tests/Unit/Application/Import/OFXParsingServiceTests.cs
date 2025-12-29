@@ -813,4 +813,148 @@ public class OfxParsingServiceTests
         var savingsTxn = result.Transactions.First(t => t.Payee == "Savings Transaction");
         Assert.That(savingsTxn.Source, Is.EqualTo("Test Bank - Savings (2222222222)"));
     }
+
+    #region Example File Tests
+
+    /// <summary>
+    /// Helper method to load embedded OFX sample files from the test project.
+    /// </summary>
+    /// <param name="fileName">Name of the OFX file (e.g., "Bank1.ofx")</param>
+    /// <returns>Stream containing the file contents</returns>
+    private static Stream GetEmbeddedOfxFile(string fileName)
+    {
+        var assembly = typeof(OfxParsingServiceTests).Assembly;
+        var resourceName = $"YoFi.V3.Tests.Unit.SampleData.Ofx.{fileName}";
+        var stream = assembly.GetManifestResourceStream(resourceName);
+
+        if (stream == null)
+        {
+            throw new FileNotFoundException($"Embedded resource not found: {resourceName}");
+        }
+
+        return stream;
+    }
+
+    [Test]
+    public async Task ParseAsync_BankBankingXmlOfx_ParsesSuccessfully()
+    {
+        // Given: The bank-banking-xml.ofx example file (OFX 2.x XML format)
+        using var stream = GetEmbeddedOfxFile("bank-banking-xml.ofx");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "bank-banking-xml.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (7 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(7), "Expected 7 transactions from bank-banking-xml.ofx");
+
+        // And: Should extract bank name correctly
+        Assert.That(result.Transactions.First().Source, Does.Contain("Bank of Banking"));
+    }
+
+    [Test]
+    public async Task ParseAsync_Bank1Ofx_ParsesSuccessfully()
+    {
+        // Given: The Bank1.ofx example file (multiple accounts, 11 total transactions)
+        using var stream = GetEmbeddedOfxFile("Bank1.ofx");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "Bank1.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (11 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(11), "Expected 11 transactions from Bank1.ofx");
+
+        // And: Should handle multiple account types
+        var sources = result.Transactions.Select(t => t.Source).Distinct().ToList();
+        Assert.That(sources.Count, Is.GreaterThan(1), "Expected transactions from multiple accounts");
+    }
+
+    [Test]
+    public async Task ParseAsync_CC2Ofx_ParsesSuccessfully()
+    {
+        // Given: The CC2.OFX example file (credit card, 9 transactions)
+        using var stream = GetEmbeddedOfxFile("CC2.OFX");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "CC2.OFX");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (9 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(9), "Expected 9 transactions from CC2.OFX");
+
+        // And: All transactions should have payees (NAME field present)
+        Assert.That(result.Transactions.All(t => !string.IsNullOrWhiteSpace(t.Payee)), Is.True);
+    }
+
+    [Test]
+    public async Task ParseAsync_CreditcardOfx_ParsesSuccessfully()
+    {
+        // Given: The creditcard.ofx example file (credit card message format, 4 transactions)
+        using var stream = GetEmbeddedOfxFile("creditcard.ofx");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "creditcard.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (4 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(4), "Expected 4 transactions from creditcard.ofx");
+
+        // And: Should handle CREDITCARDMSGSRSV1 format
+        Assert.That(result.Transactions.All(t => !string.IsNullOrWhiteSpace(t.Payee)), Is.True);
+    }
+
+    [Test]
+    public async Task ParseAsync_Issue17Ofx_ParsesSuccessfully()
+    {
+        // Given: The issue-17.ofx example file (Brazilian bank, BRL currency, 3 transactions)
+        using var stream = GetEmbeddedOfxFile("issue-17.ofx");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "issue-17.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (3 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(3), "Expected 3 transactions from issue-17.ofx");
+
+        // And: Should handle international format (BRL currency, timezone)
+        Assert.That(result.Transactions.All(t => t.Amount != 0), Is.True);
+    }
+
+    [Test]
+    public async Task ParseAsync_ItauOfx_ParsesSuccessfully()
+    {
+        // Given: The itau.ofx example file (Brazilian bank, identical data to issue-17.ofx)
+        using var stream = GetEmbeddedOfxFile("itau.ofx");
+        var service = new OfxParsingService();
+
+        // When: Parsing the OFX file
+        var result = await service.ParseAsync(stream, "itau.ofx");
+
+        // Then: Should successfully parse with no errors
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+
+        // And: Should contain expected number of transactions (3 according to README)
+        Assert.That(result.Transactions.Count, Is.EqualTo(3), "Expected 3 transactions from itau.ofx");
+
+        // And: Should handle Portuguese language and international format
+        Assert.That(result.Transactions.All(t => t.Amount != 0), Is.True);
+    }
+
+    #endregion
 }
