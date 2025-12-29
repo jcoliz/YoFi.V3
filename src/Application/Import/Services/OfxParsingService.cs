@@ -61,21 +61,29 @@ public class OfxParsingService : IOfxParsingService
                         foreach (var transaction in statement.Transactions)
                         {
                             // Extract date, amount, payee, and memo (Tests 5-8)
-                            // Payee is required - use NAME field, fallback to MEMO, otherwise skip with error
+                            // Payee is required with smart handling for truncated NAME fields
                             var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
-                            var payee = transaction.Name;
-                            string? memo = null;
+                            var name = transaction.Name;
+                            var transactionMemo = transaction.Memo;
+                            string? payee;
+                            string? memo;
 
-                            // If NAME is missing or empty, try MEMO as fallback for payee
-                            if (string.IsNullOrWhiteSpace(payee))
+                            // Handle various NAME/MEMO scenarios
+                            if (string.IsNullOrWhiteSpace(name) ||
+                                (!string.IsNullOrWhiteSpace(transactionMemo) &&
+                                 transactionMemo.StartsWith(name, StringComparison.OrdinalIgnoreCase)))
                             {
-                                payee = transaction.Memo;
-                                // When MEMO is used as payee, don't also put it in memo field
+                                // Case 1: No NAME - use MEMO as payee
+                                // Case 2: NAME appears to be truncated (MEMO starts with NAME)
+                                // In both cases: use MEMO as payee, leave memo blank
+                                payee = transactionMemo;
+                                memo = null;
                             }
                             else
                             {
-                                // NAME is present, so MEMO goes into memo field
-                                memo = transaction.Memo;
+                                // Case 3: Normal case - NAME is payee, MEMO is memo
+                                payee = name;
+                                memo = transactionMemo;
                             }
 
                             // If still no payee, skip this transaction with error
