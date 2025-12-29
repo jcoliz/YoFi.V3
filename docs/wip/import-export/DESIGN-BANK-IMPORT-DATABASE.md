@@ -355,17 +355,23 @@ modelBuilder.Entity<ImportReviewTransaction>(entity =>
 
 ### 2. Index Strategy for Duplicate Detection
 
-**Indexes created:**
+**Indexes created on ImportReviewTransactions table:**
 1. `IX_ImportReviewTransactions_Key` (unique) - Standard business key lookup
 2. `IX_ImportReviewTransactions_TenantId` - Tenant-scoped queries (get all pending imports)
 3. `IX_ImportReviewTransactions_TenantId_ExternalId` - Duplicate detection by FITID
 
-**Rationale:**
-- Duplicate detection algorithm queries by `(TenantId, ExternalId)` to find matching bank transaction IDs
-- Composite index enables fast lookups during import processing (1,000 transactions = 1,000 duplicate checks)
-- Tenant isolation ensures index efficiency (no cross-tenant data scanned)
+**Index required on Transactions table:**
+- `IX_Transactions_TenantId_ExternalId` (composite) - Duplicate detection against existing transactions
 
-**Performance:** Expected duplicate check time <2 seconds for 1,000 transaction import.
+**Rationale:**
+- Duplicate detection algorithm queries BOTH tables by `(TenantId, ExternalId)` to find matching bank transaction IDs
+- Composite indexes on both tables enable fast lookups during import processing (1,000 transactions = 2,000 total queries)
+- Tenant isolation ensures index efficiency (no cross-tenant data scanned)
+- Without the Transactions index, duplicate detection would require full table scans
+
+**Performance:** Expected duplicate check time <2 seconds for 1,000 transaction import with both indexes in place.
+
+**Implementation Note:** The Transactions table index should be added in a separate migration as part of this feature implementation.
 
 ### 3. Cascade Delete for Tenant Isolation
 
