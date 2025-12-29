@@ -49,7 +49,6 @@ public class OfxParsingServiceTests
     }
 
     [Test]
-    [Explicit("TDD: Test 3 - Implement basic OFX parsing with error detection")]
     public async Task ParseAsync_InvalidOfx_ReturnsErrorResult()
     {
         // Given: A stream containing invalid OFX data

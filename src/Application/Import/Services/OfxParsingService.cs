@@ -14,13 +14,49 @@ public class OfxParsingService : IOfxParsingService
     /// <param name="fileName">The name of the file being parsed.</param>
     public Task<OfxParsingResult> ParseAsync(Stream fileStream, string fileName)
     {
-        // Handle null/empty streams
-        var result = new OfxParsingResult
+        var errors = new List<OfxParsingError>();
+
+        // Handle null stream
+        if (fileStream == null)
+        {
+            var result = new OfxParsingResult
+            {
+                Transactions = Array.Empty<TransactionImportDto>(),
+                Errors = Array.Empty<OfxParsingError>()
+            };
+            return Task.FromResult(result);
+        }
+
+        // Try to detect if this looks like valid OFX
+        using var reader = new StreamReader(fileStream, leaveOpen: true);
+        var content = reader.ReadToEnd();
+
+        // If empty, return empty result (not an error)
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            var emptyResult = new OfxParsingResult
+            {
+                Transactions = Array.Empty<TransactionImportDto>(),
+                Errors = Array.Empty<OfxParsingError>()
+            };
+            return Task.FromResult(emptyResult);
+        }
+
+        // If doesn't contain OFX markers, add error
+        if (!content.Contains("<OFX>"))
+        {
+            errors.Add(new OfxParsingError
+            {
+                Message = "Invalid OFX format: Missing OFX header or content"
+            });
+        }
+
+        var parseResult = new OfxParsingResult
         {
             Transactions = Array.Empty<TransactionImportDto>(),
-            Errors = Array.Empty<OfxParsingError>()
+            Errors = errors
         };
 
-        return Task.FromResult(result);
+        return Task.FromResult(parseResult);
     }
 }
