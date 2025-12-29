@@ -18,7 +18,7 @@ related_docs:
 This document provides the complete application layer design for the Bank Import feature, including business logic, DTOs, and the [`ImportReviewFeature`](src/Application/Import/Features/ImportReviewFeature.cs) class. The application layer orchestrates the import workflow: parsing OFX files, detecting duplicates, managing pending review transactions, and accepting transactions into the main transaction table.
 
 **Key components:**
-- **DTOs** - [`ImportReviewTransactionDto`](src/Application/Import/Dto/ImportReviewTransactionDto.cs), [`ImportResultDto`](src/Application/Import/Dto/ImportResultDto.cs), [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs)
+- **DTOs** - [`ImportReviewTransactionDto`](src/Application/Import/Dto/ImportReviewTransactionDto.cs), [`ImportResultDto`](src/Application/Import/Dto/ImportResultDto.cs), [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs), [`PaginatedResultDto<T>`](src/Application/Common/Dto/PaginatedResultDto.cs)
 - **ImportReviewFeature** - Business logic for import workflow orchestration
 - **Duplicate Detection Strategy** - Two-phase detection using ExternalId and field matching
 - **Service Registration** - Integration with [`ServiceCollectionExtensions`](src/Application/ServiceCollectionExtensions.cs)
@@ -27,7 +27,7 @@ This document provides the complete application layer design for the Bank Import
 - Parse OFX files using [`OfxParsingService`](src/Application/Import/Services/OfxParsingService.cs) (already implemented)
 - Detect duplicates against existing transactions and pending imports
 - Store parsed transactions in [`ImportReviewTransaction`](src/Entities/Models/ImportReviewTransaction.cs) staging table
-- Provide read operations for pending review transactions
+- Provide paginated read operations for pending review transactions
 - Complete review workflow: accept selected transactions via [`TransactionsFeature`](src/Application/Features/TransactionsFeature.cs) and delete all pending imports
 - Leverage TransactionsFeature to ensure consistent transaction creation (including default splits)
 
@@ -41,12 +41,12 @@ Frontend uploads OFX File
           → ImportReviewTransaction entities (created and stored by ImportReviewFeature)
             → Database
 
-Later, frontend requests review data:
+Later, frontend requests review data with pagination:
 Frontend
-  → API Controllers (GET /api/import/review)
-    → ImportReviewFeature.GetPendingReviewAsync()
-      → Database query for ImportReviewTransaction entities
-        → ImportReviewTransactionDto[] (mapped and returned)
+  → API Controllers (GET /api/import/review?pageNumber=1&pageSize=50)
+    → ImportReviewFeature.GetPendingReviewAsync(pageNumber, pageSize)
+      → Database query for ImportReviewTransaction entities with pagination
+        → PaginatedResultDto<ImportReviewTransactionDto> (mapped and returned)
           → API Controllers
             → Frontend
 
@@ -55,6 +55,21 @@ Frontend
 ### ImportReviewTransactionDto
 
 Location: `src/Application/Import/Dto/ImportReviewTransactionDto.cs`
+
+**Purpose:** Presents information about an imported transaction for user review.
+
+**Fields included (necessary for import review UI):**
+- **Key** - Unique identifier for selection tracking and accept/delete operations
+- **Date, Payee, Category, Amount** - Displayed in the review table columns
+- **DuplicateStatus, DuplicateOfKey** - Control visual highlighting and default checkbox state
+
+**Fields NOT included** (available in ImportReviewTransaction entity but not needed for UI):
+- **Source** - Not displayed; user already knows which file/account they uploaded
+- **ExternalId** - Internal duplicate detection field, not relevant for user review
+- **Memo** - Not displayed in review UI to keep table simple; available after accepting transaction
+- **ImportedAt** - No UI need; transactions already ordered by Date
+
+**Category field:** Displayed in the "Matched Category" column. For the initial implementation, this will always be empty. In the future, it will be populated by the Payee Matching rules feature.
 
 ```csharp
 namespace YoFi.V3.Application.Import.Dto;
@@ -69,29 +84,6 @@ namespace YoFi.V3.Application.Import.Dto;
 /// <param name="Amount">Transaction amount (positive for deposits, negative for withdrawals).</param>
 /// <param name="DuplicateStatus">Status indicating whether this transaction is new or a duplicate.</param>
 /// <param name="DuplicateOfKey">Key of the existing transaction if this is detected as a duplicate.</param>
-/// <remarks>
-/// <para>
-/// This DTO contains only the fields necessary for the import review UI:
-/// </para>
-/// <list type="bullet">
-/// <item><strong>Key</strong> - Unique identifier for selection tracking and accept/delete operations</item>
-/// <item><strong>Date, Payee, Category, Amount</strong> - Displayed in the review table columns</item>
-/// <item><strong>DuplicateStatus, DuplicateOfKey</strong> - Control visual highlighting and default checkbox state</item>
-/// </list>
-/// <para>
-/// <strong>Fields NOT included</strong> (available in ImportReviewTransaction entity but not needed for UI):
-/// </para>
-/// <list type="bullet">
-/// <item><strong>Source</strong> - Not displayed; user already knows which file/account they uploaded</item>
-/// <item><strong>ExternalId</strong> - Internal duplicate detection field, not relevant for user review</item>
-/// <item><strong>Memo</strong> - Not displayed in review UI to keep table simple; available after accepting transaction</item>
-/// <item><strong>ImportedAt</strong> - No UI need; transactions already ordered by Date</item>
-/// </list>
-/// <para>
-/// The Category field is displayed in the "Matched Category" column. For the initial implementation,
-/// this will always be empty. In the future, it will be populated by the Payee Matching rules feature.
-/// </para>
-/// </remarks>
 public record ImportReviewTransactionDto(
     Guid Key,
     DateOnly Date,
@@ -136,35 +128,71 @@ public record ImportResultDto(
 
 Location: `src/Application/Import/Dto/CompleteReviewResultDto.cs`
 
+**Purpose:** Result of completing the import review workflow, showing the user an informative display of the outcome.
+
+**CompleteReview operation behavior:** The operation atomically:
+1. Accepts (imports) the selected transactions into the main Transaction table
+2. Deletes ALL pending import review transactions (both selected and unselected)
+
+**RejectedCount meaning:** Represents the transactions that were available for review but not selected by the user. These transactions are deleted without being imported.
+
+**Example:** If user selects 120 out of 150 transactions to accept:
+- AcceptedCount = 120 (imported to main table)
+- RejectedCount = 30 (deleted without importing)
+
 ```csharp
 namespace YoFi.V3.Application.Import.Dto;
 
 /// <summary>
-/// Result of completing the import review workflow. This is to show the user an informative display
-/// of the outcome of the action they took on the reviewed transactions.
+/// Result of completing the import review workflow.
 /// </summary>
 /// <param name="AcceptedCount">Number of transactions successfully accepted and copied to the main transaction table.</param>
 /// <param name="RejectedCount">Number of transactions rejected (not selected for import).</param>
-/// <remarks>
-/// <para>
-/// This DTO represents the result of the CompleteReview operation, which atomically:
-/// </para>
-/// <list type="number">
-/// <item>Accepts (imports) the selected transactions into the main Transaction table</item>
-/// <item>Deletes ALL pending import review transactions (both selected and unselected)</item>
-/// </list>
-/// <para>
-/// RejectedCount represents the transactions that were available for review but not selected
-/// by the user. These transactions are deleted without being imported.
-/// </para>
-/// <para>
-/// Example: If user selects 120 out of 150 transactions to accept, the result will be:
-/// AcceptedCount = 120 (imported to main table), RejectedCount = 30 (deleted without importing).
-/// </para>
-/// </remarks>
 public record CompleteReviewResultDto(
     int AcceptedCount,
     int RejectedCount
+);
+```
+
+### PaginatedResultDto<T>
+
+Location: `src/Application/Common/Dto/PaginatedResultDto.cs`
+
+**Purpose:** Generic paginated result container for API responses.
+
+**Supported UI patterns:**
+- **Page navigation** - Use PageNumber, TotalPages, HasPreviousPage, HasNextPage for numbered page controls
+- **Infinite scroll** - Use HasNextPage to determine if more data should be loaded
+- **Load more button** - Use HasNextPage to show/hide the "Load More" button
+- **Progress display** - Use "Showing {(PageNumber-1)*PageSize + 1}-{min(PageNumber*PageSize, TotalCount)} of {TotalCount}"
+
+**Metadata calculations:**
+- TotalPages = ceiling(TotalCount / PageSize)
+- HasPreviousPage = PageNumber > 1
+- HasNextPage = PageNumber < TotalPages
+
+```csharp
+namespace YoFi.V3.Application.Common.Dto;
+
+/// <summary>
+/// Generic paginated result container for API responses.
+/// </summary>
+/// <typeparam name="T">The type of items in the paginated collection.</typeparam>
+/// <param name="Items">The collection of items for the current page.</param>
+/// <param name="PageNumber">The current page number (1-based).</param>
+/// <param name="PageSize">The number of items per page.</param>
+/// <param name="TotalCount">The total number of items across all pages.</param>
+/// <param name="TotalPages">The total number of pages available.</param>
+/// <param name="HasPreviousPage">Indicates whether a previous page exists.</param>
+/// <param name="HasNextPage">Indicates whether a next page exists.</param>
+public record PaginatedResultDto<T>(
+    IReadOnlyCollection<T> Items,
+    int PageNumber,
+    int PageSize,
+    int TotalCount,
+    int TotalPages,
+    bool HasPreviousPage,
+    bool HasNextPage
 );
 ```
 
@@ -275,6 +303,18 @@ WHERE TenantId = @tenantId
 
 Location: `src/Application/Import/Features/ImportReviewFeature.cs`
 
+**Import workflow orchestration:**
+1. Parse OFX file to extract transaction data
+2. Detect duplicates against existing transactions and pending imports
+3. Store transactions in ImportReviewTransaction staging table with duplicate status
+4. Provide operations to retrieve pending review transactions and complete the review workflow
+
+**Tenant Isolation:** All operations are scoped to the current authenticated user's tenant via ITenantProvider. The TenantId is automatically applied to all queries and inserts.
+
+**Duplicate Detection:** Uses a two-phase strategy (ExternalId matching, then field matching) to classify transactions as New, ExactDuplicate, or PotentialDuplicate. See DetectDuplicate method for details.
+
+**Transaction Creation via TransactionsFeature:** When accepting transactions, this feature delegates to TransactionsFeature.AddTransactionAsync() to ensure consistent transaction creation including default splits. This follows clean architecture principles by reusing existing business logic rather than duplicating transaction creation code.
+
 ```csharp
 using YoFi.V3.Application.Import.Dto;
 using YoFi.V3.Application.Import.Services;
@@ -291,31 +331,6 @@ namespace YoFi.V3.Application.Import.Features;
 /// <param name="dataProvider">Repository for data operations on import review transactions.</param>
 /// <param name="transactionsFeature">Feature for managing transactions (used when accepting imports).</param>
 /// <param name="ofxParsingService">Service for parsing OFX/QFX files.</param>
-/// <remarks>
-/// <para>
-/// This feature orchestrates the complete import workflow:
-/// </para>
-/// <list type="number">
-/// <item>Parse OFX file to extract transaction data</item>
-/// <item>Detect duplicates against existing transactions and pending imports</item>
-/// <item>Store transactions in ImportReviewTransaction staging table with duplicate status</item>
-/// <item>Provide operations to retrieve pending review transactions and complete the review workflow</item>
-/// </list>
-/// <para>
-/// <strong>Tenant Isolation:</strong> All operations are scoped to the current authenticated user's tenant
-/// via ITenantProvider. The TenantId is automatically applied to all queries and inserts.
-/// </para>
-/// <para>
-/// <strong>Duplicate Detection:</strong> Uses a two-phase strategy (ExternalId matching, then field matching)
-/// to classify transactions as New, ExactDuplicate, or PotentialDuplicate. See DetectDuplicate method for details.
-/// </para>
-/// <para>
-/// <strong>Transaction Creation via TransactionsFeature:</strong> When accepting transactions, this feature
-/// delegates to TransactionsFeature.AddTransactionAsync() to ensure consistent transaction creation including
-/// default splits. This follows clean architecture principles by reusing existing business logic rather than
-/// duplicating transaction creation code.
-/// </para>
-/// </remarks>
 public class ImportReviewFeature(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
@@ -349,16 +364,28 @@ public class ImportReviewFeature(
     }
 
     /// <summary>
-    /// Retrieves all pending import review transactions for the current tenant.
+    /// Retrieves pending import review transactions for the current tenant with pagination support.
     /// </summary>
-    /// <returns>A collection of <see cref="ImportReviewTransactionDto"/> ordered by date descending.</returns>
-    public async Task<IReadOnlyCollection<ImportReviewTransactionDto>> GetPendingReviewAsync()
+    /// <param name="pageNumber">The page number to retrieve (1-based, default: 1).</param>
+    /// <param name="pageSize">The number of items per page (default: 50, maximum: 1000).</param>
+    /// <returns>A <see cref="PaginatedResultDto{T}"/> containing transactions and pagination metadata.</returns>
+    public async Task<PaginatedResultDto<ImportReviewTransactionDto>> GetPendingReviewAsync(
+        int pageNumber = 1,
+        int pageSize = 50)
     {
-        // Query all ImportReviewTransaction records for current tenant
+        // Validate and normalize pagination parameters
+
+        // Query total count of ImportReviewTransaction records for current tenant
+
+        // Calculate pagination metadata (totalPages, hasPreviousPage, hasNextPage)
+
+        // Query paginated ImportReviewTransaction records using SKIP/TAKE
 
         // Order by date descending
 
-        // Map to ImportReviewTransactionDto and return
+        // Map to ImportReviewTransactionDto
+
+        // Return PaginatedResultDto with items and metadata
     }
 
     /// <summary>
@@ -366,31 +393,6 @@ public class ImportReviewFeature(
     /// </summary>
     /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
     /// <returns>A <see cref="CompleteReviewResultDto"/> with counts of accepted and rejected transactions.</returns>
-    /// <remarks>
-    /// <para>
-    /// <strong>Why use TransactionsFeature?</strong> Follows clean architecture principles by reusing existing
-    /// transaction creation logic. TransactionsFeature handles:
-    /// </para>
-    /// <list type="bullet">
-    /// <item>Default split creation (Amount = transaction.Amount, Category = empty, Order = 0)</item>
-    /// <item>Category sanitization via CategoryHelper</item>
-    /// <item>Tenant assignment</item>
-    /// <item>Database persistence</item>
-    /// </list>
-    /// <para>
-    /// <strong>Why delete all transactions?</strong> This matches the UI workflow where clicking "Import"
-    /// completes the review session. Unselected transactions are rejected (not imported but deleted),
-    /// preventing orphaned transactions from accumulating and providing a clean slate for the next import.
-    /// </para>
-    /// <para>
-    /// <strong>Example:</strong> If review table has 150 transactions and user selects 120 to accept:
-    /// </para>
-    /// <list type="bullet">
-    /// <item>120 transactions are copied to main Transaction table</item>
-    /// <item>All 150 transactions are deleted from ImportReviewTransaction table</item>
-    /// <item>Result: AcceptedCount = 120, RejectedCount = 30</item>
-    /// </list>
-    /// </remarks>
     public async Task<CompleteReviewResultDto> CompleteReviewAsync(IReadOnlyCollection<Guid> keys)
     {
         // Retrieve import review transactions from database by keys (with tenant isolation)
@@ -405,15 +407,6 @@ public class ImportReviewFeature(
     /// <summary>
     /// Deletes all pending import review transactions for the current tenant without accepting any.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Use this method when the user wants to completely cancel/discard the current import
-    /// without accepting any transactions (the "Delete All" functionality).
-    /// </para>
-    /// <para>
-    /// This is distinct from CompleteReview, which accepts selected transactions before deleting all.
-    /// </para>
-    /// </remarks>
     public async Task DeleteAllAsync()
     {
         // Delete all ImportReviewTransaction records for the current tenant
@@ -429,24 +422,48 @@ public class ImportReviewFeature(
     /// A tuple containing the duplicate status and the key of the duplicate transaction (if any).
     /// Returns (DuplicateStatus.New, null) if no duplicates are found.
     /// </returns>
-    /// <remarks>
-    /// <para>
-    /// This is a helper method called once per imported transaction. The lookups passed to this method
-    /// are built from batch query results in ImportFileAsync - this method performs O(1) key lookups only.
-    /// </para>
-    /// <para>
-    /// Performs O(1) lookup of importDto.ExternalId (FITID) in both lookups, which returns all transactions
-    /// with that ExternalId (handles multiple duplicates). For each match found, compares Date/Amount/Payee
-    /// to determine ExactDuplicate vs PotentialDuplicate. See "Duplicate Detection Strategy" section for
-    /// detailed logic and example scenarios.
-    /// </para>
-    /// </remarks>
     private static (DuplicateStatus Status, Guid? DuplicateOfKey) DetectDuplicate(
         TransactionImportDto importDto,
         ILookup<string, Transaction> existingTransactionsByExternalId,
         ILookup<string, ImportReviewTransaction> pendingImportsByExternalId);
 }
 ```
+
+### GetPendingReviewAsync Implementation Notes
+
+**Pagination parameter validation:**
+- pageNumber < 1 → Defaults to 1
+- pageSize < 1 → Defaults to 50
+- pageSize > 1000 → Clamped to 1000 (prevents excessive data transfer)
+
+**Ordering:** Transactions are ordered by Date descending (newest first).
+
+**Empty pages:** If the requested page number exceeds available pages, an empty Items collection is returned with accurate pagination metadata.
+
+### CompleteReviewAsync Implementation Notes
+
+**Why use TransactionsFeature?** Follows clean architecture principles by reusing existing transaction creation logic. TransactionsFeature handles:
+- Default split creation (Amount = transaction.Amount, Category = empty, Order = 0)
+- Category sanitization via CategoryHelper
+- Tenant assignment
+- Database persistence
+
+**Why delete all transactions?** This matches the UI workflow where clicking "Import" completes the review session. Unselected transactions are rejected (not imported but deleted), preventing orphaned transactions from accumulating and providing a clean slate for the next import.
+
+**Example:** If review table has 150 transactions and user selects 120 to accept:
+- 120 transactions are copied to main Transaction table
+- All 150 transactions are deleted from ImportReviewTransaction table
+- Result: AcceptedCount = 120, RejectedCount = 30
+
+### DeleteAllAsync Implementation Notes
+
+Use this method when the user wants to completely cancel/discard the current import without accepting any transactions (the "Delete All" functionality). This is distinct from CompleteReview, which accepts selected transactions before deleting all.
+
+### DetectDuplicate Implementation Notes
+
+This is a helper method called once per imported transaction. The lookups passed to this method are built from batch query results in ImportFileAsync - this method performs O(1) key lookups only.
+
+Performs O(1) lookup of importDto.ExternalId (FITID) in both lookups, which returns all transactions with that ExternalId (handles multiple duplicates). For each match found, compares Date/Amount/Payee to determine ExactDuplicate vs PotentialDuplicate. See "Duplicate Detection Strategy" section for detailed logic and example scenarios.
 
 ## References
 

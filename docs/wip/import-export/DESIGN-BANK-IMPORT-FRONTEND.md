@@ -67,9 +67,11 @@ The page is organized into distinct components, each with a single responsibilit
 
 3. **[`PaginationControls.vue`](src/FrontEnd.Nuxt/app/components/PaginationControls.vue)** (reusable)
    - Previous/Next buttons and page number buttons
-   - Props: `currentPage`, `totalPages`, `totalCount`, `pageSize`, `hasPreviousPage`, `hasNextPage`, `loading`
+   - Props: `paginationData` (PaginatedResultDto<any>), `loading` (boolean)
    - Emits `@pageChange(pageNumber)` to parent
-   - Generic component - can be reused across any paginated view
+   - Generic component - works with any `PaginatedResultDto<T>` from the API
+   - Extracts pagination metadata automatically from the DTO
+   - Can be reused across any paginated view (transactions, imports, reports, etc.)
 
 4. **[`ImportReviewTable.vue`](src/FrontEnd.Nuxt/app/components/import/ImportReviewTable.vue)** (import-specific)
    - Transaction table with checkbox column, date, payee, category, amount
@@ -240,19 +242,103 @@ Import Errors - checking-2024-01.ofx
 
 ### Pagination
 
-**Standard pagination control:**
-- Previous/Next buttons (◀ ▶)
-- Page number buttons
-- "Showing 1-50 of 150" text
+**PaginationControls Component:**
+
+The [`PaginationControls.vue`](src/FrontEnd.Nuxt/app/components/PaginationControls.vue) component is designed to work with any `PaginatedResultDto<T>` response from the API.
+
+**Props:**
+```typescript
+interface Props {
+  paginationData: PaginatedResultDto<any>  // Generic - works with any paginated response
+  loading?: boolean                         // Disables controls during data fetch
+}
+```
+
+**Usage:**
+```vue
+<PaginationControls
+  :paginationData="paginatedResult"
+  :loading="isLoading"
+  @pageChange="handlePageChange"
+/>
+```
+
+**Component extracts metadata automatically:**
+- `pageNumber` - Current page (1-based)
+- `totalPages` - Total number of pages
+- `totalCount` - Total items across all pages
+- `pageSize` - Items per page
+- `hasPreviousPage` - Show/enable Previous button
+- `hasNextPage` - Show/enable Next button
+
+**Display elements:**
+- Previous/Next buttons (◀ ▶) - Enabled based on `hasPreviousPage`/`hasNextPage`
+- Page number buttons - Current page highlighted via `.active` class
+- "Showing 1-50 of 150" text - Calculated from `pageNumber`, `pageSize`, `totalCount`
 
 **Behavior:**
-- Hidden when `totalPages <= 1`
-- Disabled when loading
-- Current page highlighted via `.active` class
+- Hidden when `totalPages <= 1` (no pagination needed)
+- Disabled when `loading === true` (prevents navigation during data fetch)
+- Emits `@pageChange(pageNumber)` when user clicks page button or Previous/Next
 
-**Page size:**
-- Default: 50 transactions per page
-- Matches pattern from transactions page
+**Reusability:**
+- Works with `PaginatedResultDto<ImportReviewTransactionDto>` on import page
+- Works with `PaginatedResultDto<TransactionDto>` on transactions page
+- Works with any future paginated endpoint that returns `PaginatedResultDto<T>`
+- No import-specific logic - purely generic pagination control
+
+**Example integration:**
+```typescript
+// In parent component
+const paginatedResult = ref<PaginatedResultDto<ImportReviewTransactionDto> | null>(null)
+const loading = ref(false)
+const currentPage = ref(1)
+
+const loadPage = async (pageNumber: number) => {
+  loading.value = true
+  try {
+    paginatedResult.value = await importClient.getPendingReview(pageNumber, 50)
+    currentPage.value = pageNumber
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePageChange = (pageNumber: number) => {
+  loadPage(pageNumber)
+}
+```
+
+### Import Success Modal
+
+**Trigger:**
+- After successful completion of import review (POST /api/import/review/complete)
+
+**Content:**
+- Title: "Import Complete"
+- Success message with statistics from [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs):
+  - "Successfully imported {acceptedCount} transactions."
+  - "Removed {totalDeletedCount} transactions from review."
+- Example: "Successfully imported 120 transactions. Removed 150 transactions from review."
+
+**Actions:**
+- Single "OK" button (primary/success variant)
+- Clicking OK navigates to transactions page ([`/transactions`](src/FrontEnd.Nuxt/app/pages/transactions/index.vue)) so user can see newly imported transactions
+- Modal cannot be dismissed by clicking outside or pressing Escape (must click OK)
+
+**Implementation:**
+- Use existing [`ModalDialog`](src/FrontEnd.Nuxt/app/components/ModalDialog.vue) component
+- Set `show` prop based on success state
+- Handle `@confirm` event to navigate: `await navigateTo('/transactions')`
+- Clear session storage for selections after modal is dismissed
+
+**UX Flow:**
+1. User clicks "Import" button
+2. API call completes successfully with `CompleteReviewResultDto`
+3. Modal appears showing import statistics
+4. User clicks "OK"
+5. Navigation to transactions page occurs automatically
+6. User sees newly imported transactions in the list
 
 ### Delete Confirmation Modal
 
@@ -385,7 +471,7 @@ The import page reuses components and patterns from [`transactions/index.vue`](s
 - API error handling via `handleApiError` utility
 - Loading states with spinner and disabled buttons
 - Empty state messaging
-- Pagination controls
+- Generic pagination controls (works with any `PaginatedResultDto<T>`)
 
 ## State Management
 
@@ -476,12 +562,26 @@ const result: ImportResultDto = await importClient.uploadFile(file)
 ```typescript
 const result: PaginatedResultDto<ImportReviewTransactionDto> =
   await importClient.getPendingReview(currentPage.value, pageSize.value)
+
+// Pass entire result to PaginationControls component
+paginatedTransactions.value = result
 ```
 
-**Accept transactions:**
+**PaginationControls usage:**
+```vue
+<PaginationControls
+  :paginationData="paginatedTransactions"
+  :loading="loading"
+  @pageChange="loadPage"
+/>
+```
+
+The component automatically extracts all pagination metadata from the `PaginatedResultDto<T>` structure, making it reusable across any paginated view without modification.
+
+**Complete review (accept selected transactions):**
 ```typescript
 const keysArray = Array.from(selectedKeys.value)
-await importClient.acceptTransactions(keysArray)
+await importClient.completeReview(keysArray)
 ```
 
 **Delete all:**

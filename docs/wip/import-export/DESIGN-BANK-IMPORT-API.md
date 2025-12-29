@@ -62,44 +62,24 @@ This document provides the complete API/Controller layer design for the Bank Imp
 
 Location: `src/Controllers/ImportController.cs`
 
+**Bank import workflow endpoints:**
+1. Upload OFX/QFX file and parse transactions
+2. Retrieve pending import review transactions
+3. Accept selected transactions into main transaction table
+4. Delete rejected or duplicate transactions from review
+5. Clear all pending imports for the current session
+
+**Security:**
+- All operations scoped to authenticated user's current tenant via TenantContext middleware
+- Users must have Editor or Owner roles to perform import operations
+- File uploads validated for extension (.ofx, .qfx), size limits (configurable), and content validation through OFX parsing
+
 ```csharp
-using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using YoFi.V3.Application.Import.Dto;
-using YoFi.V3.Application.Import.Features;
-using YoFi.V3.Controllers.Tenancy.Authorization;
-using YoFi.V3.Entities.Tenancy.Models;
-
-namespace YoFi.V3.Controllers;
-
 /// <summary>
 /// Manages bank transaction import operations within a tenant workspace.
 /// </summary>
 /// <param name="importReviewFeature">Feature providing import review workflow operations.</param>
 /// <param name="logger">Logger for diagnostic output.</param>
-/// <remarks>
-/// <para>
-/// This controller provides endpoints for the complete bank import workflow:
-/// </para>
-/// <list type="number">
-/// <item>Upload OFX/QFX file and parse transactions</item>
-/// <item>Retrieve pending import review transactions</item>
-/// <item>Accept selected transactions into main transaction table</item>
-/// <item>Delete rejected or duplicate transactions from review</item>
-/// <item>Clear all pending imports for the current session</item>
-/// </list>
-/// <para>
-/// All operations are scoped to the authenticated user's current tenant via TenantContext middleware.
-/// Users must have Editor or Owner roles to perform import operations.
-/// </para>
-/// <para>
-/// <strong>File Upload Security:</strong> File uploads are validated for extension (.ofx, .qfx),
-/// size limits (configurable), and content validation through OFX parsing.
-/// </para>
-/// </remarks>
 [Route("api/import")]
 [ApiController]
 [RequireTenantRole(TenantRole.Editor)]
@@ -141,15 +121,7 @@ public partial class ImportController(
     /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
     /// </summary>
     /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
-    /// <returns>Result indicating the number of transactions accepted and total transactions deleted.</returns>
-    /// <remarks>
-    /// This endpoint performs two operations atomically:
-    /// 1. Copies the specified transactions to the main Transaction table
-    /// 2. Deletes ALL transactions from the ImportReviewTransaction table (selected and unselected)
-    ///
-    /// This ensures the review workflow completes cleanly - selected transactions are imported,
-    /// and the review table is cleared for the next import session.
-    /// </remarks>
+    /// <returns>Result indicating the number of transactions accepted and rejected.</returns>
     [HttpPost("review/complete")]
     [ProducesResponseType(typeof(CompleteReviewResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -163,6 +135,14 @@ public partial class ImportController(
     public async Task<IActionResult> DeleteAllPendingReview();
 }
 ```
+
+### CompleteReview Endpoint Behavior
+
+This endpoint performs two operations atomically:
+1. Copies the specified transactions to the main Transaction table
+2. Deletes ALL transactions from the ImportReviewTransaction table (selected and unselected)
+
+This ensures the review workflow completes cleanly - selected transactions are imported, and the review table is cleared for the next import session.
 
 ## Endpoint Specifications
 
@@ -332,20 +312,20 @@ Then the page automatically refreshes the transaction list to show the newly imp
 **Behavior:**
 1. Copies the specified transactions to the main Transaction table
 2. Deletes ALL transactions from ImportReviewTransaction table (not just the selected ones)
-3. Returns count of accepted transactions and total deleted transactions
+3. Returns count of accepted transactions and rejected (not selected) transactions
 
 **Example scenario:**
 - Review table has 150 transactions total
 - User selects 120 transactions to accept
 - API copies 120 transactions to Transaction table
 - API deletes all 150 transactions from review table
-- Response: `{ "acceptedCount": 120, "totalDeletedCount": 150 }`
+- Response: `{ "acceptedCount": 120, "rejectedCount": 30 }`
 
 **Response (200 OK):**
 ```json
 {
   "acceptedCount": 120,
-  "totalDeletedCount": 150
+  "rejectedCount": 30
 }
 ```
 
@@ -354,6 +334,8 @@ Then the page automatically refreshes the transaction list to show the newly imp
 - Prevents orphaned unselected transactions from accumulating
 - Clean slate for next import session
 - User can explicitly reject transactions by unchecking them (they won't be imported but will be deleted)
+
+**Note:** `rejectedCount` represents the number of transactions that were NOT selected (rejected). It equals the total transactions in review minus the accepted count.
 
 **Validation errors (400):**
 - Keys array is null or empty
