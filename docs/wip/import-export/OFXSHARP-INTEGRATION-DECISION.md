@@ -183,6 +183,16 @@ This temporary approach provides maximum development flexibility while maintaini
 
 ## Implementation Plan
 
+**Completed so far**
+1.
+
+**Strict TDD Plan**
+1. Create unit tests which each cover an small increment of the expected OFX parsing functionality. Mark them as `[Explicit]`.
+2. Implement only the bare minimum OFXParsingService or IOFXParsingService as needed to **compile**.
+3. One at a time, get each test (in order) to passing by implementing *only* the bare minimum to get the test to pass. Iterate until all tests passing.
+4. Then add the example files to the test project
+5. Add unit tests for each file. These *should* pass, if everything else we did above was correct. Else, iterate these to passing, one at a time.
+
 ### Phase 1: Add Submodule
 
 ```bash
