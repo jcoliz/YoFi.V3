@@ -12,6 +12,7 @@ COPY src/BackEnd/YoFi.V3.BackEnd.csproj src/BackEnd/
 COPY submodules/NuxtIdentity/src/Core/NuxtIdentity.Core.csproj submodules/NuxtIdentity/src/Core/
 COPY submodules/NuxtIdentity/src/EntityFrameworkCore/NuxtIdentity.EntityFrameworkCore.csproj submodules/NuxtIdentity/src/EntityFrameworkCore/
 COPY submodules/NuxtIdentity/src/AspNetCore/NuxtIdentity.AspNetCore.csproj submodules/NuxtIdentity/src/AspNetCore/
+COPY submodules/OFXSharp/source/OfxSharp/OfxSharp.csproj submodules/OFXSharp/source/OfxSharp/
 
 WORKDIR /source/src/BackEnd
 RUN dotnet restore
@@ -25,7 +26,7 @@ ENV SOLUTION_VERSION=$SOLUTION_VERSION
 # copy everything else and build app
 WORKDIR /source
 COPY src/ src/
-COPY submodules/NuxtIdentity/ submodules/NuxtIdentity/
+COPY submodules/ submodules/
 WORKDIR /source/src/BackEnd
 RUN dotnet publish --self-contained false -o /app
 
