@@ -251,7 +251,7 @@ For implementation patterns, refer to existing features:
 
 **Orchestrator Instructions for Code Mode:**
 
-> Controller Integration is PRIMARY test layer (60-70% of acceptance criteria). Follow [`TransactionsControllerTests.cs`](../../tests/Integration.Controller/TransactionsControllerTests.cs) pattern. Test API contracts, authorization variants, HTTP behavior.
+> Implement Controller Integration tests. This is the PRIMARY test layer (60-70% of acceptance criteria). Follow [`TransactionsControllerTests.cs`](../../tests/Integration.Controller/TransactionsControllerTests.cs) pattern. Test API contracts, authorization variants, HTTP behavior.
 
 **Code Mode Checklist:**
 - [ ] Review TESTING-STRATEGY.md - Controller Integration is sweet spot
@@ -260,7 +260,8 @@ For implementation patterns, refer to existing features:
 - [ ] Include authorization variants: Success, Forbidden, Unauthorized, Tenant isolation
 - [ ] Run tests: `dotnet test tests/Integration.Controller`
 - [ ] Iterate until all pass
-- [ ] Check off completed acceptance criteria in PRD
+- [ ] Check off any newly-completed acceptance criteria in PRD
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Why Controller Integration:**
 - Tests complete API contract (request → response)
