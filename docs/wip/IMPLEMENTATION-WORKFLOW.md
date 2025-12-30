@@ -197,6 +197,7 @@ For implementation patterns, refer to existing features:
 - [ ] Run tests: `dotnet test tests/Unit`
 - [ ] Iterate until all pass
 - [ ] Check off any now-completed acceptance criteria in PRD
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Commit Template:** `test(unit): add [feature] validation and logic tests`
 

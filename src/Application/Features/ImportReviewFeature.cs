@@ -265,6 +265,12 @@ public class ImportReviewFeature(
         IReadOnlyDictionary<string, Transaction> existingTransactionsByExternalId,
         IReadOnlyDictionary<string, ImportReviewTransaction> pendingImportsByExternalId)
     {
+        // Cannot detect duplicates without ExternalId
+        if (string.IsNullOrEmpty(importDto.ExternalId))
+        {
+            return (DuplicateStatus.New, null);
+        }
+
         // Check existing transactions first
         if (existingTransactionsByExternalId.TryGetValue(importDto.ExternalId, out var existingTransaction))
         {
