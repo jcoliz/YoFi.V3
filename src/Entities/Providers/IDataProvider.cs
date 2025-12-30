@@ -45,6 +45,12 @@ public interface IDataProvider
     void Remove(IModel item);
 
     /// <summary>
+    /// Remove a range of items
+    /// </summary>
+    /// <param name="items">Items to remove</param>
+    void RemoveRange(IEnumerable<IModel> items);
+
+    /// <summary>
     /// Save changes previously made
     /// </summary>
     /// <remarks>
@@ -69,4 +75,20 @@ public interface IDataProvider
     /// <param name="query">Query to execute</param>
     /// <returns>Single item or default</returns>
     Task<T?> SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class;
+
+    /// <summary>
+    /// Execute Count query asynchronously
+    /// </summary>
+    /// <typeparam name="T">Type of entities being queried</typeparam>
+    /// <param name="query">Query to execute</param>
+    /// <returns>Count of items matching the query</returns>
+    Task<int> CountAsync<T>(IQueryable<T> query) where T : class;
+
+    /// <summary>
+    /// Execute bulk delete query asynchronously without loading entities into memory
+    /// </summary>
+    /// <typeparam name="T">Type of entities being deleted</typeparam>
+    /// <param name="query">Query defining which entities to delete</param>
+    /// <returns>Number of entities deleted</returns>
+    Task<int> ExecuteDeleteAsync<T>(IQueryable<T> query) where T : class;
 }

@@ -317,6 +317,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     void IDataProvider.Remove(IModel item)
         => base.Remove(item);
 
+    /// <inheritdoc />
+    public void RemoveRange(IEnumerable<IModel> items)
+        => base.RemoveRange(items);
+
     #endregion
 
     #region Query Runners
@@ -334,6 +338,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     Task<T?> IDataProvider.SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
         => query.SingleOrDefaultAsync();
+
+    /// <inheritdoc />
+    Task<int> IDataProvider.CountAsync<T>(IQueryable<T> query)
+        => query.CountAsync();
+
+    /// <inheritdoc />
+    Task<int> IDataProvider.ExecuteDeleteAsync<T>(IQueryable<T> query)
+        => query.ExecuteDeleteAsync();
 
 #pragma warning restore S2325
 

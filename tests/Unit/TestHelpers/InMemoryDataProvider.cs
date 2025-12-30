@@ -134,8 +134,34 @@ public class InMemoryDataProvider : IDataProvider
         }
     }
 
+    public void RemoveRange(IEnumerable<IModel> items)
+    {
+        foreach (var item in items)
+        {
+            Remove(item);
+        }
+    }
+
     public Task<T?> SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
     {
         return Task.FromResult(query.SingleOrDefault());
+    }
+
+    public Task<int> CountAsync<T>(IQueryable<T> query) where T : class
+    {
+        return Task.FromResult(query.Count());
+    }
+
+    public Task<int> ExecuteDeleteAsync<T>(IQueryable<T> query) where T : class
+    {
+        var itemsToDelete = query.ToList();
+        foreach (var item in itemsToDelete)
+        {
+            if (item is IModel model)
+            {
+                Remove(model);
+            }
+        }
+        return Task.FromResult(itemsToDelete.Count);
     }
 }
