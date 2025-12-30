@@ -9,13 +9,17 @@ namespace YoFi.V3.Application.Dto;
 /// <param name="TotalPages">The total number of pages available.</param>
 /// <param name="HasPreviousPage">Indicates whether a previous page exists.</param>
 /// <param name="HasNextPage">Indicates whether a next page exists.</param>
+/// <param name="FirstItem">The index of the first item on the current page (1-based), or 0 if no items exist.</param>
+/// <param name="LastItem">The index of the last item on the current page (1-based), or 0 if no items exist.</param>
 public abstract record PaginatedResultBaseDto(
     int PageNumber,
     int PageSize,
     int TotalCount,
     int TotalPages,
     bool HasPreviousPage,
-    bool HasNextPage
+    bool HasNextPage,
+    int FirstItem,
+    int LastItem
 );
 
 /// <summary>
@@ -30,5 +34,7 @@ public record PaginatedResultDto<T>(
     int TotalCount,
     int TotalPages,
     bool HasPreviousPage,
-    bool HasNextPage
-) : PaginatedResultBaseDto(PageNumber, PageSize, TotalCount, TotalPages, HasPreviousPage, HasNextPage);
+    bool HasNextPage,
+    int FirstItem,
+    int LastItem
+) : PaginatedResultBaseDto(PageNumber, PageSize, TotalCount, TotalPages, HasPreviousPage, HasNextPage, FirstItem, LastItem);

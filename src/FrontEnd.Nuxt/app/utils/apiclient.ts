@@ -2814,6 +2814,8 @@ export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto 
     totalPages?: number;
     hasPreviousPage?: boolean;
     hasNextPage?: boolean;
+    firstItem?: number;
+    lastItem?: number;
 
     constructor(data?: IPaginatedResultBaseDto) {
         if (data) {
@@ -2832,6 +2834,8 @@ export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto 
             this.totalPages = _data["totalPages"];
             this.hasPreviousPage = _data["hasPreviousPage"];
             this.hasNextPage = _data["hasNextPage"];
+            this.firstItem = _data["firstItem"];
+            this.lastItem = _data["lastItem"];
         }
     }
 
@@ -2848,6 +2852,8 @@ export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto 
         data["totalPages"] = this.totalPages;
         data["hasPreviousPage"] = this.hasPreviousPage;
         data["hasNextPage"] = this.hasNextPage;
+        data["firstItem"] = this.firstItem;
+        data["lastItem"] = this.lastItem;
         return data;
     }
 }
@@ -2859,6 +2865,8 @@ export interface IPaginatedResultBaseDto {
     totalPages?: number;
     hasPreviousPage?: boolean;
     hasNextPage?: boolean;
+    firstItem?: number;
+    lastItem?: number;
 }
 
 export class PaginatedResultDtoOfImportReviewTransactionDto extends PaginatedResultBaseDto implements IPaginatedResultDtoOfImportReviewTransactionDto {

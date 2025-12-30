@@ -814,6 +814,10 @@ public partial class TestControlController(
         var skip = (pageNumber - 1) * pageSize;
         var take = Math.Min(pageSize, totalCount - skip);
 
+        // Calculate item range for pagination metadata
+        var firstItem = totalCount > 0 ? skip + 1 : 0;
+        var lastItem = totalCount > 0 ? skip + take : 0;
+
         // Generate items for the current page
         var items = Enumerable.Range(skip + 1, take)
             .Select(i => $"Item {i}")
@@ -826,7 +830,9 @@ public partial class TestControlController(
             TotalCount: totalCount,
             TotalPages: totalPages,
             HasPreviousPage: pageNumber > 1,
-            HasNextPage: pageNumber < totalPages
+            HasNextPage: pageNumber < totalPages,
+            FirstItem: firstItem,
+            LastItem: lastItem
         );
 
         LogOk();

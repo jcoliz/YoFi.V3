@@ -170,6 +170,8 @@ public class ImportReviewFeature(
         var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)normalizedPageSize) : 0;
         var hasPreviousPage = normalizedPageNumber > 1;
         var hasNextPage = normalizedPageNumber < totalPages;
+        var firstItem = totalCount > 0 ? (normalizedPageNumber - 1) * normalizedPageSize + 1 : 0;
+        var lastItem = totalCount > 0 ? Math.Min(normalizedPageNumber * normalizedPageSize, totalCount) : 0;
 
         // Query paginated data ordered by date descending
         var paginatedQuery = GetBaseImportReviewQuery()
@@ -194,7 +196,9 @@ public class ImportReviewFeature(
             TotalCount: totalCount,
             TotalPages: totalPages,
             HasPreviousPage: hasPreviousPage,
-            HasNextPage: hasNextPage
+            HasNextPage: hasNextPage,
+            FirstItem: firstItem,
+            LastItem: lastItem
         );
     }
 
