@@ -193,7 +193,7 @@ For implementation patterns, refer to existing features:
 - [ ] Implement unit tests with comprehensive coverage
 - [ ] Run tests: `dotnet test tests/Unit`
 - [ ] Iterate until all pass
-- [ ] Check off completed acceptance criteria in PRD
+- [ ] Check off any completed acceptance criteria in PRD
 
 **Commit Template:** `test(unit): add [feature] validation and logic tests`
 

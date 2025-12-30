@@ -803,11 +803,11 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Import with missing date field - Returns error
 
 ### Integration Tests - Data Layer (5 tests)
-- [ ] Create import review transaction with tenant isolation
-- [ ] Query filters by TenantId (isolation verification)
-- [ ] Cascade delete when tenant is deleted
-- [ ] Index performance on (TenantId, ExternalId)
-- [ ] DuplicateStatus enum storage and retrieval
+- [x] Create import review transaction with tenant isolation
+- [x] Query filters by TenantId (isolation verification)
+- [x] Cascade delete when tenant is deleted
+- [x] Index performance on (TenantId, ExternalId)
+- [x] DuplicateStatus enum storage and retrieval
 
 ### Integration Tests - Controller Layer (23 tests)
 
