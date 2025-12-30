@@ -244,10 +244,16 @@ public class ImportReviewFeature(
     /// <summary>
     /// Deletes all pending import review transactions for the current tenant without accepting any.
     /// </summary>
-    public async Task DeleteAllAsync()
+    /// <returns>The number of transactions deleted.</returns>
+    public async Task<int> DeleteAllAsync()
     {
+        // Get count before deletion
+        var count = await dataProvider.CountAsync(GetTenantScopedQuery());
+
         // Bulk delete without loading entities into memory
         await dataProvider.ExecuteDeleteAsync(GetTenantScopedQuery());
+
+        return count;
     }
 
     /// <summary>

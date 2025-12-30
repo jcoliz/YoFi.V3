@@ -252,6 +252,291 @@ export class AuthClient {
     }
 }
 
+export class ImportClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    /**
+     * Uploads an OFX/QFX file, parses transactions, detects duplicates, and stores them for review.
+     * @param file (optional) 
+     * @return Import result containing statistics and any parsing errors.
+     */
+    uploadFile(tenantKey: string, file: FileParameter | null | undefined): Promise<ImportReviewUploadDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/upload";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processUploadFile(_response);
+        });
+    }
+
+    protected processUploadFile(response: Response): Promise<ImportReviewUploadDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ImportReviewUploadDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ImportReviewUploadDto>(null as any);
+    }
+
+    /**
+     * Retrieves pending import review transactions for the current tenant with pagination support.
+     * @param pageNumber (optional) The page number to retrieve (default: 1).
+     * @param pageSize (optional) The number of items per page (default: 50, max: 1000).
+     * @return Paginated response containing transactions and pagination metadata.
+     */
+    getPendingReview(pageNumber: number | null | undefined, pageSize: number | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfImportReviewTransactionDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/review?";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (pageNumber !== undefined && pageNumber !== null)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize !== undefined && pageSize !== null)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetPendingReview(_response);
+        });
+    }
+
+    protected processGetPendingReview(response: Response): Promise<PaginatedResultDtoOfImportReviewTransactionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PaginatedResultDtoOfImportReviewTransactionDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PaginatedResultDtoOfImportReviewTransactionDto>(null as any);
+    }
+
+    /**
+     * Deletes all pending import review transactions for the current tenant.
+     */
+    deleteAllPendingReview(tenantKey: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/review";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteAllPendingReview(_response);
+        });
+    }
+
+    protected processDeleteAllPendingReview(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Completes the import review by accepting selected transactions and deleting all pending review transactions.
+     * @param keys The collection of transaction keys to accept (import into main transaction table).
+     * @return Result indicating the number of transactions accepted and rejected.
+     */
+    completeReview(tenantKey: string, keys: string[]): Promise<ImportReviewCompleteDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/review/complete";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(keys);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCompleteReview(_response);
+        });
+    }
+
+    protected processCompleteReview(response: Response): Promise<ImportReviewCompleteDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ImportReviewCompleteDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ImportReviewCompleteDto>(null as any);
+    }
+}
+
 export class TestControlClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -2418,6 +2703,311 @@ export interface IRefreshRequest {
     refreshToken?: string;
 }
 
+export class ImportReviewUploadDto implements IImportReviewUploadDto {
+    importedCount?: number;
+    newCount?: number;
+    exactDuplicateCount?: number;
+    potentialDuplicateCount?: number;
+    errors?: OfxParsingError[];
+
+    constructor(data?: IImportReviewUploadDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.importedCount = _data["importedCount"];
+            this.newCount = _data["newCount"];
+            this.exactDuplicateCount = _data["exactDuplicateCount"];
+            this.potentialDuplicateCount = _data["potentialDuplicateCount"];
+            if (Array.isArray(_data["errors"])) {
+                this.errors = [] as any;
+                for (let item of _data["errors"])
+                    this.errors!.push(OfxParsingError.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ImportReviewUploadDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportReviewUploadDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["importedCount"] = this.importedCount;
+        data["newCount"] = this.newCount;
+        data["exactDuplicateCount"] = this.exactDuplicateCount;
+        data["potentialDuplicateCount"] = this.potentialDuplicateCount;
+        if (Array.isArray(this.errors)) {
+            data["errors"] = [];
+            for (let item of this.errors)
+                data["errors"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface IImportReviewUploadDto {
+    importedCount?: number;
+    newCount?: number;
+    exactDuplicateCount?: number;
+    potentialDuplicateCount?: number;
+    errors?: OfxParsingError[];
+}
+
+export class OfxParsingError implements IOfxParsingError {
+    message?: string;
+    code?: string | undefined;
+    fileName?: string | undefined;
+
+    constructor(data?: IOfxParsingError) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.message = _data["message"];
+            this.code = _data["code"];
+            this.fileName = _data["fileName"];
+        }
+    }
+
+    static fromJS(data: any): OfxParsingError {
+        data = typeof data === 'object' ? data : {};
+        let result = new OfxParsingError();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["message"] = this.message;
+        data["code"] = this.code;
+        data["fileName"] = this.fileName;
+        return data;
+    }
+}
+
+export interface IOfxParsingError {
+    message?: string;
+    code?: string | undefined;
+    fileName?: string | undefined;
+}
+
+export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+
+    constructor(data?: IPaginatedResultBaseDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalCount = _data["totalCount"];
+            this.totalPages = _data["totalPages"];
+            this.hasPreviousPage = _data["hasPreviousPage"];
+            this.hasNextPage = _data["hasNextPage"];
+        }
+    }
+
+    static fromJS(data: any): PaginatedResultBaseDto {
+        data = typeof data === 'object' ? data : {};
+        throw new Error("The abstract class 'PaginatedResultBaseDto' cannot be instantiated.");
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalCount"] = this.totalCount;
+        data["totalPages"] = this.totalPages;
+        data["hasPreviousPage"] = this.hasPreviousPage;
+        data["hasNextPage"] = this.hasNextPage;
+        return data;
+    }
+}
+
+export interface IPaginatedResultBaseDto {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+}
+
+export class PaginatedResultDtoOfImportReviewTransactionDto extends PaginatedResultBaseDto implements IPaginatedResultDtoOfImportReviewTransactionDto {
+    items?: ImportReviewTransactionDto[];
+
+    constructor(data?: IPaginatedResultDtoOfImportReviewTransactionDto) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ImportReviewTransactionDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): PaginatedResultDtoOfImportReviewTransactionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PaginatedResultDtoOfImportReviewTransactionDto();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPaginatedResultDtoOfImportReviewTransactionDto extends IPaginatedResultBaseDto {
+    items?: ImportReviewTransactionDto[];
+}
+
+export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
+    key?: string;
+    date?: Date;
+    payee?: string;
+    category?: string;
+    amount?: number;
+    duplicateStatus?: DuplicateStatus;
+    duplicateOfKey?: string | undefined;
+
+    constructor(data?: IImportReviewTransactionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : undefined as any;
+            this.payee = _data["payee"];
+            this.category = _data["category"];
+            this.amount = _data["amount"];
+            this.duplicateStatus = _data["duplicateStatus"];
+            this.duplicateOfKey = _data["duplicateOfKey"];
+        }
+    }
+
+    static fromJS(data: any): ImportReviewTransactionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportReviewTransactionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["date"] = this.date ? formatDate(this.date) : undefined as any;
+        data["payee"] = this.payee;
+        data["category"] = this.category;
+        data["amount"] = this.amount;
+        data["duplicateStatus"] = this.duplicateStatus;
+        data["duplicateOfKey"] = this.duplicateOfKey;
+        return data;
+    }
+}
+
+export interface IImportReviewTransactionDto {
+    key?: string;
+    date?: Date;
+    payee?: string;
+    category?: string;
+    amount?: number;
+    duplicateStatus?: DuplicateStatus;
+    duplicateOfKey?: string | undefined;
+}
+
+export enum DuplicateStatus {
+    New = 0,
+    ExactDuplicate = 1,
+    PotentialDuplicate = 2,
+}
+
+export class ImportReviewCompleteDto implements IImportReviewCompleteDto {
+    acceptedCount?: number;
+    rejectedCount?: number;
+
+    constructor(data?: IImportReviewCompleteDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.acceptedCount = _data["acceptedCount"];
+            this.rejectedCount = _data["rejectedCount"];
+        }
+    }
+
+    static fromJS(data: any): ImportReviewCompleteDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportReviewCompleteDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["acceptedCount"] = this.acceptedCount;
+        data["rejectedCount"] = this.rejectedCount;
+        return data;
+    }
+}
+
+export interface IImportReviewCompleteDto {
+    acceptedCount?: number;
+    rejectedCount?: number;
+}
+
 /** Data transfer object for test user credentials including unique identifier */
 export class TestUserCredentials implements ITestUserCredentials {
     /** The unique identifier (GUID) of the created user */
@@ -2892,60 +3482,6 @@ export interface IErrorCodeInfo {
     description?: string;
 }
 
-export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto {
-    pageNumber?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
-
-    constructor(data?: IPaginatedResultBaseDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalCount = _data["totalCount"];
-            this.totalPages = _data["totalPages"];
-            this.hasPreviousPage = _data["hasPreviousPage"];
-            this.hasNextPage = _data["hasNextPage"];
-        }
-    }
-
-    static fromJS(data: any): PaginatedResultBaseDto {
-        data = typeof data === 'object' ? data : {};
-        throw new Error("The abstract class 'PaginatedResultBaseDto' cannot be instantiated.");
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalCount"] = this.totalCount;
-        data["totalPages"] = this.totalPages;
-        data["hasPreviousPage"] = this.hasPreviousPage;
-        data["hasNextPage"] = this.hasNextPage;
-        return data;
-    }
-}
-
-export interface IPaginatedResultBaseDto {
-    pageNumber?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
-}
-
 export class PaginatedResultDtoOfString extends PaginatedResultBaseDto implements IPaginatedResultDtoOfString {
     items?: string[];
 
@@ -3342,6 +3878,11 @@ function formatDate(d: Date) {
     return d.getFullYear() + '-' + 
         (d.getMonth() < 9 ? ('0' + (d.getMonth()+1)) : (d.getMonth()+1)) + '-' +
         (d.getDate() < 10 ? ('0' + d.getDate()) : d.getDate());
+}
+
+export interface FileParameter {
+    data: any;
+    fileName: string;
 }
 
 export class ApiException extends Error {

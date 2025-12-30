@@ -216,7 +216,8 @@ For implementation patterns, refer to existing features:
 - [ ] Implement middleware/filters/authorization policies if needed
 - [ ] Build: `dotnet build`
 - [ ] Verify no compilation errors
-- [ ] Run tests: `dotnet test tests/Integration.Controller`
+- [ ] Do not add new tests, that will come later
+- [ ] Run existing tests: `dotnet test tests/Integration.Controller`
 - [ ] Iterate until all pass
 - [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
