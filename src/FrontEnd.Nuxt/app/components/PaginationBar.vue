@@ -53,26 +53,6 @@ const page = computed(() => props.pageInfo.pageNumber ?? 0)
 const last = computed(() => props.pageInfo.totalPages ?? 0)
 
 /**
- * First item number on the current page
- */
-const firstItem = computed(() => {
-  const pageNum = props.pageInfo.pageNumber ?? 0
-  const pageSize = props.pageInfo.pageSize ?? 0
-  return pageNum > 0 && pageSize > 0 ? (pageNum - 1) * pageSize + 1 : 0
-})
-
-/**
- * Last item number on the current page
- */
-const lastItem = computed(() => {
-  const pageNum = props.pageInfo.pageNumber ?? 0
-  const pageSize = props.pageInfo.pageSize ?? 0
-  const totalCount = props.pageInfo.totalCount ?? 0
-  const calculatedLast = pageNum * pageSize
-  return Math.min(calculatedLast, totalCount)
-})
-
-/**
  * Pages which should be displayed as numbers
  */
 const numberedPages = computed((): Array<number> => {
@@ -104,8 +84,8 @@ const numberedPages = computed((): Array<number> => {
     <div class="col-sm-7">
       <p class="fs-6">
         Displaying
-        <span data-test-id="firstitem">{{ firstItem }}</span> through
-        <span data-test-id="lastitem">{{ lastItem }}</span> of
+        <span data-test-id="firstitem">{{ pageInfo.firstItem }}</span> through
+        <span data-test-id="lastitem">{{ pageInfo.lastItem }}</span> of
         <span data-test-id="totalitems">{{ pageInfo.totalCount }}</span
         >.
       </p>
