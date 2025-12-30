@@ -2,7 +2,7 @@
 /**
  * Import Page (Temporary)
  *
- * Temporary page to test and demonstrate the FileUploadSection component.
+ * Temporary page to test and demonstrate FileUploadSection and UploadStatusPane components.
  * This will be expanded with the full import workflow in future iterations.
  */
 
@@ -15,6 +15,9 @@ definePageMeta({
 // State
 const selectedFiles = ref<File[]>([])
 const uploadInProgress = ref(false)
+const statusMessages = ref<string[]>([])
+const showStatusPane = ref(false)
+const statusVariant = ref<'info' | 'warning' | 'success' | 'danger'>('info')
 
 /**
  * Handles file selection from FileUploadSection component
@@ -29,7 +32,7 @@ const handleFilesSelected = (files: File[]) => {
 }
 
 /**
- * Simulates uploading the selected files
+ * Simulates uploading the selected files with status updates
  */
 const uploadFiles = async () => {
   if (selectedFiles.value.length === 0) {
@@ -37,19 +40,60 @@ const uploadFiles = async () => {
   }
 
   uploadInProgress.value = true
+  statusMessages.value = []
+  showStatusPane.value = true
+  statusVariant.value = 'info'
 
   try {
-    // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Process each file sequentially
+    for (const file of selectedFiles.value) {
+      // Show uploading status
+      statusMessages.value.push(`⏳ ${file.name}: Importing...`)
+
+      // Simulate upload delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Remove the "Importing..." message
+      statusMessages.value = statusMessages.value.filter((msg) => !msg.includes('Importing...'))
+
+      // Simulate different outcomes based on file name
+      if (file.name.toLowerCase().includes('error')) {
+        // Simulate complete failure
+        statusMessages.value.push(`❌ ${file.name}: Upload failed`)
+        statusVariant.value = 'danger'
+      } else if (file.name.toLowerCase().includes('warning')) {
+        // Simulate partial success
+        const transactionCount = Math.floor(Math.random() * 100) + 50
+        const errorCount = Math.floor(Math.random() * 10) + 1
+        statusMessages.value.push(
+          `⚠ ${file.name}: ${transactionCount} transactions added, ${errorCount} errors detected <a href="#" class="alert-link">[View Errors]</a>`,
+        )
+        statusVariant.value = 'warning'
+      } else {
+        // Simulate complete success
+        const transactionCount = Math.floor(Math.random() * 200) + 50
+        statusMessages.value.push(`✓ ${file.name}: ${transactionCount} transactions added`)
+        if (statusVariant.value !== 'danger' && statusVariant.value !== 'warning') {
+          statusVariant.value = 'success'
+        }
+      }
+    }
 
     console.log('Upload complete!')
-    alert(`Successfully selected ${selectedFiles.value.length} file(s) for upload`)
 
     // Clear selection after upload
     selectedFiles.value = []
   } finally {
     uploadInProgress.value = false
   }
+}
+
+/**
+ * Handles closing the status pane
+ */
+const handleCloseStatusPane = () => {
+  showStatusPane.value = false
+  statusMessages.value = []
 }
 </script>
 
@@ -63,6 +107,14 @@ const uploadFiles = async () => {
         >
           Import Bank Transactions
         </h1>
+
+        <!-- Upload Status Pane -->
+        <UploadStatusPane
+          :show="showStatusPane"
+          :status-messages="statusMessages"
+          :variant="statusVariant"
+          @close="handleCloseStatusPane"
+        />
 
         <div class="card">
           <div class="card-body">
@@ -126,9 +178,15 @@ const uploadFiles = async () => {
         <!-- Temporary Notice -->
         <div class="alert alert-warning mt-4">
           <strong>⚠️ Temporary Page</strong><br />
-          This is a temporary implementation to demonstrate the FileUploadSection component. The
-          full import workflow (transaction review, duplicate detection, etc.) will be added in
-          future iterations.
+          This is a temporary implementation to demonstrate the FileUploadSection and
+          UploadStatusPane components. The full import workflow (transaction review, duplicate
+          detection, etc.) will be added in future iterations.
+          <hr />
+          <small
+            ><strong>Testing tips:</strong> File names containing "error" will simulate upload
+            failures. File names containing "warning" will simulate partial success with errors.
+            Other files will simulate complete success.</small
+          >
         </div>
       </div>
     </div>
