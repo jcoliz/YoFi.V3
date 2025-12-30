@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Application.Tenancy.Features;
 using YoFi.V3.Controllers.Tenancy.Context;
@@ -808,15 +809,13 @@ public partial class TestControlController(
 
         // Generate total of 50 test items
         const int totalCount = 50;
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Calculate pagination metadata
+        var metadata = PaginationHelper.Calculate(pageNumber, pageSize, totalCount);
 
         // Calculate skip and take
         var skip = (pageNumber - 1) * pageSize;
         var take = Math.Min(pageSize, totalCount - skip);
-
-        // Calculate item range for pagination metadata
-        var firstItem = totalCount > 0 ? skip + 1 : 0;
-        var lastItem = totalCount > 0 ? skip + take : 0;
 
         // Generate items for the current page
         var items = Enumerable.Range(skip + 1, take)
@@ -825,14 +824,7 @@ public partial class TestControlController(
 
         var result = new PaginatedResultDto<string>(
             Items: items,
-            PageNumber: pageNumber,
-            PageSize: pageSize,
-            TotalCount: totalCount,
-            TotalPages: totalPages,
-            HasPreviousPage: pageNumber > 1,
-            HasNextPage: pageNumber < totalPages,
-            FirstItem: firstItem,
-            LastItem: lastItem
+            Metadata: metadata
         );
 
         LogOk();

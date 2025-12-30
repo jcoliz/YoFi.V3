@@ -167,11 +167,7 @@ public class ImportReviewFeature(
         var totalCount = await dataProvider.CountAsync(GetTenantScopedQuery());
 
         // Calculate pagination metadata
-        var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)normalizedPageSize) : 0;
-        var hasPreviousPage = normalizedPageNumber > 1;
-        var hasNextPage = normalizedPageNumber < totalPages;
-        var firstItem = totalCount > 0 ? (normalizedPageNumber - 1) * normalizedPageSize + 1 : 0;
-        var lastItem = totalCount > 0 ? Math.Min(normalizedPageNumber * normalizedPageSize, totalCount) : 0;
+        var metadata = PaginationHelper.Calculate(normalizedPageNumber, normalizedPageSize, totalCount);
 
         // Query paginated data ordered by date descending
         var paginatedQuery = GetBaseImportReviewQuery()
@@ -191,14 +187,7 @@ public class ImportReviewFeature(
 
         return new PaginatedResultDto<ImportReviewTransactionDto>(
             Items: items,
-            PageNumber: normalizedPageNumber,
-            PageSize: normalizedPageSize,
-            TotalCount: totalCount,
-            TotalPages: totalPages,
-            HasPreviousPage: hasPreviousPage,
-            HasNextPage: hasNextPage,
-            FirstItem: firstItem,
-            LastItem: lastItem
+            Metadata: metadata
         );
     }
 

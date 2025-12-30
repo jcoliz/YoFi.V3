@@ -12,16 +12,27 @@
  * next. However, if current or next pages don't exist, we'll also
  * display an extra page on the other end, so we always display 3
  * numbered pages if possible.
+ *
+ * @example
+ * // API returns paginated result with nested metadata
+ * const result = await apiClient.getSomeData(page, pageSize)
+ * // result = { items: [...], metadata: { pageNumber, totalPages, firstItem, lastItem, ... } }
+ *
+ * // Pass the metadata to PaginationBar:
+ * <PaginationBar
+ *   :page-info="result.metadata"
+ *   @page-updated="handlePageChange"
+ * />
  */
 
 import { computed } from 'vue'
-import type { IPaginatedResultBaseDto } from '~/utils/apiclient'
+import type { IPaginationMetadata } from '~/utils/apiclient'
 
 const props = defineProps<{
   /**
    * Pagination metadata from the API
    */
-  pageInfo: IPaginatedResultBaseDto
+  pageInfo: IPaginationMetadata
 }>()
 
 const emit = defineEmits<{

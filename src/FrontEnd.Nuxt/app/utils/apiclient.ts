@@ -2807,17 +2807,11 @@ export interface IOfxParsingError {
     fileName?: string | undefined;
 }
 
-export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto {
-    pageNumber?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
-    firstItem?: number;
-    lastItem?: number;
+export class PaginatedResultDtoOfImportReviewTransactionDto implements IPaginatedResultDtoOfImportReviewTransactionDto {
+    items?: ImportReviewTransactionDto[];
+    metadata?: PaginationMetadata;
 
-    constructor(data?: IPaginatedResultBaseDto) {
+    constructor(data?: IPaginatedResultDtoOfImportReviewTransactionDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -2828,86 +2822,37 @@ export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto 
 
     init(_data?: any) {
         if (_data) {
-            this.pageNumber = _data["pageNumber"];
-            this.pageSize = _data["pageSize"];
-            this.totalCount = _data["totalCount"];
-            this.totalPages = _data["totalPages"];
-            this.hasPreviousPage = _data["hasPreviousPage"];
-            this.hasNextPage = _data["hasNextPage"];
-            this.firstItem = _data["firstItem"];
-            this.lastItem = _data["lastItem"];
-        }
-    }
-
-    static fromJS(data: any): PaginatedResultBaseDto {
-        data = typeof data === 'object' ? data : {};
-        throw new Error("The abstract class 'PaginatedResultBaseDto' cannot be instantiated.");
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["pageNumber"] = this.pageNumber;
-        data["pageSize"] = this.pageSize;
-        data["totalCount"] = this.totalCount;
-        data["totalPages"] = this.totalPages;
-        data["hasPreviousPage"] = this.hasPreviousPage;
-        data["hasNextPage"] = this.hasNextPage;
-        data["firstItem"] = this.firstItem;
-        data["lastItem"] = this.lastItem;
-        return data;
-    }
-}
-
-export interface IPaginatedResultBaseDto {
-    pageNumber?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
-    firstItem?: number;
-    lastItem?: number;
-}
-
-export class PaginatedResultDtoOfImportReviewTransactionDto extends PaginatedResultBaseDto implements IPaginatedResultDtoOfImportReviewTransactionDto {
-    items?: ImportReviewTransactionDto[];
-
-    constructor(data?: IPaginatedResultDtoOfImportReviewTransactionDto) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
                     this.items!.push(ImportReviewTransactionDto.fromJS(item));
             }
+            this.metadata = _data["metadata"] ? PaginationMetadata.fromJS(_data["metadata"]) : undefined as any;
         }
     }
 
-    static override fromJS(data: any): PaginatedResultDtoOfImportReviewTransactionDto {
+    static fromJS(data: any): PaginatedResultDtoOfImportReviewTransactionDto {
         data = typeof data === 'object' ? data : {};
         let result = new PaginatedResultDtoOfImportReviewTransactionDto();
         result.init(data);
         return result;
     }
 
-    override toJSON(data?: any) {
+    toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
                 data["items"].push(item ? item.toJSON() : undefined as any);
         }
-        super.toJSON(data);
+        data["metadata"] = this.metadata ? this.metadata.toJSON() : undefined as any;
         return data;
     }
 }
 
-export interface IPaginatedResultDtoOfImportReviewTransactionDto extends IPaginatedResultBaseDto {
+export interface IPaginatedResultDtoOfImportReviewTransactionDto {
     items?: ImportReviewTransactionDto[];
+    metadata?: PaginationMetadata;
 }
 
 export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
@@ -2974,6 +2919,70 @@ export enum DuplicateStatus {
     New = 0,
     ExactDuplicate = 1,
     PotentialDuplicate = 2,
+}
+
+export class PaginationMetadata implements IPaginationMetadata {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+    firstItem?: number;
+    lastItem?: number;
+
+    constructor(data?: IPaginationMetadata) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalCount = _data["totalCount"];
+            this.totalPages = _data["totalPages"];
+            this.hasPreviousPage = _data["hasPreviousPage"];
+            this.hasNextPage = _data["hasNextPage"];
+            this.firstItem = _data["firstItem"];
+            this.lastItem = _data["lastItem"];
+        }
+    }
+
+    static fromJS(data: any): PaginationMetadata {
+        data = typeof data === 'object' ? data : {};
+        let result = new PaginationMetadata();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalCount"] = this.totalCount;
+        data["totalPages"] = this.totalPages;
+        data["hasPreviousPage"] = this.hasPreviousPage;
+        data["hasNextPage"] = this.hasNextPage;
+        data["firstItem"] = this.firstItem;
+        data["lastItem"] = this.lastItem;
+        return data;
+    }
+}
+
+export interface IPaginationMetadata {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+    firstItem?: number;
+    lastItem?: number;
 }
 
 export class ImportReviewCompleteDto implements IImportReviewCompleteDto {
@@ -3490,45 +3499,52 @@ export interface IErrorCodeInfo {
     description?: string;
 }
 
-export class PaginatedResultDtoOfString extends PaginatedResultBaseDto implements IPaginatedResultDtoOfString {
+export class PaginatedResultDtoOfString implements IPaginatedResultDtoOfString {
     items?: string[];
+    metadata?: PaginationMetadata;
 
     constructor(data?: IPaginatedResultDtoOfString) {
-        super(data);
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
     }
 
-    override init(_data?: any) {
-        super.init(_data);
+    init(_data?: any) {
         if (_data) {
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
                     this.items!.push(item);
             }
+            this.metadata = _data["metadata"] ? PaginationMetadata.fromJS(_data["metadata"]) : undefined as any;
         }
     }
 
-    static override fromJS(data: any): PaginatedResultDtoOfString {
+    static fromJS(data: any): PaginatedResultDtoOfString {
         data = typeof data === 'object' ? data : {};
         let result = new PaginatedResultDtoOfString();
         result.init(data);
         return result;
     }
 
-    override toJSON(data?: any) {
+    toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
                 data["items"].push(item);
         }
-        super.toJSON(data);
+        data["metadata"] = this.metadata ? this.metadata.toJSON() : undefined as any;
         return data;
     }
 }
 
-export interface IPaginatedResultDtoOfString extends IPaginatedResultBaseDto {
+export interface IPaginatedResultDtoOfString {
     items?: string[];
+    metadata?: PaginationMetadata;
 }
 
 export class TransactionDetailDto implements ITransactionDetailDto {
