@@ -81,6 +81,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         get; set;
     }
 
+    public DbSet<ImportReviewTransaction> ImportReviewTransactions
+    {
+        get; set;
+    }
+
     /// <summary>
     /// Refresh tokens for Nuxt Identity
     /// </summary>
@@ -184,6 +189,54 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(s => s.Transaction)
                 .WithMany(t => t.Splits)
                 .HasForeignKey(s => s.TransactionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure ImportReviewTransaction
+        modelBuilder.Entity<ImportReviewTransaction>(entity =>
+        {
+            // Unique Guid key (standard pattern)
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
+
+            // Index on TenantId for efficient tenant-scoped queries
+            entity.HasIndex(e => e.TenantId);
+
+            // Composite index on TenantId + Date for common queries
+            entity.HasIndex(e => new { e.TenantId, e.Date });
+
+            // Composite index on TenantId + ExternalId for duplicate detection
+            entity.HasIndex(e => new { e.TenantId, e.ExternalId });
+
+            // Payee is required
+            entity.Property(e => e.Payee)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            // Amount precision for currency
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2);
+
+            // Source (nullable, max 200 chars)
+            entity.Property(e => e.Source)
+                .HasMaxLength(200);
+
+            // ExternalId (nullable, max 100 chars)
+            entity.Property(e => e.ExternalId)
+                .HasMaxLength(100);
+
+            // Memo (nullable, max 1000 chars)
+            entity.Property(e => e.Memo)
+                .HasMaxLength(1000);
+
+            // DuplicateStatus stored as integer
+            entity.Property(e => e.DuplicateStatus)
+                .HasConversion<int>();
+
+            // Foreign key relationship to Tenant
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
