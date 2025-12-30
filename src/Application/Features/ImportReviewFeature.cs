@@ -265,10 +265,12 @@ public class ImportReviewFeature(
         IReadOnlyDictionary<string, Transaction> existingTransactionsByExternalId,
         IReadOnlyDictionary<string, ImportReviewTransaction> pendingImportsByExternalId)
     {
-        // Cannot detect duplicates without ExternalId
+        // ExternalId is required - this should never be null/empty due to upstream filtering
         if (string.IsNullOrEmpty(importDto.ExternalId))
         {
-            return (DuplicateStatus.New, null);
+            throw new ArgumentException(
+                "ExternalId cannot be null or empty. This indicates a bug in upstream OFX parsing or filtering logic.",
+                nameof(importDto));
         }
 
         // Check existing transactions first

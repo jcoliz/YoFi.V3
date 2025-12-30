@@ -381,83 +381,57 @@ public class ImportReviewFeatureTests
     }
 
     [Test]
-    public void DetectDuplicate_NullExternalId_ReturnsNew()
+    public void DetectDuplicate_NullExternalId_ThrowsArgumentException()
     {
-        // Given: Import transaction with null ExternalId (bank doesn't provide FITID)
-        var existingTransaction = new Transaction
-        {
-            Key = Guid.NewGuid(),
-            Date = new DateOnly(2024, 1, 15),
-            Payee = "Safeway",
-            Amount = 50.00m,
-            ExternalId = "FITID12345"
-        };
-        var existingTransactions = new Dictionary<string, Transaction>
-        {
-            ["FITID12345"] = existingTransaction
-        };
+        // Given: Import transaction with null ExternalId (should never happen due to upstream filtering)
+        var existingTransactions = new Dictionary<string, Transaction>();
         var pendingImports = new Dictionary<string, ImportReviewTransaction>();
 
-        // And: Import transaction with null ExternalId
         var importDto = new TransactionImportDto
         {
             Date = new DateOnly(2024, 1, 15),
             Payee = "Safeway",
             Amount = 50.00m,
             Memo = "Groceries",
-            ExternalId = null!, // No FITID provided
+            ExternalId = null!, // Should never happen
             Source = "Test Bank"
         };
 
-        // When: DetectDuplicate is called
-        var (status, duplicateOfKey) = ImportReviewFeature.DetectDuplicate(
-            importDto,
-            existingTransactions,
-            pendingImports);
+        // When/Then: DetectDuplicate should throw ArgumentException
+        var ex = Assert.Throws<ArgumentException>(() =>
+            ImportReviewFeature.DetectDuplicate(importDto, existingTransactions, pendingImports));
 
-        // Then: Should be marked as New (cannot match without ExternalId)
-        Assert.That(status, Is.EqualTo(DuplicateStatus.New));
-        Assert.That(duplicateOfKey, Is.Null);
+        // And: Exception should indicate this is a bug
+        Assert.That(ex.Message, Does.Contain("ExternalId cannot be null or empty"));
+        Assert.That(ex.Message, Does.Contain("bug in upstream"));
+        Assert.That(ex.ParamName, Is.EqualTo("importDto"));
     }
 
     [Test]
-    public void DetectDuplicate_EmptyExternalId_ReturnsNew()
+    public void DetectDuplicate_EmptyExternalId_ThrowsArgumentException()
     {
-        // Given: Import transaction with empty ExternalId
-        var existingTransaction = new Transaction
-        {
-            Key = Guid.NewGuid(),
-            Date = new DateOnly(2024, 1, 15),
-            Payee = "Safeway",
-            Amount = 50.00m,
-            ExternalId = "FITID12345"
-        };
-        var existingTransactions = new Dictionary<string, Transaction>
-        {
-            ["FITID12345"] = existingTransaction
-        };
+        // Given: Import transaction with empty ExternalId (should never happen due to upstream filtering)
+        var existingTransactions = new Dictionary<string, Transaction>();
         var pendingImports = new Dictionary<string, ImportReviewTransaction>();
 
-        // And: Import transaction with empty ExternalId
         var importDto = new TransactionImportDto
         {
             Date = new DateOnly(2024, 1, 15),
             Payee = "Safeway",
             Amount = 50.00m,
             Memo = "Groceries",
-            ExternalId = "", // Empty string
+            ExternalId = "", // Should never happen
             Source = "Test Bank"
         };
 
-        // When: DetectDuplicate is called
-        var (status, duplicateOfKey) = ImportReviewFeature.DetectDuplicate(
-            importDto,
-            existingTransactions,
-            pendingImports);
+        // When/Then: DetectDuplicate should throw ArgumentException
+        var ex = Assert.Throws<ArgumentException>(() =>
+            ImportReviewFeature.DetectDuplicate(importDto, existingTransactions, pendingImports));
 
-        // Then: Should be marked as New (cannot match with empty ExternalId)
-        Assert.That(status, Is.EqualTo(DuplicateStatus.New));
-        Assert.That(duplicateOfKey, Is.Null);
+        // And: Exception should indicate this is a bug
+        Assert.That(ex.Message, Does.Contain("ExternalId cannot be null or empty"));
+        Assert.That(ex.Message, Does.Contain("bug in upstream"));
+        Assert.That(ex.ParamName, Is.EqualTo("importDto"));
     }
 
     [Test]
