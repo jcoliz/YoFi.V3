@@ -49,7 +49,15 @@ const generateFakeTransactions = (count: number) => {
     'Insurance Co',
   ]
 
-  const categories = ['Groceries', 'Gas', 'Utilities', 'Entertainment', 'Shopping', 'Dining', 'Healthcare']
+  const categories = [
+    'Groceries',
+    'Gas',
+    'Utilities',
+    'Entertainment',
+    'Shopping',
+    'Dining',
+    'Healthcare',
+  ]
 
   const fakeTransactions: any[] = []
 
@@ -202,6 +210,36 @@ const handleToggleAll = () => {
     transactions.value.forEach((t) => selectedKeys.value.add(t.key!))
   }
 }
+
+/**
+ * Handles Import button click (temporary: clears transaction list)
+ */
+const handleImport = () => {
+  console.log('Import clicked:', selectedKeys.value.size, 'transactions selected')
+  // Temporary: clear transaction list to simulate successful import
+  transactions.value = []
+  selectedKeys.value.clear()
+}
+
+/**
+ * Handles Delete All button click (temporary: clears transaction list)
+ */
+const handleDeleteAll = () => {
+  console.log('Delete All clicked')
+  // Temporary: clear transaction list
+  transactions.value = []
+  selectedKeys.value.clear()
+}
+
+/**
+ * Computed: Check if there are any transactions
+ */
+const hasTransactions = computed(() => transactions.value.length > 0)
+
+/**
+ * Computed: Check if any transactions are selected
+ */
+const hasSelections = computed(() => selectedKeys.value.size > 0)
 </script>
 
 <template>
@@ -294,6 +332,16 @@ const handleToggleAll = () => {
               deselected by default.
             </p>
 
+            <ImportActionButtons
+              :has-transactions="hasTransactions"
+              :has-selections="hasSelections"
+              :loading="loading"
+              :uploading="uploadInProgress"
+              class="mb-3 d-flex justify-content-end"
+              @import="handleImport"
+              @delete-all="handleDeleteAll"
+            />
+
             <ImportReviewTable
               :transactions="transactions"
               :selected-keys="selectedKeys"
@@ -301,24 +349,6 @@ const handleToggleAll = () => {
               @toggle-selection="handleToggleSelection"
               @toggle-all="handleToggleAll"
             />
-
-            <div class="mt-3">
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-test-id="import-button"
-                :disabled="selectedKeys.size === 0"
-              >
-                Import {{ selectedKeys.size }} Transaction{{ selectedKeys.size !== 1 ? 's' : '' }}
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-danger ms-2"
-                data-test-id="delete-all-button"
-              >
-                Delete All
-              </button>
-            </div>
           </div>
         </div>
 
