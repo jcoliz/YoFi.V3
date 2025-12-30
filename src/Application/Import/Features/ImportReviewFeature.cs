@@ -2,7 +2,7 @@ using YoFi.V3.Application.Common.Dto;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Import.Dto;
-using YoFi.V3.Application.Import.Services;
+using YoFi.V3.Application.Import.Helpers;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -64,9 +64,8 @@ public class ImportReviewFeature(
     /// </remarks>
     public async Task<ImportResultDto> ImportFileAsync(Stream fileStream, string fileName)
     {
-        // Parse the OFX file using OfxParsingService
-        var ofxParsingService = new OfxParsingService();
-        var parsingResult = await ofxParsingService.ParseAsync(fileStream, fileName);
+        // Parse the OFX file using OfxParsingHelper
+        var parsingResult = await OfxParsingHelper.ParseAsync(fileStream, fileName);
 
         if (parsingResult.Transactions.Count == 0)
         {

@@ -1,11 +1,11 @@
 namespace YoFi.V3.Tests.Unit.Application.Import;
 
 using NUnit.Framework;
-using YoFi.V3.Application.Import.Services;
+using YoFi.V3.Application.Import.Helpers;
 using YoFi.V3.Application.Import.Dto;
 
 /// <summary>
-/// Unit tests for OFX parsing service.
+/// Unit tests for OFX parsing helper.
 /// </summary>
 /// <remarks>
 /// These tests follow strict TDD approach, building incrementally from simplest to most complex scenarios.
@@ -19,10 +19,9 @@ public class OfxParsingServiceTests
     {
         // Given: A null stream
         Stream? nullStream = null;
-        var service = new OfxParsingService();
 
         // When: Parsing the null stream
-        var result = await service.ParseAsync(nullStream!, "test.ofx");
+        var result = await OfxParsingHelper.ParseAsync(nullStream!, "test.ofx");
 
         // Then: Should return empty result (no transactions, no errors)
         Assert.That(result, Is.Not.Null);
@@ -37,10 +36,10 @@ public class OfxParsingServiceTests
     {
         // Given: An empty stream
         var emptyStream = new MemoryStream();
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the empty stream
-        var result = await service.ParseAsync(emptyStream, "empty.ofx");
+        var result = await OfxParsingHelper.ParseAsync(emptyStream, "empty.ofx");
 
         // Then: Should return empty result (no transactions, no errors)
         Assert.That(result, Is.Not.Null);
@@ -54,10 +53,10 @@ public class OfxParsingServiceTests
         // Given: A stream containing invalid OFX data
         var invalidData = "This is not valid OFX data"u8.ToArray();
         var invalidStream = new MemoryStream(invalidData);
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the invalid OFX
-        var result = await service.ParseAsync(invalidStream, "invalid.ofx");
+        var result = await OfxParsingHelper.ParseAsync(invalidStream, "invalid.ofx");
 
         // Then: Should return result with error information
         Assert.That(result, Is.Not.Null);
@@ -111,10 +110,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "zero-transactions.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "zero-transactions.ofx");
 
         // Then: Should return result with empty transaction list
         Assert.That(result, Is.Not.Null);
@@ -182,10 +181,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "single-transaction.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with correct date extracted
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -254,10 +253,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "single-transaction.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with correct amount extracted
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -325,10 +324,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "single-transaction.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with payee extracted from NAME field
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -396,10 +395,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "memo-fallback.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "memo-fallback.ofx");
 
         // Then: Should use MEMO as payee since NAME is missing
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -468,10 +467,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "single-transaction.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with memo extracted
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -541,10 +540,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "truncated-name.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "truncated-name.ofx");
 
         // Then: Should use full MEMO as payee and leave memo blank (discard truncated NAME)
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -613,10 +612,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "single-transaction.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
 
         // Then: Should return transaction with source formatted as 'Bank - AccountType (ID)'
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -697,10 +696,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "multiple-transactions.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "multiple-transactions.ofx");
 
         // Then: Should return all transactions in result
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -800,10 +799,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "multi-account.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "multi-account.ofx");
 
         // Then: Should return transactions from all accounts with correct source for each
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -843,10 +842,10 @@ public class OfxParsingServiceTests
     {
         // Given: The bank-banking-xml.ofx example file (OFX 2.x XML format)
         using var stream = GetEmbeddedOfxFile("bank-banking-xml.ofx");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "bank-banking-xml.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "bank-banking-xml.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -863,10 +862,10 @@ public class OfxParsingServiceTests
     {
         // Given: The Bank1.ofx example file (multiple accounts, 11 total transactions)
         using var stream = GetEmbeddedOfxFile("Bank1.ofx");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "Bank1.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "Bank1.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -884,10 +883,10 @@ public class OfxParsingServiceTests
     {
         // Given: The CC2.OFX example file (credit card, 9 transactions)
         using var stream = GetEmbeddedOfxFile("CC2.OFX");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "CC2.OFX");
+        var result = await OfxParsingHelper.ParseAsync(stream, "CC2.OFX");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -904,10 +903,10 @@ public class OfxParsingServiceTests
     {
         // Given: The creditcard.ofx example file (credit card message format, 4 transactions)
         using var stream = GetEmbeddedOfxFile("creditcard.ofx");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "creditcard.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "creditcard.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -924,10 +923,10 @@ public class OfxParsingServiceTests
     {
         // Given: The issue-17.ofx example file (Brazilian bank, BRL currency, 3 transactions)
         using var stream = GetEmbeddedOfxFile("issue-17.ofx");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "issue-17.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "issue-17.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -944,10 +943,10 @@ public class OfxParsingServiceTests
     {
         // Given: The itau.ofx example file (Brazilian bank, identical data to issue-17.ofx)
         using var stream = GetEmbeddedOfxFile("itau.ofx");
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX file
-        var result = await service.ParseAsync(stream, "itau.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "itau.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -1019,10 +1018,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "with-fitid.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "with-fitid.ofx");
 
         // Then: Should successfully parse with no errors
         Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
@@ -1092,10 +1091,10 @@ public class OfxParsingServiceTests
             </OFX>
             """;
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        var service = new OfxParsingService();
+        
 
         // When: Parsing the OFX document
-        var result = await service.ParseAsync(stream, "missing-payee.ofx");
+        var result = await OfxParsingHelper.ParseAsync(stream, "missing-payee.ofx");
 
         // Then: Should have an error about missing payee
         Assert.That(result.Errors, Is.Not.Empty);
