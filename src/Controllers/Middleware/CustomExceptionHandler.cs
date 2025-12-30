@@ -54,15 +54,13 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             KeyNotFoundException keyNotFound => await HandleKeyNotFoundExceptionAsync(
                 httpContext, keyNotFound, cancellationToken),
 
-            // 400 Bad Request - ArgumentException (validation errors)
+            // 400 Bad Request - ValidationException (input validation errors)
+            Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
+                httpContext, validationException, cancellationToken),
+
+            // 400 Bad Request - ArgumentException (validation errors, legacy)
             ArgumentException argumentException => await HandleArgumentExceptionAsync(
                 httpContext, argumentException, cancellationToken),
-
-            // Add more exception mappings here as needed, for example:
-            // ValidationException validation => await HandleValidationExceptionAsync(
-            //     httpContext, validation, cancellationToken),
-            // UnauthorizedAccessException unauthorized => await HandleUnauthorizedAsync(
-            //     httpContext, unauthorized, cancellationToken),
 
             // If no match, let other handlers process it
             _ => false
@@ -166,6 +164,46 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         {
             problemDetails.Extensions["paramName"] = exception.ParamName;
         }
+
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Handles ValidationException (input validation errors).
+    /// Returns HTTP 400 with ValidationProblemDetails.
+    /// </summary>
+    private async ValueTask<bool> HandleValidationExceptionAsync(
+        HttpContext httpContext,
+        Entities.Exceptions.ValidationException exception,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+        // Create errors dictionary for ValidationProblemDetails
+        var errors = new Dictionary<string, string[]>();
+        if (!string.IsNullOrEmpty(exception.ParameterName))
+        {
+            errors[exception.ParameterName] = [exception.Message];
+        }
+        else
+        {
+            // If no parameter name provided, use a generic key
+            errors["validation"] = [exception.Message];
+        }
+
+        var problemDetails = new ValidationProblemDetails(errors)
+        {
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            Title = "The request failed validation.",
+            Status = StatusCodes.Status400BadRequest,
+            Instance = httpContext.Request.Path,
+            Detail = exception.Message
+        };
+
+        // Add W3C trace context ID for diagnostics
+        var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+        problemDetails.Extensions["traceId"] = traceId;
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Controllers.Tenancy.Authorization;
+using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers;
@@ -50,10 +51,7 @@ public partial class ImportController(
         if (file == null || file.Length == 0)
         {
             LogValidationError("File is required and cannot be empty");
-            return Problem(
-                title: "Invalid file upload",
-                detail: "File is required and cannot be empty.",
-                statusCode: StatusCodes.Status400BadRequest);
+            throw new ValidationException(nameof(file), "File is required and cannot be empty.");
         }
 
         // Validate file extension
@@ -61,20 +59,14 @@ public partial class ImportController(
         if (!AllowedExtensions.Contains(extension))
         {
             LogValidationError($"Invalid file extension: {extension}");
-            return Problem(
-                title: "Invalid file type",
-                detail: $"Only {string.Join(", ", AllowedExtensions)} files are allowed.",
-                statusCode: StatusCodes.Status400BadRequest);
+            throw new ValidationException(nameof(file), $"Only {string.Join(", ", AllowedExtensions)} files are allowed.");
         }
 
         // Validate file size
         if (file.Length > MaxFileSizeBytes)
         {
             LogValidationError($"File size exceeds maximum: {file.Length} bytes");
-            return Problem(
-                title: "File too large",
-                detail: $"File size must not exceed {MaxFileSizeBytes / (1024 * 1024)} MB.",
-                statusCode: StatusCodes.Status400BadRequest);
+            throw new ValidationException(nameof(file), $"File size must not exceed {MaxFileSizeBytes / (1024 * 1024)} MB.");
         }
 
         // Process the file
@@ -121,10 +113,7 @@ public partial class ImportController(
         if (keys == null || keys.Count == 0)
         {
             LogValidationError("At least one transaction key must be provided");
-            return Problem(
-                title: "Invalid request",
-                detail: "At least one transaction key must be provided.",
-                statusCode: StatusCodes.Status400BadRequest);
+            throw new ValidationException(nameof(keys), "At least one transaction key must be provided.");
         }
 
         var result = await importReviewFeature.CompleteReviewAsync(keys);
