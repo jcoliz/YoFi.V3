@@ -172,8 +172,11 @@ For implementation patterns, refer to existing features:
 - [ ] Add XML documentation (class + methods)
 - [ ] Follow existing patterns (dependency injection, async/await)
 - [ ] Build: `dotnet build`
+- [ ] Run unit tests: `dotnet test tests/Unit`
+- [ ] Iterate until all pass
 - [ ] Run all tests: `pwsh -File ./scripts/Run-Tests.ps1`
-- [ ] Fix any breaking changes
+- [ ] Iterate until all pass
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Checkpoint:** Confirm core business logic is correct before UI work.
 
@@ -193,7 +196,7 @@ For implementation patterns, refer to existing features:
 - [ ] Implement unit tests with comprehensive coverage
 - [ ] Run tests: `dotnet test tests/Unit`
 - [ ] Iterate until all pass
-- [ ] Check off any completed acceptance criteria in PRD
+- [ ] Check off any now-completed acceptance criteria in PRD
 
 **Commit Template:** `test(unit): add [feature] validation and logic tests`
 
@@ -212,6 +215,9 @@ For implementation patterns, refer to existing features:
 - [ ] Implement middleware/filters/authorization policies if needed
 - [ ] Build: `dotnet build`
 - [ ] Verify no compilation errors
+- [ ] Run tests: `dotnet test tests/Integration.Controller`
+- [ ] Iterate until all pass
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Commit Template:** `feat([feature-slug]): add API endpoints`
 

@@ -126,6 +126,63 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     }
 
     /// <summary>
+    /// Adds multiple transactions for the current tenant in a single batch operation.
+    /// </summary>
+    /// <param name="transactions">The collection of transaction data to add. Each MUST be validated before calling this method.
+    /// See <see cref="YoFi.V3.Application.Validation.TransactionEditDtoValidator"/> for validation rules.</param>
+    /// <returns>Collection of created transactions with all fields.</returns>
+    public async Task<IReadOnlyCollection<TransactionDetailDto>> AddTransactionsAsync(IReadOnlyCollection<TransactionEditDto> transactions)
+    {
+        var newTransactions = new List<Transaction>();
+
+        foreach (var transaction in transactions)
+        {
+            // Alpha-1: Sanitize category
+            var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
+
+            var newTransaction = new Transaction
+            {
+                Date = transaction.Date,
+                Amount = transaction.Amount,
+                Payee = transaction.Payee,
+                Memo = transaction.Memo,
+                Source = transaction.Source,
+                ExternalId = transaction.ExternalId,
+                TenantId = _currentTenant.Id
+            };
+
+            // Alpha-1: Auto-create single split (Order = 0, Amount = transaction.Amount)
+            newTransaction.Splits.Add(new Split
+            {
+                Amount = transaction.Amount,
+                Category = sanitizedCategory,
+                Memo = null,
+                Order = 0
+            });
+
+            newTransactions.Add(newTransaction);
+        }
+
+        // Save to database to generate Keys and IDs
+        dataProvider.AddRange(newTransactions);
+        await dataProvider.SaveChangesAsync();
+
+        // Now build result DTOs with generated Keys
+        var results = newTransactions.Select(t => new TransactionDetailDto(
+            t.Key,
+            t.Date,
+            t.Amount,
+            t.Payee,
+            t.Memo,
+            t.Source,
+            t.ExternalId,
+            t.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty
+        )).ToList();
+
+        return results;
+    }
+
+    /// <summary>
     /// Updates an existing transaction.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
