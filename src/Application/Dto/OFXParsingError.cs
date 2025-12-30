@@ -1,4 +1,4 @@
-namespace YoFi.V3.Application.Import.Dto;
+namespace YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Error encountered during OFX parsing.

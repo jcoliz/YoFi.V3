@@ -1,21 +1,21 @@
-namespace YoFi.V3.Application.Import.Services;
+namespace YoFi.V3.Application.Helpers;
 
 using System.Security.Cryptography;
 using System.Text;
 using OfxSharp;
-using YoFi.V3.Application.Import.Dto;
+using YoFi.V3.Application.Dto;
 
 /// <summary>
-/// Service for parsing OFX (Open Financial Exchange) files into transactions.
+/// Helper for parsing OFX (Open Financial Exchange) files into transactions.
 /// </summary>
-public class OfxParsingService : IOfxParsingService
+public static class OfxParsingHelper
 {
     /// <summary>
     /// Parses an OFX file stream and extracts transaction data.
     /// </summary>
     /// <param name="fileStream">The stream containing OFX file data.</param>
     /// <param name="fileName">The name of the file being parsed.</param>
-    public Task<OfxParsingResult> ParseAsync(Stream fileStream, string fileName)
+    public static Task<OfxParsingResult> ParseAsync(Stream fileStream, string fileName)
     {
         var errors = new List<OfxParsingError>();
         var transactions = new List<TransactionImportDto>();

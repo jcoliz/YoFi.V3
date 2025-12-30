@@ -1,14 +1,12 @@
 using YoFi.V3.Application.Common.Dto;
 using YoFi.V3.Application.Dto;
-using YoFi.V3.Application.Features;
-using YoFi.V3.Application.Import.Dto;
-using YoFi.V3.Application.Import.Helpers;
+using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
-namespace YoFi.V3.Application.Import.Features;
+namespace YoFi.V3.Application.Features;
 
 /// <summary>
 /// Provides business logic for the bank import review workflow.

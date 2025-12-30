@@ -1,4 +1,4 @@
-namespace YoFi.V3.Application.Import.Dto;
+namespace YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Result of an OFX file import operation, to be shown to the user.

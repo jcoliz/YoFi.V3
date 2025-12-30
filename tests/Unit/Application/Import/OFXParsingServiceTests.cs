@@ -1,8 +1,8 @@
 namespace YoFi.V3.Tests.Unit.Application.Import;
 
 using NUnit.Framework;
-using YoFi.V3.Application.Import.Helpers;
-using YoFi.V3.Application.Import.Dto;
+using YoFi.V3.Application.Helpers;
+using YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Unit tests for OFX parsing helper.

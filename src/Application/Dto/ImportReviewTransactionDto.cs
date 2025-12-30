@@ -1,6 +1,6 @@
 using YoFi.V3.Entities.Models;
 
-namespace YoFi.V3.Application.Import.Dto;
+namespace YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Presents information about an imported transaction for user review.

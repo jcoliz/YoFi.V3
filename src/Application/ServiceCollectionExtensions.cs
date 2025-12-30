@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Features;
-using YoFi.V3.Application.Import.Services;
 
 namespace YoFi.V3.Application;
 
@@ -14,9 +13,6 @@ public static class ServiceCollectionExtensions
             .AddClasses(classes => classes.Where(type => type.Name.EndsWith("Feature")))
             .AsSelf()
             .WithScopedLifetime());
-
-        // Register import services
-        services.AddScoped<IOfxParsingService, OfxParsingService>();
 
         return services;
     }
