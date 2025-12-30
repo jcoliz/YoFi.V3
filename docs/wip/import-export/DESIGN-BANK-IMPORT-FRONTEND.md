@@ -65,12 +65,12 @@ The page is organized into distinct components, each with a single responsibilit
    - Emits `@close` to parent when dismissed
    - Can be reused for any multi-step upload/processing workflow
 
-3. **[`PaginationControls.vue`](src/FrontEnd.Nuxt/app/components/PaginationControls.vue)** (reusable)
-   - Previous/Next buttons and page number buttons
-   - Props: `paginationData` (PaginatedResultDto<any>), `loading` (boolean)
-   - Emits `@pageChange(pageNumber)` to parent
-   - Generic component - works with any `PaginatedResultDto<T>` from the API
-   - Extracts pagination metadata automatically from the DTO
+3. **[`PaginationBar.vue`](src/FrontEnd.Nuxt/app/components/PaginationBar.vue)** (reusable)
+   - First/Last navigation buttons and page number buttons (displays 3 numbered pages)
+   - Props: `pageInfo` (IPaginationMetadata)
+   - Emits `@pageUpdated(pageNumber)` to parent
+   - Generic component - works with any pagination metadata from the API
+   - Displays "Displaying X through Y of Z" text automatically
    - Can be reused across any paginated view (transactions, imports, reports, etc.)
 
 4. **[`ImportReviewTable.vue`](src/FrontEnd.Nuxt/app/components/import/ImportReviewTable.vue)** (import-specific)
@@ -108,7 +108,7 @@ src/FrontEnd.Nuxt/app/
 ├── components/
 │   ├── FileUploadSection.vue                   # Generic file upload (reusable)
 │   ├── UploadStatusPane.vue                    # Generic status display (reusable)
-│   ├── PaginationControls.vue                  # Generic pagination (reusable)
+│   ├── PaginationBar.vue                       # Generic pagination (reusable)
 │   └── import/                                 # Import-specific components
 │       ├── ImportReviewTable.vue               # Import-specific table
 │       ├── ImportDuplicatesAlert.vue           # Import-specific alert
@@ -119,7 +119,7 @@ src/FrontEnd.Nuxt/app/
 
 1. **Reduced cognitive load** - Each component is small enough to hold in your head
 2. **Easier testing** - Components can be tested in isolation with Vue Test Utils
-3. **Better reusability** - Generic components (FileUploadSection, UploadStatusPane, PaginationControls) can be used elsewhere
+3. **Better reusability** - Generic components (FileUploadSection, UploadStatusPane, PaginationBar) can be used elsewhere
 4. **Clearer responsibilities** - Each component has a single, well-defined purpose
 5. **Simpler templates** - Page template becomes declarative composition of components
 6. **Easier maintenance** - Changes to one feature area (e.g., file upload) are isolated to one component
@@ -130,7 +130,7 @@ src/FrontEnd.Nuxt/app/
 
 2. **Props down, events up** - Page owns all state, passes data down via props, receives updates via events. Standard Vue pattern for parent-child communication.
 
-3. **Reusable when possible** - Components like FileUploadSection, UploadStatusPane, PaginationControls are designed generically so they can be extracted for project-wide reuse.
+3. **Reusable when possible** - Components like FileUploadSection, UploadStatusPane, PaginationBar are designed generically so they can be extracted for project-wide reuse.
 
 4. **Import prefix when specific** - Components specific to import workflow (ImportReviewTable, ImportActionButtons) are prefixed with "Import" to clarify scope.
 
@@ -281,66 +281,57 @@ Import Errors - checking-2024-01.ofx
 
 ### Pagination
 
-**PaginationControls Component:**
+**PaginationBar Component:**
 
-The [`PaginationControls.vue`](src/FrontEnd.Nuxt/app/components/PaginationControls.vue) component is designed to work with any `PaginatedResultDto<T>` response from the API.
+The [`PaginationBar.vue`](src/FrontEnd.Nuxt/app/components/PaginationBar.vue) component is designed to work with pagination metadata from any API response.
 
 **Props:**
 ```typescript
 interface Props {
-  paginationData: PaginatedResultDto<any>  // Generic - works with any paginated response
-  loading?: boolean                         // Disables controls during data fetch
+  pageInfo: IPaginationMetadata  // Pagination metadata from API response
 }
 ```
 
 **Usage:**
 ```vue
-<PaginationControls
-  :paginationData="paginatedResult"
-  :loading="isLoading"
-  @pageChange="handlePageChange"
+<PaginationBar
+  :page-info="paginatedResult.metadata"
+  @pageUpdated="handlePageChange"
 />
 ```
 
-**Component extracts metadata automatically:**
+**Component uses metadata properties:**
 - `pageNumber` - Current page (1-based)
 - `totalPages` - Total number of pages
 - `totalCount` - Total items across all pages
-- `pageSize` - Items per page
-- `hasPreviousPage` - Show/enable Previous button
-- `hasNextPage` - Show/enable Next button
+- `firstItem` - First item number on current page
+- `lastItem` - Last item number on current page
 
 **Display elements:**
-- Previous/Next buttons (◀ ▶) - Enabled based on `hasPreviousPage`/`hasNextPage`
-- Page number buttons - Current page highlighted via `.active` class
-- "Showing 1-50 of 150" text - Calculated from `pageNumber`, `pageSize`, `totalCount`
+- First/Last page buttons (chevrons) - Only shown when not in numbered page range
+- Three numbered page buttons - Displays current page and up to 2 adjacent pages
+- "Displaying X through Y of Z" text - Shows `firstItem`, `lastItem`, and `totalCount`
 
 **Behavior:**
-- Hidden when `totalPages <= 1` (no pagination needed)
-- Disabled when `loading === true` (prevents navigation during data fetch)
-- Emits `@pageChange(pageNumber)` when user clicks page button or Previous/Next
+- Hidden when `pageInfo` is null or no pages exist
+- Automatically adjusts numbered pages based on current position (first, last, or middle)
+- Emits `@pageUpdated(pageNumber)` when user clicks any page button
 
 **Reusability:**
-- Works with `PaginatedResultDto<ImportReviewTransactionDto>` on import page
-- Works with `PaginatedResultDto<TransactionDto>` on transactions page
-- Works with any future paginated endpoint that returns `PaginatedResultDto<T>`
+- Works with `PaginatedResultDto<ImportReviewTransactionDto>.metadata` on import page
+- Works with `PaginatedResultDto<TransactionDto>.metadata` on transactions page
+- Works with any API response that includes `IPaginationMetadata`
 - No import-specific logic - purely generic pagination control
 
 **Example integration:**
 ```typescript
 // In parent component
 const paginatedResult = ref<PaginatedResultDto<ImportReviewTransactionDto> | null>(null)
-const loading = ref(false)
 const currentPage = ref(1)
 
 const loadPage = async (pageNumber: number) => {
-  loading.value = true
-  try {
-    paginatedResult.value = await importClient.getPendingReview(pageNumber, 50)
-    currentPage.value = pageNumber
-  } finally {
-    loading.value = false
-  }
+  paginatedResult.value = await importClient.getPendingReview(pageNumber, 50)
+  currentPage.value = pageNumber
 }
 
 const handlePageChange = (pageNumber: number) => {
@@ -510,7 +501,7 @@ The import page reuses components and patterns from [`transactions/index.vue`](s
 - API error handling via `handleApiError` utility
 - Loading states with spinner and disabled buttons
 - Empty state messaging
-- Generic pagination controls (works with any `PaginatedResultDto<T>`)
+- Generic pagination controls via PaginationBar (works with any `IPaginationMetadata`)
 
 ## State Management
 
@@ -602,20 +593,19 @@ const result: ImportResultDto = await importClient.uploadFile(file)
 const result: PaginatedResultDto<ImportReviewTransactionDto> =
   await importClient.getPendingReview(currentPage.value, pageSize.value)
 
-// Pass entire result to PaginationControls component
+// Store result with metadata for PaginationBar component
 paginatedTransactions.value = result
 ```
 
-**PaginationControls usage:**
+**PaginationBar usage:**
 ```vue
-<PaginationControls
-  :paginationData="paginatedTransactions"
-  :loading="loading"
-  @pageChange="loadPage"
+<PaginationBar
+  :page-info="paginatedTransactions.metadata"
+  @pageUpdated="loadPage"
 />
 ```
 
-The component automatically extracts all pagination metadata from the `PaginatedResultDto<T>` structure, making it reusable across any paginated view without modification.
+The component uses the nested `metadata` property from `PaginatedResultDto<T>`, making it reusable across any paginated view without modification.
 
 **Complete review (accept selected transactions):**
 ```typescript
