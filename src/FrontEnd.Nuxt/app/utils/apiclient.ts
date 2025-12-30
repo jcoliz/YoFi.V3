@@ -951,6 +951,61 @@ export class TestControlClient {
         }
         return Promise.resolve<void>(null as any);
     }
+
+    /**
+     * Get a paginated result of test strings.
+     * @param pageNumber (optional) The page number (1-based). Defaults to 1.
+     * @param pageSize (optional) The number of items per page. Defaults to 10.
+     * @return A paginated result containing test strings.
+     */
+    getPaginatedStrings(pageNumber: number | undefined, pageSize: number | undefined): Promise<PaginatedResultDtoOfString> {
+        let url_ = this.baseUrl + "/TestControl/pagination/strings?";
+        if (pageNumber === null)
+            throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetPaginatedStrings(_response);
+        });
+    }
+
+    protected processGetPaginatedStrings(response: Response): Promise<PaginatedResultDtoOfString> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PaginatedResultDtoOfString.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PaginatedResultDtoOfString>(null as any);
+    }
 }
 
 export class TransactionsClient {
@@ -2835,6 +2890,101 @@ export interface IErrorCodeInfo {
     code?: string;
     /** Description of what error will be generated */
     description?: string;
+}
+
+export abstract class PaginatedResultBaseDto implements IPaginatedResultBaseDto {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+
+    constructor(data?: IPaginatedResultBaseDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalCount = _data["totalCount"];
+            this.totalPages = _data["totalPages"];
+            this.hasPreviousPage = _data["hasPreviousPage"];
+            this.hasNextPage = _data["hasNextPage"];
+        }
+    }
+
+    static fromJS(data: any): PaginatedResultBaseDto {
+        data = typeof data === 'object' ? data : {};
+        throw new Error("The abstract class 'PaginatedResultBaseDto' cannot be instantiated.");
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalCount"] = this.totalCount;
+        data["totalPages"] = this.totalPages;
+        data["hasPreviousPage"] = this.hasPreviousPage;
+        data["hasNextPage"] = this.hasNextPage;
+        return data;
+    }
+}
+
+export interface IPaginatedResultBaseDto {
+    pageNumber?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+}
+
+export class PaginatedResultDtoOfString extends PaginatedResultBaseDto implements IPaginatedResultDtoOfString {
+    items?: string[];
+
+    constructor(data?: IPaginatedResultDtoOfString) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): PaginatedResultDtoOfString {
+        data = typeof data === 'object' ? data : {};
+        let result = new PaginatedResultDtoOfString();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPaginatedResultDtoOfString extends IPaginatedResultBaseDto {
+    items?: string[];
 }
 
 export class TransactionDetailDto implements ITransactionDetailDto {

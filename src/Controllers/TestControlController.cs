@@ -779,6 +779,60 @@ public partial class TestControlController(
         }
     }
 
+    /// <summary>
+    /// Get a paginated result of test strings.
+    /// </summary>
+    /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
+    /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
+    /// <returns>A paginated result containing test strings.</returns>
+    /// <remarks>
+    /// This endpoint is for testing pagination UI components with a simple string data type.
+    /// Generates strings in format "Item N" where N is the sequential item number.
+    /// </remarks>
+    [HttpGet("pagination/strings")]
+    [ProducesResponseType(typeof(PaginatedResultDto<string>), StatusCodes.Status200OK)]
+    public IActionResult GetPaginatedStrings([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        LogStarting();
+
+        // Validate pagination parameters
+        if (pageNumber < 1)
+        {
+            pageNumber = 1;
+        }
+
+        if (pageSize < 1 || pageSize > 100)
+        {
+            pageSize = 10;
+        }
+
+        // Generate total of 50 test items
+        const int totalCount = 50;
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Calculate skip and take
+        var skip = (pageNumber - 1) * pageSize;
+        var take = Math.Min(pageSize, totalCount - skip);
+
+        // Generate items for the current page
+        var items = Enumerable.Range(skip + 1, take)
+            .Select(i => $"Item {i}")
+            .ToList();
+
+        var result = new PaginatedResultDto<string>(
+            Items: items,
+            PageNumber: pageNumber,
+            PageSize: pageSize,
+            TotalCount: totalCount,
+            TotalPages: totalPages,
+            HasPreviousPage: pageNumber > 1,
+            HasNextPage: pageNumber < totalPages
+        );
+
+        LogOk();
+        return Ok(result);
+    }
+
     #endregion
 
     #region Helper Methods
