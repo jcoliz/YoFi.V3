@@ -2,9 +2,12 @@
 /**
  * Import Page (Temporary)
  *
- * Temporary page to test and demonstrate FileUploadSection and UploadStatusPane components.
+ * Temporary page to test and demonstrate FileUploadSection, UploadStatusPane, and ImportReviewTable components.
  * This will be expanded with the full import workflow in future iterations.
  */
+
+import type { ImportReviewTransactionDto } from '~/utils/apiclient'
+import { DuplicateStatus } from '~/utils/apiclient'
 
 // Page metadata
 definePageMeta({
@@ -18,6 +21,67 @@ const uploadInProgress = ref(false)
 const statusMessages = ref<string[]>([])
 const showStatusPane = ref(false)
 const statusVariant = ref<'info' | 'warning' | 'success' | 'danger'>('info')
+
+// Transaction review state
+const transactions = ref<ImportReviewTransactionDto[]>([])
+const selectedKeys = ref<Set<string>>(new Set())
+const loading = ref(false)
+
+/**
+ * Generates fake transaction data for testing
+ */
+const generateFakeTransactions = (count: number) => {
+  const payees = [
+    'Amazon.com',
+    'Whole Foods',
+    'Shell Gas Station',
+    'Starbucks',
+    'Netflix',
+    'AT&T Wireless',
+    'PG&E',
+    'Safeway',
+    'Target',
+    'Costco',
+    'Chevron',
+    'Apple Store',
+    'Restaurant ABC',
+    'Gym Membership',
+    'Insurance Co',
+  ]
+
+  const categories = ['Groceries', 'Gas', 'Utilities', 'Entertainment', 'Shopping', 'Dining', 'Healthcare']
+
+  const fakeTransactions: any[] = []
+
+  for (let i = 0; i < count; i++) {
+    const daysAgo = Math.floor(Math.random() * 90)
+    const date = new Date()
+    date.setDate(date.getDate() - daysAgo)
+
+    // Randomly assign duplicate status (80% new, 10% exact duplicate, 10% potential duplicate)
+    const rand = Math.random()
+    let duplicateStatus: DuplicateStatus
+    if (rand < 0.8) {
+      duplicateStatus = DuplicateStatus.New
+    } else if (rand < 0.9) {
+      duplicateStatus = DuplicateStatus.ExactDuplicate
+    } else {
+      duplicateStatus = DuplicateStatus.PotentialDuplicate
+    }
+
+    fakeTransactions.push({
+      key: `fake-${i}-${Date.now()}`,
+      date: date,
+      payee: payees[Math.floor(Math.random() * payees.length)],
+      category: categories[Math.floor(Math.random() * categories.length)],
+      amount: parseFloat((Math.random() * 200 - 50).toFixed(2)), // -50 to 150
+      duplicateStatus: duplicateStatus,
+      duplicateOfKey: duplicateStatus !== DuplicateStatus.New ? `duplicate-ref-${i}` : undefined,
+    })
+  }
+
+  return fakeTransactions.sort((a, b) => b.date.getTime() - a.date.getTime())
+}
 
 /**
  * Handles file selection from FileUploadSection component
@@ -44,6 +108,10 @@ const uploadFiles = async () => {
   showStatusPane.value = true
   statusVariant.value = 'info'
 
+  // Clear existing transactions
+  transactions.value = []
+  selectedKeys.value.clear()
+
   try {
     // Process each file sequentially
     for (const file of selectedFiles.value) {
@@ -69,6 +137,10 @@ const uploadFiles = async () => {
           `⚠ ${file.name}: ${transactionCount} transactions added, ${errorCount} errors detected <a href="#" class="alert-link">[View Errors]</a>`,
         )
         statusVariant.value = 'warning'
+
+        // Generate fake transactions
+        const newTransactions = generateFakeTransactions(transactionCount)
+        transactions.value.push(...newTransactions)
       } else {
         // Simulate complete success
         const transactionCount = Math.floor(Math.random() * 200) + 50
@@ -76,10 +148,21 @@ const uploadFiles = async () => {
         if (statusVariant.value !== 'danger' && statusVariant.value !== 'warning') {
           statusVariant.value = 'success'
         }
+
+        // Generate fake transactions
+        const newTransactions = generateFakeTransactions(transactionCount)
+        transactions.value.push(...newTransactions)
       }
     }
 
-    console.log('Upload complete!')
+    // Set default selections (select New transactions, deselect duplicates)
+    transactions.value.forEach((transaction) => {
+      if (transaction.duplicateStatus === DuplicateStatus.New) {
+        selectedKeys.value.add(transaction.key!)
+      }
+    })
+
+    console.log('Upload complete!', transactions.value.length, 'transactions')
 
     // Clear selection after upload
     selectedFiles.value = []
@@ -94,6 +177,30 @@ const uploadFiles = async () => {
 const handleCloseStatusPane = () => {
   showStatusPane.value = false
   statusMessages.value = []
+}
+
+/**
+ * Handles individual checkbox toggle
+ */
+const handleToggleSelection = (key: string) => {
+  if (selectedKeys.value.has(key)) {
+    selectedKeys.value.delete(key)
+  } else {
+    selectedKeys.value.add(key)
+  }
+}
+
+/**
+ * Handles "select all" checkbox toggle
+ */
+const handleToggleAll = () => {
+  if (transactions.value.every((t) => selectedKeys.value.has(t.key!))) {
+    // All selected, so deselect all
+    selectedKeys.value.clear()
+  } else {
+    // Some or none selected, so select all
+    transactions.value.forEach((t) => selectedKeys.value.add(t.key!))
+  }
 }
 </script>
 
@@ -175,17 +282,57 @@ const handleCloseStatusPane = () => {
           </div>
         </div>
 
+        <!-- Transaction Review Table -->
+        <div
+          v-if="transactions.length > 0"
+          class="card mt-4"
+        >
+          <div class="card-body">
+            <h5 class="card-title">Review Transactions</h5>
+            <p class="text-muted mb-4">
+              Review and select transactions to import. Transactions marked as duplicates are
+              deselected by default.
+            </p>
+
+            <ImportReviewTable
+              :transactions="transactions"
+              :selected-keys="selectedKeys"
+              :loading="loading"
+              @toggle-selection="handleToggleSelection"
+              @toggle-all="handleToggleAll"
+            />
+
+            <div class="mt-3">
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-test-id="import-button"
+                :disabled="selectedKeys.size === 0"
+              >
+                Import {{ selectedKeys.size }} Transaction{{ selectedKeys.size !== 1 ? 's' : '' }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-danger ms-2"
+                data-test-id="delete-all-button"
+              >
+                Delete All
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Temporary Notice -->
         <div class="alert alert-warning mt-4">
           <strong>⚠️ Temporary Page</strong><br />
-          This is a temporary implementation to demonstrate the FileUploadSection and
-          UploadStatusPane components. The full import workflow (transaction review, duplicate
-          detection, etc.) will be added in future iterations.
+          This is a temporary implementation to demonstrate the FileUploadSection, UploadStatusPane,
+          and ImportReviewTable components. The full import workflow (action buttons, pagination,
+          etc.) will be added in future iterations.
           <hr />
           <small
             ><strong>Testing tips:</strong> File names containing "error" will simulate upload
             failures. File names containing "warning" will simulate partial success with errors.
-            Other files will simulate complete success.</small
+            Other files will simulate complete success and generate fake transaction data.</small
           >
         </div>
       </div>
