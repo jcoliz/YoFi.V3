@@ -1,4 +1,3 @@
-using YoFi.V3.Application.Common.Dto;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Models;
@@ -54,20 +53,20 @@ public class ImportReviewFeature(
     /// </summary>
     /// <param name="fileStream">The stream containing the OFX/QFX file data.</param>
     /// <param name="fileName">The name of the uploaded file.</param>
-    /// <returns>An <see cref="ImportResultDto"/> containing import statistics and any parsing errors.</returns>
+    /// <returns>An <see cref="ImportReviewUploadDto"/> containing import statistics and any parsing errors.</returns>
     /// <remarks>
     /// All operations are scoped to the current tenant via ITenantProvider.TenantId.
     /// If parsing errors occur, they are included in the result but do not prevent
     /// import of successfully parsed transactions.
     /// </remarks>
-    public async Task<ImportResultDto> ImportFileAsync(Stream fileStream, string fileName)
+    public async Task<ImportReviewUploadDto> ImportFileAsync(Stream fileStream, string fileName)
     {
         // Parse the OFX file using OfxParsingHelper
         var parsingResult = await OfxParsingHelper.ParseAsync(fileStream, fileName);
 
         if (parsingResult.Transactions.Count == 0)
         {
-            return new ImportResultDto(
+            return new ImportReviewUploadDto(
                 ImportedCount: 0,
                 NewCount: 0,
                 ExactDuplicateCount: 0,
@@ -136,7 +135,7 @@ public class ImportReviewFeature(
         dataProvider.AddRange(importReviewTransactions);
         await dataProvider.SaveChangesAsync();
 
-        return new ImportResultDto(
+        return new ImportReviewUploadDto(
             ImportedCount: parsingResult.Transactions.Count,
             NewCount: newCount,
             ExactDuplicateCount: exactDuplicateCount,
@@ -203,8 +202,8 @@ public class ImportReviewFeature(
     /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
     /// </summary>
     /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
-    /// <returns>A <see cref="CompleteReviewResultDto"/> with counts of accepted and rejected transactions.</returns>
-    public async Task<CompleteReviewResultDto> CompleteReviewAsync(IReadOnlyCollection<Guid> keys)
+    /// <returns>A <see cref="ImportReviewCompleteDto"/> with counts of accepted and rejected transactions.</returns>
+    public async Task<ImportReviewCompleteDto> CompleteReviewAsync(IReadOnlyCollection<Guid> keys)
     {
         // Get total count before processing
         var totalCount = await dataProvider.CountAsync(GetTenantScopedQuery());
@@ -236,7 +235,7 @@ public class ImportReviewFeature(
         var acceptedCount = selectedTransactions.Count;
         var rejectedCount = totalCount - acceptedCount;
 
-        return new CompleteReviewResultDto(
+        return new ImportReviewCompleteDto(
             AcceptedCount: acceptedCount,
             RejectedCount: rejectedCount
         );

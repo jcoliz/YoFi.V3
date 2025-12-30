@@ -13,7 +13,7 @@ namespace YoFi.V3.Application.Dto;
 /// Errors indicate problems parsing individual transactions or the OFX file structure, but do not prevent
 /// successfully parsed transactions from being imported.
 /// </remarks>
-public record ImportResultDto(
+public record ImportReviewUploadDto(
     int ImportedCount,
     int NewCount,
     int ExactDuplicateCount,

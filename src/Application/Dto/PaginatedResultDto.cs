@@ -1,4 +1,4 @@
-namespace YoFi.V3.Application.Common.Dto;
+namespace YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Generic paginated result container for API responses.
