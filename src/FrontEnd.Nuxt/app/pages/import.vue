@@ -13,7 +13,6 @@ import {
   SetSelectionRequest,
   type PaginatedResultDtoOfImportReviewTransactionDto,
   type ImportReviewUploadDto,
-  type ImportReviewCompleteDto,
   type ImportReviewSummaryDto,
   type IProblemDetails,
   type FileParameter,
@@ -54,9 +53,9 @@ const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 
 // State - Modals
-const showSuccessModal = ref(false)
+const showConfirmModal = ref(false)
 const showDeleteModal = ref(false)
-const importResult = ref<ImportReviewCompleteDto | undefined>(undefined)
+const importing = ref(false)
 
 // State - Pagination
 const currentPage = ref(1)
@@ -64,6 +63,7 @@ const pageSize = ref(50)
 
 // Computed - Workspace and Permissions
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
+const currentTenantName = computed(() => userPreferencesStore.getCurrentTenant?.name || '')
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
 const canImport = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
@@ -261,7 +261,6 @@ function handleCloseStatusPane() {
 async function handleToggleSelection(key: string) {
   if (!currentTenantKey.value) return
 
-  loading.value = true
   error.value = undefined
   showError.value = false
 
@@ -270,21 +269,27 @@ async function handleToggleSelection(key: string) {
     const transaction = transactions.value.find((t) => t.key === key)
     if (!transaction) return
 
-    // Toggle selection via API
+    // Optimistically update UI immediately
+    const newValue = !transaction.isSelected
+    transaction.isSelected = newValue
+
+    // Update summary count optimistically
+    if (summary.value) {
+      summary.value.selectedCount = (summary.value.selectedCount || 0) + (newValue ? 1 : -1)
+    }
+
+    // Toggle selection via API (in background)
     const request = new SetSelectionRequest({
       keys: [key],
-      isSelected: !transaction.isSelected,
+      isSelected: newValue,
     })
     await importClient.setSelection(currentTenantKey.value, request)
-
-    // Refresh current page and summary
-    await loadPendingReview(currentPage.value)
-    await loadSummary()
   } catch (err) {
+    // On error, reload to get correct state from server
     error.value = handleApiError(err, 'Selection Failed', 'Failed to update transaction selection')
     showError.value = true
-  } finally {
-    loading.value = false
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
   }
 }
 
@@ -294,21 +299,29 @@ async function handleToggleSelection(key: string) {
 async function handleSelectAll() {
   if (!currentTenantKey.value) return
 
-  loading.value = true
   error.value = undefined
   showError.value = false
 
   try {
+    // Optimistically update UI immediately
+    transactions.value.forEach((t) => {
+      t.isSelected = true
+    })
+    if (summary.value) {
+      summary.value.selectedCount = summary.value.totalCount || 0
+    }
+
+    // Call API in background
     await importClient.selectAll(currentTenantKey.value)
 
-    // Refresh current page and summary
-    await loadPendingReview(currentPage.value)
+    // Refresh summary to get accurate count (in case of pagination)
     await loadSummary()
   } catch (err) {
     error.value = handleApiError(err, 'Select All Failed', 'Failed to select all transactions')
     showError.value = true
-  } finally {
-    loading.value = false
+    // On error, reload to get correct state from server
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
   }
 }
 
@@ -318,64 +331,67 @@ async function handleSelectAll() {
 async function handleDeselectAll() {
   if (!currentTenantKey.value) return
 
-  loading.value = true
   error.value = undefined
   showError.value = false
 
   try {
-    await importClient.deselectAll(currentTenantKey.value)
+    // Optimistically update UI immediately
+    transactions.value.forEach((t) => {
+      t.isSelected = false
+    })
+    if (summary.value) {
+      summary.value.selectedCount = 0
+    }
 
-    // Refresh current page and summary
-    await loadPendingReview(currentPage.value)
-    await loadSummary()
+    // Call API in background
+    await importClient.deselectAll(currentTenantKey.value)
   } catch (err) {
     error.value = handleApiError(err, 'Deselect All Failed', 'Failed to deselect all transactions')
     showError.value = true
-  } finally {
-    loading.value = false
+    // On error, reload to get correct state from server
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
   }
 }
 
 /**
- * Handle Import button click
+ * Handle Import button click - shows confirmation dialog
  */
-async function handleImport() {
+function handleImport() {
   if (!currentTenantKey.value) return
   if (!hasSelections.value) return
 
-  loading.value = true
+  // Show confirmation modal
+  showConfirmModal.value = true
+}
+
+/**
+ * Execute the actual import after user confirms
+ */
+async function confirmImport() {
+  if (!currentTenantKey.value) return
+
+  importing.value = true
   error.value = undefined
   showError.value = false
 
   try {
     // Call completeReview with NO parameters - server reads IsSelected from database
-    const result: ImportReviewCompleteDto = await importClient.completeReview(
-      currentTenantKey.value,
-    )
+    await importClient.completeReview(currentTenantKey.value)
 
-    // Store result for modal display
-    importResult.value = result
+    // Close confirmation modal
+    showConfirmModal.value = false
 
-    // Reload pending review and summary
-    await loadPendingReview(1)
-    await loadSummary()
-
-    // Show success modal
-    showSuccessModal.value = true
+    // Navigate to transactions page
+    navigateTo('/transactions')
   } catch (err) {
     error.value = handleApiError(err, 'Import Failed', 'Failed to import transactions')
     showError.value = true
+    // Close confirmation modal on error
+    showConfirmModal.value = false
   } finally {
-    loading.value = false
+    importing.value = false
   }
-}
-
-/**
- * Handle success modal OK button click
- */
-function handleSuccessModalConfirm() {
-  showSuccessModal.value = false
-  navigateTo('/transactions')
 }
 
 /**
@@ -628,25 +644,55 @@ async function confirmDeleteAll() {
       </div>
     </div>
 
-    <!-- Import Success Modal -->
+    <!-- Import Confirmation Modal -->
     <ModalDialog
-      v-model:show="showSuccessModal"
-      title="Import Complete"
-      :primary-button-text="'OK'"
-      :show-secondary-button="false"
-      :dismissible="false"
-      primary-button-test-id="import-success-ok-button"
-      @primary="handleSuccessModalConfirm"
+      v-model:show="showConfirmModal"
+      title="Confirm Import"
+      :loading="importing"
+      primary-button-variant="primary"
+      :primary-button-text="importing ? 'Importing...' : 'Import'"
+      secondary-button-text="Cancel"
+      primary-button-test-id="import-confirm-button"
+      secondary-button-test-id="import-cancel-button"
+      test-id="import-confirm-modal"
+      @primary="confirmImport"
     >
-      <p v-if="importResult">
-        Successfully imported <strong>{{ importResult.acceptedCount }}</strong> transaction{{
-          importResult.acceptedCount === 1 ? '' : 's'
-        }}.
+      <p>
+        You are about to import the selected transactions into your workspace:
+        <strong>{{ currentTenantName }}</strong>
       </p>
-      <p v-if="importResult && importResult.rejectedCount && importResult.rejectedCount > 0">
-        Rejected <strong>{{ importResult.rejectedCount }}</strong> transaction{{
-          importResult.rejectedCount === 1 ? '' : 's'
-        }}.
+
+      <!-- Import Statistics -->
+      <div
+        v-if="summary"
+        class="alert alert-info mb-3"
+        data-test-id="import-statistics"
+      >
+        <h6 class="alert-heading mb-2">Import Summary:</h6>
+        <ul class="mb-0">
+          <li>
+            <strong>{{ summary.selectedCount || 0 }}</strong> transaction{{
+              summary.selectedCount === 1 ? '' : 's'
+            }}
+            will be imported
+          </li>
+          <li v-if="summary.totalCount && summary.totalCount > (summary.selectedCount || 0)">
+            <strong>{{ summary.totalCount - (summary.selectedCount || 0) }}</strong> transaction{{
+              summary.totalCount - (summary.selectedCount || 0) === 1 ? '' : 's'
+            }}
+            will be discarded
+          </li>
+          <li v-if="summary.potentialDuplicateCount && summary.potentialDuplicateCount > 0">
+            <strong>{{ summary.potentialDuplicateCount }}</strong> potential duplicate{{
+              summary.potentialDuplicateCount === 1 ? '' : 's'
+            }}
+            detected
+          </li>
+        </ul>
+      </div>
+
+      <p class="mb-0">
+        <strong>Do you want to proceed with this import?</strong>
       </p>
     </ModalDialog>
 
