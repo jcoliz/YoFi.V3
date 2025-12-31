@@ -56,8 +56,8 @@ public abstract class CommonGivenSteps : FunctionalTestBase
         if (_objectStore.Contains<Generated.TestUserCredentials>())
             return;
         await testControlClient.DeleteUsersAsync();
-        var user = await testControlClient.CreateUserAsync();
-        _objectStore.Add(user);
+        var user = await testControlClient.CreateUsersAsync(new[] { "user" });
+        _objectStore.Add(user.First());
     }
 
     /// <summary>

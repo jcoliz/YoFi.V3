@@ -781,33 +781,45 @@ export class TestControlClient {
     }
 
     /**
-     * Create a test user with auto-generated username
-     * @return Created user credentials including ID and password
+     * Create multiple test users with credentials
+     * @param usernames Collection of usernames to create (doesn't need to include __TEST__ prefix, it will be added)
+     * @return Collection of created user credentials including IDs and passwords
      */
-    createUser(): Promise<TestUserCredentials> {
+    createUsers(usernames: string[]): Promise<TestUserCredentials[]> {
         let url_ = this.baseUrl + "/TestControl/users";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(usernames);
+
         let options_: RequestInit = {
+            body: content_,
             method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCreateUser(_response);
+            return this.processCreateUsers(_response);
         });
     }
 
-    protected processCreateUser(response: Response): Promise<TestUserCredentials> {
+    protected processCreateUsers(response: Response): Promise<TestUserCredentials[]> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = TestUserCredentials.fromJS(resultData201);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(TestUserCredentials.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
             return result201;
             });
         } else if (status === 403) {
@@ -829,7 +841,7 @@ export class TestControlClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<TestUserCredentials>(null as any);
+        return Promise.resolve<TestUserCredentials[]>(null as any);
     }
 
     /**
@@ -878,70 +890,6 @@ export class TestControlClient {
             });
         }
         return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Create multiple test users in bulk with credentials
-     * @param usernames Collection of usernames to create (must include __TEST__ prefix)
-     * @return Collection of created user credentials including IDs and passwords
-     */
-    createBulkUsers(usernames: string[]): Promise<TestUserCredentials[]> {
-        let url_ = this.baseUrl + "/TestControl/users/bulk";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(usernames);
-
-        let options_: RequestInit = {
-            body: content_,
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCreateBulkUsers(_response);
-        });
-    }
-
-    protected processCreateBulkUsers(response: Response): Promise<TestUserCredentials[]> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 201) {
-            return response.text().then((_responseText) => {
-            let result201: any = null;
-            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData201)) {
-                result201 = [] as any;
-                for (let item of resultData201)
-                    result201!.push(TestUserCredentials.fromJS(item));
-            }
-            else {
-                result201 = null as any;
-            }
-            return result201;
-            });
-        } else if (status === 403) {
-            return response.text().then((_responseText) => {
-            let result403: any = null;
-            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result403 = ProblemDetails.fromJS(resultData403);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
-            });
-        } else if (status === 500) {
-            return response.text().then((_responseText) => {
-            let result500: any = null;
-            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result500 = ProblemDetails.fromJS(resultData500);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<TestUserCredentials[]>(null as any);
     }
 
     /**
@@ -3366,6 +3314,8 @@ export interface IImportReviewSummaryDto {
 export class TestUserCredentials implements ITestUserCredentials {
     /** The unique identifier (GUID) of the created user */
     id?: string;
+    /** The short username without __TEST__ prefix or unique run ID */
+    shortName?: string;
     /** The username for authentication */
     username?: string;
     /** The email address for authentication */
@@ -3385,6 +3335,7 @@ export class TestUserCredentials implements ITestUserCredentials {
     init(_data?: any) {
         if (_data) {
             this.id = _data["id"];
+            this.shortName = _data["shortName"];
             this.username = _data["username"];
             this.email = _data["email"];
             this.password = _data["password"];
@@ -3401,6 +3352,7 @@ export class TestUserCredentials implements ITestUserCredentials {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
+        data["shortName"] = this.shortName;
         data["username"] = this.username;
         data["email"] = this.email;
         data["password"] = this.password;
@@ -3412,6 +3364,8 @@ export class TestUserCredentials implements ITestUserCredentials {
 export interface ITestUserCredentials {
     /** The unique identifier (GUID) of the created user */
     id?: string;
+    /** The short username without __TEST__ prefix or unique run ID */
+    shortName?: string;
     /** The username for authentication */
     username?: string;
     /** The email address for authentication */

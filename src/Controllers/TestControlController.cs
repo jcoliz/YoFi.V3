@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -22,44 +23,11 @@ namespace YoFi.V3.Controllers;
 /// Data transfer object for test user credentials including unique identifier
 /// </summary>
 /// <param name="Id">The unique identifier (GUID) of the created user</param>
+/// <param name="ShortName">The short username without __TEST__ prefix or unique run ID</param>
 /// <param name="Username">The username for authentication</param>
 /// <param name="Email">The email address for authentication</param>
 /// <param name="Password">The generated password for authentication</param>
-public record TestUserCredentials(Guid Id, string Username, string Email, string Password);
-
-/// <summary>
-/// Internal helper record for generating test user credentials.
-/// </summary>
-/// <param name="Id">The numeric identifier used to generate username and email.</param>
-/// <remarks>
-/// Generates username, email, and password based on the provided ID.
-/// All generated usernames include the __TEST__ prefix for safety.
-/// </remarks>
-public record TestUser(int Id)
-{
-    /// <summary>
-    /// Prefix for test users
-    /// </summary>
-    /// <remarks>
-    /// A user with this value in their username is being used during functional testing.
-    /// </remarks>
-    internal const string Prefix = "__TEST__";
-
-    /// <summary>
-    /// Gets the generated username in format __TEST__XXXX where XXXX is a hex ID.
-    /// </summary>
-    public string Username { get; init; } = $"{Prefix}{Id:X4}";
-
-    /// <summary>
-    /// Gets the generated email address in format __TEST__XXXX@test.com.
-    /// </summary>
-    public string Email { get; init; } = $"{Prefix}{Id:X4}@test.com";
-
-    /// <summary>
-    /// Gets the generated secure random password.
-    /// </summary>
-    public string Password { get; init; } = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
-}
+public record TestUserCredentials(Guid Id, string ShortName, string Username, string Email, string Password);
 
 /// <summary>
 /// Request to create a workspace for a test user.
@@ -160,62 +128,38 @@ public partial class TestControlController(
     ILogger<TestControlController> logger
 ) : ControllerBase
 {
+    /// <summary>
+    /// Prefix for test users and workspaces
+    /// </summary>
+    /// <remarks>
+    /// A user or workspace with this value in their name is being used during functional testing.
+    /// </remarks>
+    public const string TestPrefix = "__TEST__";
+
     #region User Management
 
     /// <summary>
-    /// Create a test user with auto-generated username
+    /// Create multiple test users with credentials
     /// </summary>
-    /// <returns>Created user credentials including ID and password</returns>
-    /// <remarks>
-    /// User is automatically approved (email confirmed) for immediate use in tests.
-    /// Username is auto-generated with format __TEST__XXXX where XXXX is a random hex value.
-    /// </remarks>
-    [HttpPost("users")]
-    [ProducesResponseType(typeof(TestUserCredentials), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> CreateUser()
-    {
-        // Generate random username with test prefix
-        var randomId = new Random().Next(1, 0x10000);
-        var username = $"{TestUser.Prefix}{randomId:X4}";
-
-        LogStarting();
-
-        var credentialsResult = await CreateUsersInternalAsync(new[] { username });
-        if (credentialsResult.Error != null)
-        {
-            return credentialsResult.Error;
-        }
-
-        LogOk();
-        return CreatedAtAction(nameof(CreateUser), credentialsResult.Credentials!.First());
-    }
-
-    /// <summary>
-    /// Create multiple test users in bulk with credentials
-    /// </summary>
-    /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix)</param>
+    /// <param name="usernames">Collection of usernames to create (doesn't need to include __TEST__ prefix, it will be added)</param>
     /// <returns>Collection of created user credentials including IDs and passwords</returns>
     /// <remarks>
     /// All users are automatically approved (email confirmed) for immediate use in tests.
-    /// All usernames MUST start with __TEST__ prefix for safety - 403 returned otherwise.
+    /// User name is prefixed with __TEST__ if not already present, and a unique suffix is added to avoid collisions.
     /// Each user receives a unique, secure random password.
     /// </remarks>
-    [HttpPost("users/bulk")]
+    [HttpPost("users")]
     [ProducesResponseType(typeof(IReadOnlyCollection<TestUserCredentials>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> CreateBulkUsers([FromBody] IReadOnlyCollection<string> usernames)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CreateUsers([FromBody] IReadOnlyCollection<string> usernames)
     {
         LogStartingCount(usernames.Count);
 
-        var credentialsResult = await CreateUsersInternalAsync(usernames);
-        if (credentialsResult.Error != null)
-        {
-            return credentialsResult.Error;
-        }
+        var credentials = await CreateUsersInternalAsync(usernames);
 
-        LogOkCount(credentialsResult.Credentials!.Count);
-        return CreatedAtAction(nameof(CreateBulkUsers), credentialsResult.Credentials);
+        LogOkCount(credentials.Count);
+        return CreatedAtAction(nameof(CreateUsers), credentials);
     }
 
     /// <summary>
@@ -233,7 +177,7 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public IActionResult ApproveUser(string username)
     {
-        if (!username.Contains(TestUser.Prefix))
+        if (!username.Contains(TestPrefix))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
@@ -260,7 +204,7 @@ public partial class TestControlController(
     public async Task<IActionResult> DeleteUsers()
     {
         var testUsers = userManager.Users
-            .Where(u => u.UserName != null && u.UserName.Contains(TestUser.Prefix))
+            .Where(u => u.UserName != null && u.UserName.Contains(TestPrefix))
             .ToList();
 
         foreach (var user in testUsers)
@@ -297,22 +241,22 @@ public partial class TestControlController(
         LogStartingUsername(username);
 
         // Validate username has test prefix
-        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Username must have test prefix",
-                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+                $"Username '{username}' must start with {TestPrefix} for test safety"
             );
         }
 
         // Validate workspace name has test prefix
-        if (!request.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!request.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Workspace name must have test prefix",
-                $"Workspace name '{request.Name}' must start with {TestUser.Prefix} for test safety"
+                $"Workspace name '{request.Name}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -377,12 +321,12 @@ public partial class TestControlController(
         LogStartingKey(workspaceKey);
 
         // Validate username has test prefix
-        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Username must have test prefix",
-                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+                $"Username '{username}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -408,12 +352,12 @@ public partial class TestControlController(
             );
         }
 
-        if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!tenant.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Workspace is not a test workspace",
-                $"Workspace '{tenant.Name}' must start with {TestUser.Prefix} for test safety"
+                $"Workspace '{tenant.Name}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -476,12 +420,12 @@ public partial class TestControlController(
         LogStartingCount(request.Count);
 
         // Validate username has test prefix
-        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Username must have test prefix",
-                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+                $"Username '{username}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -507,12 +451,12 @@ public partial class TestControlController(
             );
         }
 
-        if (!tenant.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!tenant.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Workspace is not a test workspace",
-                $"Workspace '{tenant.Name}' must start with {TestUser.Prefix} for test safety"
+                $"Workspace '{tenant.Name}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -572,7 +516,7 @@ public partial class TestControlController(
         LogStarting();
 
         // Delete all test workspaces
-        var testTenants = await tenantFeature.GetTenantsByNamePrefixAsync(TestUser.Prefix);
+        var testTenants = await tenantFeature.GetTenantsByNamePrefixAsync(TestPrefix);
         var tenantKeys = testTenants.Select(t => t.Key).ToList();
         if (tenantKeys.Count > 0)
         {
@@ -581,7 +525,7 @@ public partial class TestControlController(
 
         // Delete all test users (reuse existing functionality)
         var testUsers = userManager.Users
-            .Where(u => u.UserName != null && u.UserName.Contains(TestUser.Prefix))
+            .Where(u => u.UserName != null && u.UserName.Contains(TestPrefix))
             .ToList();
 
         foreach (var user in testUsers)
@@ -614,12 +558,12 @@ public partial class TestControlController(
         LogStartingCount(workspaces.Count);
 
         // Validate username has test prefix
-        if (!username.StartsWith(TestUser.Prefix, StringComparison.Ordinal))
+        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Username must have test prefix",
-                $"Username '{username}' must start with {TestUser.Prefix} for test safety"
+                $"Username '{username}' must start with {TestPrefix} for test safety"
             );
         }
 
@@ -635,13 +579,13 @@ public partial class TestControlController(
         }
 
         // Validate all workspace names have test prefix
-        var invalidWorkspaces = workspaces.Where(w => !w.Name.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
+        var invalidWorkspaces = workspaces.Where(w => !w.Name.StartsWith(TestPrefix, StringComparison.Ordinal)).ToList();
         if (invalidWorkspaces.Count > 0)
         {
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "Invalid workspace names",
-                $"All workspace names must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}"
+                $"All workspace names must start with {TestPrefix}. Invalid: {string.Join(", ", invalidWorkspaces.Select(w => w.Name))}"
             );
         }
 
@@ -838,45 +782,31 @@ public partial class TestControlController(
     #region Helper Methods
 
     /// <summary>
-    /// Result of internal user creation operation.
-    /// </summary>
-    /// <param name="Credentials">The created user credentials if successful.</param>
-    /// <param name="Error">The error result if creation failed.</param>
-    private record UserCreationResult(
-        IReadOnlyCollection<TestUserCredentials>? Credentials,
-        ObjectResult? Error);
-
-    /// <summary>
     /// Internal helper method to create test users with validation and error handling.
     /// </summary>
-    /// <param name="usernames">Collection of usernames to create (must include __TEST__ prefix).</param>
-    /// <returns>A result containing either the created credentials or an error response.</returns>
-    private async Task<UserCreationResult> CreateUsersInternalAsync(IReadOnlyCollection<string> usernames)
+    /// <param name="usernames">Collection of usernames to create (__TEST__ prefix not required, will be added).</param>
+    /// <returns>A collection of created user credentials.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when user creation fails or user cannot be retrieved.</exception>
+    private async Task<IReadOnlyCollection<TestUserCredentials>> CreateUsersInternalAsync(IReadOnlyCollection<string> usernames)
     {
-        // Validate all usernames have test prefix
-        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestUser.Prefix, StringComparison.Ordinal)).ToList();
-        if (invalidUsernames.Count > 0)
-        {
-            return new UserCreationResult(
-                null,
-                ProblemWithLog(
-                    StatusCodes.Status403Forbidden,
-                    "Invalid usernames",
-                    $"All usernames must start with {TestUser.Prefix}. Invalid: {string.Join(", ", invalidUsernames)}"
-                )
-            );
-        }
+        // Choose a unique suffix for this run to avoid collisions
+        var runSuffix = Guid.NewGuid().ToString("N")[..8];
 
         var credentials = new List<TestUserCredentials>();
-
         foreach (var username in usernames)
         {
-            var email = $"{username}@test.com";
-            var password = Convert.ToBase64String(Guid.NewGuid().ToByteArray())[..12] + "!1";
+            // Add __TEST__ prefix if not present
+            var finalUsername = username.StartsWith(TestPrefix, StringComparison.Ordinal) ? username : TestPrefix + username;
+            finalUsername += "_" + runSuffix;
+
+            var email = $"{finalUsername}@test.com";
+
+            // Generate a secure random password
+            var password = GenerateSecurePassword(16);
 
             var identityUser = new IdentityUser
             {
-                UserName = username,
+                UserName = finalUsername,
                 Email = email,
                 EmailConfirmed = true // Auto-approve for test users
             };
@@ -885,38 +815,71 @@ public partial class TestControlController(
 
             if (!result.Succeeded)
             {
-                return new UserCreationResult(
-                    null,
-                    ProblemWithLog(
-                        StatusCodes.Status403Forbidden,
-                        $"Unable to create user {username}",
-                        string.Join("; ", result.Errors.Select(e => e.Description))
-                    )
-                );
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                LogError($"Unable to create user {username}: {errors}");
+                throw new InvalidOperationException($"Unable to create user {username}: {errors}");
             }
 
             // Get the created user to obtain the GUID
             var createdUser = await userManager.FindByNameAsync(username);
             if (createdUser?.Id == null)
             {
-                return new UserCreationResult(
-                    null,
-                    ProblemWithLog(
-                        StatusCodes.Status500InternalServerError,
-                        $"Unable to retrieve created user {username}"
-                    )
-                );
+                LogError($"Unable to retrieve created user {username}");
+                throw new InvalidOperationException($"Unable to retrieve created user {username}");
             }
 
             credentials.Add(new TestUserCredentials(
                 Id: Guid.Parse(createdUser.Id),
-                Username: username,
+                ShortName: username,
+                Username: finalUsername,
                 Email: email,
                 Password: password
             ));
         }
 
-        return new UserCreationResult(credentials, null);
+        return credentials;
+    }
+
+    /// <summary>
+    /// Generates a cryptographically secure random password.
+    /// </summary>
+    /// <param name="length">The desired password length (minimum 12).</param>
+    /// <returns>A secure random password containing uppercase, lowercase, digits, and special characters.</returns>
+    private static string GenerateSecurePassword(int length = 16)
+    {
+        if (length < 12)
+        {
+            length = 12;
+        }
+
+        const string uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const string digits = "0123456789";
+        const string special = "!@#$%^&*";
+        const string allChars = uppercase + lowercase + digits + special;
+
+        var password = new char[length];
+
+        // Ensure at least one character from each category
+        password[0] = uppercase[RandomNumberGenerator.GetInt32(uppercase.Length)];
+        password[1] = lowercase[RandomNumberGenerator.GetInt32(lowercase.Length)];
+        password[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+        password[3] = special[RandomNumberGenerator.GetInt32(special.Length)];
+
+        // Fill the rest with random characters from all categories
+        for (int i = 4; i < length; i++)
+        {
+            password[i] = allChars[RandomNumberGenerator.GetInt32(allChars.Length)];
+        }
+
+        // Shuffle the password to avoid predictable pattern
+        for (int i = length - 1; i > 0; i--)
+        {
+            int j = RandomNumberGenerator.GetInt32(i + 1);
+            (password[i], password[j]) = (password[j], password[i]);
+        }
+
+        return new string(password);
     }
 
     /// <summary>

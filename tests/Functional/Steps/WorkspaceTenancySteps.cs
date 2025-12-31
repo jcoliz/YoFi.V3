@@ -120,9 +120,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// </summary>
     /// <param name="usersTable">DataTable containing user names (single column).</param>
     /// <remarks>
-    /// Adds __TEST__ prefix to all usernames before API calls. Clears all existing
-    /// test data first to ensure clean state. Stores full credentials in _userCredentials
-    /// dictionary using prefixed usernames as keys.
+    /// Clears all existing test data first to ensure clean state. Stores full credentials in _userCredentials
+    /// dictionary using raw usernames as keys.
     /// </remarks>
     [Given("these users exist")]
     protected async Task GivenTheseUsersExist(DataTable usersTable)
@@ -130,38 +129,31 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         // Clear existing users and workspaces to avoid conflicts
         await testControlClient.DeleteAllTestDataAsync();
 
-        // Add __TEST__ prefix to usernames before API call
-        var usernames = usersTable.ToSingleColumnList()
-            .Select(AddTestPrefix)
-            .ToList();
+        var usernames = usersTable.ToSingleColumnList().ToList();
+        var credentials = await testControlClient.CreateUsersAsync(usernames);
 
-        var credentials = await testControlClient.CreateBulkUsersAsync(usernames);
-
-        // Store with FULL username (what test controller returns)
+        // Store with given username (what's in the datatable)
         foreach (var cred in credentials)
         {
-            _userCredentials[cred.Username] = cred;
+            _userCredentials[cred.ShortName] = cred;
         }
     }
 
     /// <summary>
     /// Logs in as the specified user.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to match stored credentials. Navigates to login page,
     /// performs login, waits for redirect, and stores full username in object store.
     /// Requires user to have been created in Background section.
     /// </remarks>
     [Given("I am logged in as {username}")]
-    protected async Task GivenIAmLoggedInAs(string username)
+    protected async Task GivenIAmLoggedInAs(string shortName)
     {
-        // Add __TEST__ prefix to match stored credentials
-        var fullUsername = AddTestPrefix(username);
-
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         var loginPage = new LoginPage(Page);
@@ -173,13 +165,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         await Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
 
         // Store FULL username for future reference
-        _objectStore.Add(KEY_LOGGED_IN_AS, fullUsername);
+        _objectStore.Add(KEY_LOGGED_IN_AS, cred.Username);
     }
 
     /// <summary>
     /// Creates a workspace owned by the specified user.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to both username and workspace name. Creates workspace
@@ -188,14 +180,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// </remarks>
     [Given("{username} owns a workspace called {workspaceName}")]
     [Given("{username} owns {workspaceName}")]
-    protected async Task GivenUserOwnsAWorkspaceCalled(string username, string workspaceName)
+    protected async Task GivenUserOwnsAWorkspaceCalled(string shortName, string workspaceName)
     {
-        var fullUsername = AddTestPrefix(username);
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         var request = new WorkspaceCreateRequest
@@ -208,11 +199,11 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         TenantResultDto? result;
         try
         {
-            result = await testControlClient.CreateWorkspaceForUserAsync(fullUsername, request);
+            result = await testControlClient.CreateWorkspaceForUserAsync(cred.Username, request);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating workspace '{fullWorkspaceName}' for user '{fullUsername}': {ex.Message}");
+            Console.WriteLine($"Error creating workspace '{fullWorkspaceName}' for user '{cred.Username}': {ex.Message}");
             throw;
         }
 
@@ -221,26 +212,24 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
     }
 
     /// <summary>
     /// Sets up multiple workspaces with specified roles for a user.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <param name="workspacesTable">DataTable with columns: Workspace Name, My Role.</param>
     /// <remarks>
     /// Adds __TEST__ prefix to username and all workspace names. Creates workspaces
     /// via bulk setup API. Stores all workspace keys and sets pending user context.
     /// </remarks>
     [Given("{username} has access to these workspaces:")]
-    protected async Task GivenUserHasAccessToTheseWorkspaces(string username, DataTable workspacesTable)
+    protected async Task GivenUserHasAccessToTheseWorkspaces(string shortName, DataTable workspacesTable)
     {
-        var fullUsername = AddTestPrefix(username);
-
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         // Add __TEST__ prefix to workspace names before API call
@@ -251,7 +240,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
             Role = row["My Role"]
         }).ToList();
 
-        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, requests);
+        var results = await testControlClient.BulkWorkspaceSetupAsync(cred.Username, requests);
 
         // Store with FULL workspace names (what API returns)
         foreach (var result in results)
@@ -260,27 +249,26 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         }
 
         // Store pending user context for steps that need it before login
-        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
     }
 
     /// <summary>
     /// Grants a user access to a workspace with Viewer role (default minimum access).
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
     /// setup API with Viewer role. Stores workspace key and sets pending user context.
     /// </remarks>
     [Given("{username} has access to {workspaceName}")]
-    protected async Task GivenUserHasAccessTo(string username, string workspaceName)
+    protected async Task GivenUserHasAccessTo(string shortName, string workspaceName)
     {
-        var fullUsername = AddTestPrefix(username);
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         var request = new WorkspaceSetupRequest
@@ -290,20 +278,20 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
             Role = "Viewer" // Default to minimum access level
         };
 
-        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var results = await testControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
 
         // Store with FULL workspace name (what API returns)
         _workspaceKeys[result.Name] = result.Key;
 
         // Store pending user context for steps that need it before login
-        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
     }
 
     /// <summary>
     /// Grants a user Editor role access to a workspace.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
@@ -311,14 +299,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// and sets pending user context.
     /// </remarks>
     [Given("{username} can edit data in {workspaceName}")]
-    protected async Task GivenUserCanEditDataIn(string username, string workspaceName)
+    protected async Task GivenUserCanEditDataIn(string shortName, string workspaceName)
     {
-        var fullUsername = AddTestPrefix(username);
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         var request = new WorkspaceSetupRequest
@@ -328,7 +315,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
             Role = "Editor"
         };
 
-        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var results = await testControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
         _workspaceKeys[result.Name] = result.Key;
 
@@ -336,13 +323,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
     }
 
     /// <summary>
     /// Grants a user Viewer role access to a workspace.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
@@ -350,14 +337,13 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// and sets pending user context.
     /// </remarks>
     [Given("{username} can view data in {workspaceName}")]
-    protected async Task GivenUserCanViewDataIn(string username, string workspaceName)
+    protected async Task GivenUserCanViewDataIn(string shortName, string workspaceName)
     {
-        var fullUsername = AddTestPrefix(username);
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        if (!_userCredentials.TryGetValue(fullUsername, out var cred))
+        if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
-            throw new InvalidOperationException($"User '{fullUsername}' credentials not found. Ensure user was created in Background.");
+            throw new InvalidOperationException($"User '{shortName}' credentials not found. Ensure user was created in Background.");
         }
 
         var request = new WorkspaceSetupRequest
@@ -367,7 +353,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
             Role = "Viewer"
         };
 
-        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var results = await testControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
         _workspaceKeys[result.Name] = result.Key;
 
@@ -375,30 +361,28 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _objectStore.Add(KEY_PENDING_USER_CONTEXT, fullUsername);
+        _objectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
     }
 
     /// <summary>
     /// Creates a workspace owned by a different user to test access denial.
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
-    /// <param name="username">The username that should NOT have access (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username that should NOT have access (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to both parameters. Finds a different user from
     /// _userCredentials and creates the workspace for them. Used to test scenarios
     /// where a user attempts to access workspaces they don't own.
     /// </remarks>
     [Given("there is a workspace called {workspaceName} that {username} doesn't have access to")]
-    protected async Task GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo(string workspaceName, string username)
+    protected async Task GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo(string workspaceName, string shortName)
     {
-        var fullUsername = AddTestPrefix(username);
-
         // Get a different user from the credentials dictionary (not the specified user)
-        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Key != fullUsername);
+        var otherUser = _userCredentials.FirstOrDefault(kvp => kvp.Key != shortName);
 
         if (otherUser.Key == null)
         {
-            throw new InvalidOperationException($"No other test users available besides '{fullUsername}'. Need at least one user besides the specified user.");
+            throw new InvalidOperationException($"No other test users available besides '{shortName}'. Need at least one user besides the specified user.");
         }
 
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -407,7 +391,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         var request = new WorkspaceCreateRequest
         {
             Name = fullWorkspaceName,
-            Description = $"Test workspace (no access for {username}): {workspaceName}",
+            Description = $"Test workspace (no access for {shortName}): {workspaceName}",
             Role = "Owner"
         };
 
@@ -463,12 +447,11 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         {
             var workspaceName = row["Workspace Name"];
             var owner = row["Owner"];
-            var fullOwnerUsername = AddTestPrefix(owner);
             var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-            if (!_userCredentials.ContainsKey(fullOwnerUsername))
+            if (!_userCredentials.ContainsKey(owner))
             {
-                throw new InvalidOperationException($"Owner '{fullOwnerUsername}' credentials not found.");
+                throw new InvalidOperationException($"Owner '{owner}' credentials not found.");
             }
 
             var request = new WorkspaceCreateRequest
@@ -478,7 +461,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
                 Role = "Owner"
             };
 
-            var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[fullOwnerUsername].Username, request);
+            var result = await testControlClient.CreateWorkspaceForUserAsync(_userCredentials[owner].Username, request);
 
             // Store with FULL workspace name (what API returns)
             _workspaceKeys[result.Name] = result.Key;
@@ -492,17 +475,22 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// <summary>
     /// Registers a new user and logs them in.
     /// </summary>
-    /// <param name="username">The username (without __TEST__ prefix).</param>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix, generates credentials, navigates to registration page,
     /// completes registration, stores credentials, and performs login. New users
     /// automatically get a personalized workspace named after their username.
     /// </remarks>
     [When("a new user {username} registers and logs in")]
-    protected async Task WhenANewUserRegistersAndLogsIn(string username)
+    protected async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
+        // TODO: Harmonize this with CommonWhenSteps.RegisterNewUserAsync()
+        // Use at least the same scheme for generating usernames/passwords
+
         // Add __TEST__ prefix
-        var fullUsername = AddTestPrefix(username);
+        // TODO: Need an isolating prefix for registration to avoid conflicts with parallel tests
+        // Who might be using the same username
+        var fullUsername = AddTestPrefix(shortName);
 
         // Generate a unique email and password for the new user
         var email = $"{fullUsername}@test.local";
@@ -514,8 +502,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         await registerPage.RegisterAsync(email, fullUsername, password);
 
-        // Store credentials with FULL username
-        _userCredentials[fullUsername] = new TestUserCredentials { Username = fullUsername, Email = email, Password = password };
+        // Store credentials with short username as key
+        _userCredentials[shortName] = new TestUserCredentials { ShortName = shortName, Username = fullUsername, Email = email, Password = password };
 
         // New users get a workspace with their name
         _objectStore.Add(KEY_CURRENT_WORKSPACE, fullUsername);
@@ -1470,7 +1458,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
         }
 
         // Return the FULL username (key in dictionary already has prefix)
-        return firstUser.Key;
+        return firstUser.Value.Username;
     }
 
     #endregion

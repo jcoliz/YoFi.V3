@@ -52,12 +52,11 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
 
         // And: Create user context for an Editor user
         var username = "editor-user";
-        var fullUsername = AddTestPrefix(username);
 
         // And: Create the user first
-        var userCredentials = await testControlClient.CreateBulkUsersAsync(new[] { fullUsername });
+        var userCredentials = await testControlClient.CreateUsersAsync(new[] { username });
         var credentials = userCredentials.First();
-        _userCredentials[fullUsername] = credentials;
+        _userCredentials[credentials.ShortName] = credentials;
 
         // And: Create the workspace for the user via test control API
         var workspaceName = "Test Workspace";
@@ -70,7 +69,7 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
             Role = "Editor"
         };
 
-        var results = await testControlClient.BulkWorkspaceSetupAsync(fullUsername, new[] { request });
+        var results = await testControlClient.BulkWorkspaceSetupAsync(credentials.Username, new[] { request });
         var result = results.First();
 
         // And: Store workspace key
