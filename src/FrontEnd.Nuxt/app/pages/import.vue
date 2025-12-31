@@ -10,9 +10,11 @@ import {
   ImportClient,
   TenantRole,
   DuplicateStatus,
+  SetSelectionRequest,
   type PaginatedResultDtoOfImportReviewTransactionDto,
   type ImportReviewUploadDto,
   type ImportReviewCompleteDto,
+  type ImportReviewSummaryDto,
   type IProblemDetails,
   type FileParameter,
 } from '~/utils/apiclient'
@@ -44,9 +46,9 @@ const showStatusPane = ref(false)
 const statusVariant = ref<'info' | 'warning' | 'success' | 'danger'>('info')
 
 // State - Transaction Review
-const paginatedResult = ref<PaginatedResultDtoOfImportReviewTransactionDto | null>(null)
+const paginatedResult = ref<PaginatedResultDtoOfImportReviewTransactionDto | undefined>(undefined)
 const transactions = computed(() => paginatedResult.value?.items || [])
-const selectedKeys = ref<Set<string>>(new Set())
+const summary = ref<ImportReviewSummaryDto | undefined>(undefined)
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
@@ -54,7 +56,7 @@ const showError = ref(false)
 // State - Modals
 const showSuccessModal = ref(false)
 const showDeleteModal = ref(false)
-const importResult = ref<ImportReviewCompleteDto | null>(null)
+const importResult = ref<ImportReviewCompleteDto | undefined>(undefined)
 
 // State - Pagination
 const currentPage = ref(1)
@@ -71,26 +73,19 @@ const canImport = computed(() => {
 
 // Computed - Transaction States
 const hasTransactions = computed(() => transactions.value.length > 0)
-const hasSelections = computed(() => selectedKeys.value.size > 0)
+const hasSelections = computed(() => (summary.value?.selectedCount ?? 0) > 0)
 const hasPotentialDuplicates = computed(() => {
   return transactions.value.some((t) => t.duplicateStatus === DuplicateStatus.PotentialDuplicate)
-})
-
-// Session Storage Key
-const sessionStorageKey = computed(() => {
-  if (!currentTenantKey.value) return null
-  return `import-review-selections-${currentTenantKey.value}`
 })
 
 // Watch for workspace changes
 watch(currentTenantKey, async (newKey) => {
   if (newKey) {
     await loadPendingReview()
-    restoreSelections()
+    await loadSummary()
   } else {
-    paginatedResult.value = null
-    selectedKeys.value.clear()
-    clearSessionStorage()
+    paginatedResult.value = undefined
+    summary.value = undefined
   }
 })
 
@@ -100,7 +95,7 @@ onMounted(async () => {
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value && canImport.value) {
     await loadPendingReview()
-    restoreSelections()
+    await loadSummary()
   }
 })
 
@@ -132,12 +127,6 @@ async function loadPendingReview(pageNumber: number = 1) {
       currentTenantKey.value,
     )
     currentPage.value = pageNumber
-
-    // Set default selections if this is first load
-    if (pageNumber === 1 && selectedKeys.value.size === 0) {
-      setDefaultSelections()
-      saveSelectionsToStorage()
-    }
   } catch (err) {
     error.value = handleApiError(err, 'Load Failed', 'Failed to load pending imports')
     showError.value = true
@@ -147,62 +136,24 @@ async function loadPendingReview(pageNumber: number = 1) {
 }
 
 /**
+ * Load summary statistics from API
+ */
+async function loadSummary() {
+  if (!currentTenantKey.value) return
+
+  try {
+    summary.value = await importClient.getReviewSummary(currentTenantKey.value)
+  } catch (err) {
+    error.value = handleApiError(err, 'Load Summary Failed', 'Failed to load import summary')
+    showError.value = true
+  }
+}
+
+/**
  * Handle page change from PaginationBar
  */
 function handlePageChange(pageNumber: number) {
   loadPendingReview(pageNumber)
-}
-
-/**
- * Set default selections: select New, deselect duplicates
- */
-function setDefaultSelections() {
-  transactions.value.forEach((transaction) => {
-    if (transaction.duplicateStatus === DuplicateStatus.New) {
-      selectedKeys.value.add(transaction.key!)
-    }
-  })
-}
-
-/**
- * Save selections to session storage
- */
-function saveSelectionsToStorage() {
-  if (!sessionStorageKey.value) return
-  try {
-    const keys = Array.from(selectedKeys.value)
-    sessionStorage.setItem(sessionStorageKey.value, JSON.stringify(keys))
-  } catch (err) {
-    console.warn('Failed to save selections to session storage:', err)
-  }
-}
-
-/**
- * Restore selections from session storage
- */
-function restoreSelections() {
-  if (!sessionStorageKey.value) return
-  try {
-    const stored = sessionStorage.getItem(sessionStorageKey.value)
-    if (stored) {
-      const keys = JSON.parse(stored) as string[]
-      selectedKeys.value = new Set(keys)
-    }
-  } catch (err) {
-    console.warn('Failed to restore selections from session storage:', err)
-  }
-}
-
-/**
- * Clear session storage
- */
-function clearSessionStorage() {
-  if (!sessionStorageKey.value) return
-  try {
-    sessionStorage.removeItem(sessionStorageKey.value)
-  } catch (err) {
-    console.warn('Failed to clear session storage:', err)
-  }
 }
 
 /**
@@ -281,15 +232,13 @@ async function uploadFiles() {
 
     // Reload pending review to show newly imported transactions
     await loadPendingReview(1)
+    await loadSummary()
 
     // Restore error state after loadPendingReview (which clears it)
     if (hasUploadError && uploadError) {
       error.value = uploadError
       showError.value = true
     }
-
-    setDefaultSelections()
-    saveSelectionsToStorage()
 
     // Clear file selection
     selectedFiles.value = []
@@ -309,30 +258,82 @@ function handleCloseStatusPane() {
 /**
  * Handle individual checkbox toggle
  */
-function handleToggleSelection(key: string) {
-  if (selectedKeys.value.has(key)) {
-    selectedKeys.value.delete(key)
-  } else {
-    selectedKeys.value.add(key)
+async function handleToggleSelection(key: string) {
+  if (!currentTenantKey.value) return
+
+  loading.value = true
+  error.value = undefined
+  showError.value = false
+
+  try {
+    // Get current selection state from transaction
+    const transaction = transactions.value.find((t) => t.key === key)
+    if (!transaction) return
+
+    // Toggle selection via API
+    const request = new SetSelectionRequest({
+      keys: [key],
+      isSelected: !transaction.isSelected,
+    })
+    await importClient.setSelection(currentTenantKey.value, request)
+
+    // Refresh current page and summary
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
+  } catch (err) {
+    error.value = handleApiError(err, 'Selection Failed', 'Failed to update transaction selection')
+    showError.value = true
+  } finally {
+    loading.value = false
   }
-  saveSelectionsToStorage()
 }
 
 /**
- * Handle "select all" checkbox toggle (for current page)
+ * Handle Select All button click
  */
-function handleToggleAll() {
-  const currentPageKeys = transactions.value.map((t) => t.key!)
-  const allSelected = currentPageKeys.every((key) => selectedKeys.value.has(key))
+async function handleSelectAll() {
+  if (!currentTenantKey.value) return
 
-  if (allSelected) {
-    // Deselect all on current page
-    currentPageKeys.forEach((key) => selectedKeys.value.delete(key))
-  } else {
-    // Select all on current page
-    currentPageKeys.forEach((key) => selectedKeys.value.add(key))
+  loading.value = true
+  error.value = undefined
+  showError.value = false
+
+  try {
+    await importClient.selectAll(currentTenantKey.value)
+
+    // Refresh current page and summary
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
+  } catch (err) {
+    error.value = handleApiError(err, 'Select All Failed', 'Failed to select all transactions')
+    showError.value = true
+  } finally {
+    loading.value = false
   }
-  saveSelectionsToStorage()
+}
+
+/**
+ * Handle Deselect All button click
+ */
+async function handleDeselectAll() {
+  if (!currentTenantKey.value) return
+
+  loading.value = true
+  error.value = undefined
+  showError.value = false
+
+  try {
+    await importClient.deselectAll(currentTenantKey.value)
+
+    // Refresh current page and summary
+    await loadPendingReview(currentPage.value)
+    await loadSummary()
+  } catch (err) {
+    error.value = handleApiError(err, 'Deselect All Failed', 'Failed to deselect all transactions')
+    showError.value = true
+  } finally {
+    loading.value = false
+  }
 }
 
 /**
@@ -340,28 +341,24 @@ function handleToggleAll() {
  */
 async function handleImport() {
   if (!currentTenantKey.value) return
-  if (selectedKeys.value.size === 0) return
+  if (!hasSelections.value) return
 
   loading.value = true
   error.value = undefined
   showError.value = false
 
   try {
-    const keysArray = Array.from(selectedKeys.value)
+    // Call completeReview with NO parameters - server reads IsSelected from database
     const result: ImportReviewCompleteDto = await importClient.completeReview(
       currentTenantKey.value,
-      keysArray,
     )
 
     // Store result for modal display
     importResult.value = result
 
-    // Clear selections and session storage
-    selectedKeys.value.clear()
-    clearSessionStorage()
-
-    // Reload pending review
+    // Reload pending review and summary
     await loadPendingReview(1)
+    await loadSummary()
 
     // Show success modal
     showSuccessModal.value = true
@@ -401,12 +398,9 @@ async function confirmDeleteAll() {
   try {
     await importClient.deleteAllPendingReview(currentTenantKey.value)
 
-    // Clear selections and session storage
-    selectedKeys.value.clear()
-    clearSessionStorage()
-
-    // Reload pending review (should be empty now)
+    // Reload pending review (should be empty now) and summary
     await loadPendingReview(1)
+    await loadSummary()
 
     // Close modal
     showDeleteModal.value = false
@@ -530,25 +524,46 @@ async function confirmDeleteAll() {
             <!-- Duplicates Alert -->
             <ImportDuplicatesAlert :show="hasPotentialDuplicates" />
 
-            <!-- Action Buttons -->
-            <ImportActionButtons
-              :has-transactions="hasTransactions"
-              :has-selections="hasSelections"
-              :loading="loading"
-              :uploading="uploadInProgress"
-              class="mb-3 d-flex justify-content-end"
-              @import="handleImport"
-              @delete-all="handleDeleteAll"
-            />
+            <!-- Selection Action Buttons -->
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+              <div class="btn-group">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-test-id="select-all-button"
+                  :disabled="loading || uploadInProgress"
+                  @click="handleSelectAll"
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-test-id="deselect-all-button"
+                  :disabled="loading || uploadInProgress"
+                  @click="handleDeselectAll"
+                >
+                  Deselect All
+                </button>
+              </div>
+
+              <!-- Action Buttons -->
+              <ImportActionButtons
+                :has-transactions="hasTransactions"
+                :has-selections="hasSelections"
+                :loading="loading"
+                :uploading="uploadInProgress"
+                @import="handleImport"
+                @delete-all="handleDeleteAll"
+              />
+            </div>
 
             <!-- Transaction Table with Loading Overlay -->
             <div style="position: relative; min-height: 200px">
               <ImportReviewTable
                 :transactions="transactions"
-                :selected-keys="selectedKeys"
                 :loading="loading"
                 @toggle-selection="handleToggleSelection"
-                @toggle-all="handleToggleAll"
               />
               <!-- Loading Overlay for Pagination -->
               <div

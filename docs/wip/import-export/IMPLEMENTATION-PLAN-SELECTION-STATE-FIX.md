@@ -302,7 +302,7 @@ Follow [`docs/wip/IMPLEMENTATION-WORKFLOW.md`](../IMPLEMENTATION-WORKFLOW.md) fo
 
 **Instructions:**
 
-> Implement frontend import page per [`DESIGN-BANK-IMPORT-FRONTEND.md`](DESIGN-BANK-IMPORT-FRONTEND.md). **CRITICAL:** Remove all session storage code. Use server-side state from API. Add `data-test-id` to all interactive elements.
+> Update frontend import page. Overall design in [`DESIGN-BANK-IMPORT-FRONTEND.md`](DESIGN-BANK-IMPORT-FRONTEND.md). We are fixing [docs\wip\import-export\IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md](IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) in the frontend. **CRITICAL:** Remove all session storage code. Use server-side state from API. Add `data-test-id` to all interactive elements.
 
 **Checklist:**
 - [ ] Review `src/FrontEnd.Nuxt/.roorules` for patterns
@@ -318,6 +318,7 @@ Follow [`docs/wip/IMPLEMENTATION-WORKFLOW.md`](../IMPLEMENTATION-WORKFLOW.md) fo
 - [ ] Format: `pnpm format` (from FrontEnd.Nuxt/)
 - [ ] Lint: `pnpm lint` (from FrontEnd.Nuxt/)
 - [ ] Build: `pnpm run build` (from FrontEnd.Nuxt/)
+- [ ] Create a commit message for this change, under 100 words
 
 **Key implementation notes:**
 - **NO local state tracking** - Render from API response

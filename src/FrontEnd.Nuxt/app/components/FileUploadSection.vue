@@ -81,7 +81,7 @@ const handleFileChange = (event: Event) => {
       :disabled="disabled"
       data-test-id="file-input"
       @change="handleFileChange"
-    >
+    />
   </div>
 </template>
 

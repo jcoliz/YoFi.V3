@@ -4,16 +4,15 @@
  *
  * Import-specific transaction review table with checkbox selection.
  * Displays transactions with duplicate status highlighting and supports
- * individual and bulk selection for import approval.
+ * individual selection for import approval.
+ * Uses server-side selection state from transaction.isSelected property.
  *
  * Props:
- * - transactions: ImportReviewTransactionDto[] - Transactions to display
- * - selectedKeys: Set<string> - Set of selected transaction keys
+ * - transactions: ImportReviewTransactionDto[] - Transactions to display (includes isSelected)
  * - loading: boolean - Loading state for the table
  *
  * Events:
  * - @toggleSelection(key: string) - Emitted when individual checkbox toggled
- * - @toggleAll() - Emitted when header checkbox (select all) toggled
  */
 
 import type { ImportReviewTransactionDto } from '~/utils/apiclient'
@@ -21,19 +20,17 @@ import { DuplicateStatus } from '~/utils/apiclient'
 
 interface Props {
   transactions?: ImportReviewTransactionDto[]
-  selectedKeys?: Set<string>
   loading?: boolean
 }
 
+// eslint-disable-next-line no-unused-vars
 const props = withDefaults(defineProps<Props>(), {
   transactions: () => [],
-  selectedKeys: () => new Set<string>(),
   loading: false,
 })
 
 const emit = defineEmits<{
   toggleSelection: [key: string]
-  toggleAll: []
 }>()
 
 /**
@@ -44,41 +41,10 @@ const isPotentialDuplicate = (transaction: ImportReviewTransactionDto): boolean 
 }
 
 /**
- * Checks if a transaction is selected
- */
-const isSelected = (key: string): boolean => {
-  return props.selectedKeys.has(key)
-}
-
-/**
- * Checks if all visible transactions are selected
- */
-const allSelected = computed(() => {
-  if (props.transactions.length === 0) return false
-  return props.transactions.every((t) => props.selectedKeys.has(t.key!))
-})
-
-/**
- * Checks if some (but not all) transactions are selected
- */
-const someSelected = computed(() => {
-  if (props.transactions.length === 0) return false
-  const selectedCount = props.transactions.filter((t) => props.selectedKeys.has(t.key!)).length
-  return selectedCount > 0 && selectedCount < props.transactions.length
-})
-
-/**
  * Handles individual checkbox toggle
  */
 const handleToggle = (key: string) => {
   emit('toggleSelection', key)
-}
-
-/**
- * Handles "select all" checkbox toggle
- */
-const handleToggleAll = () => {
-  emit('toggleAll')
 }
 
 /**
@@ -132,14 +98,12 @@ const formatDate = (date: Date): string => {
         <thead>
           <tr>
             <th style="width: 50px">
-              <input
-                type="checkbox"
-                class="form-check-input"
-                data-test-id="select-all-checkbox"
-                :checked="allSelected"
-                :indeterminate="someSelected"
-                @change="handleToggleAll"
-              />
+              <span
+                class="text-muted"
+                title="Selection managed via action buttons"
+              >
+                <i class="bi bi-check-square"></i>
+              </span>
             </th>
             <th style="width: 120px">Date</th>
             <th>Payee</th>
@@ -164,7 +128,7 @@ const formatDate = (date: Date): string => {
                 type="checkbox"
                 class="form-check-input"
                 :data-test-id="`select-checkbox-${transaction.key}`"
-                :checked="isSelected(transaction.key!)"
+                :checked="transaction.isSelected"
                 @change="handleToggle(transaction.key!)"
               />
             </td>
