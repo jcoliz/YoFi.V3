@@ -463,24 +463,19 @@ export class ImportClient {
     }
 
     /**
-     * Completes the import review by accepting selected transactions and deleting all pending review transactions.
-     * @param keys The collection of transaction keys to accept (import into main transaction table).
+     * Completes the import review by accepting selected transactions (IsSelected = true) and deleting all pending review transactions.
      * @return Result indicating the number of transactions accepted and rejected.
      */
-    completeReview(tenantKey: string, keys: string[]): Promise<ImportReviewCompleteDto> {
+    completeReview(tenantKey: string): Promise<ImportReviewCompleteDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/review/complete";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(keys);
-
         let options_: RequestInit = {
-            body: content_,
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
@@ -499,13 +494,6 @@ export class ImportClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = ImportReviewCompleteDto.fromJS(resultData200);
             return result200;
-            });
-        } else if (status === 400) {
-            return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
         } else if (status === 401) {
             return response.text().then((_responseText) => {

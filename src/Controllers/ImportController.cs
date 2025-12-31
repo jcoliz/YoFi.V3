@@ -98,25 +98,21 @@ public partial class ImportController(
     }
 
     /// <summary>
-    /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
+    /// Completes the import review by accepting selected transactions (IsSelected = true) and deleting all pending review transactions.
     /// </summary>
-    /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
     /// <returns>Result indicating the number of transactions accepted and rejected.</returns>
+    /// <remarks>
+    /// Selection state is managed server-side via the IsSelected database column.
+    /// This endpoint queries ALL transactions where IsSelected = true (across all pages), accepts them,
+    /// and then deletes ALL pending review transactions to complete the workflow.
+    /// </remarks>
     [HttpPost("review/complete")]
     [ProducesResponseType(typeof(ImportReviewCompleteDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CompleteReview([FromBody] IReadOnlyCollection<Guid> keys)
+    public async Task<IActionResult> CompleteReview()
     {
-        LogStartingCount(keys.Count);
+        LogStarting();
 
-        // Validate keys collection is provided
-        if (keys == null || keys.Count == 0)
-        {
-            LogValidationError("At least one transaction key must be provided");
-            throw new ValidationException(nameof(keys), "At least one transaction key must be provided.");
-        }
-
-        var result = await importReviewFeature.CompleteReviewAsync(keys);
+        var result = await importReviewFeature.CompleteReviewAsync();
 
         LogCompleteReview(result.AcceptedCount, result.RejectedCount);
         return Ok(result);

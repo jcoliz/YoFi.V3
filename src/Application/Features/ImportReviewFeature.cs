@@ -114,7 +114,7 @@ public class ImportReviewFeature(
                     break;
             }
 
-            // Create ImportReviewTransaction entity
+            // Create ImportReviewTransaction entity with selection state based on duplicate status
             var importReviewTransaction = new ImportReviewTransaction
             {
                 TenantId = _currentTenant.Id,
@@ -125,7 +125,8 @@ public class ImportReviewFeature(
                 ExternalId = importDto.ExternalId,
                 Memo = importDto.Memo,
                 DuplicateStatus = status,
-                DuplicateOfKey = duplicateOfKey
+                DuplicateOfKey = duplicateOfKey,
+                IsSelected = (status == DuplicateStatus.New) // Only select new transactions by default
             };
 
             importReviewTransactions.Add(importReviewTransaction);
@@ -193,18 +194,22 @@ public class ImportReviewFeature(
     }
 
     /// <summary>
-    /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
+    /// Completes the import review by accepting selected transactions (IsSelected = true) and deleting all pending review transactions.
     /// </summary>
-    /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
     /// <returns>A <see cref="ImportReviewCompleteDto"/> with counts of accepted and rejected transactions.</returns>
-    public async Task<ImportReviewCompleteDto> CompleteReviewAsync(IReadOnlyCollection<Guid> keys)
+    /// <remarks>
+    /// Selection state is managed server-side and stored in the database IsSelected column.
+    /// This method queries ALL transactions where IsSelected = true (across all pages), accepts them,
+    /// and then deletes ALL pending review transactions to complete the workflow.
+    /// </remarks>
+    public async Task<ImportReviewCompleteDto> CompleteReviewAsync()
     {
         // Get total count before processing
         var totalCount = await dataProvider.CountAsync(GetTenantScopedQuery());
 
-        // Retrieve selected import review transactions by keys
+        // Retrieve selected import review transactions (IsSelected = true) from database
         var selectedQuery = GetBaseImportReviewQuery()
-            .Where(t => keys.Contains(t.Key));
+            .Where(t => t.IsSelected);
         var selectedTransactions = await dataProvider.ToListAsync(selectedQuery);
 
         // Convert to TransactionEditDto collection
@@ -367,5 +372,83 @@ public class ImportReviewFeature(
 
         var imports = await dataProvider.ToListNoTrackingAsync(query);
         return imports.ToDictionary(t => t.ExternalId!, t => t);
+    }
+
+    /// <summary>
+    /// Sets the selection state for the specified transaction(s).
+    /// </summary>
+    /// <param name="keys">Collection of transaction keys to update.</param>
+    /// <param name="isSelected">The desired selection state.</param>
+    public async Task SetSelectionAsync(IReadOnlyCollection<Guid> keys, bool isSelected)
+    {
+        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
+        // For now, use load/update pattern (acceptable for small batches)
+        var transactions = await dataProvider.ToListAsync(
+            GetTenantScopedQuery().Where(t => keys.Contains(t.Key))
+        );
+
+        foreach (var transaction in transactions)
+        {
+            transaction.IsSelected = isSelected;
+        }
+
+        await dataProvider.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Selects all pending import review transactions for the current tenant.
+    /// </summary>
+    public async Task SelectAllAsync()
+    {
+        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
+        // For now, use load/update pattern
+        var transactions = await dataProvider.ToListAsync(GetTenantScopedQuery());
+
+        foreach (var transaction in transactions)
+        {
+            transaction.IsSelected = true;
+        }
+
+        await dataProvider.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Deselects all pending import review transactions for the current tenant.
+    /// </summary>
+    public async Task DeselectAllAsync()
+    {
+        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
+        // For now, use load/update pattern
+        var transactions = await dataProvider.ToListAsync(GetTenantScopedQuery());
+
+        foreach (var transaction in transactions)
+        {
+            transaction.IsSelected = false;
+        }
+
+        await dataProvider.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Gets summary statistics for pending import review transactions.
+    /// </summary>
+    /// <returns>An <see cref="ImportReviewSummaryDto"/> containing counts of total, selected, and duplicate transactions.</returns>
+    public async Task<ImportReviewSummaryDto> GetSummaryAsync()
+    {
+        var query = GetTenantScopedQuery();
+
+        var totalCount = await dataProvider.CountAsync(query);
+        var selectedCount = await dataProvider.CountAsync(query.Where(t => t.IsSelected));
+        var newCount = await dataProvider.CountAsync(query.Where(t => t.DuplicateStatus == DuplicateStatus.New));
+        var exactDuplicateCount = await dataProvider.CountAsync(query.Where(t => t.DuplicateStatus == DuplicateStatus.ExactDuplicate));
+        var potentialDuplicateCount = await dataProvider.CountAsync(query.Where(t => t.DuplicateStatus == DuplicateStatus.PotentialDuplicate));
+
+        return new ImportReviewSummaryDto(
+            TotalCount: totalCount,
+            SelectedCount: selectedCount,
+            NewCount: newCount,
+            ExactDuplicateCount: exactDuplicateCount,
+            PotentialDuplicateCount: potentialDuplicateCount
+        );
     }
 }
