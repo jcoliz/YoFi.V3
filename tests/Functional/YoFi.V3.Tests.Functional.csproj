@@ -28,32 +28,13 @@
     <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <ApiClientGeneratedDir>$(BaseIntermediateOutputPath)Generated</ApiClientGeneratedDir>
-    <ApiClientOutputFile>$(ApiClientGeneratedDir)\ApiClient.cs</ApiClientOutputFile>
-    <ApiClientOutputFileFullPath>$(MSBuildProjectDirectory)\$(ApiClientOutputFile)</ApiClientOutputFileFullPath>
-    <ApiClientConfigFile>Api\nswag.json</ApiClientConfigFile>
-  </PropertyGroup>
+  <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
+       The generated file (Api/Generated/ApiClient.cs) is checked into source control.
+       Run the script manually when the API changes. -->
 
-  <Target Name="GenerateApiClient" BeforeTargets="CoreCompile">
-    <!-- Ensure output directory exists -->
-    <MakeDir Directories="$(ApiClientGeneratedDir)" />
-
-    <!-- Generate C# client from WireApiHost OpenAPI spec
-         Note: Pass full absolute path to avoid nswag.json relative path resolution issues
-         Pass Configuration variable so nswag.json can resolve $(Configuration) in the build path -->
-    <Exec WorkingDirectory="$(ProjectDir)"
-          Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:OutputFile=$(ApiClientOutputFileFullPath),Configuration=$(Configuration)" />
-
-    <!-- Include generated file in compilation -->
-    <ItemGroup>
-      <Compile Include="$(ApiClientOutputFile)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="CleanApiClient" BeforeTargets="CoreClean">
-    <!-- Remove generated API client file during clean -->
-    <Delete Files="$(ApiClientOutputFile)" Condition="Exists('$(ApiClientOutputFile)')" />
-  </Target>
+  <ItemGroup>
+    <!-- Include pre-generated API client in compilation -->
+    <Compile Include="Api\Generated\ApiClient.cs" />
+  </ItemGroup>
 
 </Project>

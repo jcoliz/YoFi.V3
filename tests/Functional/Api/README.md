@@ -1,42 +1,49 @@
-# Backend API Client
+# API Client Generation
 
-This folder contains the configuration for generating the C# API client used by functional tests.
-
-## How It Works
-
-The C# API client is automatically generated during the test project build process:
-
-1. **NSwag Configuration**: [`nswag.json`](nswag.json) defines how to generate the C# client from the backend's OpenAPI specification
-2. **MSBuild Integration**: The project file ([`../YoFi.V3.Tests.Functional.csproj`](../YoFi.V3.Tests.Functional.csproj)) includes MSBuild targets that:
-   - Run NSwag before compilation to generate `ApiClient.cs`
-   - Place the generated file in `obj/Generated/ApiClient.cs` (not in source control)
-   - Clean up the generated file during build clean operations
-
-## Generated Files
-
-- **Location**: `tests/Functional/obj/Generated/ApiClient.cs`
-- **Namespace**: `YoFi.V3.Tests.Functional.Generated`
-- **Source Control**: NOT checked in (lives only in obj directory)
-
-## Regenerating the Client
-
-The client is automatically regenerated whenever you:
-- Build the Functional tests project
-- Rebuild the solution
-
-You don't need to manually regenerate the C# client - it happens automatically.
+This directory contains the NSwag configuration for generating the C# API client used by functional tests.
 
 ## Configuration
 
-If you need to modify the C# client generation:
-1. Edit [`nswag.json`](nswag.json) in this directory
-2. Rebuild the test project to regenerate with new settings
+- [`nswag.json`](nswag.json) - NSwag configuration for C# client generation
+- Output: [`Generated/ApiClient.cs`](Generated/ApiClient.cs) (checked into source control)
 
-## Technical Details
+## Generation Process
 
-This implementation uses:
-- **NSwag.MSBuild** package for client generation
-- **MSBuild targets** (`GenerateApiClient` and `CleanApiClient`) for build integration
-- **`$(BaseIntermediateOutputPath)`** to place generated file in `obj/` directory
+**IMPORTANT**: API client generation is now **manual** to avoid rebuilding on every test run.
 
-See [`docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md`](../../../docs/wip/functional-tests/API-CLIENT-GENERATION-IMPROVEMENT.md) for the complete implementation details.
+The generated file is checked into source control, so most developers won't need to regenerate it unless the API changes.
+
+## When to Regenerate
+
+Regenerate the API client when:
+- You add/modify/remove API endpoints
+- You change request/response models
+- You update API documentation attributes
+
+## How to Regenerate
+
+From the repository root, run:
+
+```powershell
+.\scripts\Generate-ApiClient.ps1
+```
+
+This script generates **both**:
+1. TypeScript client for the frontend (`src/FrontEnd.Nuxt/app/utils/apiclient.ts`)
+2. C# client for functional tests (`tests/Functional/Api/Generated/ApiClient.cs`)
+
+## CI/CD Builds
+
+For clean builds in CI/CD pipelines, the script should be run before building tests:
+
+```bash
+pwsh scripts/Generate-ApiClient.ps1
+dotnet build tests/Functional
+```
+
+## Why Manual Generation?
+
+Previously, NSwag ran automatically on every build, adding ~15-20 seconds even when the API hadn't changed. By moving to manual generation with source-controlled output, we:
+- Eliminate unnecessary build time for test runs
+- Make API changes more explicit (committed file shows what changed)
+- Maintain build reproducibility (generated code is consistent across environments)

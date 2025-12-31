@@ -12,14 +12,7 @@
     <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
-    <ApiClientConfigFile>nswag.json</ApiClientConfigFile>
-    <ApiClientOutputFile>../FrontEnd.Nuxt/app/utils/apiclient.ts</ApiClientOutputFile>
-  </PropertyGroup>
-
-  <Target Name="NSwag" AfterTargets="PostBuildEvent">
-    <Exec WorkingDirectory="$(ProjectDir)" Command="$(NSwagExe_Net100) run $(ApiClientConfigFile) /variables:Configuration=$(Configuration),MSBuildOutputPath=$(OutputPath),MSBuildProjectFile=$(MSBuildProjectFile),OutputFile=$(ApiClientOutputFile)"/>
-  </Target>
+  <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
+       Run the script manually when the API changes. -->
 
 </Project>
