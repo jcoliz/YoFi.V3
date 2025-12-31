@@ -206,10 +206,13 @@ function clearSessionStorage() {
 }
 
 /**
- * Handle files selected from FileUploadSection
+ * Handle files selected from file input
  */
-function handleFilesSelected(files: File[]) {
-  selectedFiles.value = files
+function handleFileInputChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (input.files) {
+    selectedFiles.value = Array.from(input.files)
+  }
 }
 
 /**
@@ -454,76 +457,60 @@ async function confirmDeleteAll() {
       <!-- Main Import UI (only shown if user has permission) -->
       <div v-else>
         <!-- Upload Status Pane -->
-        <UploadStatusPane
-          :show="showStatusPane"
-          :status-messages="statusMessages"
-          :variant="statusVariant"
-          @close="handleCloseStatusPane"
-        />
+        <div style="min-height: 0">
+          <UploadStatusPane
+            :show="showStatusPane"
+            :status-messages="statusMessages"
+            :variant="statusVariant"
+            @close="handleCloseStatusPane"
+          />
+        </div>
 
         <!-- Error Display -->
-        <ErrorDisplay
-          v-model:show="showError"
-          :problem="error"
-          class="mb-4"
-        />
+        <div style="min-height: 0">
+          <ErrorDisplay
+            v-model:show="showError"
+            :problem="error"
+            class="mb-4"
+          />
+        </div>
 
         <!-- File Upload Section -->
         <div class="card mb-4">
           <div class="card-body">
             <h5 class="card-title">Upload Files</h5>
-            <p class="text-muted mb-4">
+            <p class="text-muted mb-3">
               Select OFX or QFX files from your bank to import transactions.
             </p>
 
-            <FileUploadSection
-              :disabled="uploadInProgress || loading"
-              accept=".ofx,.qfx"
-              :multiple="true"
-              @files-selected="handleFilesSelected"
-            />
-
-            <!-- Selected Files Display -->
-            <div
-              v-if="selectedFiles.length > 0"
-              class="mt-3"
-            >
-              <h6>Selected Files:</h6>
-              <ul class="list-group">
-                <li
-                  v-for="(file, index) in selectedFiles"
-                  :key="index"
-                  class="list-group-item"
-                >
-                  <strong>{{ file.name }}</strong>
-                  <span class="text-muted ms-2">({{ Math.round(file.size / 1024) }} KB)</span>
-                </li>
-              </ul>
-
-              <!-- Upload Button -->
-              <button
-                type="button"
-                class="btn btn-primary mt-3"
-                data-test-id="upload-button"
-                :disabled="uploadInProgress || loading || !ready"
-                @click="uploadFiles"
-              >
-                <BaseSpinner
-                  v-if="uploadInProgress"
-                  size="sm"
-                  class="me-1"
+            <div class="row g-2">
+              <div class="col">
+                <input
+                  type="file"
+                  class="form-control"
+                  accept=".ofx,.qfx"
+                  multiple
+                  data-test-id="file-input"
+                  :disabled="uploadInProgress || loading"
+                  @change="handleFileInputChange"
                 />
-                {{ uploadInProgress ? 'Uploading...' : 'Upload Files' }}
-              </button>
-            </div>
-
-            <!-- Empty State -->
-            <div
-              v-else
-              class="alert alert-info mt-3"
-              data-test-id="no-files-selected"
-            >
-              <strong>No files selected.</strong> Click "Browse..." to select files.
+              </div>
+              <div class="col-auto">
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  data-test-id="upload-button"
+                  :disabled="uploadInProgress || loading || !ready || selectedFiles.length === 0"
+                  @click="uploadFiles"
+                >
+                  <BaseSpinner
+                    v-if="uploadInProgress"
+                    size="sm"
+                    class="me-1"
+                  />
+                  {{ uploadInProgress ? 'Uploading...' : 'Upload' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -554,14 +541,34 @@ async function confirmDeleteAll() {
               @delete-all="handleDeleteAll"
             />
 
-            <!-- Transaction Table -->
-            <ImportReviewTable
-              :transactions="transactions"
-              :selected-keys="selectedKeys"
-              :loading="loading"
-              @toggle-selection="handleToggleSelection"
-              @toggle-all="handleToggleAll"
-            />
+            <!-- Transaction Table with Loading Overlay -->
+            <div style="position: relative; min-height: 200px">
+              <ImportReviewTable
+                :transactions="transactions"
+                :selected-keys="selectedKeys"
+                :loading="loading"
+                @toggle-selection="handleToggleSelection"
+                @toggle-all="handleToggleAll"
+              />
+              <!-- Loading Overlay for Pagination -->
+              <div
+                v-if="loading"
+                style="
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  right: 0;
+                  bottom: 0;
+                  background: rgba(255, 255, 255, 0.8);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  z-index: 10;
+                "
+              >
+                <BaseSpinner />
+              </div>
+            </div>
 
             <!-- Pagination -->
             <PaginationBar
