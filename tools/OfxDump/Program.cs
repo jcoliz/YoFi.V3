@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using YoFi.V3.Application.Import.Services;
+using YoFi.V3.Application.Helpers;
 
 /// <summary>
 /// Console tool for parsing OFX files and dumping the results as JSON.
@@ -38,10 +38,9 @@ class Program
         try
         {
             // Parse the OFX file
-            var service = new OfxParsingService();
             using var stream = File.OpenRead(filePath);
             var fileName = Path.GetFileName(filePath);
-            var result = await service.ParseAsync(stream, fileName);
+            var result = await OfxParsingHelper.ParseAsync(stream, fileName);
 
             // Configure JSON serialization for pretty printing
             var options = new JsonSerializerOptions
