@@ -740,8 +740,10 @@ public partial class TestControlController(
                     "Bad Request",
                     "This is a test 400 error with a message"
                 );
-            case "400a": // ArgumentException
-                throw new ArgumentException("This is a test 400 error from an ArgumentException", nameof(code));
+            case "400v": // ValidationException
+                throw new Entities.Exceptions.ValidationException("This is a test 400 error from a ValidationException");
+            case "500a": // ArgumentException
+                throw new ArgumentException("This is a test 500 error from an ArgumentException", nameof(code));
             case "401":
                 return Unauthorized();
             case "403":

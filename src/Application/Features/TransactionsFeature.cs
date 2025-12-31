@@ -29,9 +29,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         // Validate date range logic
         if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
         {
-            throw new ArgumentException(
-                "From date cannot be later than to date.",
-                nameof(fromDate)
+            throw new ValidationException(
+                nameof(fromDate),
+                "From date cannot be later than to date."
             );
         }
 

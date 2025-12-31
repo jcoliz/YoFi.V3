@@ -108,17 +108,17 @@ public class TransactionsTests
     }
 
     [Test]
-    public void GetTransactionsAsync_FromDateAfterToDate_ThrowsArgumentException()
+    public void GetTransactionsAsync_FromDateAfterToDate_ThrowsValidationException()
     {
         // Arrange
         var today = DateOnly.FromDateTime(DateTime.Now);
         var yesterday = today.AddDays(-1);
 
         // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+        var ex = Assert.ThrowsAsync<ValidationException>(async () =>
             await _transactionsFeature.GetTransactionsAsync(fromDate: today, toDate: yesterday));
 
-        Assert.That(ex!.ParamName, Is.EqualTo("fromDate"));
+        Assert.That(ex!.ParameterName, Is.EqualTo("fromDate"));
         Assert.That(ex.Message, Does.Contain("From date cannot be later than to date"));
     }
 

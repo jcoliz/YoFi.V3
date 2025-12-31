@@ -21,7 +21,7 @@ namespace YoFi.V3.Controllers.Middleware;
 /// <item><description>TenancyException (delegated to TenancyExceptionHandler)</description></item>
 /// <item><description>ResourceNotFoundException → 404 Not Found</description></item>
 /// <item><description>KeyNotFoundException → 404 Not Found (legacy)</description></item>
-/// <item><description>ArgumentException → 400 Bad Request</description></item>
+/// <item><description>ValidationException → 400 Bad Request</description></item>
 /// </list>
 /// Unhandled exceptions are passed to the next exception handler in the pipeline.
 /// </remarks>
@@ -57,10 +57,6 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             // 400 Bad Request - ValidationException (input validation errors)
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
                 httpContext, validationException, cancellationToken),
-
-            // 400 Bad Request - ArgumentException (validation errors, legacy)
-            ArgumentException argumentException => await HandleArgumentExceptionAsync(
-                httpContext, argumentException, cancellationToken),
 
             // If no match, let other handlers process it
             _ => false
@@ -138,32 +134,6 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             StatusCodes.Status404NotFound,
             "Resource not found",
             exception.Message);
-
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
-        return true;
-    }
-
-    /// <summary>
-    /// Handles ArgumentException (validation errors).
-    /// Returns HTTP 400 with problem details.
-    /// </summary>
-    private async ValueTask<bool> HandleArgumentExceptionAsync(
-        HttpContext httpContext,
-        ArgumentException exception,
-        CancellationToken cancellationToken)
-    {
-        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-
-        var problemDetails = CreateProblemDetails(
-            httpContext,
-            StatusCodes.Status400BadRequest,
-            "Validation Error",
-            exception.Message);
-
-        if (!string.IsNullOrEmpty(exception.ParamName))
-        {
-            problemDetails.Extensions["paramName"] = exception.ParamName;
-        }
 
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;
