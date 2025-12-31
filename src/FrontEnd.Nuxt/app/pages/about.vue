@@ -11,7 +11,7 @@ import * as api from '../utils/apiclient'
 import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({
   title: 'About',
-  order: 4,
+  order: 5,
   auth: true,
 })
 

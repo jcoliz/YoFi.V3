@@ -51,8 +51,9 @@ const handleClose = () => {
       :key="index"
       class="mb-0"
       :class="{ 'mb-1': index < statusMessages.length - 1 }"
-      v-html="message"
-    />
+    >
+      {{ message }}
+    </div>
     <button
       type="button"
       class="btn-close"

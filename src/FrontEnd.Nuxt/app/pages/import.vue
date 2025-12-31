@@ -53,6 +53,7 @@ const showError = ref(false)
 
 // State - Modals
 const showSuccessModal = ref(false)
+const showDeleteModal = ref(false)
 const importResult = ref<ImportReviewCompleteDto | null>(null)
 
 // State - Pagination
@@ -231,7 +232,7 @@ async function uploadFiles() {
   try {
     // Process each file sequentially
     for (const file of selectedFiles.value) {
-      statusMessages.value.push(`⏳ ${file.name}: Importing...`)
+      statusMessages.value.push(`${file.name}: Importing...`)
 
       try {
         const fileParameter: FileParameter = {
@@ -250,13 +251,13 @@ async function uploadFiles() {
         // Check for errors
         if (result.errors && result.errors.length > 0) {
           statusMessages.value.push(
-            `⚠ ${file.name}: ${result.importedCount} transactions added, ${result.errors.length} errors detected`,
+            `${file.name}: ${result.importedCount} transactions added, ${result.errors.length} errors detected`,
           )
           if (statusVariant.value !== 'danger') {
             statusVariant.value = 'warning'
           }
         } else {
-          statusMessages.value.push(`✓ ${file.name}: ${result.importedCount} transactions added`)
+          statusMessages.value.push(`${file.name}: ${result.importedCount} transactions added`)
           if (statusVariant.value !== 'danger' && statusVariant.value !== 'warning') {
             statusVariant.value = 'success'
           }
@@ -270,7 +271,7 @@ async function uploadFiles() {
         hasUploadError = true
         const errorMessage = uploadError.detail || 'Upload failed'
 
-        statusMessages.value.push(`❌ ${file.name}: ${errorMessage}`)
+        statusMessages.value.push(`${file.name}: ${errorMessage}`)
         statusVariant.value = 'danger'
       }
     }
@@ -378,17 +379,17 @@ function handleSuccessModalConfirm() {
 }
 
 /**
- * Handle Delete All button click
+ * Handle Delete All button click - opens confirmation modal
  */
-async function handleDeleteAll() {
+function handleDeleteAll() {
+  showDeleteModal.value = true
+}
+
+/**
+ * Confirm and execute delete all
+ */
+async function confirmDeleteAll() {
   if (!currentTenantKey.value) return
-  if (
-    !confirm(
-      'Are you sure you want to delete all pending import transactions? This cannot be undone.',
-    )
-  ) {
-    return
-  }
 
   loading.value = true
   error.value = undefined
@@ -403,6 +404,9 @@ async function handleDeleteAll() {
 
     // Reload pending review (should be empty now)
     await loadPendingReview(1)
+
+    // Close modal
+    showDeleteModal.value = false
   } catch (err) {
     error.value = handleApiError(err, 'Delete Failed', 'Failed to delete pending imports')
     showError.value = true
@@ -574,13 +578,15 @@ async function handleDeleteAll() {
           v-else-if="!loading"
           class="card"
         >
-          <div class="card-body text-center py-5 text-muted">
-            <div
-              class="display-1 mb-3"
-              data-test-id="empty-state"
-            >
-              📥
-            </div>
+          <div
+            class="card-body text-center py-5 text-muted"
+            data-test-id="empty-state"
+          >
+            <FeatherIcon
+              icon="inbox"
+              size="48"
+              class="mb-3"
+            />
             <h5>No pending imports</h5>
             <p>Upload bank files to get started</p>
           </div>
@@ -620,6 +626,33 @@ async function handleDeleteAll() {
           importResult.rejectedCount === 1 ? '' : 's'
         }}.
       </p>
+    </ModalDialog>
+
+    <!-- Delete All Confirmation Modal -->
+    <ModalDialog
+      v-model:show="showDeleteModal"
+      title="Delete All Pending Imports"
+      :loading="loading"
+      primary-button-variant="danger"
+      :primary-button-text="loading ? 'Deleting...' : 'Delete All'"
+      primary-button-test-id="delete-all-submit-button"
+      secondary-button-test-id="delete-all-cancel-button"
+      test-id="delete-all-modal"
+      @primary="confirmDeleteAll"
+    >
+      <p>Are you sure you want to delete all pending import transactions?</p>
+      <div
+        v-if="hasTransactions"
+        class="alert alert-warning"
+        data-test-id="delete-all-warning"
+      >
+        <strong>Warning:</strong> This will delete
+        <strong>{{ paginatedResult?.metadata?.totalCount || transactions.length }}</strong>
+        transaction{{
+          (paginatedResult?.metadata?.totalCount || transactions.length) === 1 ? '' : 's'
+        }}
+        from the import queue. This action cannot be undone.
+      </div>
     </ModalDialog>
   </div>
 </template>
