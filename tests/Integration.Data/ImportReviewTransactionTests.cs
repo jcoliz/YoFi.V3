@@ -568,4 +568,108 @@ public class ImportReviewTransactionTests
         Assert.That(retrieved!.ExternalId, Is.EqualTo(externalId100));
         Assert.That(retrieved.ExternalId!.Length, Is.EqualTo(100));
     }
+
+    [Test]
+    public async Task IsSelected_DefaultValue_IsFalse()
+    {
+        // Given: An import review transaction without IsSelected explicitly set
+        var transaction = new ImportReviewTransaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            TenantId = _tenant1.Id
+        };
+
+        // When: Saving the transaction
+        _context.ImportReviewTransactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Then: IsSelected should default to false
+        var retrieved = await _context.ImportReviewTransactions.FindAsync(transaction.Id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.IsSelected, Is.False);
+    }
+
+    [Test]
+    public async Task IsSelected_CanBeUpdated_PersistsCorrectly()
+    {
+        // Given: An import review transaction with IsSelected initially false
+        var transaction = new ImportReviewTransaction
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            Payee = "Test Payee",
+            Amount = 100m,
+            TenantId = _tenant1.Id,
+            IsSelected = false
+        };
+        _context.ImportReviewTransactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var id = transaction.Id;
+
+        // When: Updating IsSelected to true
+        transaction.IsSelected = true;
+        await _context.SaveChangesAsync();
+
+        // Then: Change should be persisted
+        var retrieved = await _context.ImportReviewTransactions.FindAsync(id);
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.IsSelected, Is.True);
+
+        // And: Can be updated back to false
+        retrieved.IsSelected = false;
+        await _context.SaveChangesAsync();
+        var retrievedAgain = await _context.ImportReviewTransactions.FindAsync(id);
+        Assert.That(retrievedAgain!.IsSelected, Is.False);
+    }
+
+    [Test]
+    public async Task QueryByIsSelected_ReturnsCorrectResults()
+    {
+        // Given: Import review transactions with different IsSelected values
+        _context.ImportReviewTransactions.AddRange(
+            new ImportReviewTransaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Selected 1", Amount = 100m, IsSelected = true, TenantId = _tenant1.Id },
+            new ImportReviewTransaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Not Selected 1", Amount = 200m, IsSelected = false, TenantId = _tenant1.Id },
+            new ImportReviewTransaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Selected 2", Amount = 300m, IsSelected = true, TenantId = _tenant1.Id },
+            new ImportReviewTransaction { Date = DateOnly.FromDateTime(DateTime.Now), Payee = "Not Selected 2", Amount = 400m, IsSelected = false, TenantId = _tenant1.Id }
+        );
+        await _context.SaveChangesAsync();
+
+        // When: Querying for selected transactions only
+        var selectedTransactions = await _context.ImportReviewTransactions
+            .Where(t => t.TenantId == _tenant1.Id && t.IsSelected)
+            .ToListAsync();
+
+        // Then: Should return only selected transactions
+        Assert.That(selectedTransactions, Has.Count.EqualTo(2));
+        Assert.That(selectedTransactions.All(t => t.IsSelected), Is.True);
+
+        // And: Should be able to query for not selected
+        var notSelectedTransactions = await _context.ImportReviewTransactions
+            .Where(t => t.TenantId == _tenant1.Id && !t.IsSelected)
+            .ToListAsync();
+        Assert.That(notSelectedTransactions, Has.Count.EqualTo(2));
+        Assert.That(notSelectedTransactions.All(t => !t.IsSelected), Is.True);
+    }
+
+    [Test]
+    public async Task CompositeIndexOnTenantIdIsSelectedExists()
+    {
+        // Given: Database with ImportReviewTransactions table
+
+        // When: Checking for the composite index on TenantId and IsSelected
+        var connection = _context.Database.GetDbConnection();
+        await connection.OpenAsync();
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT name FROM sqlite_master
+            WHERE type='index'
+            AND tbl_name='YoFi.V3.ImportReviewTransactions'
+            AND name LIKE '%TenantId_IsSelected%'";
+        var indexName = await command.ExecuteScalarAsync();
+
+        // Then: Composite index should exist
+        Assert.That(indexName, Is.Not.Null);
+        Assert.That(indexName!.ToString(), Does.Contain("TenantId_IsSelected"));
+    }
 }

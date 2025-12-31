@@ -124,12 +124,45 @@ public partial class ImportController(
     /// <summary>
     /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
     /// </summary>
-    /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
     /// <returns>Result indicating the number of transactions accepted and rejected.</returns>
+    /// <remarks>
+    /// Accepts all transactions where IsSelected = true (stored in database) and deletes all pending review transactions.
+    /// Selection state is managed server-side via toggle/select-all/deselect-all endpoints.
+    /// </remarks>
     [HttpPost("review/complete")]
     [ProducesResponseType(typeof(CompleteReviewResultDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteReview();
+
+    /// <summary>
+    /// Sets the selection state for the specified transaction(s).
+    /// </summary>
+    /// <param name="request">Request containing transaction keys and desired selection state.</param>
+    [HttpPost("review/set-selection")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CompleteReview([FromBody] IReadOnlyCollection<Guid> keys);
+    public async Task<IActionResult> SetSelection([FromBody] SetSelectionRequest request);
+
+    /// <summary>
+    /// Selects all pending import review transactions for the current tenant.
+    /// </summary>
+    [HttpPost("review/select-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SelectAll();
+
+    /// <summary>
+    /// Deselects all pending import review transactions for the current tenant.
+    /// </summary>
+    [HttpPost("review/deselect-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeselectAll();
+
+    /// <summary>
+    /// Gets summary statistics for pending import review transactions.
+    /// </summary>
+    /// <returns>Summary containing counts of total and selected transactions.</returns>
+    [HttpGet("review/summary")]
+    [ProducesResponseType(typeof(ImportReviewSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReviewSummary();
 
     /// <summary>
     /// Deletes all pending import review transactions for the current tenant.
@@ -142,11 +175,19 @@ public partial class ImportController(
 
 ### CompleteReview Endpoint Behavior
 
-This endpoint performs two operations atomically:
-1. Copies the specified transactions to the main Transaction table
-2. Deletes ALL transactions from the ImportReviewTransaction table (selected and unselected)
+**IMPORTANT DESIGN CHANGE:** This endpoint NO LONGER accepts a request body with transaction keys. Selection state is read from the database `IsSelected` column instead.
 
-This ensures the review workflow completes cleanly - selected transactions are imported, and the review table is cleared for the next import session.
+This endpoint performs two operations atomically:
+1. Queries ALL transactions where `IsSelected = true` from the database (across all pages)
+2. Copies those transactions to the main Transaction table
+3. Deletes ALL transactions from the ImportReviewTransaction table (cleanup)
+
+This ensures:
+- Selection state works correctly with pagination (all pages' selections honored)
+- Review workflow completes cleanly
+- Review table is cleared for the next import session
+
+See [`IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md`](../IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) for rationale.
 
 ## Endpoint Specifications
 
@@ -154,7 +195,11 @@ This ensures the review workflow completes cleanly - selected transactions are i
 |--------|------|-------------|---------|----------|--------------|
 | POST | `/api/tenant/{tenantKey}/import/upload` | Upload OFX/QFX file for import | `multipart/form-data` with `file` field | [`ImportResultDto`](src/Application/Import/Dto/ImportResultDto.cs) | 200, 400, 401, 403 |
 | GET | `/api/tenant/{tenantKey}/import/review` | Get pending import review transactions (paginated) | Query: `pageNumber` (default: 1), `pageSize` (default: 50, max: 1000) | [`PaginatedResultDto<ImportReviewTransactionDto>`](src/Application/Common/Dto/PaginatedResultDto.cs) | 200, 401, 403 |
-| POST | `/api/tenant/{tenantKey}/import/review/complete` | Complete review: accept selected transactions and delete all | `IReadOnlyCollection<Guid>` (transaction keys to accept) | [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs) | 200, 400, 401, 403 |
+| GET | `/api/tenant/{tenantKey}/import/review/summary` | Get summary statistics for pending review | None | [`ImportReviewSummaryDto`](src/Application/Import/Dto/ImportReviewSummaryDto.cs) | 200, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/review/set-selection` | Set selection state for specific transactions | [`SetSelectionRequest`](src/Application/Import/Dto/SetSelectionRequest.cs) | None | 204, 400, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/review/select-all` | Select all pending review transactions | None | None | 204, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/review/deselect-all` | Deselect all pending review transactions | None | None | 204, 401, 403 |
+| POST | `/api/tenant/{tenantKey}/import/review/complete` | Complete review: accept selected transactions and delete all | None | [`CompleteReviewResultDto`](src/Application/Import/Dto/CompleteReviewResultDto.cs) | 200, 401, 403 |
 | DELETE | `/api/tenant/{tenantKey}/import/review` | Delete all pending review transactions without accepting any | None | None | 204, 401, 403 |
 
 ### Endpoint Details
@@ -301,35 +346,89 @@ Then the page automatically refreshes the transaction list to show the newly imp
 - Typical UX: "Load more" button, infinite scroll, or page number navigation
 - Frontend can display "Showing 1-50 of 150" using metadata
 
-#### POST /api/tenant/{tenantKey}/import/review/complete
+#### GET /api/tenant/{tenantKey}/import/review/summary
 
-**Purpose:** Completes the import review workflow by accepting selected transactions and clearing the review table.
-
-**Request body** - Array of transaction keys to accept (import):
-```json
-[
-  "550e8400-e29b-41d4-a716-446655440000",
-  "660e8400-e29b-41d4-a716-446655440001"
-]
-```
-
-**Behavior:**
-1. Copies the specified transactions to the main Transaction table
-2. Deletes ALL transactions from ImportReviewTransaction table (not just the selected ones)
-3. Returns count of accepted transactions and rejected (not selected) transactions
-
-**Example scenario:**
-- Review table has 150 transactions total
-- User selects 120 transactions to accept
-- API copies 120 transactions to Transaction table
-- API deletes all 150 transactions from review table
-- Response: `{ "acceptedCount": 120, "rejectedCount": 30 }`
+**Purpose:** Provides summary statistics for the review UI (enables/disables Import button, displays counts).
 
 **Response (200 OK):**
 ```json
 {
-  "acceptedCount": 120,
-  "rejectedCount": 30
+  "totalCount": 300,
+  "selectedCount": 250,
+  "newCount": 250,
+  "exactDuplicateCount": 30,
+  "potentialDuplicateCount": 20
+}
+```
+
+**Usage:**
+- Frontend calls this to determine if Import button should be enabled (`selectedCount > 0`)
+- Displays statistics in UI: "250 of 300 transactions selected"
+
+#### POST /api/tenant/{tenantKey}/import/review/set-selection
+
+**Purpose:** Sets the selection state for specific transaction(s) to a discrete value (selected or deselected).
+
+**Request body:**
+```json
+{
+  "keys": ["550e8400-e29b-41d4-a716-446655440000", "660e8400-e29b-41d4-a716-446655440001"],
+  "isSelected": true
+}
+```
+
+**Response:** 204 No Content
+
+**Use cases:**
+- User clicks checkbox to select transaction: `{ "keys": [key], "isSelected": true }`
+- User clicks checkbox to deselect transaction: `{ "keys": [key], "isSelected": false }`
+- User selects multiple transactions at once: `{ "keys": [key1, key2, ...], "isSelected": true }`
+
+**Validation errors (400):**
+- Keys array is null or empty
+- IsSelected is missing
+
+#### POST /api/tenant/{tenantKey}/import/review/select-all
+
+**Purpose:** Selects all pending review transactions for the current tenant.
+
+**Response:** 204 No Content
+
+**Use case:** User clicks "Select All" button (rare, but useful for mass operations).
+
+#### POST /api/tenant/{tenantKey}/import/review/deselect-all
+
+**Purpose:** Deselects all pending review transactions for the current tenant.
+
+**Response:** 204 No Content
+
+**Use case:** User clicks "Deselect All" button (rare, but useful for reviewing all duplicates).
+
+#### POST /api/tenant/{tenantKey}/import/review/complete
+
+**Purpose:** Completes the import review workflow by accepting selected transactions and clearing the review table.
+
+**Request body:** None (selection state is read from database)
+
+**Behavior:**
+1. Queries ALL transactions where `IsSelected = true` (across all pages)
+2. Copies selected transactions to the main Transaction table
+3. Deletes ALL transactions from ImportReviewTransaction table (cleanup)
+4. Returns count of accepted and rejected transactions
+
+**Example scenario:**
+- Review table has 300 transactions total
+- 250 have `IsSelected = true` (based on defaults and user changes)
+- 50 have `IsSelected = false` (duplicates)
+- API copies 250 transactions to Transaction table
+- API deletes all 300 transactions from review table
+- Response: `{ "acceptedCount": 250, "rejectedCount": 50 }`
+
+**Response (200 OK):**
+```json
+{
+  "acceptedCount": 250,
+  "rejectedCount": 50
 }
 ```
 
@@ -337,12 +436,9 @@ Then the page automatically refreshes the transaction list to show the newly imp
 - Matches UI behavior: "Import" button completes the review workflow
 - Prevents orphaned unselected transactions from accumulating
 - Clean slate for next import session
-- User can explicitly reject transactions by unchecking them (they won't be imported but will be deleted)
+- User explicitly controls which transactions to import via selection state stored in database
 
 **Note:** `rejectedCount` represents the number of transactions that were NOT selected (rejected). It equals the total transactions in review minus the accepted count.
-
-**Validation errors (400):**
-- Keys array is null or empty
 
 #### DELETE /api/tenant/{tenantKey}/import/review
 

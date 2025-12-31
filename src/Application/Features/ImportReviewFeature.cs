@@ -180,7 +180,8 @@ public class ImportReviewFeature(
                 string.Empty, // Category placeholder for future Payee Matching rules feature
                 t.Amount,
                 t.DuplicateStatus,
-                t.DuplicateOfKey
+                t.DuplicateOfKey,
+                t.IsSelected
             ));
 
         var items = await dataProvider.ToListNoTrackingAsync(paginatedQuery);

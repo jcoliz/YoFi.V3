@@ -208,6 +208,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             // Composite index on TenantId + ExternalId for duplicate detection
             entity.HasIndex(e => new { e.TenantId, e.ExternalId });
 
+            // Composite index on TenantId + IsSelected for selection queries
+            entity.HasIndex(e => new { e.TenantId, e.IsSelected });
+
             // Payee is required
             entity.Property(e => e.Payee)
                 .IsRequired()
@@ -232,6 +235,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             // DuplicateStatus stored as integer
             entity.Property(e => e.DuplicateStatus)
                 .HasConversion<int>();
+
+            // IsSelected defaults to false
+            entity.Property(e => e.IsSelected)
+                .IsRequired()
+                .HasDefaultValue(false);
 
             // Foreign key relationship to Tenant
             entity.HasOne(e => e.Tenant)

@@ -97,6 +97,15 @@ public record ImportReviewTransaction : BaseTenantModel
     /// </remarks>
     public Guid? DuplicateOfKey { get; set; }
 
+    /// <summary>
+    /// Indicates whether this transaction is selected for import.
+    /// </summary>
+    /// <remarks>
+    /// Set automatically based on DuplicateStatus when created, can be toggled by user.
+    /// Defaults to <c>false</c>.
+    /// </remarks>
+    public bool IsSelected { get; set; } = false;
+
     // Navigation properties
 
     /// <summary>

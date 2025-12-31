@@ -54,6 +54,7 @@ public record ImportReviewTransaction : BaseTenantModel
     public string? Memo { get; set; }
     public DuplicateStatus DuplicateStatus { get; set; } = DuplicateStatus.New;
     public Guid? DuplicateOfKey { get; set; }
+    public bool IsSelected { get; set; }
     public virtual Tenant? Tenant { get; set; }
 }
 ```
@@ -67,6 +68,7 @@ public record ImportReviewTransaction : BaseTenantModel
 - **Memo** - Notes field from bank statement (nullable, max 1000 chars)
 - **DuplicateStatus** - Duplicate detection status determining default UI selection
 - **DuplicateOfKey** - Key of existing transaction if duplicate detected (nullable)
+- **IsSelected** - Indicates whether this transaction is selected for import (set automatically based on `DuplicateStatus` when created, can be toggled by user)
 - **Tenant** - Navigation property to owning tenant
 
 ### DuplicateStatus Enum
@@ -116,6 +118,7 @@ public enum DuplicateStatus
 - `IX_ImportReviewTransactions_Key` (unique) - Business key lookup
 - `IX_ImportReviewTransactions_TenantId_Date` - Tenant-scoped queries ordered by date
 - `IX_ImportReviewTransactions_TenantId_ExternalId` - Duplicate detection by FITID
+- `IX_ImportReviewTransactions_TenantId_IsSelected` - Selection state queries (get selected count, get selected transactions)
 
 **Additional migration needed:** Add `IX_Transactions_TenantId_ExternalId` index to existing Transactions table for duplicate detection performance.
 
@@ -212,6 +215,26 @@ Reference existing Transaction entity configuration for patterns.
 
 **Alternative considered:** String storage for readability in database tools, rejected due to storage overhead and no compelling debugging benefit.
 
+### 6. Server-Side Selection Tracking
+
+**Decision:** Store transaction selection state (`IsSelected`) in the database, not in frontend session storage.
+
+**Rationale:**
+- **Pagination compatibility** - Selection state must exist for ALL transactions, not just those loaded by frontend
+- **Default selections automatic** - Server sets `IsSelected = true` for `New` transactions, `false` for duplicates on import
+- **User overrides persistent** - API endpoints allow toggling selection state stored in database
+- **Import workflow correct** - CompleteReview reads `IsSelected` from database, ensuring all pages' selections are honored
+
+**Why NOT frontend session storage:**
+- Only works for loaded pages (first 50 transactions)
+- Unloaded transactions have no selection state → incorrectly rejected
+- Pagination makes frontend-only state fundamentally broken
+- See [`IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md`](IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) for complete analysis
+
+**Default value:** `IsSelected` defaults to `true` for backward compatibility if needed, but application logic sets correct value based on `DuplicateStatus` on insert.
+
+**Performance:** Add composite index `IX_ImportReviewTransactions_TenantId_IsSelected` for efficient "get selected count" and "get selected transactions" queries.
+
 ## Schema Comparison: ImportReviewTransaction vs. Transaction
 
 | Field | ImportReviewTransaction | Transaction | Notes |
@@ -227,6 +250,7 @@ Reference existing Transaction entity configuration for patterns.
 | **Memo** | ✅ `string(1000)?` | ✅ `string(1000)?` | Nullable |
 | **DuplicateStatus** | ✅ `int` (enum) | ❌ | Import-specific |
 | **DuplicateOfKey** | ✅ `Guid?` | ❌ | Import-specific |
+| **IsSelected** | ✅ `bool` | ❌ | Import-specific |
 | **Splits** | ❌ | ✅ `ICollection<Split>` | Added on accept |
 
 **Workflow:** When accepting transactions, copy all matching fields from ImportReviewTransaction → Transaction, generate default Split, then delete from ImportReviewTransactions.

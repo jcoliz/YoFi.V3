@@ -395,56 +395,41 @@ const handlePageChange = (pageNumber: number) => {
 - "No pending imports" message
 - "Upload bank files to get started" helper text
 
-## Session Storage Pattern
+## Server-Side Selection State Pattern
 
-### Key Format
+**CRITICAL DESIGN CHANGE:** Selection state is stored in the **database**, NOT in frontend session storage.
 
-**Template:** `import-review-selections-{tenantKey}`
-
-**Examples:**
-- `import-review-selections-550e8400-e29b-41d4-a716-446655440000`
-- `import-review-selections-660e8400-e29b-41d4-a716-446655440001`
+### Why Server-Side State
 
 **Rationale:**
-- Tenant-scoped keys prevent cross-workspace selection leakage
-- Workspace change automatically switches to correct selection state
+- **Pagination compatibility** - Selection state must exist for ALL transactions, not just loaded pages
+- **Default selections automatic** - Server sets `IsSelected = true` for New transactions on import
+- **User overrides persistent** - API endpoints allow toggling selection stored in database
+- **Import workflow correct** - CompleteReview reads `IsSelected` from database, ensuring all pages honored
 
-### Value Format
+**Why NOT session storage:**
+- Only works for loaded pages (first 50 transactions)
+- Unloaded transactions have no selection state → incorrectly rejected
+- Pagination makes frontend-only state fundamentally broken
+- See [`IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md`](IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) for complete analysis
 
-**JSON array of selected transaction keys:**
-```json
-["guid1", "guid2", "guid3"]
-```
+### Selection State Management
 
-### When to Save/Restore/Clear
+**No local state tracking:**
+- Frontend does NOT maintain `selectedKeys` Set in memory
+- Frontend does NOT use session storage
+- Frontend renders checkboxes based on `transaction.isSelected` from API
 
-**Save:**
-- After every checkbox toggle (`toggleSelection`, `toggleAll`)
-- After setting default selections (`setDefaultSelections`)
+**API calls for selection changes:**
+- User clicks checkbox → Call `POST /api/import/review/set-selection` with keys and desired state
+- User clicks "Select All" → Call `POST /api/import/review/select-all`
+- User clicks "Deselect All" → Call `POST /api/import/review/deselect-all`
+- After API call → Refresh current page to show updated state
 
-**Restore:**
-- On page mount (after loading pending review)
-- After workspace change (watch on `currentTenantKey`)
-
-**Clear:**
-- After successful import (`acceptTransactions`)
-- After delete all (`deleteAllTransactions`)
-- When workspace changes to null
-
-### Why Session Storage Over Database
-
-**Rationale:**
-- Selection state is **UI state**, not domain data
-- No need for server-side tracking or persistence
-- Simpler implementation (no API calls on every checkbox toggle)
-- Automatically cleared when user closes browser/tab
-- Works offline (no network dependency for checkbox changes)
-- No database migrations or additional tables required
-
-**Tradeoffs:**
-- Selections lost on browser close (acceptable for temporary review state)
-- Not synchronized across browser tabs (acceptable for single-session workflow)
-- Limited storage capacity (acceptable - only storing GUIDs)
+**Summary statistics:**
+- Call `GET /api/import/review/summary` to get selected count
+- Use `selectedCount > 0` to enable/disable Import button
+- Display "X of Y transactions selected" in UI
 
 ## Navigation Integration
 
@@ -508,11 +493,15 @@ The import page reuses components and patterns from [`transactions/index.vue`](s
 The page manages state using Vue 3 Composition API patterns:
 
 - **File upload state** - Tracks selected files, upload progress, and status messages
-- **Transaction review state** - Loaded transactions, loading/error states
-- **Selection state** - `Set<string>` of selected transaction keys (persisted to session storage)
+- **Transaction review state** - Loaded transactions from API (includes `isSelected` for each)
+- **Summary state** - Selected count, total count (from summary endpoint)
 - **Pagination state** - Current page, page size, total count, navigation flags
 - **Computed properties** - Workspace context, permissions (`canImport`), duplicate detection
-- **Watchers** - Workspace changes trigger reload and selection restoration
+- **Watchers** - Workspace changes trigger reload
+
+**Removed state:**
+- ~~Selection state Set~~ - NO LONGER stored in frontend (uses server state)
+- ~~Session storage persistence~~ - NO LONGER used
 
 ## Type Safety
 
@@ -607,10 +596,35 @@ paginatedTransactions.value = result
 
 The component uses the nested `metadata` property from `PaginatedResultDto<T>`, making it reusable across any paginated view without modification.
 
+**Get summary statistics:**
+```typescript
+const summary: ImportReviewSummaryDto = await importClient.getReviewSummary()
+// Use summary.selectedCount to enable/disable Import button
+```
+
+**Set selection for specific transaction(s):**
+```typescript
+await importClient.setSelection({ keys: [transactionKey], isSelected: true })
+// Then refresh current page to show updated checkbox state
+await loadPage(currentPage.value)
+```
+
+**Select all transactions:**
+```typescript
+await importClient.selectAll()
+await loadPage(currentPage.value)  // Refresh to show all selected
+```
+
+**Deselect all transactions:**
+```typescript
+await importClient.deselectAll()
+await loadPage(currentPage.value)  // Refresh to show all deselected
+```
+
 **Complete review (accept selected transactions):**
 ```typescript
-const keysArray = Array.from(selectedKeys.value)
-await importClient.completeReview(keysArray)
+// NO PARAMETERS - server reads IsSelected from database
+const result: CompleteReviewResultDto = await importClient.completeReview()
 ```
 
 **Delete all:**

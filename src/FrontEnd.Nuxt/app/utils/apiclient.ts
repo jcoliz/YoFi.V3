@@ -2863,6 +2863,7 @@ export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
     amount?: number;
     duplicateStatus?: DuplicateStatus;
     duplicateOfKey?: string | undefined;
+    isSelected?: boolean;
 
     constructor(data?: IImportReviewTransactionDto) {
         if (data) {
@@ -2882,6 +2883,7 @@ export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
             this.amount = _data["amount"];
             this.duplicateStatus = _data["duplicateStatus"];
             this.duplicateOfKey = _data["duplicateOfKey"];
+            this.isSelected = _data["isSelected"];
         }
     }
 
@@ -2901,6 +2903,7 @@ export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
         data["amount"] = this.amount;
         data["duplicateStatus"] = this.duplicateStatus;
         data["duplicateOfKey"] = this.duplicateOfKey;
+        data["isSelected"] = this.isSelected;
         return data;
     }
 }
@@ -2913,6 +2916,7 @@ export interface IImportReviewTransactionDto {
     amount?: number;
     duplicateStatus?: DuplicateStatus;
     duplicateOfKey?: string | undefined;
+    isSelected?: boolean;
 }
 
 export enum DuplicateStatus {

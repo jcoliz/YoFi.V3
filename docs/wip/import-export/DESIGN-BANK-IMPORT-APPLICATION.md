@@ -70,6 +70,8 @@ Location: `src/Application/Import/Dto/ImportReviewTransactionDto.cs`
 
 **Category field:** Displayed in the "Matched Category" column. For the initial implementation, this will always be empty. In the future, it will be populated by the Payee Matching rules feature.
 
+**IsSelected field:** Server-side selection state. Frontend renders checkboxes based on this value, calls API to change it. See [`IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md`](IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) for rationale.
+
 ```csharp
 namespace YoFi.V3.Application.Import.Dto;
 
@@ -83,6 +85,7 @@ namespace YoFi.V3.Application.Import.Dto;
 /// <param name="Amount">Transaction amount (positive for deposits, negative for withdrawals).</param>
 /// <param name="DuplicateStatus">Status indicating whether this transaction is new or a duplicate.</param>
 /// <param name="DuplicateOfKey">Key of the existing transaction if this is detected as a duplicate.</param>
+/// <param name="IsSelected">Indicates whether this transaction is selected for import (stored in database).</param>
 public record ImportReviewTransactionDto(
     Guid Key,
     DateOnly Date,
@@ -90,7 +93,8 @@ public record ImportReviewTransactionDto(
     string Category,
     decimal Amount,
     DuplicateStatus DuplicateStatus,
-    Guid? DuplicateOfKey
+    Guid? DuplicateOfKey,
+    bool IsSelected
 );
 ```
 
@@ -120,6 +124,52 @@ public record ImportResultDto(
     int ExactDuplicateCount,
     int PotentialDuplicateCount,
     IReadOnlyCollection<OfxParsingError> Errors
+);
+```
+
+### ImportReviewSummaryDto
+
+Location: `src/Application/Import/Dto/ImportReviewSummaryDto.cs`
+
+**Purpose:** Provides summary statistics for the review UI to enable/disable buttons and display counts.
+
+```csharp
+namespace YoFi.V3.Application.Import.Dto;
+
+/// <summary>
+/// Summary statistics for pending import review transactions.
+/// </summary>
+/// <param name="TotalCount">Total number of pending review transactions.</param>
+/// <param name="SelectedCount">Number of transactions selected for import (IsSelected = true).</param>
+/// <param name="NewCount">Number of new transactions (no duplicates detected).</param>
+/// <param name="ExactDuplicateCount">Number of exact duplicate transactions detected.</param>
+/// <param name="PotentialDuplicateCount">Number of potential duplicate transactions detected.</param>
+public record ImportReviewSummaryDto(
+    int TotalCount,
+    int SelectedCount,
+    int NewCount,
+    int ExactDuplicateCount,
+    int PotentialDuplicateCount
+);
+```
+
+### SetSelectionRequest
+
+Location: `src/Application/Import/Dto/SetSelectionRequest.cs`
+
+**Purpose:** Request body for setting selection state on specific transactions.
+
+```csharp
+namespace YoFi.V3.Application.Import.Dto;
+
+/// <summary>
+/// Request to set the selection state for specified transactions.
+/// </summary>
+/// <param name="Keys">Collection of transaction keys to update.</param>
+/// <param name="IsSelected">Desired selection state (true = selected, false = deselected).</param>
+public record SetSelectionRequest(
+    IReadOnlyCollection<Guid> Keys,
+    bool IsSelected
 );
 ```
 
@@ -442,17 +492,62 @@ public class ImportReviewFeature(
     /// <summary>
     /// Completes the import review by accepting selected transactions and deleting all pending review transactions.
     /// </summary>
-    /// <param name="keys">The collection of transaction keys to accept (import into main transaction table).</param>
     /// <returns>A <see cref="CompleteReviewResultDto"/> with counts of accepted and rejected transactions.</returns>
-    public async Task<CompleteReviewResultDto> CompleteReviewAsync(IReadOnlyCollection<Guid> keys)
+    /// <remarks>
+    /// IMPORTANT: Selection state is read from the database IsSelected column, NOT from a parameter.
+    /// This ensures all pages' selections are honored, not just loaded transactions.
+    /// See IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md for rationale.
+    /// </remarks>
+    public async Task<CompleteReviewResultDto> CompleteReviewAsync()
     {
-        // Retrieve import review transactions from database by keys (with tenant isolation)
+        // Query ALL transactions where IsSelected = true from database (across all pages)
 
         // For each selected transaction, convert to TransactionEditDto and call TransactionsFeature.AddTransactionAsync()
 
-        // Delete ALL import review transactions for the current tenant (not just the selected ones)
+        // Delete ALL import review transactions for the current tenant (cleanup)
 
         // Return counts of accepted and rejected transactions
+    }
+
+    /// <summary>
+    /// Sets the selection state for the specified transaction(s).
+    /// </summary>
+    /// <param name="keys">The collection of transaction keys to update.</param>
+    /// <param name="isSelected">The desired selection state.</param>
+    public async Task SetSelectionAsync(IReadOnlyCollection<Guid> keys, bool isSelected)
+    {
+        // Query transactions by keys (with tenant isolation)
+
+        // Update IsSelected property for each transaction
+
+        // Save changes to database
+    }
+
+    /// <summary>
+    /// Selects all pending import review transactions for the current tenant.
+    /// </summary>
+    public async Task SelectAllAsync()
+    {
+        // Bulk update: SET IsSelected = true WHERE TenantId = @tenantId
+    }
+
+    /// <summary>
+    /// Deselects all pending import review transactions for the current tenant.
+    /// </summary>
+    public async Task DeselectAllAsync()
+    {
+        // Bulk update: SET IsSelected = false WHERE TenantId = @tenantId
+    }
+
+    /// <summary>
+    /// Gets summary statistics for pending import review transactions.
+    /// </summary>
+    /// <returns>A <see cref="ImportReviewSummaryDto"/> containing counts and statistics.</returns>
+    public async Task<ImportReviewSummaryDto> GetSummaryAsync()
+    {
+        // Query counts grouped by DuplicateStatus and IsSelected
+
+        // Return summary DTO
     }
 
     /// <summary>
@@ -493,6 +588,8 @@ public class ImportReviewFeature(
 
 ### CompleteReviewAsync Implementation Notes
 
+**CRITICAL CHANGE:** This method NO LONGER accepts a `keys` parameter. Selection state is read from the database `IsSelected` column.
+
 **Why use TransactionsFeature?** Follows clean architecture principles by reusing existing transaction creation logic. TransactionsFeature handles:
 - Default split creation (Amount = transaction.Amount, Category = empty, Order = 0)
 - Category sanitization via CategoryHelper
@@ -501,10 +598,13 @@ public class ImportReviewFeature(
 
 **Why delete all transactions?** This matches the UI workflow where clicking "Import" completes the review session. Unselected transactions are rejected (not imported but deleted), preventing orphaned transactions from accumulating and providing a clean slate for the next import.
 
-**Example:** If review table has 150 transactions and user selects 120 to accept:
-- 120 transactions are copied to main Transaction table
-- All 150 transactions are deleted from ImportReviewTransaction table
-- Result: AcceptedCount = 120, RejectedCount = 30
+**Example:** If review table has 300 transactions with 250 having `IsSelected = true` and 50 having `IsSelected = false`:
+- Query returns 250 transactions where IsSelected = true (across ALL pages, not just page 1)
+- 250 transactions are copied to main Transaction table
+- All 300 transactions are deleted from ImportReviewTransaction table
+- Result: AcceptedCount = 250, RejectedCount = 50
+
+**Why this fixes the pagination bug:** By reading `IsSelected` from database, we honor selections for ALL transactions, not just those loaded by the frontend. See [`IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md`](IMPORT-SELECTION-STATE-FLAW-ANALYSIS.md) for complete analysis.
 
 ### DeleteAllAsync Implementation Notes
 

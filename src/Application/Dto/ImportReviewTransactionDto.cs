@@ -12,6 +12,7 @@ namespace YoFi.V3.Application.Dto;
 /// <param name="Amount">Transaction amount (positive for deposits, negative for withdrawals).</param>
 /// <param name="DuplicateStatus">Status indicating whether this transaction is new or a duplicate.</param>
 /// <param name="DuplicateOfKey">Key of the existing transaction if this is detected as a duplicate.</param>
+/// <param name="IsSelected">Indicates whether this transaction is selected for import.</param>
 public record ImportReviewTransactionDto(
     Guid Key,
     DateOnly Date,
@@ -19,5 +20,6 @@ public record ImportReviewTransactionDto(
     string Category,
     decimal Amount,
     DuplicateStatus DuplicateStatus,
-    Guid? DuplicateOfKey
+    Guid? DuplicateOfKey,
+    bool IsSelected
 );
