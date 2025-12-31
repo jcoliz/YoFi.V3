@@ -119,6 +119,76 @@ public partial class ImportController(
     }
 
     /// <summary>
+    /// Sets the selection state for the specified transaction(s).
+    /// </summary>
+    /// <param name="request">Request containing transaction keys and desired selection state.</param>
+    [HttpPost("review/set-selection")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SetSelection([FromBody] SetSelectionRequest request)
+    {
+        LogStartingCount(request.Keys.Count);
+
+        // Validate request
+        if (request.Keys == null || request.Keys.Count == 0)
+        {
+            LogValidationError("At least one transaction key must be provided");
+            throw new ValidationException(nameof(request.Keys), "At least one transaction key must be provided.");
+        }
+
+        await importReviewFeature.SetSelectionAsync(request.Keys, request.IsSelected);
+
+        LogOk();
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Selects all pending import review transactions for the current tenant.
+    /// </summary>
+    [HttpPost("review/select-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SelectAll()
+    {
+        LogStarting();
+
+        await importReviewFeature.SelectAllAsync();
+
+        LogOk();
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Deselects all pending import review transactions for the current tenant.
+    /// </summary>
+    [HttpPost("review/deselect-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeselectAll()
+    {
+        LogStarting();
+
+        await importReviewFeature.DeselectAllAsync();
+
+        LogOk();
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Gets summary statistics for pending import review transactions.
+    /// </summary>
+    /// <returns>Summary containing counts of total and selected transactions.</returns>
+    [HttpGet("review/summary")]
+    [ProducesResponseType(typeof(ImportReviewSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReviewSummary()
+    {
+        LogStarting();
+
+        var summary = await importReviewFeature.GetSummaryAsync();
+
+        LogOkCount(summary.TotalCount);
+        return Ok(summary);
+    }
+
+    /// <summary>
     /// Deletes all pending import review transactions for the current tenant.
     /// </summary>
     [HttpDelete("review")]

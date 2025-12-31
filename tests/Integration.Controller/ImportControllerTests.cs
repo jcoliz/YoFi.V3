@@ -513,8 +513,18 @@ public class ImportControllerTests : AuthenticatedTestBase
         var reviewResult = await reviewResponse.Content.ReadFromJsonAsync<PaginatedResultDto<ImportReviewTransactionDto>>();
         var selectedKeys = reviewResult!.Items.Take(2).Select(t => t.Key).ToList();
 
-        // When: User completes review with selected transactions
-        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/complete", selectedKeys);
+        // And: Mark those transactions as selected using SetSelection endpoint
+        var setSelectionRequest = new SetSelectionRequest(selectedKeys, true);
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/set-selection", setSelectionRequest);
+
+        // And: Deselect the rest using DeselectAll
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/deselect-all", null);
+
+        // And: Re-select our chosen transactions
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/set-selection", setSelectionRequest);
+
+        // When: User completes review (server-side selection state determines which transactions are imported)
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/complete", null);
 
         // Then: 200 OK should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -544,27 +554,23 @@ public class ImportControllerTests : AuthenticatedTestBase
         uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
         await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
 
-        var reviewResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review");
-        var reviewResult = await reviewResponse.Content.ReadFromJsonAsync<PaginatedResultDto<ImportReviewTransactionDto>>();
-        var selectedKeys = reviewResult!.Items.Select(t => t.Key).ToList();
-
         // And: User switches to Viewer role
         SwitchToViewer();
 
         // When: Viewer attempts to complete review
-        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/complete", selectedKeys);
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/complete", null);
 
         // Then: 403 Forbidden should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task CompleteReview_EmptySelection_Returns400BadRequest()
+    public async Task CompleteReview_NoSelection_AcceptsOnlySelectedTransactions()
     {
         // Given: User has Editor role for tenant
         SwitchToEditor();
 
-        // And: Upload transactions
+        // And: Upload transactions (new transactions are auto-selected by default)
         var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
         var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
         using var uploadContent = new MultipartFormDataContent();
@@ -573,40 +579,25 @@ public class ImportControllerTests : AuthenticatedTestBase
         uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
         await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
 
-        // When: User completes review with empty selection
-        var emptySelection = new List<Guid>();
-        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/complete", emptySelection);
+        // And: Deselect all transactions
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/deselect-all", null);
 
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        // When: User completes review with no selected transactions
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/complete", null);
 
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-    [Test]
-    public async Task CompleteReview_NullSelection_Returns400BadRequest()
-    {
-        // Given: User has Editor role for tenant
-        SwitchToEditor();
+        // And: Response should indicate zero transactions accepted
+        var result = await response.Content.ReadFromJsonAsync<ImportReviewCompleteDto>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.AcceptedCount, Is.EqualTo(0));
+        Assert.That(result.RejectedCount, Is.GreaterThan(0));
 
-        // And: Upload transactions
-        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
-        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
-        using var uploadContent = new MultipartFormDataContent();
-        using var uploadFileContent = new ByteArrayContent(ofxContent);
-        uploadFileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
-        uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
-        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
-
-        // When: User completes review with null selection
-        List<Guid>? nullSelection = null;
-        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/complete", nullSelection);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        // And: Review queue should be completely empty (all rejected)
+        var emptyReviewResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review");
+        var emptyReviewResult = await emptyReviewResponse.Content.ReadFromJsonAsync<PaginatedResultDto<ImportReviewTransactionDto>>();
+        Assert.That(emptyReviewResult!.Items, Is.Empty);
     }
 
     [Test]
@@ -624,15 +615,11 @@ public class ImportControllerTests : AuthenticatedTestBase
         uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
         await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
 
-        var reviewResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review");
-        var reviewResult = await reviewResponse.Content.ReadFromJsonAsync<PaginatedResultDto<ImportReviewTransactionDto>>();
-        var selectedKeys = reviewResult!.Items.Select(t => t.Key).ToList();
-
         // And: Create a different tenant (user doesn't have access)
         var otherTenantKey = await CreateTestTenantAsync("Other Tenant", "Second tenant for isolation testing");
 
         // When: User attempts to complete tenant B's review
-        var response = await _client.PostAsJsonAsync($"/api/tenant/{otherTenantKey}/import/review/complete", selectedKeys);
+        var response = await _client.PostAsync($"/api/tenant/{otherTenantKey}/import/review/complete", null);
 
         // Then: 403 Forbidden should be returned (tenant isolation)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
@@ -705,6 +692,215 @@ public class ImportControllerTests : AuthenticatedTestBase
 
         // Then: 204 No Content should be returned (idempotent)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    #endregion
+
+    #region POST /api/tenant/{tenantKey}/import/review/selection
+
+    [Test]
+    public async Task SetSelection_ValidRequest_Returns204NoContent()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Upload transactions
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var uploadContent = new MultipartFormDataContent();
+        using var uploadFileContent = new ByteArrayContent(ofxContent);
+        uploadFileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
+        uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
+
+        var reviewResponse = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review");
+        var reviewResult = await reviewResponse.Content.ReadFromJsonAsync<PaginatedResultDto<ImportReviewTransactionDto>>();
+        var keys = reviewResult!.Items.Take(2).Select(t => t.Key).ToList();
+
+        // When: User updates selection state
+        var request = new SetSelectionRequest(keys, true);
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/set-selection", request);
+
+        // Then: 204 No Content should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task SetSelection_EmptyKeys_Returns400BadRequest()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // When: User sends empty keys list
+        var request = new SetSelectionRequest([], false);
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/set-selection", request);
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+
+        // And: Response should contain problem details
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo(400));
+    }
+
+    [Test]
+    public async Task SetSelection_AsViewer_Returns403Forbidden()
+    {
+        // Given: User has Viewer role for tenant
+        SwitchToViewer();
+
+        // When: Viewer attempts to update selection
+        var request = new SetSelectionRequest([Guid.NewGuid()], true);
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/import/review/set-selection", request);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    #endregion
+
+    #region POST /api/tenant/{tenantKey}/import/review/selection/select-all
+
+    [Test]
+    public async Task SelectAll_WithPendingTransactions_Returns204NoContent()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Upload transactions
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var uploadContent = new MultipartFormDataContent();
+        using var uploadFileContent = new ByteArrayContent(ofxContent);
+        uploadFileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
+        uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
+
+        // When: User selects all transactions
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/select-all", null);
+
+        // Then: 204 No Content should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task SelectAll_AsViewer_Returns403Forbidden()
+    {
+        // Given: User has Viewer role for tenant
+        SwitchToViewer();
+
+        // When: Viewer attempts to select all
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/select-all", null);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    #endregion
+
+    #region POST /api/tenant/{tenantKey}/import/review/selection/deselect-all
+
+    [Test]
+    public async Task DeselectAll_WithPendingTransactions_Returns204NoContent()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Upload transactions
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var uploadContent = new MultipartFormDataContent();
+        using var uploadFileContent = new ByteArrayContent(ofxContent);
+        uploadFileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
+        uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
+
+        // When: User deselects all transactions
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/deselect-all", null);
+
+        // Then: 204 No Content should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task DeselectAll_AsViewer_Returns403Forbidden()
+    {
+        // Given: User has Viewer role for tenant
+        SwitchToViewer();
+
+        // When: Viewer attempts to deselect all
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/review/deselect-all", null);
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    #endregion
+
+    #region GET /api/tenant/{tenantKey}/import/review/summary
+
+    [Test]
+    public async Task GetReviewSummary_WithPendingTransactions_Returns200OK()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Upload transactions
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var uploadContent = new MultipartFormDataContent();
+        using var uploadFileContent = new ByteArrayContent(ofxContent);
+        uploadFileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
+        uploadContent.Add(uploadFileContent, "file", "Bank1.ofx");
+        await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", uploadContent);
+
+        // When: User requests summary
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review/summary");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain summary with counts
+        var result = await response.Content.ReadFromJsonAsync<ImportReviewSummaryDto>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.TotalCount, Is.GreaterThan(0));
+        Assert.That(result.SelectedCount, Is.GreaterThanOrEqualTo(0));
+        Assert.That(result.NewCount, Is.GreaterThanOrEqualTo(0));
+    }
+
+    [Test]
+    public async Task GetReviewSummary_NoPendingTransactions_Returns200OKWithZeroCounts()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: No transactions in review state
+
+        // When: User requests summary
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review/summary");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain summary with zero counts
+        var result = await response.Content.ReadFromJsonAsync<ImportReviewSummaryDto>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.TotalCount, Is.EqualTo(0));
+        Assert.That(result.SelectedCount, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task GetReviewSummary_AsViewer_Returns403Forbidden()
+    {
+        // Given: User has Viewer role for tenant
+        SwitchToViewer();
+
+        // When: Viewer attempts to get summary
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/import/review/summary");
+
+        // Then: 403 Forbidden should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     #endregion
