@@ -29,12 +29,7 @@
   </ItemGroup>
 
   <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
-       The generated file (Api/Generated/ApiClient.cs) is checked into source control.
+       The generated file (Api/Generated/ApiClient.cs) is checked into source control and automatically included by SDK.
        Run the script manually when the API changes. -->
-
-  <ItemGroup>
-    <!-- Include pre-generated API client in compilation -->
-    <Compile Include="Api\Generated\ApiClient.cs" />
-  </ItemGroup>
 
 </Project>
