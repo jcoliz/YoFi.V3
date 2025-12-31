@@ -484,36 +484,28 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     [When("a new user {username} registers and logs in")]
     protected async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
-        // TODO: Harmonize this with CommonWhenSteps.RegisterNewUserAsync()
-        // Use at least the same scheme for generating usernames/passwords
-
-        // Add __TEST__ prefix
-        // TODO: Need an isolating prefix for registration to avoid conflicts with parallel tests
-        // Who might be using the same username
-        var fullUsername = AddTestPrefix(shortName);
-
-        // Generate a unique email and password for the new user
-        var email = $"{fullUsername}@test.local";
-        var password = "Test123!";
+        // Generate credentials using the shared helper
+        var credentials = CreateTestUserCredentials(shortName);
 
         // Navigate to register page
         var registerPage = new RegisterPage(Page);
         await registerPage.NavigateAsync();
 
-        await registerPage.RegisterAsync(email, fullUsername, password);
+        await registerPage.RegisterAsync(credentials.Email, credentials.Username, credentials.Password);
 
         // Store credentials with short username as key
-        _userCredentials[shortName] = new TestUserCredentials { ShortName = shortName, Username = fullUsername, Email = email, Password = password };
+        _userCredentials[shortName] = credentials;
 
-        // New users get a workspace with their name
-        _objectStore.Add(KEY_CURRENT_WORKSPACE, fullUsername);
+        // New users get a workspace containing their name
+        // NOTE: This "works" because workspace lookups are substring lookups
+        _objectStore.Add(KEY_CURRENT_WORKSPACE, credentials.Username);
 
         // Click the "Continue" button to proceed after registration
         await registerPage.ContinueButton.ClickAsync();
 
         // Now we are on the login page and we should login
         var loginPage = new LoginPage(Page);
-        await loginPage.LoginAsync(fullUsername, password);
+        await loginPage.LoginAsync(credentials.Username, credentials.Password);
     }
 
     /// <summary>

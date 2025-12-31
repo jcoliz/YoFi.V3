@@ -59,6 +59,8 @@ public abstract class TransactionRecordSteps : WorkspaceTenancySteps
         _userCredentials[credentials.ShortName] = credentials;
 
         // And: Create the workspace for the user via test control API
+        // NOTE: This *is* required, because test control API doesn't automatically
+        // create workspaces for new users like the main app does during registration.
         var workspaceName = "Test Workspace";
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 

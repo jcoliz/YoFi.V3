@@ -816,16 +816,16 @@ public partial class TestControlController(
             if (!result.Succeeded)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                LogError($"Unable to create user {username}: {errors}");
-                throw new InvalidOperationException($"Unable to create user {username}: {errors}");
+                LogError($"Unable to create user {finalUsername}: {errors}");
+                throw new InvalidOperationException($"Unable to create user {finalUsername}: {errors}");
             }
 
             // Get the created user to obtain the GUID
-            var createdUser = await userManager.FindByNameAsync(username);
+            var createdUser = await userManager.FindByNameAsync(finalUsername);
             if (createdUser?.Id == null)
             {
-                LogError($"Unable to retrieve created user {username}");
-                throw new InvalidOperationException($"Unable to retrieve created user {username}");
+                LogError($"Unable to retrieve created user {finalUsername}");
+                throw new InvalidOperationException($"Unable to retrieve created user {finalUsername}");
             }
 
             credentials.Add(new TestUserCredentials(

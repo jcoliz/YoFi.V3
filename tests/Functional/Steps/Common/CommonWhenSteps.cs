@@ -1,5 +1,7 @@
 using Microsoft.Playwright;
+using NUnit.Framework.Internal;
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps.Common;
@@ -60,6 +62,31 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    /// Creates test user credentials with unique email/username based on test context.
+    /// </summary>
+    /// <param name="friendlyName">A friendly name which test steps use to refer to the user (e.g., "alice")</param>
+    /// <returns>TestUserCredentials with unique email, username, and generated password</returns>
+    /// <remarks>
+    /// Generates deterministic usernames and passwords based on test ID to ensure consistency across test runs.
+    /// The generated username format is: __TEST__{friendlyName}_{TestID:X8}
+    /// The generated password format is: Test_{TestID:X8}! (meets password complexity requirements)
+    /// </remarks>
+    protected TestUserCredentials CreateTestUserCredentials(string friendlyName)
+    {
+        var testId = TestContext.CurrentContext.Test.ID.GetHashCode();
+        var username = $"__TEST__{friendlyName}_{testId:X8}";
+        var password = $"Test_{testId:X8}!";
+
+        return new TestUserCredentials
+        {
+            ShortName = friendlyName,
+            Username = username,
+            Email = $"{username}@test.local",
+            Password = password
+        };
+    }
 
     /// <summary>
     /// Enters test user credentials into the login form without submitting.

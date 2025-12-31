@@ -8,13 +8,6 @@ using NUnit.Framework.Internal;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
-public class TestUser(int id)
-{
-    public string Email { get; init; } = $"__TEST__{id:X8}@example.com";
-    public string Username { get; init; } = $"__TEST__{id:X8}";
-    public string Password { get; init; } = "MyPassword123!";
-}
-
 /// <summary>
 /// Step definitions for Authentication feature tests.
 /// </summary>
@@ -130,7 +123,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         // First, clear existing test users via Test Control API
         await testControlClient.DeleteUsersAsync();
 
-        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        var user = CreateTestUserCredentials("testuser");
         _objectStore.Add("Registration Details", user);
 
         await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
@@ -321,7 +314,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         // First, clear existing test users via Test Control API
         await testControlClient.DeleteUsersAsync();
 
-        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        var user = CreateTestUserCredentials("testuser");
         _objectStore.Add("Registration Details", user);
 
         // Use a weak password (too short, no special characters, etc.)
@@ -361,7 +354,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         // First, clear existing test users via Test Control API
         await testControlClient.DeleteUsersAsync();
 
-        var user = new TestUser(TestContext.CurrentContext.Test.ID.GetHashCode());
+        var user = CreateTestUserCredentials("testuser");
         _objectStore.Add("Registration Details", user);
 
         // Use mismatched passwords
@@ -500,7 +493,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
 
-        var user = The<TestUser>("Registration Details");
+        var user = The<TestUserCredentials>("Registration Details");
 
         var emailDisplayText = await registerPage.EmailDisplay.InnerTextAsync();
         var usernameDisplayText = await registerPage.UsernameDisplay.InnerTextAsync();
