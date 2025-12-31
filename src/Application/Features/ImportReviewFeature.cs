@@ -325,16 +325,21 @@ public class ImportReviewFeature(
     /// <summary>
     /// Retrieves most recent existing transactions by ExternalId using batch query.
     /// </summary>
+    /// <remarks>
+    /// When multiple transactions have the same ExternalId and Date, uses Id as tie-breaker to ensure
+    /// exactly one transaction per ExternalId is returned (prevents duplicate key exception in ToDictionary).
+    /// </remarks>
     private async Task<IReadOnlyDictionary<string, Transaction>> GetExistingTransactionsByExternalIdAsync(
         string[] externalIds)
     {
         // Use subquery approach to get most recent transaction per ExternalId
+        // Include Id comparison as tie-breaker for transactions with same Date
         var query = dataProvider.Get<Transaction>()
             .Where(t => t.TenantId == _currentTenant.Id && externalIds.Contains(t.ExternalId))
             .Where(t => !dataProvider.Get<Transaction>()
                 .Any(t2 => t2.TenantId == _currentTenant.Id
                         && t2.ExternalId == t.ExternalId
-                        && t2.Date > t.Date));
+                        && (t2.Date > t.Date || (t2.Date == t.Date && t2.Id > t.Id))));
 
         var transactions = await dataProvider.ToListNoTrackingAsync(query);
         return transactions.ToDictionary(t => t.ExternalId!, t => t);
@@ -343,16 +348,21 @@ public class ImportReviewFeature(
     /// <summary>
     /// Retrieves most recent pending imports by ExternalId using batch query.
     /// </summary>
+    /// <remarks>
+    /// When multiple imports have the same ExternalId and Date, uses Id as tie-breaker to ensure
+    /// exactly one import per ExternalId is returned (prevents duplicate key exception in ToDictionary).
+    /// </remarks>
     private async Task<IReadOnlyDictionary<string, ImportReviewTransaction>> GetPendingImportsByExternalIdAsync(
         string[] externalIds)
     {
         // Use subquery approach to get most recent import per ExternalId
+        // Include Id comparison as tie-breaker for imports with same Date
         var query = dataProvider.Get<ImportReviewTransaction>()
             .Where(t => t.TenantId == _currentTenant.Id && externalIds.Contains(t.ExternalId))
             .Where(t => !dataProvider.Get<ImportReviewTransaction>()
                 .Any(t2 => t2.TenantId == _currentTenant.Id
                         && t2.ExternalId == t.ExternalId
-                        && t2.Date > t.Date));
+                        && (t2.Date > t.Date || (t2.Date == t.Date && t2.Id > t.Id))));
 
         var imports = await dataProvider.ToListNoTrackingAsync(query);
         return imports.ToDictionary(t => t.ExternalId!, t => t);

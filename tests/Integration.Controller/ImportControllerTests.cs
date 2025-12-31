@@ -204,6 +204,85 @@ public class ImportControllerTests : AuthenticatedTestBase
         Assert.That(result.Errors, Is.Not.Empty, "Corrupted OFX should generate parsing errors");
     }
 
+    /// <summary>
+    /// Regression test for AB#1992: Import: Error 400 after importing an OFX file the third time
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task UploadFile_WithMultipleDuplicates_OK()
+    {
+        // Given: User has Editor role for tenant
+        SwitchToEditor();
+
+        // And: Two transactions in the database with SAME ExternalId and SAME Date (but different Payee for clarity)
+        // This isolates the bug: the subquery in GetExistingTransactionsByExternalIdAsync returns BOTH transactions
+        // because neither has Date > the other, causing ToDictionary to throw on duplicate key
+        var sharedExternalId = "20220221 469976 8,769 2,022,022,018,019";
+        var sharedDate = new DateOnly(2022, 2, 21);
+
+        var transaction1 = new TransactionEditDto(
+            Date: sharedDate,
+            Amount: -87.69m,
+            Payee: "DUPLICATE-1", // Different payee for easy identification
+            Memo: null,
+            Source: "Bank",
+            ExternalId: sharedExternalId,
+            Category: null
+        );
+        var transaction2 = new TransactionEditDto(
+            Date: sharedDate, // SAME Date
+            Amount: -87.69m,
+            Payee: "DUPLICATE-2", // Different payee for easy identification
+            Memo: null,
+            Source: "Bank",
+            ExternalId: sharedExternalId, // SAME ExternalId
+            Category: null
+        );
+
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction1);
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", transaction2);
+
+        // When: Uploading an OFX file containing a transaction with that same External ID
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var content = new MultipartFormDataContent();
+        using var fileContent = new ByteArrayContent(ofxContent);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-ofx");
+        content.Add(fileContent, "file", "Bank1.ofx");
+
+        var response = await _client.PostAsync($"/api/tenant/{_testTenantKey}/import/upload", content);
+
+        // Debug: Display response details if not OK
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"\n=== Error Response ===");
+            Console.WriteLine($"Status Code: {response.StatusCode}");
+            Console.WriteLine($"Content: {errorContent}");
+        }
+
+        // Then: Operation should succeed (200 OK) - but currently fails due to bug
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK),
+            "BUG REPRODUCED: ToDictionary throws when multiple transactions have same ExternalId+Date");
+
+        // And: Response should contain import summary
+        var result = await response.Content.ReadFromJsonAsync<ImportReviewUploadDto>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.ImportedCount, Is.GreaterThan(0), "File should contain transactions");
+
+        // Debug: Display import result details
+        Console.WriteLine($"\n=== Import Result ===");
+        Console.WriteLine($"ImportedCount: {result.ImportedCount}");
+        Console.WriteLine($"NewCount: {result.NewCount}");
+        Console.WriteLine($"ExactDuplicateCount: {result.ExactDuplicateCount}");
+        Console.WriteLine($"PotentialDuplicateCount: {result.PotentialDuplicateCount}");
+        Console.WriteLine($"Errors: {result.Errors?.Count ?? 0}");
+
+        // And: The transaction with the duplicate FITID should be marked as duplicate
+        Assert.That(result.ExactDuplicateCount + result.PotentialDuplicateCount, Is.GreaterThan(0),
+            "Should detect at least one duplicate from the multiple existing transactions with same FITID");
+    }
+
     #endregion
 
     #region GET /api/tenant/{tenantKey}/import/review
