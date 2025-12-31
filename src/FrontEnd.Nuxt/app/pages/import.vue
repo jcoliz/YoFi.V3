@@ -240,6 +240,36 @@ const hasTransactions = computed(() => transactions.value.length > 0)
  * Computed: Check if any transactions are selected
  */
 const hasSelections = computed(() => selectedKeys.value.size > 0)
+
+/**
+ * Computed: Check if there are any potential duplicates in the transaction list
+ */
+const hasPotentialDuplicates = computed(() => {
+  return transactions.value.some((t) => t.duplicateStatus === DuplicateStatus.PotentialDuplicate)
+})
+
+/**
+ * Generates test transactions for testing (without file upload)
+ */
+const generateTestData = () => {
+  console.log('Generating test transactions...')
+  const testTransactions = generateFakeTransactions(50)
+  transactions.value = testTransactions
+
+  // Select New transactions by default
+  selectedKeys.value.clear()
+  testTransactions.forEach((transaction) => {
+    if (transaction.duplicateStatus === DuplicateStatus.New) {
+      selectedKeys.value.add(transaction.key!)
+    }
+  })
+
+  console.log('Generated', testTransactions.length, 'transactions')
+  const potentialDupes = testTransactions.filter(
+    (t) => t.duplicateStatus === DuplicateStatus.PotentialDuplicate,
+  )
+  console.log('Potential duplicates:', potentialDupes.length)
+}
 </script>
 
 <template>
@@ -332,6 +362,9 @@ const hasSelections = computed(() => selectedKeys.value.size > 0)
               deselected by default.
             </p>
 
+            <!-- Duplicates Alert -->
+            <ImportDuplicatesAlert :show="hasPotentialDuplicates" />
+
             <ImportActionButtons
               :has-transactions="hasTransactions"
               :has-selections="hasSelections"
@@ -356,14 +389,23 @@ const hasSelections = computed(() => selectedKeys.value.size > 0)
         <div class="alert alert-warning mt-4">
           <strong>⚠️ Temporary Page</strong><br />
           This is a temporary implementation to demonstrate the FileUploadSection, UploadStatusPane,
-          and ImportReviewTable components. The full import workflow (action buttons, pagination,
-          etc.) will be added in future iterations.
+          ImportReviewTable, ImportActionButtons, and ImportDuplicatesAlert components. The full
+          import workflow (pagination, modals, etc.) will be added in future iterations.
           <hr />
           <small
             ><strong>Testing tips:</strong> File names containing "error" will simulate upload
             failures. File names containing "warning" will simulate partial success with errors.
             Other files will simulate complete success and generate fake transaction data.</small
           >
+          <hr />
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            data-test-id="generate-test-data-button"
+            @click="generateTestData"
+          >
+            🧪 Generate Test Data (50 transactions)
+          </button>
         </div>
       </div>
     </div>
