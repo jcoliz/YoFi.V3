@@ -308,7 +308,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <returns>A queryable of transactions for the current tenant, ordered by date descending, with splits loaded.</returns>
     private IQueryable<Transaction> GetBaseTransactionQuery()
     {
-        return dataProvider.GetTransactionsWithSplits()
+        return dataProvider.GetWithIncludes<Transaction>(t => t.Splits)
             .Where(t => t.TenantId == _currentTenant.Id)
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);

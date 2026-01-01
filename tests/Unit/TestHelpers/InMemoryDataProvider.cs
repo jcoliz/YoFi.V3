@@ -58,12 +58,10 @@ public class InMemoryDataProvider : IDataProvider
         throw new NotSupportedException($"Entity type {typeof(TEntity)} is not supported.");
     }
 
-    IQueryable<Transaction> IDataProvider.GetTransactionsWithSplits()
-    {
-        // In-memory provider: Splits are already in memory with the transaction objects
-        // No need for explicit Include() since we're not using a real database
-        return _transactions.AsQueryable();
-    }
+    IQueryable<TEntity> IDataProvider.GetWithIncludes<TEntity>(params Expression<Func<TEntity, object>>[] includes)
+        // In-memory provider: Navigation properties are already in memory with the entity objects
+        // No need for explicit Include() since we're not using a real database, just delegate to Get<TEntity>()
+        => ((IDataProvider)this).Get<TEntity>();
 
     public void Add(IModel item)
     {

@@ -16,10 +16,19 @@ public interface IDataProvider
     IQueryable<TEntity> Get<TEntity>() where TEntity : class, IModel;
 
     /// <summary>
-    /// Retrieves a queryable set of Transaction objects with Splits navigation property loaded.
+    /// Retrieves a queryable set of <typeparamref name="TEntity"/> objects with specified navigation properties loaded.
     /// </summary>
-    /// <returns>Queryable set of Transaction objects with Splits included.</returns>
-    IQueryable<Transaction> GetTransactionsWithSplits();
+    /// <typeparam name="TEntity">The type of entity being queried.</typeparam>
+    /// <param name="includes">Expressions specifying which navigation properties to include.</param>
+    /// <returns>Queryable set of <typeparamref name="TEntity"/> objects with specified properties included.</returns>
+    /// <example>
+    /// <code>
+    /// // Load transactions with their splits
+    /// var query = dataProvider.GetWithIncludes&lt;Transaction&gt;(t => t.Splits)
+    ///     .Where(t => t.TenantId == tenantId);
+    /// </code>
+    /// </example>
+    IQueryable<TEntity> GetWithIncludes<TEntity>(params Expression<Func<TEntity, object>>[] includes) where TEntity : class, IModel;
 
     /// <summary>
     /// Add an item

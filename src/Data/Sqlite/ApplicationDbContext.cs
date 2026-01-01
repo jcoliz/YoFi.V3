@@ -303,8 +303,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         => base.Set<T>();
 
     /// <inheritdoc />
-    IQueryable<Transaction> IDataProvider.GetTransactionsWithSplits()
-        => Transactions.Include(t => t.Splits);
+    IQueryable<TEntity> IDataProvider.GetWithIncludes<TEntity>(params Expression<Func<TEntity, object>>[] includes)
+    {
+        IQueryable<TEntity> query = Set<TEntity>();
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        return query;
+    }
 
     #endregion
 
