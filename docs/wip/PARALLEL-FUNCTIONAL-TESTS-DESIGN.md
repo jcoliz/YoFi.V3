@@ -1,6 +1,5 @@
 ---
-status: Draft
-target_release: TBD
+status: In review
 created: 2025-12-31
 ---
 
@@ -59,43 +58,55 @@ protected async Task GivenIHaveAnExistingAccount()
 **Single Responsibility Principle:** Client (test) always generates credentials, server (API) just stores them in the database.
 
 ```csharp
-// Helper: Generate unique credentials (same for ALL scenarios)
+// Helper: Generate unique credentials AND track for cleanup
 protected TestUserCredentials CreateTestUserCredentials(string friendlyName)
 {
     var testId = TestContext.CurrentContext.Test.ID.GetHashCode();
     var username = $"__TEST__{friendlyName}_{testId:X8}";
     var password = $"Test_{testId:X8}!";
 
-    return new TestUserCredentials
+    var creds = new TestUserCredentials
     {
         ShortName = friendlyName,
         Username = username,
         Email = $"{username}@test.local",
         Password = password
     };
+
+    // Store immediately for lookup and cleanup
+    _userCredentials[friendlyName] = creds;
+
+    return creds;
 }
 ```
 
+**Key insight:** Generate AND track in one step. No separate `TrackCreatedUser()` needed!
+
 **Usage: Setup Existing Users**
 ```csharp
-// Generate credentials on client
+// Generate credentials (automatically tracked with empty ID)
 var aliceCreds = CreateTestUserCredentials("alice");
 
-// Ask server to create user in DB
+// Ask server to create user in DB (returns credentials with ID populated)
 var created = await testControlClient.CreateUsersAsync(new[] { aliceCreds });
-var alice = created.First();
+
+// Update dictionary with server-populated credentials (including ID)
+var createdUser = created.Single();
+_userCredentials[createdUser.ShortName] = createdUser;
 ```
+
+**Key flow:** Generate → Track (empty ID) → API create → Update with server credentials (including ID)
 
 **Usage: Testing Registration Flow**
 ```csharp
-// Generate credentials on client (SAME method!)
+// Generate credentials (automatically tracked)
 var userCreds = CreateTestUserCredentials("testuser");
 
 // Fill registration form (form will create user, not API)
 await registerPage.EnterRegistrationDetailsAsync(userCreds.Email, userCreds.Username, ...);
 ```
 
-**Key insight:** Same credential generation for both patterns! The only difference is WHO creates the database record (Test Control API vs. registration form).
+**Key insight:** `CreateTestUserCredentials()` generates AND tracks automatically. No separate tracking call needed!
 
 #### 2. Remove Bulk Delete Operations
 
@@ -113,32 +124,36 @@ var user = await testControlClient.CreateUsersAsync(new[] { "user" });
 **New pattern (parallel-safe):**
 ```csharp
 // ✅ NO bulk delete! Just create unique user directly
-var userCreds = CreateTestUserCredentials("user");
+var userCreds = CreateTestUserCredentials("user");  // Auto-tracked
 var created = await testControlClient.CreateUsersAsync(new[] { userCreds });
-TrackCreatedUser(created.First());
+
+// Update with server-populated ID
+var createdUser = created.Single();
+_userCredentials[createdUser.ShortName] = createdUser;
 ```
 
 **Key change:** Remove all `DeleteUsersAsync()` and `DeleteAllTestDataAsync()` calls. Each test creates unique users that don't collide with other tests.
 
 #### 3. Test-Scoped Cleanup
 
-Instead of deleting all test users upfront, clean up only the accounts created by the current test:
+Clean up only the accounts created by the current test using the `_createdUsers` tracking list:
 
-**Option A: Cleanup in TearDown (Preferred)**
 ```csharp
 [TearDown]
 public async Task TearDown()
 {
-    // Existing screenshot logic...
-
-    // Clean up test users created by this specific test
-    if (_objectStore.Contains<TestUserCredentials>())
+    // Capture screenshot only on test failure
+    if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Failed)
     {
-        var credentials = _objectStore.GetAll<TestUserCredentials>();
-        foreach (var cred in credentials)
-        {
-            await testControlClient.DeleteUserAsync(cred.Username);
-        }
+        var pageModel = It<Pages.BasePage>();
+        await pageModel.SaveScreenshotAsync($"FAILED");
+    }
+
+    // Clean up test-specific users in bulk
+    if (_userCredentials.Count > 0)
+    {
+        var usernames = _userCredentials.Values.Select(u => u.Username).ToList();
+        await testControlClient.DeleteUsersAsync(usernames);
     }
 
     _testActivity?.Stop();
@@ -146,7 +161,7 @@ public async Task TearDown()
 }
 ```
 
-**Option B: Background Cleanup Job (Future Enhancement)**
+**Future Enhancement: Background Cleanup Job**
 - Periodically delete test users older than X hours
 - Handles cleanup if tests crash or are interrupted
 - Keeps the database clean without test-time overhead
@@ -224,123 +239,65 @@ public async Task<IActionResult> CreateUsers([FromBody] IReadOnlyCollection<Test
 - ✅ Server just validates `__TEST__` prefix and stores in DB
 - ✅ Returns credentials with `Id` populated
 
-#### Update Bulk Delete Endpoint
+#### Add Bulk Delete Endpoint with Required Body
 
-**Existing endpoint:** `DELETE /testcontrol/users` (deletes ALL test users)
-
-**New overload:** `DELETE /testcontrol/users` with body containing specific usernames
+**New endpoint:** `DELETE /testcontrol/users` with required body containing specific usernames
 
 ```csharp
 /// <summary>
 /// Delete specific test users by username list.
 /// </summary>
-/// <param name="usernames">Optional collection of usernames to delete. If null/empty, deletes ALL test users.</param>
+/// <param name="usernames">Collection of usernames to delete. Must not be empty.</param>
 /// <returns>204 No Content on success.</returns>
 [HttpDelete("users")]
 [ProducesResponseType(StatusCodes.Status204NoContent)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-public async Task<IActionResult> DeleteUsers([FromBody] IReadOnlyCollection<string>? usernames = null)
+public async Task<IActionResult> DeleteUsers([FromBody] IReadOnlyCollection<string> usernames)
 {
-    IEnumerable<IdentityUser> usersToDelete;
-
+    // Require explicit username list
     if (usernames == null || usernames.Count == 0)
     {
-        // No list provided - delete ALL test users (existing behavior)
-        usersToDelete = userManager.Users
-            .Where(u => u.UserName != null && u.UserName.Contains(TestPrefix))
-            .ToList();
+        return ProblemWithLog(
+            StatusCodes.Status400BadRequest,
+            "Username list required",
+            "Must provide explicit list of usernames to delete. Empty list not allowed."
+        );
     }
-    else
-    {
-        // Specific list provided - delete only those users
-        // Validate all usernames have test prefix
-        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestPrefix, StringComparison.Ordinal)).ToList();
-        if (invalidUsernames.Count > 0)
-        {
-            return ProblemWithLog(
-                StatusCodes.Status403Forbidden,
-                "All usernames must have test prefix",
-                $"Invalid usernames: {string.Join(", ", invalidUsernames)}"
-            );
-        }
 
-        usersToDelete = userManager.Users
-            .Where(u => u.UserName != null && usernames.Contains(u.UserName))
-            .ToList();
+    // Validate all usernames have test prefix
+    var invalidUsernames = usernames.Where(u => !u.StartsWith(TestPrefix, StringComparison.Ordinal)).ToList();
+    if (invalidUsernames.Count > 0)
+    {
+        return ProblemWithLog(
+            StatusCodes.Status403Forbidden,
+            "All usernames must have test prefix",
+            $"Invalid usernames: {string.Join(", ", invalidUsernames)}"
+        );
     }
+
+    // Delete specified users
+    var usersToDelete = userManager.Users
+        .Where(u => u.UserName != null && usernames.Contains(u.UserName))
+        .ToList();
 
     foreach (var user in usersToDelete)
     {
         await userManager.DeleteAsync(user);
     }
 
-    LogOkCount(usersToDelete.Count());
+    LogOkCount(usersToDelete.Count);
     return NoContent();
 }
 ```
 
 **Key changes:**
-- ✅ Bulk delete now accepts optional list of specific usernames
-- ✅ Empty/null request = delete ALL (existing behavior for CI/CD)
-- ✅ Specific list = delete only those users (for test cleanup)
+- ✅ **Required body** - empty/null list returns 400 Bad Request
+- ✅ **No "delete all" behavior** - must explicitly provide usernames
+- ✅ **Safer** - impossible to accidentally delete all test users
 - ✅ All usernames validated for `__TEST__` prefix
 
-#### Make CreateUsers More Flexible
-
-The current `CreateUsers` endpoint already adds a unique suffix per call:
-
-```csharp
-// From TestControlController.CreateUsersInternalAsync()
-var runSuffix = Guid.NewGuid().ToString("N")[..8];
-var finalUsername = username.StartsWith(TestPrefix, StringComparison.Ordinal) ? username : TestPrefix + username;
-finalUsername += "_" + runSuffix;
-```
-
-**Good:** This prevents collisions between test runs.
-
-**Issue:** Test steps currently use hardcoded usernames like `"user"`, which gets transformed to `__TEST__user_{runSuffix}`. If we pass the full unique username from `CreateTestUserCredentials()`, we get double suffixes:
-
-```
-__TEST__user_ABCD1234_{runSuffix}
-```
-
-**Solution:** Modify `CreateUsersInternalAsync` to detect if username already has a unique suffix (contains underscore after `__TEST__` prefix) and skip adding `runSuffix` in that case:
-
-```csharp
-private async Task<IReadOnlyCollection<TestUserCredentials>> CreateUsersInternalAsync(...)
-{
-    var runSuffix = Guid.NewGuid().ToString("N")[..8];
-
-    foreach (var username in usernames)
-    {
-        var finalUsername = username.StartsWith(TestPrefix, StringComparison.Ordinal)
-            ? username
-            : TestPrefix + username;
-
-        // Only add run suffix if username doesn't already have a unique identifier
-        // Pattern: __TEST__name_XXXXXXXX where X is hex digit
-        if (!UsernameHasUniqueSuffix(finalUsername))
-        {
-            finalUsername += "_" + runSuffix;
-        }
-
-        // ... rest of implementation
-    }
-}
-
-private static bool UsernameHasUniqueSuffix(string username)
-{
-    // Check if username matches pattern: __TEST__XXX_XXXXXXXX (8 hex chars after underscore)
-    var parts = username.Split('_');
-    if (parts.Length < 3) return false;
-
-    var lastPart = parts[^1];
-    return lastPart.Length == 8 && IsHexString(lastPart);
-}
-
-private static bool IsHexString(string str) =>
-    str.All(c => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
-```
+**For bulk cleanup:** Use existing `DELETE /testcontrol/data` endpoint (if still needed for CI/CD cleanup).
 
 ### 2. FunctionalTestBase Changes
 
@@ -351,17 +308,19 @@ public abstract partial class FunctionalTestBase : PageTest
 {
     // Existing fields...
 
-    // Track ALL users created during this test (from any pattern)
-    private readonly List<TestUserCredentials> _createdUsers = new();
+    // Track users by friendly name for lookups AND cleanup
+    protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
-    // Track ALL workspaces created during this test
+    // Track workspaces for cleanup
     private readonly List<Guid> _createdWorkspaces = new();
 
     // ... existing code ...
 }
 ```
 
-**Critical:** The `_createdUsers` list is the single source of truth for cleanup. ALL user creation paths (Pattern A and Pattern B) must call `TrackCreatedUser()`.
+**Design:** Single dictionary provides both:
+- **O(1) lookups** by friendly name during test steps
+- **Cleanup** via `_userCredentials.Values` in TearDown
 
 #### Update TearDown with Cleanup
 
@@ -404,17 +363,18 @@ private async Task CleanupTestResourcesAsync()
             }
         }
 
-        // Clean up users
-        foreach (var user in _createdUsers)
+        // Clean up users in bulk
+        if (_userCredentials.Count > 0)
         {
             try
             {
-                await testControlClient.DeleteUserAsync(user.Username);
+                var usernames = _userCredentials.Values.Select(u => u.Username).ToList();
+                await testControlClient.DeleteUsersAsync(usernames);
             }
             catch (Exception ex)
             {
                 // Log but don't fail test if cleanup fails
-                TestContext.Out.WriteLine($"[Cleanup] Failed to delete user {user.Username}: {ex.Message}");
+                TestContext.Out.WriteLine($"[Cleanup] Failed to delete users: {ex.Message}");
             }
         }
     }
@@ -426,30 +386,9 @@ private async Task CleanupTestResourcesAsync()
 }
 ```
 
-#### Add Helper for Tracking Created Resources
+#### Add Helper for Tracking Workspaces
 
 ```csharp
-/// <summary>
-/// Tracks a created user for cleanup in TearDown.
-/// </summary>
-/// <remarks>
-/// MUST be called for EVERY user created during the test, regardless of creation pattern:
-/// - Pattern A: After API creates user
-/// - Pattern B: After form submits successfully (or even before, to ensure cleanup)
-/// This is the ONLY way to ensure users are cleaned up in TearDown.
-/// </remarks>
-protected void TrackCreatedUser(TestUserCredentials user)
-{
-    _createdUsers.Add(user);
-
-    // Also add to object store for backward compatibility with existing tests
-    // (some tests retrieve users from object store in later steps)
-    if (!_objectStore.Contains<TestUserCredentials>())
-    {
-        _objectStore.Add(user);
-    }
-}
-
 /// <summary>
 /// Tracks a created workspace for cleanup in TearDown.
 /// </summary>
@@ -459,7 +398,7 @@ protected void TrackCreatedWorkspace(Guid workspaceKey)
 }
 ```
 
-**Important:** Tests that create multiple users should track each one individually. The `_userCredentials` dictionary in `WorkspaceTenancySteps` is for test step lookups, but `_createdUsers` list is for cleanup.
+**Note:** No `TrackCreatedUser()` needed! `CreateTestUserCredentials()` tracks automatically when generating credentials.
 
 ### 3. Step Implementation Updates
 
@@ -483,22 +422,24 @@ protected async Task GivenIHaveAnExistingAccount()
 [Given("I have an existing account")]
 protected async Task GivenIHaveAnExistingAccount()
 {
-    if (_objectStore.Contains<Generated.TestUserCredentials>())
-        return;
-
-    // Generate unique credentials on client
+    // Generate credentials (automatically tracked with empty ID)
     var userCreds = CreateTestUserCredentials("user");
 
-    // Ask API to create user in DB
+    // Ask API to create user in DB (returns with ID populated)
     var created = await testControlClient.CreateUsersAsync(new[] { userCreds });
-    var user = created.First();
 
-    // Track for cleanup
-    TrackCreatedUser(user);
+    // Update dictionary with server-populated credentials (including ID)
+    var createdUser = created.Single();
+    _userCredentials[createdUser.ShortName] = createdUser;
 }
 ```
 
-**Key change:** Client generates credentials, API just stores in DB.
+**Key changes:**
+- ❌ Remove `DeleteUsersAsync()` call
+- ❌ Remove `_objectStore` pattern
+- ✅ Client generates credentials (auto-tracked)
+- ✅ API creates and returns with ID
+- ✅ Update dictionary with server-populated ID
 
 #### WorkspaceTenancySteps - Multiple Users
 
@@ -527,27 +468,27 @@ protected async Task GivenTheseUsersExist(DataTable usersTable)
 protected async Task GivenTheseUsersExist(DataTable usersTable)
 {
     // Get friendly names from DataTable (e.g., "alice", "bob")
-    var usernames = usersTable.ToSingleColumnList().ToList();
+    var friendlyNames = usersTable.ToSingleColumnList().ToList();
+
+    // Generate credentials for all users (auto-tracked)
+    var credentialsList = friendlyNames.Select(name => CreateTestUserCredentials(name)).ToList();
 
     // Create all users in bulk
-    // API will automatically add __TEST__ prefix and unique suffix per test run
-    var credentials = await testControlClient.CreateUsersAsync(usernames);
+    var created = await testControlClient.CreateUsersAsync(credentialsList);
 
-    // Store with short name as key (API returns ShortName = friendly name), track for cleanup
-    foreach (var cred in credentials)
+    // Update dictionary with server-populated IDs
+    foreach (var createdUser in created)
     {
-        _userCredentials[cred.ShortName] = cred;  // ShortName = "alice", Username = "__TEST__alice_12345678"
-        TrackCreatedUser(cred);
+        _userCredentials[createdUser.ShortName] = createdUser;
     }
 }
 ```
 
 **Key changes:**
 - ❌ Remove `DeleteAllTestDataAsync()` call
-- ✅ Pass friendly names directly to API (Pattern A)
-- ✅ API handles uniqueness automatically
-- ✅ **Track EACH user** in `_createdUsers` list for cleanup
-- ✅ Store in `_userCredentials` dictionary for test step lookups
+- ✅ Generate credentials client-side (auto-tracked)
+- ✅ API creates and returns with IDs
+- ✅ Update dictionary with server-populated IDs
 
 #### AuthenticationSteps - Same Unified Pattern
 
@@ -574,21 +515,67 @@ protected async Task WhenIEnterValidRegistrationDetails()
 {
     var registerPage = GetOrCreateRegisterPage();
 
-    // SAME PATTERN: Generate credentials on client
+    // Generate credentials (automatically tracked)
     var user = CreateTestUserCredentials("testuser");
-    _objectStore.Add("Registration Details", user);
 
     await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
 
     // Note: User will be created by FORM SUBMISSION (not Test Control API)
-    // Track for cleanup - successful registration creates a real user
-    TrackCreatedUser(user);
 }
 ```
 
-**Key insight:** Exact same pattern! Client generates credentials, someone else (form or API) creates the DB record.
+**Key changes:**
+- ❌ Remove `DeleteUsersAsync()` call
+- ❌ Remove `_objectStore` pattern
+- ✅ Generate credentials (auto-tracked)
+- ✅ No manual tracking needed
 
-**Pattern:** Remove `DeleteUsersAsync()` calls from all 3 occurrences in `AuthenticationSteps.cs`, add `TrackCreatedUser()` calls.
+**Pattern:** Remove `DeleteUsersAsync()` calls and `_objectStore` usage from all 3 occurrences in `AuthenticationSteps.cs`.
+
+#### Using Stored Credentials in Test Steps
+
+After creating users, retrieve their credentials from the dictionary using the friendly name:
+
+```csharp
+[When("I login as {string}")]
+protected async Task WhenILoginAs(string friendlyName)
+{
+    // Retrieve credentials by friendly name
+    var userCreds = _userCredentials[friendlyName];
+
+    // Use credentials for login
+    var loginPage = GetOrCreateLoginPage();
+    await loginPage.LoginAsync(userCreds.Username, userCreds.Password);
+}
+
+[Given("{string} creates a workspace called {string}")]
+protected async Task GivenUserCreatesWorkspace(string friendlyName, string workspaceName)
+{
+    // Retrieve user credentials
+    var userCreds = _userCredentials[friendlyName];
+
+    // Create workspace for this user
+    var workspace = await testControlClient.CreateWorkspaceForUserAsync(
+        userCreds.Id,
+        new TenantEditDto(workspaceName, "Test workspace")
+    );
+
+    // Track for cleanup
+    TrackCreatedWorkspace(workspace.Key);
+}
+
+[Then("I should see {string}'s email address")]
+protected async Task ThenIShouldSeeUsersEmail(string friendlyName)
+{
+    var userCreds = _userCredentials[friendlyName];
+    var profilePage = It<Pages.ProfilePage>();
+
+    var displayedEmail = await profilePage.GetEmailAsync();
+    Assert.That(displayedEmail, Is.EqualTo(userCreds.Email));
+}
+```
+
+**Key insight:** The dictionary provides O(1) lookup by friendly name. Tests reference users by their Gherkin-friendly names ("alice", "bob"), not the unique generated usernames.
 
 ### 4. NUnit Configuration for Parallel Execution
 
@@ -602,8 +589,11 @@ using NUnit.Framework;
 // Enable parallel execution at the fixture level
 [assembly: Parallelizable(ParallelScope.Fixtures)]
 
-// Limit concurrent fixtures to avoid overwhelming the system
-[assembly: LevelOfParallelism(4)]
+// IMPORTANT: Start conservative for SQLite (single writer limitation)
+[assembly: LevelOfParallelism(2)]  // Only 2 parallel tests initially
+
+// Can increase cautiously after testing, but SQLite single-writer may limit benefit
+// [assembly: LevelOfParallelism(4)]  // Test thoroughly, monitor for "database is locked"
 ```
 
 **Explanation:**
@@ -681,24 +671,39 @@ await testControlClient.DeleteUserAsync(user.Username);
 
 ## Migration Strategy
 
-### Phase 1: Add Infrastructure (Non-Breaking)
+### Phase 1: Update Infrastructure (All Breaking Changes)
 
-1. ✅ Add `DELETE /testcontrol/users/{username}` endpoint
-2. ✅ Update `CreateUsersInternalAsync` to handle pre-suffixed usernames
-3. ✅ Add cleanup tracking to `FunctionalTestBase`
-4. ✅ Add `TrackCreatedUser` / `TrackCreatedWorkspace` helpers
-5. ✅ Update `TearDown` with cleanup logic
+All changes in this phase are breaking - this is an "all at once" migration, NOT incremental.
 
-**Result:** Infrastructure in place, but tests still work as before (no parallel execution yet).
+1. ✅ **API BREAKING:** Change `POST /testcontrol/users` to accept `TestUserCredentials[]` instead of `string[]`
+2. ✅ **API BREAKING:** Change `DELETE /testcontrol/users` to require body with username list (empty = 400 Bad Request)
+3. ✅ Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
+4. ✅ Add `_userCredentials` dictionary to `FunctionalTestBase`
+5. ✅ Add `_createdWorkspaces` tracking list to `FunctionalTestBase`
+6. ✅ Add `CreateTestUserCredentials()` helper to `FunctionalTestBase`
+7. ✅ Add `TrackCreatedWorkspace` helper to `FunctionalTestBase`
+8. ✅ Update `TearDown` with `CleanupTestResourcesAsync` implementation
 
-### Phase 2: Update Test Steps (Breaking Changes)
+**Result:** API and base infrastructure updated. Tests WILL BREAK until Phase 2 is complete.
 
-1. ✅ Remove `DeleteUsersAsync()` from `CommonGivenSteps.GivenIHaveAnExistingAccount()`
-2. ✅ Remove `DeleteUsersAsync()` from `AuthenticationSteps` (3 locations)
-3. ✅ Update steps to use `TrackCreatedUser()` for cleanup
-4. ✅ Update workspace creation steps to use `TrackCreatedWorkspace()`
+### Phase 2: Fix All Test Steps
 
-**Result:** Tests now use isolated accounts, but still run sequentially.
+All test steps must be updated to work with the new API and infrastructure:
+
+1. ✅ Remove ALL `DeleteUsersAsync()` calls (CommonGivenSteps, AuthenticationSteps - 3 locations)
+2. ✅ Update ALL user creation to use `CreateTestUserCredentials()` + API create + ID update pattern
+3. ✅ Update ALL workspace creation steps to use `TrackCreatedWorkspace()`
+4. ✅ **Refactor ALL credential retrieval** - Replace `_objectStore.Get<TestUserCredentials>()` with `_userCredentials[friendlyName]`
+5. ✅ Remove ALL `_objectStore.Contains<TestUserCredentials>()` checks
+
+**Critical searches:**
+- Search for `_objectStore.Get<TestUserCredentials>` - replace with `_userCredentials[name]`
+- Search for `_objectStore.Contains<TestUserCredentials>` - replace with `_userCredentials.ContainsKey(name)`
+- Search for `_objectStore.Add` (with TestUserCredentials) - remove (now auto-tracked)
+- Search for `DeleteUsersAsync()` - remove all calls
+- Search for `DeleteAllTestDataAsync()` - remove all calls
+
+**Result:** Tests now use isolated accounts with unified credential storage, but still run sequentially.
 
 ### Phase 3: Enable Parallel Execution
 
@@ -722,13 +727,17 @@ await testControlClient.DeleteUserAsync(user.Username);
 **Current (Sequential):**
 - 100 tests × 10 seconds each = **1000 seconds (16.7 minutes)**
 
-**With Parallel Execution (4 workers):**
-- 100 tests ÷ 4 workers × 10 seconds each = **250 seconds (4.2 minutes)**
-- **4x faster!** ⚡
+**With Parallel Execution (2 workers - SQLite safe):**
+- Theoretical: 100 tests ÷ 2 workers × 10s = 500s (8.3 min)
+- **Actual with SQLite: ~600-700s (10-12 min)** due to write contention
+- **1.5-2x faster!** ⚡
 
-**With Parallel Execution (8 workers):**
-- 100 tests ÷ 8 workers × 10 seconds each = **125 seconds (2.1 minutes)**
-- **8x faster!** 🚀
+**With Parallel Execution (4 workers - risky with SQLite):**
+- May not improve beyond 2 workers due to SQLite single-writer limitation
+- High risk of "database is locked" errors
+- **Not recommended initially**
+
+**Note:** SQLite's single-writer limitation significantly impacts parallel test performance. For better parallelism (4-8 workers), consider migrating functional tests to SQL Server.
 
 ### Developer Experience
 
@@ -745,6 +754,68 @@ await testControlClient.DeleteUserAsync(user.Username);
 - ✅ Cleanup happens per-test (no orphaned data)
 
 ## Risks and Mitigations
+
+### Risk: SQLite Write Concurrency Limitations ⚠️ CRITICAL
+
+**Symptom:** Tests fail with "database is locked" errors when running in parallel.
+
+**Root cause:** SQLite only supports **one writer at a time**. Multiple parallel tests writing simultaneously will queue and may timeout.
+
+**SQLite concurrency characteristics:**
+- ❌ **Single writer** - Only ONE write transaction active at a time
+- ✅ **Multiple readers** - Many concurrent reads are fine
+- ⚠️ **Write contention** - Parallel tests writing = queuing/retries/timeouts
+
+**Mitigation strategies:**
+
+**Option 1: Limit Parallelism (Recommended Start)**
+```csharp
+// Start very conservative for SQLite
+[assembly: LevelOfParallelism(2)]  // Only 2 parallel tests
+```
+- **2 workers**: Safest, minimal write contention, **2x speedup**
+- **4 workers**: May work if tests are read-heavy, monitor for locks
+
+**Option 2: Enable Write-Ahead Logging (WAL) Mode**
+WAL mode allows concurrent reads during writes:
+```
+Connection string: "Data Source=test.db;Mode=ReadWriteCreate;Cache=Shared;Journal Mode=WAL"
+```
+- Reduces lock contention
+- Standard recommendation for concurrent SQLite access
+- Should be enabled regardless of parallelism level
+
+**Option 3: Increase Busy Timeout**
+Give locked transactions more time to complete:
+```csharp
+// In DbContext OnConfiguring
+optionsBuilder.UseSqlite(connectionString, options =>
+{
+    options.CommandTimeout(30);  // 30 second timeout
+});
+
+// Or in connection string
+"Data Source=test.db;Busy Timeout=30000"  // milliseconds
+```
+
+**Option 4: Switch to PostgreSQL for Functional Tests (Future)**
+If SQLite write contention becomes unmanageable:
+- ✅ PostgreSQL handles concurrent writes efficiently with MVCC (Multi-Version Concurrency Control)
+- ✅ Use Docker container for local development and CI/CD
+- ✅ More realistic for production environment (Azure Database for PostgreSQL)
+- ✅ Better parallelism support than SQLite (true concurrent writes)
+- ❌ Additional infrastructure complexity
+
+**Recommendation:**
+1. **Start with `LevelOfParallelism(2)` + WAL mode**
+2. **Monitor for "database is locked" errors**
+3. **Measure actual speedup** (may be less than 2x due to write queueing)
+4. **Consider PostgreSQL** if write contention limits parallel benefit
+
+**Expected performance with SQLite:**
+- **Sequential**: 100 tests × 10s = 1000s (16.7 min)
+- **2 workers**: ~600-700s (10-12 min) - **1.5-2x faster** (write contention reduces benefit)
+- **4 workers**: May not improve further due to SQLite single-writer limitation
 
 ### Risk: Database Connection Pool Exhaustion
 
@@ -847,49 +918,196 @@ public async Task OneTimeSetup()
 
 ## Implementation Checklist
 
-### Test Control API
-- [ ] Add `DELETE /testcontrol/users/{username}` endpoint
+### PART 1: Consolidation Refactoring (Do First - Good Practice Regardless of Parallelization)
+
+**These changes improve test infrastructure whether or not parallel execution works with SQLite.**
+
+#### Test Control API
+- [ ] Change `POST /testcontrol/users` to accept `TestUserCredentials[]`
+- [ ] Change `DELETE /testcontrol/users` to require body (empty = 400 Bad Request)
 - [ ] Add `DELETE /testcontrol/users/{username}/workspaces` endpoint (optional)
 - [ ] Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
-- [ ] Add integration tests for new endpoints
+- [ ] Add integration tests for updated endpoints
 
-### Functional Test Base
-- [ ] Add `_createdUsers` tracking list to [`FunctionalTestBase`](tests/Functional/Infrastructure/FunctionalTestBase.cs)
-- [ ] Add `_createdWorkspaces` tracking list
-- [ ] Add `TrackCreatedUser` helper method
-- [ ] Add `TrackCreatedWorkspace` helper method
+#### Functional Test Base
+- [ ] **Move** `_userCredentials` dictionary from [`WorkspaceTenancySteps`](tests/Functional/Steps/WorkspaceTenancySteps.cs:28) to [`FunctionalTestBase`](tests/Functional/Infrastructure/FunctionalTestBase.cs)
+- [ ] Remove `_userCredentials` declaration from `WorkspaceTenancySteps` (now inherited from base)
+- [ ] Remove `SetupWorkspaceTenancySteps()` that clears `_userCredentials` (cleanup now in base TearDown)
+- [ ] Add `_createdWorkspaces` tracking list to `FunctionalTestBase`
+- [ ] Add `CreateTestUserCredentials()` helper to `FunctionalTestBase` (generates AND tracks)
+- [ ] Add `TrackCreatedWorkspace` helper method to `FunctionalTestBase`
 - [ ] Update `TearDown` with `CleanupTestResourcesAsync` call
 - [ ] Add `CleanupTestResourcesAsync` implementation
 - [ ] Add `OneTimeSetUp` cleanup for orphaned accounts (optional)
 
-### Test Steps
+#### Test Steps - User Creation
 - [ ] Update [`CommonGivenSteps.GivenIHaveAnExistingAccount`](tests/Functional/Steps/Common/CommonGivenSteps.cs:53) - single user
-- [ ] Update [`WorkspaceTenancySteps.GivenTheseUsersExist`](tests/Functional/Steps/WorkspaceTenancySteps.cs:127) - **multiple users in bulk**
+- [ ] Update [`WorkspaceTenancySteps.GivenTheseUsersExist`](tests/Functional/Steps/WorkspaceTenancySteps.cs:127) - multiple users in bulk
 - [ ] Update [`AuthenticationSteps.WhenIEnterValidRegistrationDetails`](tests/Functional/Steps/AuthenticationSteps.cs:119)
 - [ ] Update [`AuthenticationSteps.WhenIEnterRegistrationDetailsWithAWeakPassword`](tests/Functional/Steps/AuthenticationSteps.cs:310)
 - [ ] Update [`AuthenticationSteps.WhenIEnterRegistrationDetailsWithMismatchedPasswords`](tests/Functional/Steps/AuthenticationSteps.cs:350)
-- [ ] Add `TrackCreatedUser` calls to `WorkspaceTenancySteps` for users/workspaces created via Test Control API
 - [ ] Search for other `DeleteUsersAsync()` or `DeleteAllTestDataAsync()` calls and update
 
-### NUnit Configuration
+#### Test Steps - Credential Retrieval
+- [ ] Search entire `tests/Functional/Steps/` directory for `_objectStore.Get<TestUserCredentials>`
+- [ ] Replace all `_objectStore.Get<TestUserCredentials>()` with `_userCredentials["user"]` (or appropriate friendly name)
+- [ ] Replace all `_objectStore.Get<TestUserCredentials>("key")` with `_userCredentials["key"]`
+- [ ] Search for `_objectStore.Contains<TestUserCredentials>()` and replace with `_userCredentials.ContainsKey("user")`
+- [ ] Verify all test steps use consistent friendly names for credential lookup
+
+#### Testing & Validation (Sequential Only)
+- [ ] Run existing tests sequentially to verify no regression
+- [ ] Verify cleanup works (no orphaned accounts in database)
+- [ ] Verify test isolation (each test creates unique users)
+
+#### Documentation
+- [ ] Update [`tests/Functional/TEST-CONTROLS.md`](tests/Functional/TEST-CONTROLS.md)
+- [ ] Document new credential management patterns for test authors
+- [ ] Document cleanup patterns
+
+**STOP HERE - Consolidation refactoring complete. Tests now use best practices for isolation and cleanup.**
+
+---
+
+### PART 2 (OPTIONAL): Page Object Model Enhancement - Credential Encapsulation
+
+**This is a nice-to-have refactoring that reduces coupling and simplifies test step code.**
+
+Currently, test steps retrieve credentials and manually extract properties before calling page object methods:
+
+```csharp
+// Current pattern (Tell, Don't Ask violation)
+var userCreds = _userCredentials["alice"];
+await loginPage.LoginAsync(userCreds.Username, userCreds.Password);  // Step extracts properties
+```
+
+**Proposed improvement:** Pass the entire credential object to page methods, let the page extract what it needs:
+
+```csharp
+// Improved pattern (Tell, Don't Ask principle)
+var userCreds = _userCredentials["alice"];
+await loginPage.LoginAsync(userCreds);  // Page extracts properties internally
+```
+
+#### Benefits
+
+1. **Reduced coupling** - Steps don't need to know which credential properties each page needs
+2. **Easier changes** - If page needs additional properties, no step changes required
+3. **Cleaner code** - Less property extraction noise in test steps
+4. **Encapsulation** - Page object knows what it needs from credentials
+
+#### Example: LoginPage
+
+**Before:**
+```csharp
+public async Task LoginAsync(string username, string password)
+{
+    await UsernameInput.FillAsync(username);
+    await PasswordInput.FillAsync(password);
+    await SubmitButton.ClickAsync();
+}
+```
+
+**After:**
+```csharp
+public async Task LoginAsync(TestUserCredentials credentials)
+{
+    await UsernameInput.FillAsync(credentials.Username);
+    await PasswordInput.FillAsync(credentials.Password);
+    await SubmitButton.ClickAsync();
+}
+```
+
+**Step usage simplifies:**
+```csharp
+// Before
+var userCreds = _userCredentials["alice"];
+await loginPage.LoginAsync(userCreds.Username, userCreds.Password);
+
+// After
+var userCreds = _userCredentials["alice"];
+await loginPage.LoginAsync(userCreds);
+```
+
+#### Example: RegisterPage
+
+**Before:**
+```csharp
+public async Task RegisterAsync(string email, string username, string password)
+{
+    await EmailInput.FillAsync(email);
+    await UsernameInput.FillAsync(username);
+    await PasswordInput.FillAsync(password);
+    await ConfirmPasswordInput.FillAsync(password);
+    await SubmitButton.ClickAsync();
+}
+```
+
+**After:**
+```csharp
+public async Task RegisterAsync(TestUserCredentials credentials)
+{
+    await EmailInput.FillAsync(credentials.Email);
+    await UsernameInput.FillAsync(credentials.Username);
+    await PasswordInput.FillAsync(credentials.Password);
+    await ConfirmPasswordInput.FillAsync(credentials.Password);
+    await SubmitButton.ClickAsync();
+}
+```
+
+#### Implementation Checklist
+
+- [ ] Update `LoginPage.LoginAsync()` to accept `TestUserCredentials`
+- [ ] Update `RegisterPage.RegisterAsync()` to accept `TestUserCredentials`
+- [ ] Update all step methods that call these page methods
+- [ ] Search for other page methods that accept credential properties and refactor similarly
+- [ ] Consider adding overloads to maintain backward compatibility during migration
+
+#### Migration Strategy
+
+**Option A: Breaking change (simpler)**
+- Update all page methods at once
+- Update all calling steps at once
+- Single consistent pattern throughout
+
+**Option B: Gradual migration (safer)**
+- Add overloaded methods that accept `TestUserCredentials`
+- Gradually migrate steps to use new overloads
+- Remove old methods once migration complete
+
+**Recommendation:** Option A if Part 1 is already a breaking change. No point in incremental migration if we're already doing a big refactoring.
+
+---
+
+### PART 3: Parallel Execution Experiment (Optional - SQLite May Not Support This Well)
+
+**Only attempt after Part 1 is complete and working. SQLite's single-writer limitation may prevent meaningful parallelization.**
+
+#### NUnit Configuration
 - [ ] Create or update [`tests/Functional/AssemblyInfo.cs`](tests/Functional/AssemblyInfo.cs)
 - [ ] Add `[assembly: Parallelizable(ParallelScope.Fixtures)]`
-- [ ] Add `[assembly: LevelOfParallelism(4)]`
+- [ ] Start conservative: `[assembly: LevelOfParallelism(2)]`
 
-### Testing & Validation
-- [ ] Run existing tests sequentially to verify no regression
+#### SQLite Configuration
+- [ ] Enable WAL mode in connection string: `Journal Mode=WAL`
+- [ ] Increase busy timeout: `Busy Timeout=30000`
+
+#### Testing & Validation (Parallel Execution)
 - [ ] Run tests in parallel with 2 workers
-- [ ] Run tests in parallel with 4 workers
-- [ ] Run tests in parallel with 8 workers
-- [ ] Verify cleanup works (no orphaned accounts in database)
-- [ ] Measure performance improvements
-- [ ] Check for flaky tests
+- [ ] Monitor for "database is locked" errors
+- [ ] Measure actual speedup (expect 1.5-2x at best due to SQLite single-writer)
+- [ ] Try 4 workers cautiously (may not improve or may cause lock errors)
+- [ ] Check for flaky tests due to write contention
 
-### Documentation
-- [ ] Update [`tests/Functional/TEST-CONTROLS.md`](tests/Functional/TEST-CONTROLS.md)
+#### If SQLite Parallelization Fails
+- [ ] Document SQLite limitations in test documentation
+- [ ] Consider PostgreSQL migration for better concurrency
+- [ ] Keep consolidation refactoring (still valuable for test quality)
+
+#### Documentation (If Parallel Works)
 - [ ] Add parallel execution section to [`tests/Functional/README.md`](tests/Functional/README.md)
-- [ ] Document cleanup patterns for test authors
-- [ ] Add troubleshooting guide for common parallel execution issues
+- [ ] Document SQLite limitations and realistic performance expectations
+- [ ] Add troubleshooting guide for "database is locked" errors
 
 ## Conclusion
 
