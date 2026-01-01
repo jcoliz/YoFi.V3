@@ -1,3 +1,7 @@
+---
+ado: "[User Story 1998](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1998): System: Test Control API Key"
+---
+
 # Test Control API Key Protection Design
 
 ## Overview
