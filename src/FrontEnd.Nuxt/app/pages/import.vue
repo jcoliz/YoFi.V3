@@ -501,7 +501,7 @@ async function confirmDeleteAll() {
                   accept=".ofx,.qfx"
                   multiple
                   data-test-id="file-input"
-                  :disabled="uploadInProgress || loading"
+                  :disabled="uploadInProgress || loading || !ready"
                   @change="handleFileInputChange"
                 />
               </div>
@@ -510,7 +510,7 @@ async function confirmDeleteAll() {
                   type="button"
                   class="btn btn-primary"
                   data-test-id="upload-button"
-                  :disabled="uploadInProgress || loading || !ready || selectedFiles.length === 0"
+                  :disabled="uploadInProgress || loading || selectedFiles.length === 0"
                   @click="uploadFiles"
                 >
                   <BaseSpinner
