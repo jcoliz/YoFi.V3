@@ -3,6 +3,7 @@ status: Approved
 owner: James Coliz
 target_release: Beta 2
 ado: TBD
+functional_test_implementation_plan: BANK-IMPORT-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
 references:
 - VISUAL-DESIGN-BANK-IMPORT.md
 - MOCKUP-BANK-IMPORT.md

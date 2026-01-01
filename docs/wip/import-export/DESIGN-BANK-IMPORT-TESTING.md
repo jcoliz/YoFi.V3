@@ -21,11 +21,11 @@ related_docs:
 This document defines the comprehensive testing strategy for the Bank Import feature as specified in [`PRD-BANK-IMPORT.md`](PRD-BANK-IMPORT.md). The strategy covers all test layers (Unit, Integration.Data, Integration.Controller, and Functional) with specific test cases, file locations, and verification criteria.
 
 **Test Distribution Target:**
-- **70% Controller Integration** - Import/review/complete API workflow, authorization, duplicate detection
+- **70% Controller Integration** - Import/review/complete API workflow, authorization, duplicate detection, selection management
 - **15% Unit** - OFX parsing, duplicate key generation, field extraction
-- **15% Functional** - Upload → Review → Complete user workflows
+- **15% Functional** - Upload → Review → Complete user workflows, selection operations
 
-**Total Estimated Tests:** 41 tests (27 controller + 7 unit + 5 data + 9 functional)
+**Total Estimated Tests:** 48 tests (30 controller + 7 unit + 5 data + 12 functional)
 
 **Why Integration-heavy?** The Bank Import feature is primarily about API state management (upload → review → accept), duplicate detection (database queries), and multi-request workflows - all optimally tested at the integration level.
 
@@ -230,7 +230,7 @@ Scenario: Import review transaction stores duplicate status correctly
     Then DuplicateStatus should be preserved correctly
 ```
 
-## Integration Tests - Controller Layer (27 tests)
+## Integration Tests - Controller Layer (30 tests)
 
 **Location:** [`tests/Integration.Controller/`](../../../tests/Integration.Controller/)
 
@@ -501,9 +501,96 @@ Scenario: Delete review queue empty queue returns no content
     Then 204 No Content should be returned (idempotent)
 ```
 
+### Test Group 5: POST /api/tenant/{tenantId}/import/review/set-selection
+
+**Endpoint:** Set selection state for specific transaction(s)
+
+**Test 28: Success - Set selection for single transaction**
+```gherkin
+Scenario: Set selection single transaction returns no content
+    Given user has Editor role for tenant
+    And 10 transactions in review state
+    And transaction with key ABC is currently selected
+    When user deselects transaction ABC via set-selection endpoint
+    Then 204 No Content should be returned
+    And transaction ABC should be deselected in database
+```
+
+**Test 29: Success - Set selection for multiple transactions**
+```gherkin
+Scenario: Set selection multiple transactions returns no content
+    Given user has Editor role for tenant
+    And 10 transactions in review state
+    And 3 specific transactions are currently deselected
+    When user selects those 3 transactions via set-selection endpoint
+    Then 204 No Content should be returned
+    And all 3 transactions should be selected in database
+```
+
+**Test 30: Validation - Empty key list**
+```gherkin
+Scenario: Set selection empty key list returns bad request
+    Given user has Editor role for tenant
+    And transactions in review state
+    When user sends set-selection request with empty key array
+    Then 400 Bad Request should be returned
+    And error should indicate at least one key required
+```
+
+### Test Group 6: POST /api/tenant/{tenantId}/import/review/select-all
+
+**Endpoint:** Select all pending import review transactions
+
+**Test 31: Success - Select all transactions**
+```gherkin
+Scenario: Select all transactions returns no content
+    Given user has Editor role for tenant
+    And 100 transactions in review state
+    And 60 transactions are currently selected
+    When user calls select-all endpoint
+    Then 204 No Content should be returned
+    And all 100 transactions should be selected in database
+```
+
+### Test Group 7: POST /api/tenant/{tenantId}/import/review/deselect-all
+
+**Endpoint:** Deselect all pending import review transactions
+
+**Test 32: Success - Deselect all transactions**
+```gherkin
+Scenario: Deselect all transactions returns no content
+    Given user has Editor role for tenant
+    And 100 transactions in review state
+    And 60 transactions are currently selected
+    When user calls deselect-all endpoint
+    Then 204 No Content should be returned
+    And all 100 transactions should be deselected in database
+```
+
+### Test Group 8: GET /api/tenant/{tenantId}/import/review/summary
+
+**Endpoint:** Get summary statistics for pending import review transactions
+
+**Test 33: Success - Get summary with mixed data**
+```gherkin
+Scenario: Get summary returns statistics
+    Given user has Editor role for tenant
+    And 100 total transactions in review state
+    And 60 are New (50 selected, 10 deselected)
+    And 30 are ExactDuplicate (all deselected)
+    And 10 are PotentialDuplicate (5 selected, 5 deselected)
+    When user requests summary
+    Then 200 OK should be returned
+    And response should contain TotalCount: 100
+    And response should contain SelectedCount: 55
+    And response should contain NewCount: 60
+    And response should contain ExactDuplicateCount: 30
+    And response should contain PotentialDuplicateCount: 10
+```
+
 ### Additional Integration Test Scenarios
 
-**Test 25: Multiple uploads merge into single review queue**
+**Test 34: Multiple uploads merge into single review queue**
 ```gherkin
 Scenario: Upload multiple files merges into single review queue
     Given user has Editor role for tenant
@@ -513,7 +600,7 @@ Scenario: Upload multiple files merges into single review queue
     And both uploads should be merged into single review session
 ```
 
-**Test 26: Transactions in review not included in transaction list**
+**Test 35: Transactions in review not included in transaction list**
 ```gherkin
 Scenario: Get transactions excludes review state transactions
     Given user has Editor role for tenant
@@ -524,7 +611,7 @@ Scenario: Get transactions excludes review state transactions
     And pending import review transactions should not be included
 ```
 
-**Test 27: Pagination for large import review lists**
+**Test 36: Pagination for large import review lists**
 ```gherkin
 Scenario: Get import review large import supports pagination
     Given user has Editor role for tenant
@@ -534,7 +621,7 @@ Scenario: Get import review large import supports pagination
     And response should include pagination metadata (total count, page number, page size)
 ```
 
-## Functional Tests (3-5 tests)
+## Functional Tests (12 tests)
 
 **Location:** [`tests/Functional/`](../../../tests/Functional/)
 
@@ -578,16 +665,18 @@ Feature: Bank Import
     And page displays 15 transactions
     And 12 transactions are selected by default
     When I click "Accept Selected Transactions" button
-    Then I should see a dialog reporting expected results
+    Then I should be redirected to transactions page
+    And I should see 12 new transactions in the transaction list
+    And import review queue should be completely cleared
 
   Scenario: User uploads bank file with duplicates and sees marked potential duplicates
     Given I have existing transactions from January 1-15
     And one existing transaction has been modified (payee changed from original import)
-    And I am on the import review page
-    When I upload bank file with overlapping dates "checking-jan-15-31.ofx"
+    When I navigate to import review page
+    And I upload bank file with overlapping dates "checking-jan-15-31.ofx"
     Then page should display 23 total transactions
     And 8 transactions should be selected by default
-    And 14 transactions should be deselected by default
+    And 15 transactions should be deselected by default
     And 1 transaction should be visually marked as "Potential Duplicate" (the modified one)
 
   Scenario: User accepts selected transactions and rejects duplicates
@@ -596,34 +685,58 @@ Feature: Bank Import
     And 8 transactions are selected by default
     And 15 transactions are deselected by default
     When I click "Accept Selected" button
-    Then 8 transactions should be added to transaction list
+    Then I should be redirected to transactions page
+    And 8 transactions should be added to transaction list
     And import review queue should be completely cleared
 
-  Scenario: User returns to pending import review after leaving and logging back in
-    Given I have 15 pending import review transactions
-    And I am on the import review page
+  Scenario: User returns to pending import review after session interruption
+    Given I am on the import review page
+    And page shows 15 pending transactions
+    And 10 transactions are selected
     When I navigate to transactions page
     And I log out
-    And I log back in the next day
+    And I log back in
     And I navigate to import review page
     Then page should still show 15 pending transactions
-    And previous selection state should be preserved
+    And 10 transactions should still be selected
 
   Scenario: User deletes entire import review queue
     Given I am on the import review page
     And page shows 15 pending transactions
     When I click "Delete All" button
-    Then review queue should be cleared
-    And page should show "No pending imports"
+    Then page should show "No pending imports"
+    And import review queue should be empty
+
+  Scenario: User toggles transaction selection in import review
+    Given I am on the import review page
+    And page shows 15 transactions
+    And 12 transactions are selected by default
+    When I deselect 2 selected transactions
+    And I select 1 deselected transaction
+    Then 11 transactions should be selected
+    And selection state should persist when I navigate away and return
+
+  Scenario: User selects all transactions in import review
+    Given I am on the import review page
+    And page shows 15 transactions
+    And 12 transactions are selected by default
+    When I click "Select All" button
+    Then all 15 transactions should be selected
+
+  Scenario: User deselects all transactions in import review
+    Given I am on the import review page
+    And page shows 15 transactions
+    And 12 transactions are selected by default
+    When I click "Deselect All" button
+    Then 0 transactions should be selected
 
   Rule: Authorization
 
   Scenario: Viewer cannot access import page
     Given I am logged in as a user with Viewer role for workspace
     When I attempt to navigate to import review page
-    Then I should see error message "You do not have permission to import into this workspace. Editor role is required."
-    And I should remain on the import page
-    And import UI elements should be hidden
+    Then I should see error message "You do not have permission to import into this workspace"
+    And import UI elements should be disabled or hidden
 
   Rule: Error Handling
 
@@ -659,23 +772,32 @@ Feature: Bank Import
 **Priority 5 (Should Have):** Accept workflow with mixed selection
 - ✅ **"User accepts selected transactions and rejects duplicates"** - Validates that default selection behavior works (new selected, duplicates deselected) and users can complete imports with mixed selections.
 
-**Priority 6 (Should Have):** Error handling for user mistakes
+**Priority 6 (Should Have):** Selection state management
+- ✅ **"User toggles transaction selection in import review"** - Validates that users can change selection state for individual transactions and state persists.
+
+**Priority 7 (Should Have):** Select all operation
+- ✅ **"User selects all transactions in import review"** - Validates select-all functionality.
+
+**Priority 8 (Should Have):** Deselect all operation
+- ✅ **"User deselects all transactions in import review"** - Validates deselect-all functionality.
+
+**Priority 9 (Should Have):** Error handling for corrupted files
 - ✅ **"User uploads corrupted file and sees error message"** - Validates error handling for the most likely user error (corrupted/damaged files).
 
-**Priority 7 (Nice to Have):** Validation error handling
-- ✅ **"User uploads unsupported file format"** - Less critical than corrupted file handling, as users are less likely to upload wrong file types.
+**Priority 10 (Should Have):** Error handling for unsupported formats
+- ✅ **"User uploads unsupported file format"** - Validates error handling for wrong file types, preventing user confusion.
 
-**Priority 8 (Nice to Have):** State persistence verification
-- ✅ **"User returns to pending import review after leaving and logging back in"** - Important for user experience but not essential for basic functionality.
+**Priority 11 (Nice to Have):** State persistence verification
+- ✅ **"User returns to pending import review after session interruption"** - Important for user experience but not essential for basic functionality.
 
-**Priority 9 (Nice to Have):** Queue management
+**Priority 12 (Nice to Have):** Queue management
 - ✅ **"User deletes entire import review queue"** - Utility function for cleanup but not essential for basic workflow.
 
 **Minimal Viable Functional Tests:** Priorities 1-3 (upload, accept, and authorization)
 
-**Recommended Functional Test Suite:** Priorities 1-6 (covers core workflows, authorization, duplicate detection, and error handling)
+**Recommended Functional Test Suite:** Priorities 1-10 (covers core workflows, authorization, duplicate detection, selection management, and error handling)
 
-**Complete Functional Test Suite:** All 9 scenarios (comprehensive coverage including edge cases and utility functions)
+**Complete Functional Test Suite:** All 12 scenarios (comprehensive coverage including state persistence and utility functions)
 
 ### Page Object Model
 
@@ -809,7 +931,7 @@ Comprehensive list of all tests to implement across all layers.
 - [x] Index performance on (TenantId, ExternalId)
 - [x] DuplicateStatus enum storage and retrieval
 
-### Integration Tests - Controller Layer (23 tests)
+### Integration Tests - Controller Layer (36 tests)
 
 **Upload Endpoint (8 tests):**
 - [ ] Upload valid OFX file - Returns 200 OK
@@ -834,9 +956,23 @@ Comprehensive list of all tests to implement across all layers.
 **Complete Review Endpoint (5 tests):**
 - [ ] Complete review with selected transactions - Returns 200 OK, accepts selected and deletes all
 - [ ] Complete review as Viewer - Returns 403 Forbidden
-- [ ] Complete review with empty selection - Returns 400 Bad Request
-- [ ] Complete review with null selection - Returns 400 Bad Request
+- [ ] Complete review with empty selection - Returns 200 OK with 0 accepted (no error)
+- [ ] Complete review with no transactions in queue - Returns 200 OK with 0 accepted
 - [ ] Complete review for different tenant - Returns 403 Forbidden (isolation)
+
+**Set Selection Endpoint (3 tests):**
+- [ ] Set selection for single transaction - Returns 204 No Content
+- [ ] Set selection for multiple transactions - Returns 204 No Content
+- [ ] Set selection with empty key list - Returns 400 Bad Request
+
+**Select All Endpoint (1 test):**
+- [ ] Select all transactions - Returns 204 No Content
+
+**Deselect All Endpoint (1 test):**
+- [ ] Deselect all transactions - Returns 204 No Content
+
+**Get Summary Endpoint (1 test):**
+- [ ] Get summary with mixed data - Returns statistics with all counts
 
 **Delete Endpoint (3 tests):**
 - [ ] Delete all pending transactions - Returns 204 No Content
@@ -848,15 +984,18 @@ Comprehensive list of all tests to implement across all layers.
 - [ ] Transactions in review excluded from transaction list
 - [ ] Pagination for large import review lists
 
-### Functional Tests (9 tests)
+### Functional Tests (12 tests)
 - [ ] Upload → Review page - Upload and display workflow
 - [ ] Accept selected transactions - Complete workflow
 - [ ] Viewer cannot access import page - Authorization enforcement
 - [ ] Upload with duplicates → See marked potential duplicates - Duplicate detection UI
-- [ ] Upload corrupted file - Error handling
 - [ ] Accept selected and reject duplicates - Selection behavior
+- [ ] Toggle transaction selection - Individual selection state management
+- [ ] Select all transactions - Bulk select operation
+- [ ] Deselect all transactions - Bulk deselect operation
+- [ ] Upload corrupted file - Error handling
 - [ ] Upload unsupported format - Validation
-- [ ] Return to pending import later - State persistence
+- [ ] Return to pending import after session interruption - State persistence
 - [ ] Delete entire review queue - Queue management
 
 ## Test Execution Strategy
