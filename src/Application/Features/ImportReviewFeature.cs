@@ -381,18 +381,11 @@ public class ImportReviewFeature(
     /// <param name="isSelected">The desired selection state.</param>
     public async Task SetSelectionAsync(IReadOnlyCollection<Guid> keys, bool isSelected)
     {
-        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
-        // For now, use load/update pattern (acceptable for small batches)
-        var transactions = await dataProvider.ToListAsync(
-            GetTenantScopedQuery().Where(t => keys.Contains(t.Key))
+        await dataProvider.ExecuteUpdatePropertyAsync(
+            GetTenantScopedQuery().Where(t => keys.Contains(t.Key)),
+            t => t.IsSelected,
+            isSelected
         );
-
-        foreach (var transaction in transactions)
-        {
-            transaction.IsSelected = isSelected;
-        }
-
-        await dataProvider.SaveChangesAsync();
     }
 
     /// <summary>
@@ -400,16 +393,11 @@ public class ImportReviewFeature(
     /// </summary>
     public async Task SelectAllAsync()
     {
-        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
-        // For now, use load/update pattern
-        var transactions = await dataProvider.ToListAsync(GetTenantScopedQuery());
-
-        foreach (var transaction in transactions)
-        {
-            transaction.IsSelected = true;
-        }
-
-        await dataProvider.SaveChangesAsync();
+        await dataProvider.ExecuteUpdatePropertyAsync(
+            GetTenantScopedQuery(),
+            t => t.IsSelected,
+            true
+        );
     }
 
     /// <summary>
@@ -417,16 +405,11 @@ public class ImportReviewFeature(
     /// </summary>
     public async Task DeselectAllAsync()
     {
-        // TODO: Consider adding ExecuteUpdateAsync to IDataProvider for bulk updates without loading entities
-        // For now, use load/update pattern
-        var transactions = await dataProvider.ToListAsync(GetTenantScopedQuery());
-
-        foreach (var transaction in transactions)
-        {
-            transaction.IsSelected = false;
-        }
-
-        await dataProvider.SaveChangesAsync();
+        await dataProvider.ExecuteUpdatePropertyAsync(
+            GetTenantScopedQuery(),
+            t => t.IsSelected,
+            false
+        );
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Reflection;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 
@@ -163,5 +165,34 @@ public class InMemoryDataProvider : IDataProvider
             }
         }
         return Task.FromResult(itemsToDelete.Count);
+    }
+
+    public Task<int> ExecuteUpdatePropertyAsync<TEntity, TProperty>(
+        IQueryable<TEntity> query,
+        Expression<Func<TEntity, TProperty>> propertySelector,
+        TProperty newValue,
+        CancellationToken cancellationToken = default)
+        where TEntity : class
+    {
+        var items = query.ToList();
+        var propertyInfo = GetPropertyInfo(propertySelector);
+
+        foreach (var item in items)
+        {
+            propertyInfo.SetValue(item, newValue);
+        }
+
+        return Task.FromResult(items.Count);
+    }
+
+    private static PropertyInfo GetPropertyInfo<TEntity, TProperty>(
+        Expression<Func<TEntity, TProperty>> propertySelector)
+    {
+        if (propertySelector.Body is not MemberExpression memberExpression)
+        {
+            throw new ArgumentException("Property selector must be a member expression", nameof(propertySelector));
+        }
+
+        return (PropertyInfo)memberExpression.Member;
     }
 }

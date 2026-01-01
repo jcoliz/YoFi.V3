@@ -1,4 +1,5 @@
-﻿using YoFi.V3.Entities.Models;
+﻿using System.Linq.Expressions;
+using YoFi.V3.Entities.Models;
 
 namespace YoFi.V3.Entities.Providers;
 
@@ -91,4 +92,21 @@ public interface IDataProvider
     /// <param name="query">Query defining which entities to delete</param>
     /// <returns>Number of entities deleted</returns>
     Task<int> ExecuteDeleteAsync<T>(IQueryable<T> query) where T : class;
+
+    /// <summary>
+    /// Execute bulk update query to set a single property value without loading entities into memory.
+    /// </summary>
+    /// <typeparam name="TEntity">Type of entities being updated</typeparam>
+    /// <typeparam name="TProperty">Type of the property being updated</typeparam>
+    /// <param name="query">Query defining which entities to update</param>
+    /// <param name="propertySelector">Expression selecting the property to update</param>
+    /// <param name="newValue">New value to set for the property</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Number of entities updated</returns>
+    Task<int> ExecuteUpdatePropertyAsync<TEntity, TProperty>(
+        IQueryable<TEntity> query,
+        Expression<Func<TEntity, TProperty>> propertySelector,
+        TProperty newValue,
+        CancellationToken cancellationToken = default)
+        where TEntity : class;
 }

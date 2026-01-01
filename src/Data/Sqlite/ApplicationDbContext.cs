@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -354,6 +355,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     Task<int> IDataProvider.ExecuteDeleteAsync<T>(IQueryable<T> query)
         => query.ExecuteDeleteAsync();
+
+    /// <inheritdoc />
+    Task<int> IDataProvider.ExecuteUpdatePropertyAsync<TEntity, TProperty>(
+        IQueryable<TEntity> query,
+        Expression<Func<TEntity, TProperty>> propertySelector,
+        TProperty newValue,
+        CancellationToken cancellationToken)
+        => query.ExecuteUpdateAsync(
+            s => s.SetProperty(propertySelector, newValue),
+            cancellationToken);
 
 #pragma warning restore S2325
 
