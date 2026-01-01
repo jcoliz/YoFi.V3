@@ -10,6 +10,8 @@
 - [0007. Proxy to backend or make direct calls?](0007-backend-proxy-or-direct.md) - Nov 11, 2025
 - [0008. Identity system](0008-identity.md) - Nov 13, 2025
 - [0009. Multi-tenancy and account model](0009-accounts-and-tenancy.md) - Nov 13, 2025
+- [0010. Backend for Frontend pattern](0010-backend-for-frontend.md) - Dec 11, 2025
+- [0011. Clean Architecture pattern](0011-clean-architecture.md) - Jan 1, 2026
 
 ## Template
 See [template.md](template.md) for creating new ADRs.

@@ -1,53 +1,64 @@
 # Architecture Overview
 
-## Principles
+## Architectural Decisions
 
-YoFi.V3 follows **Clean Architecture** principles with clear dependency flow:
+YoFi.V3 follows **Clean Architecture** principles with the **Backend for Frontend (BFF)** pattern:
 
+- **[ADR 0011: Clean Architecture Pattern](adr/0011-clean-architecture.md)** - Layer structure with dependency inversion (UI → Controllers → Application → Entities ← Data). Application Features depend on IDataProvider interface (NOT Repository pattern) for direct LINQ queries.
+
+- **[ADR 0010: Backend for Frontend](adr/0010-backend-for-frontend.md)** - DTOs precisely tailored for frontend needs. Business logic concentrated in Application layer (C# expertise). Controllers remain thin.
+
+**Layer Flow:**
 ```
 UI → Controllers → Application → Entities ← Data
 ```
 
-Dependencies point inward. Inner layers know nothing about outer layers.
+Dependencies point inward. Inner layers have no knowledge of outer layers.
 
 ## Project Organization
 
 ### Core Business Logic
 
-- **Entities** (`src/Entities/`) - Domain models, business rules, and contracts
-  - Domain models (`Models/` - WeatherForecast, future financial entities)
-  - Repository interfaces (planned for financial data)
-  - Configuration options (`Options/` - ApplicationOptions)
-  - Entity providers and validation logic
-  - No dependencies on other layers
+- **Entities** (`src/Entities/`) - Core domain layer
+  - Domain models: `Transaction`, `Tenant`, `Split`, `ImportReviewTransaction`
+  - Data access interfaces: `IDataProvider<T>` (queryable), `ITenantRepository` (special tenancy operations)
+  - Domain exceptions: `TenantNotFoundException`, `TransactionNotFoundException`
+  - Configuration: `ApplicationOptions`
+  - Zero dependencies on other layers
 
-- **Application** (`src/Application/`) - Business logic as Features
-  - Feature-based organization (`Features/Weather/WeatherFeature.cs`)
-  - Implements use cases and business logic
-  - Depends only on Entities interfaces
-  - Service registration via `ServiceCollectionExtensions`
-  - Tested in isolation (Unit tests)
+- **Application** (`src/Application/`) - Business logic layer
+  - Feature classes: `TransactionsFeature`, `TenantFeature`, `ImportReviewFeature`
+  - DTOs: `TransactionEditDto`, `TransactionResultDto`, `TenantEditDto`
+  - Validation: FluentValidation validators for DTOs
+  - Helpers: `CategoryHelper`, `OfxParsingHelper`, `PaginationHelper`
+  - Depends ONLY on Entities interfaces
+  - Uses `IDataProvider<T>` for direct LINQ queries (no Repository pattern)
 
 ### API & Infrastructure
 
-- **Controllers** (`src/Controllers/`) - HTTP API endpoints
-  - Thin layer handling HTTP concerns (`WeatherController`, `VersionController`)
-  - Calls Application Features
-  - Returns DTOs/View Models
-  - Includes logging and error handling
+- **Controllers** (`src/Controllers/`) - API boundary layer
+  - Controllers: `TransactionsController`, `ImportController`, `TenantController`, `VersionController`
+  - Thin layer - delegates to Application Features
+  - Handles HTTP concerns only: routing, authentication, authorization, logging
+  - Returns DTOs from Features
+  - Error handling via `CustomExceptionHandler` middleware
+  - Logging at API boundary only (not in Features or Data)
 
-- **BackEnd** (`src/BackEnd/`) - API Host & Startup Configuration
-  - Hosts Controllers and configures the HTTP pipeline
-  - Dependency injection setup in `Program.cs`
-  - CORS configuration for frontend integration
-  - Application Insights and monitoring setup
-  - Authentication and authorization with multi-tenancy
+- **BackEnd** (`src/BackEnd/`) - Composition root
+  - Hosts Controllers and configures HTTP pipeline
+  - Dependency injection: `Program.cs` wires all layers together
+  - Authentication: ASP.NET Core Identity with JWT tokens
+  - Authorization: Tenant-scoped policies (Owner/Editor/Viewer)
+  - CORS: Configured for frontend domain
+  - Middleware: TenantContext, CustomExceptionHandler
+  - Monitoring: Application Insights
 
-- **Data** (`src/Data/`) - Data Access Layer
-  - SQLite implementation (`Sqlite/` folder)
-  - Entity Framework migrations (`Sqlite.MigrationHost/`)
-  - Repository implementations (future)
-  - Database context and configuration
+- **Data.Sqlite** (`src/Data/Sqlite/`) - Database-specific implementation
+  - DbContext: `AppDbContext` with Entity Framework Core
+  - Migrations: `Sqlite.MigrationHost` for schema updates
+  - Implements `IDataProvider<T>` (exposes `IQueryable<T>`)
+  - Implements `ITenantRepository` (special tenancy operations)
+  - Future: `Data.Postgres` for scaling
 
 ### Frontend
 
@@ -147,6 +158,10 @@ Budgets (Id, TenantId, Month, Amount)
 
 Documented in [Architecture Decision Records](adr/README.md):
 
+### Architecture & Patterns
+- [0011: Clean Architecture Pattern](adr/0011-clean-architecture.md) - Layer definitions, dependency rules, and alternatives
+- [0010: Backend for Frontend](adr/0010-backend-for-frontend.md) - BFF pattern and DTO design
+
 ### Foundational
 - [0001: SPA Web Application](adr/0001-spa-web-app.md) - Single-page app vs server-rendered
 - [0002: Vue.js Frontend](adr/0002-vue-js.md) - Vue over React/Angular
@@ -237,10 +252,11 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 5. Backend API: `http://localhost:5001` (with live reload)
 
 ### Code Organization Patterns
-- **Feature-based** organization in Application layer
-- **Clean Architecture** dependency rules enforced
-- **Repository pattern** interfaces in Entities
-- **Dependency injection** via extension methods
-- **Configuration** via strongly-typed options pattern
+- **Feature-based** organization in Application layer (TransactionsFeature, TenantFeature)
+- **Clean Architecture** dependency rules enforced by project references
+- **IDataProvider** interface for direct LINQ queries (NOT Repository pattern)
+- **Dependency injection** via `ServiceCollectionExtensions` in each layer
+- **Configuration** via strongly-typed options pattern (ApplicationOptions)
+- **DTOs** precisely tailored for frontend needs (BFF pattern)
 
 This architecture supports both rapid development and future scalability while maintaining clear separation of concerns and testability.
