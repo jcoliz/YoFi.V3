@@ -56,12 +56,10 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 ## Consequences
 
 **Easier**:
-- Simple deployment pipeline from GitHub Actions
 - Predictable, low monthly costs
 - SQLite works naturally with App Service persistent storage
 - Native HTTPS on custom domain for both frontend and backend
 - Less configuration complexity than ACA
-- Can deploy directly from GitHub Actions
 - `.PublishAsDockerFile()` in `AppHost.cs` already supports this
 - Static site generation works with client-side authentication
 
@@ -70,12 +68,6 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 - Cannot easily scale to zero like ACA
 - May need to migrate to ACA later if traffic patterns become highly variable
 - Authentication state managed entirely client-side
-
-### For future consideration
-
-Should we use Azure Static Web Apps [linked backend](https://learn.microsoft.com/en-us/azure/static-web-apps/apis-app-service) feature, or directly call the backend from JS running in browser?
-
-See [ADR 0007](./0007-backend-proxy-or-direct.md) for a deeper discussion.
 
 ## Authentication Compatibility
 
