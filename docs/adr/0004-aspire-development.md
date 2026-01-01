@@ -38,11 +38,17 @@ We will use **.NET Aspire** for development orchestration. It is well-suited to 
 
 ### Scope Limitation
 
-**Important:** This decision applies **only to development orchestration**, not production deployment.
+**Important:** This decision applies primarily to **development orchestration**, with limited adoption in the container environment for **observability**.
 
-For production, we're leaning toward:
-- Frontend: Static Web App (Azure Static Web Apps or CDN)
-- Backend: Azure App Service or single-container Azure Container Apps
+#### Container Environment Adoption
+
+We have successfully added Aspire **for observability only** to the container environment, which has greatly improved our container environment observability through the Aspire Dashboard. This provides unified logs, traces, and metrics aggregation without using Aspire for orchestration in that environment.
+
+#### Production Deployment
+
+For production, we run in:
+- Frontend: Azure Static Web App
+- Backend: Azure App Service
 
 This separation allows us to:
 - Reduce costs of running compute for the front-end container
