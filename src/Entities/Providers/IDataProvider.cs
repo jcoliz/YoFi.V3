@@ -76,6 +76,13 @@ public interface IDataProvider
     /// <param name="query">Query to execute</param>
     /// <returns>List of items</returns>
     Task<List<T>> ToListNoTrackingAsync<T>(IQueryable<T> query) where T : class;
+
+    /// <summary>
+    /// Execute ToList query asynchronously, with tracking enabled
+    /// </summary>
+    /// <typeparam name="T">Type of entities being queried</typeparam>
+    /// <param name="query">Query to execute</param>
+    /// <returns>List of items with change tracking enabled</returns>
     Task<List<T>> ToListAsync<T>(IQueryable<T> query) where T : class;
 
     /// <summary>
@@ -112,6 +119,17 @@ public interface IDataProvider
     /// <param name="newValue">New value to set for the property</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of entities updated</returns>
+    /// <example>
+    /// <code>
+    /// // Set category for all transactions from a specific payee
+    /// var query = dataProvider.Get&lt;Transaction&gt;()
+    ///     .Where(t => t.TenantId == tenantId &amp;&amp; t.Payee == "Amazon");
+    /// var count = await dataProvider.ExecuteUpdatePropertyAsync(
+    ///     query,
+    ///     t => t.Category,
+    ///     "Shopping");
+    /// </code>
+    /// </example>
     Task<int> ExecuteUpdatePropertyAsync<TEntity, TProperty>(
         IQueryable<TEntity> query,
         Expression<Func<TEntity, TProperty>> propertySelector,
