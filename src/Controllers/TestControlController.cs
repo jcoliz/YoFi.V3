@@ -218,6 +218,153 @@ public partial class TestControlController(
 
     #endregion
 
+    #region User Management V2 - Parallel Migration Support
+
+    /// <summary>
+    /// Create multiple test users from provided credentials (V2 - accepts full credentials).
+    /// </summary>
+    /// <param name="credentialsList">Collection of credentials including username, email, password</param>
+    /// <returns>Collection of created user credentials with IDs populated</returns>
+    /// <remarks>
+    /// V2 endpoint that accepts complete credential objects from the client.
+    /// Client generates unique usernames and passwords, server just validates and stores in DB.
+    /// All usernames must start with __TEST__ prefix for safety.
+    /// Supports parallel test execution by allowing client-side credential generation.
+    /// </remarks>
+    [HttpPost("v2/users")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TestUserCredentials>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateUsersV2([FromBody] IReadOnlyCollection<TestUserCredentials> credentialsList)
+    {
+        LogStartingCount(credentialsList.Count);
+
+        // Validate input
+        if (credentialsList == null || credentialsList.Count == 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status400BadRequest,
+                "Credentials list required",
+                "Must provide at least one credential object"
+            );
+        }
+
+        var createdCredentials = new List<TestUserCredentials>();
+
+        foreach (var creds in credentialsList)
+        {
+            // Validate username has test prefix
+            if (!creds.Username.StartsWith(TestPrefix, StringComparison.Ordinal))
+            {
+                return ProblemWithLog(
+                    StatusCodes.Status403Forbidden,
+                    "Username must have test prefix",
+                    $"Username '{creds.Username}' must start with {TestPrefix}"
+                );
+            }
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(creds.Username) ||
+                string.IsNullOrWhiteSpace(creds.Email) ||
+                string.IsNullOrWhiteSpace(creds.Password))
+            {
+                return ProblemWithLog(
+                    StatusCodes.Status400BadRequest,
+                    "Invalid credentials",
+                    "Username, Email, and Password are required"
+                );
+            }
+
+            // Create user with provided credentials
+            var identityUser = new IdentityUser
+            {
+                UserName = creds.Username,
+                Email = creds.Email,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(identityUser, creds.Password);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return ProblemWithLog(
+                    StatusCodes.Status400BadRequest,
+                    "User creation failed",
+                    $"Unable to create user {creds.Username}: {errors}"
+                );
+            }
+
+            // Get created user to populate ID
+            var createdUser = await userManager.FindByNameAsync(creds.Username);
+            createdCredentials.Add(new TestUserCredentials(
+                Id: Guid.Parse(createdUser!.Id),
+                ShortName: creds.ShortName,
+                Username: creds.Username,
+                Email: creds.Email,
+                Password: creds.Password
+            ));
+        }
+
+        LogOkCount(createdCredentials.Count);
+        return CreatedAtAction(nameof(CreateUsersV2), createdCredentials);
+    }
+
+    /// <summary>
+    /// Delete specific test users by username list (V2 - requires explicit list).
+    /// </summary>
+    /// <param name="usernames">Collection of usernames to delete. Must not be empty.</param>
+    /// <returns>204 No Content on success.</returns>
+    /// <remarks>
+    /// V2 endpoint that requires explicit username list for safety.
+    /// Empty or null list returns 400 Bad Request (no "delete all" behavior).
+    /// All usernames must start with __TEST__ prefix.
+    /// Supports parallel test execution by only deleting specified users.
+    /// </remarks>
+    [HttpDelete("v2/users")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteUsersV2([FromBody] IReadOnlyCollection<string> usernames)
+    {
+        LogStartingCount(usernames?.Count ?? 0);
+
+        // Require explicit username list
+        if (usernames == null || usernames.Count == 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status400BadRequest,
+                "Username list required",
+                "Must provide explicit list of usernames to delete. Empty list not allowed."
+            );
+        }
+
+        // Validate all usernames have test prefix
+        var invalidUsernames = usernames.Where(u => !u.StartsWith(TestPrefix, StringComparison.Ordinal)).ToList();
+        if (invalidUsernames.Count > 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "All usernames must have test prefix",
+                $"Invalid usernames: {string.Join(", ", invalidUsernames)}"
+            );
+        }
+
+        // Delete specified users
+        var usersToDelete = userManager.Users
+            .Where(u => u.UserName != null && usernames.Contains(u.UserName))
+            .ToList();
+
+        foreach (var user in usersToDelete)
+        {
+            await userManager.DeleteAsync(user);
+        }
+
+        LogOkCount(usersToDelete.Count);
+        return NoContent();
+    }
+
+    #endregion
+
     #region Workspace Management
 
     /// <summary>

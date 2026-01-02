@@ -30,6 +30,9 @@ public abstract partial class FunctionalTestBase : PageTest
     protected ObjectStore _objectStore = new();
     protected Activity? _testActivity;
 
+    // Track user credentials by friendly name for lookups AND cleanup
+    protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
+
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
 
@@ -99,6 +102,9 @@ public abstract partial class FunctionalTestBase : PageTest
 
         // Need a fresh object store for each test
         _objectStore = new ObjectStore();
+
+        // Clear user credentials for each test
+        _userCredentials.Clear();
 
         // Add a basepage object to the object store
         _objectStore.Add(new Pages.BasePage(Page));

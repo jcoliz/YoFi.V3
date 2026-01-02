@@ -943,6 +943,137 @@ export class TestControlClient {
     }
 
     /**
+     * Create multiple test users from provided credentials (V2 - accepts full credentials).
+     * @param credentialsList Collection of credentials including username, email, password
+     * @return Collection of created user credentials with IDs populated
+     */
+    createUsersV2(credentialsList: TestUserCredentials[]): Promise<TestUserCredentials[]> {
+        let url_ = this.baseUrl + "/TestControl/v2/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(credentialsList);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCreateUsersV2(_response);
+        });
+    }
+
+    protected processCreateUsersV2(response: Response): Promise<TestUserCredentials[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(TestUserCredentials.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TestUserCredentials[]>(null as any);
+    }
+
+    /**
+     * Delete specific test users by username list (V2 - requires explicit list).
+     * @param usernames Collection of usernames to delete. Must not be empty.
+     * @return 204 No Content on success.
+     */
+    deleteUsersV2(usernames: string[]): Promise<void> {
+        let url_ = this.baseUrl + "/TestControl/v2/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(usernames);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteUsersV2(_response);
+        });
+    }
+
+    protected processDeleteUsersV2(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Create a workspace for a test user with specified role.
      * @param username The username (must include __TEST__ prefix) of the user.
      * @param request The workspace creation details.

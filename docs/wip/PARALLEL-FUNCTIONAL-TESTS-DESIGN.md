@@ -671,54 +671,114 @@ await testControlClient.DeleteUserAsync(user.Username);
 
 ## Migration Strategy
 
-### Phase 1: Update Infrastructure (All Breaking Changes)
+### Incremental Migration Approach
 
-All changes in this phase are breaking - this is an "all at once" migration, NOT incremental.
+This strategy allows old and new patterns to coexist during migration, minimizing risk and allowing gradual rollout.
 
-1. ✅ **API BREAKING:** Change `POST /testcontrol/users` to accept `TestUserCredentials[]` instead of `string[]`
-2. ✅ **API BREAKING:** Change `DELETE /testcontrol/users` to require body with username list (empty = 400 Bad Request)
-3. ✅ Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
-4. ✅ Add `_userCredentials` dictionary to `FunctionalTestBase`
-5. ✅ Add `_createdWorkspaces` tracking list to `FunctionalTestBase`
-6. ✅ Add `CreateTestUserCredentials()` helper to `FunctionalTestBase`
-7. ✅ Add `TrackCreatedWorkspace` helper to `FunctionalTestBase`
-8. ✅ Update `TearDown` with `CleanupTestResourcesAsync` implementation
+### Phase 1: Add V2 Endpoints (Non-Breaking)
 
-**Result:** API and base infrastructure updated. Tests WILL BREAK until Phase 2 is complete.
+**Add new endpoints alongside existing ones - no breaking changes:**
 
-### Phase 2: Fix All Test Steps
+1. ✅ **NEW ENDPOINT:** Add `POST /testcontrol/v2/users` that accepts `TestUserCredentials[]`
+2. ✅ **KEEP EXISTING:** `POST /testcontrol/users` (accepts `string[]`) continues to work
+3. ✅ **NEW ENDPOINT:** Add `DELETE /testcontrol/v2/users` with required body
+4. ✅ **KEEP EXISTING:** `DELETE /testcontrol/users` (no body, deletes all) continues to work
+5. ✅ Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
 
-All test steps must be updated to work with the new API and infrastructure:
+**Result:** Both old and new patterns work. Existing tests continue working unchanged.
 
-1. ✅ Remove ALL `DeleteUsersAsync()` calls (CommonGivenSteps, AuthenticationSteps - 3 locations)
-2. ✅ Update ALL user creation to use `CreateTestUserCredentials()` + API create + ID update pattern
-3. ✅ Update ALL workspace creation steps to use `TrackCreatedWorkspace()`
-4. ✅ **Refactor ALL credential retrieval** - Replace `_objectStore.Get<TestUserCredentials>()` with `_userCredentials[friendlyName]`
-5. ✅ Remove ALL `_objectStore.Contains<TestUserCredentials>()` checks
+### Phase 2: Update Infrastructure (Non-Breaking)
 
-**Critical searches:**
-- Search for `_objectStore.Get<TestUserCredentials>` - replace with `_userCredentials[name]`
-- Search for `_objectStore.Contains<TestUserCredentials>` - replace with `_userCredentials.ContainsKey(name)`
-- Search for `_objectStore.Add` (with TestUserCredentials) - remove (now auto-tracked)
-- Search for `DeleteUsersAsync()` - remove all calls
-- Search for `DeleteAllTestDataAsync()` - remove all calls
+**Add new helpers to FunctionalTestBase - existing tests unaffected:**
 
-**Result:** Tests now use isolated accounts with unified credential storage, but still run sequentially.
+1. ✅ **MOVE** `_userCredentials` from `WorkspaceTenancySteps` to `FunctionalTestBase`
+2. ✅ Keep existing `SetupWorkspaceTenancySteps()` - it still works (clears base class field)
+3. ✅ Add `_createdWorkspaces` tracking list to `FunctionalTestBase`
+4. ✅ Add `CreateTestUserCredentials()` helper to `FunctionalTestBase`
+5. ✅ Add `TrackCreatedWorkspace()` helper to `FunctionalTestBase`
+6. ✅ Update `TearDown` with `CleanupTestResourcesAsync()` - only cleans if tracking lists have data
 
-### Phase 3: Enable Parallel Execution
+**Key insight:** Moving `_userCredentials` to base class doesn't break `WorkspaceTenancySteps` because:
+- It inherits the field from base
+- Its existing `SetupWorkspaceTenancySteps()` clears the inherited field
+- Other tests that don't use it are unaffected
+
+**Result:** New helpers available. Tests using `_objectStore` still work. Tests using `_userCredentials` in `WorkspaceTenancySteps` still work.
+
+### Phase 3: Migrate Tests One at a Time (Incremental)
+
+**Port tests gradually - unmigrated tests continue working:**
+
+**Pattern for each test:**
+1. ✅ Replace `DeleteUsersAsync()` with nothing (or keep temporarily if needed)
+2. ✅ Replace `CreateUsersAsync(string[])` with V2 endpoint: `CreateUsers2Async(TestUserCredentials[])`
+3. ✅ Replace `_objectStore.Get<TestUserCredentials>()` with `_userCredentials[name]`
+4. ✅ Add `TrackCreatedWorkspace()` calls where workspaces are created
+5. ✅ Test that individual scenario still works
+
+**Migration order (suggested):**
+1. Start with `CommonGivenSteps.GivenIHaveAnExistingAccount` (most common)
+2. Then `WorkspaceTenancySteps.GivenTheseUsersExist` (multi-user scenarios)
+3. Then `AuthenticationSteps` registration scenarios (3 methods)
+4. Then other steps as needed
+
+**Result:** Migrated tests use new pattern. Unmigrated tests still use old pattern. Both work!
+
+### Phase 4: Remove Old Endpoints and Add Validation (Breaking - Only After All Tests Migrated)
+
+**Only after ALL tests are migrated:**
+
+1. ✅ Remove `POST /testcontrol/users` (old endpoint)
+2. ✅ Remove `DELETE /testcontrol/users` (old endpoint, no body)
+3. ✅ Remove `DELETE /testcontrol/data` (bulk delete) - OR keep for manual cleanup
+4. ✅ Rename V2 endpoints to remove `/v2` suffix (optional cleanup)
+5. ✅ Add validation to `_objectStore` to prevent credential storage (see below)
+6. ✅ Regenerate API client
+
+**Note:** `_objectStore` is kept for other test data types. We only prevent storing credentials in it.
+
+**Add ObjectStore validation to prevent credential misuse:**
+
+```csharp
+// In FunctionalTestBase or ObjectStore class
+public void Add<T>(T item) where T : class
+{
+    // Prevent storing credentials in ObjectStore - use _userCredentials dictionary instead
+    if (typeof(T) == typeof(TestUserCredentials))
+    {
+        throw new InvalidOperationException(
+            $"TestUserCredentials should not be stored in ObjectStore. " +
+            $"Use _userCredentials dictionary instead for proper cleanup and parallel execution support.");
+    }
+
+    // ... existing Add logic ...
+}
+
+public void Add<T>(string key, T item) where T : class
+{
+    // Prevent storing credentials in ObjectStore - use _userCredentials dictionary instead
+    if (typeof(T) == typeof(TestUserCredentials))
+    {
+        throw new InvalidOperationException(
+            $"TestUserCredentials should not be stored in ObjectStore. " +
+            $"Use _userCredentials dictionary instead for proper cleanup and parallel execution support.");
+    }
+
+    // ... existing Add logic ...
+}
+```
+
+**Result:** Clean final API with only new patterns. ObjectStore remains for other test data, but credentials cannot be misused.
+
+### Phase 5: Enable Parallel Execution (Optional)
+
+**Only after migration is complete and working:**
 
 1. ✅ Add NUnit parallel configuration to `AssemblyInfo.cs`
 2. ✅ Run tests in parallel and verify no interference
 3. ✅ Adjust `LevelOfParallelism` based on system capacity
 
 **Result:** Tests run in parallel! 🎉
-
-### Phase 4: Documentation and Optimization
-
-1. ✅ Update [`tests/Functional/TEST-CONTROLS.md`](tests/Functional/TEST-CONTROLS.md) with new patterns
-2. ✅ Add migration guide for existing tests
-3. ✅ Consider background cleanup job for orphaned accounts
-4. ✅ Measure and optimize parallel execution performance
 
 ## Benefits
 
@@ -918,54 +978,122 @@ public async Task OneTimeSetup()
 
 ## Implementation Checklist
 
-### PART 1: Consolidation Refactoring (Do First - Good Practice Regardless of Parallelization)
+### PART 1: Add V2 Endpoints (Non-Breaking - Existing Tests Continue Working)
 
-**These changes improve test infrastructure whether or not parallel execution works with SQLite.**
+**Add new endpoints alongside existing ones - no breaking changes.**
 
-#### Test Control API
-- [ ] Change `POST /testcontrol/users` to accept `TestUserCredentials[]`
-- [ ] Change `DELETE /testcontrol/users` to require body (empty = 400 Bad Request)
-- [ ] Add `DELETE /testcontrol/users/{username}/workspaces` endpoint (optional)
+#### Test Control API - V2 Endpoints
+- [ ] Add `POST /testcontrol/v2/users` endpoint that accepts `TestUserCredentials[]`
+- [ ] Keep existing `POST /testcontrol/users` (accepts `string[]`) unchanged
+- [ ] Add `DELETE /testcontrol/v2/users` endpoint with required body
+- [ ] Keep existing `DELETE /testcontrol/users` (no body, deletes all) unchanged
 - [ ] Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
-- [ ] Add integration tests for updated endpoints
+- [ ] Verify API client has both old and new methods (e.g., `CreateUsersAsync` and `CreateUsers2Async`)
+- [ ] Add integration tests for V2 endpoints
 
-#### Functional Test Base
+**Result:** Both old and new API patterns work. No tests break.
+
+---
+
+### PART 2: Update Functional Test Infrastructure (Non-Breaking)
+
+**Add new helpers to FunctionalTestBase - existing tests unaffected.**
+
+#### Functional Test Base - Add Helpers
 - [ ] **Move** `_userCredentials` dictionary from [`WorkspaceTenancySteps`](tests/Functional/Steps/WorkspaceTenancySteps.cs:28) to [`FunctionalTestBase`](tests/Functional/Infrastructure/FunctionalTestBase.cs)
-- [ ] Remove `_userCredentials` declaration from `WorkspaceTenancySteps` (now inherited from base)
-- [ ] Remove `SetupWorkspaceTenancySteps()` that clears `_userCredentials` (cleanup now in base TearDown)
+- [ ] Keep `_userCredentials` declaration in `WorkspaceTenancySteps` for now (will remove later after migration)
+- [ ] Keep `SetupWorkspaceTenancySteps()` in `WorkspaceTenancySteps` (still needed for unmigrated tests)
 - [ ] Add `_createdWorkspaces` tracking list to `FunctionalTestBase`
 - [ ] Add `CreateTestUserCredentials()` helper to `FunctionalTestBase` (generates AND tracks)
-- [ ] Add `TrackCreatedWorkspace` helper method to `FunctionalTestBase`
-- [ ] Update `TearDown` with `CleanupTestResourcesAsync` call
-- [ ] Add `CleanupTestResourcesAsync` implementation
-- [ ] Add `OneTimeSetUp` cleanup for orphaned accounts (optional)
+- [ ] Add `TrackCreatedWorkspace()` helper method to `FunctionalTestBase`
+- [ ] Update `TearDown` with `CleanupTestResourcesAsync()` call
+- [ ] Add `CleanupTestResourcesAsync()` implementation (only cleans if tracking lists have data)
 
-#### Test Steps - User Creation
-- [ ] Update [`CommonGivenSteps.GivenIHaveAnExistingAccount`](tests/Functional/Steps/Common/CommonGivenSteps.cs:53) - single user
-- [ ] Update [`WorkspaceTenancySteps.GivenTheseUsersExist`](tests/Functional/Steps/WorkspaceTenancySteps.cs:127) - multiple users in bulk
+**Result:** New helpers available. Existing tests using old pattern continue working.
+
+---
+
+### PART 3: Migrate Tests Incrementally (One at a Time)
+
+**Port tests gradually - unmigrated tests continue working.**
+
+#### Migrate CommonGivenSteps.GivenIHaveAnExistingAccount
+- [ ] Update [`CommonGivenSteps.GivenIHaveAnExistingAccount`](tests/Functional/Steps/Common/CommonGivenSteps.cs:53)
+  - Remove `DeleteUsersAsync()` call
+  - Replace `CreateUsersAsync(string[])` with `CreateUsers2Async(TestUserCredentials[])`
+  - Replace `_objectStore.Add(user)` with `_userCredentials[name] = user`
+  - Remove `_objectStore.Contains<TestUserCredentials>()` check
+- [ ] Run tests that use this step - verify they still pass
+- [ ] Search for steps that retrieve credentials with `_objectStore.Get<TestUserCredentials>()` and update to use `_userCredentials["user"]`
+
+#### Migrate WorkspaceTenancySteps.GivenTheseUsersExist
+- [ ] Update [`WorkspaceTenancySteps.GivenTheseUsersExist`](tests/Functional/Steps/WorkspaceTenancySteps.cs:127)
+  - Remove `DeleteAllTestDataAsync()` call
+  - Replace `CreateUsersAsync(string[])` with `CreateUsers2Async(TestUserCredentials[])`
+  - Update dictionary population to use server-returned credentials
+- [ ] Add `TrackCreatedWorkspace()` calls to workspace creation steps
+- [ ] Run workspace tenancy tests - verify they still pass
+- [ ] Remove local `_userCredentials` field from `WorkspaceTenancySteps` (now using base class)
+- [ ] Remove `SetupWorkspaceTenancySteps()` method (cleanup now in base TearDown)
+
+#### Migrate AuthenticationSteps Registration Scenarios
 - [ ] Update [`AuthenticationSteps.WhenIEnterValidRegistrationDetails`](tests/Functional/Steps/AuthenticationSteps.cs:119)
+  - Remove `DeleteUsersAsync()` call
+  - Remove `_objectStore.Add("Registration Details", user)`
+  - Credentials already tracked by `CreateTestUserCredentials()`
 - [ ] Update [`AuthenticationSteps.WhenIEnterRegistrationDetailsWithAWeakPassword`](tests/Functional/Steps/AuthenticationSteps.cs:310)
+  - Remove `DeleteUsersAsync()` call
+  - Remove `_objectStore` pattern
 - [ ] Update [`AuthenticationSteps.WhenIEnterRegistrationDetailsWithMismatchedPasswords`](tests/Functional/Steps/AuthenticationSteps.cs:350)
-- [ ] Search for other `DeleteUsersAsync()` or `DeleteAllTestDataAsync()` calls and update
+  - Remove `DeleteUsersAsync()` call
+  - Remove `_objectStore` pattern
+- [ ] Run authentication tests - verify they still pass
 
-#### Test Steps - Credential Retrieval
-- [ ] Search entire `tests/Functional/Steps/` directory for `_objectStore.Get<TestUserCredentials>`
-- [ ] Replace all `_objectStore.Get<TestUserCredentials>()` with `_userCredentials["user"]` (or appropriate friendly name)
-- [ ] Replace all `_objectStore.Get<TestUserCredentials>("key")` with `_userCredentials["key"]`
-- [ ] Search for `_objectStore.Contains<TestUserCredentials>()` and replace with `_userCredentials.ContainsKey("user")`
-- [ ] Verify all test steps use consistent friendly names for credential lookup
+#### Migrate Remaining Steps
+- [ ] Search for remaining `DeleteUsersAsync()` calls in `tests/Functional/Steps/` and remove
+- [ ] Search for remaining `DeleteAllTestDataAsync()` calls and remove
+- [ ] Search for `_objectStore.Get<TestUserCredentials>()` and replace with `_userCredentials[name]`
+- [ ] Search for `_objectStore.Add` with `TestUserCredentials` and remove (auto-tracked now)
+- [ ] Search for `_objectStore.Contains<TestUserCredentials>()` and replace with `_userCredentials.ContainsKey(name)`
 
 #### Testing & Validation (Sequential Only)
-- [ ] Run existing tests sequentially to verify no regression
-- [ ] Verify cleanup works (no orphaned accounts in database)
+- [ ] Run ALL tests sequentially to verify no regression
+- [ ] Verify cleanup works (no orphaned accounts in database after test runs)
 - [ ] Verify test isolation (each test creates unique users)
+- [ ] Confirm no test uses `_objectStore` for credentials anymore
+
+---
+
+### PART 4: Remove Old Endpoints and Add Validation (Breaking - Only After All Tests Migrated)
+
+**Only after ALL tests are migrated and working.**
+
+#### Remove Old API Endpoints
+- [ ] Verify ALL tests are migrated (no calls to old `CreateUsersAsync(string[])` or old `DeleteUsersAsync()`)
+- [ ] Remove `POST /testcontrol/users` (old endpoint accepting `string[]`)
+- [ ] Remove `DELETE /testcontrol/users` (old endpoint with no body)
+- [ ] Rename `POST /testcontrol/v2/users` to `POST /testcontrol/users` (remove v2)
+- [ ] Rename `DELETE /testcontrol/v2/users` to `DELETE /testcontrol/users` (remove v2)
+- [ ] Keep `DELETE /testcontrol/data` for manual cleanup (optional)
+- [ ] Regenerate API client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
+
+#### Add ObjectStore Validation
+- [ ] Add validation to `ObjectStore.Add<T>(T item)` to throw exception if `T` is `TestUserCredentials`
+- [ ] Add validation to `ObjectStore.Add<T>(string key, T item)` to throw exception if `T` is `TestUserCredentials`
+- [ ] Run all tests - verify no exceptions thrown (all credentials in `_userCredentials` now)
+
+#### Final Cleanup
+- [ ] Remove `_userCredentials` field from `WorkspaceTenancySteps` if not already done
+- [ ] Remove `SetupWorkspaceTenancySteps()` method if not already done
+- [ ] Verify no test code references `_objectStore` with `TestUserCredentials`
 
 #### Documentation
 - [ ] Update [`tests/Functional/TEST-CONTROLS.md`](tests/Functional/TEST-CONTROLS.md)
 - [ ] Document new credential management patterns for test authors
 - [ ] Document cleanup patterns
+- [ ] Document ObjectStore validation rules
 
-**STOP HERE - Consolidation refactoring complete. Tests now use best practices for isolation and cleanup.**
+**STOP HERE - Consolidation refactoring complete. Tests use best practices for isolation and cleanup.**
 
 ---
 

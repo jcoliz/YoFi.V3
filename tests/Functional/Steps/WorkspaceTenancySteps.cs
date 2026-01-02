@@ -24,9 +24,6 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 {
     #region Test Data Storage
 
-    // Store user credentials created in Background (keys are FULL usernames with __TEST__ prefix)
-    protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
-
     // Store workspace keys for later reference (keys are FULL workspace names as returned by API)
     protected readonly Dictionary<string, Guid> _workspaceKeys = new();
 
@@ -34,7 +31,7 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     public void SetupWorkspaceTenancySteps()
     {
         // Clear test data before each scenario
-        _userCredentials.Clear();
+        // Note: _userCredentials is now cleared in FunctionalTestBase.SetUp()
         _workspaceKeys.Clear();
     }
 
