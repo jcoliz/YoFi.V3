@@ -36,7 +36,6 @@ public class OfxParsingServiceTests
     {
         // Given: An empty stream
         var emptyStream = new MemoryStream();
-        
 
         // When: Parsing the empty stream
         var result = await OfxParsingHelper.ParseAsync(emptyStream, "empty.ofx");
@@ -53,7 +52,6 @@ public class OfxParsingServiceTests
         // Given: A stream containing invalid OFX data
         var invalidData = "This is not valid OFX data"u8.ToArray();
         var invalidStream = new MemoryStream(invalidData);
-        
 
         // When: Parsing the invalid OFX
         var result = await OfxParsingHelper.ParseAsync(invalidStream, "invalid.ofx");
@@ -71,46 +69,8 @@ public class OfxParsingServiceTests
     public async Task ParseAsync_ValidOfxWithZeroTransactions_ReturnsEmptyTransactionList()
     {
         // Given: A valid OFX document with no transactions
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            </BANKTRANLIST>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement();
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "zero-transactions.ofx");
@@ -126,62 +86,10 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with a single transaction containing a date
         var expectedDate = new DateOnly(2023, 11, 15);
-        var ofxContent = $"""
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Test Payee
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (expectedDate, -50.00m, "Test Payee", null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
@@ -198,62 +106,11 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with a single transaction containing an amount
         var expectedAmount = -50.00m;
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Test Payee
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), expectedAmount, "Test Payee", null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
+
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
@@ -269,62 +126,10 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with a single transaction containing NAME field
         var expectedPayee = "Test Payee Store";
-        var ofxContent = $"""
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>{expectedPayee}
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, expectedPayee, null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
@@ -340,62 +145,10 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with a transaction that has MEMO but no NAME field
         var expectedPayee = "Transaction memo text";
-        var ofxContent = $"""
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <MEMO>{expectedPayee}
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, null, expectedPayee)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "memo-fallback.ofx");
@@ -411,63 +164,10 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with a single transaction containing MEMO field
         var expectedMemo = "Test transaction memo";
-        var ofxContent = $"""
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Test Payee
-            <MEMO>{expectedMemo}
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, "Test Payee", expectedMemo)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
@@ -484,63 +184,10 @@ public class OfxParsingServiceTests
         // Given: An OFX document where NAME is a truncated version of MEMO
         var truncatedName = "THIS IS A TE";
         var fullMemo = "THIS IS A TEST OF A LONG PAYEE IN A MEMO";
-        var ofxContent = $"""
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>{truncatedName}
-            <MEMO>{fullMemo}
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, truncatedName, fullMemo)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "truncated-name.ofx");
@@ -557,62 +204,10 @@ public class OfxParsingServiceTests
     {
         // Given: An OFX document with bank name, account type, and account ID
         var expectedSource = "Test Bank - Checking (9876543210)";
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Test Payee
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, "Test Payee", null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "single-transaction.ofx");
@@ -627,76 +222,16 @@ public class OfxParsingServiceTests
     public async Task ParseAsync_MultipleTransactions_ReturnsAll()
     {
         // Given: An OFX document with multiple transactions
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Payee One
-            </STMTTRN>
-            <STMTTRN>
-            <TRNTYPE>CREDIT
-            <DTPOSTED>20231116120000
-            <TRNAMT>100.00
-            <FITID>TXN002
-            <NAME>Payee Two
-            </STMTTRN>
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231117120000
-            <TRNAMT>-25.50
-            <FITID>TXN003
-            <NAME>Payee Three
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            "Test Bank",
+            "9876543210",
+            "CHECKING",
+            (new DateOnly(2023, 11, 15), -50.00m, "Payee One", null),
+            (new DateOnly(2023, 11, 16), 100.00m, "Payee Two", null),
+            (new DateOnly(2023, 11, 17), -25.50m, "Payee Three", null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
+
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "multiple-transactions.ofx");
@@ -714,92 +249,13 @@ public class OfxParsingServiceTests
     public async Task ParseAsync_MultipleAccounts_HandlesEachSeparately()
     {
         // Given: An OFX document with multiple account statements
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>1111111111
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Checking Transaction
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            <STMTTRNRS>
-            <TRNUID>2
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>2222222222
-            <ACCTTYPE>SAVINGS
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>CREDIT
-            <DTPOSTED>20231116120000
-            <TRNAMT>100.00
-            <FITID>TXN002
-            <NAME>Savings Transaction
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>2000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildMultiAccountStatement(
+            "Test Bank",
+            ("1111111111", "CHECKING", [(new DateOnly(2023, 11, 15), -50.00m, "Checking Transaction", null)]),
+            ("2222222222", "SAVINGS", [(new DateOnly(2023, 11, 16), 100.00m, "Savings Transaction", null)])
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
+
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "multi-account.ofx");
@@ -842,7 +298,6 @@ public class OfxParsingServiceTests
     {
         // Given: The bank-banking-xml.ofx example file (OFX 2.x XML format)
         using var stream = GetEmbeddedOfxFile("bank-banking-xml.ofx");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "bank-banking-xml.ofx");
@@ -862,7 +317,6 @@ public class OfxParsingServiceTests
     {
         // Given: The Bank1.ofx example file (multiple accounts, 11 total transactions)
         using var stream = GetEmbeddedOfxFile("Bank1.ofx");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "Bank1.ofx");
@@ -883,7 +337,6 @@ public class OfxParsingServiceTests
     {
         // Given: The CC2.OFX example file (credit card, 9 transactions)
         using var stream = GetEmbeddedOfxFile("CC2.OFX");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "CC2.OFX");
@@ -903,7 +356,6 @@ public class OfxParsingServiceTests
     {
         // Given: The creditcard.ofx example file (credit card message format, 4 transactions)
         using var stream = GetEmbeddedOfxFile("creditcard.ofx");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "creditcard.ofx");
@@ -923,7 +375,6 @@ public class OfxParsingServiceTests
     {
         // Given: The issue-17.ofx example file (Brazilian bank, BRL currency, 3 transactions)
         using var stream = GetEmbeddedOfxFile("issue-17.ofx");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "issue-17.ofx");
@@ -943,7 +394,6 @@ public class OfxParsingServiceTests
     {
         // Given: The itau.ofx example file (Brazilian bank, identical data to issue-17.ofx)
         using var stream = GetEmbeddedOfxFile("itau.ofx");
-        
 
         // When: Parsing the OFX file
         var result = await OfxParsingHelper.ParseAsync(stream, "itau.ofx");
@@ -962,63 +412,10 @@ public class OfxParsingServiceTests
     public async Task ParseAsync_TransactionsWithFitid_UsesFitidAsExternalId()
     {
         // Given: An OFX document with transactions that have valid FITIDs
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            <NAME>Test Payee
-            <MEMO>Test memo
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, "Test Payee", "Test memo")
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "with-fitid.ofx");
@@ -1037,61 +434,10 @@ public class OfxParsingServiceTests
     public async Task ParseAsync_TransactionWithoutPayee_ErrorIncludesFileName()
     {
         // Given: An OFX document with a transaction that has no NAME and no MEMO
-        var ofxContent = """
-            OFXHEADER:100
-            DATA:OFXSGML
-            VERSION:102
-            SECURITY:NONE
-            ENCODING:USASCII
-            CHARSET:1252
-            COMPRESSION:NONE
-            OLDFILEUID:NONE
-            NEWFILEUID:NONE
-
-            <OFX>
-            <SIGNONMSGSRSV1>
-            <SONRS>
-            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
-            <DTSERVER>20231201120000
-            <LANGUAGE>ENG
-            <FI><ORG>Test Bank<FID>12345</FI>
-            </SONRS>
-            </SIGNONMSGSRSV1>
-            <BANKMSGSRSV1>
-            <STMTTRNRS>
-            <TRNUID>1
-            <STATUS>
-            <CODE>0
-            <SEVERITY>INFO
-            </STATUS>
-            <STMTRS>
-            <CURDEF>USD
-            <BANKACCTFROM>
-            <BANKID>123456789
-            <ACCTID>9876543210
-            <ACCTTYPE>CHECKING
-            </BANKACCTFROM>
-            <BANKTRANLIST>
-            <DTSTART>20231101120000
-            <DTEND>20231130120000
-            <STMTTRN>
-            <TRNTYPE>DEBIT
-            <DTPOSTED>20231115120000
-            <TRNAMT>-50.00
-            <FITID>TXN001
-            </STMTTRN>
-            </BANKTRANLIST>
-            <LEDGERBAL>
-            <BALAMT>1000.00
-            <DTASOF>20231130120000
-            </LEDGERBAL>
-            </STMTRS>
-            </STMTTRNRS>
-            </BANKMSGSRSV1>
-            </OFX>
-            """;
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, null, null)
+        );
         var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
-        
 
         // When: Parsing the OFX document
         var result = await OfxParsingHelper.ParseAsync(stream, "missing-payee.ofx");
@@ -1108,4 +454,178 @@ public class OfxParsingServiceTests
     }
 
     #endregion
+}
+
+/// <summary>
+/// Builder for creating test OFX documents with various configurations.
+/// </summary>
+/// <remarks>
+/// This builder simplifies test data creation by parameterizing only the essential transaction fields
+/// while maintaining valid OFX structure. Use this for synthetic test data; use embedded resources
+/// for real-world OFX files from banks.
+/// </remarks>
+internal static class OfxTestDataBuilder
+{
+    /// <summary>
+    /// Builds a single-account OFX bank statement with specified transactions.
+    /// </summary>
+    /// <param name="bankName">Name of the bank (default: "Test Bank")</param>
+    /// <param name="accountId">Account identifier (default: "9876543210")</param>
+    /// <param name="accountType">Account type (default: "CHECKING")</param>
+    /// <param name="transactions">Array of transactions as (date, amount, name, memo) tuples</param>
+    /// <returns>Complete OFX document as string</returns>
+    public static string BuildBankStatement(
+        string bankName = "Test Bank",
+        string accountId = "9876543210",
+        string accountType = "CHECKING",
+        params (DateOnly date, decimal amount, string? name, string? memo)[] transactions)
+    {
+        var txnList = string.Join("\n", transactions.Select((t, i) =>
+            BuildTransaction(i + 1, t.date, t.amount, t.name, t.memo)));
+
+        return $"""
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>{bankName}<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTID>{accountId}
+            <ACCTTYPE>{accountType}
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20231101120000
+            <DTEND>20231130120000
+            {txnList}
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+    }
+
+    /// <summary>
+    /// Builds a multi-account OFX bank statement with separate transactions per account.
+    /// </summary>
+    /// <param name="bankName">Name of the bank (default: "Test Bank")</param>
+    /// <param name="accounts">Array of accounts as (accountId, accountType, transactions) tuples</param>
+    /// <returns>Complete OFX document as string</returns>
+    public static string BuildMultiAccountStatement(
+        string bankName = "Test Bank",
+        params (string accountId, string accountType, (DateOnly date, decimal amount, string? name, string? memo)[] transactions)[] accounts)
+    {
+        var accountStatements = string.Join("\n", accounts.Select((acc, i) =>
+        {
+            var txnList = string.Join("\n", acc.transactions.Select((t, j) =>
+                BuildTransaction(i * 100 + j + 1, t.date, t.amount, t.name, t.memo)));
+
+            return $"""
+                <STMTTRNRS>
+                <TRNUID>{i + 1}
+                <STATUS>
+                <CODE>0
+                <SEVERITY>INFO
+                </STATUS>
+                <STMTRS>
+                <CURDEF>USD
+                <BANKACCTFROM>
+                <BANKID>123456789
+                <ACCTID>{acc.accountId}
+                <ACCTTYPE>{acc.accountType}
+                </BANKACCTFROM>
+                <BANKTRANLIST>
+                <DTSTART>20231101120000
+                <DTEND>20231130120000
+                {txnList}
+                </BANKTRANLIST>
+                <LEDGERBAL>
+                <BALAMT>1000.00
+                <DTASOF>20231130120000
+                </LEDGERBAL>
+                </STMTRS>
+                </STMTTRNRS>
+                """;
+        }));
+
+        return $"""
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>{bankName}<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            {accountStatements}
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+    }
+
+    /// <summary>
+    /// Builds a single OFX transaction element.
+    /// </summary>
+    /// <param name="id">Transaction ID number (used for FITID)</param>
+    /// <param name="date">Transaction date</param>
+    /// <param name="amount">Transaction amount (negative for debit, positive for credit)</param>
+    /// <param name="name">Payee name (optional)</param>
+    /// <param name="memo">Transaction memo (optional)</param>
+    /// <returns>OFX STMTTRN element as string</returns>
+    private static string BuildTransaction(int id, DateOnly date, decimal amount, string? name, string? memo)
+    {
+        var nameTag = !string.IsNullOrEmpty(name) ? $"<NAME>{name}" : "";
+        var memoTag = !string.IsNullOrEmpty(memo) ? $"<MEMO>{memo}" : "";
+
+        return $"""
+            <STMTTRN>
+            <TRNTYPE>{(amount < 0 ? "DEBIT" : "CREDIT")}
+            <DTPOSTED>{date:yyyyMMdd}120000
+            <TRNAMT>{amount}
+            <FITID>TXN{id:D3}
+            {nameTag}
+            {memoTag}
+            </STMTTRN>
+            """;
+    }
 }
