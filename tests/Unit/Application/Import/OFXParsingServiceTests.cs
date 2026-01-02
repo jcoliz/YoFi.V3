@@ -200,6 +200,27 @@ public class OfxParsingServiceTests
     }
 
     [Test]
+    public async Task ParseAsync_SingleTransaction_UsesMemoWhenNameIsTruncated_WithCollapsedWhitespace()
+    {
+        // Given: An OFX document where NAME is a truncated version of MEMO, with extra spaces
+        var truncatedName = "THIS IS      A TE";
+        var fullMemo = "THIS IS A TEST OF A LONG PAYEE IN A MEMO";
+        var ofxContent = OfxTestDataBuilder.BuildBankStatement(
+            transactions: (new DateOnly(2023, 11, 15), -50.00m, truncatedName, fullMemo)
+        );
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+
+        // When: Parsing the OFX document
+        var result = await OfxParsingHelper.ParseAsync(stream, "truncated-name.ofx");
+
+        // Then: Should use full MEMO as payee and leave memo blank (discard truncated NAME)
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+        Assert.That(result.Transactions, Is.Not.Empty);
+        Assert.That(result.Transactions.First().Payee, Is.EqualTo(fullMemo));
+        Assert.That(result.Transactions.First().Memo, Is.Null);
+    }
+
+    [Test]
     public async Task ParseAsync_SingleTransaction_BuildsSourceString()
     {
         // Given: An OFX document with bank name, account type, and account ID
