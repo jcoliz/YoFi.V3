@@ -1,3 +1,6 @@
+using NUnit.Framework.Internal;
+using YoFi.V3.Tests.Functional.Generated;
+
 namespace YoFi.V3.Tests.Functional.Infrastructure;
 
 /// <summary>
@@ -20,6 +23,11 @@ public class ObjectStore
     /// <param name="obj">Object to store.</param>
     public void Add<T>(string key, T obj) where T : class
     {
+        if (typeof(T) == typeof(TestUserCredentials))
+        {
+            throw new InvalidOperationException("Cannot store test user credentials with this method. Use _userCredentials dictionary in FunctionalTestBase instead.");
+        }
+
         _objects[key] = obj;
     }
 
@@ -30,6 +38,11 @@ public class ObjectStore
     /// <param name="obj">Object to store.</param>
     public void Add<T>(T obj) where T : class
     {
+        if (typeof(T) == typeof(TestUserCredentials))
+        {
+            throw new InvalidOperationException("Cannot store test user credentials with this method. Use _userCredentials dictionary in FunctionalTestBase instead.");
+        }
+
         _objects[typeof(T).Name] = obj;
     }
 

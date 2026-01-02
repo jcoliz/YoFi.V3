@@ -154,57 +154,6 @@ public abstract class AuthenticationSteps : CommonThenSteps
     }
 
     /// <summary>
-    /// Enters user credentials from a DataTable into the login form.
-    /// </summary>
-    /// <param name="credentialsData">DataTable containing Email and Password keys.</param>
-    /// <remarks>
-    /// This is the primary method used in Gherkin scenarios. The overload without
-    /// DataTable is used internally for programmatic login.
-    /// </remarks>
-    [When("I enter my credentials")]
-    protected async Task WhenIEnterMyCredentials(DataTable credentialsData)
-    {
-        var loginPage = GetOrCreateLoginPage();
-        var email = credentialsData.GetKeyValue("Email");
-        var password = credentialsData.GetKeyValue("Password");
-
-        await loginPage.EnterCredentialsAsync(email, password);
-    }
-
-    /// <summary>
-    /// Enters user credentials programmatically (overload for internal use).
-    /// </summary>
-    /// <param name="email">The user's email address.</param>
-    /// <param name="password">The user's password.</param>
-    /// <remarks>
-    /// This overload is used by other step methods that need to enter credentials
-    /// programmatically without a DataTable from Gherkin.
-    /// </remarks>
-    protected async Task WhenIEnterMyCredentials(string email, string password)
-    {
-        var loginPage = GetOrCreateLoginPage();
-        await loginPage.EnterCredentialsAsync(email, password);
-    }
-
-    /// <summary>
-    /// Enters invalid credentials from a DataTable into the login form.
-    /// </summary>
-    /// <param name="credentialsData">DataTable containing Email and Password keys.</param>
-    /// <remarks>
-    /// Functionally identical to WhenIEnterMyCredentials but semantically distinct
-    /// for test readability. Used in negative test scenarios.
-    /// </remarks>
-    [When("I enter invalid credentials")]
-    protected async Task WhenIEnterInvalidCredentials(DataTable credentialsData)
-    {
-        var loginPage = GetOrCreateLoginPage();
-        var email = credentialsData.GetKeyValue("Email");
-        var password = credentialsData.GetKeyValue("Password");
-
-        await loginPage.EnterCredentialsAsync(email, password);
-    }
-
-    /// <summary>
     /// Enters hardcoded invalid credentials (overload for parameterless scenarios).
     /// </summary>
     /// <remarks>

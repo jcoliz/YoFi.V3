@@ -96,7 +96,6 @@ public abstract class CommonGivenSteps : FunctionalTestBase
 
     // These are forward references to WHEN and THEN steps that will be implemented in other classes
     protected abstract Task WhenUserLaunchesSite();
-    protected abstract Task WhenIEnterMyCredentials();
     protected abstract Task WhenILoginWithMyCredentials();
     protected abstract Task WhenIClickTheLoginButton();
     protected abstract Task ThenPageLoadedOk();

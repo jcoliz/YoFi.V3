@@ -22,21 +22,6 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// </remarks>
 public abstract class WorkspaceTenancySteps : CommonThenSteps
 {
-    #region Test Data Storage
-
-    // Store workspace keys for later reference (keys are FULL workspace names as returned by API)
-    protected readonly Dictionary<string, Guid> _workspaceKeys = new();
-
-    [SetUp]
-    public void SetupWorkspaceTenancySteps()
-    {
-        // Clear test data before each scenario
-        // Note: _userCredentials is now cleared in FunctionalTestBase.SetUp()
-        _workspaceKeys.Clear();
-    }
-
-    #endregion
-
     #region Object Store Keys
 
     protected const string KEY_LOGGED_IN_AS = "LoggedInAs";
@@ -123,16 +108,18 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     [Given("these users exist")]
     protected async Task GivenTheseUsersExist(DataTable usersTable)
     {
-        // Clear existing users and workspaces to avoid conflicts
-        await testControlClient.DeleteAllTestDataAsync();
+        var friendlyNames = usersTable.ToSingleColumnList().ToList();
 
-        var usernames = usersTable.ToSingleColumnList().ToList();
-        var credentials = await testControlClient.CreateUsersAsync(usernames);
+        // Generate credentials for all users (auto-tracked)
+        var credentialsList = friendlyNames.Select(name => CreateTestUserCredentials(name)).ToList();
 
-        // Store with given username (what's in the datatable)
-        foreach (var cred in credentials)
+        // Create all users in bulk
+        var created = await testControlClient.CreateUsersV2Async(credentialsList);
+
+        // Update dictionary with server-populated IDs
+        foreach (var createdUser in created)
         {
-            _userCredentials[cred.ShortName] = cred;
+            _userCredentials[createdUser.ShortName] = createdUser;
         }
     }
 

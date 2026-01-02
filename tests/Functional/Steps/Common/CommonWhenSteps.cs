@@ -67,24 +67,6 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     // to support automatic credential tracking for cleanup
 
     /// <summary>
-    /// Enters test user credentials into the login form without submitting.
-    /// </summary>
-    /// <remarks>
-    /// Retrieves test user credentials from the object store and fills the login form fields.
-    /// Does not submit the form - use with WhenIClickTheLoginButton for submission.
-    /// This is a helper method, not a Gherkin step. The pattern "I enter my credentials"
-    /// is handled by AuthenticationSteps.WhenIEnterMyCredentials(DataTable).
-    /// </remarks>
-    protected override async Task WhenIEnterMyCredentials()
-    {
-        var loginPage = GetOrCreateLoginPage();
-
-        var testuser = It<Generated.TestUserCredentials>();
-
-        await loginPage.EnterCredentialsAsync(testuser.Username, testuser.Password);
-    }
-
-    /// <summary>
     /// Performs a complete login operation with test user credentials.
     /// </summary>
     /// <remarks>

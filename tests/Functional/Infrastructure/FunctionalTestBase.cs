@@ -33,8 +33,9 @@ public abstract partial class FunctionalTestBase : PageTest
     // Track user credentials by friendly name for lookups AND cleanup
     protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
-    // Track workspaces for cleanup
-    private readonly List<Guid> _createdWorkspaces = new();
+    // Track workspaces for cleanup and later reference by steps
+    // (keys are FULL workspace names as returned by API)
+    protected readonly Dictionary<string, Guid> _workspaceKeys = new();
 
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
@@ -108,6 +109,9 @@ public abstract partial class FunctionalTestBase : PageTest
 
         // Clear user credentials for each test
         _userCredentials.Clear();
+
+        // Clear workspace keys for each test
+        _workspaceKeys.Clear();
 
         // Add a basepage object to the object store
         _objectStore.Add(new Pages.BasePage(Page));
@@ -551,9 +555,9 @@ public abstract partial class FunctionalTestBase : PageTest
     /// Tracks a created workspace for cleanup in TearDown.
     /// </summary>
     /// <param name="workspaceKey">The unique identifier of the workspace.</param>
-    protected void TrackCreatedWorkspace(Guid workspaceKey)
+    protected void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey)
     {
-        _createdWorkspaces.Add(workspaceKey);
+        _workspaceKeys[workspaceName] = workspaceKey;
     }
 
     /// <summary>
@@ -564,11 +568,16 @@ public abstract partial class FunctionalTestBase : PageTest
         try
         {
             // Clean up workspaces first (cascade will delete transactions)
-            if (_createdWorkspaces.Count > 0)
+            if (_workspaceKeys.Count > 0)
             {
                 try
                 {
-                    await testControlClient.DeleteWorkspacesAsync(_createdWorkspaces);
+                    await testControlClient.DeleteWorkspacesAsync(_workspaceKeys.Values);
+                }
+                catch (ApiException<ProblemDetails> ex)
+                {
+                    // Log but don't fail test if cleanup fails
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete workspaces: {ex.Message} | {System.Text.Json.JsonSerializer.Serialize(ex.Result)}");
                 }
                 catch (Exception ex)
                 {
