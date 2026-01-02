@@ -33,6 +33,9 @@ public abstract partial class FunctionalTestBase : PageTest
     // Track user credentials by friendly name for lookups AND cleanup
     protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
+    // Track workspaces for cleanup
+    private readonly List<Guid> _createdWorkspaces = new();
+
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
 
@@ -158,6 +161,9 @@ public abstract partial class FunctionalTestBase : PageTest
             var pageModel = It<Pages.BasePage>();
             await pageModel.SaveScreenshotAsync($"FAILED");
         }
+
+        // Clean up test-specific users and workspaces
+        await CleanupTestResourcesAsync();
 
         _testActivity?.Stop();
         _testActivity?.Dispose();
@@ -499,6 +505,87 @@ public abstract partial class FunctionalTestBase : PageTest
             ["X-Test-Id"] = testId,
             ["X-Test-Class"] = testClass
         };
+    }
+
+    /// <summary>
+    /// Generates unique test user credentials based on test context.
+    /// </summary>
+    /// <param name="friendlyName">Friendly name for the user (e.g., "alice", "bob").</param>
+    /// <returns>Test user credentials with unique username, email, and password.</returns>
+    /// <remarks>
+    /// Credentials are automatically tracked for cleanup in TearDown.
+    /// Username format: __TEST__{friendlyName}_{testId:X8}
+    /// </remarks>
+    protected TestUserCredentials CreateTestUserCredentials(string friendlyName)
+    {
+        var testId = TestContext.CurrentContext.Test.ID.GetHashCode();
+        var username = $"__TEST__{friendlyName}_{testId:X8}";
+        var password = $"Test_{testId:X8}!";
+
+        var creds = new TestUserCredentials
+        {
+            ShortName = friendlyName,
+            Username = username,
+            Email = $"{username}@test.local",
+            Password = password
+        };
+
+        // Store immediately for lookup and cleanup
+        _userCredentials[friendlyName] = creds;
+
+        return creds;
+    }
+
+    /// <summary>
+    /// Tracks a created workspace for cleanup in TearDown.
+    /// </summary>
+    /// <param name="workspaceKey">The unique identifier of the workspace.</param>
+    protected void TrackCreatedWorkspace(Guid workspaceKey)
+    {
+        _createdWorkspaces.Add(workspaceKey);
+    }
+
+    /// <summary>
+    /// Cleans up test resources (users and workspaces) created during this test execution.
+    /// </summary>
+    private async Task CleanupTestResourcesAsync()
+    {
+        try
+        {
+            // Clean up workspaces first (cascade will delete transactions)
+            if (_createdWorkspaces.Count > 0)
+            {
+                try
+                {
+                    await testControlClient.DeleteWorkspacesAsync(_createdWorkspaces);
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail test if cleanup fails
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete workspaces: {ex.Message}");
+                }
+            }
+
+            // Clean up users in bulk using V2 endpoint
+            if (_userCredentials.Count > 0)
+            {
+                try
+                {
+                    var usernames = _userCredentials.Values.Select(u => u.Username).ToList();
+                    await testControlClient.DeleteUsersV2Async(usernames);
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail test if cleanup fails
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete users: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Swallow exceptions during cleanup to avoid masking test failures
+            TestContext.Error.WriteLine($"[Cleanup] Unexpected error during cleanup: {ex}");
+        }
     }
 
     #endregion

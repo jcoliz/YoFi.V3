@@ -2364,6 +2364,35 @@ namespace YoFi.V3.Tests.Functional.Generated
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkspaceSetupResult>> BulkWorkspaceSetupAsync(string username, System.Collections.Generic.IEnumerable<WorkspaceSetupRequest> workspaces, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
+        /// Delete multiple test workspaces by their keys.
+        /// </summary>
+        /// <remarks>
+        /// Validates that all workspaces have __TEST__ prefix for safety.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// <br/>Returns 403 if any workspace name lacks the prefix.
+        /// <br/>Empty or null list returns 400 Bad Request (no "delete all" behavior).
+        /// </remarks>
+        /// <param name="workspaceKeys">Collection of workspace keys to delete. Must not be empty.</param>
+        /// <returns>204 No Content on success.</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteWorkspacesAsync(System.Collections.Generic.IEnumerable<System.Guid> workspaceKeys);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete multiple test workspaces by their keys.
+        /// </summary>
+        /// <remarks>
+        /// Validates that all workspaces have __TEST__ prefix for safety.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// <br/>Returns 403 if any workspace name lacks the prefix.
+        /// <br/>Empty or null list returns 400 Bad Request (no "delete all" behavior).
+        /// </remarks>
+        /// <param name="workspaceKeys">Collection of workspace keys to delete. Must not be empty.</param>
+        /// <returns>204 No Content on success.</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task DeleteWorkspacesAsync(System.Collections.Generic.IEnumerable<System.Guid> workspaceKeys, System.Threading.CancellationToken cancellationToken);
+
+        /// <summary>
         /// List available error codes that can be generated for testing
         /// </summary>
         /// <returns>A collection of error code descriptions</returns>
@@ -3704,6 +3733,145 @@ namespace YoFi.V3.Tests.Functional.Generated
                                 throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 500)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new ApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Delete multiple test workspaces by their keys.
+        /// </summary>
+        /// <remarks>
+        /// Validates that all workspaces have __TEST__ prefix for safety.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// <br/>Returns 403 if any workspace name lacks the prefix.
+        /// <br/>Empty or null list returns 400 Bad Request (no "delete all" behavior).
+        /// </remarks>
+        /// <param name="workspaceKeys">Collection of workspace keys to delete. Must not be empty.</param>
+        /// <returns>204 No Content on success.</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task DeleteWorkspacesAsync(System.Collections.Generic.IEnumerable<System.Guid> workspaceKeys)
+        {
+            return DeleteWorkspacesAsync(workspaceKeys, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Delete multiple test workspaces by their keys.
+        /// </summary>
+        /// <remarks>
+        /// Validates that all workspaces have __TEST__ prefix for safety.
+        /// <br/>Cascade deletes will remove associated role assignments and transactions.
+        /// <br/>Returns 403 if any workspace name lacks the prefix.
+        /// <br/>Empty or null list returns 400 Bad Request (no "delete all" behavior).
+        /// </remarks>
+        /// <param name="workspaceKeys">Collection of workspace keys to delete. Must not be empty.</param>
+        /// <returns>204 No Content on success.</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task DeleteWorkspacesAsync(System.Collections.Generic.IEnumerable<System.Guid> workspaceKeys, System.Threading.CancellationToken cancellationToken)
+        {
+            if (workspaceKeys == null)
+                throw new System.ArgumentNullException("workspaceKeys");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(workspaceKeys, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("DELETE");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "TestControl/workspaces"
+                    urlBuilder_.Append("TestControl/workspaces");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new ApiException<ProblemDetails>("A server side error occurred.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 403)

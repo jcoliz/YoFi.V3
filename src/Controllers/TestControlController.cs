@@ -769,6 +769,72 @@ public partial class TestControlController(
         return CreatedAtAction(nameof(BulkWorkspaceSetup), new { username }, results);
     }
 
+    /// <summary>
+    /// Delete multiple test workspaces by their keys.
+    /// </summary>
+    /// <param name="workspaceKeys">Collection of workspace keys to delete. Must not be empty.</param>
+    /// <returns>204 No Content on success.</returns>
+    /// <remarks>
+    /// Validates that all workspaces have __TEST__ prefix for safety.
+    /// Cascade deletes will remove associated role assignments and transactions.
+    /// Returns 403 if any workspace name lacks the prefix.
+    /// Empty or null list returns 400 Bad Request (no "delete all" behavior).
+    /// </remarks>
+    [HttpDelete("workspaces")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteWorkspaces([FromBody] IReadOnlyCollection<Guid> workspaceKeys)
+    {
+        LogStartingCount(workspaceKeys?.Count ?? 0);
+
+        // Require explicit workspace key list
+        if (workspaceKeys == null || workspaceKeys.Count == 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status400BadRequest,
+                "Workspace key list required",
+                "Must provide explicit list of workspace keys to delete. Empty list not allowed."
+            );
+        }
+
+        // Validate all workspaces have test prefix
+        var invalidWorkspaces = new List<string>();
+        foreach (var key in workspaceKeys)
+        {
+            var tenant = await tenantFeature.GetTenantByKeyAsync(key);
+            if (tenant == null)
+            {
+                return ProblemWithLog(
+                    StatusCodes.Status404NotFound,
+                    "Workspace not found",
+                    $"Workspace with key '{key}' not found"
+                );
+            }
+
+            if (!tenant.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
+            {
+                invalidWorkspaces.Add($"{tenant.Name} ({key})");
+            }
+        }
+
+        if (invalidWorkspaces.Count > 0)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "All workspaces must be test workspaces",
+                $"Invalid workspaces (must start with {TestPrefix}): {string.Join(", ", invalidWorkspaces)}"
+            );
+        }
+
+        // Delete all workspaces (cascade will delete role assignments and transactions)
+        await tenantFeature.DeleteTenantsByKeysAsync(workspaceKeys);
+
+        LogOkCount(workspaceKeys.Count);
+        return NoContent();
+    }
+
     #endregion
 
     #region Error Testing
