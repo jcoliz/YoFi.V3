@@ -79,7 +79,9 @@ try {
             throw "NSwag executable not found in NuGet packages"
         }
 
-        dotnet $nswagExe run nswag.json /variables:Configuration=$Configuration,MSBuildOutputPath=bin/$Configuration/net10.0/,MSBuildProjectFile=YoFi.V3.WireApiHost.csproj,OutputFile=../FrontEnd.Nuxt/app/utils/apiclient.ts
+        $msbuildOutput = "bin/$Configuration/net10.0/"
+        $variables = "Configuration=$Configuration,MSBuildOutputPath=$msbuildOutput,MSBuildProjectFile=YoFi.V3.WireApiHost.csproj,OutputFile=../FrontEnd.Nuxt/app/utils/apiclient.ts"
+        dotnet $nswagExe run nswag.json /variables:$variables
 
         if ($LASTEXITCODE -ne 0) {
             throw "TypeScript client generation failed with exit code $LASTEXITCODE"
@@ -100,7 +102,8 @@ try {
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
         }
 
-        dotnet $nswagExe run Api/nswag.json /variables:OutputFile=$csharpClient,Configuration=$Configuration
+        $variables = "OutputFile=$csharpClient,Configuration=$Configuration"
+        dotnet $nswagExe run Api/nswag.json /variables:$variables
 
         if ($LASTEXITCODE -ne 0) {
             throw "C# client generation failed with exit code $LASTEXITCODE"
