@@ -97,7 +97,7 @@ public abstract class CommonWhenSteps : CommonGivenSteps
     {
         var loginPage = GetOrCreateLoginPage();
 
-        var testuser = It<Generated.TestUserCredentials>();
+        var testuser = _userCredentials["I"];
 
         await loginPage.LoginAsync(testuser.Username, testuser.Password);
     }

@@ -536,6 +536,17 @@ public abstract partial class FunctionalTestBase : PageTest
         return creds;
     }
 
+    protected async Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName)
+    {
+        var userCreds = CreateTestUserCredentials(friendlyName);  // Auto-tracked
+        var created = await testControlClient.CreateUsersV2Async(new[] { userCreds });
+
+        // Update with server-populated ID
+        var createdUser = created.Single();
+        _userCredentials[createdUser.ShortName] = createdUser;
+        return createdUser;
+    }
+
     /// <summary>
     /// Tracks a created workspace for cleanup in TearDown.
     /// </summary>

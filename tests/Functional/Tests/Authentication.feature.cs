@@ -266,7 +266,6 @@ public class UserAuthenticationTests : AuthenticationSteps
     /// removing the Explicit attribute to see if the test is stable.
     /// </remarks>
     [Test]
-    //[Explicit("Flaky test - sometimes fails due to application behavior")]
     public async Task LoggedInUserCannotAccessLoginPage()
     {
         // Given I am logged in

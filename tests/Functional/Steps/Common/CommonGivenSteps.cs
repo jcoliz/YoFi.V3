@@ -53,11 +53,7 @@ public abstract class CommonGivenSteps : FunctionalTestBase
     [Given("I have an existing account")]
     protected async Task GivenIHaveAnExistingAccount()
     {
-        if (_objectStore.Contains<Generated.TestUserCredentials>())
-            return;
-        await testControlClient.DeleteUsersAsync();
-        var user = await testControlClient.CreateUsersAsync(new[] { "user" });
-        _objectStore.Add(user.First());
+        var userCreds = await CreateTestUserCredentialsOnServer("I");  // Auto-tracked
     }
 
     /// <summary>

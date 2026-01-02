@@ -120,11 +120,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     {
         var registerPage = GetOrCreateRegisterPage();
 
-        // First, clear existing test users via Test Control API
-        await testControlClient.DeleteUsersAsync();
-
         var user = CreateTestUserCredentials("testuser");
-        _objectStore.Add("Registration Details", user);
 
         await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
     }
@@ -311,11 +307,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     {
         var registerPage = GetOrCreateRegisterPage();
 
-        // First, clear existing test users via Test Control API
-        await testControlClient.DeleteUsersAsync();
-
         var user = CreateTestUserCredentials("testuser");
-        _objectStore.Add("Registration Details", user);
 
         // Use a weak password (too short, no special characters, etc.)
         var weakPassword = "weak";
@@ -351,11 +343,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     {
         var registerPage = GetOrCreateRegisterPage();
 
-        // First, clear existing test users via Test Control API
-        await testControlClient.DeleteUsersAsync();
-
         var user = CreateTestUserCredentials("testuser");
-        _objectStore.Add("Registration Details", user);
 
         // Use mismatched passwords
         var password = user.Password;
@@ -413,7 +401,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         var registerPage = GetOrCreateRegisterPage();
 
         // Get the existing user from object store
-        var existingUser = It<Generated.TestUserCredentials>();
+        var existingUser = _userCredentials["I"];
 
         // Create a new username but use the existing email
         var newUsername = $"__DUPLICATE__{existingUser.Username}";
@@ -493,7 +481,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
         var registerPage = GetOrCreateRegisterPage();
         await registerPage.SuccessMessage.WaitForAsync(new LocatorWaitForOptions { Timeout = 10000 });
 
-        var user = The<TestUserCredentials>("Registration Details");
+        var user = _userCredentials["testuser"];
 
         var emailDisplayText = await registerPage.EmailDisplay.InnerTextAsync();
         var usernameDisplayText = await registerPage.UsernameDisplay.InnerTextAsync();
@@ -536,7 +524,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     protected async Task ThenIShouldSeeMyUsernameInTheHeader()
     {
         var basePage = new BasePage(Page);
-        var testuser = It<Generated.TestUserCredentials>();
+        var testuser = _userCredentials["I"];
         var usernameInHeader = await basePage.SiteHeader.LoginState.GetUsernameAsync();
         Assert.That(usernameInHeader, Is.EqualTo(testuser.Username), "Username should be visible in the header");
     }
@@ -630,7 +618,7 @@ public abstract class AuthenticationSteps : CommonThenSteps
     protected async Task ThenIShouldSeeMyAccountInformation()
     {
         var profilePage = GetOrCreateProfilePage();
-        var testuser = It<Generated.TestUserCredentials>();
+        var testuser = _userCredentials["I"];
 
         Assert.That(await profilePage.HasAccountInformationAsync(testuser.Email, testuser.Username), Is.True,
             "Should display correct account information");
