@@ -6,7 +6,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// <summary>
 /// Step definitions for workspace CRUD operations (Create, Rename, Update, Delete).
 /// </summary>
-/// <param name="_context">Test context providing access to test infrastructure.</param>
 /// <remarks>
 /// Handles workspace management operations:
 /// - Creating new workspaces
@@ -18,8 +17,16 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// All operations work with user-readable workspace names (without __TEST__ prefix).
 /// The prefix is added automatically when needed via AddTestPrefix().
 /// </remarks>
-public class WorkspaceManagementSteps(ITestContext _context) : WorkspaceStepsBase(_context)
+public class WorkspaceManagementSteps : WorkspaceStepsBase
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WorkspaceManagementSteps"/> class.
+    /// </summary>
+    /// <param name="context">Test context providing access to test infrastructure.</param>
+    public WorkspaceManagementSteps(ITestContext context) : base(context)
+    {
+    }
+
     #region Steps: WHEN
 
     /// <summary>

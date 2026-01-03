@@ -20,8 +20,8 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     protected AuthSteps AuthSteps => _authSteps ??= new(this);
     private AuthSteps? _authSteps;
 
-    protected WorkspaceSteps WorkspaceSteps => _workspaceSteps ??= new(this);
-    private WorkspaceSteps? _workspaceSteps;
+    protected WorkspaceDataSteps WorkspaceDataSteps => _workspaceDataSteps ??= new(this);
+    private WorkspaceDataSteps? _workspaceDataSteps;
 
     protected WorkspaceManagementSteps WorkspaceManagementSteps => _workspaceManagementSteps ??= new(this);
     private WorkspaceManagementSteps? _workspaceManagementSteps;
@@ -131,7 +131,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["Family Budget", "Editor"],
             ["Tax Records", "Viewer"]
         );
-        await GivenUserHasAccessToTheseWorkspaces("alice", table);
+        await WorkspaceDataSteps.GivenUserHasAccessToTheseWorkspaces("alice", table);
 
         // And I am logged in as "alice"
         await AuthSteps.GivenIAmLoggedInAs("alice");
@@ -156,7 +156,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task UserViewsWorkspaceDetails()
     {
         // Given "bob" owns a workspace called "My Finances"
-        await GivenUserOwnsAWorkspaceCalled("bob", "My Finances");
+        await WorkspaceDataSteps.GivenUserOwnsAWorkspaceCalled("bob", "My Finances");
 
         // And I am logged in as "bob"
         await AuthSteps.GivenIAmLoggedInAs("bob");
@@ -184,7 +184,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task OwnerUpdatesWorkspaceInformation()
     {
         // Given "alice" owns a workspace called "Old Name"
-        await GivenUserOwnsAWorkspaceCalled("alice", "Old Name");
+        await WorkspaceDataSteps.GivenUserOwnsAWorkspaceCalled("alice", "Old Name");
 
         // And I am logged in as "alice"
         await AuthSteps.GivenIAmLoggedInAs("alice");
@@ -209,7 +209,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task NonOwnerCannotChangeWorkspaceSettings()
     {
         // Given "bob" can edit data in "Family Budget"
-        await GivenUserCanEditDataIn("bob", "Family Budget");
+        await WorkspaceDataSteps.GivenUserCanEditDataIn("bob", "Family Budget");
 
         // And I am logged in as "bob"
         await AuthSteps.GivenIAmLoggedInAs("bob");
@@ -233,7 +233,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task OwnerRemovesAnUnusedWorkspace()
     {
         // Given "alice" owns a workspace called "Test Workspace"
-        await GivenUserOwnsAWorkspaceCalled("alice", "Test Workspace");
+        await WorkspaceDataSteps.GivenUserOwnsAWorkspaceCalled("alice", "Test Workspace");
 
         // And I am logged in as "alice"
         await AuthSteps.GivenIAmLoggedInAs("alice");
@@ -253,7 +253,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task NonOwnerCannotDeleteAWorkspace()
     {
         // Given "charlie" can view data in "Shared Workspace"
-        await GivenUserCanViewDataIn("charlie", "Shared Workspace");
+        await WorkspaceDataSteps.GivenUserCanViewDataIn("charlie", "Shared Workspace");
 
         // And I am logged in as "charlie"
         await AuthSteps.GivenIAmLoggedInAs("charlie");
@@ -282,13 +282,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["Personal", "Owner"],
             ["Business", "Owner"]
         );
-        await GivenUserHasAccessToTheseWorkspaces("alice", table);
+        await WorkspaceDataSteps.GivenUserHasAccessToTheseWorkspaces("alice", table);
 
         // And "Personal" contains 5 transactions
-        await GivenWorkspaceContainsTransactions("Personal", 5);
+        await WorkspaceDataSteps.GivenWorkspaceContainsTransactions("Personal", 5);
 
         // And "Business" contains 3 transactions
-        await GivenWorkspaceContainsTransactions("Business", 3);
+        await WorkspaceDataSteps.GivenWorkspaceContainsTransactions("Business", 3);
 
         // And I am logged in as "alice"
         await AuthSteps.GivenIAmLoggedInAs("alice");
@@ -313,10 +313,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task UserCannotAccessDataInWorkspacesTheyDontHaveAccessTo()
     {
         // Given "bob" has access to "Family Budget"
-        await GivenUserHasAccessTo("bob", "Family Budget");
+        await WorkspaceDataSteps.GivenUserHasAccessTo("bob", "Family Budget");
 
         // And there is a workspace called "Private Finances" that "bob" doesn't have access to
-        await GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo("Private Finances", "bob");
+        await WorkspaceDataSteps.GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo("Private Finances", "bob");
 
         // And I am logged in as "bob"
         await AuthSteps.GivenIAmLoggedInAs("bob");
@@ -340,10 +340,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task ViewerCanSeeButNotChangeData()
     {
         // Given "charlie" can view data in "Family Budget"
-        await GivenUserCanViewDataIn("charlie", "Family Budget");
+        await WorkspaceDataSteps.GivenUserCanViewDataIn("charlie", "Family Budget");
 
         // And "Family Budget" contains 3 transactions
-        await GivenWorkspaceContainsTransactions("Family Budget", 3);
+        await WorkspaceDataSteps.GivenWorkspaceContainsTransactions("Family Budget", 3);
 
         // And I am logged in as "charlie"
         await AuthSteps.GivenIAmLoggedInAs("charlie");
@@ -368,7 +368,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task EditorCanViewAndModifyData()
     {
         // Given "bob" can edit data in "Family Budget"
-        await GivenUserCanEditDataIn("bob", "Family Budget");
+        await WorkspaceDataSteps.GivenUserCanEditDataIn("bob", "Family Budget");
 
         // And I am logged in as "bob"
         await AuthSteps.GivenIAmLoggedInAs("bob");
@@ -400,10 +400,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task OwnerCanDoEverythingIncludingManagingTheWorkspace()
     {
         // Given "alice" owns "My Workspace"
-        await GivenUserOwnsAWorkspaceCalled("alice", "My Workspace");
+        await WorkspaceDataSteps.GivenUserOwnsAWorkspaceCalled("alice", "My Workspace");
 
         // And "My Workspace" contains 3 transactions
-        await GivenWorkspaceContainsTransactions("My Workspace", 3);
+        await WorkspaceDataSteps.GivenWorkspaceContainsTransactions("My Workspace", 3);
 
         // And I am logged in as "alice"
         await AuthSteps.GivenIAmLoggedInAs("alice");
@@ -430,7 +430,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task WorkspaceListShowsOnlyAccessibleWorkspaces()
     {
         // Given "bob" has access to "Family Budget"
-        await GivenUserHasAccessTo("bob", "Family Budget");
+        await WorkspaceDataSteps.GivenUserHasAccessTo("bob", "Family Budget");
 
         // And there are other workspaces in the system:
         var table = new DataTable(
@@ -438,7 +438,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["Private Data", "alice"],
             ["Charlie's Taxes", "charlie"]
         );
-        await GivenThereAreOtherWorkspacesInTheSystem(table);
+        await WorkspaceDataSteps.GivenThereAreOtherWorkspacesInTheSystem(table);
 
         // And I am logged in as "bob"
         await AuthSteps.GivenIAmLoggedInAs("bob");

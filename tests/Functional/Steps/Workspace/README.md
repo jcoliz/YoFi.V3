@@ -52,10 +52,13 @@ All workspace step classes inherit from [`WorkspaceStepsBase`](WorkspaceStepsBas
 - Bulk workspace setup operations
 
 **Example Steps:**
+- `[Given("I have an active workspace {workspaceName}")]`
 - `[Given("{username} owns a workspace called {workspaceName}")]`
 - `[Given("{username} has access to these workspaces:")]`
 - `[Given("{username} can edit data in {workspaceName}")]`
 - `[Given("{workspaceName} contains {transactionCount} transactions")]`
+
+**Current Implementation:** [`WorkspaceDataSteps.cs`](WorkspaceDataSteps.cs)
 
 ### WorkspaceAssertionSteps
 **Purpose:** Verification operations (Then steps)

@@ -6,7 +6,7 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// <summary>
 /// Base class for workspace-related step definition classes.
 /// </summary>
-/// <param name="_context">Test context providing access to test infrastructure.</param>
+/// <param name="context">Test context providing access to test infrastructure.</param>
 /// <remarks>
 /// Provides shared infrastructure for all workspace step classes:
 /// - Common helper methods (prefix handling, object store access)
@@ -16,8 +16,13 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 ///
 /// All workspace step classes should inherit from this base to maintain consistency.
 /// </remarks>
-public abstract class WorkspaceStepsBase(ITestContext _context)
+public abstract class WorkspaceStepsBase(ITestContext context)
 {
+    /// <summary>
+    /// Test context providing access to test infrastructure.
+    /// </summary>
+    protected readonly ITestContext _context = context;
+
     #region Object Store Keys
 
     protected const string KEY_LOGGED_IN_AS = "LoggedInAs";
@@ -34,8 +39,8 @@ public abstract class WorkspaceStepsBase(ITestContext _context)
 
     #region Composed Step Classes
 
-    protected readonly NavigationSteps NavigationSteps = new(_context);
-    protected readonly AuthSteps AuthSteps = new(_context);
+    protected readonly NavigationSteps NavigationSteps = new(context);
+    protected readonly AuthSteps AuthSteps = new(context);
 
     #endregion
 

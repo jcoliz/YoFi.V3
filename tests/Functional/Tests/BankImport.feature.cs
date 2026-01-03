@@ -1,4 +1,5 @@
 using YoFi.V3.Tests.Functional.Steps;
+using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
@@ -19,8 +20,8 @@ public class BankImportTests : FunctionalTestBase
     protected AuthSteps AuthSteps => _authSteps ??= new(this);
     private AuthSteps? _authSteps;
 
-    protected WorkspaceSteps WorkspaceSteps => _workspaceSteps ??= new(this);
-    private WorkspaceSteps? _workspaceSteps;
+    protected WorkspaceDataSteps WorkspaceDataSteps => _workspaceDataSteps ??= new(this);
+    private WorkspaceDataSteps? _workspaceDataSteps;
 
     protected TransactionSteps TransactionSteps => _transactionSteps ??= new(this);
     private TransactionSteps? _transactionSteps;
@@ -38,7 +39,7 @@ public class BankImportTests : FunctionalTestBase
         await AuthSteps.GivenIHaveAnExistingAccount();
 
         // And I have an active workspace "My Finances"
-        await WorkspaceSteps.GivenIHaveAnActiveWorkspace("My Finances");
+        await WorkspaceDataSteps.GivenIHaveAnActiveWorkspace("My Finances");
 
         // And I am logged into my existing account
         await AuthSteps.GivenIAmLoggedInAs();
