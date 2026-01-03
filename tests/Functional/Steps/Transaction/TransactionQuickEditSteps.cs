@@ -232,23 +232,5 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         Assert.That(externalIdCount, Is.EqualTo(0), "ExternalId field should not exist in quick edit modal");
     }
 
-    /// <summary>
-    /// Verifies that the edit modal has closed.
-    /// </summary>
-    /// <remarks>
-    /// Waits for the modal to disappear and verifies it's no longer visible.
-    /// </remarks>
-    [Then("the modal should close")]
-    public async Task ThenTheModalShouldClose()
-    {
-        // Then: Wait for the edit modal to be hidden
-        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-        await transactionsPage.EditModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden, Timeout = 5000 });
-
-        // And: Verify modal is not visible
-        var isVisible = await transactionsPage.EditModal.IsVisibleAsync();
-        Assert.That(isVisible, Is.False, "Edit modal should be closed");
-    }
-
     #endregion
 }

@@ -190,44 +190,6 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     }
 
     /// <summary>
-    /// Submits the edit form (quick edit, create modal, or full details).
-    /// </summary>
-    /// <remarks>
-    /// Submits the currently open form. Used with quick edit modal, create modal,
-    /// and full details page. Uses object store to determine which mode we're in.
-    /// </remarks>
-    [When("I click \"Save\"")]
-    public async Task WhenIClickSave()
-    {
-        // When: Check object store for edit mode
-        if (_context.ObjectStore.Contains<string>("EditMode"))
-        {
-            var editMode = _context.ObjectStore.Get<string>("EditMode");
-            if (editMode == "TransactionDetailsPage")
-            {
-                var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
-                await detailsPage.SaveAsync();
-            }
-            else if (editMode == "CreateModal")
-            {
-                var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-                await transactionsPage.SubmitCreateFormAsync();
-            }
-            else
-            {
-                var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-                await transactionsPage.SubmitEditFormAsync();
-            }
-        }
-        else
-        {
-            // Default to edit form for backward compatibility
-            var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-            await transactionsPage.SubmitEditFormAsync();
-        }
-    }
-
-    /// <summary>
     /// Clicks the Edit button on the transaction details page.
     /// </summary>
     /// <remarks>
@@ -244,24 +206,6 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     #endregion
 
     #region Steps: THEN
-
-    /// <summary>
-    /// Verifies that the edit modal has closed.
-    /// </summary>
-    /// <remarks>
-    /// Waits for the modal to disappear and verifies it's no longer visible.
-    /// </remarks>
-    [Then("the modal should close")]
-    public async Task ThenTheModalShouldClose()
-    {
-        // Then: Wait for the edit modal to be hidden
-        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-        await transactionsPage.EditModal.WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Hidden, Timeout = 5000 });
-
-        // And: Verify modal is not visible
-        var isVisible = await transactionsPage.EditModal.IsVisibleAsync();
-        Assert.That(isVisible, Is.False, "Edit modal should be closed");
-    }
 
     /// <summary>
     /// Verifies that the last added transaction is visible in the list.

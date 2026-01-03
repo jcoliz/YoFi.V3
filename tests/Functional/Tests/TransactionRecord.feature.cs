@@ -33,6 +33,12 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     protected TransactionQuickEditSteps TransactionQuickEditSteps => _transactionQuickEditSteps ??= new(this);
     private TransactionQuickEditSteps? _transactionQuickEditSteps;
 
+    protected TransactionCreateSteps TransactionCreateSteps => _transactionCreateSteps ??= new(this);
+    private TransactionCreateSteps? _transactionCreateSteps;
+
+    protected TransactionSharedSteps TransactionSharedSteps => _transactionSharedSteps ??= new(this);
+    private TransactionSharedSteps? _transactionSharedSteps;
+
     [SetUp]
     public async Task SetupAsync()
     {
@@ -111,7 +117,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionQuickEditSteps.WhenIClickUpdate();
 
         // Then the modal should close
-        await TransactionQuickEditSteps.ThenTheModalShouldClose();
+        await TransactionSharedSteps.ThenTheModalShouldClose();
 
         // And I should see the updated memo in the transaction list
         await TransactionListSteps.ThenIShouldSeeTheUpdatedMemoInTheTransactionList();
@@ -145,7 +151,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionQuickEditSteps.WhenIClickUpdate();
 
         // Then the modal should close
-        await TransactionQuickEditSteps.ThenTheModalShouldClose();
+        await TransactionSharedSteps.ThenTheModalShouldClose();
 
         // And I should see the updated category in the transaction list
         await TransactionListSteps.ThenIShouldSeeTheUpdatedCategoryInTheTransactionList();
@@ -241,7 +247,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await WhenIChangeExternalIdTo("VISA-123");
 
         // And I click "Save"
-        await WhenIClickSave();
+        await TransactionSharedSteps.WhenIClickSave();
 
         // Then I should see "Chase Visa" as the Source
         await ThenIShouldSeeValueAsField("Chase Visa", "Source");
@@ -272,7 +278,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await WhenIChangeCategoryTo("Home Improvement");
 
         // And I click "Save"
-        await WhenIClickSave();
+        await TransactionSharedSteps.WhenIClickSave();
 
         // Then I should see "Home Improvement" as the Category
         await ThenIShouldSeeValueAsField("Home Improvement", "Category");
@@ -311,10 +317,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
-        await WhenIClickTheAddTransactionButton();
+        await TransactionCreateSteps.WhenIClickTheAddTransactionButton();
 
         // Then I should see a create transaction modal
-        await ThenIShouldSeeACreateTransactionModal();
+        await TransactionCreateSteps.ThenIShouldSeeACreateTransactionModal();
 
         // And I should see the following fields in the create form:
         var fieldsTable = new DataTable(
@@ -326,7 +332,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source"],
             ["External ID"]
         );
-        await ThenIShouldSeeTheFollowingFieldsInTheCreateForm(fieldsTable);
+        await TransactionCreateSteps.ThenIShouldSeeTheFollowingFieldsInTheCreateForm(fieldsTable);
     }
 
     /// <summary>
@@ -339,7 +345,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
-        await WhenIClickTheAddTransactionButton();
+        await TransactionCreateSteps.WhenIClickTheAddTransactionButton();
 
         // And I fill in the following transaction fields:
         var fieldsTable = new DataTable(
@@ -352,19 +358,19 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source", "Business Card"],
             ["External ID", "OD-2024-0615-001"]
         );
-        await WhenIFillInTheFollowingTransactionFields(fieldsTable);
+        await TransactionCreateSteps.WhenIFillInTheFollowingTransactionFields(fieldsTable);
 
         // And I click "Save"
-        await WhenIClickSave();
+        await TransactionSharedSteps.WhenIClickSave();
 
         // Then the modal should close
-        await ThenTheModalShouldClose();
+        await TransactionSharedSteps.ThenTheModalShouldClose();
 
         // And I should see a transaction with Payee "Office Depot"
-        await ThenIShouldSeeATransactionWithPayee("Office Depot");
+        await TransactionCreateSteps.ThenIShouldSeeATransactionWithPayee("Office Depot");
 
         // And it contains the expected list fields
-        await ThenItContainsTheExpectedListFields();
+        await TransactionCreateSteps.ThenItContainsTheExpectedListFields();
     }
 
     /// <summary>
@@ -377,7 +383,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
-        await WhenIClickTheAddTransactionButton();
+        await TransactionCreateSteps.WhenIClickTheAddTransactionButton();
 
         // And I fill in the following transaction fields:
         var fieldsTable = new DataTable(
@@ -390,10 +396,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source", "Business Card"],
             ["External ID", "OD-2024-0615-001"]
         );
-        await WhenIFillInTheFollowingTransactionFields(fieldsTable);
+        await TransactionCreateSteps.WhenIFillInTheFollowingTransactionFields(fieldsTable);
 
         // And I click "Save"
-        await WhenIClickSave();
+        await TransactionSharedSteps.WhenIClickSave();
 
         // And I click on the transaction row
         await TransactionListSteps.WhenIClickOnTheTransactionRow();
