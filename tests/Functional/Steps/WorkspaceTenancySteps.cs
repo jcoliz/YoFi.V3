@@ -660,6 +660,9 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
 
         await workspacesPage.NavigateAsync();
         await workspacesPage.DeleteWorkspaceAsync(fullWorkspaceName);
+
+        // Also remove this from workspace tracking, so we don't try to go clean it up later
+        _workspaceKeys.Remove(fullWorkspaceName);
     }
 
     /// <summary>
