@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Implemented
 created: 2024-12-31
 issue_type: Design Flaw
 severity: Critical

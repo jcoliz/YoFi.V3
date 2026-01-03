@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Implemented
 layer: Database
 parent: DESIGN-BANK-IMPORT.md
 created: 2025-12-28

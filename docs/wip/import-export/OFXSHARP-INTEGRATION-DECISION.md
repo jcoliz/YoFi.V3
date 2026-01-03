@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 created: 2025-12-28
 related_docs:
   - OFX-LIBRARY-EVALUATION.md

@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Implemented
 created: 2025-12-28
 decision: Use separate ImportReviewTransactions table (Option 2)
 related_docs:

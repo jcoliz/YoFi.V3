@@ -1,7 +1,5 @@
 ---
-status: Draft
-target_release: TBD
-design_document: docs/wip/import-export/EXECUTEUPDATE-ABSTRACTION-DESIGN.md
+status: Implemented
 ---
 
 # ExecuteUpdateAsync Abstraction Design

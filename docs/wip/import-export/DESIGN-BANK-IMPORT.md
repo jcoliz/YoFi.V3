@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Implemented
 created: 2025-12-28
 related_docs:
   - PRD-BANK-IMPORT.md

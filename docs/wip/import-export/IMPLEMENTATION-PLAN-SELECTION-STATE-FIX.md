@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Implemented
 created: 2024-12-31
 issue: Import Selection State Design Flaw
 feature_slug: bank-import

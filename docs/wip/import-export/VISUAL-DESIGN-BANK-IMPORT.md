@@ -1,8 +1,8 @@
 ---
+status: Implemented
 references:
 - PRD-BANK-IMPORT.md
 - MOCKUP-BANK-IMPORT.md
-status: Approved
 ---
 
 # Visual Design for Transaction Bank Import

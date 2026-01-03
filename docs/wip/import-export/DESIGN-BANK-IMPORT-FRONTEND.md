@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Implemented
 layer: Frontend
 parent: DESIGN-BANK-IMPORT.md
 created: 2025-12-28
