@@ -29,6 +29,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     protected WorkspacePermissionsSteps WorkspacePermissionsSteps => _workspacePermissionsSteps ??= new(this);
     private WorkspacePermissionsSteps? _workspacePermissionsSteps;
 
+    protected WorkspaceAssertionSteps WorkspaceAssertionSteps => _workspaceAssertionSteps ??= new(this);
+    private WorkspaceAssertionSteps? _workspaceAssertionSteps;
+
     [SetUp]
     public async Task Background()
     {
@@ -64,10 +67,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.WhenANewUserRegistersAndLogsIn("david");
 
         // Then user should have a workspace ready to use
-        await ThenUserShouldHaveAWorkspaceReadyToUse();
+        await WorkspaceAssertionSteps.ThenUserShouldHaveAWorkspaceReadyToUse();
 
         // And the workspace should be personalized with the name "david"
-        await ThenTheWorkspaceShouldBePersonalizedWithTheName("david");
+        await WorkspaceAssertionSteps.ThenTheWorkspaceShouldBePersonalizedWithTheName("david");
     }
 
     #endregion
@@ -88,10 +91,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenICreateANewWorkspaceCalled("Alice's Finances", "My personal finances");
 
         // Then I should see "Alice's Finances" in my workspace list
-        await ThenIShouldSeeInMyWorkspaceList("Alice's Finances");
+        await WorkspaceAssertionSteps.ThenIShouldSeeInMyWorkspaceList("Alice's Finances");
 
         // And I should be able to manage that workspace
-        await ThenIShouldBeAbleToManageThatWorkspace();
+        await WorkspaceAssertionSteps.ThenIShouldBeAbleToManageThatWorkspace();
     }
 
     /// <summary>
@@ -110,10 +113,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenICreateANewWorkspaceCalled("Side Business");
 
         // Then I should have 2 workspaces available
-        await ThenIShouldHaveWorkspacesAvailable(2);
+        await WorkspaceAssertionSteps.ThenIShouldHaveWorkspacesAvailable(2);
 
         // And I can work with either workspace independently
-        await ThenICanWorkWithEitherWorkspaceIndependently();
+        await WorkspaceAssertionSteps.ThenICanWorkWithEitherWorkspaceIndependently();
     }
 
     #endregion
@@ -143,13 +146,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenIViewMyWorkspaceList();
 
         // Then I should see all 3 workspaces
-        await ThenIShouldSeeAllWorkspaces(3);
+        await WorkspaceAssertionSteps.ThenIShouldHaveWorkspacesAvailable(3);
 
         // And I should see what I can do in each workspace
         // FIXME: This step should ensure I have the CORRECT permissions shown per workspace
         // right now, it literally checks that I have some role. Currently the bulk
         // upload only sets roles.
-        await ThenIShouldSeeWhatICanDoInEachWorkspace();
+        await WorkspaceAssertionSteps.ThenIShouldSeeWhatICanDoInEachWorkspace();
     }
 
     /// <summary>
@@ -169,10 +172,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenIViewTheDetailsOf("My Finances");
 
         // Then I should see the workspace information
-        await ThenIShouldSeeTheWorkspaceInformation();
+        await WorkspaceAssertionSteps.ThenIShouldSeeTheWorkspaceInformation();
 
         // And I should see when it was created
-        await ThenIShouldSeeWhenItWasCreated();
+        await WorkspaceAssertionSteps.ThenIShouldSeeWhenItWasCreated();
     }
 
     #endregion
@@ -199,10 +202,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenIUpdateTheDescriptionTo("Updated description text");
 
         // Then the workspace should reflect the changes
-        await ThenTheWorkspaceShouldReflectTheChanges();
+        await WorkspaceAssertionSteps.ThenTheWorkspaceShouldReflectTheChanges();
 
         // And I should see "New Name" in my workspace list
-        await ThenIShouldSeeInMyWorkspaceList("New Name");
+        await WorkspaceAssertionSteps.ThenIShouldSeeInMyWorkspaceList("New Name");
     }
 
     /// <summary>
@@ -246,7 +249,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenIDelete("Test Workspace");
 
         // Then "Test Workspace" should no longer appear in my list
-        await ThenShouldNoLongerAppearInMyList("Test Workspace");
+        await WorkspaceAssertionSteps.ThenShouldNoLongerAppearInMyList("Test Workspace");
     }
 
     /// <summary>
@@ -450,16 +453,16 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await WorkspaceManagementSteps.WhenIViewMyWorkspaceList();
 
         // Then I should see only "Family Budget" in my list
-        await ThenIShouldSeeOnlyInMyList("Family Budget");
+        await WorkspaceAssertionSteps.ThenIShouldSeeOnlyInMyList("Family Budget");
 
         // And I should not see "Private Data" in my list
-        await ThenIShouldNotSeeInMyList("Private Data");
+        await WorkspaceAssertionSteps.ThenIShouldNotSeeInMyList("Private Data");
 
         // And I should not see "Charlie's Taxes" in my list
-        await ThenIShouldNotSeeInMyList("Charlie's Taxes");
+        await WorkspaceAssertionSteps.ThenIShouldNotSeeInMyList("Charlie's Taxes");
 
         // And the workspace count should be 1
-        await ThenIShouldHaveWorkspacesAvailable(1);
+        await WorkspaceAssertionSteps.ThenIShouldHaveWorkspacesAvailable(1);
     }
 
     #endregion
