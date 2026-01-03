@@ -99,9 +99,169 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.DeleteTransactionAsync(payee);
     }
 
+    /// <summary>
+    /// Changes the memo field in the quick edit modal or details page.
+    /// </summary>
+    /// <param name="newMemo">The new memo value.</param>
+    /// <remarks>
+    /// Fills the memo field and stores the new value in object store for verification.
+    /// Works with both quick edit modal and transaction details page.
+    /// </remarks>
+    [When("I change Memo to {newMemo}")]
+    public async Task WhenIChangeMemoTo(string newMemo)
+    {
+        // When: Fill the memo field
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.FillEditMemoAsync(newMemo);
+
+        // And: Store the new memo for verification
+        _context.ObjectStore.Add("TransactionMemo", newMemo);
+    }
+
+    /// <summary>
+    /// Changes the category field in the quick edit modal or details page.
+    /// </summary>
+    /// <param name="newCategory">The new category value.</param>
+    /// <remarks>
+    /// Fills the category field and stores the new value in object store for verification.
+    /// Works with both quick edit modal and transaction details page.
+    /// </remarks>
+    [When("I change Category to {newCategory}")]
+    public async Task WhenIChangeCategoryTo(string newCategory)
+    {
+        // When: Fill the category field
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.FillEditCategoryAsync(newCategory);
+
+        // And: Store the new category for verification
+        _context.ObjectStore.Add("TransactionCategory", newCategory);
+    }
+
+    /// <summary>
+    /// Changes the Source field to the specified value.
+    /// </summary>
+    /// <param name="newSource">The new source value.</param>
+    /// <remarks>
+    /// Fills the source field and stores the new value in object store for verification.
+    /// Only available on transaction details page (not in quick edit modal).
+    /// </remarks>
+    [When("I change Source to {newSource}")]
+    public async Task WhenIChangeSourceTo(string newSource)
+    {
+        // When: Fill the source field
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.FillSourceAsync(newSource);
+
+        // And: Store the new source for verification
+        _context.ObjectStore.Add("TransactionSource", newSource);
+    }
+
+    /// <summary>
+    /// Changes the ExternalId field to the specified value.
+    /// </summary>
+    /// <param name="newExternalId">The new external ID value.</param>
+    /// <remarks>
+    /// Fills the external ID field and stores the new value in object store for verification.
+    /// Only available on transaction details page (not in quick edit modal).
+    /// </remarks>
+    [When("I change ExternalId to {newExternalId}")]
+    public async Task WhenIChangeExternalIdTo(string newExternalId)
+    {
+        // When: Fill the external ID field
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.FillExternalIdAsync(newExternalId);
+
+        // And: Store the new external ID for verification
+        _context.ObjectStore.Add("TransactionExternalId", newExternalId);
+    }
+
+    /// <summary>
+    /// Clicks the Update button on the quick edit modal.
+    /// </summary>
+    /// <remarks>
+    /// Submits the quick edit form and waits for the modal to close.
+    /// </remarks>
+    [When("I click \"Update\"")]
+    public async Task WhenIClickUpdate()
+    {
+        // When: Submit the edit form
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.SubmitEditFormAsync();
+    }
+
+    /// <summary>
+    /// Submits the edit form (quick edit, create modal, or full details).
+    /// </summary>
+    /// <remarks>
+    /// Submits the currently open form. Used with quick edit modal, create modal,
+    /// and full details page. Uses object store to determine which mode we're in.
+    /// </remarks>
+    [When("I click \"Save\"")]
+    public async Task WhenIClickSave()
+    {
+        // When: Check object store for edit mode
+        if (_context.ObjectStore.Contains<string>("EditMode"))
+        {
+            var editMode = _context.ObjectStore.Get<string>("EditMode");
+            if (editMode == "TransactionDetailsPage")
+            {
+                var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+                await detailsPage.SaveAsync();
+            }
+            else if (editMode == "CreateModal")
+            {
+                var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+                await transactionsPage.SubmitCreateFormAsync();
+            }
+            else
+            {
+                var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+                await transactionsPage.SubmitEditFormAsync();
+            }
+        }
+        else
+        {
+            // Default to edit form for backward compatibility
+            var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+            await transactionsPage.SubmitEditFormAsync();
+        }
+    }
+
+    /// <summary>
+    /// Clicks the Edit button on the transaction details page.
+    /// </summary>
+    /// <remarks>
+    /// Transitions from display mode to edit mode on the details page.
+    /// </remarks>
+    [When("I click the \"Edit\" button")]
+    public async Task WhenIClickTheEditButton()
+    {
+        // When: Click the Edit button to enter edit mode
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.StartEditingAsync();
+    }
+
     #endregion
 
     #region Steps: THEN
+
+    /// <summary>
+    /// Verifies that the edit modal has closed.
+    /// </summary>
+    /// <remarks>
+    /// Waits for the modal to disappear and verifies it's no longer visible.
+    /// </remarks>
+    [Then("the modal should close")]
+    public async Task ThenTheModalShouldClose()
+    {
+        // Then: Wait for the edit modal to be hidden
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.EditModal.WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Hidden, Timeout = 5000 });
+
+        // And: Verify modal is not visible
+        var isVisible = await transactionsPage.EditModal.IsVisibleAsync();
+        Assert.That(isVisible, Is.False, "Edit modal should be closed");
+    }
 
     /// <summary>
     /// Verifies that the last added transaction is visible in the list.

@@ -209,5 +209,60 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Verifies that the updated memo appears in the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the payee and new memo from object store, waits for page to update,
+    /// and verifies the memo in the transaction list matches the updated value.
+    /// </remarks>
+    [Then("I should see the updated memo in the transaction list")]
+    public async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
+    {
+        // Then: Get the payee and new memo from object store
+        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
+            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+        var expectedMemo = _context.ObjectStore.Get<string>("TransactionMemo")
+            ?? throw new InvalidOperationException("TransactionMemo not found in object store");
+
+        // And: Wait for page to update (loading spinner to hide)
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // And: Verify the memo in the transaction list
+        var actualMemo = await transactionsPage.GetTransactionMemoAsync(payee);
+
+        Assert.That(actualMemo?.Trim(), Is.EqualTo(expectedMemo),
+            $"Expected memo to be '{expectedMemo}' but was '{actualMemo}'");
+    }
+
+    /// <summary>
+    /// Verifies that the updated category appears in the transaction list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the payee and new category from object store, waits for page to update,
+    /// and verifies the category in the transaction list matches the updated value.
+    /// </remarks>
+    [Then("I should see the updated category in the transaction list")]
+    public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
+    {
+        // Then: Get the payee and new category from object store
+        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
+            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+        var expectedCategory = _context.ObjectStore.Get<string>("TransactionCategory")
+            ?? throw new InvalidOperationException("TransactionCategory not found in object store");
+
+        // And: Wait for page to update (loading spinner to hide)
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+        await transactionsPage.WaitForTransactionAsync(payee);
+
+        // And: Verify the category in the transaction list
+        var actualCategory = await transactionsPage.GetTransactionCategoryAsync(payee);
+
+        Assert.That(actualCategory?.Trim(), Is.EqualTo(expectedCategory),
+            $"Expected category to be '{expectedCategory}' but was '{actualCategory}'");
+    }
+
     #endregion
 }

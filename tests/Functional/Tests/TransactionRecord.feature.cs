@@ -30,6 +30,9 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     protected TransactionListSteps TransactionListSteps => _transactionListSteps ??= new(this);
     private TransactionListSteps? _transactionListSteps;
 
+    protected TransactionQuickEditSteps TransactionQuickEditSteps => _transactionQuickEditSteps ??= new(this);
+    private TransactionQuickEditSteps? _transactionQuickEditSteps;
+
     [SetUp]
     public async Task SetupAsync()
     {
@@ -63,19 +66,19 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Edit" button on the transaction
-        await WhenIClickTheEditButtonOnTheTransaction();
+        await TransactionQuickEditSteps.WhenIClickTheEditButtonOnTheTransaction();
 
         // Then I should see a modal titled "Quick Edit Transaction"
-        await ThenIShouldSeeAModalTitled("Quick Edit Transaction");
+        await TransactionQuickEditSteps.ThenIShouldSeeAModalTitled("Quick Edit Transaction");
 
         // And I should only see fields for "Payee", "Category", and "Memo"
-        await ThenIShouldOnlySeeFieldsForPayeeCategoryAndMemo();
+        await TransactionQuickEditSteps.ThenIShouldOnlySeeFieldsForPayeeCategoryAndMemo();
 
         // And the fields match the expected values
-        await ThenTheFieldsMatchTheExpectedValues();
+        await TransactionQuickEditSteps.ThenTheFieldsMatchTheExpectedValues();
 
         // And I should not see fields for "Date", "Amount", "Source", or "ExternalId"
-        await ThenIShouldNotSeeFieldsForDateAmountSourceOrExternalId();
+        await TransactionQuickEditSteps.ThenIShouldNotSeeFieldsForDateAmountSourceOrExternalId();
     }
 
     /// <summary>
@@ -99,19 +102,19 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I quick edit the transaction
-        await WhenIQuickEditTheTransaction();
+        await TransactionQuickEditSteps.WhenIQuickEditTheTransaction();
 
         // And I change Memo to "Large latte with extra shot"
-        await WhenIChangeMemoTo("Large latte with extra shot");
+        await TransactionQuickEditSteps.WhenIChangeMemoTo("Large latte with extra shot");
 
         // And I click "Update"
-        await WhenIClickUpdate();
+        await TransactionQuickEditSteps.WhenIClickUpdate();
 
         // Then the modal should close
-        await ThenTheModalShouldClose();
+        await TransactionQuickEditSteps.ThenTheModalShouldClose();
 
         // And I should see the updated memo in the transaction list
-        await ThenIShouldSeeTheUpdatedMemoInTheTransactionList();
+        await TransactionListSteps.ThenIShouldSeeTheUpdatedMemoInTheTransactionList();
     }
 
     /// <summary>
@@ -133,19 +136,19 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I quick edit the transaction
-        await WhenIQuickEditTheTransaction();
+        await TransactionQuickEditSteps.WhenIQuickEditTheTransaction();
 
         // And I change Category to "Groceries"
-        await WhenIChangeCategoryTo("Groceries");
+        await TransactionQuickEditSteps.WhenIChangeCategoryTo("Groceries");
 
         // And I click "Update"
-        await WhenIClickUpdate();
+        await TransactionQuickEditSteps.WhenIClickUpdate();
 
         // Then the modal should close
-        await ThenTheModalShouldClose();
+        await TransactionQuickEditSteps.ThenTheModalShouldClose();
 
         // And I should see the updated category in the transaction list
-        await ThenIShouldSeeTheUpdatedCategoryInTheTransactionList();
+        await TransactionListSteps.ThenIShouldSeeTheUpdatedCategoryInTheTransactionList();
     }
 
     #endregion
