@@ -26,13 +26,18 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Creates transactions via Test Control API with the specified External IDs.
     /// These transactions will be matched against OFX FITIDs during import to test duplicate detection.
-    /// Requires CurrentWorkspaceName and LoggedInAs to be set in object store by prior steps.
+    ///
     /// Table format:
     /// | ExternalId | Date       | Payee         | Amount  |
     /// | FITID-001  | 2024-01-05 | Coffee Shop   | -5.50   |
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
+    /// - LoggedInAs
     /// </remarks>
     [Given("I have existing transactions with external IDs:")]
     [Given("I have these exact transactions already:")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
@@ -75,15 +80,35 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Parses transaction data from table, seeds via Test Control API, and stores transaction
     /// details in object store for later verification. Does NOT navigate to transactions page -
     /// use separate navigation step. Default amount is 100.00 if not specified.
-    /// Requires KEY_CURRENT_WORKSPACE and KEY_LOGGED_IN_AS to be set in object store.
+    ///
     /// Table format (Field/Value):
     /// | Field    | Value           |
     /// | Payee    | Coffee Shop     |
     /// | Amount   | 5.50            |
     /// | Category | Beverages       |
     /// | Memo     | Morning coffee  |
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
+    /// - LoggedInAs
+    ///
+    /// Provides Objects
+    /// - TransactionPayee
+    /// - TransactionAmount
+    /// - TransactionCategory
+    /// - TransactionMemo
+    /// - TransactionSource (if specified)
+    /// - TransactionExternalId (if specified)
+    /// - TransactionKey
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(
+        ObjectStoreKeys.TransactionPayee,
+        ObjectStoreKeys.TransactionAmount,
+        ObjectStoreKeys.TransactionCategory,
+        ObjectStoreKeys.TransactionMemo,
+        ObjectStoreKeys.TransactionKey)]
     public async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
     {
         // Given: Parse transaction data from table (Field/Value format)
@@ -152,10 +177,31 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Complete setup for testing transaction details page. Seeds transaction, navigates to transactions
     /// page, clicks on transaction row to reach details page, and waits for page to be ready.
-    /// Stores KEY_EDIT_MODE as "TransactionDetailsPage" in object store.
     /// Uses TransactionListSteps for navigation operations.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
+    /// - LoggedInAs
+    ///
+    /// Provides Objects
+    /// - TransactionPayee
+    /// - TransactionAmount
+    /// - TransactionCategory
+    /// - TransactionMemo
+    /// - TransactionSource (if specified)
+    /// - TransactionExternalId (if specified)
+    /// - TransactionKey
+    /// - EditMode ("TransactionDetailsPage")
     /// </remarks>
     [Given("I am viewing the details page for a transaction with:")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(
+        ObjectStoreKeys.TransactionPayee,
+        ObjectStoreKeys.TransactionAmount,
+        ObjectStoreKeys.TransactionCategory,
+        ObjectStoreKeys.TransactionMemo,
+        ObjectStoreKeys.TransactionKey,
+        ObjectStoreKeys.EditMode)]
     public async Task GivenIAmViewingTheDetailsPageForATransactionWith(DataTable transactionTable)
     {
         // Given: Seed the transaction using the existing step
@@ -185,6 +231,14 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Simplified version without DataTable parameter. Seeds a basic transaction and navigates to the details page.
     /// </remarks>
     [Given("I am viewing the details page for a transaction")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(
+        ObjectStoreKeys.TransactionPayee,
+        ObjectStoreKeys.TransactionAmount,
+        ObjectStoreKeys.TransactionCategory,
+        ObjectStoreKeys.TransactionMemo,
+        ObjectStoreKeys.TransactionKey,
+        ObjectStoreKeys.EditMode)]
     public async Task GivenIAmViewingTheDetailsPageForATransaction()
     {
         // Given: Create a basic transaction DataTable
