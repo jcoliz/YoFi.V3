@@ -4,6 +4,7 @@ using YoFi.V3.Tests.Functional.Steps.Transaction;
 using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Pages;
+using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -13,7 +14,7 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// I want to create and manage separate financial workspaces
 /// So that I can organize my finances by purpose and share them with others
 /// </summary>
-public class WorkspaceManagementTests : WorkspaceTenancySteps
+public class WorkspaceManagementTests : FunctionalTestBase
 {
     protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
     private NavigationSteps? _navigationSteps;

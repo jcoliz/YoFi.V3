@@ -2,113 +2,124 @@
 
 This directory contains step definition classes that implement Gherkin steps from feature files.
 
+## Architecture
+
+This project uses a **composition-based step architecture** where test classes inherit from [`FunctionalTestBase`](../Infrastructure/FunctionalTestBase.cs) and compose only the step definition classes they need.
+
 ## Structure
 
 ```
 Steps/
-├── Common/                      # Shared step definitions
-│   ├── CommonGivenSteps.cs     # Common Given steps
-│   ├── CommonWhenSteps.cs      # Common When steps
-│   ├── CommonThenSteps.cs      # Common Then steps
+├── Transaction/                    # Transaction-related step definitions
+│   ├── TransactionStepsBase.cs   # Base class for transaction steps
+│   ├── TransactionSharedSteps.cs  # Shared transaction steps (modals, etc.)
+│   ├── TransactionListSteps.cs    # Transaction list operations
+│   ├── TransactionDetailsSteps.cs # Transaction details page operations
+│   ├── TransactionEditSteps.cs    # Transaction editing operations
+│   ├── TransactionQuickEditSteps.cs # Quick edit modal operations
+│   ├── TransactionCreateSteps.cs  # Transaction creation operations
+│   ├── TransactionDataSteps.cs    # Transaction test data setup
 │   └── README.md
-├── AuthenticationSteps.cs       # Authentication feature steps
-├── WeatherSteps.cs             # Weather feature steps
-├── WorkspaceTenancySteps.cs    # Workspace tenancy feature steps
-└── README.md                    # This file
+│
+├── Workspace/                      # Workspace-related step definitions
+│   ├── WorkspaceDataSteps.cs      # Workspace test data setup
+│   └── README.md
+│
+├── AuthSteps.cs                    # Authentication steps (login, registration)
+├── NavigationSteps.cs              # Site navigation steps
+├── WeatherSteps.cs                 # Weather page steps
+└── README.md                       # This file
 ```
 
 ## Step Definition Classes
 
-### Common Steps ([`Common/`](Common/))
+### Transaction Steps ([`Transaction/`](Transaction/))
 
-Shared step implementations used across multiple features. See [`Common/README.md`](Common/README.md) for details.
+Transaction-related step definitions organized by responsibility. See [`Transaction/README.md`](Transaction/README.md) for details.
 
-**Inheritance Chain:**
-```
-FunctionalTestBase → CommonGivenSteps → CommonWhenSteps → CommonThenSteps
-```
+**Key Classes:**
+- [`TransactionListSteps`](Transaction/TransactionListSteps.cs) - List viewing, navigation, filtering
+- [`TransactionDetailsSteps`](Transaction/TransactionDetailsSteps.cs) - Details page navigation and verification
+- [`TransactionEditSteps`](Transaction/TransactionEditSteps.cs) - Field editing and save operations
+- [`TransactionQuickEditSteps`](Transaction/TransactionQuickEditSteps.cs) - Quick edit modal operations
+- [`TransactionCreateSteps`](Transaction/TransactionCreateSteps.cs) - Transaction creation modal
+- [`TransactionDataSteps`](Transaction/TransactionDataSteps.cs) - Test data seeding via Test Control API
 
-### Feature-Specific Steps
+### Workspace Steps ([`Workspace/`](Workspace/))
 
-#### [`AuthenticationSteps.cs`](AuthenticationSteps.cs)
+Workspace-related step definitions. See [`Workspace/README.md`](Workspace/README.md) for details.
 
-Step definitions for user authentication scenarios (registration, login, logout, profile).
+**Key Classes:**
+- [`WorkspaceDataSteps`](Workspace/WorkspaceDataSteps.cs) - Workspace creation and test data setup
 
-**Extends:** [`CommonThenSteps`](Common/CommonThenSteps.cs)
+### Core Steps
+
+#### [`AuthSteps.cs`](AuthSteps.cs)
+
+Step definitions for authentication (login, registration, logout).
 
 **Key Steps:**
-- Registration flow (valid/invalid scenarios)
-- Login flow (success/failure scenarios)
-- Logout flow
+- User registration and login
+- Session management
 - Profile viewing
-- Access control (authenticated/unauthenticated)
+
+#### [`NavigationSteps.cs`](NavigationSteps.cs)
+
+Step definitions for site navigation.
+
+**Key Steps:**
+- Site launching
+- Page navigation
+- URL verification
 
 #### [`WeatherSteps.cs`](WeatherSteps.cs)
 
 Step definitions for weather forecast display scenarios.
 
-**Extends:** [`CommonThenSteps`](Common/CommonThenSteps.cs)
-
 **Key Steps:**
 - Navigate to weather page
 - Verify forecast display
 - Verify temperature conversions
-- Verify chronological ordering
 
-#### [`WorkspaceTenancySteps.cs`](WorkspaceTenancySteps.cs)
+## Composition Pattern
 
-Step definitions for multi-tenant workspace scenarios.
-
-**Extends:** [`CommonThenSteps`](Common/CommonThenSteps.cs)
-
-**Key Steps:**
-- Workspace creation, viewing, updating, deletion
-- User access management (Owner, Editor, Viewer roles)
-- Transaction management within workspaces
-- Workspace isolation verification
-
-**Special Features:**
-- Test prefix handling (`__TEST__` prefix added automatically)
-- Bulk user/workspace setup for complex scenarios
-- Role-based permission verification
-
-## Inheritance Hierarchy
-
-All step definition classes inherit from the common step chain, providing access to all shared step implementations:
-
-```
-FunctionalTestBase (Infrastructure/)
-    ↓
-CommonGivenSteps (Common/)
-    ↓
-CommonWhenSteps (Common/)
-    ↓
-CommonThenSteps (Common/)
-    ↓
-┌───────────────────┬────────────────┬──────────────────────┐
-│                   │                │                      │
-AuthenticationSteps WeatherSteps     WorkspaceTenancySteps
-```
-
-## Generated Test Classes
-
-The step definition classes are used as base classes for generated test classes in [`../Tests/`](../Tests/):
+Tests compose step definition classes as needed using lazy initialization:
 
 ```csharp
-// Generated from Features/Authentication.feature
-public class UserAuthenticationTests : AuthenticationSteps
+public class TransactionTests : FunctionalTestBase
 {
+    // Compose only the step classes needed for this test
+    protected TransactionListSteps ListSteps => _listSteps ??= new(this);
+    private TransactionListSteps? _listSteps;
+
+    protected TransactionEditSteps EditSteps => _editSteps ??= new(this);
+    private TransactionEditSteps? _editSteps;
+
+    protected WorkspaceDataSteps WorkspaceDataSteps => _workspaceDataSteps ??= new(this);
+    private WorkspaceDataSteps? _workspaceDataSteps;
+
     [Test]
-    public async Task UserLogsIntoAnExistingAccount()
+    public async Task UserEditsTransaction()
     {
-        await GivenIHaveAnExistingAccount();
-        await GivenIAmOnTheLoginPage();
-        await WhenIEnterMyCredentials();
-        await WhenIClickTheLoginButton();
-        await ThenIShouldSeeTheHomePage();
+        // Setup
+        await WorkspaceDataSteps.GivenUserOwnsAWorkspaceCalled("alice", "Personal");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
+
+        // Action
+        await ListSteps.WhenIViewTransactionsIn("Personal");
+        await EditSteps.WhenIUpdateThatTransaction();
+
+        // Verification
+        await EditSteps.ThenMyChangesShouldBeSaved();
     }
 }
 ```
+
+**Benefits:**
+- ✅ Zero code duplication - all steps reusable across tests
+- ✅ Small, focused step files (~15-20 steps each)
+- ✅ Clear dependencies - tests declare only what they use
+- ✅ Easy discoverability - IntelliSense shows available steps
 
 ## Design Principles
 
