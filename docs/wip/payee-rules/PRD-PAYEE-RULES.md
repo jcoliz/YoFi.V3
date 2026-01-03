@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Approved (Stories 1-5) Additional stories still in draft
 owner: James Coliz
 target_release: Beta 3
 ado: "[Link to ADO Item]"
@@ -26,7 +26,7 @@ to what transactions.
 - [ ] Ideally a very high percentage of transactions should match immediately on import
 
 ### Non-Goals
-- Does not affect splits. Payee matching sets the whole transaction category.
+- Initial implementation does not affect splits. Payee matching sets the whole transaction category. Future stories (6,7) expand beyond this
 - Tracking of payees is out of scope. Actual used payees are not collected, stored, or analyzed. "Payees" in our app are purely used as part of matching rules to assign categories.
 - Any modifications to transactions outside of category, e.g. memo, date
 - Automatic creation of rules, or suggestions of rules to create. Interesting as a future feature enhancement.
@@ -49,11 +49,10 @@ to what transactions.
 - [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
 - [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 - [ ] User can fully manage payee matching rules (CRUD)
-- [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transacction, and if the transaction already has a category, it will use that.
+- [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transacction, and if the transaction already has a category, it will use that. User can review the new rule before it's saved, and will typically trim down the payee to a smaller substring
 - [ ] Rules are scoped to the tenant of which they are a member
 - [ ] In case of conflict between two substring-only rules, the rule with the longer payee name snippet wins. In case where the rules have equal length, the most recently added or edited rule takes priority.
-- [ ] Category terms will be automatically trimmed (leading/trailing whitespace removed) when saved (e.g. "Utilities :Electric" trimmed to "Utilities:Electric")
-- [ ] Category inner whitespace normalized to single spaces (e.g., "Food  &  Dining" → "Food & Dining")
+- [ ] Category terms will be automatically normalized using established transaction category normalization practices
 - [ ] Empty category is not allowed (validation error)
 - [ ] Regex patterns are validated on save with user-friendly error messages
 - [ ] Invalid regex displays the .NET Regex error message to help users fix it
@@ -115,20 +114,73 @@ Notes
 - [ ] User can filter and sort by these fields
 - [ ] User can bulk delete old rules. User can specify how old is "old", and 12 months will be the intelligent default.
 
+### Story 6: User - Split based on amortization [NEW] [FUTURE]
+**As an** advanced user with loan payments
+**I want** to split my loan payments transactions into principal and interest according to their amortization rules
+**So that** I can precisely track how much of my money goes to principal or interest
+
+**Acceptance Criteria**:
+- [ ] User can assign loan details to a payee matching rule
+- [ ] When a transaction matches based on matching criteria, the resulting transaction is split based on loan details
+
+**Example**
+
+Rule
+- PayeePattern: "Mortgage"
+- Category: Mortgage Principal
+- Loan Rule: Category: Mortgage Interest, ...
+
+Imported Transaction
+- Payee: "Mega Bortgage Bank Inc"
+- Amount: $1500
+- Date: 1/1/2026
+
+Resulting Splits:
+- Mortgage Principal: xxx
+- Mortgage Interest: xxx
+
+### Story 7: User - Split based on amounts [NEW] [FUTURE]
+**As an** advanced user with complex recurring transactions
+**I want** to split matched transactions into different categories by amount
+**So that** I can precisely track my money flows
+
+**Acceptance Criteria**:
+- [ ] User can assign multiple category splits to payee matching rules, containing category and amount
+- [ ] When a transaction matches based on matching criteria, the resulting transaction is split into those categories and amounts
+- [ ] The primary category on the matching rule recieves remaining amount, so it is entered as a balanced transaction
+- [ ] User cannot have *both* a loan-based split and an amount-based split
+
+**Example**
+
+Rule
+- PayeePattern: "Landlord"
+- Category: Utilities
+- Split Rules: (Category: Rent, Amount $1000), (Category: Parking, Amount $100)
+
+Imported Transaction
+- Payee: "Mega Landlord LLC"
+- Amount: $1475
+
+Resulting splits:
+- Rent: $1000
+- Utilities: $375
+- Parking: $100
+
 ---
 
 ## Technical Approach
 
 Payee matching rules will be implemented with a new `PayeeMatchingRule` entity that applies pattern matching to categorize transactions automatically.
 
-**Layers Affected**:
+### Layers Affected
+
 - [x] Frontend (Vue/Nuxt) - Payee rule CRUD page, transaction page actions, import review display
 - [x] Controllers (API endpoints) - Full CRUD controller for payee rules, trigger matching endpoint
 - [x] Application (Features/Business logic) - Rule CRUD capabilities, matching logic
 - [x] Entities (Domain models) - PayeeMatchingRule entity
 - [x] Database (Schema changes) - Store and index rules
 
-**High-Level Entity Concepts**:
+### High-Level Entity Concepts
 
 **PayeeMatchingRule Entity** (new):
 - PayeePattern (required - substring or regex pattern to match transaction payee)
@@ -141,7 +193,10 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 - CreatedAt / ModifiedAt (audit timestamps)
 - LastUsedAt / MatchCount (usage statistics for cleanup)
 
-**Key Business Rules**:
+**Q** How to handle split and loan rules? **A** Left open for now, still considering best approach
+
+### Key Business Rules
+
 1. **Conflict Resolution** - When multiple rules match, apply precedence:
    - More matching aspects wins (e.g., payee + amount beats payee only)
    - Regex pattern beats substring pattern
@@ -155,9 +210,7 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
    - ReDoS protection: 100ms timeout on regex evaluation
 
 3. **Category Normalization**:
-   - Leading/trailing whitespace trimmed
-   - Inner whitespace normalized to single spaces
-   - Empty category not allowed (validation error)
+   - Standard practices as implemened by Transactions
 
 4. **Amount Matching**:
    - Amounts are absolute value (matches both positive and negative)
@@ -168,14 +221,28 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 
 6. **No Active/Inactive Flag** - Rules are either present or deleted (simplicity)
 
-**Code Patterns to Follow**:
+7. **Amortization Rules** - Information that is attached to a payee for amortization rules
+   - Loan origination date
+   - Number of periods
+   - Interest rate
+   - Category for interest (primary rule category would be for principal)
+
+### UX Considerations
+
+1. Main payee rule management screen will allow editing of payee, regex flag, and category. ("Quick edit", like transactions main screen)
+2. More detailed editing available on a details screen
+3. Main screen will show indicators if advanced matching aspects are also set (stories 4,5,6)
+
+### Code Patterns to Follow
+
 - Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs)
 - CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing transaction endpoints
 - Tenant data administration: Payee Matching rules are included in all tenant data administration operations.
 - Testing: Standard unit/integration/functional tests with Gherkin comments or steps (Given/When/Then)
 
-**Performance Considerations**:
+### Performance Considerations
+
 - In-memory rule caching recommended (typical rule sets < 200KB)
 - Standard indexes don't help substring matching (`LIKE '%pattern%'`)
 - If rule sets exceed 1000+ rules, evaluate PostgreSQL trigram indexes or full-text search
