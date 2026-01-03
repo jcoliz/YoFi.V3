@@ -1,0 +1,180 @@
+using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Pages;
+
+namespace YoFi.V3.Tests.Functional.Steps.Transaction;
+
+/// <summary>
+/// Step definitions for transaction create, update, and delete operations.
+/// </summary>
+/// <param name="context">Test context providing access to test infrastructure.</param>
+/// <remarks>
+/// Handles transaction modification operations:
+/// - Creating new transactions
+/// - Updating existing transactions
+/// - Deleting transactions
+/// - Verifying transaction state after modifications
+/// </remarks>
+public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(context)
+{
+    #region Steps: WHEN
+
+    /// <summary>
+    /// Adds a test transaction to a workspace.
+    /// </summary>
+    /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
+    /// creates transaction with today's date, unique payee name, and $100 amount.
+    /// Stores payee name in object store for later reference.
+    /// </remarks>
+    [When("I add a transaction to {workspaceName}")]
+    public async Task WhenIAddATransactionTo(string workspaceName)
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
+
+        // Add a test transaction
+        var testDate = DateTime.Today.ToString("yyyy-MM-dd");
+        var testPayee = "Test Transaction " + Guid.NewGuid().ToString()[..8];
+        await transactionsPage.CreateTransactionAsync(testDate, testPayee, 100.00m);
+
+        _context.ObjectStore.Add(KEY_LAST_TRANSACTION_PAYEE, testPayee);
+    }
+
+    /// <summary>
+    /// Updates the previously added transaction.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store, opens edit modal,
+    /// updates payee name by prepending "Updated ", submits form, waits for
+    /// transaction to appear, and stores new payee name.
+    /// </remarks>
+    [When("I update that transaction")]
+    public async Task WhenIUpdateThatTransaction()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        var payee = GetLastTransactionPayee();
+        var newPayee = "Updated " + payee;
+
+        // Use quick edit workflow (only Payee and Memo fields available in modal from transactions page)
+        await transactionsPage.OpenEditModalAsync(payee);
+        await transactionsPage.FillEditPayeeAsync(newPayee);
+        await transactionsPage.SubmitEditFormAsync();
+
+        // Wait for the updated transaction to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
+
+        // Update the stored payee name
+        _context.ObjectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
+    }
+
+    /// <summary>
+    /// Deletes the previously added/updated transaction.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store and performs delete
+    /// operation via transactions page.
+    /// </remarks>
+    [When("I delete that transaction")]
+    public async Task WhenIDeleteThatTransaction()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        var payee = GetLastTransactionPayee();
+
+        // Wait for the transaction to appear before attempting deletion
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
+
+        // Now it should be safe to do the delete
+        await transactionsPage.DeleteTransactionAsync(payee);
+    }
+
+    #endregion
+
+    #region Steps: THEN
+
+    /// <summary>
+    /// Verifies that the last added transaction is visible in the list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store, waits for it to appear
+    /// in the list, and verifies visibility. Includes explicit wait to handle
+    /// UI update timing.
+    /// </remarks>
+    [Then("the transaction should be saved successfully")]
+    public async Task ThenTheTransactionShouldBeSavedSuccessfully()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        var payee = GetLastTransactionPayee();
+
+        // Wait for the transaction to appear in the list
+        // The loading spinner being hidden doesn't guarantee the list is fully rendered
+        await transactionsPage.WaitForTransactionAsync(payee);
+
+        // Store the transaction's test ID for later reference. This makes it much
+        // more straightforward to wait for the updated transaction in future steps.
+        var transactionKey = await transactionsPage.GetTransactionKeyByPayeeAsync(payee);
+        _context.ObjectStore.Add(KEY_TRANSACTION_KEY, transactionKey.ToString());
+
+        // Confirm that the transaction is really there now
+        var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+        Assert.That(hasTransaction, Is.True, "Transaction should be visible in the list");
+    }
+
+    /// <summary>
+    /// Verifies that transaction update was saved successfully.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves last (updated) transaction payee from object store and verifies
+    /// it's visible in the list. Note: May need additional wait time for UI updates.
+    /// </remarks>
+    [Then("my changes should be saved")]
+    public async Task ThenMyChangesShouldBeSaved()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        var payee = GetLastTransactionPayee();
+
+        // Prior operation awaits the loading spinner being being hidden.
+        // We can't rely on that alone to guarantee the updated transaction is visible,
+        // so we add an explicit wait here. Last time we interacted with the transaction,
+        // we stored its key for easy reference.
+        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
+
+        var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+
+        Assert.That(hasTransaction, Is.True, "Updated transaction should be visible");
+    }
+
+    /// <summary>
+    /// Verifies that the transaction was removed from the list.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves last transaction payee from object store and verifies it's no
+    /// longer visible after deletion.
+    /// </remarks>
+    [Then("it should be removed")]
+    public async Task ThenItShouldBeRemoved()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        var payee = GetLastTransactionPayee();
+
+        var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
+        Assert.That(hasTransaction, Is.False, "Transaction should be removed from the list");
+    }
+
+    #endregion
+}

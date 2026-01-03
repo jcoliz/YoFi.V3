@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Pages;
@@ -31,6 +32,12 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
 
     protected WorkspaceAssertionSteps WorkspaceAssertionSteps => _workspaceAssertionSteps ??= new(this);
     private WorkspaceAssertionSteps? _workspaceAssertionSteps;
+
+    protected TransactionListSteps TransactionListSteps => _transactionListSteps ??= new(this);
+    private TransactionListSteps? _transactionListSteps;
+
+    protected TransactionEditSteps TransactionEditSteps => _transactionEditSteps ??= new(this);
+    private TransactionEditSteps? _transactionEditSteps;
 
     [SetUp]
     public async Task Background()
@@ -300,16 +307,16 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I view transactions in "Personal"
-        await WhenIViewTransactionsIn("Personal");
+        await TransactionListSteps.WhenIViewTransactionsIn("Personal");
 
         // Then I should see exactly 5 transactions
-        await ThenIShouldSeeExactlyTransactions(5);
+        await TransactionListSteps.ThenIShouldSeeExactlyTransactions(5);
 
         // And they should all be from "Personal" workspace
-        await ThenTheyShouldAllBeFromWorkspace("Personal");
+        await TransactionListSteps.ThenTheyShouldAllBeFromWorkspace("Personal");
 
         // And I should not see any transactions from "Business"
-        await ThenIShouldNotSeeAnyTransactionsFrom("Business");
+        await TransactionListSteps.ThenIShouldNotSeeAnyTransactionsFrom("Business");
     }
 
     /// <summary>
@@ -328,10 +335,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I try to view transactions in "Private Finances"
-        await WhenITryToViewTransactionsIn("Private Finances");
+        await TransactionListSteps.WhenITryToViewTransactionsIn("Private Finances");
 
         // Then I should not be able to access that data
-        await ThenIShouldNotBeAbleToAccessThatData();
+        await TransactionListSteps.ThenIShouldNotBeAbleToAccessThatData();
     }
 
     #endregion
@@ -355,10 +362,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("charlie");
 
         // When I view transactions in "Family Budget"
-        await WhenIViewTransactionsIn("Family Budget");
+        await TransactionListSteps.WhenIViewTransactionsIn("Family Budget");
 
         // Then I should see the transactions
-        await ThenIShouldSeeTheTransactions();
+        await TransactionListSteps.ThenIShouldSeeTheTransactions();
 
         // But when I try to add or edit transactions
         await WorkspacePermissionsSteps.WhenITryToAddOrEditTransactions();
@@ -380,23 +387,23 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I add a transaction to "Family Budget"
-        await WhenIAddATransactionTo("Family Budget");
+        await TransactionEditSteps.WhenIAddATransactionTo("Family Budget");
 
         // Then the transaction should be saved successfully
-        await ThenTheTransactionShouldBeSavedSuccessfully();
+        await TransactionEditSteps.ThenTheTransactionShouldBeSavedSuccessfully();
 
         // And when I update that transaction
-        await WhenIUpdateThatTransaction();
+        await TransactionEditSteps.WhenIUpdateThatTransaction();
 
         // FAILS here due to changes NOT saved
         // Then my changes should be saved
-        await ThenMyChangesShouldBeSaved();
+        await TransactionEditSteps.ThenMyChangesShouldBeSaved();
 
         // And when I delete that transaction
-        await WhenIDeleteThatTransaction();
+        await TransactionEditSteps.WhenIDeleteThatTransaction();
 
         // Then it should be removed
-        await ThenItShouldBeRemoved();
+        await TransactionEditSteps.ThenItShouldBeRemoved();
     }
 
     /// <summary>
