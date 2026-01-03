@@ -43,7 +43,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
         var testPayee = "Test Transaction " + Guid.NewGuid().ToString()[..8];
         await transactionsPage.CreateTransactionAsync(testDate, testPayee, 100.00m);
 
-        _context.ObjectStore.Add(KEY_LAST_TRANSACTION_PAYEE, testPayee);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionPayee, testPayee);
     }
 
     /// <summary>
@@ -69,11 +69,11 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
 
         // Wait for the updated transaction to appear in the list
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        var key = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionKey);
         await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
 
         // Update the stored payee name
-        _context.ObjectStore.Add(KEY_LAST_TRANSACTION_PAYEE, newPayee);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionPayee, newPayee);
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
 
         // Wait for the transaction to appear before attempting deletion
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        var key = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionKey);
         await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
 
         // Now it should be safe to do the delete
@@ -229,7 +229,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
         // Store the transaction's test ID for later reference. This makes it much
         // more straightforward to wait for the updated transaction in future steps.
         var transactionKey = await transactionsPage.GetTransactionKeyByPayeeAsync(payee);
-        _context.ObjectStore.Add(KEY_TRANSACTION_KEY, transactionKey.ToString());
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, transactionKey.ToString());
 
         // Confirm that the transaction is really there now
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);
@@ -254,7 +254,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
         // We can't rely on that alone to guarantee the updated transaction is visible,
         // so we add an explicit wait here. Last time we interacted with the transaction,
         // we stored its key for easy reference.
-        var key = _context.ObjectStore.Get<string>(KEY_TRANSACTION_KEY);
+        var key = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionKey);
         await transactionsPage.WaitForTransactionRowByKeyAsync(Guid.Parse(key));
 
         var hasTransaction = await transactionsPage.HasTransactionAsync(payee);

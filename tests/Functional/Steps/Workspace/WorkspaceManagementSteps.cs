@@ -55,7 +55,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         await workspacesPage.WaitForWorkspaceAsync(workspaceName);
 
         // Store the workspace name for future reference
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, workspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, workspaceName);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         var fullWorkspaceName = AddTestPrefix(workspaceName);
         await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
 
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 
     /// <summary>
@@ -108,11 +108,11 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         await workspacesPage.NavigateAsync();
 
         // Get the current workspace name from object store
-        var oldName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+        var oldName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
 
         // Store the new name for assertions
         var fullNewName = AddTestPrefix(newName);
-        _context.ObjectStore.Add(KEY_NEW_WORKSPACE_NAME, fullNewName);
+        _context.ObjectStore.Add(ObjectStoreKeys.NewWorkspaceName, fullNewName);
 
         await workspacesPage.UpdateWorkspaceAsync(oldName, fullNewName);
 
@@ -120,7 +120,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         // The loading spinner being hidden doesn't guarantee the list is fully rendered
         await workspacesPage.WaitForWorkspaceAsync(fullNewName);
 
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullNewName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullNewName);
     }
 
     /// <summary>

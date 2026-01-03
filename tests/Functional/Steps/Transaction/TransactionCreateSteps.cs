@@ -18,19 +18,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// </remarks>
 public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase(context)
 {
-
-    #region Object Store Keys
-
-    private const string KEY_TRANSACTION_PAYEE = "TransactionPayee";
-    private const string KEY_TRANSACTION_AMOUNT = "TransactionAmount";
-    private const string KEY_TRANSACTION_MEMO = "TransactionMemo";
-    private const string KEY_TRANSACTION_SOURCE = "TransactionSource";
-    private const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
-    private const string KEY_TRANSACTION_CATEGORY = "TransactionCategory";
-    private const string KEY_EDIT_MODE = "EditMode";
-
-    #endregion
-
     #region When Steps
 
     /// <summary>
@@ -48,7 +35,7 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
         await transactionsPage.OpenCreateModalAsync();
 
         // And: Mark that we're in create modal mode
-        _context.ObjectStore.Add(KEY_EDIT_MODE, "CreateModal");
+        _context.ObjectStore.Add(ObjectStoreKeys.EditMode, "CreateModal");
     }
 
     /// <summary>
@@ -82,32 +69,32 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
 
                 case "Payee":
                     await transactionsPage.FillCreatePayeeAsync(value);
-                    _context.ObjectStore.Add(KEY_TRANSACTION_PAYEE, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionPayee, value);
                     break;
 
                 case "Amount":
                     await transactionsPage.FillCreateAmountAsync(decimal.Parse(value));
-                    _context.ObjectStore.Add(KEY_TRANSACTION_AMOUNT, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionAmount, value);
                     break;
 
                 case "Category":
                     await transactionsPage.FillCreateCategoryAsync(value);
-                    _context.ObjectStore.Add(KEY_TRANSACTION_CATEGORY, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, value);
                     break;
 
                 case "Memo":
                     await transactionsPage.FillCreateMemoAsync(value);
-                    _context.ObjectStore.Add(KEY_TRANSACTION_MEMO, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionMemo, value);
                     break;
 
                 case "Source":
                     await transactionsPage.FillCreateSourceAsync(value);
-                    _context.ObjectStore.Add(KEY_TRANSACTION_SOURCE, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionSource, value);
                     break;
 
                 case "External ID":
                     await transactionsPage.FillCreateExternalIdAsync(value);
-                    _context.ObjectStore.Add(KEY_TRANSACTION_EXTERNAL_ID, value);
+                    _context.ObjectStore.Add(ObjectStoreKeys.TransactionExternalId, value);
                     break;
 
                 default:
@@ -224,28 +211,28 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
         // And: Get expected values from object store (set during creation)
 
         // And: Verify Category if it was set during creation
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_CATEGORY))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionCategory))
         {
             var actualCategory = rowData.Columns["category"];
-            var expectedCategory = _context.ObjectStore.Get<string>(KEY_TRANSACTION_CATEGORY);
+            var expectedCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionCategory);
             Assert.That(actualCategory, Is.EqualTo(expectedCategory),
                 $"Category in list should be '{expectedCategory}' but was '{actualCategory}'");
         }
 
         // And: Verify Memo if it was set during creation
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_MEMO))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionMemo))
         {
             var actualMemo = rowData.Columns["memo"];
-            var expectedMemo = _context.ObjectStore.Get<string>(KEY_TRANSACTION_MEMO);
+            var expectedMemo = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionMemo);
             Assert.That(actualMemo, Is.EqualTo(expectedMemo),
                 $"Memo in list should be '{expectedMemo}' but was '{actualMemo}'");
         }
 
         // And: Verify Amount (always set during creation)
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_AMOUNT))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionAmount))
         {
             var actualAmount = rowData.Columns["amount"].Replace("$", "").Trim();
-            var expectedAmount = _context.ObjectStore.Get<string>(KEY_TRANSACTION_AMOUNT);
+            var expectedAmount = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionAmount);
             // Amount may have currency formatting, so check if actual contains expected
             Assert.That(actualAmount, Does.Contain(expectedAmount),
                 $"Amount in list should contain '{expectedAmount}' but was '{actualAmount}'");

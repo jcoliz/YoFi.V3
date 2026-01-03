@@ -103,7 +103,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         await workspacesPage.NavigateAsync();
 
         // Get the current workspace name
-        var workspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE);
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         if (workspaceName != null)
         {
@@ -186,7 +186,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
 
-        var expected = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE);
+        var expected = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         // Verify workspace selector shows expected information
         var workspaceName = await workspacesPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
@@ -206,7 +206,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var currentWorkspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE);
+        var currentWorkspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
         var createdDate = await workspacesPage.GetWorkspaceCardCreatedDate(currentWorkspaceName);
 
         // Can I verify that it looks like a date?
@@ -228,7 +228,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var newName = GetRequiredFromStore(KEY_NEW_WORKSPACE_NAME);
+        var newName = GetRequiredFromStore(ObjectStoreKeys.NewWorkspaceName);
 
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(newName);
         Assert.That(hasWorkspace, Is.True, $"Updated workspace '{newName}' should be visible");

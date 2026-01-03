@@ -13,11 +13,11 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// <remarks>
 /// Provides shared infrastructure for all transaction step classes:
 /// - Common helper methods (prefix handling, object store access)
-/// - Object store key constants
 /// - Page object factory methods
 /// - Composition of shared step classes
 ///
 /// All transaction step classes should inherit from this base to maintain consistency.
+/// Object store keys are centralized in <see cref="ObjectStoreKeys"/>.
 /// </remarks>
 public abstract class TransactionStepsBase(ITestContext context)
 {
@@ -25,17 +25,6 @@ public abstract class TransactionStepsBase(ITestContext context)
     /// Test context providing access to test infrastructure.
     /// </summary>
     protected readonly ITestContext _context = context;
-
-    #region Object Store Keys
-
-    protected const string KEY_LOGGED_IN_AS = "LoggedInAs";
-    protected const string KEY_PENDING_USER_CONTEXT = "PendingUserContext";
-    protected const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
-    protected const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
-    protected const string KEY_TRANSACTION_KEY = "TransactionKey";
-    protected const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
-
-    #endregion
 
     #region Composed Step Classes
 
@@ -71,7 +60,7 @@ public abstract class TransactionStepsBase(ITestContext context)
     /// <returns>The payee name of the last transaction.</returns>
     protected string GetLastTransactionPayee()
     {
-        return GetRequiredFromStore(KEY_LAST_TRANSACTION_PAYEE);
+        return GetRequiredFromStore(ObjectStoreKeys.TransactionPayee);
     }
 
     /// <summary>

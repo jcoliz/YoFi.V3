@@ -36,11 +36,11 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
 
         // Check if edit button is available
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
-        _context.ObjectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canEdit);
+        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)canEdit);
     }
 
     /// <summary>
@@ -62,8 +62,8 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         // Check if delete button is available
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(fullWorkspaceName);
-        _context.ObjectStore.Add(KEY_CAN_DELETE_WORKSPACE, (object)canDelete);
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CanDeleteWorkspace, (object)canDelete);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         // Check if New Transaction button is available
         var canCreate = await transactionsPage.IsNewTransactionAvailableAsync();
-        _context.ObjectStore.Add(KEY_CAN_MAKE_DESIRED_CHANGES, (object)canCreate);
+        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)canCreate);
 
         // TODO: Check if edit buttons are available on existing transactions
         // This would require knowing which transactions exist
@@ -101,7 +101,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     [Then("I should not be able to make those changes")]
     public async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
-        AssertCannotPerformAction(KEY_CAN_MAKE_DESIRED_CHANGES, "User should not be able to make desired changes");
+        AssertCannotPerformAction(ObjectStoreKeys.CanMakeDesiredChanges, "User should not be able to make desired changes");
         await Task.CompletedTask;
     }
 
@@ -115,7 +115,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     [Then("the workspace should remain intact")]
     public async Task ThenTheWorkspaceShouldRemainIntact()
     {
-        AssertCannotPerformAction(KEY_CAN_DELETE_WORKSPACE, "User should not be able to delete the workspace");
+        AssertCannotPerformAction(ObjectStoreKeys.CanDeleteWorkspace, "User should not be able to delete the workspace");
         await Task.CompletedTask;
     }
 
@@ -134,7 +134,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
         await transactionsPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
 
         // Select the workspace
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
@@ -174,7 +174,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
 
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
         Assert.That(canEdit, Is.True, "Owner should be able to edit workspace settings");
@@ -193,7 +193,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(KEY_CURRENT_WORKSPACE);
+        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
 
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
         Assert.That(canDelete, Is.True, "Owner should be able to delete workspace");

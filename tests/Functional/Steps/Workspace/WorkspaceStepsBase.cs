@@ -10,11 +10,11 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// <remarks>
 /// Provides shared infrastructure for all workspace step classes:
 /// - Common helper methods (prefix handling, object store access)
-/// - Object store key constants
 /// - Page object factory methods
 /// - Composition of shared step classes
 ///
 /// All workspace step classes should inherit from this base to maintain consistency.
+/// Object store keys are centralized in <see cref="ObjectStoreKeys"/>.
 /// </remarks>
 public abstract class WorkspaceStepsBase(ITestContext context)
 {
@@ -22,20 +22,6 @@ public abstract class WorkspaceStepsBase(ITestContext context)
     /// Test context providing access to test infrastructure.
     /// </summary>
     protected readonly ITestContext _context = context;
-
-    #region Object Store Keys
-
-    protected const string KEY_LOGGED_IN_AS = "LoggedInAs";
-    protected const string KEY_PENDING_USER_CONTEXT = "PendingUserContext";
-    protected const string KEY_CURRENT_WORKSPACE = "CurrentWorkspaceName";
-    protected const string KEY_NEW_WORKSPACE_NAME = "NewWorkspaceName";
-    protected const string KEY_LAST_TRANSACTION_PAYEE = "LastTransactionPayee";
-    protected const string KEY_CAN_DELETE_WORKSPACE = "CanDeleteWorkspace";
-    protected const string KEY_CAN_MAKE_DESIRED_CHANGES = "CanMakeDesiredChanges";
-    protected const string KEY_HAS_WORKSPACE_ACCESS = "HasWorkspaceAccess";
-    protected const string KEY_TRANSACTION_KEY = "TransactionKey";
-
-    #endregion
 
     #region Composed Step Classes
 
@@ -74,9 +60,9 @@ public abstract class WorkspaceStepsBase(ITestContext context)
     /// </remarks>
     protected string GetCurrentOrNewWorkspaceName()
     {
-        return _context.ObjectStore.Contains<string>(KEY_NEW_WORKSPACE_NAME)
-            ? _context.ObjectStore.Get<string>(KEY_NEW_WORKSPACE_NAME)!
-            : _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE)!;
+        return _context.ObjectStore.Contains<string>(ObjectStoreKeys.NewWorkspaceName)
+            ? _context.ObjectStore.Get<string>(ObjectStoreKeys.NewWorkspaceName)!
+            : _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)!;
     }
 
     /// <summary>
@@ -85,7 +71,7 @@ public abstract class WorkspaceStepsBase(ITestContext context)
     /// <returns>The payee name of the last transaction.</returns>
     protected string GetLastTransactionPayee()
     {
-        return GetRequiredFromStore(KEY_LAST_TRANSACTION_PAYEE);
+        return GetRequiredFromStore(ObjectStoreKeys.TransactionPayee);
     }
 
     /// <summary>
@@ -114,15 +100,15 @@ public abstract class WorkspaceStepsBase(ITestContext context)
     protected string GetCurrentTestUsername()
     {
         // Check if we have a logged-in user in object store (highest priority)
-        if (_context.ObjectStore.Contains<string>(KEY_LOGGED_IN_AS))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.LoggedInAs))
         {
-            return _context.ObjectStore.Get<string>(KEY_LOGGED_IN_AS)!;
+            return _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)!;
         }
 
         // Check if we have a pending user context (for pre-login steps)
-        if (_context.ObjectStore.Contains<string>(KEY_PENDING_USER_CONTEXT))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.PendingUserContext))
         {
-            return _context.ObjectStore.Get<string>(KEY_PENDING_USER_CONTEXT)!;
+            return _context.ObjectStore.Get<string>(ObjectStoreKeys.PendingUserContext)!;
         }
 
 #if NEEDS_FIRST_USER_FALLBACK
@@ -139,7 +125,7 @@ public abstract class WorkspaceStepsBase(ITestContext context)
 #else
         throw new InvalidOperationException(
             "No logged-in user or pending user context found in object store. " +
-            "Ensure either KEY_LOGGED_IN_AS or KEY_PENDING_USER_CONTEXT is set before calling this method.");
+            $"Ensure either {ObjectStoreKeys.LoggedInAs} or {ObjectStoreKeys.PendingUserContext} is set before calling this method.");
 #endif
     }
 

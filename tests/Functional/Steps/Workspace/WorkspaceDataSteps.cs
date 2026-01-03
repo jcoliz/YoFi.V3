@@ -67,7 +67,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
         // And: Track workspace for cleanup
         _context.TrackCreatedWorkspace(result.Name, result.Key);
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
 
         // When: Login as the user (requires AuthSteps)
         var authSteps = new AuthSteps(_context);
@@ -110,7 +110,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
         // Track workspace for cleanup and store current workspace name
         _context.TrackCreatedWorkspace(result!.Name, result.Key);
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 
     /// <summary>
@@ -151,10 +151,10 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
         // Track workspace for cleanup and store current workspace name
         _context.TrackCreatedWorkspace(result!.Name, result.Key);
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _context.ObjectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
     /// <summary>
@@ -188,7 +188,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         }
 
         // Store pending user context for steps that need it before login
-        _context.ObjectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
     /// <summary>
@@ -221,7 +221,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         _context.TrackCreatedWorkspace(result.Name, result.Key);
 
         // Store pending user context for steps that need it before login
-        _context.ObjectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
     /// <summary>
@@ -255,10 +255,10 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         _context.TrackCreatedWorkspace(result.Name, result.Key);
 
         // Store current workspace for later reference
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _context.ObjectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
     /// <summary>
@@ -292,10 +292,10 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         _context.TrackCreatedWorkspace(result.Name, result.Key);
 
         // Store current workspace for later reference
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
 
         // Store pending user context for steps that need it before login
-        _context.ObjectStore.Add(KEY_PENDING_USER_CONTEXT, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
     /// <summary>

@@ -36,13 +36,13 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
-        var workspaceName = _context.ObjectStore.Get<string>("CurrentWorkspaceName")
-            ?? throw new InvalidOperationException("CurrentWorkspaceName not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
         var workspaceKey = _context.GetWorkspaceKey(workspaceName);
 
         // And: Get logged in user
-        var loggedInUser = _context.ObjectStore.Get<string>("LoggedInAs")
-            ?? throw new InvalidOperationException("LoggedInAs not found in object store. Ensure user is logged in before calling this step.");
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // And: Convert datatable to TransactionEditDtos
         var transactions = table.Rows.Select(row => new Generated.TransactionEditDto
@@ -99,13 +99,13 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         transactionTable.TryGetKeyValue("Category", out var category);
 
         // And: Get workspace context
-        var workspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE)
-            ?? throw new InvalidOperationException("KEY_CURRENT_WORKSPACE not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
         var workspaceKey = _context.GetWorkspaceKey(workspaceName);
 
         // And: Get logged in user
-        var loggedInUser = _context.ObjectStore.Get<string>("LoggedInAs")
-            ?? throw new InvalidOperationException("LoggedInAs not found in object store. Ensure user is logged in before calling this step.");
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // And: Seed transaction via test control API with specific payee
         var seedRequest = new Generated.TransactionSeedRequest
@@ -132,17 +132,17 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         var actualMemo = seededTransaction.Memo;
 
         // And: Store actual transaction data for verification (from seeded response, not input table)
-        _context.ObjectStore.Add("TransactionPayee", actualPayee);
-        _context.ObjectStore.Add("TransactionAmount", actualAmount.ToString("F2"));
-        _context.ObjectStore.Add("TransactionCategory", actualCategory);
-        _context.ObjectStore.Add("TransactionMemo", actualMemo);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionPayee, actualPayee);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionAmount, actualAmount.ToString("F2"));
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, actualCategory);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionMemo, actualMemo);
         if (!string.IsNullOrEmpty(source))
-            _context.ObjectStore.Add("TransactionSource", source);
+            _context.ObjectStore.Add(ObjectStoreKeys.TransactionSource, source);
         if (!string.IsNullOrEmpty(externalId))
-            _context.ObjectStore.Add("TransactionExternalId", externalId);
+            _context.ObjectStore.Add(ObjectStoreKeys.TransactionExternalId, externalId);
 
         // And: Store the transaction key for later reference
-        _context.ObjectStore.Add(KEY_TRANSACTION_KEY, seededTransaction.Key.ToString());
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, seededTransaction.Key.ToString());
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         await detailsPage.WaitForPageReadyAsync();
 
         // And: Mark that we're in transaction details page mode
-        _context.ObjectStore.Add("EditMode", "TransactionDetailsPage");
+        _context.ObjectStore.Add(ObjectStoreKeys.EditMode, "TransactionDetailsPage");
     }
 
     /// <summary>

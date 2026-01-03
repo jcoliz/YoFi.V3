@@ -37,8 +37,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.WaitForLoadingCompleteAsync();
 
         // And: Get workspace name from object store
-        var workspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE)
-            ?? throw new InvalidOperationException("KEY_CURRENT_WORKSPACE not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
 
         // And: Select the workspace
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
@@ -61,8 +61,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task WhenIClickOnTheTransactionRow()
     {
         // When: Get the payee from object store
-        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
 
         // And: Click on the transaction row to navigate to details
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -96,7 +96,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
         await transactionsPage.WaitForLoadingCompleteAsync();
 
-        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         // Check if workspace is in available list
         var availableWorkspaces = await transactionsPage.WorkspaceSelector.GetAvailableWorkspacesAsync();
         var hasAccess = availableWorkspaces.Contains(fullWorkspaceName);
-        _context.ObjectStore.Add(KEY_HAS_WORKSPACE_ACCESS, (object)hasAccess);
+        _context.ObjectStore.Add(ObjectStoreKeys.HasWorkspaceAccess, (object)hasAccess);
     }
 
     #endregion
@@ -205,7 +205,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     [Then("I should not be able to access that data")]
     public async Task ThenIShouldNotBeAbleToAccessThatData()
     {
-        AssertCannotPerformAction(KEY_HAS_WORKSPACE_ACCESS, "User should not have access to the workspace");
+        AssertCannotPerformAction(ObjectStoreKeys.HasWorkspaceAccess, "User should not have access to the workspace");
         await Task.CompletedTask;
     }
 
@@ -220,10 +220,10 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
     {
         // Then: Get the payee and new memo from object store
-        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
-        var expectedMemo = _context.ObjectStore.Get<string>("TransactionMemo")
-            ?? throw new InvalidOperationException("TransactionMemo not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
+        var expectedMemo = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionMemo)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionMemo} not found in object store");
 
         // And: Wait for page to update (loading spinner to hide)
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -247,10 +247,10 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
     {
         // Then: Get the payee and new category from object store
-        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
-        var expectedCategory = _context.ObjectStore.Get<string>("TransactionCategory")
-            ?? throw new InvalidOperationException("TransactionCategory not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
+        var expectedCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionCategory)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionCategory} not found in object store");
 
         // And: Wait for page to update (loading spinner to hide)
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

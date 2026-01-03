@@ -123,7 +123,7 @@ public class AuthSteps(ITestContext _context)
         await _context.Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
 
         // Store FULL username for future reference
-        _context.ObjectStore.Add("LoggedInAs", cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, cred.Username);
     }
 
     /// <summary>
@@ -172,14 +172,14 @@ public class AuthSteps(ITestContext _context)
 
         // New users get a workspace containing their name
         // NOTE: This "works" because workspace lookups are substring lookups
-        _context.ObjectStore.Add("CurrentWorkspaceName", credentials.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, credentials.Username);
 
         // Perform login with the newly registered credentials
         var loginPage = _context.GetOrCreatePage<LoginPage>();
         await loginPage.LoginAsync(credentials.Username, credentials.Password);
 
         // Store logged in user for future reference
-        _context.ObjectStore.Add("LoggedInAs", credentials.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, credentials.Username);
     }
 
     #endregion

@@ -26,8 +26,8 @@ public class BankImportSteps(ITestContext _context)
     public async Task GivenIAmOnTheImportReviewPage()
     {
         // Given: Get workspace name
-        var workspaceName = _context.ObjectStore.Get<string>("CurrentWorkspaceName")
-            ?? throw new InvalidOperationException("CurrentWorkspaceName not found in object store");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
 
         // And: Navigate to import page
         var importPage = _context.GetOrCreatePage<ImportPage>();
