@@ -125,31 +125,16 @@ Scenario: User uploads bank file and sees import review page
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (NEW)
 - **New Locators:**
-  - `UploadButton` - `data-test-id="upload-import-file-button"`
   - `FileInput` - `input[type="file"]` (for file upload)
   - `TransactionTable` - `data-test-id="import-review-table"`
   - `TransactionRows` - `data-test-id^="import-transaction-row-"`
   - `SelectionCheckbox(key)` - `data-test-id="import-transaction-checkbox-{key}"`
-  - `AcceptSelectedButton` - `data-test-id="accept-selected-button"`
-  - `DeleteAllButton` - `data-test-id="delete-all-button"`
-  - `SelectAllButton` - `data-test-id="select-all-button"`
-  - `DeselectAllButton` - `data-test-id="deselect-all-button"`
-  - `TransactionCountDisplay` - `data-test-id="transaction-count"`
-  - `SelectedCountDisplay` - `data-test-id="selected-count"`
 - **New Methods:**
   - `NavigateAsync()` - Navigate to /import
   - `UploadFileAsync(string filePath)` - Upload OFX file
   - `GetTransactionCountAsync()` - Count total transactions
   - `GetSelectedCountAsync()` - Count selected transactions
   - `GetDeselectedCountAsync()` - Count deselected transactions
-  - `IsTransactionSelectedAsync(int index)` - Check selection state
-  - `SelectTransactionAsync(int index)` - Select transaction
-  - `DeselectTransactionAsync(int index)` - Deselect transaction
-  - `ClickAcceptSelectedAsync()` - Accept selected
-  - `ClickDeleteAllAsync()` - Delete all
-  - `ClickSelectAllAsync()` - Select all
-  - `ClickDeselectAllAsync()` - Deselect all
-  - `HasDuplicateBadgeAsync(int index)` - Check if transaction has duplicate badge
   - `WaitForUploadCompleteAsync()` - Wait for upload API to finish
 
 **Step Definitions:**
@@ -169,15 +154,15 @@ Scenario: User uploads bank file and sees import review page
 **Test Control Endpoints:**
 - `POST /testcontrol/users` - Create Editor user
 - `POST /testcontrol/users/{username}/workspaces/bulk` - Create workspace with Editor role
-- **NEW ENDPOINT NEEDED:** `POST /testcontrol/users/{username}/workspaces/{tenantKey}/transactions/seed` with FITID parameter
-  - Need to seed 3 transactions with specific FITIDs that match the OFX file to create exact duplicates
+- **NEW ENDPOINT NEEDED:** `POST /testcontrol/users/{username}/workspaces/{tenantKey}/transactions/seed` with External ID parameter
+  - Need to seed 3 transactions with specific External IDs that match the FITIDs in the OFX file to create exact duplicates
 
 **Test Data:**
 - **File:** `tests/Functional/SampleData/Ofx/checking-jan-2024.ofx`
 - **Content:** 15 transactions total
   - 12 new transactions (FITIDs not in database)
-  - 3 exact duplicate transactions (FITIDs match existing, all fields match)
-- **Seeded Data:** 3 existing transactions via test control with matching FITIDs
+  - 3 exact duplicate transactions (FITIDs match existing transactions' External IDs, all fields match)
+- **Seeded Data:** 3 existing transactions via test control with External IDs matching the OFX FITIDs
 
 **Dependencies:** None (first scenario)
 
@@ -203,16 +188,15 @@ Scenario: User accepts selected transactions from import review
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (REUSE from Scenario 1)
 - **New Locators:**
-  - Import Confirmation Modal: `data-test-id="import-confirm-modal"`
-  - Import Confirm Button (in modal): `data-test-id="import-confirm-button"`
-  - Import Cancel Button (in modal): `data-test-id="import-cancel-button"`
+  - `ImportButton` - `data-test-id="import-button"`
+  - `ImportConfirmModal` - `data-test-id="import-confirm-modal"`
+  - `ImportConfirmButton` - `data-test-id="import-confirm-button"` (in modal)
+  - `ImportCancelButton` - `data-test-id="import-cancel-button"` (in modal)
 - **New Methods:**
   - `ClickImportButtonAsync()` - Click the Import button (opens confirmation modal)
   - `ConfirmImportAsync()` - Click Import button on confirmation modal
   - `CancelImportAsync()` - Click Cancel button on confirmation modal
   - `IsImportConfirmModalVisibleAsync()` - Check if confirmation modal is displayed
-- **Existing Methods:**
-  - `GetTransactionCountAsync()` - Verify queue is empty after
 
 **Step Definitions:**
 - **File:** `tests/Functional/Steps/BankImportSteps.cs` (REUSE)
@@ -229,7 +213,7 @@ Scenario: User accepts selected transactions from import review
 **Test Control Endpoints:**
 - **NEW ENDPOINT NEEDED:** `POST /testcontrol/users/{username}/workspaces/{tenantKey}/import/seed`
   - Seed pending import review transactions directly (faster than uploading file)
-  - Parameters: Count, SelectionState array, FITIDs, PayeePrefix
+  - Parameters: Count, SelectionState array, External IDs, PayeePrefix
 
 **Test Data:**
 - No file upload needed - seed import review state directly via test control
@@ -300,7 +284,7 @@ Scenario: User uploads bank file with duplicates and sees marked potential dupli
 - **New Locators:**
   - `DuplicateBadge(index)` - `[data-test-id="import-transaction-row-{index}"] [data-test-id="duplicate-badge"]`
   - `PotentialDuplicateBadge(index)` - Badge with specific styling or text for potential duplicates
-- **Existing Methods:**
+- **New Methods:**
   - `HasDuplicateBadgeAsync(int index)` - Check for duplicate badge
   - `GetDuplicateBadgeTypeAsync(int index)` - Get badge type (Exact/Potential)
 
@@ -378,10 +362,10 @@ Scenario: User toggles transaction selection in import review
 
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (REUSE)
-- **Existing Methods:**
-  - `SelectTransactionAsync(int index)` - Already defined
-  - `DeselectTransactionAsync(int index)` - Already defined
-  - `GetSelectedCountAsync()` - Already defined
+- **New Methods:**
+  - `SelectTransactionAsync(int index)` - Select transaction by index
+  - `DeselectTransactionAsync(int index)` - Deselect transaction by index
+  - `IsTransactionSelectedAsync(int index)` - Check selection state
 
 **Step Definitions:**
 - **File:** `tests/Functional/Steps/BankImportSteps.cs` (REUSE)
@@ -420,11 +404,10 @@ Scenario: User selects all transactions in import review
 
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (REUSE)
-- **Existing Methods:**
-  - `ClickSelectAllAsync()` - Already defined
-  - `GetSelectedCountAsync()` - Count selected checkboxes on current page
-  - `GetTransactionCountAsync()` - Get total count on current page
+- **New Locators:**
+  - `SelectAllButton` - `data-test-id="select-all-button"`
 - **New Methods:**
+  - `ClickSelectAllAsync()` - Click select all button
   - `NavigateToPageAsync(int pageNumber)` - Navigate to specific page in pagination
 
 **Step Definitions:**
@@ -462,9 +445,10 @@ Scenario: User deselects all transactions in import review
 
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (REUSE)
-- **Existing Methods:**
-  - `ClickDeselectAllAsync()` - Already defined
-  - `GetSelectedCountAsync()` - Already defined
+- **New Locators:**
+  - `DeselectAllButton` - `data-test-id="deselect-all-button"`
+- **New Methods:**
+  - `ClickDeselectAllAsync()` - Click deselect all button
 
 **Step Definitions:**
 - **File:** `tests/Functional/Steps/BankImportSteps.cs` (REUSE)
@@ -611,8 +595,10 @@ Scenario: User deletes entire import review queue
 **Page Object Models:**
 - **File:** `tests/Functional/Pages/ImportPage.cs` (REUSE)
 - **New Locators:**
+  - `DeleteAllButton` - `data-test-id="delete-all-button"`
   - `EmptyStateMessage` - `data-test-id="no-pending-imports-message"`
 - **New Methods:**
+  - `ClickDeleteAllAsync()` - Click delete all button
   - `GetEmptyStateMessageAsync()` - Get empty state message text
   - `IsEmptyStateVisibleAsync()` - Check if empty state is shown
 
@@ -720,8 +706,8 @@ Scenario: User deletes entire import review queue
 - **Mitigation:** Use Playwright's `setInputFiles()` method on the input element. Test early. Consider adding a `data-test-id` directly on the file input for reliable selection.
 
 **Risk 2: Duplicate Detection Test Data Alignment**
-- **Description:** Creating OFX files with specific FITIDs that match seeded test data requires careful alignment. Mismatch will cause false test failures.
-- **Mitigation:** Use consistent FITID format in both test control seeding and OFX files. Document the FITID mapping clearly. Consider generating OFX files programmatically from test control data.
+- **Description:** Creating OFX files with specific FITIDs that match seeded transaction External IDs requires careful alignment. Mismatch will cause false test failures.
+- **Mitigation:** Use consistent format - OFX FITIDs should match transaction External IDs in test control seeding. Document the FITID/External ID mapping clearly. Consider generating OFX files programmatically from test control data.
 
 **Risk 3: New Test Control Endpoint Complexity**
 - **Description:** The `POST /testcontrol/.../import/seed` endpoint needs to create ImportReviewTransaction records with correct tenant context, selection state, and duplicate detection fields.
@@ -790,6 +776,6 @@ Before starting Step 11 (Functional Tests implementation):
 
 - **Preserve Priority Order:** When implementing, follow priority 1-12 from test plan, but use implementation order for actual work
 - **Incremental Development:** Each scenario should be fully working before moving to next
-- **Test Data Coordination:** OFX files and seeded data must have matching FITIDs/dates/amounts for duplicate detection
+- **Test Data Coordination:** OFX FITIDs and seeded transaction External IDs must match for duplicate detection, along with matching dates/amounts
 - **Frontend Coordination:** UI must include required `data-test-id` attributes per POM specifications
 - **Backend Coordination:** APIs must exist and return expected responses per acceptance criteria
