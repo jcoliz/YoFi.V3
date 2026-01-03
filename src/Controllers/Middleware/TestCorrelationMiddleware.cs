@@ -40,6 +40,10 @@ public partial class TestCorrelationMiddleware(
         {
             AddTestMetadataToActivityAndScope(activity, testName, testId, testClass, scope);
         }
+        else
+        {
+            LogNoCurrentActivity();
+        }
 
         using (logger.BeginScope(scope))
         {
@@ -149,8 +153,12 @@ public partial class TestCorrelationMiddleware(
     [LoggerMessage(7, LogLevel.Debug, "{Location}: Linked activity to test trace: {TraceId}")]
     private partial void LogLinkedActivityToTestTrace(string traceId, [CallerMemberName] string? location = null);
 
-    [LoggerMessage(8, LogLevel.Trace, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
+    // Increasing log level on this, because we are seeing strange behaviour and need more visibility.
+    [LoggerMessage(8, LogLevel.Debug, "{Location}: Added test metadata to activity: TestName={TestName}, TestId={TestId}, TestClass={TestClass}, TraceId={TraceId}")]
     private partial void LogAddedTestMetadataToActivity(/*[TestData]*/ string testName, /*[TestData]*/ string testId, /*[TestData]*/ string testClass, string traceId, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(9, LogLevel.Warning, "{Location}: No current Activity found")]
+    private partial void LogNoCurrentActivity([CallerMemberName] string? location = null);
 
     /// <summary>
     /// Simple DTO for deserializing test correlation metadata from cookie.

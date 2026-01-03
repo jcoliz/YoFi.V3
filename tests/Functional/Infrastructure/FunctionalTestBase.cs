@@ -4,6 +4,7 @@ using System.Web;
 using DotNetEnv;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using NUnit.Framework.Internal;
 using YoFi.V3.Tests.Functional.Generated;
 
 namespace YoFi.V3.Tests.Functional.Infrastructure;
@@ -42,6 +43,10 @@ public abstract partial class FunctionalTestBase : PageTest
 
     protected Uri? baseUrl { get; private set; }
 
+    // Experiment with reusable HttpClient for TestControlClient, which we can change
+    // headers on whenever we want
+    private readonly HttpClient httpClient = new();
+
     #endregion
 
     #region Properties
@@ -66,6 +71,10 @@ public abstract partial class FunctionalTestBase : PageTest
                     {
                         httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
                     }
+                }
+                else
+                {
+                    TestContext.Out.WriteLine("[TestControlClient] Warning: Test activity is null, correlation headers will not be set.");
                 }
 
                 _testControlClient = new TestControlClient(
@@ -132,7 +141,8 @@ public abstract partial class FunctionalTestBase : PageTest
         //
         // Set headers for both W3C trace propagation and direct correlation
         //
-        await Context.SetExtraHTTPHeadersAsync(BuildTestCorrelationHeaders());
+        var headers = BuildTestCorrelationHeaders();
+        await Context.SetExtraHTTPHeadersAsync(headers);
 
         //
         // Capture console logs from browser
@@ -144,6 +154,16 @@ public abstract partial class FunctionalTestBase : PageTest
             if (! ignoredConsoleMessages.Any(x=> message.StartsWith(x)))
                 TestContext.Out.WriteLine($"[Browser Console] {message}");
         };
+
+        //
+        // Wipe out the test control client, ensuring we get a new one every run
+        //
+        _testControlClient = null;
+
+        //
+        // Identify the test with the backend. This helps us quickly locate the traces for test runs
+        //
+        await testControlClient.IdentifyAsync();
     }
 
     private static readonly string[] ignoredConsoleMessages = new[]
@@ -491,6 +511,7 @@ public abstract partial class FunctionalTestBase : PageTest
     {
         if (_testActivity is null)
         {
+            TestContext.Out.WriteLine("[TestControlClient] Warning: Test activity is null, correlation headers will not be set.");
             return new Dictionary<string, string>();
         }
 
@@ -498,6 +519,11 @@ public abstract partial class FunctionalTestBase : PageTest
         var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
         var testId = _testActivity.GetTagItem("test.id")?.ToString() ?? Guid.NewGuid().ToString();
         var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
+
+        // Enable this for additional correlation debugging
+#if false
+        TestContext.Out.WriteLine($"[TestControlClient] Building test correlation headers: TestName={testName}, TestId={testId}, TestClass={testClass}, TraceParent={traceParent}");
+#endif
 
         return new Dictionary<string, string>
         {

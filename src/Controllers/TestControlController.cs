@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -135,6 +136,46 @@ public partial class TestControlController(
     /// A user or workspace with this value in their name is being used during functional testing.
     /// </remarks>
     public const string TestPrefix = "__TEST__";
+
+    #region Test Identification
+
+    /// <summary>
+    /// Identify the current test by logging test correlation metadata from the request context.
+    /// </summary>
+    /// <returns>204 No Content</returns>
+    /// <remarks>
+    /// IMPORTANT: Every test should call this endpoint at the start of execution to ensure
+    /// that test correlation metadata is properly logged and associated with the test run.
+    /// Extracts test name, test ID, and test class from Activity tags (set by TestCorrelationMiddleware)
+    /// and logs them explicitly. Useful for verifying test correlation is working correctly.
+    /// </remarks>
+    [HttpPost("ident")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public IActionResult Identify()
+    {
+        var activity = Activity.Current;
+
+        if (activity != null)
+        {
+            var testName = activity.GetTagItem("test.name") as string;
+            var testId = activity.GetTagItem("test.id") as string;
+            var testClass = activity.GetTagItem("test.class") as string;
+
+            LogIdentifyTest(
+                testName ?? "null",
+                testId ?? "null",
+                testClass ?? "null"
+            );
+        }
+        else
+        {
+            LogIdentifyNoActivity();
+        }
+
+        return NoContent();
+    }
+
+    #endregion
 
     #region User Management
 
@@ -1164,6 +1205,12 @@ public partial class TestControlController(
 
     [LoggerMessage(11, LogLevel.Error, "{Location}: Problem {StatusCode} - {Title}: {Detail}")]
     private partial void LogProblemError(int statusCode, string title, string detail, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(13, LogLevel.Information, "{Location}: Test identified - TestName={TestName}, TestId={TestId}, TestClass={TestClass}")]
+    private partial void LogIdentifyTest(/*[TestData]*/ string testName, /*[TestData]*/ string testId, /*[TestData]*/ string testClass, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(14, LogLevel.Warning, "{Location}: No current Activity found")]
+    private partial void LogIdentifyNoActivity([CallerMemberName] string? location = null);
 
     #endregion
 }

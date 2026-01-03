@@ -781,6 +781,47 @@ export class TestControlClient {
     }
 
     /**
+     * Identify the current test by logging test correlation metadata from the request context.
+     * @return 204 No Content
+     */
+    identify(): Promise<void> {
+        let url_ = this.baseUrl + "/TestControl/ident";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processIdentify(_response);
+        });
+    }
+
+    protected processIdentify(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Create multiple test users with credentials
      * @param usernames Collection of usernames to create (doesn't need to include __TEST__ prefix, it will be added)
      * @return Collection of created user credentials including IDs and passwords
