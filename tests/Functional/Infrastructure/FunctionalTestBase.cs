@@ -170,6 +170,7 @@ public abstract partial class FunctionalTestBase : PageTest
     {
         "debug: [vite]",
         "warning: Application Insights disabled",
+        "warning: Application Insights connection string not configured",
         "info: <Suspense> is an experimental feature",
         "log: ✨ %cNuxt DevTools",
         "error: DropDownClientOnly",
