@@ -706,6 +706,25 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
     }
 
     /// <inheritdoc />
+    public TestUserCredentials GetOtherUserCredentials(string excludeFriendlyName)
+    {
+        // Find first user that isn't the excluded user
+        var otherUser = _userCredentials
+            .Where(kvp => kvp.Key != excludeFriendlyName)
+            .Select(kvp => kvp.Value)
+            .FirstOrDefault();
+
+        if (otherUser == null)
+        {
+            throw new InvalidOperationException(
+                $"No other test users available besides '{excludeFriendlyName}'. " +
+                "Ensure at least two users are created in Background (e.g., via GivenTheseUsersExist).");
+        }
+
+        return otherUser;
+    }
+
+    /// <inheritdoc />
     public Guid GetWorkspaceKey(string workspaceName)
     {
         if (!_workspaceKeys.TryGetValue(workspaceName, out var key))

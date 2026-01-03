@@ -65,6 +65,19 @@ public interface ITestContext
     TestUserCredentials GetUserCredentials(string friendlyName);
 
     /// <summary>
+    /// Gets credentials for a different user (not the specified user).
+    /// </summary>
+    /// <param name="excludeFriendlyName">The friendly name to exclude from selection.</param>
+    /// <returns>Credentials for a different user from the tracked users.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no other users are available.</exception>
+    /// <remarks>
+    /// Finds a user from tracked credentials that isn't the specified user.
+    /// Used for negative test scenarios where we need to test access denial.
+    /// Searches all users created via CreateTestUserCredentials or in Background.
+    /// </remarks>
+    TestUserCredentials GetOtherUserCredentials(string excludeFriendlyName);
+
+    /// <summary>
     /// Gets a workspace key by full workspace name.
     /// </summary>
     /// <param name="workspaceName">The full workspace name (including __TEST__ prefix).</param>

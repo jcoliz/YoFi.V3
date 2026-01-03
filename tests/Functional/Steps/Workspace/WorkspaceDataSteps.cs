@@ -268,7 +268,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     public async Task GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo(string workspaceName, string shortName)
     {
         // Get a different user (not the specified user)
-        var otherUser = GetOtherUser(shortName);
+        var otherUser = _context.GetOtherUserCredentials(shortName);
 
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
@@ -349,43 +349,4 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
     #endregion
 
-    #region Helper Methods
-
-    /// <summary>
-    /// Gets credentials for a different user (not the specified user).
-    /// </summary>
-    /// <param name="excludeShortName">The short name to exclude from selection.</param>
-    /// <returns>Credentials for a different user.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no other users are available.</exception>
-    /// <remarks>
-    /// Attempts to find a user in the Background users list that isn't the specified user.
-    /// Used for negative test scenarios where we need to test access denial.
-    /// </remarks>
-    private TestUserCredentials GetOtherUser(string excludeShortName)
-    {
-        // TODO: This is too brittle. Just add a method to ITestContext to get a different user.
-        // Try common Background user names first (alice, bob, charlie)
-        var commonUsers = new[] { "alice", "bob", "charlie" };
-
-        foreach (var userName in commonUsers)
-        {
-            if (userName != excludeShortName)
-            {
-                try
-                {
-                    return _context.GetUserCredentials(userName);
-                }
-                catch (KeyNotFoundException)
-                {
-                    // This user doesn't exist, try next one
-                }
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"No other test users available besides '{excludeShortName}'. " +
-            "Ensure at least two users are created in Background (e.g., alice, bob, charlie).");
-    }
-
-    #endregion
 }
