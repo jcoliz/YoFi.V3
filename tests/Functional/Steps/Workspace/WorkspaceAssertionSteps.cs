@@ -95,8 +95,12 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// and verifies the user's role is "Owner".
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should be able to manage that workspace")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenIShouldBeAbleToManageThatWorkspace()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -180,8 +184,12 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves expected workspace name from object store (KEY_CURRENT_WORKSPACE)
     /// and verifies the workspace selector displays it correctly.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should see the workspace information")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenIShouldSeeTheWorkspaceInformation()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -199,8 +207,12 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// gets the created date from workspace card, and verifies it's a valid DateTime.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should see when it was created")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenIShouldSeeWhenItWasCreated()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -221,8 +233,12 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves new workspace name from object store (KEY_NEW_WORKSPACE_NAME),
     /// navigates to workspaces page, and verifies the updated workspace is visible.
+    ///
+    /// Requires Objects:
+    /// - NewWorkspaceName
     /// </remarks>
     [Then("the workspace should reflect the changes")]
+    [RequiresObjects(ObjectStoreKeys.NewWorkspaceName)]
     public async Task ThenTheWorkspaceShouldReflectTheChanges()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();

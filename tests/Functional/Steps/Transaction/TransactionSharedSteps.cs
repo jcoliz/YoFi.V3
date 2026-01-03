@@ -53,6 +53,9 @@ public class TransactionSharedSteps(ITestContext context)
     /// <remarks>
     /// Submits the currently open form. Used with quick edit modal, create modal,
     /// and full details page. Uses object store to determine which mode we're in.
+    ///
+    /// Requires Objects:
+    /// - EditMode (optional, defaults to edit form if not present)
     /// </remarks>
     [When("I click \"Save\"")]
     public async Task WhenIClickSave()

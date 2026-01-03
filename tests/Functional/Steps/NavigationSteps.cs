@@ -24,9 +24,9 @@ public class NavigationSteps(ITestContext _context)
     /// This step launches the site and verifies the page loads correctly.
     /// Used as a common precondition for many test scenarios.
     /// </remarks>
-    //[Given("has user launched site")]
-    //[Given("the application is running")]
-    //[Given("I am on the home page")]
+    [Given("has user launched site")]
+    [Given("the application is running")]
+    [Given("I am on the home page")]
     public async Task GivenLaunchedSite()
     {
         await WhenUserLaunchesSite();
@@ -41,7 +41,7 @@ public class NavigationSteps(ITestContext _context)
     /// page doesn't matter. Currently no action is needed as navigation is handled
     /// by other steps.
     /// </remarks>
-    //[Given("I am on any page in the application")]
+    [Given("I am on any page in the application")]
     public async Task GivenIAmOnAnyPageInTheApplication()
     {
         await Task.CompletedTask;
@@ -57,8 +57,12 @@ public class NavigationSteps(ITestContext _context)
     /// <remarks>
     /// Creates a BasePage instance, navigates to the site, and stores both
     /// the page model and response in the object store for verification.
+    ///
+    /// Provides Objects:
+    /// - BasePage (page model)
+    /// - IResponse (page response)
     /// </remarks>
-    //[When("User launches site")]
+    [When("User launches site")]
     public async Task WhenUserLaunchesSite()
     {
         var pageModel = _context.GetOrCreatePage<BasePage>();
@@ -75,8 +79,8 @@ public class NavigationSteps(ITestContext _context)
     /// Uses the site header navigation component to select and navigate to the specified page.
     /// Can be used as either a When or Given step depending on test context.
     /// </remarks>
-    //[When("user visits the {option} page")]
-    //[Given("user visited the {option} page")]
+    [When("user visits the {option} page")]
+    [Given("user visited the {option} page")]
     public async Task UserVisitsPage(string option)
     {
         var pageModel = _context.GetOrCreatePage<BasePage>();
@@ -93,8 +97,11 @@ public class NavigationSteps(ITestContext _context)
     /// <remarks>
     /// Retrieves the page response from the object store and asserts that
     /// the Ok property is true, indicating a successful page load.
+    ///
+    /// Requires Objects:
+    /// - IResponse (from WhenUserLaunchesSite)
     /// </remarks>
-    //[Then("page loaded ok")]
+    [Then("page loaded ok")]
     public Task ThenPageLoadedOk()
     {
         var response = _context.ObjectStore.Get<IResponse>();
@@ -110,7 +117,7 @@ public class NavigationSteps(ITestContext _context)
     /// Retrieves the current page title from the BasePage model and performs
     /// a partial match assertion using Does.Contain.
     /// </remarks>
-    //[Then("page title contains {text}")]
+    [Then("page title contains {text}")]
     public async Task PageTitleContains(string text)
     {
         var pageModel = _context.GetOrCreatePage<BasePage>();
@@ -126,7 +133,7 @@ public class NavigationSteps(ITestContext _context)
     /// Retrieves the H1 heading from the BasePage model and performs
     /// an exact match assertion.
     /// </remarks>
-    //[Then("page heading is {text}")]
+    [Then("page heading is {text}")]
     public async Task PageHeadingIs(string text)
     {
         var pageModel = _context.GetOrCreatePage<BasePage>();
@@ -141,7 +148,7 @@ public class NavigationSteps(ITestContext _context)
     /// Creates a HomePage instance, ensures the page has loaded completely,
     /// and verifies the URL ends with '/' indicating the home page.
     /// </remarks>
-    //[Then("I should see the home page")]
+    [Then("I should see the home page")]
     public async Task ThenIShouldSeeTheHomePage()
     {
         var homePage = _context.GetOrCreatePage<HomePage>();
@@ -156,8 +163,8 @@ public class NavigationSteps(ITestContext _context)
     /// Creates or retrieves the ProfilePage from the context and ensures
     /// the page loads before proceeding with profile-related steps.
     /// </remarks>
-    //[Given("I am viewing my profile page")]
-    //[When("I navigate to my profile page")]
+    [Given("I am viewing my profile page")]
+    [When("I navigate to my profile page")]
     public async Task GivenIAmViewingMyProfilePage()
     {
         var profilePage = _context.GetOrCreatePage<ProfilePage>();
@@ -173,7 +180,7 @@ public class NavigationSteps(ITestContext _context)
     /// Waits for home page to be ready and confirms the brochure section
     /// (characteristic element of home page) is visible.
     /// </remarks>
-    //[Then("I should be redirected to the home page")]
+    [Then("I should be redirected to the home page")]
     public async Task ThenIShouldBeRedirectedToTheHomePage()
     {
         var homePage = _context.GetOrCreatePage<HomePage>();
@@ -189,7 +196,7 @@ public class NavigationSteps(ITestContext _context)
     /// Waits for profile page to be ready and confirms the page loaded correctly.
     /// Used after successful login or profile navigation actions.
     /// </remarks>
-    //[Then("I should be redirected to my profile page")]
+    [Then("I should be redirected to my profile page")]
     public async Task ThenIShouldBeRedirectedToMyProfilePage()
     {
         var profilePage = _context.GetOrCreatePage<ProfilePage>();
@@ -206,7 +213,7 @@ public class NavigationSteps(ITestContext _context)
     /// Tests that authenticated users cannot access the login page directly.
     /// Navigates without expecting the page to load successfully (expecting redirect).
     /// </remarks>
-    //[When("I try to navigate directly to the login page, expecting it to fail")]
+    [When("I try to navigate directly to the login page, expecting it to fail")]
     public async Task WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -221,7 +228,7 @@ public class NavigationSteps(ITestContext _context)
     /// Tests that unauthenticated users are redirected to login when accessing
     /// protected pages. Waits for redirect to login page to complete.
     /// </remarks>
-    //[When("I try to navigate directly to a protected page like {page}")]
+    [When("I try to navigate directly to a protected page like {page}")]
     public async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
     {
         // Navigate directly - should redirect to login page for anonymous users
@@ -239,7 +246,7 @@ public class NavigationSteps(ITestContext _context)
     /// Common assertion for protected page access scenarios where unauthenticated
     /// users should be redirected to login.
     /// </remarks>
-    //[Then("I should be redirected to the login page")]
+    [Then("I should be redirected to the login page")]
     public async Task ThenIShouldBeRedirectedToTheLoginPage()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -253,7 +260,7 @@ public class NavigationSteps(ITestContext _context)
     /// TODO: Implement check for explicit "login required" message display.
     /// Currently a placeholder.
     /// </remarks>
-    //[Then("I should see a message indicating I need to log in")]
+    [Then("I should see a message indicating I need to log in")]
     public async Task ThenIShouldSeeAMessageIndicatingINeedToLogIn()
     {
         // TODO: Check for login required message
@@ -268,7 +275,7 @@ public class NavigationSteps(ITestContext _context)
     /// pages are redirected back after successful login.
     /// TODO: Implement verification of return URL redirect behavior.
     /// </remarks>
-    //[Then("after logging in, I should be redirected to the originally requested page")]
+    [Then("after logging in, I should be redirected to the originally requested page")]
     public async Task ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage()
     {
         // TODO: Verify redirect after login works correctly

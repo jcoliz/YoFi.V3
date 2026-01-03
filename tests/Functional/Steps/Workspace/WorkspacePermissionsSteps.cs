@@ -29,8 +29,16 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Navigates to workspaces page and checks if edit button is available for
     /// current workspace. Stores permission check result in object store for
     /// later assertion.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
+    ///
+    /// Provides Objects:
+    /// - CanMakeDesiredChanges
     /// </remarks>
     [When("I try to change the workspace name or description")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [ProvidesObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -51,8 +59,13 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Adds __TEST__ prefix. Navigates to workspaces page and checks if delete
     /// button is available. Stores permission check result for later assertion.
     /// Used for negative test cases where deletion should be blocked.
+    ///
+    /// Provides Objects:
+    /// - CanDeleteWorkspace
+    /// - CurrentWorkspace
     /// </remarks>
     [When("I try to delete {workspaceName}")]
+    [ProvidesObjects(ObjectStoreKeys.CanDeleteWorkspace, ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenITryToDelete(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -73,8 +86,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Checks if New Transaction button is available on transactions page. Stores
     /// permission check result for later assertion. Used for role-based access tests.
     /// TODO: Add edit button availability check for existing transactions.
+    ///
+    /// Provides Objects:
+    /// - CanMakeDesiredChanges
     /// </remarks>
     [When("I try to add or edit transactions")]
+    [ProvidesObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToAddOrEditTransactions()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -97,8 +114,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// <remarks>
     /// Retrieves permission check result from object store (KEY_CAN_MAKE_DESIRED_CHANGES)
     /// and asserts it's false. Used for role-based access control tests.
+    ///
+    /// Requires Objects:
+    /// - CanMakeDesiredChanges
     /// </remarks>
     [Then("I should not be able to make those changes")]
+    [RequiresObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
         AssertCannotPerformAction(ObjectStoreKeys.CanMakeDesiredChanges, "User should not be able to make desired changes");
@@ -111,8 +132,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// <remarks>
     /// Retrieves permission check result from object store (KEY_CAN_DELETE_WORKSPACE)
     /// and asserts it's false. Used for role-based deletion tests.
+    ///
+    /// Requires Objects:
+    /// - CanDeleteWorkspace
     /// </remarks>
     [Then("the workspace should remain intact")]
+    [RequiresObjects(ObjectStoreKeys.CanDeleteWorkspace)]
     public async Task ThenTheWorkspaceShouldRemainIntact()
     {
         AssertCannotPerformAction(ObjectStoreKeys.CanDeleteWorkspace, "User should not be able to delete the workspace");
@@ -127,8 +152,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// current workspace, verifies New Transaction button is available, confirms
     /// at least one transaction exists, and verifies Edit and Delete buttons are
     /// available for the first transaction.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I can add, edit, and delete transactions")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenICanAddEditAndDeleteTransactions()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -167,8 +196,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// and verifies Edit button is available.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I can change workspace settings")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenICanChangeWorkspaceSettings()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -186,8 +219,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// and verifies Delete button is available.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [Then("I can remove the workspace if needed")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenICanRemoveTheWorkspaceIfNeeded()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();

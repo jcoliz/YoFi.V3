@@ -3,6 +3,7 @@ using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
+using static YoFi.V3.Tests.Functional.Infrastructure.ObjectStoreKeys;
 
 namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 
@@ -19,16 +20,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// </remarks>
 public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBase(context)
 {
-    #region Object Store Keys
-
-    private const string KEY_TRANSACTION_PAYEE = "TransactionPayee";
-    private const string KEY_TRANSACTION_AMOUNT = "TransactionAmount";
-    private const string KEY_TRANSACTION_MEMO = "TransactionMemo";
-    private const string KEY_TRANSACTION_SOURCE = "TransactionSource";
-    private const string KEY_TRANSACTION_EXTERNAL_ID = "TransactionExternalId";
-    private const string KEY_TRANSACTION_CATEGORY = "TransactionCategory";
-
-    #endregion
 
     #region Steps: WHEN
 
@@ -71,16 +62,25 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     /// Uses the seeded transaction data stored in the object store (from GivenIHaveAWorkspaceWithATransaction)
     /// to verify all fields match what was seeded. This handles cases where the seed API modifies
     /// values (e.g., appending numbers to payee names).
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
+    /// - TransactionAmount
+    /// - TransactionCategory (optional)
+    /// - TransactionMemo (optional)
+    /// - TransactionSource (optional)
+    /// - TransactionExternalId (optional)
     /// </remarks>
     [Then("I should see all the expected transaction fields displayed")]
+    [RequiresObjects(TransactionPayee, TransactionAmount)]
     public async Task ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed()
     {
         // Then: Get the TransactionDetailsPage
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
 
         // And: Get expected values from object store (seeded transaction data)
-        var expectedPayee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
-        var expectedAmount = GetRequiredFromStore(KEY_TRANSACTION_AMOUNT);
+        var expectedPayee = GetRequiredFromStore(TransactionPayee);
+        var expectedAmount = GetRequiredFromStore(TransactionAmount);
 
         // And: Verify payee
         var payeeValue = await detailsPage.GetPayeeAsync();
@@ -93,36 +93,36 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
             $"Amount field should contain '{expectedAmount}'");
 
         // And: Verify optional fields if they were seeded
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_CATEGORY))
+        if (_context.ObjectStore.Contains<string>(TransactionCategory))
         {
-            var expectedCategory = _context.ObjectStore.Get<string>(KEY_TRANSACTION_CATEGORY);
+            var expectedCategory = _context.ObjectStore.Get<string>(TransactionCategory);
             var categoryValue = await detailsPage.GetCategoryAsync();
             var expectedDisplay = string.IsNullOrEmpty(expectedCategory) ? TransactionDetailsPage.EmptyFieldDisplay : expectedCategory;
             Assert.That(categoryValue?.Trim(), Is.EqualTo(expectedDisplay),
                 $"Category field should be '{expectedDisplay}'");
         }
 
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_MEMO))
+        if (_context.ObjectStore.Contains<string>(TransactionMemo))
         {
-            var expectedMemo = _context.ObjectStore.Get<string>(KEY_TRANSACTION_MEMO);
+            var expectedMemo = _context.ObjectStore.Get<string>(TransactionMemo);
             var memoValue = await detailsPage.GetMemoAsync();
             var expectedDisplay = string.IsNullOrEmpty(expectedMemo) ? TransactionDetailsPage.EmptyFieldDisplay : expectedMemo;
             Assert.That(memoValue?.Trim(), Is.EqualTo(expectedDisplay),
                 $"Memo field should be '{expectedDisplay}'");
         }
 
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_SOURCE))
+        if (_context.ObjectStore.Contains<string>(TransactionSource))
         {
-            var expectedSource = _context.ObjectStore.Get<string>(KEY_TRANSACTION_SOURCE);
+            var expectedSource = _context.ObjectStore.Get<string>(TransactionSource);
             var sourceValue = await detailsPage.GetSourceAsync();
             var expectedDisplay = string.IsNullOrEmpty(expectedSource) ? TransactionDetailsPage.EmptyFieldDisplay : expectedSource;
             Assert.That(sourceValue?.Trim(), Is.EqualTo(expectedDisplay),
                 $"Source field should be '{expectedDisplay}'");
         }
 
-        if (_context.ObjectStore.Contains<string>(KEY_TRANSACTION_EXTERNAL_ID))
+        if (_context.ObjectStore.Contains<string>(TransactionExternalId))
         {
-            var expectedExternalId = _context.ObjectStore.Get<string>(KEY_TRANSACTION_EXTERNAL_ID);
+            var expectedExternalId = _context.ObjectStore.Get<string>(TransactionExternalId);
             var externalIdValue = await detailsPage.GetExternalIdAsync();
             var expectedDisplay = string.IsNullOrEmpty(expectedExternalId) ? TransactionDetailsPage.EmptyFieldDisplay : expectedExternalId;
             Assert.That(externalIdValue?.Trim(), Is.EqualTo(expectedDisplay),
@@ -178,12 +178,16 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     /// </summary>
     /// <remarks>
     /// Retrieves the payee from object store and verifies the transaction is present in the list.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
     /// </remarks>
     [Then("I should see all my transactions")]
+    [RequiresObjects(TransactionPayee)]
     public async Task ThenIShouldSeeAllMyTransactions()
     {
         // Then: Get the expected payee from object store
-        var expectedPayee = GetRequiredFromStore(KEY_TRANSACTION_PAYEE);
+        var expectedPayee = GetRequiredFromStore(TransactionPayee);
 
         // And: Get TransactionsPage
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

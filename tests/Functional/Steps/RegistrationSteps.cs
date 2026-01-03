@@ -24,7 +24,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Creates or retrieves the RegisterPage from the context and ensures
     /// the registration form is visible before proceeding with registration steps.
     /// </remarks>
-    //[Given("I am on the registration page")]
+    [Given("I am on the registration page")]
     public async Task GivenIAmOnTheRegistrationPage()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -44,8 +44,8 @@ public class RegistrationSteps(ITestContext _context)
     /// Generates a unique test user with the specified shortName, stores user details in
     /// context, and fills the registration form with valid credentials.
     /// </remarks>
-    //[When("I enter valid registration details")]
-    //[When("{shortName} enters valid registration details")]
+    [When("I enter valid registration details")]
+    [When("{shortName} enters valid registration details")]
     public async Task WhenIEnterValidRegistrationDetails(string shortName = "register")
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -62,7 +62,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Clicks the register button and expects an API call to be made.
     /// Use WhenISubmitTheRegistrationFormForValidation for client-side validation tests.
     /// </remarks>
-    //[When("I submit the registration form")]
+    [When("I submit the registration form")]
     public async Task WhenISubmitTheRegistrationForm()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -76,7 +76,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Clicks the register button without expecting an API call. Used for testing
     /// client-side validation errors that prevent form submission.
     /// </remarks>
-    //[When("I submit the registration form (for validation)")]
+    [When("I submit the registration form (for validation)")]
     public async Task WhenISubmitTheRegistrationFormForValidation()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -90,7 +90,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Generates unique user details, but uses a hardcoded
     /// weak password ("weak") to trigger password strength validation.
     /// </remarks>
-    //[When("I enter registration details with a weak password")]
+    [When("I enter registration details with a weak password")]
     public async Task WhenIEnterRegistrationDetailsWithAWeakPassword()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -109,7 +109,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Generates unique user details, and fills the form with
     /// deliberately mismatched password and confirm password values to trigger validation.
     /// </remarks>
-    //[When("I enter registration details with mismatched passwords")]
+    [When("I enter registration details with mismatched passwords")]
     public async Task WhenIEnterRegistrationDetailsWithMismatchedPasswords()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -130,7 +130,7 @@ public class RegistrationSteps(ITestContext _context)
     /// a new account using the same email but different username. Used to test
     /// duplicate email validation.
     /// </remarks>
-    //[When("I enter registration details with the existing email")]
+    [When("I enter registration details with the existing email")]
     public async Task WhenIEnterRegistrationDetailsWithTheExistingEmail()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -192,7 +192,7 @@ public class RegistrationSteps(ITestContext _context)
     /// user details from context, and validates that displayed email and username
     /// match the registered values.
     /// </remarks>
-    //[Then("my registration request should be acknowledged")]
+    [Then("my registration request should be acknowledged")]
     public async Task ThenMyRegistrationRequestShouldBeAcknowledged()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
@@ -214,7 +214,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Confirms user remains on registration page and no success message is shown.
     /// Used in negative registration test scenarios.
     /// </remarks>
-    //[Then("I should not be registered")]
+    [Then("I should not be registered")]
     public async Task ThenIShouldNotBeRegistered()
     {
         // Verify that registration did not succeed by checking we're still on registration page
@@ -236,7 +236,7 @@ public class RegistrationSteps(ITestContext _context)
     /// Used in negative test scenarios where registration should fail and user
     /// should stay on the registration page.
     /// </remarks>
-    //[Then("I should remain on the registration page")]
+    [Then("I should remain on the registration page")]
     public async Task ThenIShouldRemainOnTheRegistrationPage()
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();

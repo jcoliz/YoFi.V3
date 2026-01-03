@@ -28,8 +28,12 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <remarks>
     /// Retrieves transaction payee from object store (KEY_TRANSACTION_PAYEE) and
     /// opens the edit modal. Tests the quick edit workflow (PATCH endpoint).
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
     /// </remarks>
     [When("I click the \"Edit\" button on the transaction")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickTheEditButtonOnTheTransaction()
     {
         // When: Get the payee from object store
@@ -47,9 +51,13 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="payee">The payee name of the transaction to edit (optional, uses object store if null).</param>
     /// <remarks>
     /// Locates the transaction by payee and opens the edit modal.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee (if payee parameter is null)
     /// </remarks>
     [When("I quick edit the transaction")]
     [When("I quick edit the {payee} transaction")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIQuickEditTheTransaction(string? payee = null)
     {
         var actualPayee = payee ?? _context.ObjectStore.Get<string>("TransactionPayee")
@@ -66,8 +74,12 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="newMemo">The new memo value.</param>
     /// <remarks>
     /// Fills the memo field and stores the new value in object store for verification.
+    ///
+    /// Provides Objects:
+    /// - TransactionMemo
     /// </remarks>
     [When("I change Memo to {newMemo}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionMemo)]
     public async Task WhenIChangeMemoTo(string newMemo)
     {
         // When: Fill the memo field
@@ -84,8 +96,12 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="newCategory">The new category value.</param>
     /// <remarks>
     /// Fills the category field and stores the new value in object store for verification.
+    ///
+    /// Provides Objects:
+    /// - TransactionCategory
     /// </remarks>
     [When("I change Category to {newCategory}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionCategory)]
     public async Task WhenIChangeCategoryTo(string newCategory)
     {
         // When: Fill the category field
@@ -121,8 +137,12 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <remarks>
     /// Waits for edit modal to be visible, extracts the title from modal header,
     /// and stores it in object store for later verification.
+    ///
+    /// Provides Objects:
+    /// - ModalTitle
     /// </remarks>
     [Then("I should see a modal titled {expectedTitle}")]
+    [ProvidesObjects("ModalTitle")]
     public async Task ThenIShouldSeeAModalTitled(string expectedTitle)
     {
         // Then: Wait for the edit modal to be visible
@@ -169,6 +189,11 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <remarks>
     /// Checks Payee, Category, and Memo fields against values stored during transaction seeding.
     /// Only verifies fields that were populated during seeding (checks object store for presence).
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee (optional)
+    /// - TransactionCategory (optional)
+    /// - TransactionMemo (optional)
     /// </remarks>
     [Then("the fields match the expected values")]
     public async Task ThenTheFieldsMatchTheExpectedValues()

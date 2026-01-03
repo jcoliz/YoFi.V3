@@ -38,9 +38,13 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// Adds __TEST__ prefix to name. Navigates to workspaces page, creates workspace,
     /// waits for it to appear in the list, and stores it as current workspace.
     /// If description is null, generates a default description.
+    ///
+    /// Provides Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [When("I create a new workspace called {name} for {description}")]
     [When("I create a workspace called {name}")]
+    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenICreateANewWorkspaceCalled(string name, string? description = null)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
@@ -78,8 +82,12 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// <remarks>
     /// Adds __TEST__ prefix. Navigates to workspaces page, selects the workspace
     /// in the workspace selector, and stores it as current workspace.
+    ///
+    /// Provides Objects:
+    /// - CurrentWorkspace
     /// </remarks>
     [When("I view the details of {workspaceName}")]
+    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIViewTheDetailsOf(string workspaceName)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
@@ -100,8 +108,17 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// Adds __TEST__ prefix to new name. Gets current workspace from object store,
     /// performs rename via workspaces page, waits for updated name to appear, and
     /// updates current workspace context.
+    ///
+    /// Requires Objects:
+    /// - CurrentWorkspace
+    ///
+    /// Provides Objects:
+    /// - NewWorkspaceName
+    /// - CurrentWorkspace (updated)
     /// </remarks>
     [When("I rename it to {newName}")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [ProvidesObjects(ObjectStoreKeys.NewWorkspaceName, ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIRenameItTo(string newName)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();

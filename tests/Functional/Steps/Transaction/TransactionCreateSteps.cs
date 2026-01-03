@@ -26,8 +26,12 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// <remarks>
     /// Opens the create modal with all transaction fields and marks the edit mode
     /// for polymorphic save operations.
+    ///
+    /// Provides Objects:
+    /// - EditMode
     /// </remarks>
     [When("I click the \"Add Transaction\" button")]
+    [ProvidesObjects(ObjectStoreKeys.EditMode)]
     public async Task WhenIClickTheAddTransactionButton()
     {
         // When: Click the Add Transaction button to open create modal
@@ -46,8 +50,19 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// Parses the DataTable to extract field-value pairs and fills the corresponding fields
     /// in the create transaction modal. Supports: Date, Payee, Amount, Category, Memo, Source, External ID.
     /// Stores all values in object store for later verification.
+    ///
+    /// Provides Objects:
+    /// - TransactionPayee (if Payee field provided)
+    /// - TransactionAmount (if Amount field provided)
+    /// - TransactionCategory (if Category field provided)
+    /// - TransactionMemo (if Memo field provided)
+    /// - TransactionSource (if Source field provided)
+    /// - TransactionExternalId (if External ID field provided)
     /// </remarks>
     [When("I fill in the following transaction fields:")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionAmount,
+        ObjectStoreKeys.TransactionCategory, ObjectStoreKeys.TransactionMemo,
+        ObjectStoreKeys.TransactionSource, ObjectStoreKeys.TransactionExternalId)]
     public async Task WhenIFillInTheFollowingTransactionFields(DataTable dataTable)
     {
         // When: Get the TransactionsPage
@@ -201,8 +216,15 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// Compares the actual list fields (stored by ThenIShouldSeeATransactionWithPayee) against
     /// the expected values (stored during transaction creation). Verifies Date, Amount, Category,
     /// and Memo fields that are displayed in the transaction list.
+    ///
+    /// Requires Objects:
+    /// - TransactionRowData (from ThenIShouldSeeATransactionWithPayee)
+    /// - TransactionCategory (optional)
+    /// - TransactionMemo (optional)
+    /// - TransactionAmount (optional)
     /// </remarks>
     [Then("it contains the expected list fields")]
+    [RequiresObjects(nameof(TransactionsPage.TransactionRowData))]
     public async Task ThenItContainsTheExpectedListFields()
     {
         // Then: Get actual values from object store (fetched from page in previous step)

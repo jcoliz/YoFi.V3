@@ -27,8 +27,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
     /// creates transaction with today's date, unique payee name, and $100 amount.
     /// Stores payee name in object store for later reference.
+    ///
+    /// Provides Objects:
+    /// - TransactionPayee
     /// </remarks>
     [When("I add a transaction to {workspaceName}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIAddATransactionTo(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -53,8 +57,17 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// Retrieves last transaction payee from object store, opens edit modal,
     /// updates payee name by prepending "Updated ", submits form, waits for
     /// transaction to appear, and stores new payee name.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
+    /// - TransactionKey
+    ///
+    /// Provides Objects:
+    /// - TransactionPayee (updated)
     /// </remarks>
     [When("I update that transaction")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
+    [ProvidesObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIUpdateThatTransaction()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -82,8 +95,13 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves last transaction payee from object store and performs delete
     /// operation via transactions page.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
+    /// - TransactionKey
     /// </remarks>
     [When("I delete that transaction")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
     public async Task WhenIDeleteThatTransaction()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -106,8 +124,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Fills the memo field and stores the new value in object store for verification.
     /// Works with both quick edit modal and transaction details page.
+    ///
+    /// Provides Objects:
+    /// - TransactionMemo
     /// </remarks>
     [When("I change Memo to {newMemo}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionMemo)]
     public async Task WhenIChangeMemoTo(string newMemo)
     {
         // When: Fill the memo field
@@ -125,8 +147,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Fills the category field and stores the new value in object store for verification.
     /// Works with both quick edit modal and transaction details page.
+    ///
+    /// Provides Objects:
+    /// - TransactionCategory
     /// </remarks>
     [When("I change Category to {newCategory}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionCategory)]
     public async Task WhenIChangeCategoryTo(string newCategory)
     {
         // When: Fill the category field
@@ -144,8 +170,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Fills the source field and stores the new value in object store for verification.
     /// Only available on transaction details page (not in quick edit modal).
+    ///
+    /// Provides Objects:
+    /// - TransactionSource
     /// </remarks>
     [When("I change Source to {newSource}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionSource)]
     public async Task WhenIChangeSourceTo(string newSource)
     {
         // When: Fill the source field
@@ -163,8 +193,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Fills the external ID field and stores the new value in object store for verification.
     /// Only available on transaction details page (not in quick edit modal).
+    ///
+    /// Provides Objects:
+    /// - TransactionExternalId
     /// </remarks>
     [When("I change ExternalId to {newExternalId}")]
+    [ProvidesObjects(ObjectStoreKeys.TransactionExternalId)]
     public async Task WhenIChangeExternalIdTo(string newExternalId)
     {
         // When: Fill the external ID field
@@ -214,8 +248,16 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// Retrieves last transaction payee from object store, waits for it to appear
     /// in the list, and verifies visibility. Includes explicit wait to handle
     /// UI update timing.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
+    ///
+    /// Provides Objects:
+    /// - TransactionKey
     /// </remarks>
     [Then("the transaction should be saved successfully")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
+    [ProvidesObjects(ObjectStoreKeys.TransactionKey)]
     public async Task ThenTheTransactionShouldBeSavedSuccessfully()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -242,8 +284,13 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves last (updated) transaction payee from object store and verifies
     /// it's visible in the list. Note: May need additional wait time for UI updates.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
+    /// - TransactionKey
     /// </remarks>
     [Then("my changes should be saved")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
     public async Task ThenMyChangesShouldBeSaved()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -268,8 +315,12 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves last transaction payee from object store and verifies it's no
     /// longer visible after deletion.
+    ///
+    /// Requires Objects:
+    /// - TransactionPayee
     /// </remarks>
     [Then("it should be removed")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task ThenItShouldBeRemoved()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
