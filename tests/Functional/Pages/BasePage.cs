@@ -100,6 +100,36 @@ public class BasePage(IPage? _page)
         await Page!.GetByTestId("BaseSpinner").WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Hidden });
     }
 
+    /// <summary>
+    /// Waits until a locator becomes enabled
+    /// </summary>
+    /// <param name="locator">The locator to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// First ensures the element is attached and visible, then polls until it becomes enabled.
+    /// This is useful for waiting for Vue.js client-side hydration to complete.
+    /// TODO: Move to Base Page
+    /// </remarks>
+    public async Task WaitForEnabled(ILocator locator, float timeout = 5000)
+    {
+        await locator.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await locator.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+
+        // Poll until the element is enabled
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
+        while (DateTime.UtcNow < deadline)
+        {
+            var isDisabled = await locator.IsDisabledAsync();
+            if (!isDisabled)
+            {
+                return; // Element is now enabled
+            }
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"Locator did not become enabled within {timeout}ms");
+    }
+
     // TODO: Work out duplication with base functional test versions of these!
     public async Task WaitForApi(Func<Task> action, string? endpoint = null)
     {

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?OFX OFXHEADER="200" VERSION="202" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>
+<OFX>
+  <SIGNONMSGSRSV1>
+    <SONRS>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <DTSERVER>20240131120000.000</DTSERVER>
+      <LANGUAGE>ENG</LANGUAGE>
+      <FI>
+        <ORG>Test Bank</ORG>
+        <FID>9999</FID>
+      </FI>
+    </SONRS>
+  </SIGNONMSGSRSV1>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <TRNUID>0</TRNUID>
+      <STATUS>
+        <CODE>0</CODE>
+        <SEVERITY>INFO</SEVERITY>
+      </STATUS>
+      <STMTRS>
+        <CURDEF>USD</CURDEF>
+        <BANKACCTFROM>
+          <BANKID>111000025</BANKID>
+          <ACCTID>123456789</ACCTID>
+          <ACCTTYPE>CHECKING</ACCTTYPE>
+        </BANKACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20240101040000.000</DTSTART>
+          <DTEND>20240131040000.000</DTEND>
+          <!-- Transaction 1 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240102040000.000</DTPOSTED>
+            <TRNAMT>-45.67</TRNAMT>
+            <FITID>2024010201</FITID>
+            <NAME>Coffee Shop</NAME>
+            <MEMO>Morning coffee</MEMO>
+          </STMTTRN>
+          <!-- Transaction 2 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240103040000.000</DTPOSTED>
+            <TRNAMT>-125.50</TRNAMT>
+            <FITID>2024010301</FITID>
+            <NAME>Grocery Store</NAME>
+            <MEMO>Weekly groceries</MEMO>
+          </STMTTRN>
+          <!-- Transaction 3 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20240105040000.000</DTPOSTED>
+            <TRNAMT>2500.00</TRNAMT>
+            <FITID>2024010501</FITID>
+            <NAME>Payroll Deposit</NAME>
+            <MEMO>Salary</MEMO>
+          </STMTTRN>
+          <!-- Transaction 4 - EXACT DUPLICATE (will be seeded) -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240107040000.000</DTPOSTED>
+            <TRNAMT>-89.99</TRNAMT>
+            <FITID>2024010701</FITID>
+            <NAME>Gas Station</NAME>
+            <MEMO>Fuel</MEMO>
+          </STMTTRN>
+          <!-- Transaction 5 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240108040000.000</DTPOSTED>
+            <TRNAMT>-15.00</TRNAMT>
+            <FITID>2024010801</FITID>
+            <NAME>Parking Meter</NAME>
+            <MEMO>Downtown parking</MEMO>
+          </STMTTRN>
+          <!-- Transaction 6 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240110040000.000</DTPOSTED>
+            <TRNAMT>-67.25</TRNAMT>
+            <FITID>2024011001</FITID>
+            <NAME>Restaurant</NAME>
+            <MEMO>Dinner</MEMO>
+          </STMTTRN>
+          <!-- Transaction 7 - EXACT DUPLICATE (will be seeded) -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240112040000.000</DTPOSTED>
+            <TRNAMT>-199.99</TRNAMT>
+            <FITID>2024011201</FITID>
+            <NAME>Online Store</NAME>
+            <MEMO>Electronics purchase</MEMO>
+          </STMTTRN>
+          <!-- Transaction 8 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240115040000.000</DTPOSTED>
+            <TRNAMT>-32.50</TRNAMT>
+            <FITID>2024011501</FITID>
+            <NAME>Pharmacy</NAME>
+            <MEMO>Prescription</MEMO>
+          </STMTTRN>
+          <!-- Transaction 9 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240118040000.000</DTPOSTED>
+            <TRNAMT>-250.00</TRNAMT>
+            <FITID>2024011801</FITID>
+            <NAME>Electric Company</NAME>
+            <MEMO>Monthly bill</MEMO>
+          </STMTTRN>
+          <!-- Transaction 10 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240120040000.000</DTPOSTED>
+            <TRNAMT>-78.00</TRNAMT>
+            <FITID>2024012001</FITID>
+            <NAME>Internet Provider</NAME>
+            <MEMO>Monthly service</MEMO>
+          </STMTTRN>
+          <!-- Transaction 11 - EXACT DUPLICATE (will be seeded) -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240122040000.000</DTPOSTED>
+            <TRNAMT>-1200.00</TRNAMT>
+            <FITID>2024012201</FITID>
+            <NAME>Rent Payment</NAME>
+            <MEMO>January rent</MEMO>
+          </STMTTRN>
+          <!-- Transaction 12 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240225040000.000</DTPOSTED>
+            <TRNAMT>-55.00</TRNAMT>
+            <FITID>2024022501</FITID>
+            <NAME>Gym Membership</NAME>
+            <MEMO>Monthly dues</MEMO>
+          </STMTTRN>
+          <!-- Transaction 13 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240226040000.000</DTPOSTED>
+            <TRNAMT>-42.99</TRNAMT>
+            <FITID>2024022601</FITID>
+            <NAME>Streaming Service</NAME>
+            <MEMO>Subscription</MEMO>
+          </STMTTRN>
+          <!-- Transaction 14 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20240228040000.000</DTPOSTED>
+            <TRNAMT>-150.00</TRNAMT>
+            <FITID>2024022801</FITID>
+            <NAME>Car Insurance</NAME>
+            <MEMO>Monthly premium</MEMO>
+          </STMTTRN>
+          <!-- Transaction 15 - NEW -->
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20240230040000.000</DTPOSTED>
+            <TRNAMT>75.00</TRNAMT>
+            <FITID>2024023001</FITID>
+            <NAME>Cash Back Reward</NAME>
+            <MEMO>Credit card rewards</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL>
+          <BALAMT>1500.00</BALAMT>
+          <DTASOF>20240131120000.000</DTASOF>
+        </LEDGERBAL>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

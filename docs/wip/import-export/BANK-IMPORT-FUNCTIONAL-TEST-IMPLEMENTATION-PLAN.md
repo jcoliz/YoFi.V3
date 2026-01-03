@@ -113,7 +113,12 @@ Background:
   And I have an active workspace "My Finances"
 
 Scenario: User uploads bank file and sees import review page
-  Given I am on the import review page
+  Given I have existing transactions with external IDs:
+    | ExternalId     | Date       | Payee            | Amount  |
+    | FITID-001      | 2024-01-05 | Coffee Shop      | -5.50   |
+    | FITID-002      | 2024-01-10 | Grocery Store    | -45.00  |
+    | FITID-003      | 2024-01-15 | Gas Station      | -35.75  |
+  And I am on the import review page
   When I upload OFX file "checking-jan-2024.ofx"
   Then page should display 15 transactions
   And 12 transactions should be selected by default
@@ -166,7 +171,7 @@ Scenario: User uploads bank file and sees import review page
 
 **Dependencies:** None (first scenario)
 
-**Status:** ⏳ Not Started
+**Status:** ✅ Complete (Test passing)
 
 ---
 

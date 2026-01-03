@@ -570,12 +570,44 @@ public abstract partial class FunctionalTestBase : PageTest
     protected async Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName)
     {
         var userCreds = CreateTestUserCredentials(friendlyName);  // Auto-tracked
-        var created = await testControlClient.CreateUsersV2Async(new[] { userCreds });
+        try
+        {
+            var created = await testControlClient.CreateUsersV2Async(new[] { userCreds });
 
-        // Update with server-populated ID
-        var createdUser = created.Single();
-        _userCredentials[createdUser.ShortName] = createdUser;
-        return createdUser;
+            // Update with server-populated ID
+            var createdUser = created.Single();
+            _userCredentials[createdUser.ShortName] = createdUser;
+            return createdUser;
+        }
+        catch (ApiException<ProblemDetails> ex)
+        {
+            // Re-throw with formatted ProblemDetails for better troubleshooting
+            throw new InvalidOperationException(FormatApiException(ex), ex);
+        }
+    }
+
+    /// <summary>
+    /// Formats an ApiException with ProblemDetails for detailed error reporting.
+    /// </summary>
+    /// <param name="ex">The API exception to format.</param>
+    /// <returns>A formatted error message including all ProblemDetails information.</returns>
+    private static string FormatApiException(ApiException<ProblemDetails> ex)
+    {
+        var pd = ex.Result;
+        var message = $"""
+            TestControlClient API call failed:
+
+            Status: {ex.StatusCode} ({pd?.Status})
+            Title: {pd?.Title ?? "N/A"}
+            Detail: {pd?.Detail ?? "N/A"}
+            Type: {pd?.Type ?? "N/A"}
+            Instance: {pd?.Instance ?? "N/A"}
+
+            Raw Response (first 512 chars):
+            {ex.Response?.Substring(0, Math.Min(512, ex.Response?.Length ?? 0)) ?? "(empty)"}
+            """;
+
+        return message;
     }
 
     /// <summary>

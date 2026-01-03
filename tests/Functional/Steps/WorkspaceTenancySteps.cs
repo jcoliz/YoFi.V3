@@ -133,7 +133,8 @@ public abstract class WorkspaceTenancySteps : CommonThenSteps
     /// Requires user to have been created in Background section.
     /// </remarks>
     [Given("I am logged in as {username}")]
-    protected async Task GivenIAmLoggedInAs(string shortName)
+    [Given("I am logged into my existing account")]
+    protected async Task GivenIAmLoggedInAs(string shortName = "I")
     {
         if (!_userCredentials.TryGetValue(shortName, out var cred))
         {
