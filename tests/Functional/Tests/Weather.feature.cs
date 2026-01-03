@@ -1,3 +1,4 @@
+using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Steps;
 using NUnit.Framework;
 
@@ -11,12 +12,16 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// I want to view upcoming weather forecasts
 /// So that I can plan accordingly
 /// </remarks>
-public class WeatherForecasts : WeatherSteps
+public class WeatherForecasts : FunctionalTestBase
 {
-    // WARNING: This is a conversion in progress. Does not match the INSTRUCTIONS.md
-    // exactly!
     protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
     private NavigationSteps? _navigationSteps;
+
+    protected AuthSteps AuthSteps => _authSteps ??= new(this);
+    private AuthSteps? _authSteps;
+
+    protected WeatherSteps WeatherSteps => _weatherSteps ??= new(this);
+    private WeatherSteps? _weatherSteps;
 
     [SetUp]
     public async Task Background()
@@ -25,7 +30,7 @@ public class WeatherForecasts : WeatherSteps
         await NavigationSteps.GivenLaunchedSite();
 
         // And I am logged in
-        await GivenIAmLoggedIn();
+        await AuthSteps.GivenIAmLoggedIn();
     }
 
     /// <summary>
@@ -35,13 +40,13 @@ public class WeatherForecasts : WeatherSteps
     public async Task UserViewsTheWeatherForecast()
     {
         // When I navigate to view the weather forecast
-        await WhenINavigateToViewTheWeatherForecast();
+        await WeatherSteps.WhenINavigateToViewTheWeatherForecast();
 
         // Then I should see upcoming weather predictions
-        await ThenIShouldSeeUpcomingWeatherPredictions();
+        await WeatherSteps.ThenIShouldSeeUpcomingWeatherPredictions();
 
         // And each forecast should show the date, temperature, and conditions
-        await ThenEachForecastShouldShowTheDateTemperatureAndConditions();
+        await WeatherSteps.ThenEachForecastShouldShowTheDateTemperatureAndConditions();
     }
 
     /// <summary>
@@ -51,13 +56,13 @@ public class WeatherForecasts : WeatherSteps
     public async Task ForecastsShowBothCelsiusAndFahrenheit()
     {
         // Given I am viewing weather forecasts
-        await WhenINavigateToViewTheWeatherForecast();
+        await WeatherSteps.WhenINavigateToViewTheWeatherForecast();
 
         // Then each forecast should display temperature in both Celsius and Fahrenheit
-        await ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
+        await WeatherSteps.ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit();
 
         // And the temperature conversions should be accurate
-        await ThenTheTemperatureConversionsShouldBeAccurate();
+        await WeatherSteps.ThenTheTemperatureConversionsShouldBeAccurate();
     }
 
     /// <summary>
@@ -67,12 +72,12 @@ public class WeatherForecasts : WeatherSteps
     public async Task MultiDayForecastIsAvailable()
     {
         // Given I am viewing weather forecasts
-        await WhenINavigateToViewTheWeatherForecast();
+        await WeatherSteps.WhenINavigateToViewTheWeatherForecast();
 
         // Then I should see forecasts for at least the next 5 days
-        await ThenIShouldSeeForecastsForAtLeastTheNext5Days();
+        await WeatherSteps.ThenIShouldSeeForecastsForAtLeastTheNext5Days();
 
         // And forecasts should be ordered chronologically
-        await ThenForecastsShouldBeOrderedChronologically();
+        await WeatherSteps.ThenForecastsShouldBeOrderedChronologically();
     }
 }

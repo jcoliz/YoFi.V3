@@ -1,14 +1,19 @@
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
-using YoFi.V3.Tests.Functional.Steps.Common;
 
 namespace YoFi.V3.Tests.Functional.Steps;
 
 /// <summary>
 /// Step definitions for Weather feature tests.
 /// </summary>
-public abstract class WeatherSteps : CommonThenSteps
+/// <param name="_context">The test context providing access to test infrastructure.</param>
+/// <remarks>
+/// Handles weather forecast page operations including navigation, forecast display verification,
+/// temperature unit conversions, and chronological ordering.
+/// </remarks>
+public class WeatherSteps(ITestContext _context)
 {
     #region Steps: WHEN
 
@@ -18,14 +23,12 @@ public abstract class WeatherSteps : CommonThenSteps
     /// <remarks>
     /// Creates or retrieves the WeatherPage instance from the object store
     /// and navigates to the weather forecast view.
-    /// Can be used as a When step (for navigation action) or Given step
-    /// (for establishing precondition of being on the weather page).
     /// </remarks>
     [When("I navigate to view the weather forecast")]
     [Given("I am viewing weather forecasts")]
-    protected async Task WhenINavigateToViewTheWeatherForecast()
+    public async Task WhenINavigateToViewTheWeatherForecast()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         await weatherPage.NavigateAsync();
     }
 
@@ -41,9 +44,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// that at least one forecast is visible to the user.
     /// </remarks>
     [Then("I should see upcoming weather predictions")]
-    protected async Task ThenIShouldSeeUpcomingWeatherPredictions()
+    public async Task ThenIShouldSeeUpcomingWeatherPredictions()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         var actualCount = await weatherPage.GetForecastCountAsync();
         Assert.That(actualCount, Is.GreaterThan(0), "Expected to see at least one weather forecast");
     }
@@ -56,9 +59,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// at least 3 cells with non-empty date, temperature, and conditions data.
     /// </remarks>
     [Then("each forecast should show the date, temperature, and conditions")]
-    protected async Task ThenEachForecastShouldShowTheDateTemperatureAndConditions()
+    public async Task ThenEachForecastShouldShowTheDateTemperatureAndConditions()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
@@ -84,9 +87,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// Validates that the temperature string can be parsed for both units.
     /// </remarks>
     [Then("each forecast should display temperature in both Celsius and Fahrenheit")]
-    protected async Task ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit()
+    public async Task ThenEachForecastShouldDisplayTemperatureInBothCelsiusAndFahrenheit()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
@@ -110,9 +113,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// Allows for rounding differences within 1 degree to account for display precision.
     /// </remarks>
     [Then("the temperature conversions should be accurate")]
-    protected async Task ThenTheTemperatureConversionsShouldBeAccurate()
+    public async Task ThenTheTemperatureConversionsShouldBeAccurate()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         var rows = await weatherPage.GetAllForecastRowsAsync();
 
         Assert.That(rows.Count, Is.GreaterThan(0), "Expected at least one forecast row");
@@ -144,9 +147,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// This ensures the page has fully loaded before making the assertion.
     /// </remarks>
     [Then("I should see forecasts for at least the next 5 days")]
-    protected async Task ThenIShouldSeeForecastsForAtLeastTheNext5Days()
+    public async Task ThenIShouldSeeForecastsForAtLeastTheNext5Days()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
 
         // Wait for at least 5 forecast rows to be rendered
         await weatherPage.WaitForForecastRowsAsync(minCount: 5);
@@ -164,9 +167,9 @@ public abstract class WeatherSteps : CommonThenSteps
     /// than the previous one in the sequence.
     /// </remarks>
     [Then("forecasts should be ordered chronologically")]
-    protected async Task ThenForecastsShouldBeOrderedChronologically()
+    public async Task ThenForecastsShouldBeOrderedChronologically()
     {
-        var weatherPage = GetOrCreateWeatherPage();
+        var weatherPage = _context.GetOrCreatePage<WeatherPage>();
         var dates = await weatherPage.GetParsedDatesAsync();
 
         Assert.That(dates.Count, Is.GreaterThan(1), "Need at least 2 forecasts to verify chronological order");
