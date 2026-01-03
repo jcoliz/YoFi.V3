@@ -18,6 +18,35 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// </remarks>
 public class TransactionListSteps(ITestContext context) : TransactionStepsBase(context)
 {
+    #region Steps: GIVEN
+
+    /// <summary>
+    /// Navigates to the transactions page with a workspace selected.
+    /// </summary>
+    /// <remarks>
+    /// Sets up minimal state to be on the transactions page: navigates to the page,
+    /// then selects the current workspace from object store. Does not seed any transactions.
+    /// Requires KEY_CURRENT_WORKSPACE to be set in object store.
+    /// </remarks>
+    [Given("I am on the transactions page")]
+    public async Task GivenIAmOnTheTransactionsPage()
+    {
+        // Given: Navigate to transactions page first
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // And: Get workspace name from object store
+        var workspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE)
+            ?? throw new InvalidOperationException("KEY_CURRENT_WORKSPACE not found in object store. Ensure workspace is set up before calling this step.");
+
+        // And: Select the workspace
+        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        await transactionsPage.WaitForLoadingCompleteAsync();
+    }
+
+    #endregion
+
     #region Steps: WHEN
 
     /// <summary>

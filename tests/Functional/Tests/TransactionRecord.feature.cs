@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 using YoFi.V3.Tests.Functional.Helpers;
+using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -12,11 +14,23 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </summary>
 public class TransactionRecordFieldsTests : TransactionRecordSteps
 {
+    protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
+    private NavigationSteps? _navigationSteps;
+
+    protected AuthSteps AuthSteps => _authSteps ??= new(this);
+    private AuthSteps? _authSteps;
+
+    protected TransactionDataSteps TransactionDataSteps => _transactionDataSteps ??= new(this);
+    private TransactionDataSteps? _transactionDataSteps;
+
+    protected TransactionListSteps TransactionListSteps => _transactionListSteps ??= new(this);
+    private TransactionListSteps? _transactionListSteps;
+
     [SetUp]
     public async Task SetupAsync()
     {
         // Given the application is running
-        await GivenLaunchedSite();
+        await NavigationSteps.GivenLaunchedSite();
 
         // And I am logged in as a user with "Editor" role
         await GivenIAmLoggedInAsAUserWithEditorRole();
@@ -39,10 +53,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Category", "Beverages"],
             ["Memo", "Morning coffee"]
         );
-        await GivenIHaveAWorkspaceWithATransaction(table);
+        await TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction(table);
 
         // And I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Edit" button on the transaction
         await WhenIClickTheEditButtonOnTheTransaction();
@@ -75,10 +89,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source", "Chase Checking"],
             ["ExternalId", "CHK-001"]
         );
-        await GivenIHaveAWorkspaceWithATransaction(table);
+        await TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction(table);
 
         // And I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I quick edit the transaction
         await WhenIQuickEditTheTransaction();
@@ -109,10 +123,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Amount", "-45.67"],
             ["Category", "Food"]
         );
-        await GivenIHaveAWorkspaceWithATransaction(table);
+        await TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction(table);
 
         // And I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I quick edit the transaction
         await WhenIQuickEditTheTransaction();
@@ -148,10 +162,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Amount", "-32.50"],
             ["Category", "Dining"]
         );
-        await GivenIHaveAWorkspaceWithATransaction(table);
+        await TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction(table);
 
         // And I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click on the transaction row
         await WhenIClickOnTheTransactionRow();
@@ -178,10 +192,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source", "Chase Checking"],
             ["ExternalId", "CHK-002"]
         );
-        await GivenIHaveAWorkspaceWithATransaction(table);
+        await TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction(table);
 
         // And I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click on the transaction row
         await WhenIClickOnTheTransactionRow();
@@ -208,7 +222,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Source", "Chase Checking"],
             ["ExternalId", "CHK-002"]
         );
-        await GivenIAmViewingTheDetailsPageForATransactionWith(table);
+        await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransactionWith(table);
 
         // When I click the "Edit" button
         await WhenIClickTheEditButton();
@@ -242,7 +256,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
             ["Amount", "-89.99"],
             ["Category", "Tools"]
         );
-        await GivenIAmViewingTheDetailsPageForATransactionWith(table);
+        await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransactionWith(table);
 
         // When I click the "Edit" button
         await WhenIClickTheEditButton();
@@ -264,7 +278,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     public async Task UserReturnsToListFromTransactionDetailsPage()
     {
         // Given I am viewing the details page for a transaction
-        await GivenIAmViewingTheDetailsPageForATransaction();
+        await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransaction();
 
         // When I click "Back to Transactions"
         await WhenIClickBackToTransactions();
@@ -287,7 +301,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     public async Task UserSeesAllFieldsInCreateTransactionModal()
     {
         // Given I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
         await WhenIClickTheAddTransactionButton();
@@ -315,7 +329,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     public async Task UserCreatesTransactionWithAllFieldsPopulated()
     {
         // Given I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
         await WhenIClickTheAddTransactionButton();
@@ -353,7 +367,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     public async Task CreatedTransactionDisplaysAllFieldsOnDetailsPage()
     {
         // Given I am on the transactions page
-        await GivenIAmOnTheTransactionsPage();
+        await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click the "Add Transaction" button
         await WhenIClickTheAddTransactionButton();
