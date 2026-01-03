@@ -40,7 +40,7 @@ try {
         exit 1
     }
 
-    $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1 -Stable
+    $env:SOLUTION_VERSION = & "$PSScriptRoot/Get-Version.ps1" -Stable
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get version with exit code $LASTEXITCODE"
     }
@@ -48,7 +48,7 @@ try {
     $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps"
     Write-Host "Building containers with version: $env:SOLUTION_VERSION" -ForegroundColor Cyan
 
-    docker compose -f ./docker/docker-compose-ci.yml build
+    docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" build
     if ($LASTEXITCODE -ne 0) {
         throw "Docker build failed with exit code $LASTEXITCODE"
     }

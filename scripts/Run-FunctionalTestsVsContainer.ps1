@@ -56,13 +56,13 @@ try {
         exit 1
     }
 
-    $env:SOLUTION_VERSION = & ./scripts/Get-Version.ps1 -Stable
+    $env:SOLUTION_VERSION = & "$PSScriptRoot/Get-Version.ps1" -Stable
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to get version with exit code $LASTEXITCODE"
     }
 
     Write-Host "Building and starting docker services with solution version $env:SOLUTION_VERSION..." -ForegroundColor Cyan
-    docker compose -f ./docker/docker-compose-ci.yml up --build -d --wait
+    docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" up --build -d --wait
     if ($LASTEXITCODE -ne 0) {
         throw "Docker compose up failed with exit code $LASTEXITCODE"
     }
@@ -71,27 +71,29 @@ try {
     Write-Host "Aspire Dashboard available at http://localhost:18888" -ForegroundColor Cyan
     Write-Host ""
 
-    Push-Location ./tests/Functional
+    Push-Location "$PSScriptRoot/../tests/Functional"
+    try {
+        Write-Host "Running functional tests..." -ForegroundColor Cyan
+        dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\runsettings\container.runsettings
+        $testExitCode = $LASTEXITCODE
 
-    Write-Host "Running functional tests..." -ForegroundColor Cyan
-    dotnet test .\YoFi.V3.Tests.Functional.csproj -s .\runsettings\container.runsettings
-    $testExitCode = $LASTEXITCODE
+        if ($testExitCode -ne 0) {
+            throw "Tests failed with exit code $testExitCode"
+        }
 
-    Pop-Location
+        Write-Host "OK Functional tests completed successfully" -ForegroundColor Green
 
-    if ($testExitCode -ne 0) {
-        throw "Tests failed with exit code $testExitCode"
+        if ($KeepRunning) {
+            Write-Host ""
+            Write-Host "Containers are still running (per -KeepRunning switch)" -ForegroundColor Yellow
+            Write-Host "Aspire Dashboard: http://localhost:18888" -ForegroundColor Cyan
+            Write-Host "Application: http://localhost:5000" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Host "Run '.\scripts\Stop-Container.ps1' to stop containers when finished." -ForegroundColor Yellow
+        }
     }
-
-    Write-Host "OK Functional tests completed successfully" -ForegroundColor Green
-
-    if ($KeepRunning) {
-        Write-Host ""
-        Write-Host "Containers are still running (per -KeepRunning switch)" -ForegroundColor Yellow
-        Write-Host "Aspire Dashboard: http://localhost:18888" -ForegroundColor Cyan
-        Write-Host "Application: http://localhost:5000" -ForegroundColor Cyan
-        Write-Host ""
-        Write-Host "Run '.\scripts\Stop-Container.ps1' to stop containers when finished." -ForegroundColor Yellow
+    finally {
+        Pop-Location
     }
 }
 catch {
@@ -102,7 +104,7 @@ catch {
 finally {
     if (-not $KeepRunning) {
         Write-Host "Stopping docker services..." -ForegroundColor Cyan
-        docker compose -f ./docker/docker-compose-ci.yml down
+        docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" down
     }
     Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
 }

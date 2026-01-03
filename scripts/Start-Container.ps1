@@ -43,7 +43,7 @@ try {
     }
 
     Write-Host "Starting Docker CI containers..." -ForegroundColor Cyan
-    docker compose -f ./docker/docker-compose-ci.yml up -d --wait
+    docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" up -d --wait
     if ($LASTEXITCODE -ne 0) {
         throw "Docker compose up failed with exit code $LASTEXITCODE"
     }

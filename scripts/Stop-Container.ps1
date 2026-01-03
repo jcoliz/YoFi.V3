@@ -40,7 +40,7 @@ try {
     }
 
     Write-Host "Stopping Docker CI containers..." -ForegroundColor Cyan
-    docker compose -f ./docker/docker-compose-ci.yml down
+    docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" down
     if ($LASTEXITCODE -ne 0) {
         throw "Docker compose down failed with exit code $LASTEXITCODE"
     }
