@@ -607,71 +607,21 @@ public partial class TestControlController(
     {
         LogStartingCount(request.Count);
 
-        // Validate username has test prefix
-        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
+        // Validate user and workspace access
+        var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
+        if (validationResult != null)
         {
-            return ProblemWithLog(
-                StatusCodes.Status403Forbidden,
-                "Username must have test prefix",
-                $"Username '{username}' must start with {TestPrefix} for test safety"
-            );
+            return validationResult;
         }
 
-        // Find user
-        var user = await userManager.FindByNameAsync(username);
-        if (user == null)
-        {
-            return ProblemWithLog(
-                StatusCodes.Status404NotFound,
-                "User not found",
-                $"Test user '{username}' not found"
-            );
-        }
-
-        // Get workspace and validate it has __TEST__ prefix
-        var tenant = await tenantFeature.GetTenantByKeyAsync(tenantKey);
-        if (tenant == null)
-        {
-            return ProblemWithLog(
-                StatusCodes.Status404NotFound,
-                "Workspace not found",
-                $"Workspace with key '{tenantKey}' not found"
-            );
-        }
-
-        if (!tenant.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
-        {
-            return ProblemWithLog(
-                StatusCodes.Status403Forbidden,
-                "Workspace is not a test workspace",
-                $"Workspace '{tenant.Name}' must start with {TestPrefix} for test safety"
-            );
-        }
-
-        var userId = Guid.Parse(user.Id);
-
-        // Verify user has access to this workspace
-        var hasAccess = await tenantFeature.HasUserTenantRoleAsync(userId, tenant.Id);
-        if (!hasAccess)
-        {
-            return ProblemWithLog(
-                StatusCodes.Status403Forbidden,
-                "User does not have access to workspace",
-                $"User '{username}' must have a role in workspace '{tenant.Name}' to seed transactions"
-            );
-        }
-
-        // Tenant context is already set by AnonymousTenantAccessHandler + TenantContextMiddleware
-        // TransactionsFeature was injected with tenant context already populated
-
-        // Create transactions using the feature (gets all validation logic)
+        // Generate transactions from the request
         var random = new Random();
-        var createdTransactions = new List<TransactionResultDto>();
         var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var transactions = new List<TransactionEditDto>();
 
         for (int i = 1; i <= request.Count; i++)
         {
-            var transaction = new TransactionEditDto(
+            transactions.Add(new TransactionEditDto(
                 Date: baseDate.AddDays(random.Next(0, 30)),
                 Amount: Math.Round((decimal)(random.NextDouble() * 490 + 10), 2),
                 Payee: $"{request.PayeePrefix} {i}",
@@ -679,14 +629,59 @@ public partial class TestControlController(
                 Source: request.Source,
                 ExternalId: request.ExternalId,
                 Category: request.Category
-            );
-
-            var result = await transactionsFeature.AddTransactionAsync(transaction);
-            createdTransactions.Add(new TransactionResultDto(result.Key, result.Date, result.Amount, result.Payee, result.Memo, result.Category));
+            ));
         }
+
+        // Create transactions using shared logic
+        var createdTransactions = await CreateTransactionsAsync(transactions, transactionsFeature);
 
         LogOkCount(createdTransactions.Count);
         return CreatedAtAction(nameof(SeedTransactions), new { username, tenantKey }, createdTransactions);
+    }
+
+    /// <summary>
+    /// Seed precise test transactions in a workspace for a user.
+    /// </summary>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+    /// <param name="tenantKey">The unique key of the workspace.</param>
+    /// <param name="transactions">The collection of transactions to create.</param>
+    /// <param name="transactionsFeature">Feature providing transaction operations.</param>
+    /// <returns>The collection of created transactions.</returns>
+    /// <remarks>
+    /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+    /// The authorization handler sets the tenant context, and TenantContextMiddleware applies it
+    /// before TransactionsFeature is injected via DI.
+    /// Returns 403 if either username or workspace name lacks the prefix.
+    /// Unlike SeedTransactions which generates random transaction data, this endpoint accepts
+    /// precise transaction details provided by the caller.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed-precise")]
+    [Authorize("AllowAnonymousTenantAccess")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SeedTransactionsPrecise(
+        string username,
+        Guid tenantKey,
+        [FromBody] IReadOnlyCollection<TransactionEditDto> transactions,
+        [FromServices] TransactionsFeature transactionsFeature)
+    {
+        LogStartingCount(transactions.Count);
+
+        // Validate user and workspace access
+        var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        // Create transactions using shared logic
+        var createdTransactions = await CreateTransactionsAsync(transactions, transactionsFeature);
+
+        LogOkCount(createdTransactions.Count);
+        return CreatedAtAction(nameof(SeedTransactionsPrecise), new { username, tenantKey }, createdTransactions);
     }
 
     /// <summary>
@@ -1034,6 +1029,103 @@ public partial class TestControlController(
     #endregion
 
     #region Helper Methods
+
+    /// <summary>
+    /// Validates that a user has access to a workspace, checking test prefixes and permissions.
+    /// </summary>
+    /// <param name="username">The username to validate.</param>
+    /// <param name="tenantKey">The workspace key to validate.</param>
+    /// <returns>An IActionResult if validation fails, null if validation succeeds.</returns>
+    private async Task<IActionResult?> ValidateUserWorkspaceAccessAsync(string username, Guid tenantKey)
+    {
+        // Validate username has test prefix
+        if (!username.StartsWith(TestPrefix, StringComparison.Ordinal))
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Username must have test prefix",
+                $"Username '{username}' must start with {TestPrefix} for test safety"
+            );
+        }
+
+        // Find user
+        var user = await userManager.FindByNameAsync(username);
+        if (user == null)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "User not found",
+                $"Test user '{username}' not found"
+            );
+        }
+
+        // Get workspace and validate it has __TEST__ prefix
+        var tenant = await tenantFeature.GetTenantByKeyAsync(tenantKey);
+        if (tenant == null)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status404NotFound,
+                "Workspace not found",
+                $"Workspace with key '{tenantKey}' not found"
+            );
+        }
+
+        if (!tenant.Name.StartsWith(TestPrefix, StringComparison.Ordinal))
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "Workspace is not a test workspace",
+                $"Workspace '{tenant.Name}' must start with {TestPrefix} for test safety"
+            );
+        }
+
+        var userId = Guid.Parse(user.Id);
+
+        // Verify user has access to this workspace
+        var hasAccess = await tenantFeature.HasUserTenantRoleAsync(userId, tenant.Id);
+        if (!hasAccess)
+        {
+            return ProblemWithLog(
+                StatusCodes.Status403Forbidden,
+                "User does not have access to workspace",
+                $"User '{username}' must have a role in workspace '{tenant.Name}' to seed transactions"
+            );
+        }
+
+        return null; // Validation passed
+    }
+
+    /// <summary>
+    /// Creates transactions using the transactions feature and returns result DTOs.
+    /// </summary>
+    /// <param name="transactions">The collection of transactions to create.</param>
+    /// <param name="transactionsFeature">Feature providing transaction operations.</param>
+    /// <returns>A collection of created transaction result DTOs.</returns>
+    /// <remarks>
+    /// Tenant context must already be set by AnonymousTenantAccessHandler + TenantContextMiddleware
+    /// before calling this method.
+    /// </remarks>
+    private static async Task<IReadOnlyCollection<TransactionResultDto>> CreateTransactionsAsync(
+        IReadOnlyCollection<TransactionEditDto> transactions,
+        TransactionsFeature transactionsFeature)
+    {
+        var createdTransactions = new List<TransactionResultDto>();
+
+        foreach (var transaction in transactions)
+        {
+            var result = await transactionsFeature.AddTransactionAsync(transaction);
+            createdTransactions.Add(new TransactionResultDto(
+                result.Key,
+                result.Date,
+                result.Amount,
+                result.Payee,
+                result.Memo,
+                result.Category
+            ));
+        }
+
+        return createdTransactions;
+    }
 
     /// <summary>
     /// Internal helper method to create test users with validation and error handling.

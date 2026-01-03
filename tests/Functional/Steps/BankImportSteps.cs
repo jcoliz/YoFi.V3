@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Playwright;
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Attributes;
@@ -95,6 +96,7 @@ public abstract class BankImportSteps : TransactionRecordSteps
     /// | FITID-001  | 2024-01-05 | Coffee Shop   | -5.50   |
     /// </remarks>
     [Given("I have existing transactions with external IDs:")]
+    [Given("I have these exact transactions already:")]
     protected async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
@@ -104,35 +106,27 @@ public abstract class BankImportSteps : TransactionRecordSteps
         // And: Get logged in user
         var loggedInUser = GetRequiredFromStore(KEY_LOGGED_IN_AS);
 
-        // And: Seed each transaction from the table
-        foreach (var row in table.Rows)
+        // And: Convert datatable to TransactionEditDtos
+        var transactions = table.Rows.Select(row => new Generated.TransactionEditDto
         {
-            // And: Parse transaction data from row
-            var externalId = row["ExternalId"];
-            var payee = row["Payee"];
+            ExternalId = row["ExternalId"],
+            Date = DateTimeOffset.Parse(row["Date"], CultureInfo.InvariantCulture),
+            Payee = row["Payee"],
+            Amount = decimal.Parse(row["Amount"], CultureInfo.InvariantCulture),
+            Memo = string.Empty,
+            Source = "OFX",
+            Category = string.Empty
+        }).ToList();
 
-            // And: Create seed request with External ID
-            var seedRequest = new Generated.TransactionSeedRequest
-            {
-                Count = 1,
-                PayeePrefix = payee,
-                ExternalId = externalId,
-                // Note: The seed API doesn't currently support specifying date/amount per transaction
-                // It generates random dates/amounts. For duplicate detection testing, only External ID
-                // matching is critical. Date and Amount in the table are documentary for test clarity.
-            };
+        // And: Seed transactions via test control API in a single bulk operation
+        var response = await testControlClient.SeedTransactionsPreciseAsync(
+            loggedInUser,
+            workspaceKey,
+            transactions
+        );
 
-            // And: Seed transaction via test control API
-            // TODO: Update to bulk seeding
-            var response = await testControlClient.SeedTransactionsAsync(
-                loggedInUser,
-                workspaceKey,
-                seedRequest
-            );
-
-            Assert.That(response, Has.Count.EqualTo(1),
-                $"Expected to seed 1 transaction with ExternalId '{externalId}' but seeded {response.Count}");
-        }
+        Assert.That(response, Has.Count.EqualTo(table.Rows.Count),
+            $"Expected to seed {table.Rows.Count} transactions but seeded {response.Count}");
     }
 
     #endregion
