@@ -50,6 +50,33 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     #region Steps: WHEN
 
     /// <summary>
+    /// Clicks on the transaction row to navigate to the details page.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves transaction payee from object store (stored by data seeding steps),
+    /// waits for the transaction row to appear, and clicks it to navigate to the
+    /// full details page. Requires TransactionPayee in object store.
+    /// </remarks>
+    [When("I click on the transaction row")]
+    public async Task WhenIClickOnTheTransactionRow()
+    {
+        // When: Get the payee from object store
+        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
+            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+
+        // And: Click on the transaction row to navigate to details
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // And: Wait for row to be loaded
+        await transactionsPage.WaitForTransactionAsync(payee);
+
+        // And: Get the row data and click it
+        var row = await transactionsPage.GetTransactionRowByPayeeAsync(payee);
+        await row.ClickAsync();
+    }
+
+
+    /// <summary>
     /// Views transactions in a specific workspace.
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>

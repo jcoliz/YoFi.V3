@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
 using YoFi.V3.Tests.Functional.Steps.Transaction;
+using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
@@ -20,6 +21,9 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
     protected AuthSteps AuthSteps => _authSteps ??= new(this);
     private AuthSteps? _authSteps;
 
+    protected WorkspaceDataSteps WorkspaceDataSteps => _workspaceDataSteps ??= new(this);
+    private WorkspaceDataSteps? _workspaceDataSteps;
+
     protected TransactionDataSteps TransactionDataSteps => _transactionDataSteps ??= new(this);
     private TransactionDataSteps? _transactionDataSteps;
 
@@ -33,7 +37,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await NavigationSteps.GivenLaunchedSite();
 
         // And I am logged in as a user with "Editor" role
-        await GivenIAmLoggedInAsAUserWithEditorRole();
+        await WorkspaceDataSteps.GivenIAmLoggedInAsAUserWithEditorRole();
     }
 
     #region Rule: Quick Edit Modal
@@ -168,7 +172,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click on the transaction row
-        await WhenIClickOnTheTransactionRow();
+        await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should navigate to the transaction details page
         await ThenIShouldNavigateToTheTransactionDetailsPage();
@@ -198,7 +202,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.GivenIAmOnTheTransactionsPage();
 
         // When I click on the transaction row
-        await WhenIClickOnTheTransactionRow();
+        await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should navigate to the transaction details page
         await ThenIShouldNavigateToTheTransactionDetailsPage();
@@ -389,7 +393,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await WhenIClickSave();
 
         // And I click on the transaction row
-        await WhenIClickOnTheTransactionRow();
+        await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should see all the expected transaction fields displayed
         await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();

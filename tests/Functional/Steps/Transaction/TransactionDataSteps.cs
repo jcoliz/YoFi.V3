@@ -150,9 +150,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </summary>
     /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId, Category.</param>
     /// <remarks>
-    /// Complete setup for testing transaction details page. Seeds transaction via GivenIHaveAWorkspaceWithATransaction,
-    /// navigates to transactions page, and clicks on the transaction row to reach the details page.
+    /// Complete setup for testing transaction details page. Seeds transaction, navigates to transactions
+    /// page, clicks on transaction row to reach details page, and waits for page to be ready.
     /// Stores KEY_EDIT_MODE as "TransactionDetailsPage" in object store.
+    /// Uses TransactionListSteps for navigation operations.
     /// </remarks>
     [Given("I am viewing the details page for a transaction with:")]
     public async Task GivenIAmViewingTheDetailsPageForATransactionWith(DataTable transactionTable)
@@ -160,27 +161,14 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         // Given: Seed the transaction using the existing step
         await GivenIHaveAWorkspaceWithATransaction(transactionTable);
 
-        // And: Navigate to transactions page
-        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-        await transactionsPage.NavigateAsync();
-        await transactionsPage.WaitForLoadingCompleteAsync();
+        // And: Create TransactionListSteps for navigation
+        var listSteps = new TransactionListSteps(_context);
 
-        // And: Get workspace name and select it
-        var workspaceName = _context.ObjectStore.Get<string>(KEY_CURRENT_WORKSPACE)
-            ?? throw new InvalidOperationException("KEY_CURRENT_WORKSPACE not found in object store");
-        await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
-        await transactionsPage.WaitForLoadingCompleteAsync();
+        // And: Navigate to transactions page with workspace selected
+        await listSteps.GivenIAmOnTheTransactionsPage();
 
-        // When: Get the payee from object store and click on the transaction row to navigate to details page
-        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
-
-        // And: Wait for row to be loaded
-        await transactionsPage.WaitForTransactionAsync(payee);
-
-        // And: Get the row and click it
-        var row = await transactionsPage.GetTransactionRowByPayeeAsync(payee);
-        await row.ClickAsync();
+        // When: Click on the transaction row to navigate to details page
+        await listSteps.WhenIClickOnTheTransactionRow();
 
         // And: Wait for the transaction details page to be ready
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();

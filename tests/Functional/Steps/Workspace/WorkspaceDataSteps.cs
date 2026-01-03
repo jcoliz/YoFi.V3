@@ -31,6 +31,50 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     #region Steps: GIVEN
 
     /// <summary>
+    /// Sets up a logged-in user with Editor role in a test workspace.
+    /// </summary>
+    /// <remarks>
+    /// Comprehensive setup step that: clears existing test data, creates an editor user,
+    /// creates a test workspace with Editor role, stores credentials and workspace key,
+    /// and performs login. Used as the standard starting point for transaction record tests.
+    /// </remarks>
+    [Given("I am logged in as a user with \"Editor\" role")]
+    public async Task GivenIAmLoggedInAsAUserWithEditorRole()
+    {
+        // Given: Clear existing test data
+        // TODO: Remove! We are not clearing all test data between tests anymore.
+        await _context.TestControlClient.DeleteAllTestDataAsync();
+
+        // And: Create user context for an Editor user
+        var friendlyName = "editor-user";
+
+        // And: Create test user credentials on server (auto-tracked for cleanup)
+        var credentials = await _context.CreateTestUserCredentialsOnServer(friendlyName);
+
+        // And: Create the workspace for the user via test control API
+        var workspaceName = "Test Workspace";
+        var fullWorkspaceName = AddTestPrefix(workspaceName);
+
+        var request = new Generated.WorkspaceSetupRequest
+        {
+            Name = fullWorkspaceName,
+            Description = $"Test workspace: {workspaceName}",
+            Role = "Editor"
+        };
+
+        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(credentials.Username, new[] { request });
+        var result = results.First();
+
+        // And: Track workspace for cleanup
+        _context.TrackCreatedWorkspace(result.Name, result.Key);
+        _context.ObjectStore.Add(KEY_CURRENT_WORKSPACE, fullWorkspaceName);
+
+        // When: Login as the user (requires AuthSteps)
+        var authSteps = new AuthSteps(_context);
+        await authSteps.GivenIAmLoggedInAs(friendlyName);
+    }
+
+    /// <summary>
     /// Creates an active workspace with Editor role for the current user.
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
