@@ -33,6 +33,20 @@ public class NavigationSteps(ITestContext _context)
         await ThenPageLoadedOk();
     }
 
+    /// <summary>
+    /// Establishes that the user is on any page within the application.
+    /// </summary>
+    /// <remarks>
+    /// This is a no-op step used to set context in scenarios where the specific
+    /// page doesn't matter. Currently no action is needed as navigation is handled
+    /// by other steps.
+    /// </remarks>
+    //[Given("I am on any page in the application")]
+    public async Task GivenIAmOnAnyPageInTheApplication()
+    {
+        await Task.CompletedTask;
+    }
+
     #endregion
 
     #region Steps: WHEN
@@ -133,6 +147,132 @@ public class NavigationSteps(ITestContext _context)
         var homePage = _context.GetOrCreatePage<HomePage>();
         await homePage.EnsurePageLoaded();
         Assert.That(_context.Page.Url.EndsWith('/'), Is.True, "Should be on home page");
+    }
+
+    /// <summary>
+    /// Navigates to the user's profile page and verifies it loads correctly.
+    /// </summary>
+    /// <remarks>
+    /// Creates or retrieves the ProfilePage from the context and ensures
+    /// the page loads before proceeding with profile-related steps.
+    /// </remarks>
+    //[Given("I am viewing my profile page")]
+    //[When("I navigate to my profile page")]
+    public async Task GivenIAmViewingMyProfilePage()
+    {
+        var profilePage = _context.GetOrCreatePage<ProfilePage>();
+        await profilePage.NavigateAsync();
+        var isOnProfile = await profilePage.IsOnProfilePageAsync();
+        Assert.That(isOnProfile, Is.True, "Should be on profile page");
+    }
+
+    /// <summary>
+    /// Verifies that the user is redirected to the home page.
+    /// </summary>
+    /// <remarks>
+    /// Waits for home page to be ready and confirms the brochure section
+    /// (characteristic element of home page) is visible.
+    /// </remarks>
+    //[Then("I should be redirected to the home page")]
+    public async Task ThenIShouldBeRedirectedToTheHomePage()
+    {
+        var homePage = _context.GetOrCreatePage<HomePage>();
+        await homePage.WaitForPageReadyAsync();
+        var isVisible = await homePage.BrochureSection.IsVisibleAsync();
+        Assert.That(isVisible, Is.True, "Should be on home page");
+    }
+
+    /// <summary>
+    /// Verifies that the user is redirected to their profile page.
+    /// </summary>
+    /// <remarks>
+    /// Waits for profile page to be ready and confirms the page loaded correctly.
+    /// Used after successful login or profile navigation actions.
+    /// </remarks>
+    //[Then("I should be redirected to my profile page")]
+    public async Task ThenIShouldBeRedirectedToMyProfilePage()
+    {
+        var profilePage = _context.GetOrCreatePage<ProfilePage>();
+        await profilePage.WaitForPageReadyAsync();
+        var isOnProfile = await profilePage.IsOnProfilePageAsync();
+        Assert.That(isOnProfile, Is.True,
+            "Should be redirected to profile page");
+    }
+
+    /// <summary>
+    /// Attempts to navigate directly to login page URL, expecting failure/redirect.
+    /// </summary>
+    /// <remarks>
+    /// Tests that authenticated users cannot access the login page directly.
+    /// Navigates without expecting the page to load successfully (expecting redirect).
+    /// </remarks>
+    //[When("I try to navigate directly to the login page, expecting it to fail")]
+    public async Task WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure()
+    {
+        var loginPage = _context.GetOrCreatePage<LoginPage>();
+        await loginPage.NavigateAsync(false);
+    }
+
+    /// <summary>
+    /// Attempts to navigate directly to a protected page by URL.
+    /// </summary>
+    /// <param name="page">The URL path of the protected page.</param>
+    /// <remarks>
+    /// Tests that unauthenticated users are redirected to login when accessing
+    /// protected pages. Waits for redirect to login page to complete.
+    /// </remarks>
+    //[When("I try to navigate directly to a protected page like {page}")]
+    public async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
+    {
+        // Navigate directly - should redirect to login page for anonymous users
+        await _context.Page.GotoAsync(page);
+
+        // Wait for redirect to complete by waiting for login page to be ready
+        var loginPage = _context.GetOrCreatePage<LoginPage>();
+        await loginPage.WaitForPageReadyAsync();
+    }
+
+    /// <summary>
+    /// Verifies that the user is redirected to the login page.
+    /// </summary>
+    /// <remarks>
+    /// Common assertion for protected page access scenarios where unauthenticated
+    /// users should be redirected to login.
+    /// </remarks>
+    //[Then("I should be redirected to the login page")]
+    public async Task ThenIShouldBeRedirectedToTheLoginPage()
+    {
+        var loginPage = _context.GetOrCreatePage<LoginPage>();
+        Assert.That(await loginPage.IsOnLoginPageAsync(), Is.True, "Should be redirected to login page");
+    }
+
+    /// <summary>
+    /// Verifies that a message indicating login is required is displayed.
+    /// </summary>
+    /// <remarks>
+    /// TODO: Implement check for explicit "login required" message display.
+    /// Currently a placeholder.
+    /// </remarks>
+    //[Then("I should see a message indicating I need to log in")]
+    public async Task ThenIShouldSeeAMessageIndicatingINeedToLogIn()
+    {
+        // TODO: Check for login required message
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Verifies that after logging in, the user is redirected to the originally requested page.
+    /// </summary>
+    /// <remarks>
+    /// Tests the return URL functionality where users attempting to access protected
+    /// pages are redirected back after successful login.
+    /// TODO: Implement verification of return URL redirect behavior.
+    /// </remarks>
+    //[Then("after logging in, I should be redirected to the originally requested page")]
+    public async Task ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage()
+    {
+        // TODO: Verify redirect after login works correctly
+        await Task.CompletedTask;
     }
 
     #endregion

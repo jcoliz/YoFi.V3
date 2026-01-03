@@ -1,7 +1,5 @@
-using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
-using YoFi.V3.Tests.Functional.Helpers;
-using System.Runtime.InteropServices.Marshalling;
+using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Features;
 
@@ -11,16 +9,25 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// I want to register, login, and manage my account
 /// So that I can securely access my financial data
 /// </summary>
-public class UserAuthenticationTests : AuthenticationSteps
+public class UserAuthenticationTests : FunctionalTestBase
 {
+    protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
+    private NavigationSteps? _navigationSteps;
+
+    protected AuthSteps AuthSteps => _authSteps ??= new(this);
+    private AuthSteps? _authSteps;
+
+    protected RegistrationSteps RegistrationSteps => _registrationSteps ??= new(this);
+    private RegistrationSteps? _registrationSteps;
+
     [SetUp]
     public async Task Background()
     {
         // Given the application is running
-        await GivenLaunchedSite();
+        await NavigationSteps.GivenLaunchedSite();
 
         // And I am not logged in
-        await GivenIAmNotLoggedIn();
+        await AuthSteps.GivenIAmNotLoggedIn();
     }
 
     #region Rule: User Registration
@@ -33,16 +40,16 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserRegistersForANewAccount()
     {
         // Given I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+        await RegistrationSteps.GivenIAmOnTheRegistrationPage();
 
         // When I enter valid registration details:
-        await WhenIEnterValidRegistrationDetails();
+        await RegistrationSteps.WhenIEnterValidRegistrationDetails();
 
         // And I submit the registration form
-        await WhenISubmitTheRegistrationForm();
+        await RegistrationSteps.WhenISubmitTheRegistrationForm();
 
         // Then My registration request should be acknowledged
-        await ThenMyRegistrationRequestShouldBeAcknowledged();
+        await RegistrationSteps.ThenMyRegistrationRequestShouldBeAcknowledged();
     }
 
     /// <summary>
@@ -52,19 +59,19 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserRegistrationFailsWithWeakPassword()
     {
         // Given I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+        await RegistrationSteps.GivenIAmOnTheRegistrationPage();
 
         // When I enter registration details with a weak password
-        await WhenIEnterRegistrationDetailsWithAWeakPassword();
+        await RegistrationSteps.WhenIEnterRegistrationDetailsWithAWeakPassword();
 
         // And I submit the registration form
-        await WhenISubmitTheRegistrationForm();
+        await RegistrationSteps.WhenISubmitTheRegistrationForm();
 
         // Then I should see an error message containing "Passwords must be"
-        await ThenIShouldSeeAnErrorMessage("Passwords must be");
+        await AuthSteps.ThenIShouldSeeAnErrorMessage("Passwords must be");
 
         // And I should not be registered
-        await ThenIShouldNotBeRegistered();
+        await RegistrationSteps.ThenIShouldNotBeRegistered();
     }
 
     /// <summary>
@@ -74,19 +81,19 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserRegistrationFailsWithMismatchedPasswords()
     {
         // Given I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+        await RegistrationSteps.GivenIAmOnTheRegistrationPage();
 
         // When I enter registration details with mismatched passwords
-        await WhenIEnterRegistrationDetailsWithMismatchedPasswords();
+        await RegistrationSteps.WhenIEnterRegistrationDetailsWithMismatchedPasswords();
 
         // And I submit the registration form (for validation)
-        await WhenISubmitTheRegistrationFormForValidation();
+        await RegistrationSteps.WhenISubmitTheRegistrationFormForValidation();
 
         // Then I should see an error message containing "Passwords do not match"
-        await ThenIShouldSeeAnErrorMessage("Passwords do not match");
+        await AuthSteps.ThenIShouldSeeAnErrorMessage("Passwords do not match");
 
         // And I should not be registered
-        await ThenIShouldNotBeRegistered();
+        await RegistrationSteps.ThenIShouldNotBeRegistered();
     }
 
     /// <summary>
@@ -96,25 +103,25 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserRegistrationFailsWithExistingEmail()
     {
         // Given I have an existing account
-        await GivenIHaveAnExistingAccount();
+        await AuthSteps.GivenIHaveAnExistingAccount();
 
         // And I am on the registration page
-        await GivenIAmOnTheRegistrationPage();
+        await RegistrationSteps.GivenIAmOnTheRegistrationPage();
 
         // When I enter registration details with the existing email
-        await WhenIEnterRegistrationDetailsWithTheExistingEmail();
+        await RegistrationSteps.WhenIEnterRegistrationDetailsWithTheExistingEmail();
 
         // And I submit the registration form
-        await WhenISubmitTheRegistrationForm();
+        await RegistrationSteps.WhenISubmitTheRegistrationForm();
 
         // Then I should see an error message containing "is already taken"
-        await ThenIShouldSeeAnErrorMessage("is already taken");
+        await AuthSteps.ThenIShouldSeeAnErrorMessage("is already taken");
 
         // And I should remain on the registration page
-        await ThenIShouldRemainOnTheRegistrationPage();
+        await RegistrationSteps.ThenIShouldRemainOnTheRegistrationPage();
 
         // And I should not be registered
-        await ThenIShouldNotBeRegistered();
+        await RegistrationSteps.ThenIShouldNotBeRegistered();
     }
 
     #endregion
@@ -129,19 +136,19 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserLogsIntoAnExistingAccount()
     {
         // Given I have an existing account
-        await GivenIHaveAnExistingAccount();
+        await AuthSteps.GivenIHaveAnExistingAccount();
 
         // And I am on the login page
-        await GivenIAmOnTheLoginPage();
+        await AuthSteps.GivenIAmOnTheLoginPage();
 
         // When I login with my credentials
-        await WhenILoginWithMyCredentials();
+        await AuthSteps.WhenILoginWithMyCredentials();
 
         // Then I should see the home page
-        await ThenIShouldSeeTheHomePage();
+        await NavigationSteps.ThenIShouldSeeTheHomePage();
 
         // And I should be successfully logged in
-        await ThenIShouldBeSuccessfullyLoggedIn();
+        await AuthSteps.ThenIShouldSeeMyUsernameInTheHeader();
     }
 
     /// <summary>
@@ -151,19 +158,19 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserLoginFailsWithInvalidCredentials()
     {
         // Given I am on the login page
-        await GivenIAmOnTheLoginPage();
+        await AuthSteps.GivenIAmOnTheLoginPage();
 
         // When I enter invalid credentials
-        await WhenIEnterInvalidCredentials();
+        await AuthSteps.WhenIEnterInvalidCredentials();
 
         // And I click the login button
-        await WhenIClickTheLoginButton();
+        await AuthSteps.WhenIClickTheLoginButton();
 
         // Then I should see an error message "Invalid credentials"
-        await ThenIShouldSeeAnErrorMessage("Invalid credentials");
+        await AuthSteps.ThenIShouldSeeAnErrorMessage("Invalid credentials");
 
         // And I should remain on the login page
-        await ThenIShouldRemainOnTheLoginPage();
+        await AuthSteps.ThenIShouldRemainOnTheLoginPage();
     }
 
     /// <summary>
@@ -173,22 +180,22 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserLoginFailsWithMissingPassword()
     {
         // Given I am on the login page
-        await GivenIAmOnTheLoginPage();
+        await AuthSteps.GivenIAmOnTheLoginPage();
 
         // When I enter only a username
-        await WhenIEnterOnlyUsername();
+        await AuthSteps.WhenIEnterOnlyUsername();
 
         // And I leave the password field empty
-        await WhenILeaveThePasswordFieldEmpty();
+        await AuthSteps.WhenILeaveThePasswordFieldEmpty();
 
         // And I click the login button (for validation)
-        await WhenIClickTheLoginButtonForValidation();
+        await AuthSteps.WhenIClickTheLoginButtonForValidation();
 
         // Then I should see a validation error
-        await ThenIShouldSeeAValidationError();
+        await AuthSteps.ThenIShouldSeeAValidationError();
 
         // And I should remain on the login page
-        await ThenIShouldRemainOnTheLoginPage();
+        await AuthSteps.ThenIShouldRemainOnTheLoginPage();
     }
 
     /// <summary>
@@ -198,25 +205,25 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserLogsOutSuccessfully()
     {
         // Given I am logged in
-        await GivenIAmLoggedIn();
+        await AuthSteps.GivenIAmLoggedIn();
 
         // And I am viewing my profile page
-        await GivenIAmViewingMyProfilePage();
+        await NavigationSteps.GivenIAmViewingMyProfilePage();
 
         // When I click the logout button
-        await WhenIClickTheLogoutButton();
+        await AuthSteps.WhenIClickTheLogoutButton();
 
         // Then I should be logged out
-        await ThenIShouldBeLoggedOut();
+        await AuthSteps.ThenIShouldBeLoggedOut();
 
         // And I should be redirected to the home page
-        await ThenIShouldBeRedirectedToTheHomePage();
+        await NavigationSteps.ThenIShouldBeRedirectedToTheHomePage();
 
         // And I should see the login option in the navigation
-        await ThenIShouldSeeTheLoginOptionInTheNavigation();
+        await AuthSteps.ThenIShouldSeeTheLoginOptionInTheNavigation();
 
         // And I should not see any personal information
-        await ThenIShouldNotSeeAnyPersonalInformation();
+        await AuthSteps.ThenIShouldNotSeeAnyPersonalInformation();
     }
 
     #endregion
@@ -231,16 +238,16 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task UserViewsTheirAccountDetails()
     {
         // Given I am logged in
-        await GivenIAmLoggedIn();
+        await AuthSteps.GivenIAmLoggedIn();
 
         // And I am on any page in the application
-        await GivenIAmOnAnyPageInTheApplication();
+        await NavigationSteps.GivenIAmOnAnyPageInTheApplication();
 
         // When I navigate to my profile page
-        await WhenINavigateToMyProfilePage();
+        await NavigationSteps.GivenIAmViewingMyProfilePage();
 
         // Then I should see my account information
-        await ThenIShouldSeeMyAccountInformation();
+        await AuthSteps.ThenIShouldSeeMyAccountInformation();
     }
 
     #endregion
@@ -262,16 +269,16 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task LoggedInUserCannotAccessLoginPage()
     {
         // Given I am logged in
-        await GivenIAmLoggedIn();
+        await AuthSteps.GivenIAmLoggedIn();
 
         // When: I try to navigate directly to the login page, expecting it to fail
-        await WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure();
+        await NavigationSteps.WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure();
 
         // Then I should be redirected to my profile page
-        await ThenIShouldBeRedirectedToMyProfilePage();
+        await NavigationSteps.ThenIShouldBeRedirectedToMyProfilePage();
 
         // And I should not see the login form
-        await ThenIShouldNotSeeTheLoginForm();
+        await AuthSteps.ThenIShouldNotSeeTheLoginForm();
     }
 
     /// <summary>
@@ -284,19 +291,19 @@ public class UserAuthenticationTests : AuthenticationSteps
     public async Task AnonymousUserCannotAccessProtectedPages(string page)
     {
         // Given I am not logged in
-        await GivenIAmNotLoggedIn();
+        await AuthSteps.GivenIAmNotLoggedIn();
 
         // When I try to navigate directly to a protected page like <page>
-        await WhenITryToNavigateDirectlyToAProtectedPageLike(page);
+        await NavigationSteps.WhenITryToNavigateDirectlyToAProtectedPageLike(page);
 
         // Then I should be redirected to the login page
-        await ThenIShouldBeRedirectedToTheLoginPage();
+        await NavigationSteps.ThenIShouldBeRedirectedToTheLoginPage();
 
         // And I should see a message indicating I need to log in
-        await ThenIShouldSeeAMessageIndicatingINeedToLogIn();
+        await NavigationSteps.ThenIShouldSeeAMessageIndicatingINeedToLogIn();
 
         // And after logging in, I should be redirected to the originally requested page
-        await ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage();
+        await NavigationSteps.ThenAfterLoggingInIShouldBeRedirectedToTheOriginallyRequestedPage();
     }
 
     #endregion
