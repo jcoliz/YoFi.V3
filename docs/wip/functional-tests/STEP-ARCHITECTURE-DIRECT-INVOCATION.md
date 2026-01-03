@@ -94,6 +94,117 @@ public class BankImportTests : BankImportSteps
 - ✅ Generated tests call helpers directly
 - ✅ IntelliSense works perfectly
 
+## Step Helper Base Class
+
+### What Goes in StepHelperBase?
+
+`StepHelperBase` provides helpers access to all the test infrastructure from [`FunctionalTestBase`](../../../tests/Functional/Infrastructure/FunctionalTestBase.cs):
+
+```csharp
+namespace YoFi.V3.Tests.Functional.Steps.Helpers;
+
+/// <summary>
+/// Base class for all step helper classes, providing access to test infrastructure.
+/// </summary>
+public abstract class StepHelperBase
+{
+    protected readonly FunctionalTestBase Test;
+
+    protected StepHelperBase(FunctionalTestBase test)
+    {
+        Test = test ?? throw new ArgumentNullException(nameof(test));
+    }
+
+    // ===== Delegate to FunctionalTestBase infrastructure =====
+
+    /// <summary>Gets the Page Object Model store for accessing pages.</summary>
+    protected ObjectStore ObjectStore => Test._objectStore;
+
+    /// <summary>Gets the test control API client for setup/cleanup operations.</summary>
+    protected TestControlClient TestControlClient => Test.testControlClient;
+
+    /// <summary>Gets user credentials by friendly name.</summary>
+    protected Dictionary<string, TestUserCredentials> UserCredentials => Test._userCredentials;
+
+    /// <summary>Gets workspace keys by full workspace name.</summary>
+    protected Dictionary<string, Guid> WorkspaceKeys => Test._workspaceKeys;
+
+    /// <summary>Gets or creates a page object model.</summary>
+    protected T GetOrCreatePage<T>() where T : class
+    {
+        if (ObjectStore.TryGet<T>(out var existing))
+            return existing;
+
+        // Create new page instance using the constructor that takes IPage
+        var page = Test.Page;
+        var pageInstance = (T)Activator.CreateInstance(typeof(T), page)!;
+        ObjectStore.Add(pageInstance);
+        return pageInstance;
+    }
+
+    /// <summary>Creates unique test user credentials for the current test.</summary>
+    protected TestUserCredentials CreateTestUserCredentials(string friendlyName) =>
+        Test.CreateTestUserCredentials(friendlyName);
+
+    /// <summary>Creates test user credentials AND registers them on the server.</summary>
+    protected Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName) =>
+        Test.CreateTestUserCredentialsOnServer(friendlyName);
+
+    /// <summary>Tracks a workspace for cleanup in TearDown.</summary>
+    protected void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey) =>
+        Test.TrackCreatedWorkspace(workspaceName, workspaceKey);
+}
+```
+
+### Key Design Decisions
+
+**1. Pass `FunctionalTestBase` to Constructor**
+
+Helpers need access to:
+- ✅ `ObjectStore` - For page object models
+- ✅ `TestControlClient` - For test data setup via API
+- ✅ `Page` - For creating page objects
+- ✅ `UserCredentials` - For tracking created users
+- ✅ `WorkspaceKeys` - For tracking created workspaces
+
+**2. Protected Properties (Not Inheritance)**
+
+```csharp
+// ✅ Composition - Helper contains FunctionalTestBase
+protected readonly FunctionalTestBase Test;
+
+// ❌ NOT inheritance - Helper is NOT a FunctionalTestBase
+public class WorkspaceStepHelper : FunctionalTestBase // NO!
+```
+
+**3. Delegate Common Operations**
+
+Provide shortcuts to common operations so helpers don't need `Test.` prefix:
+
+```csharp
+// ✅ Clean syntax in helper methods
+var loginPage = GetOrCreatePage<LoginPage>();
+
+// ❌ Without delegation
+var loginPage = Test.GetOrCreatePage<LoginPage>(); // More verbose
+```
+
+### FunctionalTestBase (No Changes Needed!)
+
+[`FunctionalTestBase`](../../../tests/Functional/Infrastructure/FunctionalTestBase.cs) already provides everything helpers need:
+
+**Key Infrastructure (671 lines):**
+- ✅ Playwright `Page` and `Context`
+- ✅ `ObjectStore` for page models
+- ✅ `TestControlClient` for test control API
+- ✅ Test correlation headers (distributed tracing)
+- ✅ User credential tracking and cleanup
+- ✅ Workspace tracking and cleanup
+- ✅ Screenshot capture on failure
+- ✅ Browser console log capture
+
+**No changes needed** - just expose via `StepHelperBase`.
+
 ## Implementation Details
 
 ### Step Helper with Attributes
@@ -162,7 +273,7 @@ public class WorkspaceStepHelper : StepHelperBase
 }
 ```
 
-### Feature Step Class (Minimal)
+### Feature Step Class (Just a Container for Helpers!)
 
 ```csharp
 namespace YoFi.V3.Tests.Functional.Steps;
@@ -171,8 +282,8 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// Step definitions for Bank Import functional tests.
 /// </summary>
 /// <remarks>
-/// Provides access to step helpers. Most step implementations are in helpers,
-/// only bank-import-specific steps are defined here.
+/// Provides access to step helpers. ALL step implementations are in helpers
+/// to enable maximum reusability across features.
 /// </remarks>
 public abstract class BankImportSteps : FunctionalTestBase
 {
@@ -181,20 +292,36 @@ public abstract class BankImportSteps : FunctionalTestBase
     protected AuthStepHelper AuthSteps => _authSteps ??= new(this);
     protected WorkspaceStepHelper WorkspaceSteps => _workspaceSteps ??= new(this);
     protected TransactionStepHelper TransactionSteps => _transactionSteps ??= new(this);
+    protected BankImportStepHelper BankImportSteps => _bankImportSteps ??= new(this);
 
     private AuthStepHelper? _authSteps;
     private WorkspaceStepHelper? _workspaceSteps;
     private TransactionStepHelper? _transactionSteps;
+    private BankImportStepHelper? _bankImportSteps;
 
     #endregion
 
-    #region Bank Import Specific Steps
+    // NO step methods here! Everything is in helpers!
+}
+```
+
+### Bank Import Step Helper (All Steps in Helper)
+
+```csharp
+namespace YoFi.V3.Tests.Functional.Steps.Helpers;
+
+/// <summary>
+/// Provides bank import step implementations.
+/// </summary>
+public class BankImportStepHelper : StepHelperBase
+{
+    public BankImportStepHelper(FunctionalTestBase test) : base(test) { }
 
     /// <summary>
     /// Uploads an OFX file from sample data.
     /// </summary>
     [When("I upload OFX file {filename}")]
-    protected async Task WhenIUploadOFXFile(string filename)
+    public async Task WhenIUploadOFXFile(string filename)
     {
         var importPage = GetOrCreatePage<ImportPage>();
         await importPage.UploadFileAsync(filename);
@@ -202,21 +329,42 @@ public abstract class BankImportSteps : FunctionalTestBase
     }
 
     /// <summary>
+    /// Navigates to the import review page.
+    /// </summary>
+    [Given("I am on the import review page")]
+    public async Task GivenIAmOnTheImportReviewPage()
+    {
+        var workspaceName = ObjectStore.Get<string>("CurrentWorkspace");
+        var importPage = GetOrCreatePage<ImportPage>();
+        await importPage.NavigateAsync();
+        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+    }
+
+    /// <summary>
+    /// Verifies expected transaction count on import review page.
+    /// </summary>
+    [Then("page should display {count} transactions")]
+    public async Task ThenPageShouldDisplayTransactions(int count)
+    {
+        var importPage = GetOrCreatePage<ImportPage>();
+        var actualCount = await importPage.GetTransactionCountAsync();
+        Assert.That(actualCount, Is.EqualTo(count));
+    }
+
+    /// <summary>
     /// Verifies duplicate detection worked correctly.
     /// </summary>
     [Then("{count} transactions should be deselected by default")]
-    protected async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
+    public async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
     {
         var importPage = GetOrCreatePage<ImportPage>();
         var actualCount = await importPage.GetDeselectedCountAsync();
         Assert.That(actualCount, Is.EqualTo(count));
     }
-
-    #endregion
 }
 ```
 
-### Generated Test (Calls Helpers Directly)
+### Generated Test (All Helpers!)
 
 ```csharp
 /// <summary>
@@ -229,15 +377,17 @@ public async Task ImportOFXBankStatementFile()
     await WorkspaceSteps.GivenUserOwnsAWorkspaceCalled("I", "Checking");
 
     // And I am on the import review page
-    await GivenIAmOnTheImportReviewPage(); // Local method
+    await BankImportSteps.GivenIAmOnTheImportReviewPage();
 
     // When I upload OFX file "checking-jan-2024.ofx"
-    await WhenIUploadOFXFile("checking-jan-2024.ofx"); // Local method
+    await BankImportSteps.WhenIUploadOFXFile("checking-jan-2024.ofx");
 
     // Then page should display 10 transactions
-    await ThenPageShouldDisplayTransactions(10); // Local method
+    await BankImportSteps.ThenPageShouldDisplayTransactions(10);
 }
 ```
+
+**Key Insight:** Today's "bank import specific" step might be tomorrow's "transaction import" step used by multiple features!
 
 ## Gherkin-to-C# Mapping
 
