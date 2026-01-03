@@ -13,7 +13,7 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// I want to record additional details about each transaction
 /// So that I can track memo notes, source accounts, and external identifiers
 /// </summary>
-public class TransactionRecordFieldsTests : TransactionRecordSteps
+public class TransactionRecordFieldsTests : FunctionalTestBase
 {
     protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
     private NavigationSteps? _navigationSteps;
@@ -38,6 +38,12 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
 
     protected TransactionSharedSteps TransactionSharedSteps => _transactionSharedSteps ??= new(this);
     private TransactionSharedSteps? _transactionSharedSteps;
+
+    protected TransactionDetailsSteps TransactionDetailsSteps => _transactionDetailsSteps ??= new(this);
+    private TransactionDetailsSteps? _transactionDetailsSteps;
+
+    protected TransactionEditSteps TransactionEditSteps => _transactionEditSteps ??= new(this);
+    private TransactionEditSteps? _transactionEditSteps;
 
     [SetUp]
     public async Task SetupAsync()
@@ -184,10 +190,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should navigate to the transaction details page
-        await ThenIShouldNavigateToTheTransactionDetailsPage();
+        await TransactionDetailsSteps.ThenIShouldNavigateToTheTransactionDetailsPage();
 
         // And I should see all the expected transaction fields displayed
-        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+        await TransactionDetailsSteps.ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
     }
 
     /// <summary>
@@ -214,10 +220,10 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should navigate to the transaction details page
-        await ThenIShouldNavigateToTheTransactionDetailsPage();
+        await TransactionDetailsSteps.ThenIShouldNavigateToTheTransactionDetailsPage();
 
         // And I should see all the expected transaction fields displayed
-        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+        await TransactionDetailsSteps.ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
     }
 
     /// <summary>
@@ -238,22 +244,22 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransactionWith(table);
 
         // When I click the "Edit" button
-        await WhenIClickTheEditButton();
+        await TransactionEditSteps.WhenIClickTheEditButton();
 
         // And I change Source to "Chase Visa"
-        await WhenIChangeSourceTo("Chase Visa");
+        await TransactionEditSteps.WhenIChangeSourceTo("Chase Visa");
 
         // And I change ExternalId to "VISA-123"
-        await WhenIChangeExternalIdTo("VISA-123");
+        await TransactionEditSteps.WhenIChangeExternalIdTo("VISA-123");
 
         // And I click "Save"
         await TransactionSharedSteps.WhenIClickSave();
 
         // Then I should see "Chase Visa" as the Source
-        await ThenIShouldSeeValueAsField("Chase Visa", "Source");
+        await TransactionDetailsSteps.ThenIShouldSeeValueAsField("Chase Visa", "Source");
 
         // And I should see "VISA-123" as the ExternalId
-        await ThenIShouldSeeValueAsField("VISA-123", "ExternalId");
+        await TransactionDetailsSteps.ThenIShouldSeeValueAsField("VISA-123", "ExternalId");
     }
 
     /// <summary>
@@ -272,16 +278,16 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransactionWith(table);
 
         // When I click the "Edit" button
-        await WhenIClickTheEditButton();
+        await TransactionEditSteps.WhenIClickTheEditButton();
 
         // And I change Category to "Home Improvement"
-        await WhenIChangeCategoryTo("Home Improvement");
+        await TransactionEditSteps.WhenIChangeCategoryTo("Home Improvement");
 
         // And I click "Save"
         await TransactionSharedSteps.WhenIClickSave();
 
         // Then I should see "Home Improvement" as the Category
-        await ThenIShouldSeeValueAsField("Home Improvement", "Category");
+        await TransactionDetailsSteps.ThenIShouldSeeValueAsField("Home Improvement", "Category");
     }
 
     /// <summary>
@@ -294,13 +300,13 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionDataSteps.GivenIAmViewingTheDetailsPageForATransaction();
 
         // When I click "Back to Transactions"
-        await WhenIClickBackToTransactions();
+        await TransactionDetailsSteps.WhenIClickBackToTransactions();
 
         // Then I should return to the transaction list
-        await ThenIShouldReturnToTheTransactionList();
+        await TransactionDetailsSteps.ThenIShouldReturnToTheTransactionList();
 
         // And I should see all my transactions
-        await ThenIShouldSeeAllMyTransactions();
+        await TransactionDetailsSteps.ThenIShouldSeeAllMyTransactions();
     }
 
     #endregion
@@ -405,7 +411,7 @@ public class TransactionRecordFieldsTests : TransactionRecordSteps
         await TransactionListSteps.WhenIClickOnTheTransactionRow();
 
         // Then I should see all the expected transaction fields displayed
-        await ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
+        await TransactionDetailsSteps.ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed();
     }
 
     #endregion
