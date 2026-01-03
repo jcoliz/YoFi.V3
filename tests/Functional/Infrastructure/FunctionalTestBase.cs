@@ -21,7 +21,7 @@ namespace YoFi.V3.Tests.Functional.Infrastructure;
 /// - Object store access for sharing data between steps
 /// - Test Control API client access
 /// </remarks>
-public abstract partial class FunctionalTestBase : PageTest
+public abstract partial class FunctionalTestBase : PageTest, ITestContext
 {
     #region Fields
 
@@ -151,7 +151,7 @@ public abstract partial class FunctionalTestBase : PageTest
         {
             var message = $"{msg.Type}: {msg.Text} at: {msg.Location} url: {msg.Page?.Url ?? "n/a"}";
 
-            if (! ignoredConsoleMessages.Any(x=> message.StartsWith(x)))
+            if (!ignoredConsoleMessages.Any(x => message.StartsWith(x)))
                 TestContext.Out.WriteLine($"[Browser Console] {message}");
         };
 
@@ -547,7 +547,7 @@ public abstract partial class FunctionalTestBase : PageTest
     /// Credentials are automatically tracked for cleanup in TearDown.
     /// Username format: __TEST__{friendlyName}_{testId:X8}
     /// </remarks>
-    protected TestUserCredentials CreateTestUserCredentials(string friendlyName)
+    public TestUserCredentials CreateTestUserCredentials(string friendlyName)
     {
         var testId = TestContext.CurrentContext.Test.ID.GetHashCode();
         var username = $"__TEST__{friendlyName}_{testId:X8}";
@@ -567,7 +567,7 @@ public abstract partial class FunctionalTestBase : PageTest
         return creds;
     }
 
-    protected async Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName)
+    public async Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName)
     {
         var userCreds = CreateTestUserCredentials(friendlyName);  // Auto-tracked
         try
@@ -614,7 +614,7 @@ public abstract partial class FunctionalTestBase : PageTest
     /// Tracks a created workspace for cleanup in TearDown.
     /// </summary>
     /// <param name="workspaceKey">The unique identifier of the workspace.</param>
-    protected void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey)
+    public void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey)
     {
         _workspaceKeys[workspaceName] = workspaceKey;
     }
@@ -666,6 +666,57 @@ public abstract partial class FunctionalTestBase : PageTest
             TestContext.Error.WriteLine($"[Cleanup] Unexpected error during cleanup: {ex}");
         }
     }
+
+    #endregion
+
+    #region ITestContext Implementation
+
+    /// <inheritdoc />
+    public ObjectStore ObjectStore => _objectStore;
+
+    /// <inheritdoc />
+    public TestControlClient TestControlClient => testControlClient;
+
+    /// <inheritdoc />
+    IPage ITestContext.Page => Page;
+
+    /// <inheritdoc />
+    public TestUserCredentials GetUserCredentials(string friendlyName)
+    {
+        if (!_userCredentials.TryGetValue(friendlyName, out var credentials))
+        {
+            throw new KeyNotFoundException($"User credentials for '{friendlyName}' not found. Did you forget to create the user?");
+        }
+        return credentials;
+    }
+
+    /// <inheritdoc />
+    public Guid GetWorkspaceKey(string workspaceName)
+    {
+        if (!_workspaceKeys.TryGetValue(workspaceName, out var key))
+        {
+            throw new KeyNotFoundException($"Workspace key for '{workspaceName}' not found. Did you forget to track the workspace?");
+        }
+        return key;
+    }
+
+    /// <inheritdoc />
+    public T GetOrCreatePage<T>() where T : class
+    {
+        if (_objectStore.Contains<T>())
+        {
+            return _objectStore.Get<T>();
+        }
+
+        // Create new page using constructor that takes IPage
+        var page = (T)Activator.CreateInstance(typeof(T), Page)!;
+        _objectStore.Add(page);
+        return page;
+    }
+
+    // CreateTestUserCredentials - already implemented as protected method (lines 550-568)
+    // CreateTestUserCredentialsOnServer - already implemented as protected method (lines 570-587)
+    // TrackCreatedWorkspace - already implemented as protected method (lines 617-620)
 
     #endregion
 }

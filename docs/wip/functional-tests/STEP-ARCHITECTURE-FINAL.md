@@ -70,25 +70,24 @@ BankImportTests declares:
 
 ```
 tests/Functional/Steps/
-├── StepDefinitionsBase.cs
-│
-├── AuthSteps.cs                    # Authentication + login (37 + 8 common = 45 steps)
-├── NavigationSteps.cs              # NEW: Site navigation, page verification (~8 steps)
-│
-├── BankImportSteps.cs
-├── WeatherSteps.cs                 # Weather-specific steps
+├── AuthSteps.cs                    # Authentication + login (45 steps)
+├── NavigationSteps.cs              # Site navigation, page verification (8 steps)
+├── BankImportSteps.cs              # Bank import operations (20 steps)
+├── WeatherSteps.cs                 # Weather page operations
 │
 ├── Workspace/
-│   ├── WorkspaceListSteps.cs
-│   ├── WorkspaceDetailsSteps.cs
-│   └── WorkspaceCollaborationSteps.cs
+│   ├── WorkspaceListSteps.cs       # Workspace list operations (20 steps)
+│   ├── WorkspaceDetailsSteps.cs    # Workspace details operations (15 steps)
+│   └── WorkspaceCollaborationSteps.cs  # Sharing/collaboration (18 steps)
 │
 └── Transaction/
-    ├── TransactionListSteps.cs
-    ├── TransactionDetailsSteps.cs
-    ├── TransactionEditSteps.cs
-    └── TransactionCreateSteps.cs
+    ├── TransactionListSteps.cs     # Transaction list operations (15 steps)
+    ├── TransactionDetailsSteps.cs  # Transaction details operations (15 steps)
+    ├── TransactionEditSteps.cs     # Editing operations (15 steps)
+    └── TransactionCreateSteps.cs   # Creation operations (10 steps)
 ```
+
+**Note:** No `StepDefinitionsBase.cs` - step classes take `ITestContext` directly via constructor dependency injection.
 
 ### Generated Test Files (AI-Generated)
 
@@ -101,86 +100,88 @@ tests/Functional/Tests/
 
 ## Implementation Details
 
-### StepDefinitionsBase (New Base Class)
+### Architecture Decision: No StepDefinitionsBase
 
-Provides step definition classes access to all test infrastructure:
+**Key Insight:** A base class that only holds one helper method (`GetOrCreatePage`) doesn't justify its existence.
+
+**Simplified Approach:** Step classes take `ITestContext` directly via constructor dependency injection. No base class needed.
+
+#### FunctionalTestBase Responsibilities (Test Infrastructure + Helper Methods)
+- ✅ Test lifecycle (SetUp, TearDown, OneTimeSetUp)
+- ✅ Prerequisite checking (browser installation, backend health)
+- ✅ Resource dictionaries (_userCredentials, _workspaceKeys, _objectStore)
+- ✅ **Helper methods** - `GetOrCreatePage<T>()`, `CreateTestUserCredentials()`, `CreateTestUserCredentialsOnServer()`, `TrackCreatedWorkspace()`
+- ✅ Test correlation headers for distributed tracing
+- ✅ Screenshot capture on failure
+- ✅ Automatic cleanup of test resources
+
+**Rationale:** Keep all helper methods with the dictionaries/infrastructure they work with. No need for an extra layer.
+
+#### ITestContext Interface (Read-Only Access to Dictionaries)
+
+**Important Design Decision:** Steps get read-only access to credentials/workspaces via methods, NOT direct dictionary access.
 
 ```csharp
-namespace YoFi.V3.Tests.Functional.Steps;
-
-/// <summary>
-/// Base class for all step definition classes, providing access to test infrastructure.
-/// </summary>
-public abstract class StepDefinitionsBase
+public interface ITestContext
 {
-    protected readonly FunctionalTestBase Test;
+    // Direct access to test infrastructure
+    ObjectStore ObjectStore { get; }
+    TestControlClient TestControlClient { get; }
+    IPage Page { get; }
 
-    protected StepDefinitionsBase(FunctionalTestBase test)
-    {
-        Test = test ?? throw new ArgumentNullException(nameof(test));
-    }
+    // READ-ONLY access to credentials/workspaces (via methods, not dictionaries)
+    TestUserCredentials GetUserCredentials(string friendlyName);
+    Guid GetWorkspaceKey(string workspaceName);
 
-    // ===== Delegate to FunctionalTestBase infrastructure =====
-
-    /// <summary>Gets the Page Object Model store for accessing pages.</summary>
-    protected ObjectStore ObjectStore => Test._objectStore;
-
-    /// <summary>Gets the test control API client for setup/cleanup operations.</summary>
-    protected TestControlClient TestControlClient => Test.testControlClient;
-
-    /// <summary>Gets user credentials by friendly name.</summary>
-    protected Dictionary<string, TestUserCredentials> UserCredentials => Test._userCredentials;
-
-    /// <summary>Gets workspace keys by full workspace name.</summary>
-    protected Dictionary<string, Guid> WorkspaceKeys => Test._workspaceKeys;
-
-    /// <summary>Gets the Playwright Page for browser automation.</summary>
-    protected IPage Page => Test.Page;
-
-    /// <summary>Gets or creates a page object model.</summary>
-    protected T GetOrCreatePage<T>() where T : class
-    {
-        if (ObjectStore.TryGet<T>(out var existing))
-            return existing;
-
-        // Create new page instance using the constructor that takes IPage
-        var pageInstance = (T)Activator.CreateInstance(typeof(T), Page)!;
-        ObjectStore.Add(pageInstance);
-        return pageInstance;
-    }
-
-    /// <summary>Creates unique test user credentials for the current test.</summary>
-    protected TestUserCredentials CreateTestUserCredentials(string friendlyName) =>
-        Test.CreateTestUserCredentials(friendlyName);
-
-    /// <summary>Creates test user credentials AND registers them on the server.</summary>
-    protected Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName) =>
-        Test.CreateTestUserCredentialsOnServer(friendlyName);
-
-    /// <summary>Tracks a workspace for cleanup in TearDown.</summary>
-    protected void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey) =>
-        Test.TrackCreatedWorkspace(workspaceName, workspaceKey);
+    // Helper methods that CREATE and TRACK resources (controlled by test)
+    T GetOrCreatePage<T>() where T : class;
+    TestUserCredentials CreateTestUserCredentials(string friendlyName);
+    Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName);
+    void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey);
 }
 ```
 
-**Key Design Decision: Composition NOT Inheritance**
-
+**Why NOT expose Dictionary directly?**
 ```csharp
-// ✅ Step classes contain FunctionalTestBase (composition)
-public class WorkspaceListSteps : StepDefinitionsBase
-{
-    public WorkspaceListSteps(FunctionalTestBase test) : base(test) { }
-}
+// ❌ Bad: Exposes mutable dictionary
+Dictionary<string, TestUserCredentials> UserCredentials { get; }
 
-// ❌ NOT inheritance - step classes don't inherit from FunctionalTestBase
-public class WorkspaceListSteps : FunctionalTestBase // NO!
+// Problem: Steps could accidentally modify tracking dictionary
+_context.UserCredentials["alice"] = someOtherCredentials;  // Oops! Corrupted tracking
+_context.UserCredentials.Clear();  // Disaster! Lost all credentials
+
+// ✅ Good: Read-only access via method
+TestUserCredentials GetUserCredentials(string friendlyName);
+
+// Steps can only READ, not accidentally MODIFY
+var cred = _context.GetUserCredentials("alice");
 ```
 
-**Why Composition?**
-- ✅ Step classes don't need to BE tests, they just need ACCESS to test infrastructure
-- ✅ Single inheritance preserved for test classes
-- ✅ Clear separation: Tests run scenarios, Step classes implement steps
-- ✅ Multiple step classes can be used in one test
+**Benefits:**
+- ✅ **Encapsulation** - Dictionaries hidden, only FunctionalTestBase can modify
+- ✅ **Safety** - Steps can't accidentally corrupt credential/workspace tracking
+- ✅ **Clear API** - Methods show intent (Get vs Create vs Track)
+- ✅ **Prevents bugs** - Accidental modifications can't cause hard-to-debug issues later
+- ✅ **Testability** - Easier to mock specific credential lookups
+
+**Usage in Steps:**
+```csharp
+public class WorkspaceListSteps
+{
+    [Given("{username} owns {workspaceName}")]
+    public async Task GivenUserOwnsAWorkspace(string username, string workspaceName)
+    {
+        // ✅ Read-only access - step can't accidentally modify dictionary
+        var cred = _context.GetUserCredentials(username);
+
+        var request = new WorkspaceCreateRequest { ... };
+        var result = await _context.TestControlClient.CreateWorkspaceAsync(...);
+
+        // ✅ Controlled modification via explicit tracking method
+        _context.TrackCreatedWorkspace(fullWorkspaceName, result.Key);
+    }
+}
+```
 
 ### Step Definition Class Example
 
@@ -190,9 +191,14 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// <summary>
 /// Step definitions for workspace list operations.
 /// </summary>
-public class WorkspaceListSteps : StepDefinitionsBase
+public class WorkspaceListSteps
 {
-    public WorkspaceListSteps(FunctionalTestBase test) : base(test) { }
+    private readonly ITestContext _context;
+
+    public WorkspaceListSteps(ITestContext context)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
 
     /// <summary>
     /// Creates a workspace owned by the specified user.
@@ -204,7 +210,7 @@ public class WorkspaceListSteps : StepDefinitionsBase
     {
         var fullWorkspaceName = $"__TEST__{workspaceName}_{TestContext.CurrentContext.Test.ID:X8}";
 
-        if (!UserCredentials.TryGetValue(username, out var cred))
+        if (!_context.UserCredentials.TryGetValue(username, out var cred))
         {
             throw new InvalidOperationException($"User '{username}' not found");
         }
@@ -216,9 +222,9 @@ public class WorkspaceListSteps : StepDefinitionsBase
             Role = "Owner"
         };
 
-        var result = await TestControlClient.CreateWorkspaceForUserAsync(cred.Username, request);
-        WorkspaceKeys[result.Name] = result.Key;
-        ObjectStore.Add("CurrentWorkspace", fullWorkspaceName);
+        var result = await _context.TestControlClient.CreateWorkspaceForUserAsync(cred.Username, request);
+        _context.WorkspaceKeys[result.Name] = result.Key;
+        _context.ObjectStore.Add("CurrentWorkspace", fullWorkspaceName);
     }
 
     /// <summary>
@@ -227,7 +233,7 @@ public class WorkspaceListSteps : StepDefinitionsBase
     [When("I view my workspace list")]
     public async Task WhenIViewMyWorkspaceList()
     {
-        var workspacesPage = GetOrCreatePage<WorkspacesPage>();
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
     }
 
@@ -237,7 +243,7 @@ public class WorkspaceListSteps : StepDefinitionsBase
     [Then("I should see {workspaceName} in my workspace list")]
     public async Task ThenIShouldSeeInMyWorkspaceList(string workspaceName)
     {
-        var workspacesPage = GetOrCreatePage<WorkspacesPage>();
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         var fullName = $"__TEST__{workspaceName}_{TestContext.CurrentContext.Test.ID:X8}";
         Assert.That(await workspacesPage.HasWorkspaceAsync(fullName), Is.True);
     }
@@ -245,9 +251,11 @@ public class WorkspaceListSteps : StepDefinitionsBase
 ```
 
 **Key Points:**
+- ✅ **No base class** - Just plain class with constructor
 - ✅ `[Given]`/`[When]`/`[Then]` attributes directly on public methods
 - ✅ Multiple attribute patterns supported (different Gherkin phrasings)
-- ✅ Access to all test infrastructure via `StepDefinitionsBase`
+- ✅ Access to test infrastructure via `_context.Whatever`
+- ✅ Dependency injection via constructor
 - ✅ Small, focused file (~15-20 steps)
 
 ### AI-Generated Test Example

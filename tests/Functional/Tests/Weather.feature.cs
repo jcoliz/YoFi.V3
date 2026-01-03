@@ -13,11 +13,16 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </remarks>
 public class WeatherForecasts : WeatherSteps
 {
+    // WARNING: This is a conversion in progress. Does not match the INSTRUCTIONS.md
+    // exactly!
+    protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
+    private NavigationSteps? _navigationSteps;
+
     [SetUp]
     public async Task Background()
     {
         // Given the application is running
-        await GivenLaunchedSite();
+        await NavigationSteps.GivenLaunchedSite();
 
         // And I am logged in
         await GivenIAmLoggedIn();
