@@ -1,4 +1,5 @@
 using YoFi.V3.Tests.Functional.Steps;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
@@ -23,8 +24,8 @@ public class BankImportTests : FunctionalTestBase
     protected WorkspaceDataSteps WorkspaceDataSteps => _workspaceDataSteps ??= new(this);
     private WorkspaceDataSteps? _workspaceDataSteps;
 
-    protected TransactionSteps TransactionSteps => _transactionSteps ??= new(this);
-    private TransactionSteps? _transactionSteps;
+    protected TransactionDataSteps TransactionDataSteps => _transactionDataSteps ??= new(this);
+    private TransactionDataSteps? _transactionDataSteps;
 
     protected BankImportSteps BankImportSteps => _bankImportSteps ??= new(this);
     private BankImportSteps? _bankImportSteps;
@@ -58,7 +59,7 @@ public class BankImportTests : FunctionalTestBase
             ["2024011201", "2024-01-12", "Online Store", "-199.99"],
             ["2024012201", "2024-01-22", "Rent Payment", "-1200.00"]
         );
-        await TransactionSteps.GivenIHaveExistingTransactionsWithExternalIDs(table);
+        await TransactionDataSteps.GivenIHaveExistingTransactionsWithExternalIDs(table);
 
         // And I am on the import review page
         await BankImportSteps.GivenIAmOnTheImportReviewPage();
