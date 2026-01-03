@@ -48,7 +48,7 @@ public class AuthSteps(ITestContext _context)
     /// If they exist, does nothing. Otherwise, creates user credentials and registers
     /// them on the server. The created user credentials are automatically tracked for cleanup.
     /// </remarks>
-    //[Given("I have an existing account")]
+    [Given("I have an existing account")]
     public async Task GivenIHaveAnExistingAccount()
     {
         // Check if "I" already has credentials
@@ -71,7 +71,7 @@ public class AuthSteps(ITestContext _context)
     /// <remarks>
     /// Creates and stores the LoginPage object in the object store for reuse.
     /// </remarks>
-    //[Given("I am on the login page")]
+    [Given("I am on the login page")]
     public async Task GivenIAmOnTheLoginPage()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -90,7 +90,7 @@ public class AuthSteps(ITestContext _context)
     /// 3. Logs in with test credentials
     /// 4. Verifies the home page loads
     /// </remarks>
-    //[Given("I am logged in")]
+    [Given("I am logged in")]
     public async Task GivenIAmLoggedIn()
     {
         await GivenIHaveAnExistingAccount();
@@ -107,9 +107,13 @@ public class AuthSteps(ITestContext _context)
     /// Navigates to login page, performs login, waits for redirect, and stores
     /// the full username in object store for future reference.
     /// Requires user to have been created beforehand.
+    ///
+    /// Provides Objects
+    /// - LoggedInAs
     /// </remarks>
-    //[Given("I am logged in as {username}")]
-    //[Given("I am logged into my existing account")]
+    [Given("I am logged in as {username}")]
+    [Given("I am logged into my existing account")]
+    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
     public async Task GivenIAmLoggedInAs(string shortName = "I")
     {
         var cred = _context.GetUserCredentials(shortName);
@@ -135,7 +139,7 @@ public class AuthSteps(ITestContext _context)
     /// tracked for cleanup. This is a test setup operation used in multi-user scenarios
     /// like workspace collaboration tests.
     /// </remarks>
-    //[Given("these users exist")]
+    [Given("these users exist")]
     public async Task GivenTheseUsersExist(DataTable usersTable)
     {
         var friendlyNames = usersTable.ToSingleColumnList().ToList();
@@ -160,8 +164,13 @@ public class AuthSteps(ITestContext _context)
     /// Composes RegistrationSteps for the complete registration workflow, then performs login.
     /// New users automatically get a personalized workspace named after their username.
     /// This is useful for testing the new user experience.
+    ///
+    /// Provides Objects
+    /// - CurrentWorkspace
+    /// - LoggedInAs
     /// </remarks>
-    //[When("a new user {username} registers and logs in")]
+    [When("a new user {username} registers and logs in")]
+    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
     public async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
         // Compose: Perform complete registration (navigate, enter, submit, continue)
@@ -207,7 +216,7 @@ public class AuthSteps(ITestContext _context)
     /// Used after credentials have been entered into the form fields.
     /// Assumes credentials have already been entered into the form fields.
     /// </remarks>
-    //[When("I click the login button")]
+    [When("I click the login button")]
     public async Task WhenIClickTheLoginButton()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -222,6 +231,7 @@ public class AuthSteps(ITestContext _context)
     /// login action (entering credentials and submitting the form in one operation).
     /// This is a helper method used by composite Given steps.
     /// </remarks>
+    [When("I login with my credentials")]
     public async Task WhenILoginWithMyCredentials()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -236,7 +246,7 @@ public class AuthSteps(ITestContext _context)
     /// Waits for logout button to be ready, clicks it, and waits for the home page
     /// to load (with extended timeout of 12 seconds) to ensure logout completes.
     /// </remarks>
-    //[When("I click the logout button")]
+    [When("I click the logout button")]
     public async Task WhenIClickTheLogoutButton()
     {
         var profilePage = _context.GetOrCreatePage<ProfilePage>();
@@ -256,7 +266,7 @@ public class AuthSteps(ITestContext _context)
     /// Used to test validation behavior when the password field is left empty.
     /// Fills only the username/email field.
     /// </remarks>
-    //[When("I enter only a username")]
+    [When("I enter only a username")]
     public async Task WhenIEnterOnlyUsername()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -270,7 +280,7 @@ public class AuthSteps(ITestContext _context)
     /// This is a no-op step as leaving password empty is the default state.
     /// The actual validation testing is handled by WhenIEnterOnlyUsername.
     /// </remarks>
-    //[When("I leave the password field empty")]
+    [When("I leave the password field empty")]
     public async Task WhenILeaveThePasswordFieldEmpty()
     {
         // This is handled by WhenIEnterOnlyUsername
@@ -284,7 +294,7 @@ public class AuthSteps(ITestContext _context)
     /// Clicks the login button without expecting an API call. Used for testing
     /// client-side validation that prevents form submission.
     /// </remarks>
-    //[When("I click the login button (for validation)")]
+    [When("I click the login button (for validation)")]
     public async Task WhenIClickTheLoginButtonForValidation()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -374,7 +384,7 @@ public class AuthSteps(ITestContext _context)
     /// Checks the site header login state to confirm the user is no longer
     /// authenticated after logout.
     /// </remarks>
-    //[Then("I should be logged out")]
+    [Then("I should be logged out")]
     public async Task ThenIShouldBeLoggedOut()
     {
         var basePage = _context.GetOrCreatePage<BasePage>();
@@ -389,7 +399,7 @@ public class AuthSteps(ITestContext _context)
     /// Opens the navigation menu and confirms the sign-in menu item is visible,
     /// indicating the user is not currently logged in.
     /// </remarks>
-    //[Then("I should see the login option in the navigation")]
+    [Then("I should see the login option in the navigation")]
     public async Task ThenIShouldSeeTheLoginOptionInTheNavigation()
     {
         var basePage = _context.GetOrCreatePage<BasePage>();
@@ -405,7 +415,7 @@ public class AuthSteps(ITestContext _context)
     /// Confirms the user is not logged in by checking that no username is displayed
     /// in the site header. Used after logout or in anonymous user scenarios.
     /// </remarks>
-    //[Then("I should not see any personal information")]
+    [Then("I should not see any personal information")]
     public async Task ThenIShouldNotSeeAnyPersonalInformation()
     {
         var basePage = _context.GetOrCreatePage<BasePage>();
@@ -420,7 +430,7 @@ public class AuthSteps(ITestContext _context)
     /// Retrieves test user credentials from context and validates that the
     /// profile page displays the correct email and username.
     /// </remarks>
-    //[Then("I should see my account information")]
+    [Then("I should see my account information")]
     public async Task ThenIShouldSeeMyAccountInformation()
     {
         var profilePage = _context.GetOrCreatePage<ProfilePage>();
@@ -438,7 +448,7 @@ public class AuthSteps(ITestContext _context)
     /// Used to confirm that authenticated users cannot see the login form,
     /// or that redirect away from login page was successful.
     /// </remarks>
-    //[Then("I should not see the login form")]
+    [Then("I should not see the login form")]
     public async Task ThenIShouldNotSeeTheLoginForm()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();
@@ -453,7 +463,7 @@ public class AuthSteps(ITestContext _context)
     /// Checks for both HTML5 validation (browser native) and custom error displays.
     /// Prioritizes HTML5 validation check for required password field.
     /// </remarks>
-    //[Then("I should see a validation error")]
+    [Then("I should see a validation error")]
     public async Task ThenIShouldSeeAValidationError()
     {
         var loginPage = _context.GetOrCreatePage<LoginPage>();

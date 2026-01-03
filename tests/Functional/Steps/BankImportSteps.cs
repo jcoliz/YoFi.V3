@@ -1,3 +1,4 @@
+using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -21,8 +22,12 @@ public class BankImportSteps(ITestContext _context)
     /// <remarks>
     /// Sets up minimal state to be on the import review page: navigates to the page and
     /// selects the current workspace. Does not upload any files.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
     /// </remarks>
-    // [Given("I am on the import review page")]
+    [Given("I am on the import review page")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIAmOnTheImportReviewPage()
     {
         // Given: Get workspace name
@@ -45,7 +50,7 @@ public class BankImportSteps(ITestContext _context)
     /// Uploads an OFX file from the test sample data directory.
     /// </summary>
     /// <param name="filename">The filename (e.g., "checking-jan-2024.ofx")</param>
-    // [When("I upload OFX file {filename}")]
+    [When("I upload OFX file {filename}")]
     public async Task WhenIUploadOFXFile(string filename)
     {
         // When: Upload the file
@@ -67,7 +72,7 @@ public class BankImportSteps(ITestContext _context)
     /// Verifies that the import review page displays the expected number of transactions.
     /// </summary>
     /// <param name="count">The expected number of transactions.</param>
-    // [Then("page should display {count} transactions")]
+    [Then("page should display {count} transactions")]
     public async Task ThenPageShouldDisplayTransactions(int count)
     {
         // Then: Get the import page
@@ -83,7 +88,7 @@ public class BankImportSteps(ITestContext _context)
     /// Verifies that the expected number of transactions are selected by default.
     /// </summary>
     /// <param name="count">The expected number of selected transactions.</param>
-    // [Then("{count} transactions should be selected by default")]
+    [Then("{count} transactions should be selected by default")]
     public async Task ThenTransactionsShouldBeSelectedByDefault(int count)
     {
         // Then: Get the import page
@@ -99,7 +104,7 @@ public class BankImportSteps(ITestContext _context)
     /// Verifies that the expected number of transactions are deselected by default.
     /// </summary>
     /// <param name="count">The expected number of deselected transactions.</param>
-    // [Then("{count} transactions should be deselected by default")]
+    [Then("{count} transactions should be deselected by default")]
     public async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
     {
         // Then: Get the import page

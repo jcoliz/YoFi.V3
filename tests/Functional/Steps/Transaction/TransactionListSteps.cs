@@ -27,8 +27,12 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Sets up minimal state to be on the transactions page: navigates to the page,
     /// then selects the current workspace from object store. Does not seed any transactions.
     /// Requires KEY_CURRENT_WORKSPACE to be set in object store.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
     /// </remarks>
     [Given("I am on the transactions page")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIAmOnTheTransactionsPage()
     {
         // Given: Navigate to transactions page first
@@ -56,8 +60,12 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Retrieves transaction payee from object store (stored by data seeding steps),
     /// waits for the transaction row to appear, and clicks it to navigate to the
     /// full details page. Requires TransactionPayee in object store.
+    ///
+    /// Requires Objects
+    /// - TransactionPayee
     /// </remarks>
     [When("I click on the transaction row")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickOnTheTransactionRow()
     {
         // When: Get the payee from object store
@@ -83,8 +91,12 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
     /// waits for loading to complete, and stores as current workspace.
+    ///
+    /// Provides Objects
+    /// - CurrentWorkspace
     /// </remarks>
     [When("I view transactions in {workspaceName}")]
+    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIViewTransactionsIn(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -107,8 +119,12 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Adds __TEST__ prefix. Navigates to transactions page and checks if workspace
     /// is in the available workspaces list. Stores access check result for later
     /// assertion. Used for negative test cases.
+    ///
+    /// Provides Objects
+    /// - HasWorkspaceAccess
     /// </remarks>
     [When("I try to view transactions in {workspaceName}")]
+    [ProvidesObjects(ObjectStoreKeys.HasWorkspaceAccess)]
     public async Task WhenITryToViewTransactionsIn(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -201,8 +217,12 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves permission check result from object store (KEY_HAS_WORKSPACE_ACCESS)
     /// and asserts it's false. Used for workspace access control tests.
+    ///
+    /// Requires Objects
+    /// - HasWorkspaceAccess
     /// </remarks>
     [Then("I should not be able to access that data")]
+    [RequiresObjects(ObjectStoreKeys.HasWorkspaceAccess)]
     public async Task ThenIShouldNotBeAbleToAccessThatData()
     {
         AssertCannotPerformAction(ObjectStoreKeys.HasWorkspaceAccess, "User should not have access to the workspace");
@@ -215,8 +235,13 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves the payee and new memo from object store, waits for page to update,
     /// and verifies the memo in the transaction list matches the updated value.
+    ///
+    /// Requires Objects
+    /// - TransactionPayee
+    /// - TransactionMemo
     /// </remarks>
     [Then("I should see the updated memo in the transaction list")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionMemo)]
     public async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
     {
         // Then: Get the payee and new memo from object store
@@ -242,8 +267,13 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves the payee and new category from object store, waits for page to update,
     /// and verifies the category in the transaction list matches the updated value.
+    ///
+    /// Requires Objects
+    /// - TransactionPayee
+    /// - TransactionCategory
     /// </remarks>
     [Then("I should see the updated category in the transaction list")]
+    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionCategory)]
     public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
     {
         // Then: Get the payee and new category from object store
