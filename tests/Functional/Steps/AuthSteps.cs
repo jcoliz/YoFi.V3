@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -20,6 +21,7 @@ namespace YoFi.V3.Tests.Functional.Steps;
 public class AuthSteps(ITestContext _context)
 {
     private readonly NavigationSteps _navigationSteps = new(_context);
+    private readonly RegistrationSteps _registrationSteps = new(_context);
 
     #region Steps: GIVEN
 
@@ -122,6 +124,62 @@ public class AuthSteps(ITestContext _context)
 
         // Store FULL username for future reference
         _context.ObjectStore.Add("LoggedInAs", cred.Username);
+    }
+
+    /// <summary>
+    /// Creates multiple test users for multi-user test scenarios.
+    /// </summary>
+    /// <param name="usersTable">DataTable containing user names (single column named "Username").</param>
+    /// <remarks>
+    /// Creates all users in bulk via Test Control API. Credentials are automatically
+    /// tracked for cleanup. This is a test setup operation used in multi-user scenarios
+    /// like workspace collaboration tests.
+    /// </remarks>
+    //[Given("these users exist")]
+    public async Task GivenTheseUsersExist(DataTable usersTable)
+    {
+        var friendlyNames = usersTable.ToSingleColumnList().ToList();
+
+        // Generate credentials for all users (auto-tracked)
+        var credentialsList = friendlyNames.Select(name => _context.CreateTestUserCredentials(name)).ToList();
+
+        // Create all users in bulk
+        var created = await _context.TestControlClient.CreateUsersV2Async(credentialsList);
+
+        // Credentials are already tracked by CreateTestUserCredentials
+        // Verify they were created successfully
+        Assert.That(created.Count, Is.EqualTo(friendlyNames.Count),
+            $"Expected to create {friendlyNames.Count} users but only {created.Count} were created");
+    }
+
+    /// <summary>
+    /// Registers a new user and logs them in (for user registration flow tests).
+    /// </summary>
+    /// <param name="shortName">The username (without __TEST__ prefix).</param>
+    /// <remarks>
+    /// Composes RegistrationSteps for the complete registration workflow, then performs login.
+    /// New users automatically get a personalized workspace named after their username.
+    /// This is useful for testing the new user experience.
+    /// </remarks>
+    //[When("a new user {username} registers and logs in")]
+    public async Task WhenANewUserRegistersAndLogsIn(string shortName)
+    {
+        // Compose: Perform complete registration (navigate, enter, submit, continue)
+        await _registrationSteps.WhenIRegisterANewUser(shortName);
+
+        // Retrieve the credentials that were created during registration
+        var credentials = _context.GetUserCredentials(shortName);
+
+        // New users get a workspace containing their name
+        // NOTE: This "works" because workspace lookups are substring lookups
+        _context.ObjectStore.Add("CurrentWorkspaceName", credentials.Username);
+
+        // Perform login with the newly registered credentials
+        var loginPage = _context.GetOrCreatePage<LoginPage>();
+        await loginPage.LoginAsync(credentials.Username, credentials.Password);
+
+        // Store logged in user for future reference
+        _context.ObjectStore.Add("LoggedInAs", credentials.Username);
     }
 
     #endregion

@@ -135,5 +135,16 @@ public interface ITestContext
     /// </remarks>
     void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey);
 
+    /// <summary>
+    /// Removes a workspace from cleanup tracking.
+    /// </summary>
+    /// <param name="workspaceName">The full workspace name (including __TEST__ prefix).</param>
+    /// <remarks>
+    /// Use this when a test explicitly deletes a workspace to prevent "already deleted"
+    /// errors during TearDown cleanup. If the workspace was not being tracked, this
+    /// method does nothing (idempotent operation).
+    /// </remarks>
+    void UntrackWorkspace(string workspaceName);
+
     #endregion
 }

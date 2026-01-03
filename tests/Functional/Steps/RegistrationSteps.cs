@@ -39,16 +39,18 @@ public class RegistrationSteps(ITestContext _context)
     /// <summary>
     /// Enters valid registration details for a new user account.
     /// </summary>
+    /// <param name="shortName">The username (friendly name) for the test user. Defaults to "register".</param>
     /// <remarks>
-    /// Generates a unique test user based on the test ID, stores user details in
+    /// Generates a unique test user with the specified shortName, stores user details in
     /// context, and fills the registration form with valid credentials.
     /// </remarks>
     //[When("I enter valid registration details")]
-    public async Task WhenIEnterValidRegistrationDetails()
+    //[When("{shortName} enters valid registration details")]
+    public async Task WhenIEnterValidRegistrationDetails(string shortName = "register")
     {
         var registerPage = _context.GetOrCreatePage<RegisterPage>();
 
-        var user = _context.CreateTestUserCredentials("register");
+        var user = _context.CreateTestUserCredentials(shortName);
 
         await registerPage.EnterRegistrationDetailsAsync(user.Email, user.Username, user.Password, user.Password);
     }
@@ -145,6 +147,37 @@ public class RegistrationSteps(ITestContext _context)
             newUsername,
             existingUser.Password,
             existingUser.Password);
+    }
+
+    /// <summary>
+    /// Performs complete user registration flow (navigate, enter details, submit, continue).
+    /// </summary>
+    /// <param name="shortName">The username (friendly name) for the test user. Defaults to "register".</param>
+    /// <remarks>
+    /// Composite step that performs the full registration workflow:
+    /// 1. Navigate to registration page
+    /// 2. Enter valid registration details
+    /// 3. Submit the registration form
+    /// 4. Click the Continue button to proceed to login
+    ///
+    /// This is a combiner step for higher-level workflows (e.g., register and login).
+    /// </remarks>
+    [When("I register as a new user")]
+    [When("{shortName} registers as a new user")]
+    public async Task WhenIRegisterANewUser(string shortName = "register")
+    {
+        // Navigate to registration page
+        await GivenIAmOnTheRegistrationPage();
+
+        // Enter registration details
+        await WhenIEnterValidRegistrationDetails(shortName);
+
+        // Submit registration form
+        await WhenISubmitTheRegistrationForm();
+
+        // Continue to login page after successful registration
+        var registerPage = _context.GetOrCreatePage<RegisterPage>();
+        await registerPage.ContinueButton.ClickAsync();
     }
 
     #endregion

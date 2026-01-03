@@ -76,9 +76,10 @@ tests/Functional/Steps/
 ├── WeatherSteps.cs                 # Weather page operations
 │
 ├── Workspace/
-│   ├── WorkspaceListSteps.cs       # Workspace list operations (20 steps)
-│   ├── WorkspaceDetailsSteps.cs    # Workspace details operations (15 steps)
-│   └── WorkspaceCollaborationSteps.cs  # Sharing/collaboration (18 steps)
+│   ├── WorkspaceManagementSteps.cs    # CRUD operations (create, rename, delete) - ~400 lines
+│   ├── WorkspacePermissionsSteps.cs   # Role-based access control checks - ~300 lines
+│   ├── WorkspaceDataSteps.cs          # Data setup (seeding transactions) - ~200 lines
+│   └── WorkspaceAssertionSteps.cs     # Then steps for workspace state - ~400 lines
 │
 └── Transaction/
     ├── TransactionListSteps.cs     # Transaction list operations (15 steps)

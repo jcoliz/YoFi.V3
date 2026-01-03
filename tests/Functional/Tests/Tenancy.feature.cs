@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using YoFi.V3.Tests.Functional.Steps;
+using YoFi.V3.Tests.Functional.Steps.Workspace;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -13,11 +14,23 @@ namespace YoFi.V3.Tests.Functional.Features;
 /// </summary>
 public class WorkspaceManagementTests : WorkspaceTenancySteps
 {
+    protected NavigationSteps NavigationSteps => _navigationSteps ??= new(this);
+    private NavigationSteps? _navigationSteps;
+
+    protected AuthSteps AuthSteps => _authSteps ??= new(this);
+    private AuthSteps? _authSteps;
+
+    protected WorkspaceSteps WorkspaceSteps => _workspaceSteps ??= new(this);
+    private WorkspaceSteps? _workspaceSteps;
+
+    protected WorkspaceManagementSteps WorkspaceManagementSteps => _workspaceManagementSteps ??= new(this);
+    private WorkspaceManagementSteps? _workspaceManagementSteps;
+
     [SetUp]
     public async Task Background()
     {
         // Given the application is running
-        await GivenLaunchedSite();
+        await NavigationSteps.GivenLaunchedSite();
 
         // And these users exist:
         var table = new DataTable(
@@ -26,7 +39,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
             ["bob"],
             ["charlie"]
         );
-        await GivenTheseUsersExist(table);
+        await AuthSteps.GivenTheseUsersExist(table);
     }
 
     #region Rule: Getting Started
@@ -41,19 +54,12 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         // AB#1981: Flaky test
 
         // Given the application is running
-        await GivenLaunchedSite();
+        // TODO: Remove duplicate step
+        await NavigationSteps.GivenLaunchedSite();
 
         // When a new user "david" registers and logs in
-        await WhenANewUserRegistersAndLogsIn("david");
+        await AuthSteps.WhenANewUserRegistersAndLogsIn("david");
 
-        // AB#1981: Maybe the login didn't succeed??
-        // We never actually wait for the login to complete, do we?
-
-        // Screen shot to ensure we are fully logged in.
-        var page = GetOrCreatePage<BasePage>();
-        await page.SaveScreenshotAsync("AfterLogin");
-
-        // AB#1981: Call Stack Here
         // Then user should have a workspace ready to use
         await ThenUserShouldHaveAWorkspaceReadyToUse();
 
@@ -73,10 +79,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task UserCreatesAWorkspaceForASpecificPurpose()
     {
         // Given I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I create a new workspace called "Alice's Finances" for "My personal finances"
-        await WhenICreateANewWorkspaceCalledFor("Alice's Finances", "My personal finances");
+        await WorkspaceManagementSteps.WhenICreateANewWorkspaceCalled("Alice's Finances", "My personal finances");
 
         // Then I should see "Alice's Finances" in my workspace list
         await ThenIShouldSeeInMyWorkspaceList("Alice's Finances");
@@ -92,13 +98,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     public async Task UserOrganizesFinancesAcrossMultipleWorkspaces()
     {
         // Given I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I create a workspace called "Personal Budget"
-        await WhenICreateAWorkspaceCalled("Personal Budget");
+        await WorkspaceManagementSteps.WhenICreateANewWorkspaceCalled("Personal Budget");
 
         // And I create a workspace called "Side Business"
-        await WhenICreateAWorkspaceCalled("Side Business");
+        await WorkspaceManagementSteps.WhenICreateANewWorkspaceCalled("Side Business");
 
         // Then I should have 2 workspaces available
         await ThenIShouldHaveWorkspacesAvailable(2);
@@ -128,10 +134,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserHasAccessToTheseWorkspaces("alice", table);
 
         // And I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I view my workspace list
-        await WhenIViewMyWorkspaceList();
+        await WorkspaceManagementSteps.WhenIViewMyWorkspaceList();
 
         // Then I should see all 3 workspaces
         await ThenIShouldSeeAllWorkspaces(3);
@@ -153,11 +159,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserOwnsAWorkspaceCalled("bob", "My Finances");
 
         // And I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // Bug AV#1979 call stack here
         // When I view the details of "My Finances"
-        await WhenIViewTheDetailsOf("My Finances");
+        await WorkspaceManagementSteps.WhenIViewTheDetailsOf("My Finances");
 
         // Then I should see the workspace information
         await ThenIShouldSeeTheWorkspaceInformation();
@@ -181,13 +187,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserOwnsAWorkspaceCalled("alice", "Old Name");
 
         // And I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I rename it to "New Name"
-        await WhenIRenameItTo("New Name");
+        await WorkspaceManagementSteps.WhenIRenameItTo("New Name");
 
         // And I update the description to "Updated description text"
-        await WhenIUpdateTheDescriptionTo("Updated description text");
+        await WorkspaceManagementSteps.WhenIUpdateTheDescriptionTo("Updated description text");
 
         // Then the workspace should reflect the changes
         await ThenTheWorkspaceShouldReflectTheChanges();
@@ -206,7 +212,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserCanEditDataIn("bob", "Family Budget");
 
         // And I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I try to change the workspace name or description
         await WhenITryToChangeTheWorkspaceNameOrDescription();
@@ -230,11 +236,11 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserOwnsAWorkspaceCalled("alice", "Test Workspace");
 
         // And I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I delete "Test Workspace"
         // AB#1976 Call Stack Here
-        await WhenIDelete("Test Workspace");
+        await WorkspaceManagementSteps.WhenIDelete("Test Workspace");
 
         // Then "Test Workspace" should no longer appear in my list
         await ThenShouldNoLongerAppearInMyList("Test Workspace");
@@ -250,7 +256,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserCanViewDataIn("charlie", "Shared Workspace");
 
         // And I am logged in as "charlie"
-        await GivenIAmLoggedInAs("charlie");
+        await AuthSteps.GivenIAmLoggedInAs("charlie");
 
         // When I try to delete "Shared Workspace"
         await WhenITryToDelete("Shared Workspace");
@@ -285,7 +291,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenWorkspaceContainsTransactions("Business", 3);
 
         // And I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // When I view transactions in "Personal"
         await WhenIViewTransactionsIn("Personal");
@@ -313,7 +319,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenThereIsAWorkspaceCalledThatUserDoesntHaveAccessTo("Private Finances", "bob");
 
         // And I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I try to view transactions in "Private Finances"
         await WhenITryToViewTransactionsIn("Private Finances");
@@ -340,7 +346,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenWorkspaceContainsTransactions("Family Budget", 3);
 
         // And I am logged in as "charlie"
-        await GivenIAmLoggedInAs("charlie");
+        await AuthSteps.GivenIAmLoggedInAs("charlie");
 
         // When I view transactions in "Family Budget"
         await WhenIViewTransactionsIn("Family Budget");
@@ -365,7 +371,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenUserCanEditDataIn("bob", "Family Budget");
 
         // And I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I add a transaction to "Family Budget"
         await WhenIAddATransactionTo("Family Budget");
@@ -400,7 +406,7 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenWorkspaceContainsTransactions("My Workspace", 3);
 
         // And I am logged in as "alice"
-        await GivenIAmLoggedInAs("alice");
+        await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // Then I can add, edit, and delete transactions
         await ThenICanAddEditAndDeleteTransactions();
@@ -435,10 +441,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await GivenThereAreOtherWorkspacesInTheSystem(table);
 
         // And I am logged in as "bob"
-        await GivenIAmLoggedInAs("bob");
+        await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I view my workspace list
-        await WhenIViewMyWorkspaceList();
+        await WorkspaceManagementSteps.WhenIViewMyWorkspaceList();
 
         // Then I should see only "Family Budget" in my list
         await ThenIShouldSeeOnlyInMyList("Family Budget");

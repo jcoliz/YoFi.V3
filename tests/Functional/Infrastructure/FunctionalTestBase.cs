@@ -613,10 +613,25 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
     /// <summary>
     /// Tracks a created workspace for cleanup in TearDown.
     /// </summary>
+    /// <param name="workspaceName">The full workspace name (including __TEST__ prefix).</param>
     /// <param name="workspaceKey">The unique identifier of the workspace.</param>
     public void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey)
     {
         _workspaceKeys[workspaceName] = workspaceKey;
+    }
+
+    /// <summary>
+    /// Removes a workspace from cleanup tracking.
+    /// </summary>
+    /// <param name="workspaceName">The full workspace name (including __TEST__ prefix).</param>
+    /// <remarks>
+    /// Use this when a test explicitly deletes a workspace to prevent "already deleted"
+    /// errors during TearDown cleanup. If the workspace was not being tracked, this
+    /// method does nothing (idempotent operation).
+    /// </remarks>
+    public void UntrackWorkspace(string workspaceName)
+    {
+        _workspaceKeys.Remove(workspaceName);
     }
 
     /// <summary>
