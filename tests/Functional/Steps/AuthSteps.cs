@@ -97,6 +97,33 @@ public class AuthSteps(ITestContext _context)
         await _navigationSteps.ThenIShouldSeeTheHomePage();
     }
 
+    /// <summary>
+    /// Logs in as the specified user.
+    /// </summary>
+    /// <param name="shortName">The username (friendly name, defaults to "I").</param>
+    /// <remarks>
+    /// Navigates to login page, performs login, waits for redirect, and stores
+    /// the full username in object store for future reference.
+    /// Requires user to have been created beforehand.
+    /// </remarks>
+    //[Given("I am logged in as {username}")]
+    //[Given("I am logged into my existing account")]
+    public async Task GivenIAmLoggedInAs(string shortName = "I")
+    {
+        var cred = _context.GetUserCredentials(shortName);
+
+        var loginPage = _context.GetOrCreatePage<LoginPage>();
+        await loginPage.NavigateAsync();
+
+        await loginPage.LoginAsync(cred.Username, cred.Password);
+
+        // Wait for redirect after successful login
+        await _context.Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
+
+        // Store FULL username for future reference
+        _context.ObjectStore.Add("LoggedInAs", cred.Username);
+    }
+
     #endregion
 
     #region Steps: WHEN
