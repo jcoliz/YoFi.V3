@@ -26,6 +26,9 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
     protected WorkspaceManagementSteps WorkspaceManagementSteps => _workspaceManagementSteps ??= new(this);
     private WorkspaceManagementSteps? _workspaceManagementSteps;
 
+    protected WorkspacePermissionsSteps WorkspacePermissionsSteps => _workspacePermissionsSteps ??= new(this);
+    private WorkspacePermissionsSteps? _workspacePermissionsSteps;
+
     [SetUp]
     public async Task Background()
     {
@@ -215,10 +218,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("bob");
 
         // When I try to change the workspace name or description
-        await WhenITryToChangeTheWorkspaceNameOrDescription();
+        await WorkspacePermissionsSteps.WhenITryToChangeTheWorkspaceNameOrDescription();
 
         // Then I should not be able to make those changes
-        await ThenIShouldNotBeAbleToMakeThoseChanges();
+        await WorkspacePermissionsSteps.ThenIShouldNotBeAbleToMakeThoseChanges();
     }
 
     #endregion
@@ -259,10 +262,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("charlie");
 
         // When I try to delete "Shared Workspace"
-        await WhenITryToDelete("Shared Workspace");
+        await WorkspacePermissionsSteps.WhenITryToDelete("Shared Workspace");
 
         // Then the workspace should remain intact
-        await ThenTheWorkspaceShouldRemainIntact();
+        await WorkspacePermissionsSteps.ThenTheWorkspaceShouldRemainIntact();
     }
 
     #endregion
@@ -355,10 +358,10 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await ThenIShouldSeeTheTransactions();
 
         // But when I try to add or edit transactions
-        await WhenITryToAddOrEditTransactions();
+        await WorkspacePermissionsSteps.WhenITryToAddOrEditTransactions();
 
         // Then I should not be able to make those changes
-        await ThenIShouldNotBeAbleToMakeThoseChanges();
+        await WorkspacePermissionsSteps.ThenIShouldNotBeAbleToMakeThoseChanges();
     }
 
     /// <summary>
@@ -409,13 +412,13 @@ public class WorkspaceManagementTests : WorkspaceTenancySteps
         await AuthSteps.GivenIAmLoggedInAs("alice");
 
         // Then I can add, edit, and delete transactions
-        await ThenICanAddEditAndDeleteTransactions();
+        await WorkspacePermissionsSteps.ThenICanAddEditAndDeleteTransactions();
 
         // And I can change workspace settings
-        await ThenICanChangeWorkspaceSettings();
+        await WorkspacePermissionsSteps.ThenICanChangeWorkspaceSettings();
 
         // And I can remove the workspace if needed
-        await ThenICanRemoveTheWorkspaceIfNeeded();
+        await WorkspacePermissionsSteps.ThenICanRemoveTheWorkspaceIfNeeded();
     }
 
     #endregion
