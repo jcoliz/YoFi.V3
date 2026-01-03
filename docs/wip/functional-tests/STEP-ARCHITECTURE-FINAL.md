@@ -1,6 +1,7 @@
 ---
 status: Recommended
 created: 2026-01-03
+updated: 2026-01-03
 priority: High
 target_audience: Development Team
 ---
@@ -69,21 +70,24 @@ BankImportTests declares:
 
 ```
 tests/Functional/Steps/
-├── StepDefinitionsBase.cs          # Base class with test infrastructure access
+├── StepDefinitionsBase.cs
 │
-├── AuthSteps.cs                    # Authentication (~37 steps)
-├── BankImportSteps.cs              # Bank import operations (~20 steps)
+├── AuthSteps.cs                    # Authentication + login (37 + 8 common = 45 steps)
+├── NavigationSteps.cs              # NEW: Site navigation, page verification (~8 steps)
 │
-├── Workspace/                      # Workspace domain (split from 53 steps)
-│   ├── WorkspaceListSteps.cs       # Workspace list operations (~20 steps)
-│   ├── WorkspaceDetailsSteps.cs    # Workspace details operations (~15 steps)
-│   └── WorkspaceCollaborationSteps.cs  # Sharing/collaboration (~18 steps)
+├── BankImportSteps.cs
+├── WeatherSteps.cs                 # Weather-specific steps
 │
-└── Transaction/                    # Transaction domain (split from 55 steps)
-    ├── TransactionListSteps.cs     # Transaction list operations (~15 steps)
-    ├── TransactionDetailsSteps.cs  # Transaction details operations (~15 steps)
-    ├── TransactionEditSteps.cs     # Editing operations (~15 steps)
-    └── TransactionCreateSteps.cs   # Creation operations (~10 steps)
+├── Workspace/
+│   ├── WorkspaceListSteps.cs
+│   ├── WorkspaceDetailsSteps.cs
+│   └── WorkspaceCollaborationSteps.cs
+│
+└── Transaction/
+    ├── TransactionListSteps.cs
+    ├── TransactionDetailsSteps.cs
+    ├── TransactionEditSteps.cs
+    └── TransactionCreateSteps.cs
 ```
 
 ### Generated Test Files (AI-Generated)
@@ -562,6 +566,221 @@ BankImportSteps.   // ← Ctrl+Space shows ALL bank import step methods
 5. Zero code duplication, maximum reusability
 
 **This is the cleanest, most maintainable architecture for AI-generated functional tests.**
+
+## Addendum: Interface vs Concrete Class Dependency
+
+**Question:** Should `StepDefinitionsBase` depend on an interface (`ITestContext`) instead of the concrete `FunctionalTestBase` class?
+
+### Option 1: Concrete Class Dependency (Simpler)
+
+```csharp
+public abstract class StepDefinitionsBase
+{
+    protected readonly FunctionalTestBase Test;
+
+    protected StepDefinitionsBase(FunctionalTestBase test)
+    {
+        Test = test ?? throw new ArgumentNullException(nameof(test));
+    }
+
+    protected ObjectStore ObjectStore => Test._objectStore;
+    protected TestControlClient TestControlClient => Test.testControlClient;
+    // etc.
+}
+```
+
+**Pros:**
+- ✅ Simpler (no extra interface)
+- ✅ Direct access to `FunctionalTestBase` internals
+- ✅ Easier to add new properties (just expose from base class)
+- ✅ Less code to maintain
+
+**Cons:**
+- ⚠️ Tight coupling to `FunctionalTestBase`
+- ⚠️ Harder to test step classes in isolation (need full test infrastructure)
+- ⚠️ Can't use step classes outside functional tests
+
+### Option 2: Interface Dependency (Better Decoupling)
+
+```csharp
+/// <summary>
+/// Defines the test context contract that step definition classes need.
+/// </summary>
+public interface ITestContext
+{
+    ObjectStore ObjectStore { get; }
+    TestControlClient TestControlClient { get; }
+    Dictionary<string, TestUserCredentials> UserCredentials { get; }
+    Dictionary<string, Guid> WorkspaceKeys { get; }
+    IPage Page { get; }
+
+    TestUserCredentials CreateTestUserCredentials(string friendlyName);
+    Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName);
+    void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey);
+}
+
+public abstract class StepDefinitionsBase
+{
+    protected readonly ITestContext Context;
+
+    protected StepDefinitionsBase(ITestContext context)
+    {
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    protected ObjectStore ObjectStore => Context.ObjectStore;
+    protected TestControlClient TestControlClient => Context.TestControlClient;
+    // etc.
+}
+
+// FunctionalTestBase implements the interface
+public abstract partial class FunctionalTestBase : PageTest, ITestContext
+{
+    // Existing implementation already matches interface!
+    ObjectStore ITestContext.ObjectStore => _objectStore;
+    TestControlClient ITestContext.TestControlClient => testControlClient;
+    // etc.
+}
+```
+
+**Pros:**
+- ✅ **Better decoupling** - Step classes don't depend on concrete test base
+- ✅ **Testable in isolation** - Mock `ITestContext` for unit testing step logic
+- ✅ **Reusable** - Could use step classes in other test types (API tests, etc.)
+- ✅ **Clear contract** - Interface documents exactly what step classes need
+- ✅ **Follows SOLID principles** - Dependency Inversion Principle
+
+**Cons:**
+- ⚠️ More code (interface definition + explicit implementation)
+- ⚠️ Slight overhead when adding new infrastructure
+
+### Recommendation: **Use Interface for Better Architecture** ✅
+
+**Why?**
+
+1. **Testability** - You can unit test step implementations by mocking `ITestContext`:
+   ```csharp
+   [Test]
+   public void StepMethod_ValidInput_CreatesWorkspace()
+   {
+       // Given: Mock test context
+       var mockContext = new Mock<ITestContext>();
+       mockContext.Setup(x => x.TestControlClient.CreateWorkspaceAsync(...))
+                  .ReturnsAsync(new Workspace { Key = Guid.NewGuid() });
+
+       // When: Execute step
+       var steps = new WorkspaceListSteps(mockContext.Object);
+       await steps.GivenUserOwnsAWorkspace("alice", "MyWorkspace");
+
+       // Then: Verify API was called correctly
+       mockContext.Verify(x => x.TestControlClient.CreateWorkspaceAsync(...));
+   }
+   ```
+
+2. **Future flexibility** - If you ever want to use step logic in API tests or integration tests, the interface makes this possible
+
+3. **Clear contract** - The interface documents exactly what dependencies step classes have
+
+4. **Minimal cost** - `FunctionalTestBase` already exposes everything via properties, so implementing the interface is trivial
+
+### Implementation
+
+**Add to proposal:**
+
+```csharp
+// tests/Functional/Infrastructure/ITestContext.cs
+namespace YoFi.V3.Tests.Functional.Infrastructure;
+
+/// <summary>
+/// Defines the test context contract that step definition classes require.
+/// </summary>
+/// <remarks>
+/// This interface decouples step definition classes from the concrete FunctionalTestBase,
+/// enabling unit testing of step logic and potential reuse in other test contexts.
+/// </remarks>
+public interface ITestContext
+{
+    /// <summary>Gets the object store for sharing data between test steps.</summary>
+    ObjectStore ObjectStore { get; }
+
+    /// <summary>Gets the Test Control API client for test data setup/cleanup.</summary>
+    TestControlClient TestControlClient { get; }
+
+    /// <summary>Gets the dictionary of test user credentials by friendly name.</summary>
+    Dictionary<string, TestUserCredentials> UserCredentials { get; }
+
+    /// <summary>Gets the dictionary of workspace keys by full workspace name.</summary>
+    Dictionary<string, Guid> WorkspaceKeys { get; }
+
+    /// <summary>Gets the Playwright page for browser automation.</summary>
+    IPage Page { get; }
+
+    /// <summary>Creates unique test user credentials for the current test.</summary>
+    TestUserCredentials CreateTestUserCredentials(string friendlyName);
+
+    /// <summary>Creates test user credentials and registers them on the server.</summary>
+    Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName);
+
+    /// <summary>Tracks a created workspace for cleanup in TearDown.</summary>
+    void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey);
+}
+
+// tests/Functional/Steps/StepDefinitionsBase.cs
+public abstract class StepDefinitionsBase
+{
+    protected readonly ITestContext Context;
+
+    protected StepDefinitionsBase(ITestContext context)
+    {
+        Context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    // Convenience properties delegating to context
+    protected ObjectStore ObjectStore => Context.ObjectStore;
+    protected TestControlClient TestControlClient => Context.TestControlClient;
+    protected Dictionary<string, TestUserCredentials> UserCredentials => Context.UserCredentials;
+    protected Dictionary<string, Guid> WorkspaceKeys => Context.WorkspaceKeys;
+    protected IPage Page => Context.Page;
+
+    // Convenience methods
+    protected T GetOrCreatePage<T>() where T : class
+    {
+        if (ObjectStore.TryGet<T>(out var existing))
+            return existing;
+
+        var pageInstance = (T)Activator.CreateInstance(typeof(T), Page)!;
+        ObjectStore.Add(pageInstance);
+        return pageInstance;
+    }
+
+    protected TestUserCredentials CreateTestUserCredentials(string friendlyName) =>
+        Context.CreateTestUserCredentials(friendlyName);
+
+    protected Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName) =>
+        Context.CreateTestUserCredentialsOnServer(friendlyName);
+
+    protected void TrackCreatedWorkspace(string workspaceName, Guid workspaceKey) =>
+        Context.TrackCreatedWorkspace(workspaceName, workspaceKey);
+}
+
+// tests/Functional/Infrastructure/FunctionalTestBase.cs
+public abstract partial class FunctionalTestBase : PageTest, ITestContext
+{
+    // Existing fields and properties remain unchanged
+
+    // Explicit interface implementation (exposes internal state via interface)
+    ObjectStore ITestContext.ObjectStore => _objectStore;
+    TestControlClient ITestContext.TestControlClient => testControlClient;
+    Dictionary<string, TestUserCredentials> ITestContext.UserCredentials => _userCredentials;
+    Dictionary<string, Guid> ITestContext.WorkspaceKeys => _workspaceKeys;
+    IPage ITestContext.Page => Page;
+
+    // Existing methods already match interface signature
+    // No changes needed!
+}
+```
+
+**Verdict:** Use `ITestContext` interface - better architecture with minimal cost.
 
 ## References
 
