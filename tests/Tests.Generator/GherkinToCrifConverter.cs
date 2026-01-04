@@ -344,13 +344,15 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
 /// </summary>
 public class StepMetadataCollection
 {
+    private readonly List<StepMetadata> _steps = new();
+
     /// <summary>
     /// Adds step metadata to the collection.
     /// </summary>
     /// <param name="metadata">Step definition metadata to add.</param>
     public void Add(StepMetadata metadata)
     {
-        throw new NotImplementedException();
+        _steps.Add(metadata);
     }
 
     /// <summary>
@@ -359,7 +361,7 @@ public class StepMetadataCollection
     /// <param name="metadataItems">Collection of step definition metadata to add.</param>
     public void AddRange(IEnumerable<StepMetadata> metadataItems)
     {
-        throw new NotImplementedException();
+        _steps.AddRange(metadataItems);
     }
 
     /// <summary>
@@ -370,7 +372,70 @@ public class StepMetadataCollection
     /// <returns>Matching step metadata, or null if no match found.</returns>
     public StepMetadata? FindMatch(string normalizedKeyword, string stepText)
     {
-        throw new NotImplementedException();
+        // Filter by keyword first
+        var candidates = _steps.Where(s =>
+            s.NormalizedKeyword.Equals(normalizedKeyword, StringComparison.OrdinalIgnoreCase));
+
+        // Try to find exact match first (no parameters)
+        foreach (var candidate in candidates.Where(c => c.Parameters.Count == 0))
+        {
+            if (candidate.Text.Equals(stepText, StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+
+        // Try to find match with placeholders
+        foreach (var candidate in candidates.Where(c => c.Parameters.Count > 0))
+        {
+            if (MatchesWithPlaceholders(candidate.Text, stepText))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private bool MatchesWithPlaceholders(string pattern, string text)
+    {
+        // Build a regex pattern from the step definition text
+        // Replace {placeholder} with a pattern that matches:
+        // - Single words (no spaces): \S+
+        // - Quoted phrases (can contain spaces): "[^"]*"
+        // The pattern should match either quoted text OR non-whitespace
+
+        // First, replace placeholders in the original pattern BEFORE escaping
+        var regexPattern = System.Text.RegularExpressions.Regex.Replace(
+            pattern,
+            @"\{[^}]+\}",  // Match {placeholder} pattern
+            "<<<PLACEHOLDER>>>"  // Temporary placeholder marker
+        );
+
+        // Now escape the pattern for regex
+        regexPattern = System.Text.RegularExpressions.Regex.Escape(regexPattern);
+
+        // Replace our markers with the actual regex pattern
+        regexPattern = regexPattern.Replace(
+            "<<<PLACEHOLDER>>>",
+            @"(?:""[^""]*""|\S+)"
+        );
+
+        // Add anchors for full string match
+        regexPattern = "^" + regexPattern + "$";
+
+        try
+        {
+            var regex = new System.Text.RegularExpressions.Regex(
+                regexPattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+            return regex.IsMatch(text);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
 
