@@ -1,19 +1,25 @@
-# Gherkin Test Generator
+# Gherkin Test Generator (Source Generator)
 
-This project contains the core logic for generating NUnit test code from Gherkin feature files.
+This project contains a Roslyn Incremental Source Generator that automatically generates NUnit test code from Gherkin feature files at build time.
 
 ## Purpose
 
-This library provides the foundation for automatic test generation from Gherkin `.feature` files. It converts Gherkin features into a Code-Ready Intermediate Form (CRIF) and then renders them into C# test code using Mustache templates.
+This source generator automates the creation of NUnit test code from Gherkin `.feature` files. At build time, it:
+- Discovers step definitions from your C# source files using Roslyn analysis
+- Processes `.feature` files and `.mustache` templates from AdditionalFiles
+- Generates test code automatically
+- Always produces compilable code (generates stubs for unimplemented steps)
 
 ## Project Structure
 
 ```
 Gherkin.Generator/
+├── GherkinSourceGenerator.cs       # Roslyn incremental source generator
+├── StepMethodAnalyzer.cs           # Discovers step definitions via Roslyn
 ├── CrifModels.cs                   # Data models for intermediate representation
 ├── GherkinToCrifConverter.cs       # Converts Gherkin → CRIF
 ├── FunctionalTestGenerator.cs      # Renders CRIF → C# code via Mustache
-└── FunctionalTest.mustache         # Template for generated test code
+└── FunctionalTest.mustache         # Example template (users provide their own)
 ```
 
 ## Key Components
@@ -48,63 +54,129 @@ Renders CRIF objects into C# test code:
 - Generates NUnit test classes
 - Supports multiple output formats (string, stream, file)
 
-## Usage
+## Usage (Consuming Projects)
+
+### 1. Add Package Reference
+
+```xml
+<ItemGroup>
+  <PackageReference Include="YoFi.V3.Tests.Gherkin.Generator" Version="1.0.0" OutputItemType="Analyzer" />
+</ItemGroup>
+```
+
+### 2. Add Feature Files as AdditionalFiles
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="Features\**\*.feature" />
+</ItemGroup>
+```
+
+### 3. Add Mustache Template as AdditionalFiles
+
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="Templates\YourTemplate.mustache" />
+</ItemGroup>
+```
+
+**Note:** You must provide exactly one `.mustache` file in AdditionalFiles. The generator will use the first mustache template it finds.
+
+### 4. Create Step Definitions
 
 ```csharp
-// 1. Create step metadata collection
-var stepMetadata = new StepMetadataCollection();
-stepMetadata.Add(new StepMetadata
+using Reqnroll;
+
+namespace YourProject.Steps
 {
-    NormalizedKeyword = "Given",
-    Text = "I am logged in",
-    Method = "IAmLoggedIn",
-    Class = "AuthSteps",
-    Namespace = "YoFi.V3.Tests.Functional.Steps",
-    Parameters = []
-});
+    [Binding]
+    public class AuthSteps
+    {
+        [Given("I am logged in")]
+        public void IAmLoggedIn()
+        {
+            // Step implementation
+        }
 
-// 2. Parse Gherkin feature file
-var parser = new Gherkin.Parser();
-var gherkinDocument = parser.Parse(featureFileContent);
-
-// 3. Convert to CRIF
-var converter = new GherkinToCrifConverter(stepMetadata);
-var crif = converter.Convert(gherkinDocument);
-
-// 4. Generate C# test code
-var generator = new FunctionalTestGenerator();
-var testCode = generator.GenerateStringFromFile("FunctionalTest.mustache", crif);
+        [When("I click {string}")]
+        public void IClick(string buttonName)
+        {
+            // Step implementation
+        }
+    }
+}
 ```
+
+### 5. Build Your Project
+
+The generator runs automatically during build and creates test files like `YourFeature.feature.g.cs` in the compilation.
+
+## How It Works
+
+1. **Step Discovery**: [`StepMethodAnalyzer`](StepMethodAnalyzer.cs) scans your compilation using Roslyn to find methods with `[Given]`, `[When]`, `[Then]` attributes
+2. **Feature Processing**: Parses all `.feature` files from AdditionalFiles
+3. **Step Matching**: Matches Gherkin steps to discovered step definitions (handles placeholders like `{parameter}`)
+4. **Code Generation**: Renders matched steps into C# test code using your Mustache template
+5. **Stub Generation**: For unimplemented steps, generates stubs with `NotImplementedException` (ensures code always compiles)
 
 ## Target Framework
 
-This project targets **netstandard2.0** to support future use as a Roslyn source generator (Phase 4 of the implementation plan).
+This project targets **netstandard2.0** for compatibility with Roslyn source generators.
 
-## Future: Source Generator Integration
+## Diagnostics
 
-This library is designed to be wrapped by a Roslyn Incremental Source Generator (`IIncrementalGenerator`) that will:
-- Automatically discover step definitions using Roslyn syntax analysis
-- Process `.feature` files and `.mustache` template as `AdditionalFiles` at build time
-- Generate test code automatically during compilation
-- Generate stub methods with `NotImplementedException` for unimplemented steps (always compiles)
-- Optionally provide build warnings for missing step implementations
+The generator reports diagnostics during build:
 
-**Required AdditionalFiles in consuming project:**
-- `*.feature` - Gherkin feature files
-- `FunctionalTest.mustache` - Template file for code generation
+- **GHERKIN001** (Error): No `.mustache` template found in AdditionalFiles
+- **GHERKIN002** (Error): Error generating test for a feature file
+- **GHERKIN003** (Error): Error parsing a `.feature` file
+- **GHERKIN004** (Warning): Feature has unimplemented steps (stubs will be generated)
 
-See [`docs/wip/ideas/GHERKIN-SOURCE-GENERATOR-PLAN.md`](../../docs/wip/ideas/GHERKIN-SOURCE-GENERATOR-PLAN.md) for complete implementation plan.
+## Debugging Generated Code
+
+By default, source-generated files are only stored in memory during compilation. To inspect the generated code for debugging:
+
+### Option 1: Save Generated Files to Disk
+
+Add this property to your test project `.csproj`:
+
+```xml
+<PropertyGroup>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+</PropertyGroup>
+```
+
+Generated files will be saved to `obj\GeneratedFiles\` (e.g., `obj\GeneratedFiles\YoFi.V3.Tests.Generator\YoFi.V3.Tests.Generator.GherkinSourceGenerator\YourFeature.feature.g.cs`).
+
+### Option 2: Include Generated Files in Project
+
+To see generated files in Solution Explorer and enable IntelliSense:
+
+```xml
+<ItemGroup>
+  <Compile Include="$(BaseIntermediateOutputPath)\GeneratedFiles\**\*.g.cs" Visible="true" />
+</ItemGroup>
+```
+
+**Tip:** Add `obj/GeneratedFiles/` to your `.gitignore` to avoid committing generated code.
+
+### Viewing Generated Code Without Saving
+
+1. Build your project: `dotnet build`
+2. In Visual Studio: Right-click on the project → View → View Generated Files
+3. Navigate to the Gherkin.Generator node to see all generated `.feature.g.cs` files
 
 ## Related Projects
 
-- **Gherkin.Generator.Tests** - Test suite for this library (80+ tests)
-- **Functional** - Uses generated tests (will reference this as analyzer in Phase 4)
+- **[Gherkin.Generator.Tests](../Gherkin.Generator.Tests/)** - Test suite for this library (80+ tests)
 
 ## Dependencies
 
 - `Gherkin` (v30.0.2) - Parses Gherkin feature files
 - `Stubble.Core` (v1.10.8) - Mustache template rendering
-- Future: `Microsoft.CodeAnalysis.CSharp` - For Roslyn-based step discovery
+- `Microsoft.CodeAnalysis.CSharp` (v4.8.0) - Roslyn-based step discovery
+- `Microsoft.CodeAnalysis.Analyzers` (v3.3.4) - Analyzer infrastructure
 
 ## Testing
 
