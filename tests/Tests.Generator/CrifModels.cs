@@ -15,21 +15,35 @@ public class FunctionalTestCrif
     /// <summary>
     /// List of using namespaces (e.g., "NUnit.Framework", "YoFi.V3.Tests.Functional.Steps").
     /// </summary>
+    /// <remarks>
+    /// Includes any namespaces required by the step classes.
+    /// Includes base class namespace if specified.
+    /// Includes any explicit namespaces set by feature tags: `@using:Namespace.Name`.
+    /// </remarks>
     public List<string> Usings { get; set; } = [];
 
     /// <summary>
     /// Namespace for the generated test class.
     /// </summary>
+    /// <remarks>
+    /// Set by a tag on the feature: `@namespace:YoFi.V3.Tests.Functional.Features`.
+    /// </remarks>
     public string Namespace { get; set; } = string.Empty;
 
     /// <summary>
     /// Feature name used for the test class name (e.g., "TransactionRecord").
     /// </summary>
+    /// <remarks>
+    /// Taken directly from the Gherkin Feature name.
+    /// </remarks>
     public string FeatureName { get; set; } = string.Empty;
 
     /// <summary>
     /// Short description of the feature from the Gherkin file.
     /// </summary>
+    /// <remarks>
+    /// Taken directly from the Gherkin Feature description.
+    /// </remarks>
     public string FeatureDescription { get; set; } = string.Empty;
 
     /// <summary>
@@ -40,11 +54,18 @@ public class FunctionalTestCrif
     /// <summary>
     /// Base class for the test fixture (e.g., "FunctionalTestBase").
     /// </summary>
+    /// <remarks>
+    /// Set by a tag on the feature: `@baseclass:FunctionalTestBase`. If the tag includes a namespace,
+    /// that namespace should also be included in the Usings list, and it is stripped out of the BaseClass property.
+    /// </remarks>
     public string BaseClass { get; set; } = string.Empty;
 
     /// <summary>
     /// List of step class names required by the test (e.g., "NavigationSteps", "AuthSteps").
     /// </summary>
+    /// <remarks>
+    /// This is set by the step-matching process. When steps are found, their owner classes are added to this list.
+    /// </remarks>
     public List<string> Classes { get; set; } = [];
 
     /// <summary>
@@ -60,6 +81,11 @@ public class FunctionalTestCrif
     /// <summary>
     /// List of unimplemented steps that need to be generated as stubs.
     /// </summary>
+    /// <remarks>
+    /// If step matching fails to find a step, we will generate a stub method for it.
+    /// This ensures the test code compiles even if some steps are not yet implemented.
+    /// It also gives implementers a starting point for writing the missing step definitions.
+    /// </remarks>
     public List<UnimplementedStepCrif> Unimplemented { get; set; } = [];
 }
 
@@ -86,11 +112,17 @@ public class RuleCrif
     /// <summary>
     /// Rule name.
     /// </summary>
+    /// <remarks>
+    /// Taken directly from the Gherkin Rule name.
+    /// </remarks>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Rule description.
     /// </summary>
+    /// <remarks>
+    /// Taken directly from the Gherkin Rule description.
+    /// </remarks>
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -117,11 +149,17 @@ public class ScenarioCrif
     /// <summary>
     /// Optional remarks for the scenario (additional documentation).
     /// </summary>
+    /// <remarks>
+    /// Comes from Gherkin description of scenarios
+    /// </remarks>
     public RemarksCrif? Remarks { get; set; }
 
     /// <summary>
     /// Whether this scenario should be marked with [Explicit] attribute.
     /// </summary>
+    /// <remarks>
+    /// Set by a tag on the scenario: `@explicit`.
+    /// </remarks>
     public bool ExplicitTag { get; set; }
 
     /// <summary>
@@ -175,11 +213,20 @@ public class ParameterCrif
 /// <summary>
 /// Represents a single step in a scenario or background.
 /// </summary>
+/// <remarks>
+/// Owner, method, and arguments are determined by step matching against available step definitions.
+/// Unless the step is unimplemented, in which case it will be listed in the UnimplementedSteps collection instead.
+/// and we will include a call to it here, using `this` as the owner.
+/// </remarks>
 public class StepCrif
 {
     /// <summary>
-    /// Step keyword (Given, When, Then, And, But).
+    /// Displayed step keyword (Given, When, Then, And, But).
     /// </summary>
+    /// <remarks>
+    /// This is the keyword as it appears in the Gherkin file for documentation purposes.
+    /// Normalized step name will be used for step matching (e.g. "And" would match "Given" steps if the previous step was a Given).
+    /// </remarks>
     public string Keyword { get; set; } = string.Empty;
 
     /// <summary>
@@ -188,13 +235,20 @@ public class StepCrif
     public string Text { get; set; } = string.Empty;
 
     /// <summary>
-    /// Owner class instance name (e.g., "NavigationSteps", "AuthSteps").
+    /// Owner class type name (e.g., "NavigationSteps", "AuthSteps").
     /// </summary>
+    /// <remarks>
+    /// Exact class name from the step definition metadata.
+    /// or `this` if the step is unimplemented (stub).
+    /// </remarks>
     public string Owner { get; set; } = string.Empty;
 
     /// <summary>
     /// Method name to call on the owner class.
     /// </summary>
+    /// <remarks>
+    /// Exact method name from the step definition metadata.
+    /// </remarks>
     public string Method { get; set; } = string.Empty;
 
     /// <summary>
@@ -237,6 +291,11 @@ public class DataTableCrif
     /// <summary>
     /// Variable name for the generated DataTable instance (e.g., "table", "fieldsTable").
     /// </summary>
+    /// <remarks>
+    /// This is used to name the DataTable variable in the generated code.
+    /// We will use `table1`, `table2`, etc for uniqueness within a single implemented method
+    /// (scenario or background).
+    /// </remarks>
     public string VariableName { get; set; } = string.Empty;
 
     /// <summary>
@@ -314,8 +373,11 @@ public class DataCellCrif
 public class UnimplementedStepCrif
 {
     /// <summary>
-    /// Step keyword (Given, When, Then).
+    /// Exact Step keyword (Given, When, Then).
     /// </summary>
+    /// <remarks>
+    /// No "and" or "but" keywords here - those are normalized to the main keyword.
+    /// </remarks>
     public string Keyword { get; set; } = string.Empty;
 
     /// <summary>
@@ -326,6 +388,10 @@ public class UnimplementedStepCrif
     /// <summary>
     /// Method name for the stub method.
     /// </summary>
+    /// <remarks>
+    /// Generated by converting the step text to PascalCase and removing special characters,
+    /// such that it can be used as a valid C# method name.
+    /// </remarks>
     public string Method { get; set; } = string.Empty;
 
     /// <summary>
