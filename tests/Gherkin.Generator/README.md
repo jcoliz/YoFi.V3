@@ -111,6 +111,44 @@ namespace YourProject.Steps
 
 The generator runs automatically during build and creates test files like `YourFeature.feature.g.cs` in the compilation.
 
+## Alternative: Using as Project Reference
+
+For local development within the same solution, you can use a project reference instead of a package reference. This allows immediate changes without packing/publishing.
+
+### Configuration
+
+```xml
+<ItemGroup>
+  <!-- Source generator project reference -->
+  <ProjectReference Include="..\Gherkin.Generator\YoFi.V3.Tests.Gherkin.Generator.csproj"
+                    OutputItemType="Analyzer"
+                    ReferenceOutputAssembly="false" />
+
+  <!-- Generator dependencies (required for project references) -->
+  <PackageReference Include="Gherkin" Version="30.0.2" />
+  <PackageReference Include="Stubble.Core" Version="1.10.8" />
+
+  <!-- Feature files and template -->
+  <AdditionalFiles Include="Features\**\*.feature" />
+  <AdditionalFiles Include="Features\YourTemplate.mustache" />
+</ItemGroup>
+```
+
+### Key Attributes
+
+- **`OutputItemType="Analyzer"`** - Tells MSBuild to treat the project as a Roslyn analyzer/source generator
+- **`ReferenceOutputAssembly="false"`** - Prevents the generator DLL from being referenced as a regular assembly (source generators run at compile-time, not runtime)
+
+### Why Add Generator Dependencies?
+
+When using `ReferenceOutputAssembly="false"`, transitive dependencies aren't automatically copied. Source generators run in the compiler process and need their dependencies (`Gherkin`, `Stubble.Core`) accessible at compile time. You must explicitly add them to the consuming project.
+
+### Benefits
+
+- **Immediate changes** - Modifications to the generator take effect on next build
+- **Easier debugging** - Can attach debugger to the source generator during development
+- **Simplified workflow** - No version number management during active development
+
 ## How It Works
 
 1. **Step Discovery**: [`StepMethodAnalyzer`](StepMethodAnalyzer.cs) scans your compilation using Roslyn to find methods with `[Given]`, `[When]`, `[Then]` attributes
