@@ -16,7 +16,326 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
     /// <returns>Code-Ready Intermediate Form ready for template rendering.</returns>
     public FunctionalTestCrif Convert(GherkinDocument feature)
     {
-        throw new NotImplementedException();
+        var crif = new FunctionalTestCrif();
+
+        if (feature.Feature != null)
+        {
+            // Extract feature name
+            crif.FeatureName = feature.Feature.Name;
+
+            // Extract feature description lines
+            if (feature.Feature.Description != null)
+            {
+                var lines = feature.Feature.Description.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    crif.DescriptionLines.Add(line.Trim());
+                }
+            }
+
+            // Process feature tags
+            foreach (var tag in feature.Feature.Tags)
+            {
+                if (tag.Name.StartsWith("@namespace:"))
+                {
+                    crif.Namespace = tag.Name.Substring("@namespace:".Length);
+                }
+                else if (tag.Name.StartsWith("@baseclass:"))
+                {
+                    var baseClassValue = tag.Name.Substring("@baseclass:".Length);
+                    // Check if base class includes namespace (contains dots)
+                    var lastDotIndex = baseClassValue.LastIndexOf('.');
+                    if (lastDotIndex >= 0)
+                    {
+                        var ns = baseClassValue.Substring(0, lastDotIndex);
+                        crif.BaseClass = baseClassValue.Substring(lastDotIndex + 1);
+                        if (!crif.Usings.Contains(ns))
+                        {
+                            crif.Usings.Add(ns);
+                        }
+                    }
+                    else
+                    {
+                        crif.BaseClass = baseClassValue;
+                    }
+                }
+                else if (tag.Name.StartsWith("@using:"))
+                {
+                    var usingValue = tag.Name.Substring("@using:".Length);
+                    if (!crif.Usings.Contains(usingValue))
+                    {
+                        crif.Usings.Add(usingValue);
+                    }
+                }
+            }
+
+            // Extract background if present
+            var background = feature.Feature.Children.OfType<Background>().FirstOrDefault();
+            if (background != null)
+            {
+                crif.Background = ConvertBackground(background);
+                // Track unimplemented steps from background
+                TrackUnimplementedSteps(crif, crif.Background.Steps);
+            }
+
+            // Process feature children (Rules and Scenarios)
+            RuleCrif? defaultRule = null;
+
+            foreach (var child in feature.Feature.Children)
+            {
+                if (child is Rule rule)
+                {
+                    var ruleCrif = new RuleCrif
+                    {
+                        Name = rule.Name,
+                        Description = rule.Description ?? string.Empty
+                    };
+
+                    foreach (var ruleChild in rule.Children)
+                    {
+                        if (ruleChild is Scenario scenario)
+                        {
+                            var scenarioCrif = ConvertScenario(scenario);
+                            ruleCrif.Scenarios.Add(scenarioCrif);
+                            // Track unimplemented steps
+                            TrackUnimplementedSteps(crif, scenarioCrif.Steps);
+                        }
+                    }
+
+                    crif.Rules.Add(ruleCrif);
+                }
+                else if (child is Scenario scenarioWithoutRule)
+                {
+                    // Create default rule if needed
+                    if (defaultRule == null)
+                    {
+                        defaultRule = new RuleCrif
+                        {
+                            Name = "All scenarios",
+                            Description = string.Empty
+                        };
+                        crif.Rules.Add(defaultRule);
+                    }
+
+                    var scenarioCrif = ConvertScenario(scenarioWithoutRule);
+                    defaultRule.Scenarios.Add(scenarioCrif);
+                    // Track unimplemented steps
+                    TrackUnimplementedSteps(crif, scenarioCrif.Steps);
+                }
+            }
+        }
+
+        return crif;
+    }
+
+    private BackgroundCrif ConvertBackground(Background background)
+    {
+        var backgroundCrif = new BackgroundCrif();
+
+        foreach (var step in background.Steps)
+        {
+            var stepCrif = ConvertStep(step);
+            backgroundCrif.Steps.Add(stepCrif);
+        }
+
+        return backgroundCrif;
+    }
+
+    private ScenarioCrif ConvertScenario(Scenario scenario)
+    {
+        var scenarioCrif = new ScenarioCrif
+        {
+            Name = scenario.Name,
+            Method = ConvertToMethodName(scenario.Name)
+        };
+
+        // Extract scenario description as remarks
+        if (!string.IsNullOrWhiteSpace(scenario.Description))
+        {
+            var lines = scenario.Description.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            scenarioCrif.Remarks = new RemarksCrif
+            {
+                Lines = lines.Select(l => l.Trim()).ToList()
+            };
+        }
+
+        // Check for @explicit tag
+        foreach (var tag in scenario.Tags)
+        {
+            if (tag.Name == "@explicit")
+            {
+                scenarioCrif.ExplicitTag = true;
+                break;
+            }
+        }
+
+        // Handle Scenario Outline examples
+        if (scenario.Examples != null && scenario.Examples.Any())
+        {
+            var examples = scenario.Examples.First();
+            var headerRow = examples.TableHeader;
+            var dataRows = examples.TableBody;
+
+            // Extract parameters from header
+            foreach (var cell in headerRow.Cells)
+            {
+                scenarioCrif.Parameters.Add(new ParameterCrif
+                {
+                    Type = "string", // Default to string for unimplemented steps
+                    Name = cell.Value,
+                    Last = false // Will be set after all are added
+                });
+            }
+
+            // Set Last flag on final parameter
+            if (scenarioCrif.Parameters.Any())
+            {
+                scenarioCrif.Parameters[scenarioCrif.Parameters.Count - 1].Last = true;
+            }
+
+            // Generate test cases from data rows
+            foreach (var dataRow in dataRows)
+            {
+                var values = dataRow.Cells.Select(c => $"\"{c.Value}\"");
+                scenarioCrif.TestCases.Add(string.Join(", ", values));
+            }
+        }
+
+        // Convert steps
+        var tableCounter = 1;
+        foreach (var step in scenario.Steps)
+        {
+            var stepCrif = ConvertStep(step);
+
+            // Assign data table variable name if present
+            if (stepCrif.DataTable != null)
+            {
+                stepCrif.DataTable.VariableName = $"table{tableCounter}";
+                tableCounter++;
+            }
+
+            scenarioCrif.Steps.Add(stepCrif);
+        }
+
+        return scenarioCrif;
+    }
+
+    private StepCrif ConvertStep(Gherkin.Ast.Step step)
+    {
+        var stepCrif = new StepCrif
+        {
+            Keyword = step.Keyword.Trim(),
+            Text = step.Text,
+            Owner = "this", // Unimplemented - will be set during step matching
+            Method = string.Empty // Will be set during step matching
+        };
+
+        // Convert data table if present
+        if (step.Argument is DataTable dataTable)
+        {
+            stepCrif.DataTable = ConvertDataTable(dataTable);
+        }
+
+        return stepCrif;
+    }
+
+    private DataTableCrif ConvertDataTable(DataTable dataTable)
+    {
+        var tableCrif = new DataTableCrif();
+
+        var rows = dataTable.Rows.ToList();
+        if (rows.Count > 0)
+        {
+            // First row is headers
+            var headerRow = rows[0];
+            var headerCells = headerRow.Cells.ToList();
+            for (int i = 0; i < headerCells.Count; i++)
+            {
+                tableCrif.Headers.Add(new HeaderCellCrif
+                {
+                    Value = headerCells[i].Value,
+                    Last = i == headerCells.Count - 1
+                });
+            }
+
+            // Remaining rows are data
+            for (int rowIdx = 1; rowIdx < rows.Count; rowIdx++)
+            {
+                var row = rows[rowIdx];
+                var cells = row.Cells.ToList();
+                var rowCrif = new DataRowCrif
+                {
+                    Last = rowIdx == rows.Count - 1
+                };
+
+                for (int cellIdx = 0; cellIdx < cells.Count; cellIdx++)
+                {
+                    rowCrif.Cells.Add(new DataCellCrif
+                    {
+                        Value = cells[cellIdx].Value,
+                        Last = cellIdx == cells.Count - 1
+                    });
+                }
+
+                tableCrif.Rows.Add(rowCrif);
+            }
+        }
+
+        return tableCrif;
+    }
+
+    private string ConvertToMethodName(string name)
+    {
+        // Convert scenario name to PascalCase method name
+        var words = name.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries);
+        var result = string.Join("", words.Select(w =>
+            char.ToUpper(w[0]) + (w.Length > 1 ? w.Substring(1) : "")));
+
+        // Remove any remaining special characters
+        result = new string(result.Where(c => char.IsLetterOrDigit(c)).ToArray());
+
+        return result;
+    }
+
+    private void TrackUnimplementedSteps(FunctionalTestCrif crif, List<StepCrif> steps)
+    {
+        // Track keyword context for And/But normalization
+        string currentKeyword = "Given";
+
+        foreach (var step in steps)
+        {
+            // Normalize And/But to the current keyword
+            var normalizedKeyword = step.Keyword;
+            if (normalizedKeyword == "And" || normalizedKeyword == "But")
+            {
+                normalizedKeyword = currentKeyword;
+            }
+            else if (normalizedKeyword == "Given" || normalizedKeyword == "When" || normalizedKeyword == "Then")
+            {
+                currentKeyword = normalizedKeyword;
+            }
+
+            // Check if this step is already tracked as unimplemented
+            var existingUnimplemented = crif.Unimplemented.FirstOrDefault(u =>
+                u.Text == step.Text && u.Keyword == normalizedKeyword);
+
+            if (existingUnimplemented == null)
+            {
+                // Add to unimplemented list (since we have no step metadata)
+                var unimplementedStep = new UnimplementedStepCrif
+                {
+                    Keyword = normalizedKeyword,
+                    Text = step.Text,
+                    Method = ConvertToMethodName(step.Text),
+                    Parameters = [] // Empty for now - would be populated from step text parsing
+                };
+
+                crif.Unimplemented.Add(unimplementedStep);
+            }
+
+            // Set step method name to match the unimplemented method
+            step.Method = ConvertToMethodName(step.Text);
+        }
     }
 }
 

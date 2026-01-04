@@ -22,7 +22,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_MinimalFeature_ExtractsFeatureName()
     {
         // Given: A minimal Gherkin feature
@@ -39,7 +38,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithDescription_ExtractsDescription()
     {
         // Given: A feature with description
@@ -62,7 +60,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithNamespaceTag_ExtractsNamespace()
     {
         // Given: A feature with @namespace tag
@@ -80,7 +77,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithBaseClassTag_ExtractsBaseClass()
     {
         // Given: A feature with @baseclass tag
@@ -98,7 +94,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithBaseClassAndNamespace_SplitsNamespaceAndClass()
     {
         // Given: A feature with @baseclass tag including namespace
@@ -119,7 +114,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithUsingTag_AddsUsingToList()
     {
         // Given: A feature with @using tag
@@ -137,7 +131,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithMultipleUsingTags_AddsAllUsingsToList()
     {
         // Given: A feature with multiple @using tags
@@ -157,7 +150,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithScenario_ExtractsScenarioName()
     {
         // Given: A feature with a scenario
@@ -182,7 +174,32 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
+    public void Convert_FeatureWithScenarioWithoutRule_CreatesDefaultRule()
+    {
+        // Given: A feature with a scenario but no rule
+        var gherkin = """
+            Feature: Transaction Management
+
+            Scenario: Create new transaction
+              Given I am logged in
+              When I create a transaction
+              Then the transaction is saved
+            """;
+        var feature = ParseGherkin(gherkin);
+
+        // When: Feature is converted to CRIF
+        var crif = _converter.Convert(feature);
+
+        // Then: Should create a default rule named "All scenarios"
+        Assert.That(crif.Rules, Has.Count.EqualTo(1));
+        Assert.That(crif.Rules[0].Name, Is.EqualTo("All scenarios"));
+
+        // And: Scenario should be under that rule
+        Assert.That(crif.Rules[0].Scenarios, Has.Count.EqualTo(1));
+        Assert.That(crif.Rules[0].Scenarios[0].Name, Is.EqualTo("Create new transaction"));
+    }
+
+    [Test]
     public void Convert_FeatureWithScenario_GeneratesMethodName()
     {
         // Given: A feature with a scenario
@@ -204,7 +221,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioWithExplicitTag_SetsExplicitFlag()
     {
         // Given: A scenario with @explicit tag
@@ -227,7 +243,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithRule_ExtractsRuleName()
     {
         // Given: A feature with a rule
@@ -250,7 +265,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_FeatureWithBackground_ExtractsBackgroundSteps()
     {
         // Given: A feature with background
@@ -279,7 +293,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_BackgroundSteps_ExtractsKeywords()
     {
         // Given: A feature with background containing different keywords
@@ -308,7 +321,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioSteps_ExtractsStepText()
     {
         // Given: A scenario with steps
@@ -336,7 +348,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioSteps_ExtractsKeywords()
     {
         // Given: A scenario with steps
@@ -363,7 +374,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_StepWithDataTable_ExtractsDataTable()
     {
         // Given: A step with a data table
@@ -389,7 +399,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_ExtractsHeaders()
     {
         // Given: A step with a data table
@@ -417,7 +426,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_ExtractsRows()
     {
         // Given: A step with a data table
@@ -447,7 +455,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_SetsLastFlagsOnHeaders()
     {
         // Given: A step with a data table
@@ -473,7 +480,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_SetsLastFlagsOnRows()
     {
         // Given: A step with a data table
@@ -500,7 +506,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_SetsLastFlagsOnCells()
     {
         // Given: A step with a data table
@@ -526,7 +531,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_DataTable_GeneratesVariableName()
     {
         // Given: A step with a data table
@@ -551,7 +555,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_MultipleDataTablesInScenario_GeneratesUniqueVariableNames()
     {
         // Given: A scenario with multiple data tables
@@ -580,7 +583,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioOutline_ExtractsParameters()
     {
         // Given: A scenario outline with examples
@@ -610,7 +612,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioOutline_GeneratesTestCases()
     {
         // Given: A scenario outline with examples
@@ -640,7 +641,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioOutlineWithMultipleParameters_GeneratesMultiArgumentTestCases()
     {
         // Given: A scenario outline with multiple parameters
@@ -670,7 +670,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_EmptyStepCollection_AllStepsUnimplemented()
     {
         // Given: A feature with steps and empty step collection
@@ -697,7 +696,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_UnimplementedSteps_NormalizesKeywords()
     {
         // Given: A feature with And and But steps
@@ -723,7 +721,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_UnimplementedSteps_GeneratesMethodNames()
     {
         // Given: A feature with steps
@@ -747,7 +744,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_UnimplementedSteps_SetsOwnerToThis()
     {
         // Given: A feature with unimplemented steps
@@ -770,7 +766,6 @@ public class GherkinToCrifConverterTests
     }
 
     [Test]
-    [Explicit("Test implementation in progress - Gherkin parsing only")]
     public void Convert_ScenarioWithDescription_ExtractsRemarks()
     {
         // Given: A scenario with multi-line description
