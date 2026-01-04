@@ -51,11 +51,17 @@ public class FunctionalTestGenerator
     /// <param name="templatePath">Path to the Mustache template file.</param>
     /// <param name="crif">Code-Ready Intermediate Form object containing test data.</param>
     /// <returns>Stream containing the generated C# code.</returns>
+    /// <remarks>
+    /// This method is for testing and standalone use only. Source generators should use
+    /// the Generate(string, FunctionalTestCrif) overload with template content from AdditionalFiles.
+    /// </remarks>
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers - File IO is for testing only
     public Stream GenerateFromFile(string templatePath, FunctionalTestCrif crif)
     {
         var template = File.ReadAllText(templatePath);
         return Generate(template, crif);
     }
+#pragma warning restore RS1035
 
     /// <summary>
     /// Generates test code from a template file and writes it directly to an output file.
@@ -63,6 +69,11 @@ public class FunctionalTestGenerator
     /// <param name="templatePath">Path to the Mustache template file.</param>
     /// <param name="crif">Code-Ready Intermediate Form object containing test data.</param>
     /// <param name="outputPath">Path where the generated C# file should be written.</param>
+    /// <remarks>
+    /// This method is for testing and standalone use only. Source generators should use
+    /// the Generate(string, FunctionalTestCrif) overload and register output via context.
+    /// </remarks>
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers - File IO is for testing only
     public void GenerateToFile(string templatePath, FunctionalTestCrif crif, string outputPath)
     {
         var template = File.ReadAllText(templatePath);
@@ -72,6 +83,7 @@ public class FunctionalTestGenerator
         var result = renderer.Render(template, crif);
         File.WriteAllText(outputPath, result);
     }
+#pragma warning restore RS1035
 
     /// <summary>
     /// Generates test code and returns it as a string.
@@ -93,6 +105,11 @@ public class FunctionalTestGenerator
     /// <param name="templatePath">Path to the Mustache template file.</param>
     /// <param name="crif">Code-Ready Intermediate Form object containing test data.</param>
     /// <returns>Generated C# code as a string.</returns>
+    /// <remarks>
+    /// This method is for testing and standalone use only. Source generators should use
+    /// the GenerateString(string, FunctionalTestCrif) overload with template content from AdditionalFiles.
+    /// </remarks>
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers - File IO is for testing only
     public string GenerateStringFromFile(string templatePath, FunctionalTestCrif crif)
     {
         var template = File.ReadAllText(templatePath);
@@ -101,4 +118,5 @@ public class FunctionalTestGenerator
             .Build();
         return renderer.Render(template, crif);
     }
+#pragma warning restore RS1035
 }
