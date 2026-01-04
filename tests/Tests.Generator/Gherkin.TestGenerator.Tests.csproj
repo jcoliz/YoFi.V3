@@ -15,6 +15,7 @@
     <PackageReference Include="NUnit.Analyzers" Version="4.7.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
     <PackageReference Include="Stubble.Core" Version="1.10.8" />
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +26,7 @@
     <Compile Remove="sample-output.cs" />
     <None Include="sample-output.cs" />
     <None Include="FunctionalTest.mustache" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="sample-crif.yaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -557,6 +557,57 @@ public class FunctionalTestGeneratorTests
 
     #endregion
 
+    #region Full Sample YAML Tests
+
+    /// <summary>
+    /// Generator produces complete output from sample YAML file.
+    /// </summary>
+    [Test]
+    public void GenerateFromSampleYaml_ProducesCompleteOutput()
+    {
+        // Given: Sample CRIF YAML file exists
+        var yamlPath = "sample-crif.yaml";
+        Assert.That(File.Exists(yamlPath), Is.True, "sample-crif.yaml should exist");
+
+        // And: YAML is loaded and deserialized
+        var yamlContent = File.ReadAllText(yamlPath);
+        var deserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+            .Build();
+        var crif = deserializer.Deserialize<FunctionalTestCrif>(yamlContent);
+
+        // And: Output directory exists
+        var outputDir = Path.Combine("bin", "GeneratedTests");
+        Directory.CreateDirectory(outputDir);
+        var outputPath = Path.Combine(outputDir, "TransactionRecordFieldsFeature_Tests.cs");
+
+        // When: Generating from template file
+        _generator.GenerateToFile(_templatePath, crif, outputPath);
+
+        // Then: Output file should exist
+        Assert.That(File.Exists(outputPath), Is.True, "Generated file should exist");
+
+        // And: Output file should contain expected elements
+        var generatedCode = File.ReadAllText(outputPath);
+        Assert.That(generatedCode, Does.Contain("using NUnit.Framework;"));
+        Assert.That(generatedCode, Does.Contain("namespace YoFi.V3.Tests.Functional.Features;"));
+        Assert.That(generatedCode, Does.Contain("public partial class TransactionRecordFieldsFeature_Tests : FunctionalTestBase"));
+        Assert.That(generatedCode, Does.Contain("[SetUp]"));
+        Assert.That(generatedCode, Does.Contain("public async Task SetupAsync()"));
+        Assert.That(generatedCode, Does.Contain("#region Rule: Quick Edit Modal"));
+        Assert.That(generatedCode, Does.Contain("var table = new DataTable("));
+        Assert.That(generatedCode, Does.Contain("[TestCase(\"/weather\")]"));
+        Assert.That(generatedCode, Does.Contain("[Explicit]"));
+        Assert.That(generatedCode, Does.Contain("#region Unimplemented Steps"));
+
+        // And: Attach the generated file to test output
+        TestContext.AddTestAttachment(outputPath, "Generated test file from sample YAML");
+
+        // And: Log output location for visibility
+        TestContext.WriteLine($"Generated test file: {Path.GetFullPath(outputPath)}");
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static FunctionalTestCrif CreateMinimalCrif()

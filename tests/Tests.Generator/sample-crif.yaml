@@ -1,76 +1,42 @@
-# Sample CRIF (Code-Ready Intermediate Form) YAML
-# This showcases all features of the FunctionalTest.mustache template
-
+# Complete CRIF YAML demonstrating all features
 Usings:
   - NUnit.Framework
-  - YoFi.V3.Tests.Functional.Steps
-  - YoFi.V3.Tests.Functional.Steps.Transaction
-  - YoFi.V3.Tests.Functional.Steps.Workspace
-  - YoFi.V3.Tests.Functional.Helpers
-  - YoFi.V3.Tests.Functional.Infrastructure
 
 Namespace: YoFi.V3.Tests.Functional.Features
-
 FeatureName: TransactionRecordFields
-
 FeatureDescription: Transaction Record Fields
 
 DescriptionLines:
-  - "As a user managing transactions"
-  - "I want to record additional details about each transaction"
-  - "So that I can track memo notes, source accounts, and external identifiers"
+  - "Test description"
 
 BaseClass: FunctionalTestBase
 
 Classes:
   - NavigationSteps
-  - AuthSteps
-  - WorkspaceDataSteps
-  - TransactionDataSteps
-  - TransactionListSteps
-  - TransactionQuickEditSteps
-  - TransactionCreateSteps
-  - TransactionSharedSteps
-  - TransactionDetailsSteps
-  - TransactionEditSteps
+  - TransactionSteps
 
-# Background section - runs before each test ([SetUp])
 Background:
   Steps:
     - Keyword: Given
       Text: the application is running
       Owner: NavigationSteps
       Method: GivenLaunchedSite
-      Arguments: []
-      DataTable: null
 
-    - Keyword: And
-      Text: I am logged in as a user with "Editor" role
-      Owner: WorkspaceDataSteps
-      Method: GivenIAmLoggedInAsAUserWithEditorRole
-      Arguments: []
-      DataTable: null
-
-# Rules contain scenarios
 Rules:
-  # Rule 1: Demonstrates DataTable usage
   - Name: Quick Edit Modal
-    Description: The quick edit modal should only show Payee, Category, and Memo fields for rapid updates
+    Description: Test rule
     Scenarios:
-      # Scenario with DataTable
-      - Name: Quick edit modal shows Payee, Category, and Memo fields
-        Method: QuickEditModalShowsPayeeCategoryAndMemoFields
-        Remarks: null
+      - Name: Simple test
+        Method: SimpleTest
         ExplicitTag: false
-        TestCases: []
-        Parameters: []
         Steps:
           - Keyword: Given
-            Text: I have a workspace with a transaction:
-            Owner: TransactionDataSteps
-            Method: GivenIHaveAWorkspaceWithATransaction
+            Text: a transaction
+            Owner: TransactionSteps
+            Method: GivenATransaction
             Arguments:
-              - table
+              - Value: table
+                Last: true
             DataTable:
               VariableName: table
               Headers:
@@ -84,369 +50,38 @@ Rules:
                       Last: false
                     - Value: Coffee Shop
                       Last: true
-                  Last: false
-                - Cells:
-                    - Value: Amount
-                      Last: false
-                    - Value: "5.50"
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Category
-                      Last: false
-                    - Value: Beverages
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Memo
-                      Last: false
-                    - Value: Morning coffee
-                      Last: true
                   Last: true
 
-          - Keyword: And
-            Text: I am on the transactions page
-            Owner: TransactionListSteps
-            Method: GivenIAmOnTheTransactionsPage
-            Arguments: []
-            DataTable: null
-
-          - Keyword: When
-            Text: I click the "Edit" button on the transaction
-            Owner: TransactionQuickEditSteps
-            Method: WhenIClickTheEditButtonOnTheTransaction
-            Arguments: []
-            DataTable: null
-
-          - Keyword: Then
-            Text: I should see a modal titled "Quick Edit Transaction"
-            Owner: TransactionQuickEditSteps
-            Method: ThenIShouldSeeAModalTitled
-            Arguments:
-              - '"Quick Edit Transaction"'
-            DataTable: null
-
-          - Keyword: And
-            Text: I should only see fields for "Payee", "Category", and "Memo"
-            Owner: TransactionQuickEditSteps
-            Method: ThenIShouldOnlySeeFieldsForPayeeCategoryAndMemo
-            Arguments: []
-            DataTable: null
-
-      # Scenario with string arguments
-      - Name: User updates Memo via quick edit modal
-        Method: UserUpdatesMemoViaQuickEditModal
-        Remarks: null
-        ExplicitTag: false
-        TestCases: []
-        Parameters: []
-        Steps:
-          - Keyword: Given
-            Text: I have a workspace with a transaction:
-            Owner: TransactionDataSteps
-            Method: GivenIHaveAWorkspaceWithATransaction
-            Arguments:
-              - table
-            DataTable:
-              VariableName: table
-              Headers:
-                - Value: Field
-                  Last: false
-                - Value: Value
-                  Last: true
-              Rows:
-                - Cells:
-                    - Value: Payee
-                      Last: false
-                    - Value: Coffee Co
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Amount
-                      Last: false
-                    - Value: "-5.50"
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Memo
-                      Last: false
-                    - Value: Morning latte
-                      Last: true
-                  Last: true
-
-          - Keyword: And
-            Text: I am on the transactions page
-            Owner: TransactionListSteps
-            Method: GivenIAmOnTheTransactionsPage
-            Arguments: []
-            DataTable: null
-
-          - Keyword: When
-            Text: I quick edit the transaction
-            Owner: TransactionQuickEditSteps
-            Method: WhenIQuickEditTheTransaction
-            Arguments: []
-            DataTable: null
-
-          - Keyword: And
-            Text: I change Memo to "Large latte with extra shot"
-            Owner: TransactionQuickEditSteps
-            Method: WhenIChangeMemoTo
-            Arguments:
-              - '"Large latte with extra shot"'
-            DataTable: null
-
-          - Keyword: And
-            Text: I click "Update"
-            Owner: TransactionQuickEditSteps
-            Method: WhenIClickUpdate
-            Arguments: []
-            DataTable: null
-
-          - Keyword: Then
-            Text: the modal should close
-            Owner: TransactionSharedSteps
-            Method: ThenTheModalShouldClose
-            Arguments: []
-            DataTable: null
-
-  # Rule 2: Demonstrates Remarks and TestCase parameterization
-  - Name: Access Control
-    Description: The system enforces authentication requirements for protected resources
-    Scenarios:
-      # Scenario with Remarks
-      - Name: Logged in user cannot access login page
-        Method: LoggedInUserCannotAccessLoginPage
-        Remarks:
-          Lines:
-            - "It seems the application doesn't always redirect logged-in users away from the login page."
-            - "This could be due to caching issues or session management quirks."
-            - ""
-            - "UPDATE: Have worked in this area, so it seems to be working now. Will try"
-            - "removing the Explicit attribute to see if the test is stable."
-        ExplicitTag: false
-        TestCases: []
-        Parameters: []
-        Steps:
-          - Keyword: Given
-            Text: I am logged in
-            Owner: AuthSteps
-            Method: GivenIAmLoggedIn
-            Arguments: []
-            DataTable: null
-
-          - Keyword: When
-            Text: I try to navigate directly to the login page, expecting it to fail
-            Owner: NavigationSteps
-            Method: WhenITryToNavigateDirectlyToTheLoginPageExpectingFailure
-            Arguments: []
-            DataTable: null
-
-          - Keyword: Then
-            Text: I should be redirected to my profile page
-            Owner: NavigationSteps
-            Method: ThenIShouldBeRedirectedToMyProfilePage
-            Arguments: []
-            DataTable: null
-
-          - Keyword: And
-            Text: I should not see the login form
-            Owner: AuthSteps
-            Method: ThenIShouldNotSeeTheLoginForm
-            Arguments: []
-            DataTable: null
-
-      # Scenario with TestCase parameterization
-      - Name: Anonymous user cannot access protected pages
-        Method: AnonymousUserCannotAccessProtectedPages
-        Remarks: null
+      - Name: Parameterized test
+        Method: ParameterizedTest
         ExplicitTag: false
         TestCases:
           - '"/weather"'
           - '"/counter"'
-          - '"/about"'
-          - '"/profile"'
         Parameters:
           - Type: string
             Name: page
             Last: true
         Steps:
-          - Keyword: Given
-            Text: I am not logged in
-            Owner: AuthSteps
-            Method: GivenIAmNotLoggedIn
-            Arguments: []
-            DataTable: null
-
           - Keyword: When
-            Text: I try to navigate directly to a protected page like <page>
+            Text: I navigate
             Owner: NavigationSteps
-            Method: WhenITryToNavigateDirectlyToAProtectedPageLike
+            Method: Navigate
             Arguments:
-              - page
-            DataTable: null
+              - Value: page
+                Last: true
 
-          - Keyword: Then
-            Text: I should be redirected to the login page
-            Owner: NavigationSteps
-            Method: ThenIShouldBeRedirectedToTheLoginPage
-            Arguments: []
-            DataTable: null
-
-  # Rule 3: Demonstrates Explicit tag and multiple DataTables in one scenario
-  - Name: Transaction Details Page
-    Description: Users can view, edit, and navigate transaction details
-    Scenarios:
-      # Scenario with ExplicitTag
-      - Name: User edits all fields on transaction details page
-        Method: UserEditsAllFieldsOnTransactionDetailsPage
-        Remarks: null
-        ExplicitTag: false
-        TestCases: []
-        Parameters: []
+      - Name: Explicit test
+        Method: ExplicitTest
+        ExplicitTag: true
         Steps:
           - Keyword: Given
-            Text: I am viewing the details page for a transaction with:
-            Owner: TransactionDataSteps
-            Method: GivenIAmViewingTheDetailsPageForATransactionWith
-            Arguments:
-              - table
-            DataTable:
-              VariableName: table
-              Headers:
-                - Value: Field
-                  Last: false
-                - Value: Value
-                  Last: true
-              Rows:
-                - Cells:
-                    - Value: Payee
-                      Last: false
-                    - Value: Gas Mart
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Amount
-                      Last: false
-                    - Value: "-40.00"
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Source
-                      Last: false
-                    - Value: Chase Checking
-                      Last: true
-                  Last: true
+            Text: something
+            Owner: TransactionSteps
+            Method: GivenSomething
 
-          - Keyword: When
-            Text: I click the "Edit" button
-            Owner: TransactionEditSteps
-            Method: WhenIClickTheEditButton
-            Arguments: []
-            DataTable: null
-
-          - Keyword: And
-            Text: I change Source to "Chase Visa"
-            Owner: TransactionEditSteps
-            Method: WhenIChangeSourceTo
-            Arguments:
-              - '"Chase Visa"'
-            DataTable: null
-
-          - Keyword: And
-            Text: I click "Save"
-            Owner: TransactionSharedSteps
-            Method: WhenIClickSave
-            Arguments: []
-            DataTable: null
-
-          - Keyword: Then
-            Text: I should see "Chase Visa" as the Source
-            Owner: TransactionDetailsSteps
-            Method: ThenIShouldSeeValueAsField
-            Arguments:
-              - '"Chase Visa"'
-              - '"Source"'
-            DataTable: null
-
-      # Scenario demonstrating single-column DataTable
-      - Name: User sees all fields in create transaction modal
-        Method: UserSeesAllFieldsInCreateTransactionModal
-        Remarks: null
-        ExplicitTag: false
-        TestCases: []
-        Parameters: []
-        Steps:
-          - Keyword: Given
-            Text: I am on the transactions page
-            Owner: TransactionListSteps
-            Method: GivenIAmOnTheTransactionsPage
-            Arguments: []
-            DataTable: null
-
-          - Keyword: When
-            Text: I click the "Add Transaction" button
-            Owner: TransactionCreateSteps
-            Method: WhenIClickTheAddTransactionButton
-            Arguments: []
-            DataTable: null
-
-          - Keyword: Then
-            Text: I should see the following fields in the create form:
-            Owner: TransactionCreateSteps
-            Method: ThenIShouldSeeTheFollowingFieldsInTheCreateForm
-            Arguments:
-              - fieldsTable
-            DataTable:
-              VariableName: fieldsTable
-              Headers:
-                - Value: Field
-                  Last: true
-              Rows:
-                - Cells:
-                    - Value: Date
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Payee
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Amount
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Memo
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: Source
-                      Last: true
-                  Last: false
-                - Cells:
-                    - Value: External ID
-                      Last: true
-                  Last: true
-
-# Unimplemented steps - generate as stubs
 Unimplemented:
   - Keyword: Given
-    Text: a new feature is being implemented
-    Method: GivenANewFeatureIsBeingImplemented
+    Text: unimplemented step
+    Method: GivenUnimplementedStep
     Parameters: []
-
-  - Keyword: When
-    Text: I perform action with "parameter"
-    Method: WhenIPerformActionWithParameter
-    Parameters:
-      - Type: string
-        Name: parameter
-        Last: true
-
-  - Keyword: Then
-    Text: I should see result with count 5
-    Method: ThenIShouldSeeResultWithCount
-    Parameters:
-      - Type: int
-        Name: count
-        Last: true

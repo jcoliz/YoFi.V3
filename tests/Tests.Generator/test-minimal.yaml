@@ -1,0 +1,6 @@
+# Minimal test to isolate YAML issue
+Arguments:
+  - Value: table
+    Last: true
+  - Value: '"test"'
+    Last: false
