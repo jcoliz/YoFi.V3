@@ -226,7 +226,7 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
         {
             Keyword = step.Keyword.Trim(),
             Text = step.Text,
-            Owner = "this", // Unimplemented - will be set during step matching
+            Owner = "this", // Default for unimplemented steps
             Method = string.Empty // Will be set during step matching
         };
 
@@ -315,27 +315,120 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                 currentKeyword = normalizedKeyword;
             }
 
-            // Check if this step is already tracked as unimplemented
-            var existingUnimplemented = crif.Unimplemented.FirstOrDefault(u =>
-                u.Text == step.Text && u.Keyword == normalizedKeyword);
+            // Try to match step with step metadata
+            var matchedStep = stepMetadata.FindMatch(normalizedKeyword, step.Text);
 
-            if (existingUnimplemented == null)
+            if (matchedStep != null)
             {
-                // Add to unimplemented list (since we have no step metadata)
-                var unimplementedStep = new UnimplementedStepCrif
+                // Step is implemented - populate Owner, Method, and Arguments
+                step.Owner = matchedStep.Class;
+                step.Method = matchedStep.Method;
+
+                // Add class and namespace to CRIF if not already present
+                if (!crif.Classes.Contains(matchedStep.Class))
                 {
-                    Keyword = normalizedKeyword,
-                    Text = step.Text,
-                    Method = ConvertToMethodName(step.Text),
-                    Parameters = [] // Empty for now - would be populated from step text parsing
-                };
+                    crif.Classes.Add(matchedStep.Class);
+                }
+                if (!crif.Usings.Contains(matchedStep.Namespace))
+                {
+                    crif.Usings.Add(matchedStep.Namespace);
+                }
 
-                crif.Unimplemented.Add(unimplementedStep);
+                // Extract arguments if step has parameters
+                if (matchedStep.Parameters.Count > 0)
+                {
+                    var arguments = ExtractArguments(matchedStep.Text, step.Text);
+                    foreach (var arg in arguments)
+                    {
+                        step.Arguments.Add(arg);
+                    }
+                    // Mark last argument
+                    if (step.Arguments.Count > 0)
+                    {
+                        step.Arguments[step.Arguments.Count - 1].Last = true;
+                    }
+                }
             }
+            else
+            {
+                // Step is unimplemented - track it
+                var existingUnimplemented = crif.Unimplemented.FirstOrDefault(u =>
+                    u.Text == step.Text && u.Keyword == normalizedKeyword);
 
-            // Set step method name to match the unimplemented method
-            step.Method = ConvertToMethodName(step.Text);
+                if (existingUnimplemented == null)
+                {
+                    var unimplementedStep = new UnimplementedStepCrif
+                    {
+                        Keyword = normalizedKeyword,
+                        Text = step.Text,
+                        Method = ConvertToMethodName(step.Text),
+                        Parameters = []
+                    };
+
+                    crif.Unimplemented.Add(unimplementedStep);
+                }
+
+                // Set step method name to match the unimplemented method
+                step.Method = ConvertToMethodName(step.Text);
+            }
         }
+    }
+
+    private List<ArgumentCrif> ExtractArguments(string pattern, string text)
+    {
+        var arguments = new List<ArgumentCrif>();
+
+        // Build a regex pattern from the step definition text using same approach as MatchesWithPlaceholders:
+        // 1. Replace {placeholder} with temporary markers BEFORE escaping
+        // 2. Escape the pattern for regex special characters
+        // 3. Replace markers with capture groups AFTER escaping
+
+        // First, replace placeholders with temporary markers BEFORE escaping
+        var regexPattern = System.Text.RegularExpressions.Regex.Replace(
+            pattern,
+            @"\{[^}]+\}",  // Match {placeholder} pattern
+            "<<<PLACEHOLDER>>>"  // Temporary placeholder marker
+        );
+
+        // Now escape the pattern for regex
+        regexPattern = System.Text.RegularExpressions.Regex.Escape(regexPattern);
+
+        // Replace our markers with capture groups (note: using capturing group, not non-capturing)
+        regexPattern = regexPattern.Replace(
+            "<<<PLACEHOLDER>>>",
+            @"((?:""[^""]*""|\S+))"  // Capture group that matches quoted or unquoted values
+        );
+
+        // Add anchors for full string match
+        regexPattern = "^" + regexPattern + "$";
+
+        try
+        {
+            var regex = new System.Text.RegularExpressions.Regex(
+                regexPattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+            var match = regex.Match(text);
+
+            if (match.Success)
+            {
+                // Groups[0] is the entire match, Groups[1..n] are capture groups
+                for (int i = 1; i < match.Groups.Count; i++)
+                {
+                    arguments.Add(new ArgumentCrif
+                    {
+                        Value = match.Groups[i].Value,
+                        Last = false
+                    });
+                }
+            }
+        }
+        catch
+        {
+            // Fallback: couldn't extract arguments
+        }
+
+        return arguments;
     }
 }
 
