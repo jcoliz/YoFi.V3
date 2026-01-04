@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +16,6 @@
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit.Analyzers" Version="4.7.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
-    <PackageReference Include="Stubble.Core" Version="1.10.8" />
     <PackageReference Include="YamlDotNet" Version="16.2.1" />
   </ItemGroup>
 
@@ -24,10 +24,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Reference the generator project being tested -->
+    <ProjectReference Include="..\Gherkin.Generator\YoFi.V3.Tests.Gherkin.Generator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="sample-output.cs" />
     <None Include="sample-output.cs" />
-    <None Include="FunctionalTest.mustache" CopyToOutputDirectory="PreserveNewest" />
     <None Include="sample-crif.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Template now comes from generator project -->
+    <None Include="..\Gherkin.Generator\FunctionalTest.mustache" Link="FunctionalTest.mustache" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

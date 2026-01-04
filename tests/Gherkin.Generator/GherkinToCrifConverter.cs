@@ -26,7 +26,7 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
             // Extract feature description lines
             if (feature.Feature.Description != null)
             {
-                var lines = feature.Feature.Description.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                var lines = feature.Feature.Description.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var line in lines)
                 {
                     crif.DescriptionLines.Add(line.Trim());
@@ -152,7 +152,7 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
         // Extract scenario description as remarks
         if (!string.IsNullOrWhiteSpace(scenario.Description))
         {
-            var lines = scenario.Description.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var lines = scenario.Description.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             scenarioCrif.Remarks = new RemarksCrif
             {
                 Lines = lines.Select(l => l.Trim()).ToList()
