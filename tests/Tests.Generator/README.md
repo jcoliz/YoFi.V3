@@ -44,6 +44,38 @@ public async Task IHazThemCars(int quantity, string place) {}
 - Normalized keyword: Given
 - Text: I have {quantity} cars in my {place}
 - Method: IHazThemCars
-- Args: [ int quantity; string place]
+- Args: [ int quantity; string place ]
 - Class: CarSteps
 - Namespace: YoFi.V3.Tests.Functional.Steps
+
+## Step matching
+
+After the steps have been extracted into metadata, and the gherkin file has been loaded, we can match the steps.
+
+The goal is to find the step definition method which corresponds to each step line in the scenario.
+
+The step line in the scenario has two parts:
+- Step keyword: "Given", "And", "Then" etc
+- Step text: the part that comes after
+
+For matching, the step keyword is normalized to a pure Given/When/Then, based on its position in the order.
+
+To match a gherkin step to a definition, we search only amongst the defintions which match the normalized keyword
+
+We look for an *exact* match (case insensitive) on the step text, while considering the placeholder keywords.
+
+Placeholder keywords match whole words only (no internal whitespace) unless the Gherkin text has quotes, e.g.
+- Definition: I have an account named {account}
+- Matches: I have an account named Ski-Village
+- Matches: I have an account named "Ski Village"
+- Doesn't match: I have an account named Ski Village
+
+When we get a match, we populate the CRIF with
+- Displayed keyword from the gherkin scenario text (includes then)
+- Text from the gherkin scenario text
+- Method & Class in the step from the step definition metadata
+- Using in the file metadata if this is unique
+- Class in the list of classes if not already there
+- Arguments matching the expected order, type and form of the called method
+
+If we do not find a match, we populate the Unimplemented Crif using the gherkin scenario information
