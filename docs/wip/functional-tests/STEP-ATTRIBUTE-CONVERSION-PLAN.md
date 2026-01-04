@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Implemented
 created: 2025-12-26
 related_docs:
   - tests/Functional/INSTRUCTIONS.md
