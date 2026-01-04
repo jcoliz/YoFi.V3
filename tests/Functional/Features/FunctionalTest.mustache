@@ -1,4 +1,6 @@
-using {{Using}};
+{{#Usings}}
+using {{.}};
+{{/Usings}}
 
 namespace {{Namespace}};
 
@@ -6,32 +8,76 @@ namespace {{Namespace}};
 /// {{FeatureDescription}}
 /// </summary>
 /// <remarks>
-{{#Description}}
+{{#DescriptionLines}}
 /// {{.}}
-{{/Description}}
-/// {{DescriptionLine}}
+{{/DescriptionLines}}
 /// </remarks>
 public partial class {{FeatureName}}Feature_Tests : {{BaseClass}}
 {
+    #region Step class references
+
+    {{#Classes}}
+    protected {{.}} {{.}} => _the{{.}} ??= new(this);
+    private {{.}}? _the{{.}};
+
+    {{/Classes}}
+    #endregion
+
+    {{#Background}}
+    [SetUp]
+    public async Task SetupAsync()
+    {
+        {{#Steps}}
+        // {{Keyword}} {{Text}}
+        {{#DataTable}}
+        var {{VariableName}} = new DataTable(
+            [{{#Headers}}"{{.}}"{{^Last}}, {{/Last}}{{/Headers}}],
+        {{#Rows}}
+            [{{#Cells}}"{{.}}"{{^Last}}, {{/Last}}{{/Cells}}]{{^Last}},{{/Last}}
+        {{/Rows}}
+        );
+        {{/DataTable}}
+        await {{Owner}}.{{Method}}({{#Arguments}}{{{.}}}{{^Last}}, {{/Last}}{{/Arguments}});
+
+        {{/Steps}}
+    }
+
+    {{/Background}}
     {{#Rules}}
     #region Rule: {{Name}}
     // {{Description}}
 
     {{#Scenarios}}
     /// <summary>
-    /// Scenario: {{Name}}
+    /// {{Name}}
     /// </summary>
+    {{#Remarks}}
+    /// <remarks>
+    {{#Lines}}
+    /// {{.}}
+    {{/Lines}}
+    /// </remarks>
+    {{/Remarks}}
     {{#ExplicitTag}}
     [Explicit]
     {{/ExplicitTag}}
-    {{#Examples}}
-    [TestCase({{.}})]
-    {{/Examples}}
-    public async Task {{Method}}({{Args}})
+    {{#TestCases}}
+    [TestCase({{{.}}})]
+    {{/TestCases}}
+    [Test]
+    public async Task {{Method}}({{#Parameters}}{{Type}} {{Name}}{{^Last}}, {{/Last}}{{/Parameters}})
     {
         {{#Steps}}
         // {{Keyword}} {{Text}}
-        await {{Method}}({{Args}});
+        {{#DataTable}}
+        var {{VariableName}} = new DataTable(
+            [{{#Headers}}"{{.}}"{{^Last}}, {{/Last}}{{/Headers}}],
+        {{#Rows}}
+            [{{#Cells}}"{{.}}"{{^Last}}, {{/Last}}{{/Cells}}]{{^Last}},{{/Last}}
+        {{/Rows}}
+        );
+        {{/DataTable}}
+        await {{Owner}}.{{Method}}({{#Arguments}}{{{.}}}{{^Last}}, {{/Last}}{{/Arguments}});
 
         {{/Steps}}
     }
@@ -40,4 +86,17 @@ public partial class {{FeatureName}}Feature_Tests : {{BaseClass}}
 
     #endregion
     {{/Rules}}
+
+    #region Unimplemented Steps
+    {{#Unimplemented}}
+    /// <summary>
+    /// {{Keyword}} {{Text}}
+    /// </summary>
+    async Task {{Method}}({{#Parameters}}{{Type}} {{Name}}{{^Last}}, {{/Last}}{{/Parameters}})
+    {
+        throw new NotImplementedException();
+    }
+
+    {{/Unimplemented}}
+    #endregion
 }
