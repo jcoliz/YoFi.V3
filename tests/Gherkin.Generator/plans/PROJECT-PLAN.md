@@ -29,7 +29,9 @@ Project should contain the following:
 9. docs/wip directory contains works in progress. AI Assistants should place documents here by default.
 10. templates/Default.mustache. Copy (don't move!) of current tests\Functional\Features\FunctionalTest.mustache
 11. templates/README.md. Explain that you should start with the default, and modify it as needed to match your test infrastructure or other conventions.
-12. README.md at the root, explaining the project at a high level. 200 words max
+12. README.md at the root, explaining the project at a high level. 200 words max. Includes badges for: Build action;  latest nuget version # and link
+13. github/workflows/release.yaml: pushes updates to nuget when release is created
+14. github/workflows/ci.yaml: builds everything, runs tests
 
 ## Migration Plan
 
