@@ -348,19 +348,31 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                     crif.Usings.Add(matchedStep.Namespace);
                 }
 
-                // Extract arguments if step has parameters
-                if (matchedStep.Parameters.Count > 0)
+                // Extract arguments from text parameters (non-DataTable parameters)
+                var textParameters = matchedStep.Parameters.Where(p => p.Type != "DataTable").ToList();
+                if (textParameters.Count > 0)
                 {
                     var arguments = ExtractArguments(matchedStep.Text, step.Text);
                     foreach (var arg in arguments)
                     {
                         step.Arguments.Add(arg);
                     }
-                    // Mark last argument
-                    if (step.Arguments.Count > 0)
+                }
+
+                // Add DataTable variable as argument if step has DataTable parameter
+                if (matchedStep.Parameters.Any(p => p.Type == "DataTable") && step.DataTable != null)
+                {
+                    step.Arguments.Add(new ArgumentCrif
                     {
-                        step.Arguments[step.Arguments.Count - 1].Last = true;
-                    }
+                        Value = step.DataTable.VariableName,
+                        Last = false
+                    });
+                }
+
+                // Mark last argument
+                if (step.Arguments.Count > 0)
+                {
+                    step.Arguments[step.Arguments.Count - 1].Last = true;
                 }
             }
             else
