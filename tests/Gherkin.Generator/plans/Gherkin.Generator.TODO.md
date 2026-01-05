@@ -75,7 +75,7 @@ async Task IHaveAlsoSomeOtherTransactionsWithExternalIDs(DataTable table)
 
 ## 1.0.4
 
-[_] This gherkin:
+[X] This gherkin:
 
 ```gherkin
 Then I should see "Chase Visa" as the Source
@@ -141,3 +141,5 @@ var table = new DataTable(
 );
 await AuthSteps.GivenTheseUsersExist(table);
 ```
+
+[X] Doesn't handle <>'s around scenario outline parameters

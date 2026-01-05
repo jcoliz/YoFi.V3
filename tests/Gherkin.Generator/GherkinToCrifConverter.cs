@@ -473,21 +473,31 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                 {
                     var value = match.Groups[i].Value;
 
-                    // Determine if we need to add quotes based on parameter type
-                    // String parameters need quotes (unless already quoted)
-                    // Numeric types (int, decimal, double, etc.) should not have quotes
-                    var paramIndex = i - 1; // Parameter index (0-based)
-                    if (paramIndex < parameters.Count)
+                    // Check if this is a Scenario Outline parameter (e.g., <amount>)
+                    // If so, extract just the parameter name without angle brackets
+                    if (value.StartsWith("<") && value.EndsWith(">"))
                     {
-                        var paramType = parameters[paramIndex].Type;
-                        var isStringType = paramType.Equals("string", StringComparison.OrdinalIgnoreCase);
-
-                        // If it's a string type and not already quoted, add quotes
-                        if (isStringType && !value.StartsWith("\""))
+                        // This is a Scenario Outline parameter - use parameter name only
+                        value = value.Substring(1, value.Length - 2);
+                    }
+                    else
+                    {
+                        // This is a concrete value - determine if we need to add quotes
+                        // String parameters need quotes (unless already quoted)
+                        // Numeric types (int, decimal, double, etc.) should not have quotes
+                        var paramIndex = i - 1; // Parameter index (0-based)
+                        if (paramIndex < parameters.Count)
                         {
-                            value = $"\"{value}\"";
+                            var paramType = parameters[paramIndex].Type;
+                            var isStringType = paramType.Equals("string", StringComparison.OrdinalIgnoreCase);
+
+                            // If it's a string type and not already quoted, add quotes
+                            if (isStringType && !value.StartsWith("\""))
+                            {
+                                value = $"\"{value}\"";
+                            }
+                            // For non-string types, keep the value as-is (no quotes for numbers)
                         }
-                        // For non-string types, keep the value as-is (no quotes for numbers)
                     }
 
                     arguments.Add(new ArgumentCrif
