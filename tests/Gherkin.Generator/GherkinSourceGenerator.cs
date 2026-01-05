@@ -133,7 +133,7 @@ public class GherkinSourceGenerator : IIncrementalGenerator
 
         // 2. Convert Gherkin to CRIF
         var converter = new GherkinToCrifConverter(stepMetadata);
-        var crif = converter.Convert(gherkinDocument);
+        var crif = converter.Convert(gherkinDocument, fileName);
 
         // 3. Report warnings for unimplemented steps (optional)
         if (crif.Unimplemented.Any())

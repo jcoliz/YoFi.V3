@@ -42,17 +42,9 @@ public class FunctionalTestCrif
     /// Feature name used for the test class name (e.g., "TransactionRecord").
     /// </summary>
     /// <remarks>
-    /// Taken directly from the Gherkin Feature name.
+    /// Taken directly from the Gherkin `Feature:` line.
     /// </remarks>
     public string FeatureName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Short description of the feature from the Gherkin file.
-    /// </summary>
-    /// <remarks>
-    /// Taken directly from the Gherkin Feature description.
-    /// </remarks>
-    public string FeatureDescription { get; set; } = string.Empty;
 
     /// <summary>
     /// Multi-line description of the feature (user story, acceptance criteria, etc.).

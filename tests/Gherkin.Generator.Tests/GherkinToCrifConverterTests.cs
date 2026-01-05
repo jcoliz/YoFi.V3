@@ -793,6 +793,25 @@ public class GherkinToCrifConverterTests
         Assert.That(scenario.Remarks.Lines[1], Is.EqualTo("of what the scenario does"));
     }
 
+    [Test]
+    public void Convert_WithFileName_SetsFileNameProperty()
+    {
+        // Given: A minimal Gherkin feature
+        var gherkin = """
+            Feature: Transaction Management
+            """;
+        var feature = ParseGherkin(gherkin);
+
+        // And: A filename
+        var fileName = "BankImport";
+
+        // When: Feature is converted to CRIF with filename
+        var crif = _converter.Convert(feature, fileName);
+
+        // Then: FileName property should be set
+        Assert.That(crif.FileName, Is.EqualTo("BankImport"));
+    }
+
     /// <summary>
     /// Helper method to parse Gherkin text into a GherkinDocument.
     /// </summary>

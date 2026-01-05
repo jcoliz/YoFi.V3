@@ -16,7 +16,21 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
     /// <returns>Code-Ready Intermediate Form ready for template rendering.</returns>
     public FunctionalTestCrif Convert(GherkinDocument feature)
     {
-        var crif = new FunctionalTestCrif();
+        return Convert(feature, string.Empty);
+    }
+
+    /// <summary>
+    /// Converts a Gherkin feature document to a CRIF object with a specified filename.
+    /// </summary>
+    /// <param name="feature">Parsed Gherkin feature document.</param>
+    /// <param name="fileName">Name of the feature file without extension (e.g., "BankImport").</param>
+    /// <returns>Code-Ready Intermediate Form ready for template rendering.</returns>
+    public FunctionalTestCrif Convert(GherkinDocument feature, string fileName)
+    {
+        var crif = new FunctionalTestCrif
+        {
+            FileName = fileName
+        };
 
         if (feature.Feature != null)
         {

@@ -33,7 +33,7 @@
     <None Include="sample-output.cs" />
     <None Include="sample-crif.yaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Template now comes from generator project -->
-    <None Include="..\Gherkin.Generator\FunctionalTest.mustache" Link="FunctionalTest.mustache" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Gherkin.Generator\references\FunctionalTest.mustache" Link="FunctionalTest.mustache" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

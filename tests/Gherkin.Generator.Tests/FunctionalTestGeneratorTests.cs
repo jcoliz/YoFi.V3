@@ -80,8 +80,8 @@ public class FunctionalTestGeneratorTests
         {
             Usings = ["NUnit.Framework"],
             Namespace = "TestNamespace",
+            FileName = "MyFeature",
             FeatureName = "MyFeature",
-            FeatureDescription = "Test Feature",
             DescriptionLines = ["Test description"],
             BaseClass = "TestBase",
             Classes = ["TestSteps"],
@@ -617,7 +617,6 @@ public class FunctionalTestGeneratorTests
             Usings = ["NUnit.Framework"],
             Namespace = "TestNamespace",
             FeatureName = "TestFeature",
-            FeatureDescription = "Test Feature",
             DescriptionLines = ["Test description"],
             BaseClass = "TestBase",
             Classes = ["TestSteps"],

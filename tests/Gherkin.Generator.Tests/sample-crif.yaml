@@ -3,8 +3,8 @@ Usings:
   - NUnit.Framework
 
 Namespace: YoFi.V3.Tests.Functional.Features
-FeatureName: TransactionRecordFields
-FeatureDescription: Transaction Record Fields
+FileName: TransactionRecordFields
+FeatureName: Transaction Record Fields
 
 DescriptionLines:
   - "Test description"
