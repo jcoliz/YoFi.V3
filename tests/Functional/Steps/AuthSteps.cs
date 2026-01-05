@@ -32,7 +32,7 @@ public class AuthSteps(ITestContext _context)
     /// Currently assumes a clean state. Future implementation may include
     /// explicit logout if a user session is detected.
     /// </remarks>
-    //[Given("I am not logged in")]
+    [Given("I am not logged in")]
     public async Task GivenIAmNotLoggedIn()
     {
         // TODO: Implement logout if already logged in
