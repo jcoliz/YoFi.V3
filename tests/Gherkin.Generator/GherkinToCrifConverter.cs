@@ -391,11 +391,32 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                         Parameters = []
                     };
 
+                    // Add DataTable parameter if step has a data table
+                    if (step.DataTable != null)
+                    {
+                        unimplementedStep.Parameters.Add(new ParameterCrif
+                        {
+                            Type = "DataTable",
+                            Name = "table",
+                            Last = true
+                        });
+                    }
+
                     crif.Unimplemented.Add(unimplementedStep);
                 }
 
                 // Set step method name to match the unimplemented method
                 step.Method = ConvertToMethodName(step.Text);
+
+                // Add DataTable variable as argument if step has data table
+                if (step.DataTable != null)
+                {
+                    step.Arguments.Add(new ArgumentCrif
+                    {
+                        Value = step.DataTable.VariableName,
+                        Last = true
+                    });
+                }
             }
         }
     }

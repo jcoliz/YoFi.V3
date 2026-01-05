@@ -5,5 +5,63 @@
 * [x] Add "FeatureFile" to CRIF, and then we can use that for the symbolic name of the class
 * [x] Doesn't seem to include the table in the args for datatable items
 * [x] Need to output the whole CRIF for debugging
-* [x] Parsing errors need to give details: Attempting to! Check again in next release
+* [ ] Parsing errors need to give details: Attempting to! Check again in next release
 
+# 1.0.3
+
+All above confirmed fixed, EXCEPT
+
+* [ ] Parsing errors need to give details
+
+```
+PS C:\Source\jcoliz\YoFi.V3\tests\Functional> dotnet build
+Restore complete (0.3s)
+  YoFi.V3.Tests.Functional net10.0 failed with 1 error(s) (1.0s)
+    CSC : error GHERKIN003: Error parsing BankImport.feature: Parser errors:
+
+Build failed with 1 error(s) in 1.9s
+```
+
+* [x] Unimplemented steps need to be called with args, and defined with args.
+
+Wrong:
+
+```c#
+// And I have also some other  transactions with external IDs:
+var table2 = new DataTable(
+    ["ExternalId", "Date", "Payee", "Amount"],
+    ["2024010701", "2024-01-07", "Gas Station", "-89.99"]
+);
+await this.IHaveAlsoSomeOtherTransactionsWithExternalIDs();
+
+...
+
+/// <summary>
+/// Given I have also some other  transactions with external IDs:
+/// </summary>
+async Task IHaveAlsoSomeOtherTransactionsWithExternalIDs()
+{
+    throw new NotImplementedException();
+}
+```
+
+Right:
+
+```c#
+// And I have also some other  transactions with external IDs:
+var table2 = new DataTable(
+    ["ExternalId", "Date", "Payee", "Amount"],
+    ["2024010701", "2024-01-07", "Gas Station", "-89.99"]
+);
+await this.IHaveAlsoSomeOtherTransactionsWithExternalIDs(table2);
+
+...
+
+/// <summary>
+/// Given I have also some other  transactions with external IDs:
+/// </summary>
+async Task IHaveAlsoSomeOtherTransactionsWithExternalIDs(DataTable table)
+{
+    throw new NotImplementedException();
+}
+```

@@ -162,8 +162,9 @@ public class GherkinSourceGenerator : IIncrementalGenerator
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
         var crifJson = JsonSerializer.Serialize(crif, jsonOptions);
-        var jsonSourceText = SourceText.From(crifJson, Encoding.UTF8);
-        context.AddSource($"{fileName}.crif.json", jsonSourceText);
+        var commentedJson = $"/*\n{crifJson}\n*/";
+        var jsonSourceText = SourceText.From(commentedJson, Encoding.UTF8);
+        context.AddSource($"{fileName}.crif.json.cs", jsonSourceText);
 
         // 5. Generate C# code from CRIF using template
         var generator = new FunctionalTestGenerator();

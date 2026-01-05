@@ -1084,6 +1084,51 @@ public class GherkinToCrifIntegrationTests
     }
 
     [Test]
+    public void Convert_WithUnmatchedDataTableStep_AddsDataTableVariableAsArgument()
+    {
+        // Given: An empty step metadata collection (no step matching)
+        var stepMetadata = new StepMetadataCollection();
+        var converter = new GherkinToCrifConverter(stepMetadata);
+
+        // And: A Gherkin feature with unmatched DataTable step
+        var gherkin = """
+            Feature: Bank Import
+
+            Scenario: Import transactions with external IDs
+              Given I have some other transactions with external IDs:
+                | ExternalId | Date       | Payee       | Amount  |
+                | 2024010701 | 2024-01-07 | Gas Station | -89.99  |
+            """;
+        var feature = ParseGherkin(gherkin);
+
+        // When: Feature is converted to CRIF
+        var crif = converter.Convert(feature);
+
+        // Then: Step should be in Unimplemented list
+        Assert.That(crif.Unimplemented, Has.Count.EqualTo(1));
+        Assert.That(crif.Unimplemented[0].Text, Is.EqualTo("I have some other transactions with external IDs:"));
+
+        // And: Unimplemented step should have DataTable parameter in signature
+        var unimplementedStep = crif.Unimplemented[0];
+        Assert.That(unimplementedStep.Parameters, Has.Count.EqualTo(1));
+        Assert.That(unimplementedStep.Parameters[0].Type, Is.EqualTo("DataTable"));
+        Assert.That(unimplementedStep.Parameters[0].Name, Is.EqualTo("table"));
+
+        // And: Step should have DataTable extracted
+        var step = crif.Rules[0].Scenarios[0].Steps[0];
+        Assert.That(step.DataTable, Is.Not.Null);
+        Assert.That(step.DataTable!.VariableName, Is.EqualTo("table1"));
+
+        // And: Step should have DataTable variable as argument
+        Assert.That(step.Arguments, Has.Count.EqualTo(1));
+        Assert.That(step.Arguments[0].Value, Is.EqualTo("table1"));
+        Assert.That(step.Arguments[0].Last, Is.True);
+
+        // And: Step should have Owner="this" for unimplemented step
+        Assert.That(step.Owner, Is.EqualTo("this"));
+    }
+
+    [Test]
     public void Convert_WithDataTableInBackground_ExtractsDataTableAndMatches()
     {
         // Given: A step with DataTable parameter
