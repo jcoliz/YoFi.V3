@@ -102,7 +102,7 @@ But should generate this:
         await TransactionDetailsSteps.ThenIShouldSeeValueAsField("Chase Visa", "Source");
 ```
 
-[_] DataTable in Background doesn't generate correctly
+[X] DataTable in Background doesn't generate correctly
 
 This gherkin:
 

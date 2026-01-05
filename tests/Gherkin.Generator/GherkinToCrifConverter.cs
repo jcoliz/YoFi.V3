@@ -361,7 +361,7 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                 var textParameters = matchedStep.Parameters.Where(p => p.Type != "DataTable").ToList();
                 if (textParameters.Count > 0)
                 {
-                    var arguments = ExtractArguments(matchedStep.Text, step.Text);
+                    var arguments = ExtractArguments(matchedStep.Text, step.Text, textParameters);
                     foreach (var arg in arguments)
                     {
                         step.Arguments.Add(arg);
@@ -430,7 +430,7 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
         }
     }
 
-    private List<ArgumentCrif> ExtractArguments(string pattern, string text)
+    private List<ArgumentCrif> ExtractArguments(string pattern, string text, List<StepParameter> parameters)
     {
         var arguments = new List<ArgumentCrif>();
 
@@ -471,9 +471,28 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
                 // Groups[0] is the entire match, Groups[1..n] are capture groups
                 for (int i = 1; i < match.Groups.Count; i++)
                 {
+                    var value = match.Groups[i].Value;
+
+                    // Determine if we need to add quotes based on parameter type
+                    // String parameters need quotes (unless already quoted)
+                    // Numeric types (int, decimal, double, etc.) should not have quotes
+                    var paramIndex = i - 1; // Parameter index (0-based)
+                    if (paramIndex < parameters.Count)
+                    {
+                        var paramType = parameters[paramIndex].Type;
+                        var isStringType = paramType.Equals("string", StringComparison.OrdinalIgnoreCase);
+
+                        // If it's a string type and not already quoted, add quotes
+                        if (isStringType && !value.StartsWith("\""))
+                        {
+                            value = $"\"{value}\"";
+                        }
+                        // For non-string types, keep the value as-is (no quotes for numbers)
+                    }
+
                     arguments.Add(new ArgumentCrif
                     {
-                        Value = match.Groups[i].Value,
+                        Value = value,
                         Last = false
                     });
                 }
