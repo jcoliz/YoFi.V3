@@ -33,6 +33,7 @@
   <AdditionalFiles Include="Features/Weather.feature" />
   <AdditionalFiles Include="Features/Authentication.feature" />
   <AdditionalFiles Include="Features/Tenancy.feature" />
+  <AdditionalFiles Include="Features/TransactionRecord.feature" />
   <AdditionalFiles Include="Features/FunctionalTest.mustache" />
 </ItemGroup>
 

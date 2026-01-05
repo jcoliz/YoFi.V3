@@ -139,7 +139,7 @@ public class AuthSteps(ITestContext _context)
     /// tracked for cleanup. This is a test setup operation used in multi-user scenarios
     /// like workspace collaboration tests.
     /// </remarks>
-    [Given("these users exist")]
+    [Given("these users exist:")]
     public async Task GivenTheseUsersExist(DataTable usersTable)
     {
         var friendlyNames = usersTable.ToSingleColumnList().ToList();

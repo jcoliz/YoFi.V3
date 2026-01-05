@@ -72,3 +72,72 @@ async Task IHaveAlsoSomeOtherTransactionsWithExternalIDs(DataTable table)
     throw new NotImplementedException();
 }
 ```
+
+## 1.0.4
+
+[_] This gherkin:
+
+```gherkin
+Then I should see "Chase Visa" as the Source
+```
+
+With this step:
+
+```c#
+    [Then("I should see {expectedValue} as the {fieldName}")]
+    public async Task ThenIShouldSeeValueAsField(string expectedValue, string fieldName)
+```
+
+Generates this:
+
+```c#
+        // Then I should see &quot;Chase Visa&quot; as the Source
+        await TransactionDetailsSteps.ThenIShouldSeeValueAsField("Chase Visa", Source);
+```
+
+But should generate this:
+
+```c#
+        // Then I should see "Chase Visa" as the Source
+        await TransactionDetailsSteps.ThenIShouldSeeValueAsField("Chase Visa", "Source");
+```
+
+[_] DataTable in Background doesn't generate correctly
+
+This gherkin:
+
+```gherkin
+Background:
+    Given the application is running
+    And these users exist:
+        | Username |
+        | alice    |
+        | bob      |
+        | charlie  |
+```
+
+Generates this:
+
+```c#
+// And these users exist:
+var  = new DataTable(
+    ["Username"],
+    ["alice"],
+    ["bob"],
+    ["charlie"]
+);
+await AuthSteps.GivenTheseUsersExist();
+```
+
+But should generate this:
+
+```c#
+// And these users exist:
+var table = new DataTable(
+    ["Username"],
+    ["alice"],
+    ["bob"],
+    ["charlie"]
+);
+await AuthSteps.GivenTheseUsersExist(table);
+```
