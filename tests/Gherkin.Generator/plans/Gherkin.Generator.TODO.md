@@ -11,7 +11,7 @@
 
 All above confirmed fixed, EXCEPT
 
-* [ ] Parsing errors need to give details
+* [x] Parsing errors need to give details. Trying again!
 
 ```
 PS C:\Source\jcoliz\YoFi.V3\tests\Functional> dotnet build
@@ -20,6 +20,13 @@ Restore complete (0.3s)
     CSC : error GHERKIN003: Error parsing BankImport.feature: Parser errors:
 
 Build failed with 1 error(s) in 1.9s
+```
+
+Fixed in 1.0.4!! Perfect!!
+
+```
+  YoFi.V3.Tests.Functional net10.0 failed with 1 error(s) (0.9s)
+    CSC : error GHERKIN003: Error parsing BankImport.feature: (1:1): A tag may not contain whitespace | (1:1): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got '@using YoFi.V3.Tests.Functional.Helpers'
 ```
 
 * [x] Unimplemented steps need to be called with args, and defined with args.

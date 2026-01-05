@@ -119,10 +119,32 @@ public class GherkinSourceGenerator : IIncrementalGenerator
             var reader = new System.IO.StringReader(featureContent);
             gherkinDocument = parser.Parse(reader);
         }
+        catch (CompositeParserException ex)
+        {
+            // Extract all parser errors from the composite exception
+            var errorMessages = new System.Collections.Generic.List<string>();
+            foreach (var parserError in ex.Errors)
+            {
+                errorMessages.Add(parserError.Message);
+            }
+            var detailedMessage = string.Join(" | ", errorMessages);
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                new DiagnosticDescriptor(
+                    "GHERKIN003",
+                    "Gherkin Parse Error",
+                    "Error parsing {0}.feature: {1}",
+                    "Gherkin.Generator",
+                    DiagnosticSeverity.Error,
+                    isEnabledByDefault: true),
+                Microsoft.CodeAnalysis.Location.None,
+                fileName,
+                detailedMessage));
+            return;
+        }
         catch (System.Exception ex)
         {
-            // Create diagnostic with full exception message
-            // The message template uses {0} placeholder which will be filled with the exception message
+            // Handle other unexpected exceptions
             context.ReportDiagnostic(Diagnostic.Create(
                 new DiagnosticDescriptor(
                     "GHERKIN003",
