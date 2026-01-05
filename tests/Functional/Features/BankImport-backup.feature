@@ -1,7 +1,8 @@
-@using:YoFi.V3.Tests.Functional.Steps
-@namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
-Feature: BankImport
+@using YoFi.V3.Tests.Functional.Steps
+@namespace YoFi.V3.Tests.Functional.Features
+@baseclass BankImportSteps
+@template FunctionalTest.mustache
+Feature: Bank Import
     Users can upload OFX/QFX bank files and review/import transactions
     into their workspace. The system detects duplicates and allows selective import.
 
@@ -11,10 +12,12 @@ Background:
     And I have an active workspace "My Finances"
     And I am logged in
 
-@explicit
 Scenario: User uploads bank file and sees import review page
-    # Given I have existing transactions with external IDs:
-    # Doesn't include the table
+    Given I have existing transactions with external IDs:
+        | ExternalId     | Date       | Payee            | Amount    |
+        | 2024010701     | 2024-01-07 | Gas Station      | -89.99    |
+        | 2024011201     | 2024-01-12 | Online Store     | -199.99   |
+        | 2024012201     | 2024-01-22 | Rent Payment     | -1200.00  |
     And I am on the import review page
     When I upload OFX file "checking-jan-2024.ofx"
     Then page should display 15 transactions

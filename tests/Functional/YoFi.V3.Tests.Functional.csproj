@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\runsettings\development.runsettings</RunSettingsFilePath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,12 +23,15 @@
   <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
-  <ItemGroup>
-    <!-- Project reference to ensure WireApiHost builds before API client generation.
-         ReferenceOutputAssembly="false" prevents assembly coupling (we only need the built project for NSwag metadata extraction).
-         This only establishes build order dependency, doesn't cause unnecessary rebuilds. -->
-    <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
-  </ItemGroup>
+
+<ItemGroup>
+  <!-- Source generator as package -->
+  <PackageReference Include="YoFi.V3.Tests.Gherkin.Generator" Version="1.0.1" OutputItemType="Analyzer" />
+
+  <!-- Feature files and template -->
+  <AdditionalFiles Include="Features/BankImport.feature" />
+  <AdditionalFiles Include="Features/FunctionalTest.mustache" />
+</ItemGroup>
 
   <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
        The generated file (Api/Generated/ApiClient.cs) is checked into source control and automatically included by SDK.

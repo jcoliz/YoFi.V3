@@ -31,6 +31,14 @@ public class FunctionalTestCrif
     public string Namespace { get; set; } = string.Empty;
 
     /// <summary>
+    /// File name of the .feature file, not including the extension
+    /// </summary>
+    /// <remarks>
+    /// e.g. "BankImport" for "BankImport.feature"
+    /// </remarks>
+    public string FileName { get; set; } = string.Empty;
+
+    /// <summary>
     /// Feature name used for the test class name (e.g., "TransactionRecord").
     /// </summary>
     /// <remarks>

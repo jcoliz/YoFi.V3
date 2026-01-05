@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
+    <!-- Version for NuGet package -->
+    <Version>1.0.1</Version>
     <!-- Source generator properties -->
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
@@ -19,9 +21,34 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
   </ItemGroup>
 
+<ItemGroup>
+  <!-- Pack the generator DLL as an analyzer -->
+  <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+
+  <!-- Pack ALL actual dependencies -->
+  <None Include="$(OutputPath)\Gherkin.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\Stubble.Core.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\Microsoft.Bcl.AsyncInterfaces.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Memory.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Buffers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Runtime.CompilerServices.Unsafe.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Collections.Immutable.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Text.Json.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Text.Encodings.Web.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  <None Include="$(OutputPath)\System.Threading.Tasks.Extensions.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+</ItemGroup>
+
+<!-- Custom target to copy dependencies for packing -->
+<Target Name="CopyDependenciesToOutput" AfterTargets="Build">
   <ItemGroup>
-    <!-- Pack the generator DLL as an analyzer -->
-    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <!-- Get all runtime dependencies -->
+    <DependencyToCopy Include="@(RuntimeCopyLocalItems)" Condition="'%(Extension)' == '.dll' AND '%(Filename)' != '$(AssemblyName)'" />
   </ItemGroup>
+
+  <Copy SourceFiles="@(DependencyToCopy)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+
+  <Message Text="Copied dependencies to output: @(DependencyToCopy->'%(Filename)%(Extension)')" Importance="High" />
+</Target>
+
 
 </Project>
