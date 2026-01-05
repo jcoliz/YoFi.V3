@@ -1176,6 +1176,65 @@ public class GherkinToCrifIntegrationTests
     }
 
     [Test]
+    public void Convert_WithDataTableInBackground_AddsClassAndNamespace()
+    {
+        // Given: A step with DataTable parameter
+        var stepMetadata = new StepMetadataCollection();
+        stepMetadata.Add(new StepMetadata
+        {
+            NormalizedKeyword = "Given",
+            Text = "I have the following users",
+            Method = "IHaveTheFollowingUsers",
+            Class = "UserSteps",
+            Namespace = "YoFi.V3.Tests.Functional.Steps",
+            Parameters = [new StepParameter { Type = "DataTable", Name = "users" }]
+        });
+
+        var converter = new GherkinToCrifConverter(stepMetadata);
+
+        // And: A Gherkin feature with DataTable in Background
+        var gherkin = """
+            Feature: User Management
+
+            Background:
+              Given I have the following users
+                | Username | Email              | Role  |
+                | alice    | alice@example.com  | Admin |
+                | bob      | bob@example.com    | User  |
+
+            Scenario: User operations
+              When I perform user operations
+            """;
+        var feature = ParseGherkin(gherkin);
+
+        // When: Feature is converted to CRIF
+        var crif = converter.Convert(feature);
+
+        // Then: Background step should be matched with correct Owner and Method
+        var bgStep = crif.Background!.Steps[0];
+        Assert.That(bgStep.Owner, Is.EqualTo("UserSteps"));
+        Assert.That(bgStep.Method, Is.EqualTo("IHaveTheFollowingUsers"));
+
+        // And: DataTable should be extracted with correct structure
+        Assert.That(bgStep.DataTable, Is.Not.Null);
+        Assert.That(bgStep.DataTable!.Headers, Has.Count.EqualTo(3));
+        Assert.That(bgStep.DataTable.Headers[0].Value, Is.EqualTo("Username"));
+        Assert.That(bgStep.DataTable.Headers[1].Value, Is.EqualTo("Email"));
+        Assert.That(bgStep.DataTable.Headers[2].Value, Is.EqualTo("Role"));
+        Assert.That(bgStep.DataTable.Rows, Has.Count.EqualTo(2));
+
+        // And: Step should have DataTable variable as argument
+        Assert.That(bgStep.Arguments, Has.Count.EqualTo(1));
+        Assert.That(bgStep.Arguments[0].Value, Is.EqualTo("table1"));
+
+        // And: Class should be added to Classes list
+        Assert.That(crif.Classes, Contains.Item("UserSteps"));
+
+        // And: Namespace should be added to Usings
+        Assert.That(crif.Usings, Contains.Item("YoFi.V3.Tests.Functional.Steps"));
+    }
+
+    [Test]
     public void Convert_WithMalformedUsingSyntax_ThrowsCompositeParserException()
     {
         // Given: A Gherkin feature with malformed @using syntax (space instead of colon)

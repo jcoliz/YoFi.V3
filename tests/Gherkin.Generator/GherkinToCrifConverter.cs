@@ -146,9 +146,18 @@ public class GherkinToCrifConverter(StepMetadataCollection stepMetadata)
     {
         var backgroundCrif = new BackgroundCrif();
 
+        var tableCounter = 1;
         foreach (var step in background.Steps)
         {
             var stepCrif = ConvertStep(step);
+
+            // Assign data table variable name if present
+            if (stepCrif.DataTable != null)
+            {
+                stepCrif.DataTable.VariableName = $"table{tableCounter}";
+                tableCounter++;
+            }
+
             backgroundCrif.Steps.Add(stepCrif);
         }
 
