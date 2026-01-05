@@ -11,6 +11,8 @@ namespace YoFi.V3.Tests.Generator;
 [TestFixture]
 public class GherkinToCrifIntegrationTests
 {
+    #region Basic Step Matching Tests
+
     [Test]
     public void Convert_WithMatchedStep_EmitsOwnerAndMethod()
     {
@@ -114,6 +116,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Usings, Contains.Item("YoFi.V3.Tests.Functional.Steps"));
     }
 
+    #endregion
+
+    #region Unmatched Step Tests
+
     [Test]
     public void Convert_WithUnmatchedStep_StaysInUnimplementedList()
     {
@@ -142,6 +148,10 @@ public class GherkinToCrifIntegrationTests
         var step = crif.Rules[0].Scenarios[0].Steps[0];
         Assert.That(step.Owner, Is.EqualTo("this"));
     }
+
+    #endregion
+
+    #region Parameterized Step Tests
 
     [Test]
     public void Convert_WithParameterizedStep_ExtractsArguments()
@@ -255,6 +265,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(step.Arguments[0].Value, Is.EqualTo("\"Ski Village\""));
     }
 
+    #endregion
+
+    #region Class and Namespace Management Tests
+
     [Test]
     public void Convert_WithMultipleStepsFromSameClass_AddsClassOnce()
     {
@@ -345,6 +359,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Classes, Contains.Item("AuthSteps"));
         Assert.That(crif.Classes, Contains.Item("TransactionSteps"));
     }
+
+    #endregion
+
+    #region Mixed Matched and Unmatched Step Tests
 
     [Test]
     public void Convert_WithMatchedAndUnmatchedSteps_HandlesCorrectly()
@@ -481,6 +499,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Usings.Count(ns => ns == "YoFi.V3.Tests.Functional.Steps"), Is.EqualTo(1));
     }
 
+    #endregion
+
+    #region And Step Tests
+
     [Test]
     public void Convert_WithAndStep_AddsClassAndNamespaceCorrectly()
     {
@@ -593,6 +615,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Usings.Count(ns => ns == "YoFi.V3.Tests.Functional.Steps.Auth"), Is.EqualTo(1));
     }
 
+    #endregion
+
+    #region Background Step Tests
+
     [Test]
     public void Convert_WithBackground_AddsBackgroundStepClassesAndNamespaces()
     {
@@ -645,6 +671,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Usings, Contains.Item("YoFi.V3.Tests.Functional.Steps.Auth"));
         Assert.That(crif.Usings, Contains.Item("YoFi.V3.Tests.Functional.Steps.Setup"));
     }
+
+    #endregion
+
+    #region And Keyword Preservation Tests
 
     [Test]
     public void Convert_WithAndStep_PreservesAndKeywordInCrif()
@@ -857,6 +887,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Classes, Contains.Item("AuthSteps"));
         Assert.That(crif.Classes, Contains.Item("SessionSteps"));
     }
+
+    #endregion
+
+    #region DataTable Tests
 
     [Test]
     public void Convert_WithDataTableStep_ExtractsDataTableAndMatchesStep()
@@ -1234,6 +1268,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(crif.Usings, Contains.Item("YoFi.V3.Tests.Functional.Steps"));
     }
 
+    #endregion
+
+    #region Quote Handling Tests
+
     [Test]
     public void Convert_WithMultipleUnquotedParameters_PreservesQuotesOnAllArguments()
     {
@@ -1277,6 +1315,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(step.Arguments[1].Value, Is.EqualTo("\"Source\""), "Second argument should be quoted even if not quoted in Gherkin");
     }
 
+    #endregion
+
+    #region Error Handling Tests
+
     [Test]
     public void Convert_WithMalformedUsingSyntax_ThrowsCompositeParserException()
     {
@@ -1298,6 +1340,10 @@ public class GherkinToCrifIntegrationTests
         // And: Exception should include line number reference
         Assert.That(ex.Message, Does.Contain("(1:1)"));
     }
+
+    #endregion
+
+    #region Scenario Outline Tests
 
     [Test]
     public void Convert_ScenarioOutlineWithMatchedStep_ExtractsParametersAndMatchesSteps()
@@ -1424,6 +1470,10 @@ public class GherkinToCrifIntegrationTests
         Assert.That(step.Arguments[1].Last, Is.True);
     }
 
+    #endregion
+
+    #region Helper Methods
+
     /// <summary>
     /// Helper method to parse Gherkin text into a GherkinDocument.
     /// </summary>
@@ -1433,4 +1483,6 @@ public class GherkinToCrifIntegrationTests
         var reader = new StringReader(gherkinText);
         return parser.Parse(reader);
     }
+
+    #endregion
 }
