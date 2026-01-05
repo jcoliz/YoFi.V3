@@ -119,15 +119,19 @@ public class GherkinSourceGenerator : IIncrementalGenerator
         }
         catch (System.Exception ex)
         {
+            // Create diagnostic with full exception message
+            // The message template uses {0} placeholder which will be filled with the exception message
             context.ReportDiagnostic(Diagnostic.Create(
                 new DiagnosticDescriptor(
                     "GHERKIN003",
                     "Gherkin Parse Error",
-                    $"Error parsing {fileName}.feature: {ex.Message}",
+                    "Error parsing {0}.feature: {1}",
                     "Gherkin.Generator",
                     DiagnosticSeverity.Error,
                     isEnabledByDefault: true),
-                Microsoft.CodeAnalysis.Location.None));
+                Microsoft.CodeAnalysis.Location.None,
+                fileName,
+                ex.Message));
             return;
         }
 
