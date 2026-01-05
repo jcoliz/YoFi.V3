@@ -26,7 +26,7 @@
 
 <ItemGroup>
   <!-- Source generator as package -->
-  <PackageReference Include="YoFi.V3.Tests.Gherkin.Generator" Version="1.0.4" OutputItemType="Analyzer" />
+  <PackageReference Include="YoFi.V3.Tests.Gherkin.Generator" Version="1.0.5" OutputItemType="Analyzer" />
 
   <!-- Feature files and template -->
   <AdditionalFiles Include="Features/BankImport.feature" />

@@ -8,12 +8,11 @@ Feature: Workspace Management
 
 Background:
     Given the application is running
-# TODO: Doesn't handle tables in background yet!
-#    And these users exist:
-#        | Username |
-#        | alice    |
-#        | bob      |
-#        | charlie  |
+    And these users exist:
+        | Username |
+        | alice    |
+        | bob      |
+        | charlie  |
 
 Rule: Getting Started
     New users automatically receive their own workspace to begin tracking finances

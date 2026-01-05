@@ -107,8 +107,7 @@ Rule: Transaction Details Page
         When I click the "Edit" button
         And I change Category to "Home Improvement"
         And I click "Save"
-        # TODO: Doesn't render correctly
-        # Then I should see "Home Improvement" as the Category
+        Then I should see "Home Improvement" as the Category
 
     Scenario: User returns to list from transaction details page
         Given I am viewing the details page for a transaction
