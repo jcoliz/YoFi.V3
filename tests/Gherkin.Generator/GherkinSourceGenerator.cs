@@ -5,6 +5,8 @@ using Gherkin.Ast;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace YoFi.V3.Tests.Generator;
 
@@ -142,23 +144,32 @@ public class GherkinSourceGenerator : IIncrementalGenerator
         // 3. Report warnings for unimplemented steps (optional)
         if (crif.Unimplemented.Any())
         {
-            var unimplementedSteps = string.Join(", ", crif.Unimplemented.Select(u => $"{u.Keyword} {u.Text}"));
             context.ReportDiagnostic(Diagnostic.Create(
                 new DiagnosticDescriptor(
                     "GHERKIN004",
                     "Unimplemented Steps",
-                    $"Feature '{fileName}' has unimplemented steps: {unimplementedSteps}",
+                    $"Feature '{fileName}' has {crif.Unimplemented.Count} unimplemented step(s). Stub implementations generated in output file.",
                     "Gherkin.Generator",
                     DiagnosticSeverity.Warning,
                     isEnabledByDefault: true),
                 Microsoft.CodeAnalysis.Location.None));
         }
 
-        // 4. Generate C# code from CRIF using template
+        // 4. Generate JSON representation of CRIF for testing/debugging
+        var jsonOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        var crifJson = JsonSerializer.Serialize(crif, jsonOptions);
+        var jsonSourceText = SourceText.From(crifJson, Encoding.UTF8);
+        context.AddSource($"{fileName}.crif.json", jsonSourceText);
+
+        // 5. Generate C# code from CRIF using template
         var generator = new FunctionalTestGenerator();
         var generatedCode = generator.GenerateString(template, crif);
 
-        // 5. Add generated source to compilation
+        // 6. Add generated source to compilation
         var sourceText = SourceText.From(generatedCode, Encoding.UTF8);
         context.AddSource($"{fileName}.feature.g.cs", sourceText);
     }
