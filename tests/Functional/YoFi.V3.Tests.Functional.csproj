@@ -30,6 +30,7 @@
 
   <!-- Feature files and template -->
   <AdditionalFiles Include="Features/BankImport.feature" />
+  <AdditionalFiles Include="Features/Weather.feature" />
   <AdditionalFiles Include="Features/FunctionalTest.mustache" />
 </ItemGroup>
 

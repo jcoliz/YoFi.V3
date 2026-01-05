@@ -1,7 +1,6 @@
-@using:YoFi.V3.Tests.Functional.Steps
+@using:YoFi.V3.Tests.Functional.Helpers
 @namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:WeatherSteps
-@template:Features/FunctionalTest.mustache
+@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Weather Forecasts
     As a user planning my activities
     I want to view upcoming weather forecasts
