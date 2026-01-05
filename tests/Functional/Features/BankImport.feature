@@ -9,7 +9,7 @@ Background:
     Given the application is running
     And I have an existing account
     And I have an active workspace "My Finances"
-    And I am logged in
+    And I am logged into my existing account
 
 Scenario: User uploads bank file and sees import review page
     Given I have existing transactions with external IDs:
