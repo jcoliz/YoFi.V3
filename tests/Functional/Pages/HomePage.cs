@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Page object for the home page.
+/// </summary>
 public class HomePage(IPage? _page): BasePage(_page)
 {
     #region Page Elements

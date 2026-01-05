@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Page object for the login page.
+/// </summary>
 public partial class LoginPage(IPage _page): BasePage(_page)
 {
     [GeneratedRegex("/api/auth/login")]

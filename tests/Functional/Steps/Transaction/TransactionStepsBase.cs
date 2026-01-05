@@ -28,7 +28,14 @@ public abstract class TransactionStepsBase(ITestContext context)
 
     #region Composed Step Classes
 
+    /// <summary>
+    /// Provides navigation-related step definitions.
+    /// </summary>
     protected readonly NavigationSteps NavigationSteps = new(context);
+
+    /// <summary>
+    /// Provides authentication-related step definitions.
+    /// </summary>
     protected readonly AuthSteps AuthSteps = new(context);
 
     #endregion

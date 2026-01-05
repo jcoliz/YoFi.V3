@@ -3,6 +3,9 @@ using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions; // Add this line
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Page object for the user registration page.
+/// </summary>
 public class RegisterPage(IPage _page): BasePage(_page)
 {
     private static readonly Regex RegisterApiRegex = new("/api/auth/signup", RegexOptions.Compiled);

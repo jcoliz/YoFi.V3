@@ -109,6 +109,9 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator EmptyStateCreateButton => EmptyState.GetByTestId("create-workspace-button");
 
+    /// <summary>
+    /// Edit form within a workspace card
+    /// </summary>
     public ILocator EditForm => WorkspacesList.GetByTestId("edit-form");
 
     #endregion

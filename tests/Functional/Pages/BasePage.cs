@@ -5,10 +5,16 @@ using YoFi.V3.Tests.Functional.Components;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Base page object providing common functionality for all page objects.
+/// </summary>
 public class BasePage(IPage? _page)
 {
     private static readonly string _apiBaseUrl = TestContext.Parameters["apiBaseUrl"] ?? throw new NotImplementedException("API Base URL not configured in test parameters.");
 
+    /// <summary>
+    /// Gets or sets the Playwright page instance.
+    /// </summary>
     public IPage? Page { get; set; } = _page;
 
     #region Components
@@ -131,6 +137,11 @@ public class BasePage(IPage? _page)
     }
 
     // TODO: Work out duplication with base functional test versions of these!
+    /// <summary>
+    /// Executes an action and waits for a matching API response.
+    /// </summary>
+    /// <param name="action">Action that triggers the API call.</param>
+    /// <param name="endpoint">API endpoint to wait for.</param>
     public async Task WaitForApi(Func<Task> action, string? endpoint = null)
     {
         throw new NotImplementedException("Prefer regex version of WaitForApi");

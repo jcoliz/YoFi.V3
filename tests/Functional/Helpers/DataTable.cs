@@ -132,6 +132,9 @@ public class DataTable : IEnumerable<DataTableRow>
     /// <exception cref="IndexOutOfRangeException">Thrown when index is out of range.</exception>
     public DataTableRow this[int index] => _rows[index];
 
+    /// <summary>
+    /// Returns an enumerator that iterates through the table rows.
+    /// </summary>
     public IEnumerator<DataTableRow> GetEnumerator() => _rows.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

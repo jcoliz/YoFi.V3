@@ -2,6 +2,9 @@ using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Page object for the user profile page.
+/// </summary>
 public class ProfilePage(IPage _page): BasePage(_page)
 {
     private static readonly Regex RefreshTokenApiRegex = new("/api/auth/refresh", RegexOptions.Compiled);

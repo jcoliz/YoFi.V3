@@ -25,7 +25,14 @@ public abstract class WorkspaceStepsBase(ITestContext context)
 
     #region Composed Step Classes
 
+    /// <summary>
+    /// Navigation steps for page navigation actions.
+    /// </summary>
     protected readonly NavigationSteps NavigationSteps = new(context);
+
+    /// <summary>
+    /// Authentication steps for login/logout actions.
+    /// </summary>
     protected readonly AuthSteps AuthSteps = new(context);
 
     #endregion

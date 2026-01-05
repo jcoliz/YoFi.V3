@@ -22,16 +22,10 @@ namespace {{Namespace}};
 /// </remarks>
 public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
 {
-    #region Step class references
-
-    {{#Classes}}
-    protected {{.}} {{.}} => _the{{.}} ??= new(this);
-    private {{.}}? _the{{.}};
-    {{/Classes}}
-
-    #endregion
-
     {{#Background}}
+    /// <summary>
+    /// Background Setup
+    /// </summary>
     [SetUp]
     public async Task SetupAsync()
     {
@@ -108,5 +102,19 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
 
     {{/.}}
     #endregion
+
     {{/Unimplemented}}
+    #region Step class references
+
+    {{#Classes}}
+    /// <summary>
+    /// {{.}}
+    /// </summary>
+    protected {{.}} {{.}} => _the{{.}} ??= new(this);
+    private {{.}}? _the{{.}};
+    {{/Classes}}
+
+    #endregion
+
+
 }

@@ -4,6 +4,7 @@
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\runsettings\development.runsettings</RunSettingsFilePath>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

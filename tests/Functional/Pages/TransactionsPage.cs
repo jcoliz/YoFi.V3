@@ -626,6 +626,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         return Page!.GetByTestId($"transaction-row-{transactionKey}");
     }
 
+    /// <summary>
+    /// Waits for a transaction row with the specified key to appear in the list.
+    /// </summary>
+    /// <param name="transactionKey">The unique identifier of the transaction.</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000).</param>
     public async Task WaitForTransactionRowByKeyAsync(Guid transactionKey, float timeout = 5000)
     {
         var row = GetTransactionRow(transactionKey.ToString());
@@ -635,6 +640,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         _cachedTableData = null;
     }
 
+    /// <summary>
+    /// Gets the transaction key (GUID) for a transaction with the specified payee name.
+    /// </summary>
+    /// <param name="payeeName">The payee name to search for.</param>
     public async Task<Guid> GetTransactionKeyByPayeeAsync(string payeeName)
     {
         var row = await GetTransactionRowByPayeeAsync(payeeName);
@@ -697,6 +706,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         return rowData.RowLocator.Locator("td").Nth(columnIndex);
     }
 
+    /// <summary>
+    /// Gets the text content of a specific cell in the transactions table.
+    /// </summary>
+    /// <param name="payee">The payee name to identify the row.</param>
+    /// <param name="column">The data-test-id of the column header.</param>
     public async Task<string> TransactionsTableCellText(string payee, string column)
     {
         var tableData = await LoadTransactionTableDataAsync();
@@ -710,6 +724,10 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         return rowData.Columns.TryGetValue(column, out var cellText) ? cellText : throw new ArgumentException($"Column with data-test-id '{column}' not found in row for payee '{payee}'");
     }
 
+    /// <summary>
+    /// Gets the complete row data for a transaction with the specified payee name.
+    /// </summary>
+    /// <param name="payeeName">The payee name to search for.</param>
     public async Task<TransactionRowData?> GetTransactionRowDataByPayeeAsync(string payeeName)
     {
         var tableData = await LoadTransactionTableDataAsync();

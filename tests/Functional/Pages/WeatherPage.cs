@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
+/// <summary>
+/// Page object for the weather page.
+/// </summary>
 public partial class WeatherPage(IPage? _page): BasePage(_page)
 {
     [GeneratedRegex("/api/Weather")]

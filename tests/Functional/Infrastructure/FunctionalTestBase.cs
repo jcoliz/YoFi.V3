@@ -28,19 +28,39 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
     private static bool _prerequisiteCheckFailed = false;
     private static bool _environmentVariablesLoaded = false;
 
+    /// <summary>
+    /// Object store for sharing data between test steps.
+    /// </summary>
     protected ObjectStore _objectStore = new();
+
+    /// <summary>
+    /// Activity for distributed tracing correlation.
+    /// </summary>
     protected Activity? _testActivity;
 
-    // Track user credentials by friendly name for lookups AND cleanup
+    /// <summary>
+    /// Tracks user credentials by friendly name for lookups and cleanup.
+    /// </summary>
     protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
-    // Track workspaces for cleanup and later reference by steps
-    // (keys are FULL workspace names as returned by API)
+    /// <summary>
+    /// Tracks workspaces for cleanup and later reference by steps (keys are full workspace names as returned by API).
+    /// </summary>
     protected readonly Dictionary<string, Guid> _workspaceKeys = new();
 
+    /// <summary>
+    /// Gets an object from the store by its type.
+    /// </summary>
     protected T It<T>() where T : class => _objectStore.Get<T>();
+
+    /// <summary>
+    /// Gets an object from the store by its type and key.
+    /// </summary>
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
 
+    /// <summary>
+    /// Gets the base URL for the web application under test.
+    /// </summary>
     protected Uri? baseUrl { get; private set; }
 
     // Experiment with reusable HttpClient for TestControlClient, which we can change
@@ -89,6 +109,9 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
 
     #region Overrides
 
+    /// <summary>
+    /// Configures browser context options for Playwright tests.
+    /// </summary>
     public override BrowserNewContextOptions ContextOptions() =>
         new()
         {
@@ -100,6 +123,9 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
 
     #region Setup
 
+    /// <summary>
+    /// Sets up the test environment before each test execution.
+    /// </summary>
     [SetUp]
     public async Task SetUp()
     {
@@ -177,6 +203,9 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
         "log: 🍍 \"userPreferences\" store"
     };
 
+    /// <summary>
+    /// Cleans up the test environment after each test execution.
+    /// </summary>
     [TearDown]
     public async Task TearDown()
     {
@@ -194,6 +223,9 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
         _testActivity?.Dispose();
     }
 
+    /// <summary>
+    /// Performs one-time setup before any tests in the fixture are executed.
+    /// </summary>
     [OneTimeSetUp]
     public async Task OneTimeSetup()
     {
@@ -567,6 +599,10 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
         return creds;
     }
 
+    /// <summary>
+    /// Creates test user credentials and registers the user on the server.
+    /// </summary>
+    /// <param name="friendlyName">Friendly name for the user (e.g., "alice", "bob").</param>
     public async Task<TestUserCredentials> CreateTestUserCredentialsOnServer(string friendlyName)
     {
         var userCreds = CreateTestUserCredentials(friendlyName);  // Auto-tracked
