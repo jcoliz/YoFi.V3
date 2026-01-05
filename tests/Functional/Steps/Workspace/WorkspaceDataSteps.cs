@@ -397,7 +397,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// via Test Control API for each owner. Tracks all workspace keys.
     /// Used to set up multi-tenant scenarios.
     /// </remarks>
-    [Given("there are other workspaces in the system")]
+    [Given("there are other workspaces in the system:")]
     public async Task GivenThereAreOtherWorkspacesInTheSystem(DataTable workspacesTable)
     {
         foreach (var row in workspacesTable)

@@ -32,6 +32,7 @@
   <AdditionalFiles Include="Features/BankImport.feature" />
   <AdditionalFiles Include="Features/Weather.feature" />
   <AdditionalFiles Include="Features/Authentication.feature" />
+  <AdditionalFiles Include="Features/Tenancy.feature" />
   <AdditionalFiles Include="Features/FunctionalTest.mustache" />
 </ItemGroup>
 
