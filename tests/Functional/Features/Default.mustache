@@ -52,12 +52,12 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
 
     {{#Scenarios}}
     /// <summary>
-    /// {{Name}}
+    /// {{{Name}}}
     /// </summary>
     {{#Remarks}}
     /// <remarks>
     {{#Lines}}
-    /// {{.}}
+    /// {{{.}}}
     {{/Lines}}
     /// </remarks>
     {{/Remarks}}
@@ -71,7 +71,7 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
     public async Task {{Method}}({{#Parameters}}{{Type}} {{Name}}{{^Last}}, {{/Last}}{{/Parameters}})
     {
         {{#Steps}}
-        // {{Keyword}} {{Text}}
+        // {{Keyword}} {{{Text}}}
         {{#DataTable}}
         var {{VariableName}} = new DataTable(
             [{{#Headers}}"{{.}}"{{^Last}}, {{/Last}}{{/Headers}}],
@@ -87,11 +87,13 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
 
     {{/Scenarios}}
     #endregion
-    {{/Rules}}
-    {{#Unimplemented}}
 
+    {{/Rules}}
+    {{#Unimplemented.0}}
     #region Unimplemented Steps
-    {{#.}}
+
+    {{/Unimplemented.0}}
+    {{#Unimplemented}}
     /// <summary>
     /// {{Keyword}} {{Text}}
     /// </summary>
@@ -100,21 +102,20 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
         throw new NotImplementedException();
     }
 
-    {{/.}}
+    {{/Unimplemented}}
+    {{#Unimplemented.0}}
     #endregion
 
-    {{/Unimplemented}}
+    {{/Unimplemented.0}}
     #region Step class references
 
     {{#Classes}}
-    /// <summary>
-    /// {{.}}
-    /// </summary>
     protected {{.}} {{.}} => _the{{.}} ??= new(this);
+    {{/Classes}}
+
+    {{#Classes}}
     private {{.}}? _the{{.}};
     {{/Classes}}
 
     #endregion
-
-
 }
