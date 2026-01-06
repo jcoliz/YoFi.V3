@@ -1,7 +1,6 @@
-@using:YoFi.V3.Tests.Functional.Steps
+@using:YoFi.V3.Tests.Functional.Helpers
 @namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:AuthenticationSteps
-@template:Features/FunctionalTest.mustache
+@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: User Authentication
     As a user of YoFi
     I want to register, login, and manage my account
@@ -51,8 +50,7 @@ Rule: User Login and Logout
     Scenario: User logs into an existing account
         Given I have an existing account
         And I am on the login page
-        When I enter my credentials
-        And I click the login button
+        When I login with my credentials
         Then I should see the home page
         And I should be successfully logged in
 
@@ -69,7 +67,7 @@ Rule: User Login and Logout
         And I leave the password field empty
         And I click the login button (for validation)
         Then I should see a validation error
-        And I should not be logged in
+        And I should remain on the login page
 
     Scenario: User logs out successfully
         Given I am logged in
@@ -94,7 +92,7 @@ Rule: Access Control
 
     Scenario: Logged in user cannot access login page
         Given I am logged in
-        When I try to navigate directly to the login page
+        When I try to navigate directly to the login page, expecting it to fail
         Then I should be redirected to my profile page
         And I should not see the login form
 

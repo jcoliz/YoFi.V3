@@ -1,7 +1,6 @@
-@using:YoFi.V3.Tests.Functional.Steps
+@using:YoFi.V3.Tests.Functional.Helpers
 @namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:WorkspaceTenancySteps
-@template:Features/FunctionalTest.mustache
+@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Workspace Management
     As a YoFi user
     I want to create and manage separate financial workspaces
@@ -125,7 +124,8 @@ Rule: Permission Levels
         And I am logged in as "charlie"
         When I view transactions in "Family Budget"
         Then I should see the transactions
-        But when I try to add or edit transactions
+        # Error: Should not have multitle When/Then logic in a scenario
+        When I try to add or edit transactions
         Then I should not be able to make those changes
 
     Scenario: Editor can view and modify data
@@ -133,9 +133,10 @@ Rule: Permission Levels
         And I am logged in as "bob"
         When I add a transaction to "Family Budget"
         Then the transaction should be saved successfully
-        And when I update that transaction
+        # Error: Should not have multitle When/Then logic in a scenario
+        When I update that transaction
         Then my changes should be saved
-        And when I delete that transaction
+        When I delete that transaction
         Then it should be removed
 
     Scenario: Owner can do everything including managing the workspace

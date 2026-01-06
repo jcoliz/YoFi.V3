@@ -32,7 +32,7 @@ public class AuthSteps(ITestContext _context)
     /// Currently assumes a clean state. Future implementation may include
     /// explicit logout if a user session is detected.
     /// </remarks>
-    //[Given("I am not logged in")]
+    [Given("I am not logged in")]
     public async Task GivenIAmNotLoggedIn()
     {
         // TODO: Implement logout if already logged in
@@ -139,7 +139,7 @@ public class AuthSteps(ITestContext _context)
     /// tracked for cleanup. This is a test setup operation used in multi-user scenarios
     /// like workspace collaboration tests.
     /// </remarks>
-    [Given("these users exist")]
+    [Given("these users exist:")]
     public async Task GivenTheseUsersExist(DataTable usersTable)
     {
         var friendlyNames = usersTable.ToSingleColumnList().ToList();
