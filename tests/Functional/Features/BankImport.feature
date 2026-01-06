@@ -1,9 +1,7 @@
-@using YoFi.V3.Tests.Functional.Steps
-@namespace YoFi.V3.Tests.Functional.Features
-@baseclass BankImportSteps
-@template FunctionalTest.mustache
+@using:YoFi.V3.Tests.Functional.Helpers
+@namespace:YoFi.V3.Tests.Functional.Features
+@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Bank Import
-
     Users can upload OFX/QFX bank files and review/import transactions
     into their workspace. The system detects duplicates and allows selective import.
 
@@ -11,7 +9,7 @@ Background:
     Given the application is running
     And I have an existing account
     And I have an active workspace "My Finances"
-    And I am logged in
+    And I am logged into my existing account
 
 Scenario: User uploads bank file and sees import review page
     Given I have existing transactions with external IDs:

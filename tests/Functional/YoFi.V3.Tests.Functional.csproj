@@ -2,11 +2,14 @@
 
   <PropertyGroup>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\runsettings\development.runsettings</RunSettingsFilePath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Gherkin.Generator" Version="0.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.57.0" />
     <PackageReference Include="NUnit" Version="4.4.0" />
@@ -19,13 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="NUnit.Framework" />
+    <AdditionalFiles Include="Features\BankImport.feature" />
+    <AdditionalFiles Include="Features\Default.mustache" />
   </ItemGroup>
+
   <ItemGroup>
-    <!-- Project reference to ensure WireApiHost builds before API client generation.
-         ReferenceOutputAssembly="false" prevents assembly coupling (we only need the built project for NSwag metadata extraction).
-         This only establishes build order dependency, doesn't cause unnecessary rebuilds. -->
-    <ProjectReference Include="..\..\src\WireApiHost\YoFi.V3.WireApiHost.csproj" ReferenceOutputAssembly="false" />
+    <Using Include="NUnit.Framework" />
   </ItemGroup>
 
   <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
