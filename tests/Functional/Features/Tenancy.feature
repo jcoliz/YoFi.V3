@@ -1,4 +1,3 @@
-@using:YoFi.V3.Tests.Functional.Helpers
 @namespace:YoFi.V3.Tests.Functional.Features
 @baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Workspace Management
