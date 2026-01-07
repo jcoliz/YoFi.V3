@@ -61,9 +61,9 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
     {{/Lines}}
     /// </remarks>
     {{/Remarks}}
-    {{#ExplicitTag}}
-    [Explicit]
-    {{/ExplicitTag}}
+    {{#IsExplicit}}
+    [Explicit{{#ExplicitReason}}("{{.}}"){{/ExplicitReason}}]
+    {{/IsExplicit}}
     {{#TestCases}}
     [TestCase({{{.}}})]
     {{/TestCases}}
@@ -90,14 +90,15 @@ public partial class {{FileName}}_Feature_Tests : {{BaseClass}}
 
     {{/Rules}}
     {{#Unimplemented.0}}
-    #region Unimplemented Steps
+    #region Stubs for Unimplemented Steps
 
     {{/Unimplemented.0}}
     {{#Unimplemented}}
     /// <summary>
-    /// {{Keyword}} {{Text}}
+    /// {{Keyword}} {{{Text}}}
     /// </summary>
-    async Task {{Method}}({{#Parameters}}{{Type}} {{Name}}{{^Last}}, {{/Last}}{{/Parameters}})
+    [{{Keyword}}("{{Text}}")]
+    public async Task {{Method}}({{#Parameters}}{{Type}} {{Name}}{{^Last}}, {{/Last}}{{/Parameters}})
     {
         throw new NotImplementedException();
     }

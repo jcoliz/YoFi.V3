@@ -1,5 +1,3 @@
-@namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Bank Import
     Users can upload OFX/QFX bank files and review/import transactions
     into their workspace. The system detects duplicates and allows selective import.

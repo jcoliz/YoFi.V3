@@ -1,5 +1,3 @@
-@namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Weather Forecasts
     As a user planning my activities
     I want to view upcoming weather forecasts

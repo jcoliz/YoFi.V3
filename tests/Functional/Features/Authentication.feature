@@ -1,5 +1,3 @@
-@namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: User Authentication
     As a user of YoFi
     I want to register, login, and manage my account

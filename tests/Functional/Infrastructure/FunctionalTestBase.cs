@@ -4,7 +4,6 @@ using System.Web;
 using DotNetEnv;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
-using NUnit.Framework.Internal;
 using YoFi.V3.Tests.Functional.Generated;
 
 namespace YoFi.V3.Tests.Functional.Infrastructure;
@@ -21,6 +20,7 @@ namespace YoFi.V3.Tests.Functional.Infrastructure;
 /// - Object store access for sharing data between steps
 /// - Test Control API client access
 /// </remarks>
+[GeneratedTestBase(UseNamespace = "YoFi.V3.Tests.Functional.Features")]
 public abstract partial class FunctionalTestBase : PageTest, ITestContext
 {
     #region Fields

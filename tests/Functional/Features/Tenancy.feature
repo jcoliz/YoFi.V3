@@ -1,5 +1,3 @@
-@namespace:YoFi.V3.Tests.Functional.Features
-@baseclass:YoFi.V3.Tests.Functional.Infrastructure.FunctionalTestBase
 Feature: Workspace Management
     As a YoFi user
     I want to create and manage separate financial workspaces
