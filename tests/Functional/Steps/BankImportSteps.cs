@@ -28,8 +28,10 @@ public class BankImportSteps(ITestContext _context)
     /// - CurrentWorkspace
     /// </remarks>
     [Given("I am on the import review page")]
+    [When("I am on the Import Review page")]
+    [When("I navigate to the Import page")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    public async Task GivenIAmOnTheImportReviewPage()
+    public async Task IAmOnTheImportReviewPage()
     {
         // Given: Get workspace name
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
@@ -127,7 +129,8 @@ public class BankImportSteps(ITestContext _context)
     /// </summary>
     /// <param name="count">The expected number of transactions.</param>
     [Then("page should display {count} transactions")]
-    public async Task ThenPageShouldDisplayTransactions(int count)
+    [Then("I should see {count} transactions in the review list")]
+    public async Task PageShouldDisplayTheTransactions(int count)
     {
         // Then: Get the import page
         var importPage = _context.GetOrCreatePage<ImportPage>();
@@ -143,6 +146,7 @@ public class BankImportSteps(ITestContext _context)
     /// </summary>
     /// <param name="count">The expected number of selected transactions.</param>
     [Then("{count} transactions should be selected by default")]
+    [Then("all {count} transactions should be selected by default")]
     public async Task ThenTransactionsShouldBeSelectedByDefault(int count)
     {
         // Then: Get the import page
@@ -201,7 +205,234 @@ public class BankImportSteps(ITestContext _context)
 
     #endregion
 
+    #region Helpers
+
+    /// <summary>
+    /// Generates an OFX file with the specified number of new transactions.
+    /// </summary>
+    /// <param name="transactionCount">Number of transactions to include in the OFX file.</param>
+    /// <returns>Path to the generated OFX file.</returns>
+    private string GenerateOfxFile(int transactionCount)
+    {
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var filename = Path.Combine(Path.GetTempPath(), $"test-import-{timestamp}.ofx");
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        sb.AppendLine("<?OFX OFXHEADER=\"200\" VERSION=\"202\" SECURITY=\"NONE\" OLDFILEUID=\"NONE\" NEWFILEUID=\"NONE\"?>");
+        sb.AppendLine("<OFX>");
+        sb.AppendLine("  <SIGNONMSGSRSV1>");
+        sb.AppendLine("    <SONRS>");
+        sb.AppendLine("      <STATUS>");
+        sb.AppendLine("        <CODE>0</CODE>");
+        sb.AppendLine("        <SEVERITY>INFO</SEVERITY>");
+        sb.AppendLine("      </STATUS>");
+        sb.AppendLine($"      <DTSERVER>{DateTime.UtcNow:yyyyMMddHHmmss}.000</DTSERVER>");
+        sb.AppendLine("      <LANGUAGE>ENG</LANGUAGE>");
+        sb.AppendLine("      <FI>");
+        sb.AppendLine("        <ORG>Test Bank</ORG>");
+        sb.AppendLine("        <FID>9999</FID>");
+        sb.AppendLine("      </FI>");
+        sb.AppendLine("    </SONRS>");
+        sb.AppendLine("  </SIGNONMSGSRSV1>");
+        sb.AppendLine("  <BANKMSGSRSV1>");
+        sb.AppendLine("    <STMTTRNRS>");
+        sb.AppendLine("      <TRNUID>0</TRNUID>");
+        sb.AppendLine("      <STATUS>");
+        sb.AppendLine("        <CODE>0</CODE>");
+        sb.AppendLine("        <SEVERITY>INFO</SEVERITY>");
+        sb.AppendLine("      </STATUS>");
+        sb.AppendLine("      <STMTRS>");
+        sb.AppendLine("        <CURDEF>USD</CURDEF>");
+        sb.AppendLine("        <BANKACCTFROM>");
+        sb.AppendLine("          <BANKID>111000025</BANKID>");
+        sb.AppendLine("          <ACCTID>123456789</ACCTID>");
+        sb.AppendLine("          <ACCTTYPE>CHECKING</ACCTTYPE>");
+        sb.AppendLine("        </BANKACCTFROM>");
+        sb.AppendLine("        <BANKTRANLIST>");
+        sb.AppendLine($"          <DTSTART>{DateTime.UtcNow.AddDays(-30):yyyyMMdd}040000.000</DTSTART>");
+        sb.AppendLine($"          <DTEND>{DateTime.UtcNow:yyyyMMdd}040000.000</DTEND>");
+
+        // Generate transactions
+        var baseDate = DateTime.UtcNow.AddDays(-transactionCount);
+        var payees = new[] { "Grocery Store", "Gas Station", "Coffee Shop", "Restaurant", "Pharmacy",
+                            "Bookstore", "Hardware Store", "Electronics Store", "Department Store", "Online Retailer" };
+
+        for (int i = 0; i < transactionCount; i++)
+        {
+            var date = baseDate.AddDays(i);
+            var amount = -(10 + (i * 5.5)); // Varying amounts
+            var payee = payees[i % payees.Length];
+            var fitId = $"TEST{date:yyyyMMdd}{i:D3}"; // Unique FITID
+
+            sb.AppendLine($"          <!-- Transaction {i + 1} - NEW -->");
+            sb.AppendLine("          <STMTTRN>");
+            sb.AppendLine("            <TRNTYPE>DEBIT</TRNTYPE>");
+            sb.AppendLine($"            <DTPOSTED>{date:yyyyMMdd}040000.000</DTPOSTED>");
+            sb.AppendLine($"            <TRNAMT>{amount:F2}</TRNAMT>");
+            sb.AppendLine($"            <FITID>{fitId}</FITID>");
+            sb.AppendLine($"            <NAME>{payee}</NAME>");
+            sb.AppendLine($"            <MEMO>Test transaction {i + 1}</MEMO>");
+            sb.AppendLine("          </STMTTRN>");
+        }
+
+        sb.AppendLine("        </BANKTRANLIST>");
+        sb.AppendLine("        <LEDGERBAL>");
+        sb.AppendLine("          <BALAMT>1000.00</BALAMT>");
+        sb.AppendLine($"          <DTASOF>{DateTime.UtcNow:yyyyMMdd}120000.000</DTASOF>");
+        sb.AppendLine("        </LEDGERBAL>");
+        sb.AppendLine("      </STMTRS>");
+        sb.AppendLine("    </STMTTRNRS>");
+        sb.AppendLine("  </BANKMSGSRSV1>");
+        sb.AppendLine("</OFX>");
+
+        File.WriteAllText(filename, sb.ToString());
+        return filename;
+    }
+
+    #endregion
+
     #region NEW steps from feature file
+
+    /// <summary>
+    /// Creates an OFX file with the specified number of new transactions and uploads it through the UI.
+    /// </summary>
+    /// <param name="count">Number of new transactions to include in the OFX file.</param>
+    /// <remarks>
+    /// Generates a temporary OFX file with unique transaction IDs to ensure all transactions are new.
+    /// Navigates to the import page, uploads the file, and waits for processing to complete.
+    /// The temporary file is cleaned up after upload.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace (workspace name)
+    /// </remarks>
+    [Given("I have uploaded an OFX file with {count} new transactions")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task IHaveUploadedAnOFXFileWithNewTransactions(int count)
+    {
+        // Given: Generate OFX file with specified number of transactions
+        var ofxFilePath = GenerateOfxFile(count);
+
+        try
+        {
+            // And: Get workspace name
+            var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+                ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+
+            // And: Navigate to import page
+            var importPage = _context.GetOrCreatePage<ImportPage>();
+            await importPage.NavigateAsync();
+
+            // And: Select the workspace
+            await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+
+            // When: Upload the generated OFX file
+            await importPage.UploadFileAsync(ofxFilePath);
+
+            // And: Wait for upload to complete
+            await importPage.WaitForUploadCompleteAsync();
+
+            // And: Ensure the import button is enabled, indicating transactions are loaded
+            await importPage.WaitForEnabled(importPage.ImportButton);
+        }
+        finally
+        {
+            // Clean up: Delete the temporary OFX file
+            if (File.Exists(ofxFilePath))
+            {
+                File.Delete(ofxFilePath);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates a valid OFX file with the specified number of transactions.
+    /// </summary>
+    /// <param name="count">Number of transactions to include in the OFX file.</param>
+    /// <remarks>
+    /// Creates a temporary OFX file with unique transaction IDs to ensure all transactions are new.
+    /// Stores the file path in the object store for later upload via IUploadTheOFXFile step.
+    /// The file will be cleaned up after upload.
+    ///
+    /// Provides Objects
+    /// - OfxFilePath (string) - Path to the generated OFX file
+    /// </remarks>
+    [Given("I have a valid OFX file with {count} transactions")]
+    [ProvidesObjects(ObjectStoreKeys.OfxFilePath)]
+    public async Task IHaveAValidOFXFileWith10Transactions(int count)
+    {
+        // Given: Generate OFX file with specified number of transactions
+        var ofxFilePath = GenerateOfxFile(count);
+
+        // And: Store the file path in object store for later use
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, ofxFilePath);
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Uploads the previously generated OFX file through the UI.
+    /// </summary>
+    /// <remarks>
+    /// Retrieves the OFX file path from the object store (set by IHaveAValidOFXFileWith10Transactions),
+    /// navigates to the import page, uploads the file, and waits for processing to complete.
+    /// The temporary file is cleaned up after upload.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace (workspace name)
+    /// - OfxFilePath (string) - Path to the OFX file to upload
+    /// </remarks>
+    [When("I upload the OFX file")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.OfxFilePath)]
+    public async Task IUploadTheOFXFile()
+    {
+        // Given: Retrieve the OFX file path from object store
+        var ofxFilePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.OfxFilePath)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.OfxFilePath} not found in object store. Did you call 'I have a valid OFX file with N transactions' first?");
+
+        try
+        {
+            // And: Get workspace name
+            var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+                ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+
+            // And: Navigate to import page
+            var importPage = _context.GetOrCreatePage<ImportPage>();
+            await importPage.NavigateAsync();
+
+            // And: Select the workspace
+            await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+
+            // When: Upload the generated OFX file
+            await importPage.UploadFileAsync(ofxFilePath);
+
+            // And: Wait for upload to complete
+            await importPage.WaitForUploadCompleteAsync();
+
+            // And: Ensure the import button is enabled, indicating transactions are loaded
+            await importPage.WaitForEnabled(importPage.ImportButton);
+        }
+        finally
+        {
+            // Clean up: Delete the temporary OFX file
+            if (File.Exists(ofxFilePath))
+            {
+                File.Delete(ofxFilePath);
+            }
+
+            // Note: Object store doesn't need explicit cleanup - it's test-scoped
+        }
+    }
+
+    /// <summary>
+    /// Then all transactions should display date, payee, and amount
+    /// </summary>
+    [Then("all transactions should display date, payee, and amount")]
+    public async Task AllTransactionsShouldDisplayDatePayeeAndAmount()
+    {
+        // Ensure there is a non-empty value for date, payee, and amount for each transaction
+        throw new NotImplementedException();
+    }
 
     #endregion
 }

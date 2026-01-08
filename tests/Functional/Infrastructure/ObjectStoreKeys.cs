@@ -104,4 +104,13 @@ public static class ObjectStoreKeys
     public const string EditMode = "EditMode";
 
     #endregion
+
+    #region Bank Import Keys
+
+    /// <summary>
+    /// File path to a generated OFX file for import testing.
+    /// </summary>
+    public const string OfxFilePath = "OfxFilePath";
+
+    #endregion
 }

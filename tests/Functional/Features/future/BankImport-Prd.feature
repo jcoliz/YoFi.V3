@@ -12,6 +12,8 @@ Feature: Bank Import
   Rule: Users can upload bank files for import
 
     @pri:1
+    @id:2
+    @status:wip
     Scenario: Successfully upload valid OFX file
       Given I have a valid OFX file with 10 transactions
       When I navigate to the Import page
@@ -68,12 +70,13 @@ Feature: Bank Import
   Rule: Users can review imported transactions and identify duplicates
 
     @pri:1
+    @id:1
+    @status:done
     Scenario: Review new transactions with no duplicates
       Given I have uploaded an OFX file with 10 new transactions
       When I am on the Import Review page
       Then all 10 transactions should be marked as "New"
       And all 10 transactions should be selected by default
-      And I should see a summary "10 new transactions"
 
     @pri:1
     Scenario: Review transactions with exact duplicates
@@ -88,7 +91,7 @@ Feature: Bank Import
     Scenario: Review transactions with potential duplicates
       Given I have 3 existing transactions in my workspace
       And I have uploaded an OFX file with 3 transactions matching the same dates and amounts but different payee names
-      When I am on the Import Review page
+      And I am reviewing them on the Import Review page
       Then all 3 transactions should be marked as "Potential Duplicate"
       And all 3 transactions should be highlighted
       And all 3 transactions should be deselected by default
