@@ -661,10 +661,10 @@ Feature: Bank Import
     And 3 transactions should be deselected by default
 
   Scenario: User accepts selected transactions from import review
-    Given I am on the import review page
-    And page displays 15 transactions
-    And 12 transactions are selected by default
-    When I click "Accept Selected Transactions" button
+    Given There are 15 transactions ready for import review
+    And 12 transactions are selected
+    And I am on the "Import" page
+    When I import the selected transactions
     Then I should be redirected to transactions page
     And I should see 12 new transactions in the transaction list
     And import review queue should be completely cleared

@@ -18,7 +18,7 @@ public class BankImportSteps(ITestContext _context)
     #region Given Steps
 
     /// <summary>
-    /// Navigates to the import review page with a workspace selected.
+    /// Navigates to the import review page with the correct workspace selected.
     /// </summary>
     /// <remarks>
     /// Sets up minimal state to be on the import review page: navigates to the page and
@@ -115,6 +115,92 @@ public class BankImportSteps(ITestContext _context)
         var actualCount = await importPage.GetDeselectedCountAsync();
         NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
             $"Expected {count} transactions to be deselected but found {actualCount}");
+    }
+
+    #endregion
+
+    #region NEW steps from feature file
+
+    /// <summary>
+    /// Sets up import review state with specified number of transactions ready for import.
+    /// </summary>
+    /// <param name="count">Number of transactions to seed in import review queue.</param>
+    /// <param name="selectedCount">Number of transactions to mark as selected.</param>
+    /// <remarks>
+    /// Seeds import review transactions via Test Control API (SeedImportReviewTransactions endpoint).
+    /// Uses deterministic test data generation to create predictable transaction data.
+    /// This approach is faster and more reliable than uploading OFX files through the UI.
+    ///
+    /// Requires Objects
+    /// - LoggedInAs (username from auth)
+    /// - CurrentWorkspace (workspace name)
+    /// </remarks>
+    [Given("There are {count} transactions ready for import review, with {selectedCount} selected")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.CurrentWorkspace)]
+    public async Task ThereAreTransactionsReadyForImportReview(int count, int selectedCount)
+    {
+        // Given: Get logged in username
+        var username = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store");
+
+        // And: Get current workspace name and resolve workspace key
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        var workspaceKey = _context.GetWorkspaceKey(workspaceName);
+
+        // When: Seed import review transactions via Test Control API
+        await _context.TestControlClient.SeedImportReviewTransactionsAsync(
+            username,
+            workspaceKey,
+            count,
+            selectedCount);
+    }
+
+    /// <summary>
+    /// Clicks the Import button, confirms the import, and waits for completion.
+    /// </summary>
+    /// <remarks>
+    /// Opens the import confirmation modal, clicks confirm, and waits for the
+    /// import to complete and navigation to transactions page.
+    /// </remarks>
+    [When("I import the selected transactions")]
+    public async Task IImportTheSelectedTransactions()
+    {
+        // When: Click the Import button to open confirmation modal
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.ClickImportButtonAsync();
+
+        // And: Confirm the import
+        await importPage.ConfirmImportAsync();
+    }
+
+    /// <summary>
+    /// Verifies that the import review queue has been completely cleared.
+    /// </summary>
+    /// <remarks>
+    /// Navigates back to the import page and verifies that the empty state is displayed,
+    /// indicating no pending import review transactions remain.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
+    /// </remarks>
+    [Then("import review queue should be completely cleared")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task ImportReviewQueueShouldBeCompletelyCleared()
+    {
+        // Then: Navigate back to import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.NavigateAsync();
+
+        // And: Select the current workspace
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+
+        // And: Verify empty state is displayed (no pending imports)
+        var isEmpty = await importPage.IsEmptyStateAsync();
+        NUnit.Framework.Assert.That(isEmpty, NUnit.Framework.Is.True,
+            "Expected import review queue to be empty but transactions are still pending");
     }
 
     #endregion

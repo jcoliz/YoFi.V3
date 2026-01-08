@@ -150,6 +150,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Counts transactions on current transactions page and asserts exact match.
     /// </remarks>
     [Then("I should see exactly {expectedCount} transactions")]
+    [Then("I should see {expectedCount} new transactions in the transaction list")]
     public async Task ThenIShouldSeeExactlyTransactions(int expectedCount)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -292,6 +293,29 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
 
         Assert.That(actualCategory?.Trim(), Is.EqualTo(expectedCategory),
             $"Expected category to be '{expectedCategory}' but was '{actualCategory}'");
+    }
+
+    /// <summary>
+    /// Verifies that the user has been redirected to the transactions page.
+    /// </summary>
+    /// <remarks>
+    /// Verifies URL contains "/transactions" after an operation that should navigate there.
+    /// Does not perform full page setup (workspace selection) as the operation already
+    /// set the context. Just confirms we landed on the transactions page and waits for ready.
+    /// </remarks>
+    [Then("I should be redirected to transactions page")]
+    public async Task IShouldBeRedirectedToTransactionsPage()
+    {
+        // Then: Verify we're on the transactions page
+        var expectedUrl = "/transactions";
+        var currentUrl = _context.Page.Url;
+
+        Assert.That(currentUrl, Does.Contain(expectedUrl),
+            $"Expected to be redirected to transactions page but current URL is {currentUrl}");
+
+        // And: Wait for transactions page to be ready
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForPageReadyAsync();
     }
 
     #endregion

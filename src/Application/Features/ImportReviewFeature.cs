@@ -434,4 +434,53 @@ public class ImportReviewFeature(
             PotentialDuplicateCount: potentialDuplicateCount
         );
     }
+
+    /// <summary>
+    /// Seeds test import review transactions for testing purposes.
+    /// </summary>
+    /// <param name="count">Number of import review transactions to create.</param>
+    /// <param name="selectedCount">Number of transactions to mark as selected. Defaults to all transactions.</param>
+    /// <returns>The number of transactions created.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when selectedCount is greater than count or negative.</exception>
+    /// <remarks>
+    /// Generates deterministic transaction data based on index and inserts them into ImportReviewTransaction table.
+    /// All transactions are marked as New status. The first selectedCount transactions are marked as selected.
+    /// This method is intended for use only in test scenarios via TestControlController.
+    /// </remarks>
+    public async Task<int> SeedTestDataAsync(int count, int? selectedCount = null)
+    {
+        var normalizedSelectedCount = selectedCount ?? count;
+
+        if (normalizedSelectedCount < 0 || normalizedSelectedCount > count)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(selectedCount),
+                $"selectedCount must be between 0 and {count}, but was {normalizedSelectedCount}");
+        }
+
+        var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var importReviewTransactions = new List<ImportReviewTransaction>();
+
+        for (int i = 1; i <= count; i++)
+        {
+            importReviewTransactions.Add(new ImportReviewTransaction
+            {
+                TenantId = _currentTenant.Id,
+                Date = baseDate.AddDays(i % 30), // Deterministic based on index
+                Payee = $"Test Import {i}",
+                Amount = 10.00m + (i * 5.00m), // Deterministic based on index
+                Source = "OFX",
+                ExternalId = $"FITID-TEST{i:D12}", // Deterministic based on index
+                Memo = $"Test import transaction {i}",
+                DuplicateStatus = DuplicateStatus.New,
+                DuplicateOfKey = null,
+                IsSelected = i <= normalizedSelectedCount // First N transactions are selected
+            });
+        }
+
+        dataProvider.AddRange(importReviewTransactions);
+        await dataProvider.SaveChangesAsync();
+
+        return count;
+    }
 }

@@ -13,8 +13,11 @@ using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Application.Tenancy.Features;
 using YoFi.V3.Controllers.Tenancy.Context;
+using YoFi.V3.Entities.Models;
+using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
+using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Controllers;
 
@@ -682,6 +685,51 @@ public partial class TestControlController(
 
         LogOkCount(createdTransactions.Count);
         return CreatedAtAction(nameof(SeedTransactionsPrecise), new { username, tenantKey }, createdTransactions);
+    }
+
+    /// <summary>
+    /// Seed test import review transactions in a workspace for a user.
+    /// </summary>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+    /// <param name="tenantKey">The unique key of the workspace.</param>
+    /// <param name="count">Number of import review transactions to create.</param>
+    /// <param name="selectedCount">Number of transactions to mark as selected. Defaults to all transactions.</param>
+    /// <param name="importReviewFeature">Feature providing import review operations.</param>
+    /// <returns>Count of seeded import review transactions.</returns>
+    /// <remarks>
+    /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Generates deterministic transaction data via ImportReviewFeature.SeedTestDataAsync().
+    /// Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
+    /// Returns 403 if either username or workspace name lacks the prefix.
+    /// All transactions are marked as New status. The first selectedCount transactions are marked as selected.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/{tenantKey:guid}/import/seed")]
+    [Authorize("AllowAnonymousTenantAccess")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SeedImportReviewTransactions(
+        string username,
+        Guid tenantKey,
+        [FromQuery] int count,
+        [FromQuery] int? selectedCount,
+        [FromServices] ImportReviewFeature importReviewFeature)
+    {
+        LogStartingCount(count);
+
+        // Validate user and workspace access
+        var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        // Seed test data via feature
+        var seededCount = await importReviewFeature.SeedTestDataAsync(count, selectedCount);
+
+        LogOkCount(seededCount);
+        return CreatedAtAction(nameof(SeedImportReviewTransactions), new { username, tenantKey }, seededCount);
     }
 
     /// <summary>
