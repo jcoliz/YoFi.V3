@@ -22,8 +22,8 @@ public partial class ImportPage(IPage page) : BasePage(page)
     [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/import/upload")]
     private static partial Regex ImportUploadApiRegex();
 
-    // POST api/tenant/{tenantKey:guid}/import/complete
-    [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/import/complete")]
+    // POST api/tenant/{tenantKey:guid}/import/review/complete
+    [GeneratedRegex(@"/api/tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/import/review/complete")]
     private static partial Regex ImportCompleteApiRegex();
 
     #region Components
