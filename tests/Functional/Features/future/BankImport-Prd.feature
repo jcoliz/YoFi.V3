@@ -129,6 +129,7 @@ Feature: Bank Import
       And I should see 1 transaction deselected
 
     @id:3
+    @pri:1
     Scenario: Accept selected transactions
       Given I have uploaded an OFX file with 10 new transactions
       And I am reviewing them on the Import Review page
