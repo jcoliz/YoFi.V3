@@ -80,7 +80,6 @@ Scenario: Transactions in import review do not appear in transaction list
 
 @pri:2
 @id:9
-@explicit:wip
 Scenario: Review transactions with potential duplicates
     Given I have a valid OFX file with 10 transactions
     And I have uploaded the OFX file
