@@ -74,7 +74,7 @@ No tests should break yet since we haven't modified any existing code.
 :data-test-id="`row-${transaction.key}`"
 ```
 
-**Impact:** Existing functional tests will break temporarily. This is expected.
+**Impact:** Update existing functional tests to use the new `row-${transaction.key}` pattern.
 
 ### 2.2 Update Import Review Table
 

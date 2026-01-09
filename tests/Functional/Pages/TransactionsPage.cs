@@ -113,7 +113,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// All transaction rows in the table
     /// </summary>
-    public ILocator TransactionRows => TransactionsTable.Locator("tbody tr[data-test-id^='transaction-row-']");
+    public ILocator TransactionRows => TransactionsTable.Locator("tbody tr[data-test-id^='row-']");
 
     /// <summary>
     /// Empty state display when no transactions exist
@@ -623,7 +623,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator GetTransactionRow(string transactionKey)
     {
         // TODO: Better would be to start from TransactionTable not Page
-        return Page!.GetByTestId($"transaction-row-{transactionKey}");
+        return Page!.GetByTestId($"row-{transactionKey}");
     }
 
     public async Task WaitForTransactionRowByKeyAsync(Guid transactionKey, float timeout = 5000)
@@ -641,7 +641,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         var testId = await row.GetAttributeAsync("data-test-id") ?? throw new InvalidOperationException("Transaction row missing data-test-id attribute");
 
         // TODO: Compiled regex for consistency
-        var match = Regex.Match(testId, @"transaction-row-([0-9a-fA-F\-]{36})");
+        var match = Regex.Match(testId, @"row-([0-9a-fA-F\-]{36})");
         if (match.Success && Guid.TryParse(match.Groups[1].Value, out var transactionKey))
         {
             return transactionKey;
@@ -1015,7 +1015,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <returns>Number of transaction rows</returns>
     public async Task<int> GetTransactionCountAsync()
     {
-        return await Page!.Locator("[data-test-id^='transaction-row-']").CountAsync();
+        return await Page!.Locator("[data-test-id^='row-']").CountAsync();
     }
 
     /// <summary>

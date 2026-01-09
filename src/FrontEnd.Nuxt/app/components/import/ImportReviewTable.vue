@@ -97,7 +97,10 @@ const formatDate = (date: Date): string => {
       >
         <thead>
           <tr>
-            <th style="width: 50px">
+            <th
+              data-test-id="selected"
+              style="width: 50px"
+            >
               <span
                 class="text-muted"
                 title="Selection managed via action buttons"
@@ -105,10 +108,21 @@ const formatDate = (date: Date): string => {
                 <i class="bi bi-check-square"></i>
               </span>
             </th>
-            <th style="width: 120px">Date</th>
-            <th>Payee</th>
-            <th style="width: 150px">Category</th>
             <th
+              data-test-id="date"
+              style="width: 120px"
+            >
+              Date
+            </th>
+            <th data-test-id="payee">Payee</th>
+            <th
+              data-test-id="category"
+              style="width: 150px"
+            >
+              Category
+            </th>
+            <th
+              data-test-id="amount"
               style="width: 120px"
               class="text-end"
             >
@@ -121,7 +135,7 @@ const formatDate = (date: Date): string => {
             v-for="transaction in transactions"
             :key="transaction.key"
             :class="{ 'table-warning': isPotentialDuplicate(transaction) }"
-            :data-test-id="`transaction-row-${transaction.key}`"
+            :data-test-id="`row-${transaction.key}`"
           >
             <td>
               <input

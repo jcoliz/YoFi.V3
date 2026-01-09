@@ -541,7 +541,7 @@ function formatCurrency(amount: number | undefined): string {
                 <tr
                   v-for="transaction in transactions"
                   :key="transaction.key"
-                  :data-test-id="`transaction-row-${transaction.key}`"
+                  :data-test-id="`row-${transaction.key}`"
                   class="clickable-row"
                   @click="navigateToDetails(transaction.key)"
                 >
