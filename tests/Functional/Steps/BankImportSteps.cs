@@ -335,7 +335,8 @@ public class BankImportSteps(ITestContext _context)
             await importPage.WaitForUploadCompleteAsync();
 
             // And: Ensure the import button is enabled, indicating transactions are loaded
-            await importPage.WaitForEnabled(importPage.ImportButton);
+            // BUG: You can't count on this, if all the items are deselected!!
+            await importPage.WaitForEnabled(importPage.DeleteAllButton);
 
             // And: Gather the payee names now displayed
             var payees = await importPage.GetAllTransactionPayeesAsync();
@@ -394,11 +395,14 @@ public class BankImportSteps(ITestContext _context)
         var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions)
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.ExistingTransactions} not found in object store. Did you call 'I have N existing transactions in my workspace' first?");
 
-        // Generate OFX file content with the same transactions
-        // TODO: Add to helpers: Generate OFX file from existing transactions
-        //var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(existingTransactions);
-        // Save the file path in the object store for later upload
+        // And: Generate OFX file content with the same transactions
+        // TODO: This won't work, because the FITIDs will be different.
+        var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(existingTransactions);
 
+        // And: Store the file path in object store for later upload
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, ofxFilePath);
+
+        // When: Upload the OFX file
         await IUploadTheOFXFile();
     }
 

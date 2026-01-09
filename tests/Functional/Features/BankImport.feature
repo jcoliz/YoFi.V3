@@ -72,9 +72,6 @@ Scenario: Cannot access other tenants' import reviews
 
 @pri:1
 @id:6
-@explicit:wip
-# WIP: I have uploaded an OFX file containing all the same transactions
-# Still need to create an OFX file generator from existing transactions
 Scenario: Review transactions with exact duplicates
     Given I have 5 existing transactions in my workspace
     And I have uploaded an OFX file containing all the same transactions

@@ -638,6 +638,22 @@ public partial class TestControlController(
         // Create transactions using shared logic
         var createdTransactions = await CreateTransactionsAsync(transactions, transactionsFeature);
 
+        // For each transaction, update its ExternalID to be its Key
+        foreach (var tx in createdTransactions)
+        {
+            var updateDto = new TransactionEditDto(
+                Date: tx.Date,
+                Amount: tx.Amount,
+                Payee: tx.Payee,
+                Memo: tx.Memo,
+                Source: request.Source,
+                ExternalId: tx.Key.ToString(), // Set ExternalID to Key
+                Category: tx.Category
+            );
+
+            await transactionsFeature.UpdateTransactionAsync(tx.Key, updateDto);
+        }
+
         LogOkCount(createdTransactions.Count);
         return CreatedAtAction(nameof(SeedTransactions), new { username, tenantKey }, createdTransactions);
     }
