@@ -112,6 +112,7 @@ public class AuthSteps(ITestContext _context)
     /// </remarks>
     [Given("I am logged in as {username}")]
     [Given("I am logged into my existing account")]
+    [When("I log in as {username}")]
     [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
     public async Task GivenIAmLoggedInAs(string shortName = "I")
     {
@@ -256,6 +257,25 @@ public class AuthSteps(ITestContext _context)
         // Wait for home page to be ready after logout
         var homePage = _context.GetOrCreatePage<HomePage>();
         await homePage.WaitForPageReadyAsync(12000);
+    }
+
+    /// <summary>
+    /// Signs out the currently logged-in user.
+    /// </summary>
+    /// <remarks>
+    /// Uses the SiteHeader LoginState component to perform sign out.
+    /// Updates the object store to reflect logged out state.
+    /// </remarks>
+    [Given("I signed out")]
+    [When("I sign out")]
+    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
+    public async Task ISignOut()
+    {
+        var basePage = _context.GetOrCreatePage<BasePage>();
+
+        await basePage.SiteHeader.LoginState.ClickSignOutAsync();
+
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, string.Empty);
     }
 
     /// <summary>

@@ -185,6 +185,7 @@ public class BankImportSteps(ITestContext _context)
     /// - CurrentWorkspace
     /// </remarks>
     [Then("import review queue should be completely cleared")]
+    [Then("import review queue should be empty")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ImportReviewQueueShouldBeCompletelyCleared()
     {

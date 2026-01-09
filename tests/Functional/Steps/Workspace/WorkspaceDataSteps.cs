@@ -1,4 +1,5 @@
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Steps.Workspace;
@@ -140,7 +141,17 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        var cred = _context.GetUserCredentials(shortName);
+        TestUserCredentials? cred;
+        try
+        {
+            // Ensure user credentials exist in context
+            cred = _context.GetUserCredentials(shortName);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Create user credentials on server if not found
+            cred = await _context.CreateTestUserCredentialsOnServer(shortName);
+        }
 
         var request = new Generated.WorkspaceCreateRequest
         {
@@ -149,7 +160,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
             Role = "Owner"
         };
 
-        Generated.TenantResultDto? result;
+        TenantResultDto? result;
         try
         {
             result = await _context.TestControlClient.CreateWorkspaceForUserAsync(cred.Username, request);

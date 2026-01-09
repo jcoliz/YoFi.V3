@@ -62,11 +62,11 @@ Rule: Tenant isolation ensures import review privacy
 
 @pri:1
 @id:5
-@explicit:wip
 Scenario: Cannot access other tenants' import reviews
-    Given I am logged in as User A in Tenant A
-    And User A has uploaded an OFX file with 10 transactions
-    When I log out and log in as User B from Tenant B
-    And I navigate to the Import Review page
-    Then I should not see User A's transactions
-    And the Import Review page should be empty
+    Given I have uploaded an OFX file with 10 new transactions
+    And I signed out
+    And "bob" owns a workspace called "My Finances"
+    When I log in as "bob"
+    And I navigate to the Import page
+    Then the uploaded transactions should not appear
+    And import review queue should be empty
