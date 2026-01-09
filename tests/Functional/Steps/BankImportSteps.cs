@@ -17,7 +17,7 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// </remarks>
 public class BankImportSteps(ITestContext _context)
 {
-    #region Given Steps
+    #region Steps: GIVEN
 
     /// <summary>
     /// Navigates to the import review page with the correct workspace selected.
@@ -81,135 +81,6 @@ public class BankImportSteps(ITestContext _context)
             count,
             selectedCount);
     }
-
-    #endregion
-
-    #region When Steps
-
-    /// <summary>
-    /// Uploads an OFX file from the test sample data directory.
-    /// </summary>
-    /// <param name="filename">The filename (e.g., "checking-jan-2024.ofx")</param>
-    [When("I upload OFX file {filename}")]
-    public async Task WhenIUploadOFXFile(string filename)
-    {
-        // When: Upload the file
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-        await importPage.UploadFileAsync(filename);
-
-        // And: Wait for upload to complete
-        await importPage.WaitForUploadCompleteAsync();
-
-        // And: Ensure the import button is enabled, indicating transactions are loaded
-        await importPage.WaitForEnabled(importPage.ImportButton);
-    }
-
-    /// <summary>
-    /// Clicks the Import button, confirms the import, and waits for completion.
-    /// </summary>
-    /// <remarks>
-    /// Opens the import confirmation modal, clicks confirm, and waits for the
-    /// import to complete and navigation to transactions page.
-    /// </remarks>
-    [When("I import the selected transactions")]
-    public async Task IImportTheSelectedTransactions()
-    {
-        // When: Click the Import button to open confirmation modal
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-        await importPage.ClickImportButtonAsync();
-
-        // And: Confirm the import
-        await importPage.ConfirmImportAsync();
-    }
-
-    #endregion
-
-    #region Then Steps
-
-    /// <summary>
-    /// Verifies that the import review page displays the expected number of transactions.
-    /// </summary>
-    /// <param name="count">The expected number of transactions.</param>
-    [Then("page should display {count} transactions")]
-    [Then("I should see {count} transactions in the review list")]
-    public async Task PageShouldDisplayTheTransactions(int count)
-    {
-        // Then: Get the import page
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-
-        // And: Verify transaction count
-        var actualCount = await importPage.GetTransactionCountAsync();
-        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
-            $"Expected {count} transactions but found {actualCount}");
-    }
-
-    /// <summary>
-    /// Verifies that the expected number of transactions are selected by default.
-    /// </summary>
-    /// <param name="count">The expected number of selected transactions.</param>
-    [Then("{count} transactions should be selected by default")]
-    [Then("all {count} transactions should be selected by default")]
-    public async Task ThenTransactionsShouldBeSelectedByDefault(int count)
-    {
-        // Then: Get the import page
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-
-        // And: Verify selected count
-        var actualCount = await importPage.GetSelectedCountAsync();
-        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
-            $"Expected {count} transactions to be selected but found {actualCount}");
-    }
-
-    /// <summary>
-    /// Verifies that the expected number of transactions are deselected by default.
-    /// </summary>
-    /// <param name="count">The expected number of deselected transactions.</param>
-    [Then("{count} transactions should be deselected by default")]
-    public async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
-    {
-        // Then: Get the import page
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-
-        // And: Verify deselected count
-        var actualCount = await importPage.GetDeselectedCountAsync();
-        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
-            $"Expected {count} transactions to be deselected but found {actualCount}");
-    }
-
-    /// <summary>
-    /// Verifies that the import review queue has been completely cleared.
-    /// </summary>
-    /// <remarks>
-    /// Navigates back to the import page and verifies that the empty state is displayed,
-    /// indicating no pending import review transactions remain.
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace
-    /// </remarks>
-    [Then("import review queue should be completely cleared")]
-    [Then("import review queue should be empty")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    public async Task ImportReviewQueueShouldBeCompletelyCleared()
-    {
-        // Then: Navigate back to import page
-        var importPage = _context.GetOrCreatePage<ImportPage>();
-        await importPage.NavigateAsync();
-
-        // And: Select the current workspace
-        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
-        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
-
-        // And: Verify empty state is displayed (no pending imports)
-        var isEmpty = await importPage.IsEmptyStateAsync();
-        Assert.That(isEmpty, Is.True,
-            "Expected import review queue to be empty but transactions are still pending");
-    }
-
-    #endregion
-
-
-    #region NEW steps from feature file
 
     /// <summary>
     /// Creates an OFX file with the specified number of new transactions and uploads it through the UI.
@@ -295,6 +166,52 @@ public class BankImportSteps(ITestContext _context)
     }
 
     /// <summary>
+    /// Given I have uploaded an OFX file containing all the same transactions
+    /// </summary>
+    [Given("I have uploaded an OFX file containing all the same transactions")]
+    [RequiresObjects(ObjectStoreKeys.ExistingTransactions)]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
+    {
+        // Given: Retrieve existing transactions from object store
+        var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ExistingTransactions} not found in object store. Did you call 'I have N existing transactions in my workspace' first?");
+
+        // And: Generate OFX file content with the same transactions
+        // TODO: This won't work, because the FITIDs will be different.
+        var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(existingTransactions);
+
+        // And: Store the file path in object store for later upload
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, ofxFilePath);
+
+        // When: Upload the OFX file
+        await IUploadTheOFXFile();
+    }
+
+    #endregion
+
+    #region Steps: WHEN
+
+    /// <summary>
+    /// Uploads an OFX file from the test sample data directory.
+    /// </summary>
+    /// <param name="filename">The filename (e.g., "checking-jan-2024.ofx")</param>
+    [When("I upload OFX file {filename}")]
+    public async Task WhenIUploadOFXFile(string filename)
+    {
+        // When: Upload the file
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.UploadFileAsync(filename);
+
+        // And: Wait for upload to complete
+        await importPage.WaitForUploadCompleteAsync();
+
+        // And: Ensure the import button is enabled, indicating transactions are loaded
+        await importPage.WaitForEnabled(importPage.ImportButton);
+    }
+
+    /// <summary>
     /// Uploads the previously generated OFX file through the UI.
     /// </summary>
     /// <remarks>
@@ -356,7 +273,107 @@ public class BankImportSteps(ITestContext _context)
         }
     }
 
+    /// <summary>
+    /// Clicks the Import button, confirms the import, and waits for completion.
+    /// </summary>
+    /// <remarks>
+    /// Opens the import confirmation modal, clicks confirm, and waits for the
+    /// import to complete and navigation to transactions page.
+    /// </remarks>
+    [When("I import the selected transactions")]
+    public async Task IImportTheSelectedTransactions()
+    {
+        // When: Click the Import button to open confirmation modal
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.ClickImportButtonAsync();
+
+        // And: Confirm the import
+        await importPage.ConfirmImportAsync();
+    }
+
     #endregion
+
+    #region Steps: THEN
+
+    /// <summary>
+    /// Verifies that the import review page displays the expected number of transactions.
+    /// </summary>
+    /// <param name="count">The expected number of transactions.</param>
+    [Then("page should display {count} transactions")]
+    [Then("I should see {count} transactions in the review list")]
+    public async Task PageShouldDisplayTheTransactions(int count)
+    {
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Verify transaction count
+        var actualCount = await importPage.GetTransactionCountAsync();
+        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
+            $"Expected {count} transactions but found {actualCount}");
+    }
+
+    /// <summary>
+    /// Verifies that the expected number of transactions are selected by default.
+    /// </summary>
+    /// <param name="count">The expected number of selected transactions.</param>
+    [Then("{count} transactions should be selected by default")]
+    [Then("all {count} transactions should be selected by default")]
+    public async Task ThenTransactionsShouldBeSelectedByDefault(int count)
+    {
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Verify selected count
+        var actualCount = await importPage.GetSelectedCountAsync();
+        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
+            $"Expected {count} transactions to be selected but found {actualCount}");
+    }
+
+    /// <summary>
+    /// Verifies that the expected number of transactions are deselected by default.
+    /// </summary>
+    /// <param name="count">The expected number of deselected transactions.</param>
+    [Then("{count} transactions should be deselected by default")]
+    public async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
+    {
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Verify deselected count
+        var actualCount = await importPage.GetDeselectedCountAsync();
+        NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
+            $"Expected {count} transactions to be deselected but found {actualCount}");
+    }
+
+    /// <summary>
+    /// Verifies that the import review queue has been completely cleared.
+    /// </summary>
+    /// <remarks>
+    /// Navigates back to the import page and verifies that the empty state is displayed,
+    /// indicating no pending import review transactions remain.
+    ///
+    /// Requires Objects
+    /// - CurrentWorkspace
+    /// </remarks>
+    [Then("import review queue should be completely cleared")]
+    [Then("import review queue should be empty")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task ImportReviewQueueShouldBeCompletelyCleared()
+    {
+        // Then: Navigate back to import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.NavigateAsync();
+
+        // And: Select the current workspace
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+
+        // And: Verify empty state is displayed (no pending imports)
+        var isEmpty = await importPage.IsEmptyStateAsync();
+        Assert.That(isEmpty, Is.True,
+            "Expected import review queue to be empty but transactions are still pending");
+    }
 
     /// <summary>
     /// Then the review list contains the transactions uploaded earlier
@@ -383,30 +400,6 @@ public class BankImportSteps(ITestContext _context)
     }
 
     /// <summary>
-    /// Given I have uploaded an OFX file containing all the same transactions
-    /// </summary>
-    [Given("I have uploaded an OFX file containing all the same transactions")]
-    [RequiresObjects(ObjectStoreKeys.ExistingTransactions)]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
-    public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
-    {
-        // Given: Retrieve existing transactions from object store
-        var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ExistingTransactions} not found in object store. Did you call 'I have N existing transactions in my workspace' first?");
-
-        // And: Generate OFX file content with the same transactions
-        // TODO: This won't work, because the FITIDs will be different.
-        var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(existingTransactions);
-
-        // And: Store the file path in object store for later upload
-        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, ofxFilePath);
-
-        // When: Upload the OFX file
-        await IUploadTheOFXFile();
-    }
-
-    /// <summary>
     /// Then all 5 transactions should be deselected by default
     /// </summary>
     [Then("all {count} transactions should be deselected by default")]
@@ -426,5 +419,7 @@ public class BankImportSteps(ITestContext _context)
         var highlightedCount = await importPage.GetWarningTransactionCountAsync();
         Assert.That(highlightedCount, Is.EqualTo(0), "Expected no transactions to be highlighted for further review");
     }
+
+    #endregion
 
 }
