@@ -102,42 +102,33 @@ public class BankImportSteps(ITestContext _context)
         // Given: Generate OFX file with specified number of transactions
         var ofxFilePath = OfxFileGenerator.GenerateOfxFile(count);
 
-        try
-        {
-            // And: Get workspace name
-            var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-                ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        // And: Get workspace name
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
 
-            // And: Navigate to import page
-            var importPage = _context.GetOrCreatePage<ImportPage>();
-            await importPage.NavigateAsync();
+        // And: Navigate to import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.NavigateAsync();
 
-            // And: Select the workspace
-            await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        // And: Select the workspace
+        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
 
-            // When: Upload the generated OFX file
-            await importPage.UploadFileAsync(ofxFilePath);
+        // When: Upload the generated OFX file
+        await importPage.UploadFileAsync(ofxFilePath);
 
-            // And: Wait for upload to complete
-            await importPage.WaitForUploadCompleteAsync();
+        // And: Wait for upload to complete
+        await importPage.WaitForUploadCompleteAsync();
 
-            // And: Ensure the import button is enabled, indicating transactions are loaded
-            await importPage.WaitForEnabled(importPage.ImportButton);
+        // And: Ensure the import button is enabled, indicating transactions are loaded
+        await importPage.WaitForEnabled(importPage.ImportButton);
 
-            // And: Gather the payee names now displayed
-            var payees = await importPage.GetAllTransactionPayeesAsync();
+        // And: Gather the payee names now displayed
+        var payees = await importPage.GetAllTransactionPayeesAsync();
 
-            // Store them in the object store for later verification
-            _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
-        }
-        finally
-        {
-            // Clean up: Delete the temporary OFX file
-            if (File.Exists(ofxFilePath))
-            {
-                File.Delete(ofxFilePath);
-            }
-        }
+        // Store them in the object store for later verification
+        _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
+
+        // NOTE: OfxfilePath cleanup is handled by test cleanup
     }
 
     /// <summary>
@@ -248,45 +239,34 @@ public class BankImportSteps(ITestContext _context)
         var ofxFilePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.OfxFilePath)
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.OfxFilePath} not found in object store. Did you call 'I have a valid OFX file with N transactions' first?");
 
-        try
-        {
-            // And: Get workspace name
-            var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-                ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        // And: Get workspace name
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
 
-            // And: Navigate to import page
-            var importPage = _context.GetOrCreatePage<ImportPage>();
-            await importPage.NavigateAsync();
+        // And: Navigate to import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.NavigateAsync();
 
-            // And: Select the workspace
-            await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
+        // And: Select the workspace
+        await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
 
-            // When: Upload the generated OFX file
-            await importPage.UploadFileAsync(ofxFilePath);
+        // When: Upload the generated OFX file
+        await importPage.UploadFileAsync(ofxFilePath);
 
-            // And: Wait for upload to complete
-            await importPage.WaitForUploadCompleteAsync();
+        // And: Wait for upload to complete
+        await importPage.WaitForUploadCompleteAsync();
 
-            // And: Ensure the import button is enabled, indicating transactions are loaded
-            // BUG: You can't count on this, if all the items are deselected!!
-            await importPage.WaitForEnabled(importPage.DeleteAllButton);
+        // And: Ensure the import button is enabled, indicating transactions are loaded
+        // BUG: You can't count on this, if all the items are deselected!!
+        await importPage.WaitForEnabled(importPage.DeleteAllButton);
 
-            // And: Gather the payee names now displayed
-            var payees = await importPage.GetAllTransactionPayeesAsync();
+        // And: Gather the payee names now displayed
+        var payees = await importPage.GetAllTransactionPayeesAsync();
 
-            // Store them in the object store for later verification
-            _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
-        }
-        finally
-        {
-            // Clean up: Delete the temporary OFX file
-            if (File.Exists(ofxFilePath))
-            {
-                File.Delete(ofxFilePath);
-            }
+        // Store them in the object store for later verification
+        _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
 
-            // Note: Object store doesn't need explicit cleanup - it's test-scoped
-        }
+        // NOTE: OfxfilePath cleanup is handled by test cleanup
     }
 
     /// <summary>

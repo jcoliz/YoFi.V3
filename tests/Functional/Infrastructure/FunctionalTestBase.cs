@@ -674,6 +674,23 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
                     TestContext.Out.WriteLine($"[Cleanup] Failed to delete users: {ex.Message}");
                 }
             }
+
+            if (_objectStore.Contains<string>(ObjectStoreKeys.OfxFilePath))
+            {
+                var ofxFilePath = _objectStore.Get<string>(ObjectStoreKeys.OfxFilePath);
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(ofxFilePath) && File.Exists(ofxFilePath))
+                    {
+                        File.Delete(ofxFilePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail test if cleanup fails
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete OFX file '{ofxFilePath}': {ex.Message}");
+                }
+            }
         }
         catch (Exception ex)
         {
