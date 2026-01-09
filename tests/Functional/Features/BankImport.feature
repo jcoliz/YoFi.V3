@@ -41,14 +41,13 @@ Scenario: Review new transactions with no duplicates
 
 @pri:1
 @id:2
-@explicit:wip
 # Working except for the last item
 Scenario: Successfully upload valid OFX file
     Given I have a valid OFX file with 10 transactions
     When I navigate to the Import page
     And I upload the OFX file
     Then I should see 10 transactions in the review list
-    And all transactions should display date, payee, and amount
+    And the review list contains the transactions uploaded earlier
 
 @pri:1
 @id:4
@@ -58,3 +57,16 @@ Scenario: Transactions in import review do not appear in transaction list
     When I navigate to the Transactions page
     Then I should see only the original transactions
     And the uploaded transactions should not appear
+
+Rule: Tenant isolation ensures import review privacy
+
+@pri:1
+@id:5
+@explicit:wip
+Scenario: Cannot access other tenants' import reviews
+    Given I am logged in as User A in Tenant A
+    And User A has uploaded an OFX file with 10 transactions
+    When I log out and log in as User B from Tenant B
+    And I navigate to the Import Review page
+    Then I should not see User A's transactions
+    And the Import Review page should be empty

@@ -342,6 +342,7 @@ Feature: Bank Import
   Rule: Tenant isolation ensures import review privacy
 
     @pri:1
+    @id:5
     Scenario: Cannot access other tenants' import reviews
       Given I am logged in as User A in Tenant A
       And User A has uploaded an OFX file with 10 transactions

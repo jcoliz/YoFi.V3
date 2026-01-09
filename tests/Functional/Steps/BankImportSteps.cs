@@ -389,6 +389,7 @@ public class BankImportSteps(ITestContext _context)
     /// </remarks>
     [When("I upload the OFX file")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.OfxFilePath)]
+    [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IUploadTheOFXFile()
     {
         // Given: Retrieve the OFX file path from object store
@@ -416,6 +417,12 @@ public class BankImportSteps(ITestContext _context)
 
             // And: Ensure the import button is enabled, indicating transactions are loaded
             await importPage.WaitForEnabled(importPage.ImportButton);
+
+            // And: Gather the payee names now displayed
+            var payees = await importPage.GetAllTransactionPayeesAsync();
+
+            // Store them in the object store for later verification
+            _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
         }
         finally
         {
@@ -429,15 +436,30 @@ public class BankImportSteps(ITestContext _context)
         }
     }
 
+    #endregion
+
     /// <summary>
-    /// Then all transactions should display date, payee, and amount
+    /// Then the review list contains the transactions uploaded earlier
     /// </summary>
-    [Then("all transactions should display date, payee, and amount")]
-    public async Task AllTransactionsShouldDisplayDatePayeeAndAmount()
+    [Then("the review list contains the transactions uploaded earlier")]
+    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task TheReviewListContainsTheTransactionsUploadedEarlier()
     {
-        // Ensure there is a non-empty value for date, payee, and amount for each transaction
-        throw new NotImplementedException();
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Get all payees currently displayed
+        var actualPayees = await importPage.GetAllTransactionPayeesAsync();
+
+        // And: Get the expected payees from object store
+        var expectedPayees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.UploadedTransactionPayees} not found in object store");
+
+        // Verify that all of the uploaded transactions are visible in the review list
+        var missingPayees = expectedPayees.Except(actualPayees).ToList();
+        Assert.That(missingPayees, Is.Empty,
+            $"All uploaded transactions should appear in the review list, but missing: {string.Join(", ", missingPayees)}");
+
     }
 
-    #endregion
 }

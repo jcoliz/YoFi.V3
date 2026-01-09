@@ -328,4 +328,27 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         Assert.That(intersection, Is.Empty,
             $"Uploaded transactions should not appear in the transaction list, but found: {string.Join(", ", intersection)}");
     }
+
+    /// <summary>
+    /// Then the uploaded transactions should appear
+    /// </summary>
+    [Then("the uploaded transactions should appear")]
+    [Then("they are the transactions uploaded earlier")]
+    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task TheUploadedTransactionsShouldAppear()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // Retrieve the uploaded transaction payees from object store
+        var uploadedPayees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees);
+
+        // Get the payees of the transaction rows currently displayed
+        var displayedPayees = await transactionsPage.GetTransactionRowPayees();
+
+        // Verify that all of the uploaded transactions are visible in the transaction list
+        var missingPayees = uploadedPayees.Except(displayedPayees).ToList();
+        Assert.That(missingPayees, Is.Empty,
+            $"All uploaded transactions should appear in the transaction list, but missing: {string.Join(", ", missingPayees)}");
+    }
 }
+
