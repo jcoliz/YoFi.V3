@@ -89,6 +89,8 @@ Feature: Bank Import
       And no transactions should be highlighted for further review
 
     @pri:2
+    @id:9
+    @explicit:wip
     Scenario: Review transactions with potential duplicates
       Given I have 3 existing transactions in my workspace
       And I have uploaded an OFX file with 3 transactions matching the same dates and amounts but different payee names

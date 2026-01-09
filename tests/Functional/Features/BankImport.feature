@@ -78,6 +78,19 @@ Scenario: Transactions in import review do not appear in transaction list
     Then I should see only the original transactions
     And the uploaded transactions should not appear
 
+@pri:2
+@id:9
+@explicit:wip
+Scenario: Review transactions with potential duplicates
+    Given I have a valid OFX file with 10 transactions
+    And I have uploaded the OFX file
+    And I have imported these transactions
+    And I changed the payee names of 3 transactions in the transactions list
+    When I upload the same OFX file again
+    Then all 10 transactions should be deselected by default
+    And there should be 3 transactions highlighted for further review
+    And I should see a warning about potential duplicates
+
 Rule: Tenant isolation ensures import review privacy
 
 @pri:1

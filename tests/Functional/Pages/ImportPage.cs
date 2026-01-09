@@ -77,6 +77,11 @@ public partial class ImportPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator LoadingState => Page!.GetByTestId("loading-state");
 
+    /// <summary>
+    /// Duplicate review alert
+    /// </summary>
+    public ILocator DuplicateReviewAlert => Page!.GetByTestId("duplicate-review-alert");
+
     #endregion
 
     #region Transaction Table Elements

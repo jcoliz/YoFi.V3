@@ -20,6 +20,41 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// </remarks>
 public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsBase(context)
 {
+
+    /// <summary>
+    /// Given I changed the payee names of 3 transactions in the transactions list
+    /// </summary>
+    [Given("I changed the payee names of 3 transactions in the transactions list")]
+    public async Task IChangedThePayeeNamesOf3TransactionsInTheTransactionsList()
+    {
+        // When: Navigate to transactions page
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // Don't need to select workspace becsause it's already selected
+
+        // And: Change payee names of first 3 transactions
+        var payees = await transactionsPage.GetTransactionRowPayees();
+        for (int i = 0; i < Math.Min(3, payees.Count); i++)
+        {
+            var originalPayee = payees[i];
+            var newPayee = originalPayee + " - Edited";
+
+            // Open quick edit modal
+            await transactionsPage.OpenEditModalAsync(originalPayee);
+
+            // Change payee
+            await transactionsPage.FillEditPayeeAsync(newPayee);
+
+            // Submit changes
+            await transactionsPage.SubmitEditFormAsync();
+
+            // Wait for loading to complete
+            await transactionsPage.WaitForLoadingCompleteAsync();
+        }
+    }
+
     #region Steps: WHEN
 
     /// <summary>

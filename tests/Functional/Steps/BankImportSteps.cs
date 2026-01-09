@@ -230,7 +230,9 @@ public class BankImportSteps(ITestContext _context)
     /// - CurrentWorkspace (workspace name)
     /// - OfxFilePath (string) - Path to the OFX file to upload
     /// </remarks>
+    [Given("I have uploaded the OFX file")]
     [When("I upload the OFX file")]
+    [When("I upload the same OFX file again")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.OfxFilePath)]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IUploadTheOFXFile()
@@ -276,6 +278,7 @@ public class BankImportSteps(ITestContext _context)
     /// Opens the import confirmation modal, clicks confirm, and waits for the
     /// import to complete and navigation to transactions page.
     /// </remarks>
+    [Given("I have imported these transactions")]
     [When("I import the selected transactions")]
     public async Task IImportTheSelectedTransactions()
     {
@@ -409,12 +412,21 @@ public class BankImportSteps(ITestContext _context)
     /// Then no transactions should be highlighted for further review
     /// </summary>
     [Then("no transactions should be highlighted for further review")]
-    public async Task NoTransactionsShouldBeHighlightedForFurtherReview()
+    public Task NoTransactionsShouldBeHighlightedForFurtherReview()
+        => TransactionsShouldBeHighlightedForFurtherReview(0);
+
+    /// <summary>
+    /// Then no transactions should be highlighted for further review
+    /// </summary>
+    [Then("there should be {count} transactions highlighted for further review")]
+    public async Task TransactionsShouldBeHighlightedForFurtherReview(int count)
     {
         var importPage = _context.GetOrCreatePage<ImportPage>();
         var highlightedCount = await importPage.GetWarningTransactionCountAsync();
-        Assert.That(highlightedCount, Is.EqualTo(0), "Expected no transactions to be highlighted for further review");
+        Assert.That(highlightedCount, Is.EqualTo(count), $"Expected {count} transactions to be highlighted for further review, but found {highlightedCount}");
     }
+
+
 
     #endregion
 
@@ -457,4 +469,17 @@ public class BankImportSteps(ITestContext _context)
         var hasErrorMessage = await importPage.PermissionDeniedError.IsVisibleAsync();
         Assert.That(hasErrorMessage, Is.True, "Expected to see a permission error message, but none was found");
     }
+
+    /// <summary>
+    /// Then I should see a warning about potential duplicates
+    /// </summary>
+    [Then("I should see a warning about potential duplicates")]
+    public async Task IShouldSeeAWarningAboutPotentialDuplicates()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.DuplicateReviewAlert.WaitForAsync(new () {  State = Microsoft.Playwright.WaitForSelectorState.Visible });
+        var hasErrorMessage = await importPage.DuplicateReviewAlert.IsVisibleAsync();
+        Assert.That(hasErrorMessage, Is.True, "Expected to see a warning about potential duplicates, but none was found");
+    }
+
 }

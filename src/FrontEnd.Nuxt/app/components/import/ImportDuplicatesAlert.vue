@@ -25,7 +25,7 @@ withDefaults(defineProps<Props>(), {
     v-if="show"
     class="alert alert-warning d-flex align-items-start"
     role="alert"
-    data-test-id="duplicates-alert"
+    data-test-id="duplicate-review-alert"
   >
     <span class="me-2 fs-5">⚠</span>
     <div>
