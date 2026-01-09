@@ -274,7 +274,18 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        var cred = _context.GetUserCredentials(shortName);
+        // Get credentials for the specified user, or create user if not found
+        TestUserCredentials? cred;
+        try
+        {
+            // Ensure user credentials exist in context
+            cred = _context.GetUserCredentials(shortName);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Create user credentials on server if not found
+            cred = await _context.CreateTestUserCredentialsOnServer(shortName);
+        }
 
         var request = new Generated.WorkspaceSetupRequest
         {
@@ -316,7 +327,18 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        var cred = _context.GetUserCredentials(shortName);
+        // Get credentials for the specified user, or create user if not found
+        TestUserCredentials? cred;
+        try
+        {
+            // Ensure user credentials exist in context
+            cred = _context.GetUserCredentials(shortName);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Create user credentials on server if not found
+            cred = await _context.CreateTestUserCredentialsOnServer(shortName);
+        }
 
         var request = new Generated.WorkspaceSetupRequest
         {

@@ -194,6 +194,22 @@ public class BankImportSteps(ITestContext _context)
     #region Steps: WHEN
 
     /// <summary>
+    /// When I attempt to navigate to the Import page
+    /// </summary>
+    /// <remarks>
+    /// This is a special navigation via the nav bar, which will ensure that the page
+    /// is always fully ready, which it may not be via direct URL access. It also
+    /// doesn't assume the user will have access to this page!
+    /// </remarks>
+    [When("I attempt to navigate to the Import page")]
+    public async Task IAttemptToNavigateToTheImportPage()
+    {
+        // When: Navigate via the nav bar
+        var basePage = _context.GetOrCreatePage<BasePage>();
+        await basePage.SiteHeader.Nav.SelectOptionAsync("Import");
+    }
+
+    /// <summary>
     /// Uploads an OFX file from the test sample data directory.
     /// </summary>
     /// <param name="filename">The filename (e.g., "checking-jan-2024.ofx")</param>
@@ -422,4 +438,43 @@ public class BankImportSteps(ITestContext _context)
 
     #endregion
 
+    /// <summary>
+    /// Then I should be able to upload files
+    /// </summary>
+    [Then("I should be able to upload files")]
+    public async Task IShouldBeAbleToUploadFiles()
+    {
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Verify that the file upload input is present and enabled
+        var isUploadEnabled = await importPage.FileInput.IsEnabledAsync();
+        Assert.That(isUploadEnabled, Is.True, "Expected to be able to upload files, but upload input is not enabled");
+    }
+
+    /// <summary>
+    /// Then I should be able to upload files
+    /// </summary>
+    [Then("I should not be able to upload files")]
+    public async Task IShouldNotBeAbleToUploadFiles()
+    {
+        // Then: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // And: Verify that the file upload input is not available
+        var isUploadVisible = await importPage.FileInput.IsVisibleAsync();
+        Assert.That(isUploadVisible, Is.False, "Expected not to be able to upload files, but upload input is visible");
+    }
+
+    /// <summary>
+    /// Then I should see a permission error message
+    /// </summary>
+    [Then("I should see a permission error message")]
+    public async Task IShouldSeeAPermissionErrorMessage()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.PermissionDeniedError.WaitForAsync(new () {  State = Microsoft.Playwright.WaitForSelectorState.Visible });
+        var hasErrorMessage = await importPage.PermissionDeniedError.IsVisibleAsync();
+        Assert.That(hasErrorMessage, Is.True, "Expected to see a permission error message, but none was found");
+    }
 }

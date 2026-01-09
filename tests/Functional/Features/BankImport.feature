@@ -8,6 +8,8 @@ Background:
     And I have an active workspace "My Finances"
     And I am logged into my existing account
 
+Rule: Users can upload bank files for import
+
 Scenario: User uploads bank file and sees import review page
     Given I have existing transactions with external IDs:
         | ExternalId     | Date       | Payee            | Amount    |
@@ -28,6 +30,25 @@ Scenario: User accepts selected transactions from import review
     Then I should be redirected to transactions page
     And I should see 12 new transactions in the transaction list
     And import review queue should be completely cleared
+
+@pri:3
+@id:8
+Scenario: Viewer role cannot access import workflow
+    Given "charlie" can view data in "Family Budget"
+    And I signed out
+    And I am logged in as "charlie"
+    When I attempt to navigate to the Import page
+    Then I should see a permission error message
+    And I should not be able to upload files
+
+@pri:2
+@id:7
+Scenario: Editor role can access import workflow
+    Given "bob" can edit data in "Family Budget"
+    And I signed out
+    And I am logged in as "bob"
+    When I navigate to the Import page
+    Then I should be able to upload files
 
 Rule: Users can review imported transactions and identify duplicates
 

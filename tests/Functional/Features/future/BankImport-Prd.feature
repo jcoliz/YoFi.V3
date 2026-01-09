@@ -54,6 +54,7 @@ Feature: Bank Import
       And I should see a permission error message
 
     @pri:2
+    @id:7
     Scenario: Editor role can access import workflow
       Given I am logged in as a user with Editor role
       And I have selected my workspace
