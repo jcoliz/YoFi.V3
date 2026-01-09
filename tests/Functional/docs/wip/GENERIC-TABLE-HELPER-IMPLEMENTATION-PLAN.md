@@ -121,11 +121,6 @@ Navigate to transactions page and verify:
 **Add field and property after line 27:**
 ```csharp
 /// <summary>
-/// Cached transaction table data to avoid reloading on every query
-/// </summary>
-private TransactionTableData? _cachedTableData;
-
-/// <summary>
 /// Table helper for generic table operations
 /// </summary>
 private TableDataHelper<TableRowData>? _tableHelper;
@@ -136,6 +131,8 @@ private TableDataHelper<TableRowData>? _tableHelper;
 private TableDataHelper<TableRowData> TableHelper =>
     _tableHelper ??= new TableDataHelper<TableRowData>(TransactionsTable);
 ```
+
+**Note:** The `TableDataHelper` internally manages its own cached table data, so the containing page only needs the helper field.
 
 ### 3.2 Update GetTransactionRow Method
 
@@ -213,17 +210,17 @@ public ILocator TransactionRows => TransactionsTable.Locator("tbody tr[data-test
 
 These will be removed after test migration is complete.
 
-### 3.7 Update Cache Invalidation
+### 3.7 Maintain Old Cache Invalidation (Temporary)
 
-**Update ReloadTransactionTableDataAsync at line 613:**
+**Keep existing ReloadTransactionTableDataAsync at line 613:**
 ```csharp
 public async Task ReloadTransactionTableDataAsync()
 {
-    // Invalidate both caches
     await LoadTransactionTableDataAsync(forceReload: true);
-    TableHelper.ClearCache();
 }
 ```
+
+**Note:** During Phase 3, we keep the old caching mechanism working for backward compatibility. The helper has its own cache that can be cleared independently with `TableHelper.ClearCache()`. After Phase 5, this method will be simplified to only clear the helper cache.
 
 ### 3.8 Run Tests
 
@@ -330,12 +327,11 @@ Fix any failures before moving to the next file.
 ### 5.2 Remove Old Classes and Methods
 
 **In TransactionsPage.cs, remove:**
-- Line 27: `private TransactionTableData? _cachedTableData;`
+- Line 27: `private TransactionTableData? _cachedTableData;` (already removed in Phase 3 - not needed with helper)
 - Lines 508-541: `TransactionRowData` and `TransactionTableData` classes
 - Lines 548-604: `LoadTransactionTableDataAsync()` method
-- Line 613: `ReloadTransactionTableDataAsync()` (replace with helper clear)
 
-**Update ReloadTransactionTableDataAsync:**
+**Update ReloadTransactionTableDataAsync (line 613):**
 ```csharp
 /// <summary>
 /// Reloads the transaction table data from the DOM, bypassing the cache
@@ -345,6 +341,8 @@ public void ReloadTransactionTableData()
     TableHelper.ClearCache();
 }
 ```
+
+**Note:** The `_cachedTableData` field was never added in Phase 3 because the helper manages caching internally.
 
 ### 5.3 Update Method Signatures
 
