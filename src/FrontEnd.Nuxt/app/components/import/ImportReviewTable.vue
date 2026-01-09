@@ -147,7 +147,10 @@ const formatDate = (date: Date): string => {
               />
             </td>
             <td>
-              <span v-if="isPotentialDuplicate(transaction)">
+              <span
+                v-if="isPotentialDuplicate(transaction)"
+                data-test-id="potential-duplicate"
+              >
                 <i
                   class="bi bi-exclamation-triangle-fill text-warning me-1"
                   title="Potential duplicate"

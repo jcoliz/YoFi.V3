@@ -290,6 +290,19 @@ public partial class ImportPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Gets the count of warning transactions (potential duplicates)
+    /// </summary>
+    /// <remarks>
+    /// Warning transactions are rows with the 'table-warning' CSS class,
+    /// indicating they are potential duplicates.
+    /// </remarks>
+    public async Task<int> GetWarningTransactionCountAsync()
+    {
+        var warningRows = ImportReviewTable.Locator("tbody tr.table-warning");
+        return await warningRows.CountAsync();
+    }
+
+    /// <summary>
     /// Checks if a transaction is selected
     /// </summary>
     /// <param name="index">Zero-based index of the transaction row</param>

@@ -80,6 +80,11 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string ExistingTransactionKeys = "ExistingTransactionKeys";
 
+    /// <summary>
+    /// Collection of entire transactions of the last seeded transactions.
+    /// </summary>
+    public const string ExistingTransactions = "ExistingTransactions";
+
     #endregion
 
     #region Permission Check Keys

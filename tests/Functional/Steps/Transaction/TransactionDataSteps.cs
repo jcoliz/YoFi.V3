@@ -258,7 +258,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </summary>
     [Given("I have {count} existing transactions in my workspace")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
-    [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys)]
+    [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys, ObjectStoreKeys.ExistingTransactions)]
     public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
     {
         // Get current workspace and logged in user
@@ -284,6 +284,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         // Store these transactions for later verification
         var transactionKeys = transactions.Select(t => t.Key).ToList();
         _context.ObjectStore.Add(ObjectStoreKeys.ExistingTransactionKeys, transactionKeys);
+        _context.ObjectStore.Add(ObjectStoreKeys.ExistingTransactions, transactions);
     }
 
     /// <summary>

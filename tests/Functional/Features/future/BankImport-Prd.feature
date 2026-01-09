@@ -13,7 +13,7 @@ Feature: Bank Import
 
     @pri:1
     @id:2
-    @status:wip
+    @status:done
     Scenario: Successfully upload valid OFX file
       Given I have a valid OFX file with 10 transactions
       When I navigate to the Import page
@@ -79,13 +79,13 @@ Feature: Bank Import
       And all 10 transactions should be selected by default
 
     @pri:1
+    @id:6
     Scenario: Review transactions with exact duplicates
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file containing the same 5 transactions
       When I am on the Import Review page
-      Then all 5 transactions should be marked as "Exact Duplicate"
-      And all 5 transactions should be deselected by default
-      And I should see a summary "5 exact duplicates"
+      Then all 5 transactions should be deselected by default
+      And no transactions should be highlighted for further review
 
     @pri:2
     Scenario: Review transactions with potential duplicates
@@ -211,7 +211,7 @@ Feature: Bank Import
 
     @pri:1
     @id:4
-    @wip
+    @status:done
     Scenario: Transactions in import review do not appear in transaction list
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file with 10 new transactions

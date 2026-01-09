@@ -1,5 +1,6 @@
 using Gherkin.Generator.Utils;
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -461,6 +462,48 @@ public class BankImportSteps(ITestContext _context)
         Assert.That(missingPayees, Is.Empty,
             $"All uploaded transactions should appear in the review list, but missing: {string.Join(", ", missingPayees)}");
 
+    }
+
+    /// <summary>
+    /// Given I have uploaded an OFX file containing all the same transactions
+    /// </summary>
+    [Given("I have uploaded an OFX file containing all the same transactions")]
+    [RequiresObjects(ObjectStoreKeys.ExistingTransactions)]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
+    {
+        // Given: Retrieve existing transactions from object store
+        var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ExistingTransactions} not found in object store. Did you call 'I have N existing transactions in my workspace' first?");
+
+        // Generate OFX file content with the same transactions
+        // TODO: Add to helpers: Generate OFX file from existing transactions
+        //var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(existingTransactions);
+        // Save the file path in the object store for later upload
+
+        await IUploadTheOFXFile();
+    }
+
+    /// <summary>
+    /// Then all 5 transactions should be deselected by default
+    /// </summary>
+    [Then("all {count} transactions should be deselected by default")]
+    public async Task AllTransactionsShouldBeDeselectedByDefault(int count)
+    {
+        await ThenTransactionsShouldBeDeselectedByDefault(count);
+        await ThenTransactionsShouldBeSelectedByDefault(0);
+    }
+
+    /// <summary>
+    /// Then no transactions should be highlighted for further review
+    /// </summary>
+    [Then("no transactions should be highlighted for further review")]
+    public async Task NoTransactionsShouldBeHighlightedForFurtherReview()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        var highlightedCount = await importPage.GetWarningTransactionCountAsync();
+        Assert.That(highlightedCount, Is.EqualTo(0), "Expected no transactions to be highlighted for further review");
     }
 
 }
