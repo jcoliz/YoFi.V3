@@ -1137,6 +1137,61 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         return await payeeCell.TextContentAsync();
     }
 
+    /// <summary>
+    /// Gets all transaction keys (GUIDs) for transactions currently displayed in the table
+    /// </summary>
+    /// <returns>List of transaction GUIDs extracted from row data-test-id attributes</returns>
+    public async Task<List<Guid>> GetTransactionRowKeys()
+    {
+        var keys = new List<Guid>();
+        var rows = TransactionRows;
+        var rowCount = await rows.CountAsync();
+
+        for (int i = 0; i < rowCount; i++)
+        {
+            var row = rows.Nth(i);
+            var testId = await row.GetAttributeAsync("data-test-id");
+
+            if (!string.IsNullOrEmpty(testId))
+            {
+                // Extract GUID from pattern "row-{guid}"
+                var match = Regex.Match(testId, @"row-([0-9a-fA-F\-]{36})");
+                if (match.Success && Guid.TryParse(match.Groups[1].Value, out var transactionKey))
+                {
+                    keys.Add(transactionKey);
+                }
+            }
+        }
+
+        return keys;
+    }
+
+    /// <summary>
+    /// Gets all payee names for transactions currently displayed in the table
+    /// </summary>
+    /// <returns>List of payee names from all visible transaction rows</returns>
+    public async Task<List<string>> GetTransactionRowPayees()
+    {
+        var payees = new List<string>();
+        var rows = TransactionRows;
+        var rowCount = await rows.CountAsync();
+
+        for (int i = 0; i < rowCount; i++)
+        {
+            var row = rows.Nth(i);
+            // Payee is in the second column (index 1)
+            var payeeCell = row.Locator("td").Nth(1);
+            var payeeText = await payeeCell.TextContentAsync();
+
+            if (!string.IsNullOrEmpty(payeeText))
+            {
+                payees.Add(payeeText.Trim());
+            }
+        }
+
+        return payees;
+    }
+
     #endregion
 
     #region Role-based Permission Checks

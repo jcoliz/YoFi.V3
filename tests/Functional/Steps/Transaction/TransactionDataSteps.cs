@@ -210,7 +210,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         var listSteps = new TransactionListSteps(_context);
 
         // And: Navigate to transactions page with workspace selected
-        await listSteps.GivenIAmOnTheTransactionsPage();
+        await listSteps.IAmOnTheTransactionsPage();
 
         // When: Click on the transaction row to navigate to details page
         await listSteps.WhenIClickOnTheTransactionRow();
@@ -252,4 +252,80 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     }
 
     #endregion
+
+    /// <summary>
+    /// Given I have 5 existing transactions in my workspace
+    /// </summary>
+    [Given("I have {count} existing transactions in my workspace")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys)]
+    public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
+    {
+        // Get current workspace and logged in user
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceKey = _context.GetWorkspaceKey(workspaceName);
+
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
+
+        // Seed count transactions into the current workspace
+        var transactions = await _context.TestControlClient.SeedTransactionsAsync(
+            loggedInUser,
+            workspaceKey,
+            new Generated.TransactionSeedRequest
+            {
+                Count = count,
+                PayeePrefix = "Existing Transaction ",
+                Source = "Seeding"
+            }
+        );
+
+        // Store these transactions for later verification
+        var transactionKeys = transactions.Select(t => t.Key).ToList();
+        _context.ObjectStore.Add(ObjectStoreKeys.ExistingTransactionKeys, transactionKeys);
+    }
+
+    /// <summary>
+    /// Then I should see only the 5 original transactions
+    /// </summary>
+    // TODO: Move to transaction list steps
+    [Then("I should see only the original transactions")]
+    [RequiresObjects(ObjectStoreKeys.ExistingTransactionKeys)]
+    public async Task IShouldSeeOnlyTheOriginalTransactions()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // Retrieve the original transaction keys from object store
+        var expected = _context.ObjectStore.Get<List<Guid>>(ObjectStoreKeys.ExistingTransactionKeys);
+
+        // Get the transaction rows currently displayed
+        var actual = await transactionsPage.GetTransactionRowKeys();
+
+        // Verify that only the original transactions are visible in the transaction list
+        Assert.That(expected, Is.EquivalentTo(actual),
+            "The transaction list should display only the original transactions seeded earlier.");
+    }
+
+    /// <summary>
+    /// Then the uploaded transactions should not appear
+    /// </summary>
+    [Then("the uploaded transactions should not appear")]
+    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task TheUploadedTransactionsShouldNotAppear()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // Retrieve the uploaded transaction payees from object store
+        var uploadedPayees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees);
+
+        // Get the payees of the transaction rows currently displayed
+        var displayedPayees = await transactionsPage.GetTransactionRowPayees();
+
+        // Verify that none of the uploaded transactions are visible in the transaction list
+        // Check for zero intersection between uploaded payees and displayed payees
+        var intersection = uploadedPayees.Intersect(displayedPayees).ToList();
+        Assert.That(intersection, Is.Empty,
+            $"Uploaded transactions should not appear in the transaction list, but found: {string.Join(", ", intersection)}");
+    }
 }

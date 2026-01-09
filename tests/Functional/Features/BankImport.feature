@@ -20,6 +20,7 @@ Scenario: User uploads bank file and sees import review page
     And 12 transactions should be selected by default
     And 3 transactions should be deselected by default
 
+@id:3
 Scenario: User accepts selected transactions from import review
     Given There are 15 transactions ready for import review, with 12 selected
     And I am on the import review page
@@ -41,9 +42,19 @@ Scenario: Review new transactions with no duplicates
 @pri:1
 @id:2
 @explicit:wip
+# Working except for the last item
 Scenario: Successfully upload valid OFX file
     Given I have a valid OFX file with 10 transactions
     When I navigate to the Import page
     And I upload the OFX file
     Then I should see 10 transactions in the review list
     And all transactions should display date, payee, and amount
+
+@pri:1
+@id:4
+Scenario: Transactions in import review do not appear in transaction list
+    Given I have 5 existing transactions in my workspace
+    And I have uploaded an OFX file with 10 new transactions
+    When I navigate to the Transactions page
+    Then I should see only the original transactions
+    And the uploaded transactions should not appear

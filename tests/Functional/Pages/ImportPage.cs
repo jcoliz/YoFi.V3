@@ -89,13 +89,13 @@ public partial class ImportPage(IPage page) : BasePage(page)
     /// <summary>
     /// All transaction rows in the import review table
     /// </summary>
-    public ILocator TransactionRows => ImportReviewTable.Locator("tbody tr[data-test-id^='transaction-row-']");
+    public ILocator TransactionRows => ImportReviewTable.Locator("tbody tr[data-test-id^='row-']");
 
     /// <summary>
     /// Gets a transaction row by key
     /// </summary>
     /// <param name="key">The transaction key (GUID)</param>
-    public ILocator GetTransactionRow(string key) => Page!.GetByTestId($"transaction-row-{key}");
+    public ILocator GetTransactionRow(string key) => Page!.GetByTestId($"row-{key}");
 
     /// <summary>
     /// Gets a transaction checkbox by key
@@ -306,6 +306,32 @@ public partial class ImportPage(IPage page) : BasePage(page)
     public async Task<bool> IsEmptyStateAsync()
     {
         return await EmptyState.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Gets all payee names for transactions in the import review table
+    /// </summary>
+    /// <returns>List of payee names from all transaction rows</returns>
+    public async Task<List<string>> GetAllTransactionPayeesAsync()
+    {
+        var payees = new List<string>();
+        var rows = TransactionRows;
+        var rowCount = await rows.CountAsync();
+
+        for (int i = 0; i < rowCount; i++)
+        {
+            var row = rows.Nth(i);
+            // Payee is in the 3rd column (index 2) - after the checkbox column
+            var payeeCell = row.Locator("td").Nth(2);
+            var payeeText = await payeeCell.TextContentAsync();
+
+            if (!string.IsNullOrEmpty(payeeText))
+            {
+                payees.Add(payeeText.Trim());
+            }
+        }
+
+        return payees;
     }
 
     #endregion

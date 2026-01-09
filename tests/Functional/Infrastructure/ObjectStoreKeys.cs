@@ -75,6 +75,11 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string TransactionKey = "TransactionKey";
 
+    /// <summary>
+    /// Collection of GUIDs of the last seeded transactions.
+    /// </summary>
+    public const string ExistingTransactionKeys = "ExistingTransactionKeys";
+
     #endregion
 
     #region Permission Check Keys
@@ -111,6 +116,11 @@ public static class ObjectStoreKeys
     /// File path to a generated OFX file for import testing.
     /// </summary>
     public const string OfxFilePath = "OfxFilePath";
+
+    /// <summary>
+    /// Collection of payee names from recently-uploaded transactions.
+    /// </summary>
+    public const string UploadedTransactionPayees = "UploadedTransactionPayees";
 
     #endregion
 }

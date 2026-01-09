@@ -33,7 +33,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [Given("I am on the transactions page")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    public async Task GivenIAmOnTheTransactionsPage()
+    public async Task IAmOnTheTransactionsPage()
     {
         // Given: Navigate to transactions page first
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -52,6 +52,17 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     #endregion
 
     #region Steps: WHEN
+
+    [When("I navigate to the Transactions page")]
+    public async Task INavigateToTheTransactionsPage()
+    {
+        // When: Navigate to transactions page
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await transactionsPage.WaitForLoadingCompleteAsync();
+
+        // Don't need to select workspace becsause it's already selected
+    }
 
     /// <summary>
     /// Clicks on the transaction row to navigate to the details page.

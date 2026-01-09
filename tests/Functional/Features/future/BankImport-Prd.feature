@@ -128,16 +128,15 @@ Feature: Bank Import
       Then I should see 9 transactions selected
       And I should see 1 transaction deselected
 
-    @pri:1
+    @id:3
     Scenario: Accept selected transactions
       Given I have uploaded an OFX file with 10 new transactions
       And I am reviewing them on the Import Review page
-      And 8 transactions are selected
       And 2 transactions are deselected
       When I click the "Accept" button
       Then I should see a confirmation "8 transactions accepted, 2 transactions remain in review"
       And the 8 accepted transactions should appear in my Transactions list
-      And I should see 2 transactions remaining on the Import Review page
+      And import review queue should be completely cleared
 
     @pri:2
     Scenario: Accept all transactions clears import review
@@ -210,10 +209,11 @@ Feature: Bank Import
       And no transactions from the import should appear in my Transactions list
 
     @pri:1
+    @id:4
+    @wip
     Scenario: Transactions in import review do not appear in transaction list
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file with 10 new transactions
-      And the transactions are in import review
       When I navigate to the Transactions page
       Then I should see only the 5 original transactions
       And the 10 transactions in review should not appear

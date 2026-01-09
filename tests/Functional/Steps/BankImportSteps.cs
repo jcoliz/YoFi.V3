@@ -255,14 +255,12 @@ public class BankImportSteps(ITestContext _context)
 
         // Generate transactions
         var baseDate = DateTime.UtcNow.AddDays(-transactionCount);
-        var payees = new[] { "Grocery Store", "Gas Station", "Coffee Shop", "Restaurant", "Pharmacy",
-                            "Bookstore", "Hardware Store", "Electronics Store", "Department Store", "Online Retailer" };
 
         for (int i = 0; i < transactionCount; i++)
         {
             var date = baseDate.AddDays(i);
             var amount = -(10 + (i * 5.5)); // Varying amounts
-            var payee = payees[i % payees.Length];
+            var payee = $"Uploaded {i}";
             var fitId = $"TEST{date:yyyyMMdd}{i:D3}"; // Unique FITID
 
             sb.AppendLine($"          <!-- Transaction {i + 1} - NEW -->");
@@ -308,6 +306,7 @@ public class BankImportSteps(ITestContext _context)
     /// </remarks>
     [Given("I have uploaded an OFX file with {count} new transactions")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileWithNewTransactions(int count)
     {
         // Given: Generate OFX file with specified number of transactions
@@ -334,6 +333,12 @@ public class BankImportSteps(ITestContext _context)
 
             // And: Ensure the import button is enabled, indicating transactions are loaded
             await importPage.WaitForEnabled(importPage.ImportButton);
+
+            // And: Gather the payee names now displayed
+            var payees = await importPage.GetAllTransactionPayeesAsync();
+
+            // Store them in the object store for later verification
+            _context.ObjectStore.Add(ObjectStoreKeys.UploadedTransactionPayees, payees);
         }
         finally
         {
