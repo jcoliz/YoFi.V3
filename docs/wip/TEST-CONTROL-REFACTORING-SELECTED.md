@@ -213,12 +213,66 @@ public partial class TestUserController(
     public async Task<IActionResult> CreateUsers([FromBody] IReadOnlyCollection<string> usernames)
     {
         LogStartingCount(usernames.Count);
+
+        // Feature throws exceptions, middleware converts to ProblemDetails
         var credentials = await testControlFeature.CreateUsersAsync(usernames);
+
         LogOkCount(credentials.Count);
         return CreatedAtAction(nameof(CreateUsers), credentials);
     }
 }
 ```
+
+## Error Handling Pattern
+
+### Feature Layer Throws Exceptions
+
+TestControlFeature throws domain exceptions for business rule violations:
+
+```csharp
+public class TestControlFeature
+{
+    public async Task<TenantResultDto> CreateWorkspaceForUserAsync(
+        string username,
+        WorkspaceCreateRequest request)
+    {
+        // Validate and throw exceptions - middleware handles conversion
+        if (!username.StartsWith(TestPrefix))
+        {
+            throw new TestPrefixRequiredException("username", username, TestPrefix);
+        }
+
+        if (!request.Name.StartsWith(TestPrefix))
+        {
+            throw new TestPrefixRequiredException("workspace name", request.Name, TestPrefix);
+        }
+
+        var user = await testUserRepository.FindUserByNameAsync(username);
+        if (user == null)
+        {
+            throw new TestUserNotFoundException(username);
+        }
+
+        // ... rest of logic
+    }
+}
+```
+
+### Middleware Converts to ProblemDetails
+
+Existing exception handler middleware catches and converts:
+- `TestUserNotFoundException` → 404 with ProblemDetails
+- `TestPrefixRequiredException` → 403 with ProblemDetails
+- `TenantNotFoundException` → 404 with ProblemDetails
+- `DuplicateUserTenantRoleException` → 409 with ProblemDetails
+- Other exceptions → 500 with ProblemDetails
+
+**Benefits:**
+- ✅ Controllers become even thinner (no error handling logic)
+- ✅ Feature layer is pure business logic
+- ✅ Consistent error handling across all controllers
+- ✅ Logging happens in middleware (single place)
+- ✅ Easy to test - just verify exceptions are thrown
 
 ## Migration Path
 
@@ -278,15 +332,16 @@ public partial class TestUserController(
 - [ ] Add `[Route("Test/Users")]` and `[ApiController]`
 - [ ] Move 5 user endpoints (Create v1/v2, Approve, Delete v1/v2)
 - [ ] Inject TestControlFeature, delegate to feature methods
-- [ ] Add LoggerMessage methods
-- [ ] Add ProblemWithLog helper
+- [ ] Add LoggerMessage methods (success path only)
+- [ ] No error handling - let exceptions propagate to middleware
 
 #### 3.2 TestWorkspaceController
 - [ ] Create `TestWorkspaceController.cs`
 - [ ] Add `[Route("Test/Workspaces")]`
 - [ ] Move 5 workspace endpoints
-- [ ] Inject TestControlFeature
-- [ ] Add logging
+- [ ] Inject TestControlFeature, delegate to feature methods
+- [ ] Add LoggerMessage methods (success path only)
+- [ ] No error handling - let exceptions propagate to middleware
 
 #### 3.3 TestDataController
 - [ ] Create `TestDataController.cs`
@@ -296,22 +351,43 @@ public partial class TestUserController(
 - [ ] Use `[Authorize("AllowAnonymousTenantAccess")]` on seeding endpoints
 - [ ] Inject TestControlFeature + TransactionsFeature/ImportReviewFeature via [FromServices] for seeding
 - [ ] No feature dependency for pagination endpoint (simple test utility)
-- [ ] Add logging
+- [ ] Add LoggerMessage methods (success path only)
+- [ ] No error handling - let exceptions propagate to middleware
 
 #### 3.4 TestErrorController
 - [ ] Create `TestErrorController.cs`
 - [ ] Add `[Route("Test/Errors")]`
 - [ ] Move 2 error endpoints (ListErrors, ReturnError)
 - [ ] No feature dependency (simple logic)
-- [ ] Add logging
+- [ ] Add LoggerMessage methods
+- [ ] Note: This controller intentionally generates errors for testing - different pattern
 
 #### 3.5 TestUtilityController
 - [ ] Create `TestUtilityController.cs`
 - [ ] Add `[Route("Test")]` (base route)
 - [ ] Move Identify endpoint with route `[HttpPost("ident")]` → /Test/ident (special: stands out in traces)
 - [ ] No feature dependency (simple test correlation logging)
-- [ ] Add logging
+- [ ] Add LoggerMessage methods
 - [ ] Note: Reserved for cross-cutting test utilities with broad applicability across test scenarios
+
+### Phase 2.5: Create Domain Exceptions (Before Splitting Controllers)
+
+#### 2.5.1 Test Control Exceptions
+- [ ] Create `src/Entities/Exceptions/TestPrefixRequiredException.cs`
+- [ ] Create `src/Entities/Exceptions/TestUserNotFoundException.cs`
+- [ ] Add properties for structured error information
+
+#### 2.5.2 Update Exception Middleware
+- [ ] Update global exception handler to map new exceptions to ProblemDetails
+- [ ] Map TestPrefixRequiredException → 403 Forbidden
+- [ ] Map TestUserNotFoundException → 404 Not Found
+- [ ] Ensure logging happens in middleware
+
+#### 2.5.3 Update TestControlFeature
+- [ ] Replace validation that returns errors with throwing exceptions
+- [ ] Throw TestPrefixRequiredException for prefix validation failures
+- [ ] Throw TestUserNotFoundException when user not found
+- [ ] Remove any ProblemDetails-related code from feature
 
 ### Phase 4: Update Functional Tests (Week 3)
 
