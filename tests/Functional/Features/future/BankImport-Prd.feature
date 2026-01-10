@@ -6,8 +6,9 @@ Feature: Bank Import
   to be more business-driven than technical.
 
   Background:
-    Given I am logged in as a user with Editor role
-    And I have selected my workspace
+    Given I have an existing account
+    And I have an active workspace "My Finances"
+    And I am logged into my existing account
 
   Rule: Users can upload bank files for import
 
@@ -47,11 +48,11 @@ Feature: Bank Import
 
     @pri:3
     Scenario: Viewer role cannot access import workflow
-      Given I am logged in as a user with Viewer role
-      And I have selected my workspace
-      When I attempt to navigate to the Import page
-      Then I should be denied access
-      And I should see a permission error message
+      Given "viewer" can view data in "Test Workspace"
+      When I switch to user "viewer"
+      And I attempt to navigate to the Import page
+      Then I should see a permission error message
+      And I should not be able to upload files
 
     @pri:2
     @id:7
@@ -64,10 +65,10 @@ Feature: Bank Import
 
     @pri:3
     Scenario: Owner role can access import workflow
-      Given I am logged in as a user with Owner role
-      And I have selected my workspace
-      When I navigate to the Import page
-      Then I should see the file upload interface
+      Given "owner" owns a workspace called "Owner's Workspace"
+      When I switch to user "owner"
+      And I navigate to the Import page
+      Then I should be able to upload files
 
   Rule: Users can review imported transactions and identify duplicates
 
@@ -118,8 +119,7 @@ Feature: Bank Import
     @pri:2
     Scenario: Select and deselect individual transactions
       Given I have uploaded an OFX file with 10 new transactions
-      And I am reviewing them on the Import Review page
-      And all 10 transactions are selected by default
+      And I am on the Import Review page
       When I deselect 3 transactions
       Then I should see 7 transactions selected
       And I should see 3 transactions deselected
@@ -127,7 +127,7 @@ Feature: Bank Import
     @pri:4
     Scenario: Reselect previously deselected transactions
       Given I have uploaded an OFX file with 10 new transactions
-      And I am reviewing them on the Import Review page
+      And I am on the Import Review page
       And I have deselected 3 transactions
       When I select 2 of the deselected transactions
       Then I should see 9 transactions selected
@@ -148,21 +148,19 @@ Feature: Bank Import
     @pri:2
     Scenario: Accept all transactions clears import review
       Given I have uploaded an OFX file with 10 new transactions
-      And I am reviewing them on the Import Review page
-      And all 10 transactions are selected
-      When I click the "Accept" button
+      And I am on the Import Review page
+      When I import the selected transactions
       Then I should see a confirmation "10 transactions accepted"
-      And the Import Review page should be empty
-      And all 10 transactions should appear in my Transactions list
+      And import review queue should be empty
+      And I should see 10 new transactions in the transaction list
 
     @pri:4
     Scenario: Manually select duplicate for import
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file containing the same 5 transactions as exact duplicates
-      And I am reviewing them on the Import Review page
-      And all 5 transactions are deselected by default
+      And I am on the Import Review page
       When I manually select 2 of the duplicate transactions
-      And I click the "Accept" button
+      And I import the selected transactions
       Then I should see a confirmation "2 transactions accepted"
       And those 2 transactions should be added to my Transactions list as new entries
       And I should now have duplicate transactions in my workspace
@@ -171,29 +169,29 @@ Feature: Bank Import
 
     @pri:2
     @id:11
-    @explicit:wip
+    @status:done
     Scenario: Import review state persists across sessions
       Given I have uploaded an OFX file with 10 transactions
       And I am reviewing them on the Import Review page
       And I have deselected 3 transactions
       When I log out and log back in
-      And I navigate to the Import Review page
+      And I navigate to the Import page
       Then I should see the same 10 transactions in review
       And the 3 transactions should still be deselected
 
     @pri:4
     Scenario: Return to pending import review later
       Given I have uploaded an OFX file with 10 transactions
-      And I am reviewing them on the Import Review page
-      When I navigate away to the Transactions page
-      And I navigate back to the Import Review page
-      Then I should see the same 10 transactions in review
+      And I am on the Import Review page
+      When I navigate to the Transactions page
+      And I navigate to the Import page
+      Then I should see 10 transactions in the review list
 
     @pri:3
     Scenario: Upload additional files while import is in review
       Given I have uploaded an OFX file with 10 transactions
-      And I am reviewing them on the Import Review page
-      When I navigate back to the Import page
+      And I am on the Import Review page
+      When I navigate to the Import page
       And I upload another OFX file with 5 transactions
       Then I should be redirected to the Import Review page
       And I should see 15 transactions in the review list
@@ -224,8 +222,8 @@ Feature: Bank Import
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file with 10 new transactions
       When I navigate to the Transactions page
-      Then I should see only the 5 original transactions
-      And the 10 transactions in review should not appear
+      Then I should see only the original transactions
+      And the uploaded transactions should not appear
 
     @pri:4
     Scenario: Transactions in import review do not affect balance calculations
@@ -326,7 +324,7 @@ Feature: Bank Import
     @pri:5
     Scenario: Categories are not imported from bank files
       Given I have uploaded an OFX file with 10 transactions
-      When I review the transactions on the Import Review page
+      When I am on the Import Review page
       Then all transactions should have blank category fields
       And I should be able to accept transactions without categories
 
@@ -377,10 +375,12 @@ Feature: Bank Import
 
     @pri:5
     Scenario: Accepted transactions become visible to all workspace members
-      Given I am logged in as User A with Editor role in Workspace "Family"
-      And User B is also a member of Workspace "Family"
-      And I have uploaded an OFX file with 10 transactions
+      Given "alice" can edit data in "Family"
+      And "bob" can edit data in "Family"
+      And I am logged in as "alice"
+      And I have uploaded an OFX file with 10 new transactions
       And I am on the Import Review page
-      When I accept all 10 transactions
-      Then the 10 transactions should appear in the shared workspace
-      And User B should be able to see the 10 transactions in the Transactions list
+      When I import the selected transactions
+      And I switch to user "bob"
+      And I navigate to the Transactions page
+      Then I should see 10 new transactions in the transaction list
