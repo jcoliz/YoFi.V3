@@ -81,6 +81,7 @@ Feature: Bank Import
 
     @pri:1
     @id:6
+    @status:done
     Scenario: Review transactions with exact duplicates
       Given I have 5 existing transactions in my workspace
       And I have uploaded an OFX file containing the same 5 transactions
@@ -133,6 +134,7 @@ Feature: Bank Import
 
     @id:3
     @pri:1
+    @status:done
     Scenario: Accept selected transactions
       Given I have uploaded an OFX file with 10 new transactions
       And I am reviewing them on the Import Review page
@@ -346,6 +348,7 @@ Feature: Bank Import
 
     @pri:1
     @id:5
+    @status:done
     Scenario: Cannot access other tenants' import reviews
       Given I am logged in as User A in Tenant A
       And User A has uploaded an OFX file with 10 transactions
@@ -355,13 +358,13 @@ Feature: Bank Import
       And the Import Review page should be empty
 
     @pri:2
-    Scenario: Import reviews are isolated within shared workspace
+    Scenario: Import reviews are shared within workspace
       Given I am logged in as User A with Editor role in Workspace "Family"
       And User B is also a member of Workspace "Family"
       And User B has uploaded an OFX file with 10 transactions to their import review
       When I navigate to the Import Review page
-      Then I should not see User B's import review
-      And the Import Review page should be empty for me
+      Then I should see User B's import review with 10 transactions
+      And I should be able to accept or manage those transactions
 
     @pri:2
     Scenario: Accepted transactions become visible to all workspace members
