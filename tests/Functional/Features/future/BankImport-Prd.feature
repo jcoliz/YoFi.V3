@@ -117,6 +117,7 @@ Feature: Bank Import
       And I should see a summary "5 new, 10 exact duplicates, 5 potential duplicates"
 
     @pri:2
+    @id:12
     Scenario: Select and deselect individual transactions
       Given I have uploaded an OFX file with 10 new transactions
       And I am on the Import Review page

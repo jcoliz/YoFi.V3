@@ -23,7 +23,11 @@ public class BankImportReviewSteps(ITestContext context) : BankImportStepsBase(c
     /// Provides Objects
     /// - AffectedTransactions (List&lt;string&gt;) - Keys of the deselected transactions
     /// </remarks>
+    /// <summary>
+    /// When I deselect 3 transactions
+    /// </summary>
     [Given("I have deselected {count} transactions")]
+    [When("I deselect {count} transactions")]
     [ProvidesObjects(ObjectStoreKeys.AffectedTransactionKeys)]
     public async Task IHaveDeselectedTransactions(int count)
     {

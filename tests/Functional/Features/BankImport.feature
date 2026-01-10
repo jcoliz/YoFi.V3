@@ -68,6 +68,15 @@ Scenario: Transactions in import review do not appear in transaction list
     Then I should see only the original transactions
     And the uploaded transactions should not appear
 
+@pri:2
+@id:12
+Scenario: Select and deselect individual transactions
+    Given I have uploaded an OFX file with 10 new transactions
+    And I am on the Import Review page
+    When I deselect 3 transactions
+    Then I should see 7 transactions selected
+    And I should see 3 transactions deselected
+
 Rule: Users can review imported transactions and identify duplicates
 
 @pri:1

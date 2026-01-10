@@ -34,12 +34,13 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     }
 
     /// <summary>
-    /// Verifies that the expected number of transactions are selected by default.
+    /// Verifies that the expected number of transactions are selected
     /// </summary>
     /// <param name="count">The expected number of selected transactions.</param>
     [Then("{count} transactions should be selected by default")]
     [Then("all {count} transactions should be selected by default")]
-    public async Task ThenTransactionsShouldBeSelectedByDefault(int count)
+    [Then("I should see {count} transactions selected")]
+    public async Task TransactionsShouldBeSelected(int count)
     {
         // Then: Get the import page
         var importPage = _context.GetOrCreatePage<ImportPage>();
@@ -51,11 +52,12 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     }
 
     /// <summary>
-    /// Verifies that the expected number of transactions are deselected by default.
+    /// Verifies that the expected number of transactions are deselected
     /// </summary>
     /// <param name="count">The expected number of deselected transactions.</param>
     [Then("{count} transactions should be deselected by default")]
-    public async Task ThenTransactionsShouldBeDeselectedByDefault(int count)
+    [Then("I should see {count} transactions deselected")]
+    public async Task TransactionsShouldBeDeselected(int count)
     {
         // Then: Get the import page
         var importPage = _context.GetOrCreatePage<ImportPage>();
@@ -123,10 +125,12 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     /// Then all 5 transactions should be deselected by default
     /// </summary>
     [Then("all {count} transactions should be deselected by default")]
+    [Then("I should see {count} transactions deselected")]
+
     public async Task AllTransactionsShouldBeDeselectedByDefault(int count)
     {
-        await ThenTransactionsShouldBeDeselectedByDefault(count);
-        await ThenTransactionsShouldBeSelectedByDefault(0);
+        await TransactionsShouldBeDeselected(count);
+        await TransactionsShouldBeSelected(0);
     }
 
     /// <summary>
