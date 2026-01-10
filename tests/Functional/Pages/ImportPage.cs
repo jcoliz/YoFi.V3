@@ -106,7 +106,7 @@ public partial class ImportPage(IPage page) : BasePage(page)
     /// Gets a transaction checkbox by key
     /// </summary>
     /// <param name="key">The transaction key (GUID)</param>
-    public ILocator GetTransactionCheckbox(string key) => Page!.GetByTestId($"transaction-checkbox-{key}");
+    public ILocator GetTransactionCheckbox(string key) => GetTransactionRow(key).Locator("input[type='checkbox']");
 
     #endregion
 
@@ -308,13 +308,23 @@ public partial class ImportPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Checks if a transaction is selected
+    /// Checks if a transaction is selected by index
     /// </summary>
     /// <param name="index">Zero-based index of the transaction row</param>
     public async Task<bool> IsTransactionSelectedAsync(int index)
     {
         var row = TransactionRows.Nth(index);
         var checkbox = row.Locator("input[type='checkbox']");
+        return await checkbox.IsCheckedAsync();
+    }
+
+    /// <summary>
+    /// Checks if a transaction is selected by key
+    /// </summary>
+    /// <param name="key">The transaction key (GUID)</param>
+    public async Task<bool> IsTransactionSelectedAsync(string key)
+    {
+        var checkbox = GetTransactionCheckbox(key);
         return await checkbox.IsCheckedAsync();
     }
 
@@ -372,10 +382,11 @@ public partial class ImportPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Deselects a transaction by index
+    /// Deselects a transaction by index and returns its key
     /// </summary>
     /// <param name="index">Zero-based index of the transaction row</param>
-    public async Task DeselectTransactionAsync(int index)
+    /// <returns>The transaction key (GUID) extracted from the row's data-test-id</returns>
+    public async Task<string> DeselectTransactionAsync(int index)
     {
         var row = TransactionRows.Nth(index);
         var checkbox = row.Locator("input[type='checkbox']");
@@ -384,6 +395,15 @@ public partial class ImportPage(IPage page) : BasePage(page)
         {
             await checkbox.ClickAsync();
         }
+
+        // Extract the transaction key from the row's data-test-id attribute
+        var testId = await row.GetAttributeAsync("data-test-id");
+        if (!string.IsNullOrEmpty(testId) && testId.StartsWith("row-"))
+        {
+            return testId.Substring("row-".Length);
+        }
+
+        throw new InvalidOperationException($"Transaction row {index} missing valid data-test-id attribute (expected 'row-{{key}}', got '{testId}')");
     }
 
     /// <summary>

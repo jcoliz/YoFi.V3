@@ -18,6 +18,15 @@ public static class ObjectStoreKeys
     public const string LoggedInAs = "LoggedInAs";
 
     /// <summary>
+    /// The friendly name (short name) of the currently logged-in user (e.g., "alice", "bob", "I").
+    /// </summary>
+    /// <remarks>
+    /// This is the friendly name used when creating credentials, allowing lookup in the credentials dictionary.
+    /// Stored alongside LoggedInAs to enable operations that require credential lookup.
+    /// </remarks>
+    public const string LoggedInAsFriendlyName = "LoggedInAsFriendlyName";
+
+    /// <summary>
     /// Username set by pre-login entitlement steps before actual login occurs.
     /// </summary>
     public const string PendingUserContext = "PendingUserContext";
@@ -84,6 +93,11 @@ public static class ObjectStoreKeys
     /// Collection of entire transactions of the last seeded transactions.
     /// </summary>
     public const string ExistingTransactions = "ExistingTransactions";
+
+    /// <summary>
+    /// Collection of keys of the last transactions we have operated on.
+    /// </summary>
+    public const string AffectedTransactionKeys = "AffectedTransactionKeys";
 
     #endregion
 

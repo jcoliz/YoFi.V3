@@ -114,7 +114,7 @@ public class AuthSteps(ITestContext _context)
     [Given("I am logged into my existing account")]
     [Given("I had logged in as {username}")]
     [When("I log in as {username}")]
-    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task GivenIAmLoggedInAs(string shortName = "I")
     {
         var cred = _context.GetUserCredentials(shortName);
@@ -127,8 +127,9 @@ public class AuthSteps(ITestContext _context)
         // Wait for redirect after successful login
         await _context.Page.WaitForURLAsync(url => !url.Contains("/login"), new() { Timeout = 10000 });
 
-        // Store FULL username for future reference
+        // Store FULL username and friendly name for future reference
         _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, cred.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAsFriendlyName, shortName);
     }
 
     /// <summary>
@@ -171,7 +172,7 @@ public class AuthSteps(ITestContext _context)
     /// - LoggedInAs
     /// </remarks>
     [When("a new user {username} registers and logs in")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
         // Compose: Perform complete registration (navigate, enter, submit, continue)
@@ -188,8 +189,9 @@ public class AuthSteps(ITestContext _context)
         var loginPage = _context.GetOrCreatePage<LoginPage>();
         await loginPage.LoginAsync(credentials.Username, credentials.Password);
 
-        // Store logged in user for future reference
+        // Store logged in user and friendly name for future reference
         _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, credentials.Username);
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAsFriendlyName, shortName);
     }
 
     #endregion
@@ -269,7 +271,7 @@ public class AuthSteps(ITestContext _context)
     /// </remarks>
     [Given("I signed out")]
     [When("I sign out")]
-    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
+    [ProvidesObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task ISignOut()
     {
         var basePage = _context.GetOrCreatePage<BasePage>();
@@ -277,6 +279,7 @@ public class AuthSteps(ITestContext _context)
         await basePage.SiteHeader.LoginState.ClickSignOutAsync();
 
         _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, string.Empty);
+        _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAsFriendlyName, string.Empty);
     }
 
     /// <summary>
@@ -286,12 +289,20 @@ public class AuthSteps(ITestContext _context)
     public async Task ISwitchToUser(string username)
     {
         await ISignOut();
-
-        // FIXME: Do we have a bug where the user state doesn't completely get logged out?
-        //await _context.Page.ReloadAsync();
-        // Wait, let's try clearing user prefs first!!
-
         await GivenIAmLoggedInAs(username);
+    }
+
+    /// <summary>
+    /// When I log out and log back in
+    /// </summary>
+    [When("I log out and log back in")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAsFriendlyName)]
+    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
+    public async Task ILogOutAndLogBackIn()
+    {
+        var friendlyName = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAsFriendlyName);
+        await ISignOut();
+        await GivenIAmLoggedInAs(friendlyName);
     }
 
     /// <summary>

@@ -95,6 +95,7 @@ public class BankImportSteps(ITestContext _context)
     /// - CurrentWorkspace (workspace name)
     /// </remarks>
     [Given("I have uploaded an OFX file with {count} new transactions")]
+    [Given("I have uploaded an OFX file with {count} transactions")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileWithNewTransactions(int count)
@@ -492,5 +493,60 @@ public class BankImportSteps(ITestContext _context)
         var isImportButtonEnabled = await importPage.ImportButton.IsEnabledAsync();
         Assert.That(isImportButtonEnabled, Is.True, "Expected the import button to be enabled, but it was not");
     }
+
+    /// <summary>
+    /// Deselects the specified number of transactions and stores their keys for later verification.
+    /// </summary>
+    /// <param name="count">Number of transactions to deselect (starting from the first transaction)</param>
+    /// <remarks>
+    /// Provides Objects
+    /// - AffectedTransactions (List&lt;string&gt;) - Keys of the deselected transactions
+    /// </remarks>
+    [Given("I have deselected {count} transactions")]
+    [ProvidesObjects(ObjectStoreKeys.AffectedTransactionKeys)]
+    public async Task IHaveDeselectedTransactions(int count)
+    {
+        // Given: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // When: Deselect the specified number of transactions and collect their keys
+        var deselectedKeys = new List<string>();
+        for (int i = 0; i < count; i++)
+        {
+            var key = await importPage.DeselectTransactionAsync(i);
+            deselectedKeys.Add(key);
+        }
+
+        // And: Store the deselected transaction keys in the object store
+        _context.ObjectStore.Add(ObjectStoreKeys.AffectedTransactionKeys, deselectedKeys);
+    }
+
+    /// <summary>
+    /// Verifies that the previously deselected transactions remain deselected.
+    /// </summary>
+    /// <remarks>
+    /// Requires Objects
+    /// - AffectedTransactions (List&lt;string&gt;) - Keys of the transactions that should be deselected
+    /// </remarks>
+    [Then("the transactions deselected earlier should remain deselected")]
+    [RequiresObjects(ObjectStoreKeys.AffectedTransactionKeys)]
+    public async Task TheTransactionsDeselectedEarlierShouldRemainDeselected()
+    {
+        // And: Get the import page
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        // Then: Retrieve the deselected transaction keys from object store
+        var deselectedKeys = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.AffectedTransactionKeys)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.AffectedTransactionKeys} not found in object store");
+
+        // And: Verify each transaction remains deselected
+        foreach (var key in deselectedKeys)
+        {
+            var isSelected = await importPage.IsTransactionSelectedAsync(key);
+            Assert.That(isSelected, Is.False,
+                $"Expected transaction {key} to remain deselected, but it is currently selected");
+        }
+    }
+
 
 }

@@ -121,3 +121,14 @@ Scenario: Import reviews are shared within workspace
     Then I should see 10 transactions in the review list
     And the review list contains the transactions uploaded earlier
     And I should be able to complete the import review
+
+@pri:2
+@id:11
+Scenario: Import review state persists across sessions
+    Given I have uploaded an OFX file with 10 transactions
+    And I have deselected 3 transactions
+    When I log out and log back in
+    And I navigate to the Import page
+    Then I should see 10 transactions in the review list
+    And the review list contains the transactions uploaded earlier
+    And the transactions deselected earlier should remain deselected

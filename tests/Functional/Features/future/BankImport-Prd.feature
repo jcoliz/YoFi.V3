@@ -170,6 +170,8 @@ Feature: Bank Import
   Rule: Import review state persists and can be managed over time
 
     @pri:2
+    @id:11
+    @explicit:wip
     Scenario: Import review state persists across sessions
       Given I have uploaded an OFX file with 10 transactions
       And I am reviewing them on the Import Review page
@@ -360,7 +362,7 @@ Feature: Bank Import
 
     @pri:2
     @id:10
-    @explicit:wip
+    @status:done
     Scenario: Import reviews are shared within workspace
       Given "alice" owns a workspace called "Family Finances"
       And "bob" can edit data in "Family Finances"
@@ -373,7 +375,7 @@ Feature: Bank Import
       Then I should see User B's import review with 10 transactions
       And I should be able to complete the import review
 
-    @pri:2
+    @pri:5
     Scenario: Accepted transactions become visible to all workspace members
       Given I am logged in as User A with Editor role in Workspace "Family"
       And User B is also a member of Workspace "Family"
