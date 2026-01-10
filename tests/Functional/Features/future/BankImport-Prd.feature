@@ -55,6 +55,7 @@ Feature: Bank Import
 
     @pri:2
     @id:7
+    @status:done
     Scenario: Editor role can access import workflow
       Given I am logged in as a user with Editor role
       And I have selected my workspace
@@ -91,7 +92,7 @@ Feature: Bank Import
 
     @pri:2
     @id:9
-    @explicit:wip
+    @status:done
     Scenario: Review transactions with potential duplicates
       Given I have 3 existing transactions in my workspace
       And I have uploaded an OFX file with 3 transactions matching the same dates and amounts but different payee names
@@ -358,13 +359,19 @@ Feature: Bank Import
       And the Import Review page should be empty
 
     @pri:2
+    @id:10
+    @explicit:wip
     Scenario: Import reviews are shared within workspace
-      Given I am logged in as User A with Editor role in Workspace "Family"
-      And User B is also a member of Workspace "Family"
-      And User B has uploaded an OFX file with 10 transactions to their import review
-      When I navigate to the Import Review page
+      Given "alice" owns a workspace called "Family Finances"
+      And "bob" can edit data in "Family Finances"
+      And I signed out
+      And I am logged in as "alice"
+      And I have uploaded an OFX file with 10 new transactions
+      And I signed out
+      When I am logged in as "bob"
+      And I navigate to the Import page
       Then I should see User B's import review with 10 transactions
-      And I should be able to accept or manage those transactions
+      And I should be able to complete the import review
 
     @pri:2
     Scenario: Accepted transactions become visible to all workspace members

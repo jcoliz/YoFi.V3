@@ -112,6 +112,7 @@ public class AuthSteps(ITestContext _context)
     /// </remarks>
     [Given("I am logged in as {username}")]
     [Given("I am logged into my existing account")]
+    [Given("I had logged in as {username}")]
     [When("I log in as {username}")]
     [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
     public async Task GivenIAmLoggedInAs(string shortName = "I")
@@ -276,6 +277,21 @@ public class AuthSteps(ITestContext _context)
         await basePage.SiteHeader.LoginState.ClickSignOutAsync();
 
         _context.ObjectStore.Add(ObjectStoreKeys.LoggedInAs, string.Empty);
+    }
+
+    /// <summary>
+    /// When I switch to user "bob"
+    /// </summary>
+    [When("I switch to user {username}")]
+    public async Task ISwitchToUser(string username)
+    {
+        await ISignOut();
+
+        // FIXME: Do we have a bug where the user state doesn't completely get logged out?
+        //await _context.Page.ReloadAsync();
+        // Wait, let's try clearing user prefs first!!
+
+        await GivenIAmLoggedInAs(username);
     }
 
     /// <summary>

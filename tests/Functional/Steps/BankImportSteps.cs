@@ -465,7 +465,7 @@ public class BankImportSteps(ITestContext _context)
     public async Task IShouldSeeAPermissionErrorMessage()
     {
         var importPage = _context.GetOrCreatePage<ImportPage>();
-        await importPage.PermissionDeniedError.WaitForAsync(new () {  State = Microsoft.Playwright.WaitForSelectorState.Visible });
+        await importPage.PermissionDeniedError.WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Visible });
         var hasErrorMessage = await importPage.PermissionDeniedError.IsVisibleAsync();
         Assert.That(hasErrorMessage, Is.True, "Expected to see a permission error message, but none was found");
     }
@@ -477,9 +477,20 @@ public class BankImportSteps(ITestContext _context)
     public async Task IShouldSeeAWarningAboutPotentialDuplicates()
     {
         var importPage = _context.GetOrCreatePage<ImportPage>();
-        await importPage.DuplicateReviewAlert.WaitForAsync(new () {  State = Microsoft.Playwright.WaitForSelectorState.Visible });
+        await importPage.DuplicateReviewAlert.WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Visible });
         var hasErrorMessage = await importPage.DuplicateReviewAlert.IsVisibleAsync();
         Assert.That(hasErrorMessage, Is.True, "Expected to see a warning about potential duplicates, but none was found");
+    }
+
+    /// <summary>
+    /// Then I should be able to complete the import review
+    /// </summary>
+    [Then("I should be able to complete the import review")]
+    public async Task IShouldBeAbleToCompleteTheImportReview()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        var isImportButtonEnabled = await importPage.ImportButton.IsEnabledAsync();
+        Assert.That(isImportButtonEnabled, Is.True, "Expected the import button to be enabled, but it was not");
     }
 
 }

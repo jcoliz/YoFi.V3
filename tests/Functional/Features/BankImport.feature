@@ -50,16 +50,6 @@ Scenario: Editor role can access import workflow
     When I navigate to the Import page
     Then I should be able to upload files
 
-Rule: Users can review imported transactions and identify duplicates
-
-@pri:1
-@id:1
-Scenario: Review new transactions with no duplicates
-    Given I have uploaded an OFX file with 10 new transactions
-    When I am on the Import Review page
-    Then all 10 transactions should be selected by default
-    # Note there is no "marked as new" check here. if it's selected, that's sufficient.
-
 @pri:1
 @id:2
 Scenario: Successfully upload valid OFX file
@@ -78,6 +68,16 @@ Scenario: Transactions in import review do not appear in transaction list
     Then I should see only the original transactions
     And the uploaded transactions should not appear
 
+Rule: Users can review imported transactions and identify duplicates
+
+@pri:1
+@id:1
+Scenario: Review new transactions with no duplicates
+    Given I have uploaded an OFX file with 10 new transactions
+    When I am on the Import Review page
+    Then all 10 transactions should be selected by default
+    # Note there is no "marked as new" check here. if it's selected, that's sufficient.
+
 @pri:2
 @id:9
 Scenario: Review transactions with potential duplicates
@@ -90,19 +90,6 @@ Scenario: Review transactions with potential duplicates
     And there should be 3 transactions highlighted for further review
     And I should see a warning about potential duplicates
 
-Rule: Tenant isolation ensures import review privacy
-
-@pri:1
-@id:5
-Scenario: Cannot access other tenants' import reviews
-    Given I have uploaded an OFX file with 10 new transactions
-    And I signed out
-    And "bob" owns a workspace called "My Finances"
-    When I log in as "bob"
-    And I navigate to the Import page
-    Then the uploaded transactions should not appear
-    And import review queue should be empty
-
 @pri:1
 @id:6
 Scenario: Review transactions with exact duplicates
@@ -111,3 +98,26 @@ Scenario: Review transactions with exact duplicates
     When I am on the Import Review page
     Then all 5 transactions should be deselected by default
     And no transactions should be highlighted for further review
+
+Rule: Tenant isolation ensures import review privacy
+
+@pri:1
+@id:5
+Scenario: Cannot access other tenants' import reviews
+    Given I have uploaded an OFX file with 10 new transactions
+    And "bob" owns a workspace called "Bob's Finances"
+    When I switch to user "bob"
+    And I navigate to the Import page
+    Then the uploaded transactions should not appear
+    And import review queue should be empty
+
+@pri:2
+@id:10
+Scenario: Import reviews are shared within workspace
+    Given I have uploaded an OFX file with 10 new transactions
+    And "bob" can edit data in my workspace
+    When I switch to user "bob"
+    And I navigate to the Import page
+    Then I should see 10 transactions in the review list
+    And the review list contains the transactions uploaded earlier
+    And I should be able to complete the import review

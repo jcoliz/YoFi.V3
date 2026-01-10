@@ -307,6 +307,36 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
+    [Given("{username} can edit data in this workspace")]
+    [Given("{username} can edit data in my workspace")]
+    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task GivenUserCanEditDataInExistingWorkspace(string shortName)
+    {
+        var fullWorkspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+
+        // Get credentials for the specified user, or create user if not found
+        TestUserCredentials? cred;
+        try
+        {
+            // Ensure user credentials exist in context
+            cred = _context.GetUserCredentials(shortName);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Create user credentials on server if not found
+            cred = await _context.CreateTestUserCredentialsOnServer(shortName);
+        }
+
+        // Get the key for fullWorkspaceName
+        var fullWorkspaceKey = _context.GetWorkspaceKey(fullWorkspaceName);
+
+        var roleAssignment = new UserRoleAssignment()
+        {
+            Role = "Editor"
+        };
+        await _context.TestControlClient.AssignUserToWorkspaceAsync(cred.Username, fullWorkspaceKey, roleAssignment);
+    }
+
     /// <summary>
     /// Grants a user Viewer role access to a workspace.
     /// </summary>
