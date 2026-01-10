@@ -470,6 +470,44 @@ public partial class ImportPage(IPage page) : BasePage(page)
         return await ImportConfirmModal.IsVisibleAsync();
     }
 
+    /// <summary>
+    /// Gets import statistics from the confirmation modal.
+    /// </summary>
+    /// <returns>Import statistics including selected, discarded (if present), and potential duplicate counts (if present).</returns>
+    public async Task<ImportStatisticsDto> GetImportStatisticsAsync()
+    {
+        // Wait for import-statistics container to be visible
+        var importStatistics = ImportConfirmModal.GetByTestId("import-statistics");
+        await importStatistics.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        // Selected count is always present
+        var selectedCount = await importStatistics.GetByTestId("import-selected-count").InnerTextAsync();
+
+        // Discarded count is optional (only shown when there are discarded transactions)
+        int? discardedCount = null;
+        var discardedLocator = importStatistics.GetByTestId("import-discarded-count");
+        if (await discardedLocator.CountAsync() > 0)
+        {
+            var discardedText = await discardedLocator.InnerTextAsync();
+            discardedCount = int.Parse(discardedText);
+        }
+
+        // Potential duplicate count is optional (only shown when there are potential duplicates)
+        int? potentialDuplicateCount = null;
+        var duplicateLocator = importStatistics.GetByTestId("import-potential-duplicate-count");
+        if (await duplicateLocator.CountAsync() > 0)
+        {
+            var duplicateText = await duplicateLocator.InnerTextAsync();
+            potentialDuplicateCount = int.Parse(duplicateText);
+        }
+
+        return new ImportStatisticsDto(
+            SelectedCount: int.Parse(selectedCount),
+            DiscardedCount: discardedCount,
+            PotentialDuplicateCount: potentialDuplicateCount
+        );
+    }
+
     #endregion
 
     #region Delete Operations

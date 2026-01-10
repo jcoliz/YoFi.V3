@@ -241,5 +241,21 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         }
     }
 
+    /// <summary>
+    /// Then I should have seen a confirmation message indicating {count} transactions were accepted
+    /// </summary>
+    [Then("I should have seen a confirmation message indicating {count} transactions were accepted")]
+    [RequiresObjects(ObjectStoreKeys.ImportStatisticsDto)]
+    public async Task IShouldHaveSeenAConfirmationMessageIndicatingTransactionsWereAccepted(int count)
+    {
+        // Then: Get the actual statistics reported when we completed the import process from object store
+        var actualStatistics = _context.ObjectStore.Get<ImportStatisticsDto>(ObjectStoreKeys.ImportStatisticsDto)
+            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ImportStatisticsDto} not found in object store");
+
+        // And: Verify that the actual statistics match the expected values
+        Assert.That(actualStatistics.SelectedCount, Is.EqualTo(count),
+            $"Expected {count} transactions to be accepted but found {actualStatistics.SelectedCount}");
+    }
+
     #endregion
 }

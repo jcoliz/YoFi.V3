@@ -59,11 +59,16 @@ public class BankImportReviewSteps(ITestContext context) : BankImportStepsBase(c
     /// </remarks>
     [Given("I have imported these transactions")]
     [When("I import the selected transactions")]
+    [ProvidesObjects(ObjectStoreKeys.ImportStatisticsDto)]
     public async Task IImportTheSelectedTransactions()
     {
         // When: Click the Import button to open confirmation modal
         var importPage = _context.GetOrCreatePage<ImportPage>();
         await importPage.ClickImportButtonAsync();
+
+        // And: Capture import statistics for later verification
+        var importStats = await importPage.GetImportStatisticsAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.ImportStatisticsDto, importStats);
 
         // And: Confirm the import
         await importPage.ConfirmImportAsync();

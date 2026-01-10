@@ -141,5 +141,10 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string UploadedTransactionPayees = "UploadedTransactionPayees";
 
+    /// <summary>
+    /// Statistics displayed upon completion of the import process, in the confirmation dialog
+    /// </summary>
+    public const string ImportStatisticsDto = "ImportStatisticsDto";
+
     #endregion
 }

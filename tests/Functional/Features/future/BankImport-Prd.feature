@@ -147,6 +147,8 @@ Feature: Bank Import
       And import review queue should be completely cleared
 
     @pri:2
+    @id:13
+    @status:done
     Scenario: Accept all transactions clears import review
       Given I have uploaded an OFX file with 10 new transactions
       And I am on the Import Review page

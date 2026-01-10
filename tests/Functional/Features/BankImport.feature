@@ -108,6 +108,15 @@ Scenario: Review transactions with exact duplicates
     Then all 5 transactions should be deselected by default
     And no transactions should be highlighted for further review
 
+@pri:2
+@id:13
+Scenario: Accept all transactions clears import review
+    Given I have uploaded an OFX file with 10 new transactions
+    When I import the selected transactions
+    Then I should have seen a confirmation message indicating 10 transactions were accepted
+    And I should see 10 new transactions in the transaction list
+    And import review queue should be empty
+
 Rule: Tenant isolation ensures import review privacy
 
 @pri:1

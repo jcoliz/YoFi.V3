@@ -164,8 +164,22 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     [Then("I should see {expectedCount} new transactions in the transaction list")]
     public async Task ThenIShouldSeeExactlyTransactions(int expectedCount)
     {
+        // Problem: The transactions may not have all loaded yet if we just got redirected here
+        // So we will loop and wait for the expected count to appear, up to a timeout
+
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
         var actualCount = await transactionsPage.GetTransactionCountAsync();
+        const int maxRetries = 10;
+        const int retryDelayMs = 500;
+        int retries = 0;
+        while (actualCount < expectedCount && retries < maxRetries)
+        {
+            await Task.Delay(retryDelayMs);
+            actualCount = await transactionsPage.GetTransactionCountAsync();
+            retries++;
+        }
+
         Assert.That(actualCount, Is.EqualTo(expectedCount), $"Expected exactly {expectedCount} transactions");
     }
 

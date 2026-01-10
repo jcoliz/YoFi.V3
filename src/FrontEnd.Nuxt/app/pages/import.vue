@@ -671,21 +671,22 @@ async function confirmDeleteAll() {
         <h6 class="alert-heading mb-2">Import Summary:</h6>
         <ul class="mb-0">
           <li>
-            <strong>{{ summary.selectedCount || 0 }}</strong> transaction{{
-              summary.selectedCount === 1 ? '' : 's'
-            }}
+            <strong data-test-id="import-selected-count">{{ summary.selectedCount || 0 }}</strong>
+            transaction{{ summary.selectedCount === 1 ? '' : 's' }}
             will be imported
           </li>
           <li v-if="summary.totalCount && summary.totalCount > (summary.selectedCount || 0)">
-            <strong>{{ summary.totalCount - (summary.selectedCount || 0) }}</strong> transaction{{
-              summary.totalCount - (summary.selectedCount || 0) === 1 ? '' : 's'
-            }}
+            <strong data-test-id="import-discarded-count">{{
+              summary.totalCount - (summary.selectedCount || 0)
+            }}</strong>
+            transaction{{ summary.totalCount - (summary.selectedCount || 0) === 1 ? '' : 's' }}
             will be discarded
           </li>
           <li v-if="summary.potentialDuplicateCount && summary.potentialDuplicateCount > 0">
-            <strong>{{ summary.potentialDuplicateCount }}</strong> potential duplicate{{
-              summary.potentialDuplicateCount === 1 ? '' : 's'
-            }}
+            <strong data-test-id="import-potential-duplicate-count">{{
+              summary.potentialDuplicateCount
+            }}</strong>
+            potential duplicate{{ summary.potentialDuplicateCount === 1 ? '' : 's' }}
             detected
           </li>
         </ul>
