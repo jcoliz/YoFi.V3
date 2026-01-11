@@ -46,12 +46,12 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 ### API Layer
 - **PayeeMatchingRulesController** - Endpoints for CRUD operations on rules
-- **Authentication/Authorization** - Tenant-scoped access control, Editor role required
+- **Authentication/Authorization** - Tenant-scoped access control, Viewer for GET, Editor for POST/PUT/DELETE
 - **Integration with ImportReviewFeature** - Applies matching during bank import workflow
 
 ### Integration Points
 - **Bank Import workflow** - After parsing OFX, before storing ImportReviewTransactions, apply matching rules to set Category field
-- **Transaction create from Transactions page** - Future enhancement (Story 1 acceptance criteria mentions this)
+- **Transactions page** - "Create Rule from Transaction" action allows users to create rules based on existing transactions
 
 ### Workflow (Story 2: Auto-categorize on import)
 1. User uploads OFX file → Frontend sends multipart POST to `/api/import/upload`
@@ -205,10 +205,15 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **Validation process:**
 1. Check pattern is not null/whitespace
-2. Attempt to compile with `RegexOptions.IgnoreCase` and 100ms timeout
-3. Test compiled pattern against adversarial string: `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!"`
-4. Catch `RegexMatchTimeoutException` → ReDoS vulnerable, return error
-5. Catch `ArgumentException` → Invalid syntax, return .NET error message
+2. Attempt to compile with `RegexOptions.IgnoreCase | RegexOptions.NonBacktracking`
+3. Catch `NotSupportedException` → Pattern uses unsupported features (backreferences, lookahead/lookbehind), return user-friendly error
+4. Catch `ArgumentException` → Invalid syntax, return .NET error message including exception text
+
+**Why NonBacktracking:**
+- .NET 7+ feature that guarantees linear time complexity O(n)
+- Completely eliminates ReDoS vulnerabilities (no timeout testing needed)
+- Rejects patterns with advanced features (backreferences, lookahead/lookbehind) that could cause backtracking
+- More reliable than timeout-based testing with adversarial strings
 
 **Used by:**
 - `PayeeMatchingRuleEditDtoValidator` - Injected via constructor to validate regex patterns during create/update operations
@@ -241,7 +246,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Matching algorithm:**
 1. Track separate best regex match and best substring match
 2. For each rule:
-   - If regex: test with `Regex.IsMatch()` (100ms timeout, IgnoreCase)
+   - If regex: test with `Regex.IsMatch()` using `RegexOptions.IgnoreCase | RegexOptions.NonBacktracking`
    - If substring: test with `payee.Contains(pattern, OrdinalIgnoreCase)`
 3. Track longest substring match, first regex match (rules already sorted by ModifiedAt DESC)
 4. Return: regex match > substring match > null
@@ -251,9 +256,10 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 2. For substring: longer pattern beats shorter
 3. For equal length/both regex: most recently modified wins (first in pre-sorted list)
 
-**Defensive error handling:**
-- `RegexMatchTimeoutException` during matching → treat as non-match
-- `ArgumentException` during matching → treat as non-match (shouldn't happen due to validation)
+**Exception handling:**
+- `NotSupportedException` during matching → thrown back to caller (shouldn't happen due to validation, but callers must handle)
+- `ArgumentException` during matching → thrown back to caller (shouldn't happen due to validation, but callers must handle)
+- **Caller responsibility:** PayeeMatchingRuleFeature must catch these exceptions and convert to appropriate application exceptions that CustomExceptionHandler can handle
 
 **Why static?**
 - Pure function with no dependencies or state
@@ -281,12 +287,15 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **CRUD Methods:**
 
-**`GetRulesAsync(sortBy)`**
+**`GetRulesAsync(pageNumber, pageSize, sortBy, searchText)`**
+- Accepts optional pagination parameters: `pageNumber` (default 1), `pageSize` (default 50, max 1000)
 - Accepts optional `sortBy` parameter (enum: PayeePattern, Category, LastUsedAt)
+- Accepts optional `searchText` parameter (plain text search across PayeePattern and Category)
 - Loads all rules for current tenant from cache (via private `GetRulesForTenantAsync()`)
-- Sorts in-memory based on `sortBy` parameter
-- Default sort: PayeePattern ASC (alphabetical)
-- Projection to PayeeMatchingRuleResultDto
+- **Filters in-memory** if searchText provided: case-insensitive substring match on PayeePattern OR Category
+- Sorts in-memory based on `sortBy` parameter (default: PayeePattern ASC)
+- **Paginates in-memory** using standard `PaginationHelper.Calculate()` and Skip/Take
+- Returns `PaginatedResultDto<PayeeMatchingRuleResultDto>` with items and pagination metadata
 
 **`GetRuleByKeyAsync(key)`**
 - Single rule lookup by Key
@@ -382,7 +391,10 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 
 **Route:** `/api/tenant/{tenantKey:guid}/payee-rules`
 
-**Authorization:** `[RequireTenantRole(TenantRole.Editor)]` at controller level
+**Authorization:**
+- GET endpoints (viewing rules): `[RequireTenantRole(TenantRole.Viewer)]`
+- POST, PUT, DELETE endpoints (modifying rules): `[RequireTenantRole(TenantRole.Editor)]`
+- Owner role not required for any operations
 
 **Base attributes:**
 - `[ApiController]`
@@ -393,13 +405,24 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 
 **Endpoints:**
 
-| Method | Path | Description | Request Body | Response | Status Codes |
-|--------|------|-------------|--------------|----------|--------------|
-| GET | `/` | Get all rules | - | `IReadOnlyCollection<PayeeMatchingRuleResultDto>` | 200, 401, 403 |
-| GET | `/{key:guid}` | Get rule by key | - | `PayeeMatchingRuleResultDto` | 200, 401, 403, 404 |
-| POST | `/` | Create rule | `PayeeMatchingRuleEditDto` | `PayeeMatchingRuleResultDto` | 201, 400, 401, 403 |
-| PUT | `/{key:guid}` | Update rule | `PayeeMatchingRuleEditDto` | `PayeeMatchingRuleResultDto` | 200, 400, 401, 403, 404 |
-| DELETE | `/{key:guid}` | Delete rule | - | None | 204, 401, 403, 404 |
+| Method | Path | Description | Query Parameters | Request Body | Response | Status Codes |
+|--------|------|-------------|------------------|--------------|----------|--------------|
+| GET | `/` | Get all rules (paginated) | `pageNumber`, `pageSize`, `sortBy`, `searchText` (all optional) | - | `PaginatedResultDto<PayeeMatchingRuleResultDto>` | 200, 401, 403 |
+| GET | `/{key:guid}` | Get rule by key | - | - | `PayeeMatchingRuleResultDto` | 200, 401, 403, 404 |
+| POST | `/` | Create rule | - | `PayeeMatchingRuleEditDto` | `PayeeMatchingRuleResultDto` | 201, 400, 401, 403 |
+| PUT | `/{key:guid}` | Update rule | - | `PayeeMatchingRuleEditDto` | `PayeeMatchingRuleResultDto` | 200, 400, 401, 403, 404 |
+| DELETE | `/{key:guid}` | Delete rule | - | - | None | 204, 401, 403, 404 |
+
+**GET `/` Query Parameters:**
+- `pageNumber` (optional, default: 1) - Page number to retrieve (1-based)
+- `pageSize` (optional, default: 50, max: 1000) - Number of items per page
+- `sortBy` (optional, default: PayeePattern) - Sort order: PayeePattern, Category, or LastUsedAt
+- `searchText` (optional) - Plain text search across PayeePattern and Category (case-insensitive substring match)
+
+**Pagination Implementation:**
+- Follows standard project pattern using [`PaginatedResultDto<T>`](src/Application/Dto/PaginatedResultDto.cs) and [`PaginationHelper`](src/Application/Helpers/PaginationHelper.cs)
+- Filter and sort operations happen in-memory on cached rule set before pagination
+- Returns pagination metadata (page numbers, total count, has previous/next page flags)
 
 **Logging pattern:**
 - Follow project [`LOGGING-POLICY.md`](../../LOGGING-POLICY.md)
@@ -432,6 +455,249 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 
 **Note:** `PayeeMatchingHelper` is a static class with static methods, so no DI registration needed.
 
+## Frontend Design
+
+### Payee Rules Management Page
+
+**Route:** `/payee-rules` (or similar tenant-scoped route)
+
+**Page Purpose:** Allow users to view, search, sort, and quick-edit their payee matching rules
+
+#### Layout Structure
+
+**Page Header:**
+- Workspace selector component (standard tenant switcher - currently separate component)
+- Page title: "Payee Matching Rules"
+- "New Rule" button (primary action) - Opens create form
+  - **Only shown for Editor/Owner roles**
+  - Hidden for Viewer role
+- Total rules count display (e.g., "120 rules")
+
+**Search and Filter Bar:**
+- Search input field with placeholder "Search payee or category..."
+- Search button next to input field
+- Search executes when user presses Enter key or clicks Search button
+- Clear search button (X icon) appears when search text is present
+- Sort dropdown with options:
+  - "Payee Pattern (A-Z)" (default)
+  - "Category (A-Z)"
+  - "Last Used"
+
+**Rules Table/List:**
+- Displays paginated rules (50 per page by default)
+- Columns:
+  - **Payee Pattern** - Display pattern text, small badge if regex (e.g., "Regex" pill)
+  - **Category** - Display category text (sanitized)
+  - **Last Used** - Display date or "Never" if null, formatted as relative time (e.g., "2 days ago")
+  - **Match Count** - Display number (e.g., "42 matches")
+  - **Actions** - Edit and Delete buttons/icons
+    - **Only shown for Editor/Owner roles**
+    - Hidden for Viewer role (no Actions column shown at all)
+
+**Pagination Controls:**
+- Standard pagination UI at bottom of list
+- Shows current page and total pages
+- Previous/Next navigation buttons
+- Page size fixed at 50 per page (not user-editable)
+
+#### Quick Edit Functionality
+
+**Note:** "Quick Edit" distinguishes this from future detailed edit on dedicated page (Stories 4+)
+
+**Edit Dialog Pattern:**
+- Follow same pattern as Transactions page quick edit
+- When user clicks Edit button on a row, open a modal dialog
+- Dialog contains editable fields:
+  - **Payee Pattern** - Text input
+  - **Regex checkbox** - Toggle for PayeeIsRegex
+  - **Category** - Text input
+- Dialog has Save and Cancel buttons
+- On Save, validate and submit to API
+- On success, close dialog and refresh rule in list
+
+**Validation:**
+- Validation occurs on Save button click
+- Error messages displayed in dialog (inline or at top)
+- Regex validation errors show user-friendly message including .NET Regex error text
+- Empty category validation error shown
+- Keep dialog open on validation failure
+
+**Create New Rule:**
+- Opens same modal dialog pattern as Edit
+- "New Rule" button in page header triggers dialog
+- Same fields as edit dialog (Payee Pattern, Regex checkbox, Category)
+- Submit and Cancel buttons
+- Validation on submit with error display
+- On success, close dialog and refresh list to show new rule
+
+**Delete Confirmation:**
+- Clicking Delete button shows confirmation dialog
+- "Are you sure you want to delete this rule? This action cannot be undone."
+- Confirm and Cancel buttons
+- On confirm, delete via API and remove rule from list
+
+#### Empty States
+
+**No Rules:**
+- Empty state illustration or message
+- "You haven't created any payee matching rules yet"
+- "Create your first rule" button
+
+**No Search Results:**
+- "No rules match your search"
+- Show current search term
+- "Clear search" button to reset
+
+#### Loading States
+
+**Initial Load:**
+- Skeleton loaders or spinner while fetching rules from API
+
+**Pagination:**
+- Brief loading indicator when changing pages
+
+**Save/Delete:**
+- Disable buttons and show spinner during API call
+- Success feedback (toast notification or inline message)
+- Error feedback if API call fails
+
+#### Responsive Behavior
+
+**Desktop:**
+- Full table layout with all columns visible
+
+**Mobile/Responsive:**
+- Follow same pattern as Transactions page (whatever is currently implemented)
+- Ensure table remains usable on smaller screens (horizontal scroll or responsive columns)
+
+#### Test Automation Support
+
+**data-test-id Attributes:**
+
+All interactive elements and status displays must include `data-test-id` attributes for functional test automation:
+
+**Interactive Elements (user input/clicks):**
+- Search input field: `data-test-id="search-input"`
+- Search button: `data-test-id="search-button"`
+- Clear search button: `data-test-id="clear-search-button"`
+- Sort dropdown: `data-test-id="sort-dropdown"`
+- New button: `data-test-id="new-button"`
+- Pagination controls: Covered by pagination component (no need to specify here)
+
+**Table Structure:**
+- Table element: `data-test-id="payee-rules"`
+- Table headers: `data-test-id="payee-pattern"`, `data-test-id="category"`, `data-test-id="last-used"`, `data-test-id="match-count"`, `data-test-id="actions"`
+- Each rule row (TR element): `data-test-id="row-{key}"`
+- Edit button (within row): `data-test-id="edit-button"`
+- Delete button (within row): `data-test-id="delete-button"`
+- Regex badge (within row): `data-test-id="regex-badge"`
+
+**Modal Dialog Elements:**
+- Dialog container: `data-test-id="rule-edit-dialog"` or `data-test-id="rule-create-dialog"`
+- Payee Pattern input: `data-test-id="payee-pattern-input"`
+- Regex checkbox: `data-test-id="regex-checkbox"`
+- Category input: `data-test-id="category-input"`
+- Save button: `data-test-id="save-button"`
+- Cancel button: `data-test-id="cancel-button"`
+
+**Status/Display Elements:**
+- Total rules count: `data-test-id="total-rules-count"`
+- Current page number: `data-test-id="current-page"`
+- Empty state message: `data-test-id="empty-state"`
+- No search results message: `data-test-id="no-results"`
+- Validation error display: `data-test-id="validation-error"`
+- Success message/toast: `data-test-id="success-message"`
+
+### Create Rule from Transaction (Transactions Page Integration)
+
+**Location:** Transactions page (existing component)
+
+**Purpose:** Allow users to quickly create payee matching rules based on existing transactions
+
+#### User Flow
+
+1. User views transaction in Transactions list
+2. User clicks action button/menu item: "Create Rule from This"
+3. System opens Quick Edit dialog (same as "New Rule" dialog) **pre-populated** with:
+   - **Payee Pattern:** Transaction's payee field (full text)
+   - **Regex checkbox:** Unchecked (default to substring)
+   - **Category:** Transaction's category if present, empty if not
+4. User can edit fields (typically trims payee down to smaller substring)
+5. **If user enters/modifies Category:** Category is applied to the source transaction as well
+6. User clicks Save → Rule created via API, transaction updated if category changed
+7. Success message shown, user can continue working with transactions
+
+**Note:** This combines two operations:
+- Create payee matching rule (always happens)
+- Update transaction category (only if category field is filled/modified)
+
+#### UI Elements
+
+**Transactions Page:**
+- Add "Create Rule" action button/menu item per transaction row
+- **Only shown for Editor/Owner roles**
+- Hidden for Viewer role
+- Button/action labeled: "Create Rule" or "Create Rule from This"
+
+**Dialog:**
+- **Reusable Vue component:** Same Quick Edit modal dialog component used on Payee Rules page
+- Component should accept props for pre-population and mode (create vs edit)
+- Title: "Create Payee Matching Rule"
+- Fields pre-populated from transaction
+- User can modify all fields before saving
+- Standard validation applies (empty category, regex syntax, ReDoS check)
+
+**Component Design:**
+- Component name: `PayeeRuleDialog.vue` (or similar)
+- Used by both:
+  - Payee Rules management page (create/edit rules)
+  - Transactions page (create rule from transaction)
+- Props: `initialPayeePattern`, `initialCategory`, `initialIsRegex`, `mode` ('create' or 'edit'), `ruleKey` (for edit mode)
+- Emits: `save`, `cancel` events
+
+#### API Integration
+
+**Endpoint:** POST `/api/tenant/{tenantKey}/payee-rules`
+
+**Request body:** Standard `PayeeMatchingRuleEditDto` with pre-populated values
+
+**No special endpoint needed:** Reuses existing Create endpoint
+
+#### Typical User Workflow
+
+1. User imports transactions, sees "Amazon Web Services LLC" in payee
+2. User realizes they want to auto-categorize AWS charges
+3. User clicks "Create Rule" on that transaction row
+4. Dialog opens with:
+   - Payee Pattern: "Amazon Web Services LLC"
+   - Category: "Cloud Services" (if transaction already categorized)
+5. User edits Payee Pattern to just "AWS" (shorter, broader match)
+6. User clicks Save
+7. Rule created, future AWS transactions will auto-categorize
+
+#### Test Automation
+
+**data-test-id Attributes:**
+- Create Rule button (on transaction row): `data-test-id="create-rule-button"`
+- Dialog uses same test IDs as regular create dialog
+
+### Import Review Display
+
+**Reference:** See [`DESIGN-BANK-IMPORT-FRONTEND.md`](../import-export/DESIGN-BANK-IMPORT-FRONTEND.md) for complete import review UI design
+
+**Integration Point:**
+- Import review page displays **Category** column (read-only)
+- Category value populated by backend via PayeeMatchingRuleFeature during import
+- If category is present, display in dedicated column
+- If category is empty, show empty cell or placeholder text
+- User cannot edit category in import review (per Story 2 acceptance criteria)
+- Category is informational only - helps user decide whether to accept transaction
+
+**Visual Treatment:**
+- Category displayed with same styling as other transaction fields
+- No special highlighting or indication of "auto-matched" status in Stories 1-2
+- Future enhancement (Story 5+): Could add indicator showing which rule matched
+
 ## Security Considerations
 
 ### Tenant Isolation
@@ -441,15 +707,17 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - No cross-tenant access possible
 
 ### Regex Security (ReDoS Protection)
-- **Validation-time testing:** Patterns tested against adversarial input with 100ms timeout during create/update
-- **Runtime timeout:** All regex matching uses 100ms timeout via `new Regex(pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100))`
-- **Defensive handling:** Timeout exceptions during matching treated as non-match (defensive, shouldn't occur if validation works)
+- **NonBacktracking engine:** All regex operations use `RegexOptions.NonBacktracking` (available in .NET 7+, guaranteed in .NET 10+)
+- **Guaranteed linear time:** NonBacktracking provides O(n) time complexity, completely eliminating ReDoS vulnerabilities
+- **Validation-time checking:** Patterns validated during create/update using NonBacktracking compilation
+- **Unsupported features:** Patterns using backreferences, lookahead, or lookbehind are rejected with user-friendly error messages
+- **Runtime safety:** All regex matching uses NonBacktracking, no timeout needed
 - **User feedback:** Invalid patterns rejected with clear error messages including .NET Regex error text
-- **Test string:** `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!"` designed to trigger catastrophic backtracking
 
 ### Authorization
-- **Editor role required:** All payee rule endpoints require Editor or Owner role
-- **Viewer restriction:** Viewer role cannot access any payee rule endpoints
+- **Viewer role:** Can view payee rules (GET endpoints)
+- **Editor role:** Required for creating, updating, or deleting rules (POST, PUT, DELETE endpoints)
+- **Owner role:** Not required for any payee rule operations
 - **Import integration:** Rule matching applied during import (already requires Editor role)
 
 ### Data Integrity
@@ -505,13 +773,13 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 
 **PayeeMatchingHelper:**
 - Substring matching case-insensitive
-- Regex matching with IgnoreCase
+- Regex matching with IgnoreCase and NonBacktracking
 - Conflict resolution: regex > substring
 - Conflict resolution: longer > shorter substring
 - Conflict resolution: newer > older (equal precedence, based on sort order)
 - No rules → no matching (null category)
 - Multiple rules → best match selected
-- Defensive handling: timeout exceptions → non-match
+- Exception propagation: NotSupportedException and ArgumentException thrown to caller
 
 **RegexValidationService:**
 - Valid patterns accepted (simple and complex)

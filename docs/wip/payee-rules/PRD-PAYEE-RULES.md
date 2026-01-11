@@ -49,6 +49,7 @@ to what transactions.
 - [ ] User can alternately describe the rule with a regular expression
 - [ ] User can fully manage payee matching rules (CRUD)
 - [ ] User can sort listing of rules by: Payee name (default), category, or LastUsedAt
+- [ ] User can search for payee rules with a plan text search that searches across both payee snippet and category.
 - [ ] User can quickly edit most important fields (payee, regex flag, and category) while viewing the list of payee rules.
 - [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transaction, and if the transaction already has a category, it will use that. User can review the new rule before it's saved, and will typically trim down the payee to a smaller substring
 - [ ] Rules are scoped to the tenant of which they are a member
@@ -57,6 +58,8 @@ to what transactions.
 - [ ] Regex patterns are validated on save with user-friendly error messages
 - [ ] Invalid regex displays the .NET Regex error message to help users fix it
 - [ ] Regex patterns are tested for ReDoS vulnerabilities (timeout after 100ms on test string)
+- [ ] User with editor role on containing tenant can take any actions listed here
+- [ ] User with viewer role on containing tenant can only view, list, or search. Cannot create, edit, or delete.
 
 ### Story 2: User - Sees transactions automatically categorized on bank import
 **As a** User
