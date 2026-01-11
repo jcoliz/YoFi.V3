@@ -38,8 +38,8 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - **DbContext** - Exposes PayeeMatchingRules DbSet for Application layer queries
 
 ### Application Layer
-- **PayeeMatchingRuleFeature** - Business logic for CRUD operations on rules
-- **PayeeMatchingService** - Core matching logic and rule precedence resolution
+- **PayeeMatchingRuleFeature** - Business logic for CRUD operations on rules, rule matching, and cache management
+- **PayeeMatchingHelper** - Pure matching algorithm (static) for rule precedence resolution
 - **RegexValidationService** - Validates regex patterns and tests for ReDoS vulnerabilities
 - **DTOs** - PayeeMatchingRuleEditDto, PayeeMatchingRuleResultDto
 - **Validation** - Ensures rules meet schema requirements (category required, valid regex)
@@ -146,7 +146,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 #### PayeeMatchingRuleEditDto
 
-**Location:** `src/Application/PayeeRules/Dto/PayeeMatchingRuleEditDto.cs`
+**Location:** `src/Application/Dto/PayeeMatchingRuleEditDto.cs`
 
 **Purpose:** Input DTO for creating or updating payee matching rules
 
@@ -159,7 +159,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 #### PayeeMatchingRuleResultDto
 
-**Location:** `src/Application/PayeeRules/Dto/PayeeMatchingRuleResultDto.cs`
+**Location:** `src/Application/Dto/PayeeMatchingRuleResultDto.cs`
 
 **Purpose:** Output DTO for displaying payee matching rules
 
@@ -177,7 +177,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 #### PayeeMatchingRuleEditDtoValidator
 
-**Location:** `src/Application/PayeeRules/Validation/PayeeMatchingRuleEditDtoValidator.cs`
+**Location:** `src/Application/Validation/PayeeMatchingRuleEditDtoValidator.cs`
 
 **Framework:** FluentValidation (injected via DI)
 
@@ -195,7 +195,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 #### IRegexValidationService / RegexValidationService
 
-**Location:** `src/Application/PayeeRules/Services/`
+**Location:** `src/Application/Services/IRegexValidationService.cs` and `src/Application/Services/RegexValidationService.cs`
 
 **Purpose:** Validates regex patterns for correctness and ReDoS vulnerabilities
 
@@ -210,88 +210,80 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 4. Catch `RegexMatchTimeoutException` → ReDoS vulnerable, return error
 5. Catch `ArgumentException` → Invalid syntax, return .NET error message
 
+**Used by:**
+- `PayeeMatchingRuleEditDtoValidator` - Injected via constructor to validate regex patterns during create/update operations
+- Future validators (Story 4+) - When source pattern validation is added
+
+**Why a service and not a static helper?**
+- **FluentValidation pattern** - Validators use constructor injection for dependencies, requiring DI-registered services
+- **Testability** - Can be mocked in validator unit tests to test validation logic independently
+- **Reusability** - Single instance shared across all validators that need regex validation
+- **Consistent architecture** - Follows project pattern of injecting services into validators (see `IDataProvider` usage in other validators)
+
+**Note:** `PayeeMatchingService` does NOT use this service. It compiles and uses regex patterns directly during matching for performance (avoids double compilation).
+
 **Lifecycle:** Registered as Singleton (stateless service)
 
-#### IPayeeMatchingService / PayeeMatchingService
+#### PayeeMatchingHelper
 
-**Location:** `src/Application/PayeeRules/Services/`
+**Location:** `src/Application/Helpers/PayeeMatchingHelper.cs`
 
-**Purpose:** Applies payee matching rules to transactions
+**Purpose:** Pure matching algorithm for finding the best matching rule for a given payee
 
-**Key methods:**
+**Method:** `static string? FindBestMatch(string payee, IReadOnlyCollection<PayeeMatchingRule> rules)`
 
-**`ApplyMatchingRulesAsync(transactions, tenantId)`**
-- Loads all rules for tenant (simple TenantId filter, sorted by ModifiedAt DESC in-memory)
-- Iterates through transactions, finds best match for each
-- Modifies transaction.Category in-place (mutable DTO)
-- **Updates usage statistics:** Increments MatchCount and sets LastUsedAt for matched rules
-- Returns Task (no return value, transactions modified)
+**Parameters:**
+- `payee` - Transaction payee string to match against
+- `rules` - Pre-sorted rule list (sorted by ModifiedAt DESC for conflict resolution)
 
-**`FindBestMatchAsync(payee, tenantId)`**
-- Single-payee variant for manual matching (Story 3)
-- Returns category string or null if no match
+**Returns:** Category string from best matching rule, or null if no match
 
-**Matching algorithm (FindBestMatch):**
+**Matching algorithm:**
 1. Track separate best regex match and best substring match
 2. For each rule:
    - If regex: test with `Regex.IsMatch()` (100ms timeout, IgnoreCase)
    - If substring: test with `payee.Contains(pattern, OrdinalIgnoreCase)`
-3. Track longest substring match, first regex match (rules sorted by ModifiedAt DESC)
+3. Track longest substring match, first regex match (rules already sorted by ModifiedAt DESC)
 4. Return: regex match > substring match > null
 
 **Conflict resolution precedence (per Story 2):**
 1. Regex pattern beats substring pattern (always)
 2. For substring: longer pattern beats shorter
-3. For equal length/both regex: most recently modified wins (first in sorted list)
-
-**Performance:**
-- Rules loaded once per import batch (single query)
-- All matching in-memory after load
-- Regex compiled on-demand (not cached initially)
-- Expected time: <100ms for 1,000 transactions
+3. For equal length/both regex: most recently modified wins (first in pre-sorted list)
 
 **Defensive error handling:**
 - `RegexMatchTimeoutException` during matching → treat as non-match
 - `ArgumentException` during matching → treat as non-match (shouldn't happen due to validation)
 
-**Caching Strategy:**
-- Use `IMemoryCache` (standard ASP.NET Core service from `Microsoft.Extensions.Caching.Memory`) to cache rules per tenant
-- Cache key pattern: `payee-rules:{tenantId}`
-- Cache entry contains complete entity list for tenant (NOT sorted - sorting happens at call site)
-- Cache invalidation: Clear cache entry on Create/Update/Delete operations
-- Memory impact: Real-world usage shows ~500 rules ≈ 40KB per tenant (with GUID keys), acceptable for multi-tenant app
-  - 100 concurrent tenants = 4MB total
-  - 1000 concurrent tenants = 40MB total
-- Performance gain: Eliminates DB query on **both** import and display (DB query only on cache miss)
+**Why static?**
+- Pure function with no dependencies or state
+- Takes all inputs as parameters, returns computed result
+- Easily unit testable without mocking
+- Lightweight - no need for DI overhead
 
-**Implementation approach:**
-1. `GetRulesForTenantAsync()` - Public method, checks cache first, queries DB on miss (simple TenantId filter), stores in cache
-2. Create/Update/Delete operations call `InvalidateCacheForTenant(tenantId)` after save
-3. No expiration policy needed (explicit invalidation on changes)
-4. Consider cache statistics logging for monitoring hit rate
+**Performance:**
+- Regex compiled on-demand (not cached initially)
+- All matching in-memory
+- Expected time: <100ms for 1,000 transactions × 500 rules
 
-**Shared by:**
-- Import matching workflow (sorts by ModifiedAt DESC for conflict resolution)
-- Display endpoints (sorts by PayeePattern/Category/LastUsedAt per user selection)
-- Both callers sort in-memory after retrieving from cache
-
-**Alternative considered:** No caching + sort-specific indexes. Rejected because rule sets are small, in-memory operations are faster than index lookups, and caching benefits both import and display scenarios.
-
-**Lifecycle:** Registered as Scoped (needs IDataProvider and IMemoryCache)
+**Used by:** `PayeeMatchingRuleFeature.ApplyMatchingRulesAsync()` and `FindBestMatchAsync()`
 
 #### PayeeMatchingRuleFeature
 
-**Location:** `src/Application/PayeeRules/Features/PayeeMatchingRuleFeature.cs`
+**Location:** `src/Application/Features/PayeeMatchingRuleFeature.cs`
 
-**Purpose:** Business logic for CRUD operations on payee matching rules
+**Purpose:** Business logic for CRUD operations on payee matching rules, rule matching, and cache management
 
-**Constructor:** Accepts `ITenantProvider` and `IDataProvider`, caches `_tenantId`
+**Dependencies (constructor injection):**
+- `ITenantProvider` - For current tenant context, caches `_tenantId`
+- `IDataProvider` - For querying and updating PayeeMatchingRule entities
+- `IMemoryCache` - For caching rules per tenant (from `Microsoft.Extensions.Caching.Memory`)
 
-**Methods:**
+**CRUD Methods:**
 
 **`GetRulesAsync(sortBy)`**
 - Accepts optional `sortBy` parameter (enum: PayeePattern, Category, LastUsedAt)
-- Loads all rules for current tenant from cache (via PayeeMatchingService.GetRulesForTenantAsync)
+- Loads all rules for current tenant from cache (via private `GetRulesForTenantAsync()`)
 - Sorts in-memory based on `sortBy` parameter
 - Default sort: PayeePattern ASC (alphabetical)
 - Projection to PayeeMatchingRuleResultDto
@@ -303,46 +295,84 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **`CreateRuleAsync(ruleDto)`**
 - **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
 - Creates new entity with sanitized category, sets TenantId, CreatedAt, ModifiedAt (same timestamp)
-- Saves to database, returns PayeeMatchingRuleResultDto with generated Key
+- Saves to database, **invalidates cache**
+- Returns PayeeMatchingRuleResultDto with generated Key
 
 **`UpdateRuleAsync(key, ruleDto)`**
 - Loads existing rule (throws NotFoundException if not found)
 - **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
 - Updates PayeePattern, PayeeIsRegex, Category (sanitized)
 - Updates ModifiedAt to current time
-- Saves changes, returns updated DTO
+- Saves changes, **invalidates cache**
+- Returns updated DTO
 
 **`DeleteRuleAsync(key)`**
-- Loads rule, removes, saves changes
+- Loads rule, removes, saves changes, **invalidates cache**
 - Throws NotFoundException if not found
+
+**Matching Methods:**
+
+**`ApplyMatchingRulesAsync(transactions)`**
+- Loads all rules for current tenant from cache (sorted by ModifiedAt DESC)
+- Iterates through transactions, calls `PayeeMatchingHelper.FindBestMatch()` for each
+- Modifies transaction.Category in-place (mutable DTO)
+- **Updates usage statistics:** Increments MatchCount and sets LastUsedAt for matched rules via IDataProvider
+- Returns Task (no return value, transactions modified)
+
+**`FindBestMatchAsync(payee)`**
+- Single-payee variant for manual matching (Story 3)
+- Loads rules from cache, calls `PayeeMatchingHelper.FindBestMatch()`
+- Returns category string or null if no match
+
+**Cache Management (private methods):**
+
+**`GetRulesForTenantAsync()`**
+- Checks cache first using key pattern: `payee-rules:{_tenantId}`
+- On cache miss: queries database (simple TenantId filter), stores in cache
+- Returns unsorted list (callers sort in-memory based on their needs)
+- No expiration policy (explicit invalidation on changes)
+
+**`InvalidateCache()`**
+- Removes cached rules for current tenant
+- Called after Create/Update/Delete operations
+
+**Caching Strategy:**
+- Cache key pattern: `payee-rules:{tenantId}`
+- Cache entry contains complete entity list for tenant (NOT sorted - sorting happens at call site)
+- Memory impact: ~500 rules ≈ 40KB per tenant (with GUID keys)
+  - 100 concurrent tenants = 4MB total
+  - 1000 concurrent tenants = 40MB total
+- Performance gain: Eliminates DB query on both import and display (DB query only on cache miss)
 
 **Tenant isolation:** All queries filter by `_tenantId` (from ITenantProvider)
 
-**Lifecycle:** Registered as Scoped
+**Lifecycle:** Registered as Scoped (needs IDataProvider which is scoped)
 
 ### Integration with Bank Import
 
-**Modified file:** `src/Application/Import/Features/ImportReviewFeature.cs`
+**Modified file:** `src/Application/Features/ImportReviewFeature.cs`
 
 **Constructor changes:**
-- Add `IPayeeMatchingService payeeMatchingService` parameter
+- Add `PayeeMatchingRuleFeature payeeMatchingRuleFeature` parameter (cross-feature dependency)
 
 **ImportFileAsync method changes:**
 
 **New step after OFX parsing:**
-```
+```csharp
 // 2. Apply payee matching rules to set Category field
-await payeeMatchingService.ApplyMatchingRulesAsync(
-    parsingResult.Transactions,
-    tenantProvider.CurrentTenant.Id);
+await _payeeMatchingRuleFeature.ApplyMatchingRulesAsync(parsingResult.Transactions);
 ```
 
 **When creating ImportReviewTransaction entities:**
-```
+```csharp
 Category = transaction.Category, // NEW: Category from matching rules (may be null)
 ```
 
-**Impact:** Minimal change, single method call added. Matching service gracefully handles zero rules (no-op).
+**Impact:**
+- Cross-feature dependency: ImportReviewFeature now depends on PayeeMatchingRuleFeature
+- Minimal change: single method call added after OFX parsing
+- Feature gracefully handles zero rules (no-op)
+- TenantId automatically scoped via PayeeMatchingRuleFeature's constructor (no parameter needed)
 
 ## API Layer Design
 
@@ -390,16 +420,17 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 ### Service Registration
 
 **Application services** (`src/Application/ServiceCollectionExtensions.cs`):
-```
+```csharp
 services.AddScoped<PayeeMatchingRuleFeature>();
 services.AddSingleton<IRegexValidationService, RegexValidationService>();
-services.AddScoped<IPayeeMatchingService, PayeeMatchingService>();
 ```
 
 **Controller validators** (`src/Controllers/Extensions/ServiceCollectionExtensions.cs`):
-```
+```csharp
 services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDtoValidator>();
 ```
+
+**Note:** `PayeeMatchingHelper` is a static class with static methods, so no DI registration needed.
 
 ## Security Considerations
 
@@ -468,21 +499,25 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - Tenant isolation (cannot access other tenant's rules)
 - NotFoundException thrown for non-existent rules
 - ModifiedAt updated on update operations
+- Cache invalidation on Create/Update/Delete
+- ApplyMatchingRulesAsync correctly modifies transaction DTOs
+- Usage statistics updated (MatchCount, LastUsedAt)
+
+**PayeeMatchingHelper:**
+- Substring matching case-insensitive
+- Regex matching with IgnoreCase
+- Conflict resolution: regex > substring
+- Conflict resolution: longer > shorter substring
+- Conflict resolution: newer > older (equal precedence, based on sort order)
+- No rules → no matching (null category)
+- Multiple rules → best match selected
+- Defensive handling: timeout exceptions → non-match
 
 **RegexValidationService:**
 - Valid patterns accepted (simple and complex)
 - Invalid syntax rejected with error message
 - ReDoS vulnerable patterns timeout and rejected
 - Edge cases: null, empty, whitespace patterns
-
-**PayeeMatchingService:**
-- Substring matching case-insensitive
-- Regex matching with IgnoreCase
-- Conflict resolution: regex > substring
-- Conflict resolution: longer > shorter substring
-- Conflict resolution: newer > older (equal precedence)
-- No rules → no matching (null category)
-- Multiple rules → best match selected
 
 **PayeeMatchingRuleEditDtoValidator:**
 - Empty PayeePattern rejected
@@ -506,7 +541,8 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - Import with matching rules → Category set on transactions
 - Import without rules → Category remains null
 - Multiple matching rules → correct precedence applied
-- Regex timeout during import → transaction not matched (defensive)
+- Cross-feature dependency: ImportReviewFeature → PayeeMatchingRuleFeature works correctly
+- Usage statistics updated during import
 
 ### Functional Tests
 
