@@ -43,15 +43,12 @@ to what transactions.
 
 **Acceptance Criteria**:
 - [ ] Payee matching rule includes a category, which matching transactions will be assigned when matched
-- [ ] Rule includes a free-form payee name snippet
-- [ ] If a transaction contains the payee name snippet from the rule within its payee field, that's a match
+- [ ] Rule includes a free-form payee name snippet (required)
 - [ ] User can alternately describe the rule with a regular expression
-- [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
-- [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 - [ ] User can fully manage payee matching rules (CRUD)
-- [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transacction, and if the transaction already has a category, it will use that. User can review the new rule before it's saved, and will typically trim down the payee to a smaller substring
+- [ ] User can quickly edit most important fields (payee, regex flag, and category) while viewing the list of payee rules.
+- [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transaction, and if the transaction already has a category, it will use that. User can review the new rule before it's saved, and will typically trim down the payee to a smaller substring
 - [ ] Rules are scoped to the tenant of which they are a member
-- [ ] In case of conflict between two substring-only rules, the rule with the longer payee name snippet wins. In case where the rules have equal length, the most recently added or edited rule takes priority.
 - [ ] Category terms will be automatically normalized using established transaction category normalization practices
 - [ ] Empty category is not allowed (validation error)
 - [ ] Regex patterns are validated on save with user-friendly error messages
@@ -67,7 +64,13 @@ to what transactions.
 - [ ] Payee matching rules are applied when user imports a bank file
 - [ ] Matched category is shown to user on the import review page
 - [ ] User cannot change the category in import review screen. It is for information only.
-- [ ] User cannot interact with matching rules at all during import review.
+- [ ] User cannot interact with matching rules on the import review page
+
+**Matching Rules**:
+- [ ] If a transaction contains the payee name snippet from the rule within its payee field, that's a match
+- [ ] In case of conflict between two substring-only rules, the rule with the longer payee name snippet wins. In case where the rules have equal length, the most recently added or edited rule takes priority.
+- [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
+- [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 
 ### Story 3: User - Manually triggers rule matching
 **As a** User
@@ -76,9 +79,11 @@ to what transactions.
 
 **Acceptance Criteria**:
 - [ ] On transactions display page, user can identify a specific transaction and apply rules to it
-- [ ] The updated category is immediately shown on trasactions display page
+- [ ] The updated category is immediately shown on transactions display page
 - [ ] If transaction already has a category, it is overwritten and a message shown to user
 - [ ] If transaction already has splits, no change is made to the transaction. Friendly error message is shown to the user explaining why we didn't do what they asked.
+
+**Limitations**:
 - [ ] Manual matching is for a specific transaction only. In future we can consider a bulk re-match, but I haven't found that super useful.
 
 Regarding splits, if user wants to remove splits and apply rule matching, this is something of a corner case. They can use existing tools
@@ -90,17 +95,17 @@ for this. They can edit the transaction, remove the splits, and then trigger man
 **So that** I have more fine-grained control over which transactions are matched
 
 **Acceptance Criteria**:
+- [ ] User can modify more advanced matching rules in a context dedicated to editing a single payee rules
 - [ ] User can set a source rule, again as a substring or a regular expression, eg. "MegaBankCorp" matches all sources with "MegaBankCorp"
-- [ ] User can set an amount value to match, in which case must match the amount directly.
+- [ ] User can set an fixed amount value to match, in which case must match the amount directly.
 - [ ] Amounts are expressed in absolute value, e.g. "200+" matches greater than or equal to 200 *and* less than or equal to -200.
-- [ ] Amount fields are labeled "Absolute Value" or "Amount (regardless of direction)"
-- [ ] Help text explains: "100 matches both +100 (income) and -100 (expense)"
 - [ ] User can set an amount range, which can be unbounded on either side. Range is inclusive of the specified bound.
 - [ ] User cannot distinguish between expenses or income in a matching rule. (I have not seen a need for this. If it comes up, we can consider it as a future enhancement.)
 - [ ] All aspects of a rule must be met for a match to be made
 - [ ] In case where multiple aspects of rule are set (e.g. payee name and amount), and there is a conflict where multiple rules match, the rule which has more aspects is considered the better match.
+- [ ] Help text explains sign treatment. "Absolute Value" or "Amount (regardless of direction)", "100 matches both +100 (income) and -100 (expense)"
 
-Notes
+**Limitations**:
 - YoFi is single-currency, so currency is not considered.
 - Whether transaction is negative or positive is generally a technical concern not a user concern. In my experience, users think in absolute value. Sign of amount is mentally translated as "I got this money" or "I spent this money"
 
@@ -210,7 +215,7 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
    - ReDoS protection: 100ms timeout on regex evaluation
 
 3. **Category Normalization**:
-   - Standard practices as implemened by Transactions
+   - Standard practices as implemented by Transactions
 
 4. **Amount Matching**:
    - Amounts are absolute value (matches both positive and negative)
@@ -283,7 +288,6 @@ This feature existed in YoFi v1 and was heavily used. User feedback indicated it
 - [`PRD-BANK-IMPORT.md`](../import-export/PRD-BANK-IMPORT.md) - Import flow integration
 - [`PRD-TRANSACTION-SPLITS.md`](../transactions/PRD-TRANSACTION-SPLITS.md) - Interaction with splits
 - [`TRANSACTION-RECORD-DESIGN.md`](../transactions/TRANSACTION-RECORD-DESIGN.md) - Transaction data model
-
 
 ---
 
