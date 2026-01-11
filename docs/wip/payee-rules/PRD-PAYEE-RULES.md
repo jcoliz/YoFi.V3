@@ -48,6 +48,7 @@ to what transactions.
 - [ ] Rule includes a free-form payee name snippet (required)
 - [ ] User can alternately describe the rule with a regular expression
 - [ ] User can fully manage payee matching rules (CRUD)
+- [ ] User can sort listing of rules by: Payee name (default), category, or LastUsedAt
 - [ ] User can quickly edit most important fields (payee, regex flag, and category) while viewing the list of payee rules.
 - [ ] From Transactions page, user can create a new rule based upon a chosen transaction. The new rule will take its payee name from the transaction, and if the transaction already has a category, it will use that. User can review the new rule before it's saved, and will typically trim down the payee to a smaller substring
 - [ ] Rules are scoped to the tenant of which they are a member

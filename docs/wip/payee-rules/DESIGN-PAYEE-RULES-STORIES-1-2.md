@@ -83,12 +83,13 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 | Category | string | Required, MaxLength(200) | Category to assign when matched, **sanitized on save** (never store unsanitized) |
 | CreatedAt | DateTimeOffset | Auto-set | Rule creation timestamp |
 | ModifiedAt | DateTimeOffset | Auto-updated | Last modified timestamp (used for conflict resolution) |
+| LastUsedAt | DateTimeOffset? | Nullable, auto-updated | Last time this rule matched a transaction (null if never used) |
+| MatchCount | int | Default: 0 | Number of times this rule has matched transactions |
 | Tenant | Tenant? | Navigation property | Foreign key relationship |
 
 **Future fields (Stories 4-7, not in this design):**
 - SourcePattern, SourceIsRegex (Story 4 - match by source)
 - AmountExact, AmountMin, AmountMax (Story 4 - match by amount)
-- LastUsedAt, MatchCount (Story 5 - usage tracking for cleanup)
 - Loan details, split rules (Stories 6-7)
 
 ### EF Core Migration
@@ -99,9 +100,15 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **Required indexes:**
 1. `IX_PayeeMatchingRules_Key` (unique) - Business key lookup
-2. `IX_PayeeMatchingRules_TenantId_PayeePattern` (composite) - UI display sorted by PayeePattern (default view)
-3. `IX_PayeeMatchingRules_TenantId_ModifiedAt` (composite, DESC on ModifiedAt) - Matching service query (conflict resolution by recency)
-4. `IX_PayeeMatchingRules_TenantId_PayeeIsRegex` (composite) - Optional filtering by pattern type
+2. `IX_PayeeMatchingRules_TenantId` - Load all rules for tenant (used by both matching service and display endpoints)
+
+**Why no sort-specific indexes?**
+- Typical rule sets are ~500 rules (~40KB per tenant)
+- Rules are cached in memory for matching performance
+- Display endpoints can reuse the same cache and sort in-memory
+- In-memory sorting of 500 items is negligible (<1ms)
+- Eliminates index maintenance overhead and storage cost
+- Simplifies schema evolution (new sort fields don't require new indexes)
 
 **Foreign key:** TenantId → Tenants(Id) with `ON DELETE CASCADE`
 
@@ -117,8 +124,8 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Changes required:**
 1. Add `DbSet<PayeeMatchingRule>` property
 2. Configure entity in `OnModelCreating()`:
-   - Apply all three indexes as specified above
-   - Configure DateTimeOffset conversions for SQLite
+   - Apply two required indexes (Key unique, TenantId composite)
+   - Configure DateTimeOffset conversions for SQLite (CreatedAt, ModifiedAt, LastUsedAt)
    - Set string length constraints (PayeePattern: 200, Category: 200)
    - Configure foreign key with cascade delete
 
@@ -163,6 +170,8 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - `Category` (string)
 - `CreatedAt` (DateTimeOffset)
 - `ModifiedAt` (DateTimeOffset)
+- `LastUsedAt` (DateTimeOffset?) - Nullable, null if rule has never matched
+- `MatchCount` (int) - Number of times rule has matched transactions
 
 ### Validation
 
@@ -212,9 +221,10 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Key methods:**
 
 **`ApplyMatchingRulesAsync(transactions, tenantId)`**
-- Loads all rules for tenant ordered by ModifiedAt DESC
+- Loads all rules for tenant (simple TenantId filter, sorted by ModifiedAt DESC in-memory)
 - Iterates through transactions, finds best match for each
 - Modifies transaction.Category in-place (mutable DTO)
+- **Updates usage statistics:** Increments MatchCount and sets LastUsedAt for matched rules
 - Returns Task (no return value, transactions modified)
 
 **`FindBestMatchAsync(payee, tenantId)`**
@@ -247,20 +257,25 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Caching Strategy:**
 - Use `IMemoryCache` (standard ASP.NET Core service from `Microsoft.Extensions.Caching.Memory`) to cache rules per tenant
 - Cache key pattern: `payee-rules:{tenantId}`
-- Cache entry contains complete rule list for tenant (already sorted by ModifiedAt DESC)
+- Cache entry contains complete entity list for tenant (NOT sorted - sorting happens at call site)
 - Cache invalidation: Clear cache entry on Create/Update/Delete operations
 - Memory impact: Real-world usage shows ~500 rules ≈ 40KB per tenant (with GUID keys), acceptable for multi-tenant app
   - 100 concurrent tenants = 4MB total
   - 1000 concurrent tenants = 40MB total
-- Performance gain: Eliminates DB query on every import (currently 1 query per batch → 0 queries)
+- Performance gain: Eliminates DB query on **both** import and display (DB query only on cache miss)
 
 **Implementation approach:**
-1. `GetRulesForTenantAsync()` checks cache first, queries DB on miss, stores in cache
+1. `GetRulesForTenantAsync()` - Public method, checks cache first, queries DB on miss (simple TenantId filter), stores in cache
 2. Create/Update/Delete operations call `InvalidateCacheForTenant(tenantId)` after save
 3. No expiration policy needed (explicit invalidation on changes)
 4. Consider cache statistics logging for monitoring hit rate
 
-**Alternative considered:** No caching (current design). Rejected because rule sets are small, stable, and frequently accessed during imports.
+**Shared by:**
+- Import matching workflow (sorts by ModifiedAt DESC for conflict resolution)
+- Display endpoints (sorts by PayeePattern/Category/LastUsedAt per user selection)
+- Both callers sort in-memory after retrieving from cache
+
+**Alternative considered:** No caching + sort-specific indexes. Rejected because rule sets are small, in-memory operations are faster than index lookups, and caching benefits both import and display scenarios.
 
 **Lifecycle:** Registered as Scoped (needs IDataProvider and IMemoryCache)
 
@@ -274,11 +289,12 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **Methods:**
 
-**`GetRulesAsync()`**
-- Returns all rules for current tenant
-- Ordered by PayeePattern ASC (alphabetical, default UI display order)
+**`GetRulesAsync(sortBy)`**
+- Accepts optional `sortBy` parameter (enum: PayeePattern, Category, LastUsedAt)
+- Loads all rules for current tenant from cache (via PayeeMatchingService.GetRulesForTenantAsync)
+- Sorts in-memory based on `sortBy` parameter
+- Default sort: PayeePattern ASC (alphabetical)
 - Projection to PayeeMatchingRuleResultDto
-- Uses no-tracking query
 
 **`GetRuleByKeyAsync(key)`**
 - Single rule lookup by Key
@@ -416,15 +432,21 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 ### Rule Matching Performance
 - **Single query per import:** Rules loaded once per import batch, not per transaction
 - **In-memory matching:** All pattern testing after initial load
-- **Typical rule set:** 50-200 rules (~50KB memory)
+- **Typical rule set:** ~500 rules (~40KB memory)
 - **Expected time:** <100ms for 1,000 transactions
 - **No N+1 queries:** Bulk load, bulk match
 
 ### Database Indexes
-- **TenantId+PayeePattern:** Primary UI query index for alphabetically sorted rule list (default display)
-- **TenantId+ModifiedAt (DESC):** Matching service query for loading rules sorted by recency (conflict resolution)
-- **TenantId+PayeeIsRegex:** Optional filtering by pattern type (may not be used initially)
-- **Key (unique):** Standard business key lookup
+- **Key (unique):** Business key lookup for single-rule operations
+- **TenantId:** Load all rules for tenant (used by cache on miss)
+
+**Why so minimal?**
+- All rules cached in memory after first load
+- Rule sets are small (typically 50-200 rules)
+- Sorting happens in-memory (negligible cost for small datasets)
+- Display and matching both use the same cached dataset
+- Eliminates need for sort-specific indexes (PayeePattern, Category, LastUsedAt, ModifiedAt)
+- Simpler schema, faster writes, easier maintenance
 
 ### Regex Performance
 - **On-demand compilation:** Regex patterns compiled during matching (not cached initially)
