@@ -66,7 +66,6 @@ Rule: Transaction Details Page
         Then I should navigate to the transaction details page
         And I should see all the expected transaction fields displayed
 
-    @explicit:broken
     Scenario: User navigates from transaction list to details page
         Given I have a workspace with a transaction:
             | Field      | Value          |

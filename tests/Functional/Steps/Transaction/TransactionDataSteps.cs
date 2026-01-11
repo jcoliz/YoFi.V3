@@ -1,5 +1,6 @@
 using System.Globalization;
 using YoFi.V3.Tests.Functional.Attributes;
+using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -58,17 +59,30 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             Memo = string.Empty,
             Source = "OFX",
             Category = string.Empty
-        }).ToList();
+        }).ToArray();
+
+        var seedRequest = new Generated.CollectionRequestOfTransactionEditDto
+        {
+            Items = transactions
+        };
 
         // And: Seed transactions via test control API in a single bulk operation
-        var response = await _context.TestControlClient.SeedTransactionsPreciseAsync(
-            loggedInUser,
-            workspaceKey,
-            transactions
-        );
+        ICollection<TransactionResultDto>? seededTransactions = null;
+        try
+        {
+            seededTransactions = await _context.TestControlClient.SeedTransactionsPreciseAsync(
+                loggedInUser,
+                workspaceKey,
+                seedRequest
+            );
+        }
+        catch (ApiException<ProblemDetails> ex)
+        {
+            Assert.Fail("Failed to seed transaction via Test Control API: " + ex.Result.Detail);
+        }
 
-        Assert.That(response, Has.Count.EqualTo(table.Rows.Count),
-            $"Expected to seed {table.Rows.Count} transactions but seeded {response.Count}");
+        Assert.That(seededTransactions, Has.Count.EqualTo(table.Rows.Count),
+            $"Expected to seed {table.Rows.Count} transactions but seeded {seededTransactions.Count}");
     }
 
     /// <summary>
@@ -132,24 +146,33 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // And: Seed transaction via test control API with specific payee
-        var seedRequest = new Generated.TransactionSeedRequest
+        var seedRequest = new Generated.TransactionEditDto
         {
-            Count = 1,
-            PayeePrefix = payee, // Use payee as prefix for single transaction
+            Payee = payee,
             Memo = memo,
             Source = source,
             ExternalId = externalId,
-            Category = category
+            Category = category,
+            Date = DateTimeOffset.UtcNow,
+            Amount = amount
         };
 
-        var seededTransactions = await _context.TestControlClient.SeedTransactionsAsync(
-            loggedInUser,
-            workspaceKey,
-            seedRequest
-        );
+        ICollection<TransactionResultDto>? seededTransactions = null;
+        try
+        {
+            seededTransactions = await _context.TestControlClient.SeedTransactionsPreciseAsync(
+                            loggedInUser,
+                            workspaceKey,
+                            new Generated.CollectionRequestOfTransactionEditDto { Items = new[] { seedRequest } }
+                    );
+        }
+        catch (ApiException<ProblemDetails> ex)
+        {
+            Assert.Fail("Failed to seed transaction via Test Control API: " + ex.Result.Detail);
+        }
 
         // And: Get the actual seeded transaction data from the response
-        var seededTransaction = seededTransactions.First();
+        var seededTransaction = seededTransactions!.First();
         var actualPayee = seededTransaction.Payee;
         var actualAmount = seededTransaction.Amount;
         var actualCategory = seededTransaction.Category;
@@ -167,7 +190,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
 
         // And: Store the transaction key for later reference
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, seededTransaction.Key.ToString());
-    }
+        }
 
     /// <summary>
     /// Sets up a logged-in user with Editor role, creates a transaction, and navigates to its details page.

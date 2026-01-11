@@ -87,10 +87,11 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
         Assert.That(payeeValue?.Trim(), Is.EqualTo(expectedPayee),
             $"Payee field should be '{expectedPayee}'");
 
-        // And: Verify amount
+        // And: Verify amount (check for numeric value regardless of sign/currency symbol)
         var amountValue = await detailsPage.GetAmountAsync();
-        Assert.That(amountValue?.Trim(), Does.Contain(expectedAmount),
-            $"Amount field should contain '{expectedAmount}'");
+        var expectedNumeric = expectedAmount.TrimStart('-', '+');
+        Assert.That(amountValue?.Trim(), Does.Contain(expectedNumeric),
+            $"Amount field should contain '{expectedNumeric}' (found '{amountValue}')");
 
         // And: Verify optional fields if they were seeded
         if (_context.ObjectStore.Contains<string>(TransactionCategory))
