@@ -19,7 +19,7 @@ When creating front-end code, be sure to:
 
 ## Write tests
 
-- [_] Write a scenario into the apprrpriate Gherkin feature file in `Features` folder. Try to match the PRD for the name, e.g. `PRD-BANK-IMPORT` -> `BankImport.feature`
+- [_] Write a scenario into the appropriate Gherkin feature file in `Features` folder. Try to match the PRD for the name, e.g. `PRD-BANK-IMPORT` -> `BankImport.feature`
 
 ## Generate implementations
 
@@ -38,7 +38,7 @@ NOTE: The project uses [Gherkin.Generator](https://github.com/jcoliz/Gherkin.Gen
 
 - [_] Create new page (or component) object models and/or methods on them as needed
 - [_] Ensure any page-specific locator details are hidden in the page object models
-- [_] Be sure to follow object store key patterns (TBD, see code for examples now)
+- [_] Be sure to follow object store key patterns [OBJECTSTORE-DOCUMENTATION-PATTERN.md](OBJECTSTORE-DOCUMENTATION-PATTERN.md)
 - [_] Iterate as needed by building the project to ensure no stubs remain
 
 ## Iterate tests to passing
