@@ -80,7 +80,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 |-------|------|-------------|-------------|
 | PayeePattern | string | Required, MaxLength(200) | Pattern to match (substring or regex), case-insensitive |
 | PayeeIsRegex | bool | Default: false | If false: substring matching. If true: regex with IgnoreCase and 100ms timeout |
-| Category | string | Required, MaxLength(200) | Category to assign when matched, sanitized when applied |
+| Category | string | Required, MaxLength(200) | Category to assign when matched, **sanitized on save** (never store unsanitized) |
 | CreatedAt | DateTimeOffset | Auto-set | Rule creation timestamp |
 | ModifiedAt | DateTimeOffset | Auto-updated | Last modified timestamp (used for conflict resolution) |
 | Tenant | Tenant? | Navigation property | Foreign key relationship |
@@ -99,8 +99,9 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **Required indexes:**
 1. `IX_PayeeMatchingRules_Key` (unique) - Business key lookup
-2. `IX_PayeeMatchingRules_TenantId_ModifiedAt` (composite, DESC on ModifiedAt) - Tenant-scoped queries ordered by most recently modified (critical for conflict resolution)
-3. `IX_PayeeMatchingRules_TenantId_PayeeIsRegex` (composite) - Efficient filtering by pattern type
+2. `IX_PayeeMatchingRules_TenantId_PayeePattern` (composite) - UI display sorted by PayeePattern (default view)
+3. `IX_PayeeMatchingRules_TenantId_ModifiedAt` (composite, DESC on ModifiedAt) - Matching service query (conflict resolution by recency)
+4. `IX_PayeeMatchingRules_TenantId_PayeeIsRegex` (composite) - Optional filtering by pattern type
 
 **Foreign key:** TenantId → Tenants(Id) with `ON DELETE CASCADE`
 
@@ -243,7 +244,25 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - `RegexMatchTimeoutException` during matching → treat as non-match
 - `ArgumentException` during matching → treat as non-match (shouldn't happen due to validation)
 
-**Lifecycle:** Registered as Scoped (needs IDataProvider)
+**Caching Strategy:**
+- Use `IMemoryCache` (standard ASP.NET Core service from `Microsoft.Extensions.Caching.Memory`) to cache rules per tenant
+- Cache key pattern: `payee-rules:{tenantId}`
+- Cache entry contains complete rule list for tenant (already sorted by ModifiedAt DESC)
+- Cache invalidation: Clear cache entry on Create/Update/Delete operations
+- Memory impact: Real-world usage shows ~500 rules ≈ 40KB per tenant (with GUID keys), acceptable for multi-tenant app
+  - 100 concurrent tenants = 4MB total
+  - 1000 concurrent tenants = 40MB total
+- Performance gain: Eliminates DB query on every import (currently 1 query per batch → 0 queries)
+
+**Implementation approach:**
+1. `GetRulesForTenantAsync()` checks cache first, queries DB on miss, stores in cache
+2. Create/Update/Delete operations call `InvalidateCacheForTenant(tenantId)` after save
+3. No expiration policy needed (explicit invalidation on changes)
+4. Consider cache statistics logging for monitoring hit rate
+
+**Alternative considered:** No caching (current design). Rejected because rule sets are small, stable, and frequently accessed during imports.
+
+**Lifecycle:** Registered as Scoped (needs IDataProvider and IMemoryCache)
 
 #### PayeeMatchingRuleFeature
 
@@ -257,7 +276,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 **`GetRulesAsync()`**
 - Returns all rules for current tenant
-- Ordered by ModifiedAt DESC
+- Ordered by PayeePattern ASC (alphabetical, default UI display order)
 - Projection to PayeeMatchingRuleResultDto
 - Uses no-tracking query
 
@@ -266,12 +285,14 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - Throws `NotFoundException` if not found or wrong tenant
 
 **`CreateRuleAsync(ruleDto)`**
-- Creates new entity, sets TenantId, CreatedAt, ModifiedAt (same timestamp)
+- **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
+- Creates new entity with sanitized category, sets TenantId, CreatedAt, ModifiedAt (same timestamp)
 - Saves to database, returns PayeeMatchingRuleResultDto with generated Key
 
 **`UpdateRuleAsync(key, ruleDto)`**
 - Loads existing rule (throws NotFoundException if not found)
-- Updates PayeePattern, PayeeIsRegex, Category
+- **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
+- Updates PayeePattern, PayeeIsRegex, Category (sanitized)
 - Updates ModifiedAt to current time
 - Saves changes, returns updated DTO
 
@@ -385,7 +406,8 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - **Import integration:** Rule matching applied during import (already requires Editor role)
 
 ### Data Integrity
-- **Category sanitization:** Applied via [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs) when transactions are accepted (not during matching)
+- **Category sanitization:** Applied via [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs) **when rules are created/updated** (stored sanitized in database)
+- **Matching uses sanitized value:** PayeeMatchingService returns already-sanitized category from rule
 - **Empty category validation:** Empty/whitespace-only categories rejected by FluentValidation
 - **Max length enforcement:** Database and validation enforce 200 char limits
 
@@ -399,7 +421,8 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - **No N+1 queries:** Bulk load, bulk match
 
 ### Database Indexes
-- **TenantId+ModifiedAt (DESC):** Primary query index, enables efficient "most recent first" sorting for conflict resolution
+- **TenantId+PayeePattern:** Primary UI query index for alphabetically sorted rule list (default display)
+- **TenantId+ModifiedAt (DESC):** Matching service query for loading rules sorted by recency (conflict resolution)
 - **TenantId+PayeeIsRegex:** Optional filtering by pattern type (may not be used initially)
 - **Key (unique):** Standard business key lookup
 
