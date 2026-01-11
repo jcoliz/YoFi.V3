@@ -4,6 +4,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Validation;
 using YoFi.V3.Controllers.Middleware;
 
@@ -26,6 +27,10 @@ public static class ServiceCollectionExtensions
 
         // Register FluentValidation validators from Application assembly
         services.AddValidatorsFromAssemblyContaining<TransactionEditDtoValidator>();
+
+        // Explicitly register generic CollectionRequestValidator for commonly used types
+        // (Generic validators may not be auto-discovered by AddValidatorsFromAssemblyContaining)
+        services.AddTransient<IValidator<CollectionRequest<TransactionEditDto>>, CollectionRequestValidator<TransactionEditDto>>();
 
         // Add FluentValidation to ASP.NET Core model binding pipeline.
         // This causes automatic validation at the controller boundary BEFORE controller actions execute.

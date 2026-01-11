@@ -663,31 +663,34 @@ public partial class TestControlController(
     /// </summary>
     /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
     /// <param name="tenantKey">The unique key of the workspace.</param>
-    /// <param name="transactions">The collection of transactions to create.</param>
+    /// <param name="request">The collection of transactions to create, wrapped for automatic validation.</param>
     /// <param name="transactionsFeature">Feature providing transaction operations.</param>
     /// <returns>The collection of created transactions.</returns>
     /// <remarks>
     /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Each transaction in the collection is automatically validated by FluentValidation before this method executes.
     /// Uses anonymous tenant access policy to allow unauthenticated seeding of test data.
     /// The authorization handler sets the tenant context, and TenantContextMiddleware applies it
     /// before TransactionsFeature is injected via DI.
     /// Returns 403 if either username or workspace name lacks the prefix.
+    /// Returns 400 if any transaction fails validation (automatic via FluentValidation).
     /// Unlike SeedTransactions which generates random transaction data, this endpoint accepts
     /// precise transaction details provided by the caller.
     /// </remarks>
     [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed-precise")]
     [Authorize("AllowAnonymousTenantAccess")]
     [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SeedTransactionsPrecise(
         string username,
         Guid tenantKey,
-        [FromBody] IReadOnlyCollection<TransactionEditDto> transactions,
+        [FromBody] CollectionRequest<TransactionEditDto> request,
         [FromServices] TransactionsFeature transactionsFeature)
     {
-        LogStartingCount(transactions.Count);
+        LogStartingCount(request.Items.Count);
 
         // Validate user and workspace access
         var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
@@ -697,7 +700,8 @@ public partial class TestControlController(
         }
 
         // Create transactions using shared logic
-        var createdTransactions = await CreateTransactionsAsync(transactions, transactionsFeature);
+        // Note: Each transaction has already been validated by CollectionRequestValidator
+        var createdTransactions = await CreateTransactionsAsync(request.Items, transactionsFeature);
 
         LogOkCount(createdTransactions.Count);
         return CreatedAtAction(nameof(SeedTransactionsPrecise), new { username, tenantKey }, createdTransactions);
@@ -1088,6 +1092,25 @@ public partial class TestControlController(
 
         LogOk();
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Test endpoint to verify CollectionRequest validation is working.
+    /// </summary>
+    /// <param name="request">Collection of transactions to validate (but not persist).</param>
+    /// <returns>200 OK if validation passes, 400 Bad Request if validation fails.</returns>
+    /// <remarks>
+    /// This endpoint accepts a CollectionRequest of TransactionEditDto and returns success
+    /// if FluentValidation passes. It does NOT create any transactions. Use this to test
+    /// that collection validation is working correctly before calling seed-precise.
+    /// </remarks>
+    [HttpPost("validate/transactions")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public IActionResult ValidateTransactions([FromBody] CollectionRequest<TransactionEditDto> request)
+    {
+        // If we reach here, validation passed automatically via FluentValidation
+        return Ok($"Validation passed for {request.Items.Count} transaction(s)");
     }
 
     #endregion
