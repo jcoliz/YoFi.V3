@@ -3,6 +3,8 @@ status: Approved (Stories 1-5) Additional stories still in draft
 owner: James Coliz
 target_release: Beta 3
 ado: "[Link to ADO Item]"
+references:
+   - docs\wip\payee-rules\PRD-PAYEE-RULES-REVIEW.md
 ---
 
 # Product Requirements Document: Payee Matching Rules
