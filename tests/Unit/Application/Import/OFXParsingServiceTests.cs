@@ -293,6 +293,98 @@ public class OfxParsingServiceTests
         Assert.That(savingsTxn.Source, Is.EqualTo("Test Bank - Savings (2222222222)"));
     }
 
+    [Test]
+    public async Task ParseAsync_AccountWithTypeButNoId_BuildsSourceWithTypeOnly()
+    {
+        // Given: An OFX document with bank name and account type but no account ID
+        var expectedSource = "Test Bank - Checking";
+        var ofxContent = BuildBankStatementWithoutAccountId("Test Bank", "CHECKING",
+            (new DateOnly(2023, 11, 15), -50.00m, "Test Payee", null));
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+
+        // When: Parsing the OFX document
+        var result = await OfxParsingHelper.ParseAsync(stream, "no-account-id.ofx");
+
+        // Then: Should return transaction with source formatted as 'Bank - AccountType' (no ID)
+        Assert.That(result.Errors, Is.Empty, $"Expected no errors, but got: {string.Join(", ", result.Errors.Select(e => e.Message))}");
+        Assert.That(result.Transactions, Is.Not.Empty);
+        Assert.That(result.Transactions.First().Source, Is.EqualTo(expectedSource));
+    }
+
+    /// <summary>
+    /// Builds OFX content with a bank account that has no ACCTID tag.
+    /// </summary>
+    private static string BuildBankStatementWithoutAccountId(
+        string bankName,
+        string accountType,
+        params (DateOnly date, decimal amount, string? name, string? memo)[] transactions)
+    {
+        var txnList = string.Join("\n", transactions.Select((t, i) =>
+        {
+            var nameTag = !string.IsNullOrEmpty(t.name) ? $"<NAME>{t.name}" : "";
+            var memoTag = !string.IsNullOrEmpty(t.memo) ? $"<MEMO>{t.memo}" : "";
+
+            return $"""
+                <STMTTRN>
+                <TRNTYPE>{(t.amount < 0 ? "DEBIT" : "CREDIT")}
+                <DTPOSTED>{t.date:yyyyMMdd}120000
+                <TRNAMT>{t.amount}
+                <FITID>TXN{i + 1:D3}
+                {nameTag}
+                {memoTag}
+                </STMTTRN>
+                """;
+        }));
+
+        return $"""
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20231201120000
+            <LANGUAGE>ENG
+            <FI><ORG>{bankName}<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTTYPE>{accountType}
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20231101120000
+            <DTEND>20231130120000
+            {txnList}
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20231130120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+    }
+
     #region Example File Tests
 
     /// <summary>
