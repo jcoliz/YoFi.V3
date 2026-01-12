@@ -212,8 +212,9 @@ For implementation patterns, refer to existing features:
 **Code Mode Checklist:**
 - [ ] Implement controller in `src/Controllers/`
 - [ ] Add XML documentation (class + all public methods)
-- [ ] Add logging: LogStarting(), LogOk(), explicit event IDs, [CallerMemberName]
+- [ ] Add logging following project conventions, e.g. LogStarting(), LogOk(), explicit event IDs, [CallerMemberName]
 - [ ] Implement middleware/filters/authorization policies if needed
+- [ ] Implement additional exceptions in exception handling middleware if needed
 - [ ] Build: `dotnet build`
 - [ ] Verify no compilation errors
 - [ ] Do not add new tests, that will come later
@@ -260,7 +261,6 @@ For implementation patterns, refer to existing features:
 - [ ] Include authorization variants: Success, Forbidden, Unauthorized, Tenant isolation
 - [ ] Run tests: `dotnet test tests/Integration.Controller`
 - [ ] Iterate until all pass
-- [ ] Check off any newly-completed acceptance criteria in PRD
 - [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Why Controller Integration:**
