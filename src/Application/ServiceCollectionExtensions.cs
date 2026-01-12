@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Services;
 
 namespace YoFi.V3.Application;
 
@@ -13,6 +14,9 @@ public static class ServiceCollectionExtensions
             .AddClasses(classes => classes.Where(type => type.Name.EndsWith("Feature")))
             .AsSelf()
             .WithScopedLifetime());
+
+        // Register application services
+        services.AddSingleton<IRegexValidationService, RegexValidationService>();
 
         return services;
     }

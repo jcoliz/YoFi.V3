@@ -167,7 +167,7 @@ For implementation patterns, refer to existing features:
 
 **Orchestrator Instructions for Code Mode:**
 
-> Implement business logic in Application Features following [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs) pattern. Update existing tests to build/pass.
+> Implement business logic in Application Features following [`TransactionsFeature.cs`](src/Application/Features/TransactionsFeature.cs) pattern. Update existing tests to build/pass.
 
 **Code Mode Checklist:**
 - [ ] Implement Feature class in `src/Application/Features/`
