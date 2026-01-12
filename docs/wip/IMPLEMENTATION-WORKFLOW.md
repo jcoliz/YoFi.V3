@@ -138,6 +138,7 @@ For implementation patterns, refer to existing features:
 - [ ] Review migration for correctness
 - [ ] Run data tests: `dotnet test tests/Integration.Data`
 - [ ] Iterate until tests pass
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Commit Template:** `feat([feature-slug]): add [EntityName] EF Core configuration`
 

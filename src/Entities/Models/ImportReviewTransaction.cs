@@ -106,6 +106,22 @@ public record ImportReviewTransaction : BaseTenantModel
     /// </remarks>
     public bool IsSelected { get; set; } = false;
 
+    /// <summary>
+    /// Category assigned to this transaction via payee matching rules.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Populated automatically by PayeeMatchingService during bank import based on matching rules.
+    /// Displayed read-only in import review UI. When transaction is accepted, this value becomes
+    /// the split.Category field in the main transactions table.
+    /// </para>
+    /// <para>
+    /// Nullable - will be null if no matching rules apply. Maximum length of 200 characters.
+    /// </para>
+    /// </remarks>
+    [MaxLength(200)]
+    public string? Category { get; set; }
+
     // Navigation properties
 
     /// <summary>

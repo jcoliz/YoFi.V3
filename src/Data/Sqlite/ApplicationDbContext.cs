@@ -87,6 +87,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         get; set;
     }
 
+    public DbSet<PayeeMatchingRule> PayeeMatchingRules
+    {
+        get; set;
+    }
+
     /// <summary>
     /// Refresh tokens for Nuxt Identity
     /// </summary>
@@ -233,6 +238,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Memo)
                 .HasMaxLength(1000);
 
+            // Category (nullable, max 200 chars) - Populated by payee matching rules
+            entity.Property(e => e.Category)
+                .HasMaxLength(200);
+
             // DuplicateStatus stored as integer
             entity.Property(e => e.DuplicateStatus)
                 .HasConversion<int>();
@@ -241,6 +250,61 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.IsSelected)
                 .IsRequired()
                 .HasDefaultValue(false);
+
+            // Foreign key relationship to Tenant
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure PayeeMatchingRule
+        modelBuilder.Entity<PayeeMatchingRule>(entity =>
+        {
+            // Unique Guid key (standard pattern)
+            entity.HasIndex(e => e.Key)
+                .IsUnique();
+
+            // Index on TenantId for loading all rules for a tenant
+            entity.HasIndex(e => e.TenantId);
+
+            // PayeePattern is required
+            entity.Property(e => e.PayeePattern)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            // PayeeIsRegex defaults to false
+            entity.Property(e => e.PayeeIsRegex)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            // Category is required
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            // DateTimeOffset conversions for SQLite (stored as TEXT in ISO 8601 format)
+            entity.Property(e => e.CreatedAt)
+                .IsRequired()
+                .HasConversion(
+                    v => v.ToString("O"),
+                    v => DateTimeOffset.Parse(v));
+
+            entity.Property(e => e.ModifiedAt)
+                .IsRequired()
+                .HasConversion(
+                    v => v.ToString("O"),
+                    v => DateTimeOffset.Parse(v));
+
+            entity.Property(e => e.LastUsedAt)
+                .HasConversion(
+                    v => v.HasValue ? v.Value.ToString("O") : null,
+                    v => v != null ? DateTimeOffset.Parse(v) : null);
+
+            // MatchCount defaults to 0
+            entity.Property(e => e.MatchCount)
+                .IsRequired()
+                .HasDefaultValue(0);
 
             // Foreign key relationship to Tenant
             entity.HasOne(e => e.Tenant)
