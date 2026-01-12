@@ -6,7 +6,7 @@
         <Configuration>
           <!-- Include assemblies -->
           <Include>[YoFi.V3.Application]*,[YoFi.V3.Entities]*</Include>
-          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*</Exclude>
+          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*,[YoFi.V3.Application]System.*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>
