@@ -156,7 +156,6 @@ For implementation patterns, refer to existing features:
 - [ ] Implement data integration tests (target: ~10-15% of total)
 - [ ] Run tests: `dotnet test tests/Integration.Data`
 - [ ] Iterate until all pass
-- [ ] Check off completed acceptance criteria in PRD
 - [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Commit Template:** `test(integration): add [EntityName] data tests for [feature-slug]`
@@ -190,7 +189,7 @@ For implementation patterns, refer to existing features:
 
 **Orchestrator Instructions for Code Mode:**
 
-> Review [`TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) to identify acceptance criteria for unit tests. Focus on validation, calculations, algorithms, DTO transformations. Target: 19-25% of tests.
+> Implement Unit tests for this feature. Review [`TESTING-STRATEGY.md`](docs/TESTING-STRATEGY.md) to identify acceptance criteria for unit tests. Focus on validation, calculations, algorithms, DTO transformations. Target: 19-25% of tests.
 
 **Code Mode Checklist:**
 - [ ] Review TESTING-STRATEGY.md Decision Framework
@@ -198,7 +197,6 @@ For implementation patterns, refer to existing features:
 - [ ] Implement unit tests with comprehensive coverage
 - [ ] Run tests: `dotnet test tests/Unit`
 - [ ] Iterate until all pass
-- [ ] Check off any now-completed acceptance criteria in PRD
 - [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
 **Commit Template:** `test(unit): add [feature] validation and logic tests`
@@ -209,7 +207,7 @@ For implementation patterns, refer to existing features:
 
 **Orchestrator Instructions for Code Mode:**
 
-> Implement controller following [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs) pattern. Add XML docs, logging ([`LoggerMessage`] per [`LOGGING-POLICY.md`](../LOGGING-POLICY.md)), ASP.NET components as needed.
+> Implement controller following [`TransactionsController.cs`](src/Controllers/TransactionsController.cs) pattern. Add XML docs, logging ([`LoggerMessage`] per [`LOGGING-POLICY.md`](../LOGGING-POLICY.md)), ASP.NET components as needed.
 
 **Code Mode Checklist:**
 - [ ] Implement controller in `src/Controllers/`
