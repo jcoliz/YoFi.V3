@@ -132,10 +132,17 @@ public static partial class OfxParsingHelper
                                 continue; // Skip this transaction
                             }
 
-                            // Generate ExternalId: use FITID if available, otherwise hash the transaction data
+                            // Generate ExternalId: use FITID (required by OFXSharp library)
+                            // NOTE: The fallback to GenerateTransactionHash is unreachable because OFXSharp
+                            // requires FITID to be present and will throw an exception during parsing if missing.
+                            // See test: OfxParsingHelperTests.ParseAsync_TransactionWithoutFitid_FailsToParse
+#if false // Unreachable code: OFXSharp requires FITID to be present
                             var externalId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
                                 ? transaction.TransactionId
                                 : GenerateTransactionHash(dateTime, transaction.Amount, payee, memo ?? string.Empty, source);
+#else
+                            var externalId = transaction.TransactionId!; // OFXSharp guarantees non-null FITID
+#endif
 
                             // All fields extracted (Tests 5-9)
                             transactions.Add(new TransactionImportDto
@@ -209,13 +216,19 @@ public static partial class OfxParsingHelper
         return WhitespacePattern().Replace(input, " ");
     }
 
+#if false // Unreachable code: OFXSharp requires FITID to be present in all transactions
     /// <summary>
     /// Generates a unique hash for a transaction based on its key fields.
     /// </summary>
     /// <remarks>
-    /// Used when FITID is not available from the OFX file.
-    /// The hash is computed from date, amount, payee, memo, and source to ensure
+    /// UNREACHABLE: This method was intended to be used when FITID is not available from the OFX file.
+    /// However, the OFXSharp library requires FITID to be present and will throw an exception during
+    /// parsing if it's missing. Therefore, this fallback hash generation is never executed.
+    ///
+    /// The hash would be computed from date, amount, payee, memo, and source to ensure
     /// identical transactions produce the same hash for duplicate detection.
+    ///
+    /// See test: OfxParsingHelperTests.ParseAsync_TransactionWithoutFitid_FailsToParse
     /// </remarks>
     private static string GenerateTransactionHash(DateTime date, decimal amount, string payee, string memo, string source)
     {
@@ -227,4 +240,5 @@ public static partial class OfxParsingHelper
         // Convert to hex string
         return Convert.ToHexString(hashBytes);
     }
+#endif
 }

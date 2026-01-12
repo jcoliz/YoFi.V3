@@ -474,6 +474,94 @@ public class OfxParsingServiceTests
         Assert.That(result.Transactions, Is.Empty);
     }
 
+    [Test]
+    public async Task ParseAsync_TransactionWithoutFitid_FailsToParse()
+    {
+        // Given: OFX file with a transaction that has no FITID
+        var ofxContent = BuildOfxWithoutFitid(new DateOnly(2024, 1, 15), -100.00m, "Test Payee", "Test Memo");
+
+        // When: File is parsed
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ofxContent));
+        var result = await OfxParsingHelper.ParseAsync(stream, "test.ofx");
+
+        // Then: Should fail to parse due to missing FITID
+        Assert.That(result.Errors, Is.Not.Empty, "Expected parsing error for missing FITID");
+        Assert.That(result.Errors.First().Message, Does.Contain("FITID"),
+            "Error message should mention missing FITID");
+
+        // And: No transactions should be extracted
+        Assert.That(result.Transactions, Is.Empty,
+            "No transactions should be extracted when FITID is missing");
+    }
+
+    /// <summary>
+    /// Builds OFX content with a single transaction without FITID.
+    /// </summary>
+    /// <remarks>
+    /// This OFX will fail to parse due to missing FITID, demonstrating that
+    /// GenerateTransactionHash cannot be reached through normal parsing.
+    /// </remarks>
+    private static string BuildOfxWithoutFitid(DateOnly date, decimal amount, string name, string? memo)
+    {
+        var nameTag = $"<NAME>{name}";
+        var memoTag = !string.IsNullOrEmpty(memo) ? $"<MEMO>{memo}" : "";
+
+        return $"""
+            OFXHEADER:100
+            DATA:OFXSGML
+            VERSION:102
+            SECURITY:NONE
+            ENCODING:USASCII
+            CHARSET:1252
+            COMPRESSION:NONE
+            OLDFILEUID:NONE
+            NEWFILEUID:NONE
+
+            <OFX>
+            <SIGNONMSGSRSV1>
+            <SONRS>
+            <STATUS><CODE>0<SEVERITY>INFO</STATUS>
+            <DTSERVER>20240115120000
+            <LANGUAGE>ENG
+            <FI><ORG>Test Bank<FID>12345</FI>
+            </SONRS>
+            </SIGNONMSGSRSV1>
+            <BANKMSGSRSV1>
+            <STMTTRNRS>
+            <TRNUID>1
+            <STATUS>
+            <CODE>0
+            <SEVERITY>INFO
+            </STATUS>
+            <STMTRS>
+            <CURDEF>USD
+            <BANKACCTFROM>
+            <BANKID>123456789
+            <ACCTID>123456
+            <ACCTTYPE>CHECKING
+            </BANKACCTFROM>
+            <BANKTRANLIST>
+            <DTSTART>20240101120000
+            <DTEND>20240131120000
+            <STMTTRN>
+            <TRNTYPE>{(amount < 0 ? "DEBIT" : "CREDIT")}
+            <DTPOSTED>{date:yyyyMMdd}120000
+            <TRNAMT>{amount}
+            {nameTag}
+            {memoTag}
+            </STMTTRN>
+            </BANKTRANLIST>
+            <LEDGERBAL>
+            <BALAMT>1000.00
+            <DTASOF>20240131120000
+            </LEDGERBAL>
+            </STMTRS>
+            </STMTTRNRS>
+            </BANKMSGSRSV1>
+            </OFX>
+            """;
+    }
+
     #endregion
 }
 
