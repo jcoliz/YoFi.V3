@@ -85,6 +85,9 @@ catch (Exception ex)
         Console.WriteLine("CRITICAL: Failed to start application");
         Console.WriteLine(ex.ToString());
     }
+
+    // Re-throw to ensure WebApplicationFactory tests can detect startup failures
+    throw;
 }
 
 // Make Program class accessible to WebApplicationFactory for testing

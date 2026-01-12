@@ -18,6 +18,9 @@ public static class ServiceCollectionExtensions
         // Register application services
         services.AddSingleton<IRegexValidationService, RegexValidationService>();
 
+        // Register memory cache for features that need caching (e.g., PayeeMatchingRuleFeature)
+        services.AddMemoryCache();
+
         return services;
     }
 }
