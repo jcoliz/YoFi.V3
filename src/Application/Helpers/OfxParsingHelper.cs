@@ -21,32 +21,70 @@ public static partial class OfxParsingHelper
         var errors = new List<OfxParsingError>();
         var transactions = new List<TransactionImportDto>();
 
-        // Handle null stream
-        if (fileStream == null)
+        if (!ValidateStream(fileStream))
         {
-            var result = new OfxParsingResult
-            {
-                Transactions = Array.Empty<TransactionImportDto>(),
-                Errors = Array.Empty<OfxParsingError>()
-            };
-            return Task.FromResult(result);
+            return Task.FromResult(CreateEmptyResult());
         }
 
-        // Check if stream is empty
-        if (fileStream.Length == 0 || (fileStream.CanSeek && fileStream.Position == fileStream.Length))
+        ParseOfxDocument(fileStream, fileName, transactions, errors);
+
+        var parseResult = new OfxParsingResult
         {
-            var emptyResult = new OfxParsingResult
-            {
-                Transactions = Array.Empty<TransactionImportDto>(),
-                Errors = Array.Empty<OfxParsingError>()
-            };
-            return Task.FromResult(emptyResult);
+            Transactions = transactions,
+            Errors = errors
+        };
+
+        return Task.FromResult(parseResult);
+    }
+
+    /// <summary>
+    /// Validates that the stream is not null or empty.
+    /// </summary>
+    /// <param name="stream">The stream to validate.</param>
+    /// <returns>True if stream is valid; otherwise false.</returns>
+    private static bool ValidateStream(Stream? stream)
+    {
+        if (stream == null)
+        {
+            return false;
         }
 
-        // Try to parse with OFXSharp
+        if (stream.Length == 0 || (stream.CanSeek && stream.Position == stream.Length))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Creates an empty parsing result.
+    /// </summary>
+    /// <returns>An empty <see cref="OfxParsingResult"/>.</returns>
+    private static OfxParsingResult CreateEmptyResult()
+    {
+        return new OfxParsingResult
+        {
+            Transactions = Array.Empty<TransactionImportDto>(),
+            Errors = Array.Empty<OfxParsingError>()
+        };
+    }
+
+    /// <summary>
+    /// Parses an OFX document and extracts transactions.
+    /// </summary>
+    /// <param name="fileStream">The stream containing OFX file data.</param>
+    /// <param name="fileName">The name of the file being parsed.</param>
+    /// <param name="transactions">List to populate with parsed transactions.</param>
+    /// <param name="errors">List to populate with parsing errors.</param>
+    private static void ParseOfxDocument(
+        Stream fileStream,
+        string fileName,
+        List<TransactionImportDto> transactions,
+        List<OfxParsingError> errors)
+    {
         try
         {
-            // Reset stream position if seekable
             if (fileStream.CanSeek)
             {
                 fileStream.Position = 0;
@@ -54,109 +92,16 @@ public static partial class OfxParsingHelper
 
             var document = OfxDocumentReader.ReadFile(fileStream);
 
-            // Extract transactions from all statements
-            if (document?.Statements != null)
+            if (document?.Statements == null)
             {
-                // Get bank name from signon (can be null)
-                var bankName = document.SignOn?.Institution?.Name;
+                return;
+            }
 
-                foreach (var statement in document.Statements)
-                {
-                    if (statement?.Transactions != null)
-                    {
-                        // Build source string from available account info
-                        var sourceParts = new List<string>();
+            var bankName = document.SignOn?.Institution?.Name;
 
-                        if (!string.IsNullOrWhiteSpace(bankName))
-                        {
-                            sourceParts.Add(bankName);
-                        }
-
-                        if (statement.AccountFrom is Account.BankAccount bankAccount)
-                        {
-                            // Convert "CHECKING" to "Checking"
-                            var accountTypeStr = bankAccount.BankAccountType.ToString();
-                            var accountType = accountTypeStr.Length > 0
-                                ? char.ToUpper(accountTypeStr[0]) + accountTypeStr.Substring(1).ToLower()
-                                : accountTypeStr;
-                            var accountId = bankAccount.AccountId;
-
-                            if (!string.IsNullOrWhiteSpace(accountId))
-                            {
-                                sourceParts.Add($"{accountType} ({accountId})");
-                            }
-                            else if (!string.IsNullOrWhiteSpace(accountType))
-                            {
-                                sourceParts.Add(accountType);
-                            }
-                        }
-
-                        var source = sourceParts.Count > 0 ? string.Join(" - ", sourceParts) : string.Empty;
-
-                        foreach (var transaction in statement.Transactions)
-                        {
-                            // Extract date, amount, payee, and memo (Tests 5-8)
-                            // Payee is required with smart handling for truncated NAME fields
-                            var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
-                            var name = transaction.Name;
-                            var transactionMemo = transaction.Memo;
-                            string? payee;
-                            string? memo;
-
-                            // Handle various NAME/MEMO scenarios
-                            if (string.IsNullOrWhiteSpace(name) ||
-                                (!string.IsNullOrWhiteSpace(transactionMemo) && IsNameTruncatedMemo(name, transactionMemo)))
-                            {
-                                // Case 1: No NAME - use MEMO as payee
-                                // Case 2: NAME appears to be truncated (MEMO starts with NAME, accounting for whitespace)
-                                // In both cases: use MEMO as payee, leave memo blank
-                                payee = transactionMemo;
-                                memo = null;
-                            }
-                            else
-                            {
-                                // Case 3: Normal case - NAME is payee, MEMO is memo
-                                payee = name;
-                                memo = transactionMemo;
-                            }
-
-                            // If still no payee, skip this transaction with error
-                            if (string.IsNullOrWhiteSpace(payee))
-                            {
-                                var date = DateOnly.FromDateTime(dateTime);
-                                errors.Add(new OfxParsingError
-                                {
-                                    Message = $"Transaction on {date:yyyy-MM-dd} has no payee name (NAME and MEMO fields both missing or empty)",
-                                    FileName = fileName
-                                });
-                                continue; // Skip this transaction
-                            }
-
-                            // Generate ExternalId: use FITID (required by OFXSharp library)
-                            // NOTE: The fallback to GenerateTransactionHash is unreachable because OFXSharp
-                            // requires FITID to be present and will throw an exception during parsing if missing.
-                            // See test: OfxParsingHelperTests.ParseAsync_TransactionWithoutFitid_FailsToParse
-#if false // Unreachable code: OFXSharp requires FITID to be present
-                            var externalId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
-                                ? transaction.TransactionId
-                                : GenerateTransactionHash(dateTime, transaction.Amount, payee, memo ?? string.Empty, source);
-#else
-                            var externalId = transaction.TransactionId!; // OFXSharp guarantees non-null FITID
-#endif
-
-                            // All fields extracted (Tests 5-9)
-                            transactions.Add(new TransactionImportDto
-                            {
-                                ExternalId = externalId,
-                                Date = DateOnly.FromDateTime(dateTime),
-                                Amount = transaction.Amount,
-                                Payee = payee,
-                                Memo = memo,
-                                Source = source
-                            });
-                        }
-                    }
-                }
+            foreach (var statement in document.Statements)
+            {
+                ProcessStatement(statement, bankName, fileName, transactions, errors);
             }
         }
         catch (Exception ex)
@@ -167,14 +112,169 @@ public static partial class OfxParsingHelper
                 FileName = fileName
             });
         }
+    }
 
-        var parseResult = new OfxParsingResult
+    /// <summary>
+    /// Processes a single OFX statement and extracts its transactions.
+    /// </summary>
+    /// <param name="statement">The OFX statement to process.</param>
+    /// <param name="bankName">The bank name from the document.</param>
+    /// <param name="fileName">The name of the file being parsed.</param>
+    /// <param name="transactions">List to populate with parsed transactions.</param>
+    /// <param name="errors">List to populate with parsing errors.</param>
+    private static void ProcessStatement(
+        OfxStatementResponse? statement,
+        string? bankName,
+        string fileName,
+        List<TransactionImportDto> transactions,
+        List<OfxParsingError> errors)
+    {
+        if (statement?.Transactions == null)
         {
-            Transactions = transactions,
-            Errors = errors
-        };
+            return;
+        }
 
-        return Task.FromResult(parseResult);
+        var source = BuildSourceString(bankName, statement.AccountFrom);
+
+        foreach (var transaction in statement.Transactions)
+        {
+            ProcessTransaction(transaction, source, fileName, transactions, errors);
+        }
+    }
+
+    /// <summary>
+    /// Builds a source string from bank name and account information.
+    /// </summary>
+    /// <param name="bankName">The bank name.</param>
+    /// <param name="accountFrom">The account information.</param>
+    /// <returns>A formatted source string.</returns>
+    private static string BuildSourceString(string? bankName, Account? accountFrom)
+    {
+        var sourceParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(bankName))
+        {
+            sourceParts.Add(bankName);
+        }
+
+        if (accountFrom is Account.BankAccount bankAccount)
+        {
+            AddAccountInfoToSource(sourceParts, bankAccount);
+        }
+
+        return sourceParts.Count > 0 ? string.Join(" - ", sourceParts) : string.Empty;
+    }
+
+    /// <summary>
+    /// Adds account information to the source parts list.
+    /// </summary>
+    /// <param name="sourceParts">List of source parts to append to.</param>
+    /// <param name="bankAccount">The bank account information.</param>
+    private static void AddAccountInfoToSource(List<string> sourceParts, Account.BankAccount bankAccount)
+    {
+        var accountTypeStr = bankAccount.BankAccountType.ToString();
+        var accountType = FormatAccountType(accountTypeStr);
+        var accountId = bankAccount.AccountId;
+
+        if (!string.IsNullOrWhiteSpace(accountId))
+        {
+            sourceParts.Add($"{accountType} ({accountId})");
+        }
+        else if (!string.IsNullOrWhiteSpace(accountType))
+        {
+            sourceParts.Add(accountType);
+        }
+    }
+
+    /// <summary>
+    /// Formats an account type string by converting to title case.
+    /// </summary>
+    /// <param name="accountTypeStr">The account type string (e.g., "CHECKING").</param>
+    /// <returns>Title case account type (e.g., "Checking").</returns>
+    private static string FormatAccountType(string accountTypeStr)
+    {
+        return accountTypeStr.Length > 0
+            ? char.ToUpper(accountTypeStr[0]) + accountTypeStr.Substring(1).ToLower()
+            : accountTypeStr;
+    }
+
+    /// <summary>
+    /// Processes a single OFX transaction and adds it to the transactions list.
+    /// </summary>
+    /// <param name="transaction">The OFX transaction to process.</param>
+    /// <param name="source">The source string for this transaction.</param>
+    /// <param name="fileName">The name of the file being parsed.</param>
+    /// <param name="transactions">List to populate with parsed transactions.</param>
+    /// <param name="errors">List to populate with parsing errors.</param>
+    private static void ProcessTransaction(
+        OfxSharp.Transaction transaction,
+        string source,
+        string fileName,
+        List<TransactionImportDto> transactions,
+        List<OfxParsingError> errors)
+    {
+        var dateTime = transaction.Date?.DateTime ?? DateTime.MinValue;
+        var (payee, memo) = ExtractPayeeAndMemo(transaction.Name, transaction.Memo);
+
+        if (string.IsNullOrWhiteSpace(payee))
+        {
+            var date = DateOnly.FromDateTime(dateTime);
+            errors.Add(new OfxParsingError
+            {
+                Message = $"Transaction on {date:yyyy-MM-dd} has no payee name (NAME and MEMO fields both missing or empty)",
+                FileName = fileName
+            });
+            return;
+        }
+
+        // Generate ExternalId: use FITID (required by OFXSharp library)
+        // NOTE: The fallback to GenerateTransactionHash is unreachable because OFXSharp
+        // requires FITID to be present and will throw an exception during parsing if missing.
+        // See test: OfxParsingHelperTests.ParseAsync_TransactionWithoutFitid_FailsToParse
+#if false // Unreachable code: OFXSharp requires FITID to be present
+        var externalId = !string.IsNullOrWhiteSpace(transaction.TransactionId)
+            ? transaction.TransactionId
+            : GenerateTransactionHash(dateTime, transaction.Amount, payee, memo ?? string.Empty, source);
+#else
+        var externalId = transaction.TransactionId!; // OFXSharp guarantees non-null FITID
+#endif
+
+        transactions.Add(new TransactionImportDto
+        {
+            ExternalId = externalId,
+            Date = DateOnly.FromDateTime(dateTime),
+            Amount = transaction.Amount,
+            Payee = payee,
+            Memo = memo,
+            Source = source
+        });
+    }
+
+    /// <summary>
+    /// Extracts payee and memo from OFX NAME and MEMO fields with smart handling for truncation.
+    /// </summary>
+    /// <param name="name">The NAME field from the OFX transaction.</param>
+    /// <param name="transactionMemo">The MEMO field from the OFX transaction.</param>
+    /// <returns>A tuple containing the payee and memo values.</returns>
+    /// <remarks>
+    /// Handles three cases:
+    /// 1. No NAME - use MEMO as payee
+    /// 2. NAME appears truncated (MEMO starts with NAME) - use MEMO as payee
+    /// 3. Normal case - NAME is payee, MEMO is memo
+    /// </remarks>
+    private static (string? payee, string? memo) ExtractPayeeAndMemo(string? name, string? transactionMemo)
+    {
+        if (string.IsNullOrWhiteSpace(name) ||
+            (!string.IsNullOrWhiteSpace(transactionMemo) && IsNameTruncatedMemo(name, transactionMemo)))
+        {
+            // Case 1: No NAME - use MEMO as payee
+            // Case 2: NAME appears to be truncated (MEMO starts with NAME, accounting for whitespace)
+            // In both cases: use MEMO as payee, leave memo blank
+            return (transactionMemo, null);
+        }
+
+        // Case 3: Normal case - NAME is payee, MEMO is memo
+        return (name, transactionMemo);
     }
 
     /// <summary>
