@@ -281,29 +281,43 @@ public class ImportReviewFeature(
         // Check existing transactions first
         if (existingTransactionsByExternalId.TryGetValue(importDto.ExternalId, out var existingTransaction))
         {
-            // ExternalId match found - compare fields to determine exact vs potential duplicate
-            var fieldsMatch = existingTransaction.Date == importDto.Date
-                && existingTransaction.Amount == importDto.Amount
-                && existingTransaction.Payee == importDto.Payee;
-
-            var status = fieldsMatch ? DuplicateStatus.ExactDuplicate : DuplicateStatus.PotentialDuplicate;
+            var status = CompareTransactionFields(importDto, existingTransaction.Date, existingTransaction.Amount, existingTransaction.Payee);
             return (status, existingTransaction.Key);
         }
 
         // Check pending imports second
         if (pendingImportsByExternalId.TryGetValue(importDto.ExternalId, out var pendingImport))
         {
-            // ExternalId match found - compare fields to determine exact vs potential duplicate
-            var fieldsMatch = pendingImport.Date == importDto.Date
-                && pendingImport.Amount == importDto.Amount
-                && pendingImport.Payee == importDto.Payee;
-
-            var status = fieldsMatch ? DuplicateStatus.ExactDuplicate : DuplicateStatus.PotentialDuplicate;
+            var status = CompareTransactionFields(importDto, pendingImport.Date, pendingImport.Amount, pendingImport.Payee);
             return (status, pendingImport.Key);
         }
 
         // No duplicates found
         return (DuplicateStatus.New, null);
+    }
+
+    /// <summary>
+    /// Compares transaction fields to determine if a match is exact or potential duplicate.
+    /// </summary>
+    /// <param name="importDto">The imported transaction to compare.</param>
+    /// <param name="existingDate">The date of the existing transaction.</param>
+    /// <param name="existingAmount">The amount of the existing transaction.</param>
+    /// <param name="existingPayee">The payee of the existing transaction.</param>
+    /// <returns>
+    /// <see cref="DuplicateStatus.ExactDuplicate"/> if all fields match,
+    /// <see cref="DuplicateStatus.PotentialDuplicate"/> if fields don't match.
+    /// </returns>
+    private static DuplicateStatus CompareTransactionFields(
+        TransactionImportDto importDto,
+        DateOnly existingDate,
+        decimal existingAmount,
+        string existingPayee)
+    {
+        var fieldsMatch = existingDate == importDto.Date
+            && existingAmount == importDto.Amount
+            && existingPayee == importDto.Payee;
+
+        return fieldsMatch ? DuplicateStatus.ExactDuplicate : DuplicateStatus.PotentialDuplicate;
     }
 
     /// <summary>
