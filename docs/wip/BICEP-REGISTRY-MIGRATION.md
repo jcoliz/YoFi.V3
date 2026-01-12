@@ -567,8 +567,8 @@ Update [`infra/RESOURCES-TEMPLATE.md`](../../infra/RESOURCES-TEMPLATE.md) and an
 
 **Development workflow:**
 1. Work on AzDeploy.Bicep repository (make changes, test locally)
-2. When ready for release, create git tag: `git tag v1.1.0`
-3. Push tag: `git push origin v1.1.0`
+2. When ready for release, create git tag: `git tag 1.1.0`
+3. Push tag: `git push origin 1.1.0`
 4. GitHub Actions automatically publishes all modules to ghcr.io
 5. Update YoFi.V3 to consume new version: `br:ghcr.io/jcoliz/azdeploy/web-staticapp:1.1.0`
 
