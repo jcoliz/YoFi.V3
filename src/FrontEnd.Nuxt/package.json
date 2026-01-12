@@ -30,17 +30,17 @@
     "@nuxt/eslint": "^1.12.1",
     "@nuxt/eslint-config": "^1.11.0",
     "@types/feather-icons": "^4.29.4",
-    "@types/node": "^25.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
-    "@typescript-eslint/parser": "^8.50.1",
+    "@types/node": "^25.0.6",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^10.6.2",
-    "nuxi": "^3.31.3",
+    "nuxi": "^3.32.0",
     "prettier": "^3.7.4",
-    "sass": "1.97.1",
-    "typescript-eslint": "^8.50.1",
+    "sass": "1.97.2",
+    "typescript-eslint": "^8.52.0",
     "vue-eslint-parser": "^10.2.0"
   }
 }
