@@ -148,7 +148,7 @@ For implementation patterns, refer to existing features:
 
 **Orchestrator Instructions for Code Mode:**
 
-> Review [`TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) to identify acceptance criteria for data integration tests. Focus on EF configurations, relationships, queries, data integrity.
+> Review [`TESTING-STRATEGY.md`](docs\TESTING-STRATEGY.md) to identify acceptance criteria for data integration tests. Focus on EF configurations, relationships, queries, data integrity.
 
 **Code Mode Checklist:**
 - [ ] Review TESTING-STRATEGY.md Decision Framework
@@ -157,8 +157,9 @@ For implementation patterns, refer to existing features:
 - [ ] Run tests: `dotnet test tests/Integration.Data`
 - [ ] Iterate until all pass
 - [ ] Check off completed acceptance criteria in PRD
+- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
-**Commit Template:** `test(integration): add [EntityName] data tests`
+**Commit Template:** `test(integration): add [EntityName] data tests for [feature-slug]`
 
 ---
 
