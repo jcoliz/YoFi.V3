@@ -31,4 +31,6 @@ jobs:
     - name: Run Data Integration Tests
       run: dotnet test ./tests/Integration.Data --no-build --verbosity normal
     - name: Run Controller Integration Tests
-      run: dotnet test ./tests/Integration.Controller --no-build --verbosity normal
+      run: dotnet test ./tests/Integration.Controller --no-build --verbosity normal  --collect:"XPlat Code Coverage"
+    - name: Run Application Integration Tests
+      run: dotnet test ./tests/Integration.Application --no-build --verbosity normal  --collect:"XPlat Code Coverage"
