@@ -82,7 +82,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         }
 
         Assert.That(seededTransactions, Has.Count.EqualTo(table.Rows.Count),
-            $"Expected to seed {table.Rows.Count} transactions but seeded {seededTransactions.Count}");
+            $"Expected to seed {table.Rows.Count} transactions but seeded {seededTransactions!.Count}");
     }
 
     /// <summary>
