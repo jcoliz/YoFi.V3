@@ -55,6 +55,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration.Controller", "I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Tests.Integration.Controller", "tests\Integration.Controller\YoFi.V3.Tests.Integration.Controller.csproj", "{35DCA3A7-294F-48C5-9794-32286114D001}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Integration.Application", "Integration.Application", "{485652A8-7A52-2CE9-BA35-CAE270791E24}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YoFi.V3.Tests.Integration.Application", "tests\Integration.Application\YoFi.V3.Tests.Integration.Application.csproj", "{F9747C72-8A28-41F8-A7BD-8DE9FA456680}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -221,6 +225,18 @@ Global
 		{35DCA3A7-294F-48C5-9794-32286114D001}.Release|x64.Build.0 = Release|Any CPU
 		{35DCA3A7-294F-48C5-9794-32286114D001}.Release|x86.ActiveCfg = Release|Any CPU
 		{35DCA3A7-294F-48C5-9794-32286114D001}.Release|x86.Build.0 = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|x64.Build.0 = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Debug|x86.Build.0 = Debug|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|x64.ActiveCfg = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|x64.Build.0 = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|x86.ActiveCfg = Release|Any CPU
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -247,6 +263,8 @@ Global
 		{6057C121-A724-4286-B87F-964AE52041DE} = {C1C18CDD-68BF-C334-59A2-2BF067EC0B6F}
 		{8A33A073-0502-4BCC-4490-A8EF5CB819EF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{35DCA3A7-294F-48C5-9794-32286114D001} = {8A33A073-0502-4BCC-4490-A8EF5CB819EF}
+		{485652A8-7A52-2CE9-BA35-CAE270791E24} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{F9747C72-8A28-41F8-A7BD-8DE9FA456680} = {485652A8-7A52-2CE9-BA35-CAE270791E24}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5924CE06-5024-49B7-BE37-B4D8BB051E13}
