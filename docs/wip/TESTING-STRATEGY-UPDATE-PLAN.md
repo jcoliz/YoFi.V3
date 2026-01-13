@@ -408,8 +408,7 @@ Feature: Payee Rules Management
 3. Update CI/CD pipelines
    - Ensure Application Integration tests run in CI
    - Verify test reporting includes all layers
-   - Track test execution time per layer
-   - Report code coverage by test layer
+   - Update code coverage to only collect from  test layer
 
 **Code Coverage as Migration Guide:**
 - Current coverage is primarily from Controller Integration tests
