@@ -32,6 +32,7 @@ YoFi.V3/
 │   │   ├── Pages/              # Page Object Models
 │   │   ├── Features/           # Gherkin feature files
 │   │   └── Steps/              # Step definitions
+│   ├── Integration.Application/# Application integration tests (PRIMARY)
 │   ├── Integration.Controller/ # Controller integration tests
 │   ├── Integration.Data/       # Data layer integration tests
 │   └── Unit/                   # Unit tests
@@ -63,7 +64,7 @@ YoFi.V3/
 **Backend Development:**
 - **Controllers**: `src/Controllers/` - API endpoints
 - **Features**: `src/Application/` - Business logic
-- **Tests**: `tests/Unit/`, `tests/Integration.Controller/`, `tests/Integration.Data/`
+- **Tests**: `tests/Unit/`, `tests/Integration.Application/`, `tests/Integration.Controller/`, `tests/Integration.Data/`
 
 **Functional Tests:**
 - **Location**: `tests/Functional/`
@@ -572,7 +573,7 @@ public void ValidateTransaction_MissingRequiredFields_ReturnsValidationErrors()
 
 3. **Use project scripts for testing** - Always use `./scripts/Run-Tests.ps1` to run tests. DO NOT use `dotnet test` directly on the solution root, as it will include functional tests that require special setup.
    - For all unit and integration tests: `pwsh -File ./scripts/Run-Tests.ps1`
-   - For specific test projects (when needed): `dotnet test tests/Unit`, `dotnet test tests/Integration.Data`, or `dotnet test tests/Integration.Controller`
+   - For specific test projects (when needed): `dotnet test tests/Unit`, `dotnet test tests/Integration.Application`, `dotnet test tests/Integration.Data`, or `dotnet test tests/Integration.Controller`
    - For Functional tests: NEVER run automatically. Instead, ask the user to run `./scripts/Run-FunctionalTestsVsContainer.ps1` and report back the results.
 
 4. **Iterate until green** - Continue the fix-test-verify cycle until all tests pass successfully.
@@ -888,7 +889,7 @@ Runs data integration tests with code coverage collection.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("Unit", "Integration.Data", "Integration.Controller")]
+    [ValidateSet("Unit", "Integration.Application", "Integration.Data", "Integration.Controller")]
     [string]
     $Category,
 
