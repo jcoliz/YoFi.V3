@@ -46,26 +46,58 @@ try {
 
     # Run unit tests
     Write-Host "`nRunning unit tests..." -ForegroundColor Cyan
-    dotnet test tests/Unit --no-build
+    $unitOutput = dotnet test tests/Unit --no-build 2>&1
     $unitTestResult = $LASTEXITCODE
+    Write-Host $unitOutput
 
     # Run application integration tests
     Write-Host "`nRunning application integration tests..." -ForegroundColor Cyan
-    dotnet test tests/Integration.Application --no-build
+    $appOutput = dotnet test tests/Integration.Application --no-build 2>&1
     $appIntegrationTestResult = $LASTEXITCODE
+    Write-Host $appOutput
 
     # Run data integration tests
     Write-Host "`nRunning data integration tests..." -ForegroundColor Cyan
-    dotnet test tests/Integration.Data --no-build
+    $dataOutput = dotnet test tests/Integration.Data --no-build 2>&1
     $dataIntegrationTestResult = $LASTEXITCODE
+    Write-Host $dataOutput
 
     # Run controller integration tests
     Write-Host "`nRunning controller integration tests..." -ForegroundColor Cyan
-    dotnet test tests/Integration.Controller --no-build
+    $controllerOutput = dotnet test tests/Integration.Controller --no-build 2>&1
     $controllerIntegrationTestResult = $LASTEXITCODE
+    Write-Host $controllerOutput
+
+    # Parse test counts and durations from output
+    function Parse-TestResults {
+        param([string]$Output)
+
+        # Match "Passed! - Failed: 0, Passed: 249, Skipped: 0, Total: 249, Duration: 1 s" or "Duration: 676 ms"
+        if ($Output -match 'Passed:\s+(\d+).*?Duration:\s+([\d\.]+ (?:ms|s))') {
+            return @{
+                Count = [int]$Matches[1]
+                Duration = $Matches[2]
+            }
+        }
+        return @{ Count = 0; Duration = "N/A" }
+    }
+
+    $unitStats = Parse-TestResults -Output $unitOutput
+    $appStats = Parse-TestResults -Output $appOutput
+    $dataStats = Parse-TestResults -Output $dataOutput
+    $controllerStats = Parse-TestResults -Output $controllerOutput
+    $totalTests = $unitStats.Count + $appStats.Count + $dataStats.Count + $controllerStats.Count
 
     # Summary
-    Write-Host "`n" -NoNewline
+    Write-Host "`n==================== TEST SUMMARY ====================" -ForegroundColor Cyan
+    Write-Host "Unit Tests:               $($unitStats.Count.ToString().PadLeft(4)) tests in $($unitStats.Duration)" -ForegroundColor White
+    Write-Host "Application Integration:  $($appStats.Count.ToString().PadLeft(4)) tests in $($appStats.Duration)" -ForegroundColor White
+    Write-Host "Data Integration:         $($dataStats.Count.ToString().PadLeft(4)) tests in $($dataStats.Duration)" -ForegroundColor White
+    Write-Host "Controller Integration:   $($controllerStats.Count.ToString().PadLeft(4)) tests in $($controllerStats.Duration)" -ForegroundColor White
+    Write-Host "======================================================" -ForegroundColor Cyan
+    Write-Host "TOTAL:                    $($totalTests.ToString().PadLeft(4)) tests" -ForegroundColor Cyan
+    Write-Host "======================================================`n" -ForegroundColor Cyan
+
     if ($unitTestResult -eq 0 -and $appIntegrationTestResult -eq 0 -and $dataIntegrationTestResult -eq 0 -and $controllerIntegrationTestResult -eq 0) {
         Write-Host "OK All tests passed" -ForegroundColor Green
     } else {
