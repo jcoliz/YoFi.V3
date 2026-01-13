@@ -210,6 +210,14 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 - UI-dependent functionality
 - Cross-layer integration requiring browser
 
+### Tagging Strategy
+
+Functional tests use priority-based tags for selective implementation:
+- `@pri:1` through `@pri:4` - Priority quartiles (1=highest, 4=lowest)
+- `@id:1` through `@id:N` - Sequential ordering within the file
+- Document ALL acceptance criteria as Gherkin scenarios
+- Implement based on priority (typically ~25-50% of scenarios: pri:1 and some pri:2)
+
 ### Speed
 
 ~2-5 seconds per test

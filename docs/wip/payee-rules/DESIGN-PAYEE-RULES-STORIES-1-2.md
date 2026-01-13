@@ -760,18 +760,67 @@ All interactive elements and status displays must include `data-test-id` attribu
 
 ## Testing Strategy
 
-### Unit Tests
+YoFi.V3 uses a five-layer testing strategy optimized for testing where the actual work happens. See [`docs/TESTING-STRATEGY.md`](../../TESTING-STRATEGY.md) for complete strategy.
 
-**PayeeMatchingRuleFeature:**
-- CRUD operations work correctly
-- Tenant isolation (cannot access other tenant's rules)
-- NotFoundException thrown for non-existent rules
-- ModifiedAt updated on update operations
-- Cache invalidation on Create/Update/Delete
-- ApplyMatchingRulesAsync correctly modifies transaction DTOs
-- Usage statistics updated (MatchCount, LastUsedAt)
+### Application Integration Tests (PRIMARY - 45%)
 
-**PayeeMatchingHelper:**
+**Location:** [`tests/Integration.Application/`](../../../tests/Integration.Application/)
+
+**Purpose:** Test Application Features with real IDataContext to verify business logic + database integration.
+
+**PayeeMatchingRuleFeature Tests:**
+- Create rule → stored in database with correct TenantId and sanitized category
+- Get rules → returns only current tenant's rules
+- Get rules with pagination → returns correct page and metadata
+- Get rules with search → filters correctly by PayeePattern and Category
+- Get rules with sort → sorts correctly in-memory by PayeePattern, Category, LastUsedAt
+- Update rule → ModifiedAt timestamp updated, category sanitized
+- Delete rule → removed from database
+- Cache invalidation → cache cleared after Create/Update/Delete operations
+- Tenant isolation → cannot access other tenant's rules (throws NotFoundException)
+- ApplyMatchingRulesAsync → modifies transaction DTOs with matched categories
+- Usage statistics → MatchCount incremented and LastUsedAt updated when rules match
+
+**ImportReviewFeature Integration Tests:**
+- Import with matching rules → Category field set on ImportReviewTransaction entities
+- Import without rules → Category remains null
+- Multiple matching rules → correct precedence applied (regex > substring, longer > shorter, newer > older)
+- Cross-feature dependency → ImportReviewFeature correctly calls PayeeMatchingRuleFeature.ApplyMatchingRulesAsync()
+- Usage statistics updated during import workflow
+
+**Speed:** ~20-50ms per test
+
+**Reference:** [`tests/Integration.Application/PayeeMatchingRuleFeatureTests.cs`](../../../tests/Integration.Application/PayeeMatchingRuleFeatureTests.cs)
+
+### Controller Integration Tests (HTTP-SPECIFIC - 20%)
+
+**Location:** [`tests/Integration.Controller/`](../../../tests/Integration.Controller/)
+
+**Purpose:** Test HTTP boundary concerns ONLY - authentication, authorization, status codes, serialization.
+
+**PayeeMatchingRulesController Tests:**
+- GET endpoints with Viewer role → 200 OK
+- GET endpoints without authentication → 401 Unauthorized
+- POST/PUT/DELETE with Editor role → Success responses (201, 200, 204)
+- POST/PUT/DELETE with Viewer role → 403 Forbidden
+- POST/PUT/DELETE without authentication → 401 Unauthorized
+- Invalid regex pattern in POST/PUT → 400 Bad Request with validation error
+- Empty category in POST/PUT → 400 Bad Request with validation error
+- POST returns 201 Created with Location header
+- GET non-existent rule → 404 Not Found
+- Response serialization → JSON matches expected DTO structure
+
+**Speed:** ~100-200ms per test
+
+**Note:** Business logic is tested at Application Integration layer. Controller tests focus on HTTP-specific concerns only.
+
+### Unit Tests (PURE LOGIC - 15%)
+
+**Location:** [`tests/Unit/`](../../../tests/Unit/)
+
+**Purpose:** Test pure business logic without any dependencies (no database, no HTTP).
+
+**PayeeMatchingHelper Tests:**
 - Substring matching case-insensitive
 - Regex matching with IgnoreCase and NonBacktracking
 - Conflict resolution: regex > substring
@@ -781,13 +830,13 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Multiple rules → best match selected
 - Exception propagation: NotSupportedException and ArgumentException thrown to caller
 
-**RegexValidationService:**
+**RegexValidationService Tests:**
 - Valid patterns accepted (simple and complex)
 - Invalid syntax rejected with error message
-- ReDoS vulnerable patterns timeout and rejected
+- ReDoS vulnerable patterns rejected with NotSupportedException
 - Edge cases: null, empty, whitespace patterns
 
-**PayeeMatchingRuleEditDtoValidator:**
+**PayeeMatchingRuleEditDtoValidator Tests:**
 - Empty PayeePattern rejected
 - Empty Category rejected
 - Whitespace-only Category rejected
@@ -795,48 +844,60 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Regex validation triggered when PayeeIsRegex=true
 - Valid regex accepted, invalid rejected
 
-### Integration Tests
+**Speed:** ~1-10ms per test
 
-**Controller + Feature + Database:**
-- Create rule → stored in database with correct TenantId
-- Get rules → returns only current tenant's rules
-- Update rule → ModifiedAt timestamp updated
-- Delete rule → removed from database
-- Invalid regex pattern → 400 Bad Request with error message
-- Tenant isolation → cannot access other tenant's rules
+### Data Integration Tests (SCHEMA VALIDATION - 10%)
 
-**Import Integration:**
-- Import with matching rules → Category set on transactions
-- Import without rules → Category remains null
-- Multiple matching rules → correct precedence applied
-- Cross-feature dependency: ImportReviewFeature → PayeeMatchingRuleFeature works correctly
-- Usage statistics updated during import
+**Location:** [`tests/Integration.Data/`](../../../tests/Integration.Data/)
 
-### Functional Tests
+**Purpose:** Test database layer directly - EF Core configurations, schema, relationships.
+
+**PayeeMatchingRule Entity Tests:**
+- Entity configuration → MaxLength constraints enforced
+- Foreign key → TenantId relationship configured with CASCADE DELETE
+- Indexes → Key (unique) and TenantId indexes exist
+- DateTimeOffset conversion → CreatedAt, ModifiedAt, LastUsedAt stored and retrieved correctly from SQLite
+- Boolean conversion → PayeeIsRegex stored and retrieved correctly from SQLite (INTEGER 0/1)
+
+**Speed:** ~10-20ms per test
+
+### Functional Tests (E2E - 10%)
+
+**Location:** [`tests/Functional/`](../../../tests/Functional/)
+
+**Purpose:** Test complete user workflows through the browser. End-to-end acceptance tests for critical paths.
+
+**Speed:** ~2-5 seconds per test
+
+**Strategy:** Document ALL acceptance criteria as Gherkin scenarios, tagged with priority quartiles (`@pri:1-4`) and sequential IDs (`@id:N`). User decides which to implement based on priority.
 
 **Gherkin scenarios (Stories 1 & 2):**
 
 **Feature: Payee Matching Rules Management**
 
 ```gherkin
+@pri:1 @id:1
 Scenario: Create a simple substring rule
   Given the user is authenticated and has Editor role
   When the user creates a payee rule with pattern "Amazon" and category "Shopping"
   Then the rule is saved successfully
   And the rule appears in the rules list
 
+@pri:1 @id:2
 Scenario: Create a regex rule
   Given the user is authenticated and has Editor role
   When the user creates a payee rule with pattern "^AMZN.*" (regex) and category "Shopping"
   Then the rule is saved successfully
   And the rule appears in the rules list
 
+@pri:3 @id:3
 Scenario: Invalid regex pattern rejected
   Given the user is authenticated and has Editor role
   When the user creates a payee rule with pattern "(?<invalid" (regex) and category "Shopping"
   Then the request fails with 400 Bad Request
   And the error message contains "Invalid regex pattern"
 
+@pri:4 @id:4
 Scenario: Empty category rejected
   Given the user is authenticated and has Editor role
   When the user creates a payee rule with pattern "Amazon" and category ""
@@ -847,17 +908,20 @@ Scenario: Empty category rejected
 **Feature: Auto-Categorize on Bank Import**
 
 ```gherkin
+@pri:1 @id:5
 Scenario: Import transactions with matching rule
   Given the user has a payee rule with pattern "Amazon" and category "Shopping"
   When the user imports an OFX file containing a transaction with payee "Amazon.com"
   Then the transaction is shown in import review with category "Shopping"
   And the category is read-only (displayed but not editable)
 
+@pri:2 @id:6
 Scenario: Import transactions without matching rules
   Given the user has no payee matching rules
   When the user imports an OFX file
   Then the transactions are shown with empty category field
 
+@pri:2 @id:7
 Scenario: Conflict resolution - regex beats substring
   Given the user has two rules:
     | Pattern   | Regex | Category  | Modified Date |
@@ -866,6 +930,7 @@ Scenario: Conflict resolution - regex beats substring
   When the user imports a transaction with payee "AMZN Marketplace"
   Then the transaction is categorized as "Shopping" (regex rule wins)
 
+@pri:3 @id:8
 Scenario: Conflict resolution - longer substring beats shorter
   Given the user has two rules:
     | Pattern      | Regex | Category     | Modified Date |
@@ -874,6 +939,7 @@ Scenario: Conflict resolution - longer substring beats shorter
   When the user imports a transaction with payee "Amazon Prime Video"
   Then the transaction is categorized as "Subscription" (longer pattern wins)
 
+@pri:4 @id:9
 Scenario: Conflict resolution - newer rule beats older
   Given the user has two rules:
     | Pattern | Regex | Category     | Modified Date |
@@ -882,6 +948,10 @@ Scenario: Conflict resolution - newer rule beats older
   When the user imports a transaction with payee "Amazon.com"
   Then the transaction is categorized as "E-Commerce" (newer rule wins)
 ```
+
+**Note:** All scenarios are documented. User decides which priority levels to implement (typically `@pri:1` and some `@pri:2` scenarios).
+
+**Rationale:** Functional tests are slow and expensive. Test critical user workflows at E2E level, but rely on Application Integration tests for comprehensive business logic coverage (conflict resolution, edge cases, validation errors).
 
 ## Migration and Rollout
 
@@ -952,6 +1022,7 @@ Not required - feature is net-new, no existing functionality to replace
 
 **Project Standards:**
 - [`docs/LOGGING-POLICY.md`](../../LOGGING-POLICY.md) - Logging conventions and patterns
+- [`docs/TESTING-STRATEGY.md`](../../TESTING-STRATEGY.md) - Testing strategy and layer guidance
 - [`.roorules`](../../.roorules) - Project coding standards and patterns
 - [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) - Clean Architecture principles
 - [`docs/TENANCY.md`](../../TENANCY.md) - Multi-tenancy patterns

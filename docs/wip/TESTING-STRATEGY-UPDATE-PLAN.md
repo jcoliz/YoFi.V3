@@ -256,8 +256,10 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 **Documentation-First Approach:**
 1. Create complete Gherkin feature file for PRD (e.g., `tests/Functional/Features/future/PayeeRules-Prd.feature`)
 2. Document ALL acceptance criteria as Gherkin scenarios (comprehensive coverage)
-3. Tag scenarios by priority: `@implemented`, `@future`, `@critical`, `@medium`, `@low`
-4. Implement top 25-50% most critical scenarios
+3. Tag scenarios with:
+   - `@pri:1` through `@pri:4` - Priority quartiles (1=highest, 4=lowest), evenly distributed
+   - `@id:1` through `@id:N` - Sequential ordering within the file
+4. User decides which scenarios to implement based on priority tags
 5. Keep unimplemented scenarios documented for future reference
 
 **Example Structure:**
@@ -266,27 +268,28 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 Feature: Payee Rules Management
   # All acceptance criteria documented here
+  # Priorities evenly distributed across quartiles
 
-  @implemented @critical
+  @pri:1 @id:1
   Scenario: User creates basic payee rule
     Given user is logged in as an editor
     When user creates a payee rule matching "Safeway" with category "Groceries"
     Then rule should appear in payee rules list
     And rule should be marked as active
 
-  @implemented @critical
+  @pri:1 @id:2
   Scenario: Rule automatically categorizes matching transaction
     Given user has a payee rule for "Safeway" → "Groceries"
     When user imports a transaction with payee "SAFEWAY #1234"
     Then transaction should be automatically categorized as "Groceries"
 
-  @future @medium
+  @pri:2 @id:3
   Scenario: User edits existing rule priority
     Given user has multiple rules that could match same payee
     When user changes rule priority order
     Then transactions should be categorized by highest priority rule
 
-  @future @low
+  @pri:4 @id:4
   Scenario: User views rule match statistics
     Given user has multiple active rules
     When user views rule statistics page
@@ -298,13 +301,19 @@ Feature: Payee Rules Management
 - **25-50% of scenarios actually implemented** (highest priority only)
 - Unimplemented scenarios serve as documentation and future test backlog
 
+**Tagging Strategy:**
+- `@pri:1` through `@pri:4` - Priority quartiles (1=highest, 4=lowest)
+- `@id:1` through `@id:N` - Sequential ordering within the file
+- User decides which scenarios to implement based on priority
+- Typical implementation: ~25-50% of documented scenarios (pri:1 and some pri:2)
+
 **Key Characteristics:**
 - Slowest tests, implement selectively based on risk
 - Tests user-visible behavior
 - Verifies frontend + backend + database integration
 - Complete Gherkin documentation for all acceptance criteria
-- Only 25-50% of documented scenarios implemented
-- Clear priority-based implementation strategy (`@implemented`, `@future`, `@critical`, `@medium`, `@low`)
+- Only highest priority scenarios actually implemented
+- Unimplemented scenarios serve as documentation and future test backlog
 
 ## Decision Flowchart: Which Test Layer?
 
