@@ -746,6 +746,27 @@ public class PayeeMatchingRuleFeatureTests : FeatureTestBase
         Assert.That(updatedRule.MatchCount, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task MatchPayeesAsync_EmptyPayeeList_ReturnsEmptyDictionary()
+    {
+        // Given: Some rules exist in database
+        var rule = new PayeeMatchingRule
+        {
+            PayeePattern = "Amazon",
+            PayeeIsRegex = false,
+            Category = "Shopping",
+            TenantId = _testTenant.Id
+        };
+        _context.PayeeMatchingRules.Add(rule);
+        await _context.SaveChangesAsync();
+
+        // When: Matching with empty payee list (covers line 182 early return)
+        var result = await _feature.MatchPayeesAsync(new List<string>());
+
+        // Then: Should return empty dictionary without querying rules
+        Assert.That(result, Is.Empty);
+    }
+
     #endregion
 
     #region FindBestMatchAsync Tests
