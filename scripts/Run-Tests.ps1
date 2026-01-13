@@ -8,6 +8,7 @@
 
     Test projects included:
     - tests/Unit - Unit tests for Application layer
+    - tests/Integration.Application - Integration tests for Application layer (PRIMARY)
     - tests/Integration.Data - Integration tests for Data layer
     - tests/Integration.Controller - Integration tests for Controller layer
 
@@ -48,6 +49,11 @@ try {
     dotnet test tests/Unit --no-build
     $unitTestResult = $LASTEXITCODE
 
+    # Run application integration tests
+    Write-Host "`nRunning application integration tests..." -ForegroundColor Cyan
+    dotnet test tests/Integration.Application --no-build
+    $appIntegrationTestResult = $LASTEXITCODE
+
     # Run data integration tests
     Write-Host "`nRunning data integration tests..." -ForegroundColor Cyan
     dotnet test tests/Integration.Data --no-build
@@ -60,11 +66,14 @@ try {
 
     # Summary
     Write-Host "`n" -NoNewline
-    if ($unitTestResult -eq 0 -and $dataIntegrationTestResult -eq 0 -and $controllerIntegrationTestResult -eq 0) {
+    if ($unitTestResult -eq 0 -and $appIntegrationTestResult -eq 0 -and $dataIntegrationTestResult -eq 0 -and $controllerIntegrationTestResult -eq 0) {
         Write-Host "OK All tests passed" -ForegroundColor Green
     } else {
         if ($unitTestResult -ne 0) {
             Write-Host "WARNING Unit tests failed" -ForegroundColor Yellow
+        }
+        if ($appIntegrationTestResult -ne 0) {
+            Write-Host "WARNING Application integration tests failed" -ForegroundColor Yellow
         }
         if ($dataIntegrationTestResult -ne 0) {
             Write-Host "WARNING Data integration tests failed" -ForegroundColor Yellow
