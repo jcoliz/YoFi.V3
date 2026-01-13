@@ -727,7 +727,7 @@ public class ImportReviewFeatureTests
     private static (ImportReviewFeature Feature, Mock<IDataProvider> DataProvider) CreateFeatureWithMocks(long? tenantId = null)
     {
         var actualTenantId = tenantId ?? 1L;
-        var tenant = new Entities.Tenancy.Models.Tenant { Id = actualTenantId, Name = "Test Tenant", Key = Guid.NewGuid() };
+        var tenant = new YoFi.V3.Entities.Tenancy.Models.Tenant { Id = actualTenantId, Name = "Test Tenant", Key = Guid.NewGuid() };
 
         var mockTenantProvider = new Mock<ITenantProvider>();
         mockTenantProvider.Setup(tp => tp.CurrentTenant).Returns(tenant);

@@ -78,23 +78,4 @@ public class WeatherForecastTests
         // Then: The ID should be auto-generated
         Assert.That(forecast.Id, Is.GreaterThan(0));
     }
-
-    // TODO: This should move to unit tests
-    [Test]
-    public void WeatherForecast_TemperatureFProperty_IsCalculated()
-    {
-        // Given: A weather forecast with Celsius temperature
-        var forecast = new WeatherForecast()
-        {
-            Date = DateOnly.FromDateTime(DateTime.Now),
-            TemperatureC = 20,
-            Summary = "Sunny"
-        };
-
-        // When: Accessing the Fahrenheit property
-        var fahrenheit = forecast.TemperatureF;
-
-        // Then: It should be correctly calculated
-        Assert.That(fahrenheit, Is.EqualTo(68)); // 20°C = 68°F
-    }
 }
