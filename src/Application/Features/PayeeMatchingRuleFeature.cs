@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
+using YoFi.V3.Application.Services;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
@@ -18,11 +19,12 @@ namespace YoFi.V3.Application.Features;
 /// <remarks>
 /// Manages CRUD operations on payee matching rules, rule matching logic, and cache management.
 /// Rules are cached per tenant for performance during matching operations.
+/// Implements <see cref="IPayeeMatchingService"/> to provide focused matching API for bank import.
 /// </remarks>
 public class PayeeMatchingRuleFeature(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
-    IMemoryCache memoryCache)
+    IMemoryCache memoryCache) : IPayeeMatchingService
 {
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
@@ -230,6 +232,48 @@ public class PayeeMatchingRuleFeature(
         var rules = await GetRulesForTenantAsync();
         var sortedRules = rules.OrderByDescending(r => r.ModifiedAt).ToList();
         return PayeeMatchingHelper.FindBestMatch(payee, sortedRules);
+    }
+
+    /// <summary>
+    /// Applies matching rules to a collection of transactions, returning new DTOs with matched categories.
+    /// </summary>
+    /// <param name="transactions">Transactions to categorize.</param>
+    /// <returns>New collection of transactions with Category field populated from matching rules.</returns>
+    /// <remarks>
+    /// This method implements <see cref="IPayeeMatchingService.ApplyMatchingRulesAsync"/> for bank import integration.
+    /// Since ImportReviewTransactionDto is an immutable record, this returns a new collection with updated Category values.
+    /// Updates usage statistics (MatchCount and LastUsedAt) for matched rules.
+    /// </remarks>
+    public async Task<IReadOnlyCollection<ImportReviewTransactionDto>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<ImportReviewTransactionDto> transactions)
+    {
+        if (transactions.Count == 0)
+        {
+            return transactions;
+        }
+
+        // Use MatchPayeesAsync to get category mappings for all unique payees
+        var payees = transactions.Select(t => t.Payee).Distinct();
+        var payeeToCategory = await MatchPayeesAsync(payees);
+
+        // TODO: Refactor out the loop
+        // Return new DTOs with matched categories
+        var result = new List<ImportReviewTransactionDto>(transactions.Count);
+        foreach (var transaction in transactions)
+        {
+            if (payeeToCategory.TryGetValue(transaction.Payee, out var matchedCategory))
+            {
+                // Create new DTO with matched category
+                result.Add(transaction with { Category = matchedCategory });
+            }
+            else
+            {
+                // No match - keep original (category will be empty string from parsing)
+                result.Add(transaction);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>

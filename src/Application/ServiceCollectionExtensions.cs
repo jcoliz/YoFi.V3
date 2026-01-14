@@ -15,6 +15,9 @@ public static class ServiceCollectionExtensions
             .AsSelf()
             .WithScopedLifetime());
 
+        // Register PayeeMatchingRuleFeature as IPayeeMatchingService for bank import integration
+        services.AddScoped<IPayeeMatchingService, PayeeMatchingRuleFeature>();
+
         // Register application services
         services.AddSingleton<IRegexValidationService, RegexValidationService>();
 

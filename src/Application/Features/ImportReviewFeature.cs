@@ -1,5 +1,6 @@
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
+using YoFi.V3.Application.Services;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -13,13 +14,15 @@ namespace YoFi.V3.Application.Features;
 /// <param name="tenantProvider">Provider for accessing tenant context information.</param>
 /// <param name="dataProvider">Repository for data operations on import review transactions.</param>
 /// <param name="transactionsFeature">Feature for managing transactions (used when accepting imports).</param>
+/// <param name="payeeMatchingService">Service for applying payee matching rules to categorize transactions.</param>
 /// <remarks>
 /// <para>
 /// Import workflow orchestration:
 /// <list type="number">
 /// <item><description>Parse OFX file to extract transaction data</description></item>
+/// <item><description>Apply payee matching rules to auto-categorize transactions</description></item>
 /// <item><description>Detect duplicates against existing transactions and pending imports</description></item>
-/// <item><description>Store transactions in ImportReviewTransaction staging table with duplicate status</description></item>
+/// <item><description>Store transactions in ImportReviewTransaction staging table with duplicate status and matched categories</description></item>
 /// <item><description>Provide operations to retrieve pending review transactions and complete the review workflow</description></item>
 /// </list>
 /// </para>
@@ -40,7 +43,8 @@ namespace YoFi.V3.Application.Features;
 public class ImportReviewFeature(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
-    TransactionsFeature transactionsFeature)
+    TransactionsFeature transactionsFeature,
+    IPayeeMatchingService payeeMatchingService)
 {
     private const int DefaultPageNumber = 1;
     private const int DefaultPageSize = 50;
@@ -49,7 +53,7 @@ public class ImportReviewFeature(
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
     /// <summary>
-    /// Imports an OFX file, parses transactions, detects duplicates, and stores them for review.
+    /// Imports an OFX file, parses transactions, applies payee matching rules, detects duplicates, and stores them for review.
     /// </summary>
     /// <param name="fileStream">The stream containing the OFX/QFX file data.</param>
     /// <param name="fileName">The name of the uploaded file.</param>
@@ -75,6 +79,23 @@ public class ImportReviewFeature(
             );
         }
 
+        // Convert to ImportReviewTransactionDto for payee matching (temporary DTOs)
+        var transactionDtos = parsingResult.Transactions
+            .Select(t => new ImportReviewTransactionDto(
+                Guid.NewGuid(), // Temporary key, will be replaced when saved
+                t.Date,
+                t.Payee,
+                string.Empty, // Category empty initially
+                t.Amount,
+                DuplicateStatus.New, // Placeholder, will be determined later
+                null, // DuplicateOfKey placeholder
+                false // IsSelected placeholder
+            ))
+            .ToList();
+
+        // Apply payee matching rules to set Category field
+        var categorizedTransactions = await payeeMatchingService.ApplyMatchingRulesAsync(transactionDtos);
+
         // Extract all ExternalIds for batch duplicate detection
         var externalIds = parsingResult.Transactions
             .Select(t => t.ExternalId)
@@ -85,13 +106,14 @@ public class ImportReviewFeature(
         var existingTransactionsByExternalId = await GetExistingTransactionsByExternalIdAsync(externalIds);
         var pendingImportsByExternalId = await GetPendingImportsByExternalIdAsync(externalIds);
 
-        // Create ImportReviewTransaction records with duplicate detection
+        // Create ImportReviewTransaction records with duplicate detection and matched categories
         var importReviewTransactions = new List<ImportReviewTransaction>();
         int newCount = 0;
         int exactDuplicateCount = 0;
         int potentialDuplicateCount = 0;
 
-        foreach (var importDto in parsingResult.Transactions)
+        // Zip original transactions with categorized versions to preserve pairing
+        foreach (var (importDto, categorizedDto) in parsingResult.Transactions.Zip(categorizedTransactions))
         {
             // Detect duplicate status
             var (status, duplicateOfKey) = DetectDuplicate(
@@ -120,6 +142,7 @@ public class ImportReviewFeature(
                 TenantId = _currentTenant.Id,
                 Date = importDto.Date,
                 Payee = importDto.Payee,
+                Category = categorizedDto.Category, // Matched category from payee rules
                 Amount = importDto.Amount,
                 Source = importDto.Source,
                 ExternalId = importDto.ExternalId,
@@ -178,7 +201,7 @@ public class ImportReviewFeature(
                 t.Key,
                 t.Date,
                 t.Payee,
-                string.Empty, // Category placeholder for future Payee Matching rules feature
+                t.Category ?? string.Empty, // Category from payee matching rules (may be null)
                 t.Amount,
                 t.DuplicateStatus,
                 t.DuplicateOfKey,
@@ -221,7 +244,7 @@ public class ImportReviewFeature(
                 Memo: importTransaction.Memo,
                 Source: importTransaction.Source,
                 ExternalId: importTransaction.ExternalId,
-                Category: string.Empty // Category is empty for now (future: Payee Matching rules)
+                Category: importTransaction.Category ?? string.Empty // Category from payee matching rules
             ))
             .ToList();
 

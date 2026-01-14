@@ -359,17 +359,39 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 
 ### Integration with Bank Import
 
+**Interface:** `IPayeeMatchingService` provides focused API for bank import integration
+
+**Purpose:** Following Interface Segregation Principle, bank import depends only on the matching service interface, not the entire feature's CRUD operations.
+
+**Interface definition:**
+
+```csharp
+/// <summary>
+/// Provides payee matching rule operations for transaction categorization.
+/// </summary>
+public interface IPayeeMatchingService
+{
+    /// <summary>
+    /// Applies matching rules to a collection of transactions, setting their Category field.
+    /// </summary>
+    /// <param name="transactions">Transactions to categorize (modified in-place).</param>
+    Task ApplyMatchingRulesAsync(IReadOnlyCollection<ImportReviewTransactionDto> transactions);
+}
+```
+
+**Implementation:** `PayeeMatchingRuleFeature` implements `IPayeeMatchingService` (contains existing `ApplyMatchingRulesAsync()` method)
+
 **Modified file:** `src/Application/Features/ImportReviewFeature.cs`
 
 **Constructor changes:**
-- Add `PayeeMatchingRuleFeature payeeMatchingRuleFeature` parameter (cross-feature dependency)
+- Add `IPayeeMatchingService payeeMatchingService` parameter (focused interface dependency)
 
 **ImportFileAsync method changes:**
 
 **New step after OFX parsing:**
 ```csharp
 // 2. Apply payee matching rules to set Category field
-await _payeeMatchingRuleFeature.ApplyMatchingRulesAsync(parsingResult.Transactions);
+await _payeeMatchingService.ApplyMatchingRulesAsync(parsingResult.Transactions);
 ```
 
 **When creating ImportReviewTransaction entities:**
@@ -378,10 +400,11 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 ```
 
 **Impact:**
-- Cross-feature dependency: ImportReviewFeature now depends on PayeeMatchingRuleFeature
-- Minimal change: single method call added after OFX parsing
+- Interface-based dependency: ImportReviewFeature depends on `IPayeeMatchingService`, not full feature
+- Minimal surface area: Only exposes `ApplyMatchingRulesAsync()`, not CRUD operations
+- Single method call added after OFX parsing
 - Feature gracefully handles zero rules (no-op)
-- TenantId automatically scoped via PayeeMatchingRuleFeature's constructor (no parameter needed)
+- TenantId automatically scoped via implementation's constructor (no parameter needed)
 
 ## API Layer Design
 
@@ -445,6 +468,7 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 **Application services** (`src/Application/ServiceCollectionExtensions.cs`):
 ```csharp
 services.AddScoped<PayeeMatchingRuleFeature>();
+services.AddScoped<IPayeeMatchingService, PayeeMatchingRuleFeature>(); // Interface for bank import
 services.AddSingleton<IRegexValidationService, RegexValidationService>();
 ```
 
@@ -454,6 +478,10 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 ```
 
 **Note:** `PayeeMatchingHelper` is a static class with static methods, so no DI registration needed.
+
+**Explanation:** `PayeeMatchingRuleFeature` is registered twice:
+1. As concrete type (for `PayeeMatchingRulesController` dependency injection)
+2. As `IPayeeMatchingService` interface (for `ImportReviewFeature` dependency injection)
 
 ## Frontend Design
 

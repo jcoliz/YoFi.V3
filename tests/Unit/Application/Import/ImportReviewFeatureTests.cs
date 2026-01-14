@@ -739,10 +739,16 @@ public class ImportReviewFeatureTests
             Mock.Of<ITenantProvider>(),
             Mock.Of<IDataProvider>());
 
+        var mockPayeeMatchingService = new Mock<YoFi.V3.Application.Services.IPayeeMatchingService>();
+        mockPayeeMatchingService
+            .Setup(pms => pms.ApplyMatchingRulesAsync(It.IsAny<IReadOnlyCollection<ImportReviewTransactionDto>>()))
+            .ReturnsAsync((IReadOnlyCollection<ImportReviewTransactionDto> transactions) => transactions);
+
         var feature = new ImportReviewFeature(
             mockTenantProvider.Object,
             mockDataProvider.Object,
-            mockTransactionsFeature.Object);
+            mockTransactionsFeature.Object,
+            mockPayeeMatchingService.Object);
 
         return (feature, mockDataProvider);
     }

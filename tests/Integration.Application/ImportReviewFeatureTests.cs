@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Services;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
@@ -40,9 +41,12 @@ public class ImportReviewFeatureTests : FeatureTestBase
         // Create tenant provider
         _tenantProvider = new TestTenantProvider { CurrentTenant = _testTenant };
 
+        // Create stub payee matching service (no-op for these tests)
+        var stubPayeeMatchingService = new StubPayeeMatchingService();
+
         // Create features with real dependencies
         _transactionsFeature = new TransactionsFeature(_tenantProvider, _dataProvider);
-        _feature = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature);
+        _feature = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, stubPayeeMatchingService);
     }
 
     #region ImportFileAsync Tests
@@ -775,4 +779,18 @@ public class ImportReviewFeatureTests : FeatureTestBase
 file class TestTenantProvider : ITenantProvider
 {
     public required Tenant CurrentTenant { get; init; }
+}
+
+/// <summary>
+/// Stub implementation of IPayeeMatchingService for integration tests.
+/// Returns transactions unchanged (no category matching).
+/// </summary>
+file class StubPayeeMatchingService : IPayeeMatchingService
+{
+    public Task<IReadOnlyCollection<ImportReviewTransactionDto>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<ImportReviewTransactionDto> transactions)
+    {
+        // No-op: return transactions unchanged for these tests
+        return Task.FromResult(transactions);
+    }
 }
