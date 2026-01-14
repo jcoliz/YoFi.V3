@@ -72,4 +72,11 @@ public interface ITenantRepository
     /// <param name="tenantKey">The tenant unique key (GUID).</param>
     /// <returns>The tenant if found; otherwise, null.</returns>
     Task<Tenant?> GetTenantByKeyAsync(Guid tenantKey);
+
+    /// <summary>
+    /// Retrieves all tenants whose names start with the specified prefix.
+    /// </summary>
+    /// <param name="namePrefix">The prefix to filter tenant names by.</param>
+    /// <returns>A collection of tenants matching the prefix.</returns>
+    Task<IReadOnlyCollection<Tenant>> GetTenantsByNamePrefixAsync(string namePrefix);
 }

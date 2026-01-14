@@ -547,6 +547,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     Task<Tenant?> ITenantRepository.GetTenantByKeyAsync(Guid tenantKey)
         => Tenants.SingleOrDefaultAsync(t => t.Key == tenantKey);
 
+    /// <inheritdoc />
+    async Task<IReadOnlyCollection<Tenant>> ITenantRepository.GetTenantsByNamePrefixAsync(string namePrefix)
+    {
+        var tenants = await Tenants
+            .Where(t => t.Name.StartsWith(namePrefix))
+            .ToListAsync();
+        return tenants;
+    }
+
     #endregion
 
 }

@@ -251,13 +251,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
     /// </remarks>
     public async Task<IReadOnlyCollection<Tenant>> GetTenantsByNamePrefixAsync(string namePrefix)
     {
-        var allRoles = await tenantRepository.GetUserTenantRolesAsync(string.Empty);
-        var matchingTenants = allRoles
-            .Where(r => r.Tenant != null && r.Tenant.Name.StartsWith(namePrefix, StringComparison.Ordinal))
-            .Select(r => r.Tenant!)
-            .DistinctBy(t => t.Id)
-            .ToList();
-        return matchingTenants;
+        return await tenantRepository.GetTenantsByNamePrefixAsync(namePrefix);
     }
 
     /// <summary>
