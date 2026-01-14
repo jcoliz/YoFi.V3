@@ -558,16 +558,6 @@ After:
 - Keep: Controller Integration test for 201 status code
 - Add: Application Integration test for `CreateTransactionAsync()` logic
 
-### No Forced Migration
-
-**Principle:** Don't force-migrate existing tests unless there's a clear benefit.
-
-**Exceptions:**
-1. Bug found in production → Add Application Integration test
-2. Test is flaky due to HTTP overhead → Convert to Application Integration
-3. Test is slow → Consider moving to faster layer
-4. Feature refactoring → Update tests to match new architecture
-
 ## Success Metrics
 
 ### How We'll Know This Is Working

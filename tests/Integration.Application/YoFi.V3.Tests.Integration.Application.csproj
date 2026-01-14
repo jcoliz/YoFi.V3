@@ -17,4 +17,10 @@
     <ProjectReference Include="..\..\src\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="SampleData\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
