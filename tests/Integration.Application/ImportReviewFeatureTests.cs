@@ -363,6 +363,42 @@ public class ImportReviewFeatureTests : FeatureTestBase
         Assert.That(items[2].Payee, Is.EqualTo("Oldest"));
     }
 
+    [Test]
+    public async Task GetPendingReviewAsync_ReturnsAllDtoFieldsCorrectly()
+    {
+        // Given: Import review transaction with known values
+        var duplicateKey = Guid.NewGuid();
+        var transaction = new ImportReviewTransaction
+        {
+            TenantId = _testTenant.Id,
+            Date = new DateOnly(2024, 3, 15),
+            Payee = "Test Store",
+            Amount = 123.45m,
+            Source = "Test Bank",
+            ExternalId = "FITID123",
+            Memo = "Test memo",
+            DuplicateStatus = DuplicateStatus.PotentialDuplicate,
+            DuplicateOfKey = duplicateKey,
+            IsSelected = false
+        };
+        _context.ImportReviewTransactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // When: Getting pending review
+        var result = await _feature.GetPendingReviewAsync();
+
+        // Then: All DTO fields should match entity values
+        var dto = result.Items.Single();
+        Assert.That(dto.Key, Is.EqualTo(transaction.Key));
+        Assert.That(dto.Date, Is.EqualTo(new DateOnly(2024, 3, 15)));
+        Assert.That(dto.Payee, Is.EqualTo("Test Store"));
+        Assert.That(dto.Category, Is.EqualTo(string.Empty)); // Placeholder for future Payee Matching rules
+        Assert.That(dto.Amount, Is.EqualTo(123.45m));
+        Assert.That(dto.DuplicateStatus, Is.EqualTo(DuplicateStatus.PotentialDuplicate));
+        Assert.That(dto.DuplicateOfKey, Is.EqualTo(duplicateKey));
+        Assert.That(dto.IsSelected, Is.False);
+    }
+
     #endregion
 
     #region CompleteReviewAsync Tests
