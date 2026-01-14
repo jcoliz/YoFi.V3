@@ -42,7 +42,6 @@ public class TransactionsFeatureTests : FeatureTestBase
         _tenantProvider = new TestTenantProvider { CurrentTenant = _testTenant };
 
         // Create feature with real dependencies
-        var logger = new NullLogger<TransactionsFeature>();
         _feature = new TransactionsFeature(_tenantProvider, _dataProvider);
     }
 
@@ -549,7 +548,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.AddTransactionAsync(dto);
 
         // Then: Transaction should be added to database
-        var transactions = _context.Transactions.ToList();
+        var transactions = await _context.Transactions.ToListAsync();
         Assert.That(transactions, Has.Count.EqualTo(1));
         Assert.That(transactions[0].Payee, Is.EqualTo("NewPayee"));
         Assert.That(transactions[0].Amount, Is.EqualTo(150m));
@@ -694,7 +693,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         await _feature.DeleteTransactionAsync(transaction.Key);
 
         // Then: Transaction should be removed
-        var remaining = _context.Transactions.ToList();
+        var remaining = await _context.Transactions.ToListAsync();
         Assert.That(remaining, Is.Empty);
     }
 
@@ -730,11 +729,11 @@ public class TransactionsFeatureTests : FeatureTestBase
 
         // Then: All transactions should be added
         Assert.That(results, Has.Count.EqualTo(3));
-        var dbTransactions = _context.Transactions.ToList();
+        var dbTransactions = await _context.Transactions.ToListAsync();
         Assert.That(dbTransactions, Has.Count.EqualTo(3));
 
         // And: All should have splits created
-        var allSplits = _context.Splits.ToList();
+        var allSplits = await _context.Splits.ToListAsync();
         Assert.That(allSplits, Has.Count.EqualTo(3));
     }
 
