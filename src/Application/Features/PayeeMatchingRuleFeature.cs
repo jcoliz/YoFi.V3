@@ -256,7 +256,6 @@ public class PayeeMatchingRuleFeature(
         var payees = transactions.Select(t => t.Payee).Distinct();
         var payeeToCategory = await MatchPayeesAsync(payees);
 
-        // TODO: Refactor out the loop
         // Return new DTOs with matched categories
         var result = new List<ImportReviewTransactionDto>(transactions.Count);
         foreach (var transaction in transactions)
