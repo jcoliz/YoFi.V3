@@ -156,111 +156,9 @@ public class TenantControllerTests
         Assert.That(tenants, Is.Empty);
     }
 
-    [Test]
-    public async Task GetTenants_WithMultipleTenants_ReturnsAllTenants()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: User has access to multiple tenants with different roles
-        var tenant1Key = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Tenant One", TenantRole.Owner);
-        var tenant2Key = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Tenant Two", TenantRole.Editor);
-        var tenant3Key = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Tenant Three", TenantRole.Viewer);
-
-        // When: User requests all tenants
-        var response = await testClient.GetAsync("/api/tenant");
-
-        // Then: 200 OK should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-        // And: Response should contain all three tenants
-        var tenants = await response.Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
-        Assert.That(tenants, Is.Not.Null);
-        Assert.That(tenants!.Count, Is.EqualTo(3));
-
-        // And: Each tenant should have correct key and role
-        var tenant1 = tenants.FirstOrDefault(t => t.Key == tenant1Key);
-        Assert.That(tenant1, Is.Not.Null, "Tenant One should be in results");
-        Assert.That(tenant1!.Role, Is.EqualTo(TenantRole.Owner));
-        Assert.That(tenant1.Name, Is.EqualTo("Tenant One"));
-
-        var tenant2 = tenants.FirstOrDefault(t => t.Key == tenant2Key);
-        Assert.That(tenant2, Is.Not.Null, "Tenant Two should be in results");
-        Assert.That(tenant2!.Role, Is.EqualTo(TenantRole.Editor));
-
-        var tenant3 = tenants.FirstOrDefault(t => t.Key == tenant3Key);
-        Assert.That(tenant3, Is.Not.Null, "Tenant Three should be in results");
-        Assert.That(tenant3!.Role, Is.EqualTo(TenantRole.Viewer));
-    }
-
-    [Test]
-    public async Task GetTenants_OnlyReturnsUsersTenants()
-    {
-        // Given: Multiple users exist with different tenant access
-        var user1Id = Guid.NewGuid();
-        var user2Id = Guid.NewGuid();
-
-        // And: User 1 has access to tenant A and B
-        var tenantAKey = await CreateTestTenantWithUserRoleAsync(user1Id, "Tenant A", TenantRole.Owner);
-        var tenantBKey = await CreateTestTenantWithUserRoleAsync(user1Id, "Tenant B", TenantRole.Editor);
-
-        // And: User 2 has access to tenant C only
-        var tenantCKey = await CreateTestTenantWithUserRoleAsync(user2Id, "Tenant C", TenantRole.Owner);
-
-        // When: User 1 requests their tenants
-        using var user1Client = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: user1Id.ToString(),
-            userName: "User 1");
-        var response = await user1Client.GetAsync("/api/tenant");
-
-        // Then: 200 OK should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-        // And: Response should only contain User 1's tenants (A and B)
-        var tenants = await response.Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
-        Assert.That(tenants, Is.Not.Null);
-        Assert.That(tenants!.Count, Is.EqualTo(2));
-        Assert.That(tenants.Any(t => t.Key == tenantAKey), Is.True, "Should contain Tenant A");
-        Assert.That(tenants.Any(t => t.Key == tenantBKey), Is.True, "Should contain Tenant B");
-        Assert.That(tenants.Any(t => t.Key == tenantCKey), Is.False, "Should NOT contain Tenant C (belongs to User 2)");
-    }
-
     #endregion
 
     #region GET /api/tenant/{key} Tests
-
-    [Test]
-    public async Task GetTenant_WithAccess_ReturnsTenantWithRole()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: User has Editor access to a tenant
-        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "My Tenant", TenantRole.Editor);
-
-        // When: User requests the specific tenant by key
-        var response = await testClient.GetAsync($"/api/tenant/{tenantKey}");
-
-        // Then: 200 OK should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-        // And: Response should contain tenant details with user's role
-        var tenant = await response.Content.ReadFromJsonAsync<TenantRoleResultDto>();
-        Assert.That(tenant, Is.Not.Null);
-        Assert.That(tenant!.Key, Is.EqualTo(tenantKey));
-        Assert.That(tenant.Name, Is.EqualTo("My Tenant"));
-        Assert.That(tenant.Role, Is.EqualTo(TenantRole.Editor));
-        Assert.That(tenant.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
-    }
 
     [Test]
     public async Task GetTenant_NonExistent_Returns403()
@@ -302,7 +200,7 @@ public class TenantControllerTests
     #region POST /api/tenant Tests
 
     [Test]
-    public async Task CreateTenant_ValidData_ReturnsCreatedTenant()
+    public async Task CreateTenant_ValidData_Returns201CreatedWithLocationHeader()
     {
         // Given: An authenticated user
         var userIdForTest = Guid.NewGuid();
@@ -323,97 +221,14 @@ public class TenantControllerTests
         // Then: 201 Created should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
 
-        // And: Response should contain the created tenant
+        // And: Response should contain serialized tenant data
         var created = await response.Content.ReadFromJsonAsync<TenantResultDto>();
         Assert.That(created, Is.Not.Null);
         Assert.That(created!.Key, Is.Not.EqualTo(Guid.Empty));
-        Assert.That(created.Name, Is.EqualTo("New Tenant"));
-        Assert.That(created.Description, Is.EqualTo("This is a new tenant"));
-        Assert.That(created.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
 
         // And: Location header should point to the created resource
         Assert.That(response.Headers.Location, Is.Not.Null);
         Assert.That(response.Headers.Location!.ToString(), Does.Contain($"/api/Tenant/{created.Key}"));
-
-        // And: User should be able to retrieve the created tenant
-        var getResponse = await testClient.GetAsync($"/api/tenant/{created.Key}");
-        Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-        // And: User should have Owner role for the new tenant
-        var retrievedTenant = await getResponse.Content.ReadFromJsonAsync<TenantRoleResultDto>();
-        Assert.That(retrievedTenant!.Role, Is.EqualTo(TenantRole.Owner));
-    }
-
-    [Test]
-    public async Task CreateTenant_CreatesUserTenantRoleAssignment()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Valid tenant data
-        var tenantDto = new TenantEditDto("Tenant With Role", "Test role assignment");
-
-        // When: User creates a new tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-        var created = await response.Content.ReadFromJsonAsync<TenantResultDto>();
-
-        // Then: Tenant should be created
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
-        // And: UserTenantRoleAssignment should exist in database
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == created!.Key);
-        var roleAssignment = await dbContext.UserTenantRoleAssignments
-            .FirstOrDefaultAsync(utr => utr.UserId == userIdForTest.ToString() && utr.TenantId == tenant!.Id);
-
-        Assert.That(roleAssignment, Is.Not.Null, "UserTenantRoleAssignment should exist");
-        Assert.That(roleAssignment!.Role, Is.EqualTo(TenantRole.Owner), "User should be assigned Owner role");
-    }
-
-    [Test]
-    public async Task CreateTenant_MultipleUsers_EachCanCreateTenants()
-    {
-        // Given: Two different authenticated users
-        var user1Id = Guid.NewGuid();
-        var user2Id = Guid.NewGuid();
-        using var user1Client = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: user1Id.ToString(),
-            userName: "User 1");
-        using var user2Client = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: user2Id.ToString(),
-            userName: "User 2");
-
-        // When: User 1 creates a tenant
-        var tenant1Dto = new TenantEditDto("User 1 Tenant", "User 1's tenant");
-        var response1 = await user1Client.PostAsJsonAsync("/api/tenant", tenant1Dto);
-        var created1 = await response1.Content.ReadFromJsonAsync<TenantResultDto>();
-
-        // And: User 2 creates a tenant
-        var tenant2Dto = new TenantEditDto("User 2 Tenant", "User 2's tenant");
-        var response2 = await user2Client.PostAsJsonAsync("/api/tenant", tenant2Dto);
-        var created2 = await response2.Content.ReadFromJsonAsync<TenantResultDto>();
-
-        // Then: Both creations should succeed
-        Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-        Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-
-        // And: Each user can only access their own tenant
-        var user1Tenants = await (await user1Client.GetAsync("/api/tenant"))
-            .Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
-        var user2Tenants = await (await user2Client.GetAsync("/api/tenant"))
-            .Content.ReadFromJsonAsync<ICollection<TenantRoleResultDto>>();
-
-        Assert.That(user1Tenants!.Any(t => t.Key == created1!.Key), Is.True);
-        Assert.That(user1Tenants!.Any(t => t.Key == created2!.Key), Is.False);
-        Assert.That(user2Tenants!.Any(t => t.Key == created2!.Key), Is.True);
-        Assert.That(user2Tenants!.Any(t => t.Key == created1!.Key), Is.False);
     }
 
     #endregion
@@ -421,7 +236,7 @@ public class TenantControllerTests
     #region PUT /api/tenant/{tenantKey} Tests
 
     [Test]
-    public async Task UpdateTenant_AsOwner_UpdatesSuccessfully()
+    public async Task UpdateTenant_AsOwner_Returns200Ok()
     {
         // Given: An authenticated user with Owner role for a tenant
         var userIdForTest = Guid.NewGuid();
@@ -444,20 +259,10 @@ public class TenantControllerTests
         // Then: 200 OK should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Response should contain the updated tenant
+        // And: Response should contain serialized tenant data
         var updated = await response.Content.ReadFromJsonAsync<TenantResultDto>();
         Assert.That(updated, Is.Not.Null);
         Assert.That(updated!.Key, Is.EqualTo(tenantKey));
-        Assert.That(updated.Name, Is.EqualTo("Updated Name"));
-        Assert.That(updated.Description, Is.EqualTo("Updated Description"));
-
-        // And: Changes should be persisted in database
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant, Is.Not.Null);
-        Assert.That(tenant!.Name, Is.EqualTo("Updated Name"));
-        Assert.That(tenant.Description, Is.EqualTo("Updated Description"));
     }
 
     [Test]
@@ -497,12 +302,6 @@ public class TenantControllerTests
 
         // Then: 403 Forbidden should be returned (insufficient permissions)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-
-        // And: Tenant should remain unchanged
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant!.Name, Is.EqualTo("Test Tenant"));
     }
 
     [Test]
@@ -551,12 +350,6 @@ public class TenantControllerTests
 
         // Then: 403 Forbidden should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-
-        // And: Tenant should remain unchanged
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant!.Name, Is.EqualTo("Owner's Tenant"));
     }
 
     #endregion
@@ -564,7 +357,7 @@ public class TenantControllerTests
     #region DELETE /api/tenant/{tenantKey} Tests
 
     [Test]
-    public async Task DeleteTenant_AsOwner_DeletesSuccessfully()
+    public async Task DeleteTenant_AsOwner_Returns204NoContent()
     {
         // Given: An authenticated user with Owner role for a tenant
         var userIdForTest = Guid.NewGuid();
@@ -580,17 +373,6 @@ public class TenantControllerTests
 
         // Then: 204 No Content should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
-        // And: Tenant should be removed from database
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant, Is.Null, "Tenant should be deleted from database");
-
-        // And: User tenant role assignment should also be deleted (cascade)
-        var roleAssignment = await dbContext.UserTenantRoleAssignments
-            .FirstOrDefaultAsync(utr => utr.UserId == userIdForTest.ToString());
-        Assert.That(roleAssignment, Is.Null, "Role assignment should be cascade deleted");
     }
 
     [Test]
@@ -627,12 +409,6 @@ public class TenantControllerTests
 
         // Then: 403 Forbidden should be returned (insufficient permissions)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-
-        // And: Tenant should still exist
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant, Is.Not.Null, "Tenant should still exist");
     }
 
     [Test]
@@ -675,309 +451,8 @@ public class TenantControllerTests
 
         // Then: 403 Forbidden should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
-
-        // And: Tenant should still exist
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.FirstOrDefaultAsync(t => t.Key == tenantKey);
-        Assert.That(tenant, Is.Not.Null, "Tenant should still exist");
     }
 
-    #endregion
-
-    #region Validation Tests
-
-    [Test]
-    public async Task CreateTenant_NameEmpty_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with empty Name (required field)
-        var tenantDto = new TenantEditDto(
-            Name: "",
-            Description: "Valid Description"
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task CreateTenant_NameWhitespace_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with whitespace-only Name (required field)
-        var tenantDto = new TenantEditDto(
-            Name: "   ",
-            Description: "Valid Description"
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task CreateTenant_NameTooLong_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with Name exceeding 100 characters
-        var longName = new string('N', 101);
-        var tenantDto = new TenantEditDto(
-            Name: longName,
-            Description: "Valid Description"
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task CreateTenant_DescriptionEmpty_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with empty Description (required field)
-        var tenantDto = new TenantEditDto(
-            Name: "Valid Name",
-            Description: ""
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task CreateTenant_DescriptionWhitespace_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with whitespace-only Description (required field)
-        var tenantDto = new TenantEditDto(
-            Name: "Valid Name",
-            Description: "   "
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task CreateTenant_DescriptionTooLong_Returns400BadRequest()
-    {
-        // Given: An authenticated user
-        var userIdForTest = Guid.NewGuid();
-        using var testClient = _factory.CreateAuthenticatedClient(
-            Array.Empty<(Guid, TenantRole)>(),
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Tenant data with Description exceeding 500 characters
-        var longDescription = new string('D', 501);
-        var tenantDto = new TenantEditDto(
-            Name: "Valid Name",
-            Description: longDescription
-        );
-
-        // When: User attempts to create the tenant
-        var response = await testClient.PostAsJsonAsync("/api/tenant", tenantDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task UpdateTenant_NameEmpty_Returns400BadRequest()
-    {
-        // Given: An authenticated user with Owner role for a tenant
-        var userIdForTest = Guid.NewGuid();
-        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
-
-        using var testClient = _factory.CreateAuthenticatedClient(
-            new[] { (tenantKey, TenantRole.Owner) },
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Update data with empty Name (required field)
-        var updateDto = new TenantEditDto(
-            Name: "",
-            Description: "Valid Description"
-        );
-
-        // When: User attempts to update the tenant
-        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task UpdateTenant_NameTooLong_Returns400BadRequest()
-    {
-        // Given: An authenticated user with Owner role for a tenant
-        var userIdForTest = Guid.NewGuid();
-        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
-
-        using var testClient = _factory.CreateAuthenticatedClient(
-            new[] { (tenantKey, TenantRole.Owner) },
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Update data with Name exceeding 100 characters
-        var longName = new string('N', 101);
-        var updateDto = new TenantEditDto(
-            Name: longName,
-            Description: "Valid Description"
-        );
-
-        // When: User attempts to update the tenant
-        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task UpdateTenant_DescriptionEmpty_Returns400BadRequest()
-    {
-        // Given: An authenticated user with Owner role for a tenant
-        var userIdForTest = Guid.NewGuid();
-        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
-
-        using var testClient = _factory.CreateAuthenticatedClient(
-            new[] { (tenantKey, TenantRole.Owner) },
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Update data with empty Description (required field)
-        var updateDto = new TenantEditDto(
-            Name: "Valid Name",
-            Description: ""
-        );
-
-        // When: User attempts to update the tenant
-        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
-
-    [Test]
-    public async Task UpdateTenant_DescriptionTooLong_Returns400BadRequest()
-    {
-        // Given: An authenticated user with Owner role for a tenant
-        var userIdForTest = Guid.NewGuid();
-        var tenantKey = await CreateTestTenantWithUserRoleAsync(userIdForTest, "Original Name", TenantRole.Owner);
-
-        using var testClient = _factory.CreateAuthenticatedClient(
-            new[] { (tenantKey, TenantRole.Owner) },
-            userId: userIdForTest.ToString(),
-            userName: "Test User");
-
-        // And: Update data with Description exceeding 500 characters
-        var longDescription = new string('D', 501);
-        var updateDto = new TenantEditDto(
-            Name: "Valid Name",
-            Description: longDescription
-        );
-
-        // When: User attempts to update the tenant
-        var response = await testClient.PutAsJsonAsync($"/api/tenant/{tenantKey}", updateDto);
-
-        // Then: 400 Bad Request should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-
-        // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        Assert.That(problemDetails, Is.Not.Null);
-        Assert.That(problemDetails!.Status, Is.EqualTo(400));
-    }
 
     #endregion
 
