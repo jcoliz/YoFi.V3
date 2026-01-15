@@ -1,9 +1,11 @@
+using YoFi.V3.Application.Services;
+
 namespace YoFi.V3.Application.Dto;
 
 /// <summary>
 /// Transaction data imported from an OFX file.
 /// </summary>
-public class TransactionImportDto
+public class TransactionImportDto : IMatchableTransaction
 {
     /// <summary>
     /// External (bank) identifier for the transaction.

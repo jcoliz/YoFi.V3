@@ -783,14 +783,15 @@ file class TestTenantProvider : ITenantProvider
 
 /// <summary>
 /// Stub implementation of IPayeeMatchingService for integration tests.
-/// Returns transactions unchanged (no category matching).
+/// Returns null categories (no matching).
 /// </summary>
 file class StubPayeeMatchingService : IPayeeMatchingService
 {
-    public Task<IReadOnlyCollection<ImportReviewTransactionDto>> ApplyMatchingRulesAsync(
-        IReadOnlyCollection<ImportReviewTransactionDto> transactions)
+    public Task<IReadOnlyList<string?>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<IMatchableTransaction> transactions)
     {
-        // No-op: return transactions unchanged for these tests
-        return Task.FromResult(transactions);
+        // No-op: return null categories for all transactions (no matching)
+        IReadOnlyList<string?> result = transactions.Select(_ => (string?)null).ToList();
+        return Task.FromResult(result);
     }
 }

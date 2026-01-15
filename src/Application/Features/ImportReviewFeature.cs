@@ -79,22 +79,9 @@ public class ImportReviewFeature(
             );
         }
 
-        // Convert to ImportReviewTransactionDto for payee matching (temporary DTOs)
-        var transactionDtos = parsingResult.Transactions
-            .Select(t => new ImportReviewTransactionDto(
-                Guid.NewGuid(), // Temporary key, will be replaced when saved
-                t.Date,
-                t.Payee,
-                string.Empty, // Category empty initially
-                t.Amount,
-                DuplicateStatus.New, // Placeholder, will be determined later
-                null, // DuplicateOfKey placeholder
-                false // IsSelected placeholder
-            ))
-            .ToList();
-
-        // Apply payee matching rules to set Category field
-        var categorizedTransactions = await payeeMatchingService.ApplyMatchingRulesAsync(transactionDtos);
+        // Apply payee matching rules to get categories in parallel order
+        // TransactionImportDto implements IMatchableTransaction, so can be passed directly
+        var categories = await payeeMatchingService.ApplyMatchingRulesAsync(parsingResult.Transactions);
 
         // Extract all ExternalIds for batch duplicate detection
         var externalIds = parsingResult.Transactions
@@ -112,8 +99,8 @@ public class ImportReviewFeature(
         int exactDuplicateCount = 0;
         int potentialDuplicateCount = 0;
 
-        // Zip original transactions with categorized versions to preserve pairing
-        foreach (var (importDto, categorizedDto) in parsingResult.Transactions.Zip(categorizedTransactions))
+        // Zip original transactions with matched categories to preserve pairing
+        foreach (var (importDto, category) in parsingResult.Transactions.Zip(categories))
         {
             // Detect duplicate status
             var (status, duplicateOfKey) = DetectDuplicate(
@@ -142,7 +129,7 @@ public class ImportReviewFeature(
                 TenantId = _currentTenant.Id,
                 Date = importDto.Date,
                 Payee = importDto.Payee,
-                Category = categorizedDto.Category, // Matched category from payee rules
+                Category = category, // Matched category from payee rules (null if no match)
                 Amount = importDto.Amount,
                 Source = importDto.Source,
                 ExternalId = importDto.ExternalId,

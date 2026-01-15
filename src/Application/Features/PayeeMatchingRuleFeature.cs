@@ -235,44 +235,31 @@ public class PayeeMatchingRuleFeature(
     }
 
     /// <summary>
-    /// Applies matching rules to a collection of transactions, returning new DTOs with matched categories.
+    /// Applies matching rules to a collection of transactions, returning matched categories in parallel order.
     /// </summary>
     /// <param name="transactions">Transactions to categorize.</param>
-    /// <returns>New collection of transactions with Category field populated from matching rules.</returns>
+    /// <returns>Parallel array of categories (null if no match). Order matches input transactions.</returns>
     /// <remarks>
     /// This method implements <see cref="IPayeeMatchingService.ApplyMatchingRulesAsync"/> for bank import integration.
-    /// Since ImportReviewTransactionDto is an immutable record, this returns a new collection with updated Category values.
+    /// Returns categories in the same order as input transactions for easy zipping.
     /// Updates usage statistics (MatchCount and LastUsedAt) for matched rules.
     /// </remarks>
-    public async Task<IReadOnlyCollection<ImportReviewTransactionDto>> ApplyMatchingRulesAsync(
-        IReadOnlyCollection<ImportReviewTransactionDto> transactions)
+    public async Task<IReadOnlyList<string?>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<IMatchableTransaction> transactions)
     {
         if (transactions.Count == 0)
         {
-            return transactions;
+            return Array.Empty<string?>();
         }
 
         // Use MatchPayeesAsync to get category mappings for all unique payees
         var payees = transactions.Select(t => t.Payee).Distinct();
         var payeeToCategory = await MatchPayeesAsync(payees);
 
-        // Return new DTOs with matched categories
-        var result = new List<ImportReviewTransactionDto>(transactions.Count);
-        foreach (var transaction in transactions)
-        {
-            if (payeeToCategory.TryGetValue(transaction.Payee, out var matchedCategory))
-            {
-                // Create new DTO with matched category
-                result.Add(transaction with { Category = matchedCategory });
-            }
-            else
-            {
-                // No match - keep original (category will be empty string from parsing)
-                result.Add(transaction);
-            }
-        }
-
-        return result;
+        // Return parallel array of categories in same order as input
+        return transactions
+            .Select(t => payeeToCategory.TryGetValue(t.Payee, out var category) ? category : null)
+            .ToList();
     }
 
     /// <summary>

@@ -741,8 +741,9 @@ public class ImportReviewFeatureTests
 
         var mockPayeeMatchingService = new Mock<YoFi.V3.Application.Services.IPayeeMatchingService>();
         mockPayeeMatchingService
-            .Setup(pms => pms.ApplyMatchingRulesAsync(It.IsAny<IReadOnlyCollection<ImportReviewTransactionDto>>()))
-            .ReturnsAsync((IReadOnlyCollection<ImportReviewTransactionDto> transactions) => transactions);
+            .Setup(pms => pms.ApplyMatchingRulesAsync(It.IsAny<IReadOnlyCollection<YoFi.V3.Application.Services.IMatchableTransaction>>()))
+            .ReturnsAsync((IReadOnlyCollection<YoFi.V3.Application.Services.IMatchableTransaction> transactions) =>
+                transactions.Select(t => (string?)null).ToList());
 
         var feature = new ImportReviewFeature(
             mockTenantProvider.Object,

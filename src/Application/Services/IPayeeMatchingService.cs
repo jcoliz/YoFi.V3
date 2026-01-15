@@ -13,14 +13,15 @@ namespace YoFi.V3.Application.Services;
 public interface IPayeeMatchingService
 {
     /// <summary>
-    /// Applies matching rules to a collection of transactions, returning new DTOs with matched categories.
+    /// Applies matching rules to a collection of transactions, returning matched categories in parallel order.
     /// </summary>
     /// <param name="transactions">Transactions to categorize.</param>
-    /// <returns>New collection of transactions with Category field populated from matching rules.</returns>
+    /// <returns>Parallel array of categories (null if no match). Order matches input transactions.</returns>
     /// <remarks>
-    /// Since ImportReviewTransactionDto is an immutable record, this method returns a new collection
-    /// with updated Category values rather than modifying in-place.
+    /// Returns categories in the same order as the input transactions. This allows the caller to zip
+    /// the results with the original transaction data. Null is returned for transactions
+    /// that don't match any rules.
     /// </remarks>
-    Task<IReadOnlyCollection<ImportReviewTransactionDto>> ApplyMatchingRulesAsync(
-        IReadOnlyCollection<ImportReviewTransactionDto> transactions);
+    Task<IReadOnlyList<string?>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<IMatchableTransaction> transactions);
 }
