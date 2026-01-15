@@ -771,6 +771,131 @@ public class ImportReviewFeatureTests : FeatureTestBase
     }
 
     #endregion
+
+    #region Category Matching Tests
+
+    [Test]
+    public async Task ImportFileAsync_WithMatchingCategories_StoresCategoriesCorrectly()
+    {
+        // Given: Payee matching service that returns categories for specific payees
+        var matchingService = new CategoryMatchingPayeeMatchingService();
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+
+        // And: Valid OFX file with QFC transaction (matches "Groceries")
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var stream = new MemoryStream(ofxContent);
+
+        // When: Importing file with category matching enabled
+        var result = await featureWithMatching.ImportFileAsync(stream, "Bank1.ofx");
+
+        // Then: Transactions should be imported
+        Assert.That(result.ImportedCount, Is.GreaterThan(0));
+
+        // And: QFC transaction should have "Groceries" category
+        var importedTransactions = await _context.ImportReviewTransactions
+            .Where(t => t.TenantId == _testTenant.Id)
+            .ToListAsync();
+
+        var qfcTransaction = importedTransactions.FirstOrDefault(t => t.Payee.Contains("QFC"));
+        Assert.That(qfcTransaction, Is.Not.Null, "QFC transaction should exist in Bank1.ofx");
+        Assert.That(qfcTransaction!.Category, Is.EqualTo("Groceries"), "QFC should be categorized as Groceries");
+    }
+
+    [Test]
+    public async Task ImportFileAsync_WithNoMatchingCategories_StoresNullCategories()
+    {
+        // Given: Payee matching service that returns null for all payees (no match)
+        var matchingService = new StubPayeeMatchingService();
+        var featureWithNoMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+
+        // And: Valid OFX file
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var stream = new MemoryStream(ofxContent);
+
+        // When: Importing file without category matching
+        var result = await featureWithNoMatching.ImportFileAsync(stream, "Bank1.ofx");
+
+        // Then: Transactions should be imported
+        Assert.That(result.ImportedCount, Is.GreaterThan(0));
+
+        // And: All transactions should have null categories
+        var importedTransactions = await _context.ImportReviewTransactions
+            .Where(t => t.TenantId == _testTenant.Id)
+            .ToListAsync();
+
+        Assert.That(importedTransactions.All(t => t.Category == null), Is.True,
+            "All transactions should have null category when no rules match");
+    }
+
+    [Test]
+    public async Task ImportFileAsync_WithMixedMatching_StoresCorrectCategoriesPerTransaction()
+    {
+        // Given: Payee matching service that returns categories for some payees only
+        var matchingService = new CategoryMatchingPayeeMatchingService();
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+
+        // And: Valid OFX file with multiple transactions
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var stream = new MemoryStream(ofxContent);
+
+        // When: Importing file
+        var result = await featureWithMatching.ImportFileAsync(stream, "Bank1.ofx");
+
+        // Then: Transactions should be imported
+        Assert.That(result.ImportedCount, Is.GreaterThan(0));
+
+        // And: Different transactions should have appropriate categories
+        var importedTransactions = await _context.ImportReviewTransactions
+            .Where(t => t.TenantId == _testTenant.Id)
+            .ToListAsync();
+
+        // And: Matched transactions should have categories
+        var matchedCount = importedTransactions.Count(t => t.Category != null);
+        Assert.That(matchedCount, Is.GreaterThan(0), "Some transactions should have matched categories");
+
+        // And: Unmatched transactions should have null categories
+        var unmatchedCount = importedTransactions.Count(t => t.Category == null);
+        Assert.That(unmatchedCount, Is.GreaterThan(0), "Some transactions should not have matched categories");
+    }
+
+    [Test]
+    public async Task CompleteReviewAsync_WithMatchedCategories_TransfersCategoriesToAcceptedTransactions()
+    {
+        // Given: Import review transaction with matched category
+        var matchingService = new CategoryMatchingPayeeMatchingService();
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+
+        var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
+        var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);
+        using var stream = new MemoryStream(ofxContent);
+        await featureWithMatching.ImportFileAsync(stream, "Bank1.ofx");
+
+        // And: Select all transactions
+        await featureWithMatching.SelectAllAsync();
+
+        // When: Completing review
+        await featureWithMatching.CompleteReviewAsync();
+
+        // Then: Accepted transactions should preserve matched categories
+        var acceptedTransactions = await _context.Transactions
+            .Include(t => t.Splits)
+            .Where(t => t.TenantId == _testTenant.Id)
+            .ToListAsync();
+
+        var qfcTransaction = acceptedTransactions.FirstOrDefault(t => t.Payee.Contains("QFC"));
+        Assert.That(qfcTransaction, Is.Not.Null, "QFC transaction should exist");
+
+        // Category is stored in splits, verify the split has the correct category
+        var categorySplit = qfcTransaction!.Splits.FirstOrDefault();
+        Assert.That(categorySplit, Is.Not.Null);
+        Assert.That(categorySplit!.Category, Is.EqualTo("Groceries"),
+            "Matched category should be transferred to accepted transaction's split");
+    }
+
+    #endregion
 }
 
 /// <summary>
@@ -793,5 +918,39 @@ file class StubPayeeMatchingService : IPayeeMatchingService
         // No-op: return null categories for all transactions (no matching)
         IReadOnlyList<string?> result = transactions.Select(_ => (string?)null).ToList();
         return Task.FromResult(result);
+    }
+}
+
+/// <summary>
+/// Test implementation of IPayeeMatchingService that returns specific categories for known payees.
+/// Used to test category matching functionality.
+/// Matches payees from Bank1.ofx sample file.
+/// </summary>
+file class CategoryMatchingPayeeMatchingService : IPayeeMatchingService
+{
+    public Task<IReadOnlyList<string?>> ApplyMatchingRulesAsync(
+        IReadOnlyCollection<IMatchableTransaction> transactions)
+    {
+        // Return categories for known payees (from Bank1.ofx), null for unknown
+        // Use substring matching since OFX payees contain additional text
+        IReadOnlyList<string?> result = transactions
+            .Select(t => GetCategoryForPayee(t.Payee))
+            .ToList();
+        return Task.FromResult(result);
+    }
+
+    private static string? GetCategoryForPayee(string payee)
+    {
+        // Match based on substrings found in Bank1.ofx
+        if (payee.Contains("QFC", StringComparison.OrdinalIgnoreCase))
+            return "Groceries";
+        if (payee.Contains("CHEVRON", StringComparison.OrdinalIgnoreCase))
+            return "Auto:Fuel";
+        if (payee.Contains("JAMBA", StringComparison.OrdinalIgnoreCase))
+            return "Dining:Coffee";
+        if (payee.Contains("GARDEN", StringComparison.OrdinalIgnoreCase))
+            return "Home:Garden";
+
+        return null; // No match
     }
 }
