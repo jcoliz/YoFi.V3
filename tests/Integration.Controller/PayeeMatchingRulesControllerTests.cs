@@ -13,13 +13,79 @@ namespace YoFi.V3.Tests.Integration.Controller;
 /// Business logic is tested in Integration.Application layer.
 /// </summary>
 [TestFixture]
-[Explicit("wip")]
 public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
 {
+    #region HTTP Routing and Invalid Input Tests
+
+    [Test]
+    public async Task GetRuleByKey_InvalidRuleKeyFormat_Returns404WithProblemDetails()
+    {
+        // Given: A request with an invalid rule key format (not a valid GUID)
+        using var unauthClient = _factory.CreateClient();
+
+        // When: API Client requests a rule with invalid rule key format
+        var response = await unauthClient.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules/not-a-guid");
+
+        // Then: 404 Not Found should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should contain problem details (not empty body)
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.That(content, Is.Not.Empty, "Response body should not be empty");
+
+        // And: Response should be valid problem details JSON
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null, "Response should be deserializable as ProblemDetails");
+        Assert.That(problemDetails!.Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task UpdateRule_InvalidRuleKeyFormat_Returns404WithProblemDetails()
+    {
+        // Given: User has Editor role
+        SwitchToEditor();
+
+        // And: Update data with valid rule key format but invalid route parameter
+        var ruleDto = new PayeeMatchingRuleEditDto(
+            PayeePattern: "Updated",
+            PayeeIsRegex: false,
+            Category: "Updated"
+        );
+
+        // When: API Client attempts to update rule with invalid key format
+        var response = await _client.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules/not-a-guid", ruleDto);
+
+        // Then: 404 Not Found should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should contain problem details
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.That(content, Is.Not.Empty, "Response body should not be empty");
+    }
+
+    [Test]
+    public async Task DeleteRule_InvalidRuleKeyFormat_Returns404WithProblemDetails()
+    {
+        // Given: User has Editor role
+        SwitchToEditor();
+
+        // When: API Client attempts to delete rule with invalid key format
+        var response = await _client.DeleteAsync($"/api/tenant/{_testTenantKey}/payee-rules/invalid-key");
+
+        // Then: 404 Not Found should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+
+        // And: Response should contain problem details
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.That(content, Is.Not.Empty, "Response body should not be empty");
+    }
+
+    #endregion
+
     #region Authentication Tests
 
     [Test]
-    public async Task GetRules_Unauthenticated_Returns401()
+    public async Task GetRules_Unauthenticated_Returns403()
     {
         // Given: No authentication
         using var unauthClient = _factory.CreateClient();
@@ -27,12 +93,12 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // When: Request rules without authentication
         var response = await unauthClient.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules");
 
-        // Then: 401 Unauthorized should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        // Then: 403 Forbidden should be returned (tenant middleware checks access first)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task GetRuleByKey_Unauthenticated_Returns401()
+    public async Task GetRuleByKey_Unauthenticated_Returns403()
     {
         // Given: No authentication
         using var unauthClient = _factory.CreateClient();
@@ -43,12 +109,12 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // When: Request rule without authentication
         var response = await unauthClient.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules/{ruleKey}");
 
-        // Then: 401 Unauthorized should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        // Then: 403 Forbidden should be returned (tenant middleware checks access first)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task CreateRule_Unauthenticated_Returns401()
+    public async Task CreateRule_Unauthenticated_Returns403()
     {
         // Given: No authentication
         using var unauthClient = _factory.CreateClient();
@@ -63,12 +129,12 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // When: Attempt to create rule without authentication
         var response = await unauthClient.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules", ruleDto);
 
-        // Then: 401 Unauthorized should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        // Then: 403 Forbidden should be returned (tenant middleware checks access first)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task UpdateRule_Unauthenticated_Returns401()
+    public async Task UpdateRule_Unauthenticated_Returns403()
     {
         // Given: No authentication
         using var unauthClient = _factory.CreateClient();
@@ -84,12 +150,12 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // When: Attempt to update rule without authentication
         var response = await unauthClient.PutAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules/{ruleKey}", ruleDto);
 
-        // Then: 401 Unauthorized should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        // Then: 403 Forbidden should be returned (tenant middleware checks access first)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]
-    public async Task DeleteRule_Unauthenticated_Returns401()
+    public async Task DeleteRule_Unauthenticated_Returns403()
     {
         // Given: No authentication
         using var unauthClient = _factory.CreateClient();
@@ -100,8 +166,8 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // When: Attempt to delete rule without authentication
         var response = await unauthClient.DeleteAsync($"/api/tenant/{_testTenantKey}/payee-rules/{ruleKey}");
 
-        // Then: 401 Unauthorized should be returned
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        // Then: 403 Forbidden should be returned (tenant middleware checks access first)
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     #endregion
@@ -298,6 +364,33 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task GetRuleByKey_AsEditor_ReturnsRule()
+    {
+        // Given: User has Editor role and creates a rule
+        SwitchToEditor();
+        var createDto = new PayeeMatchingRuleEditDto(
+            PayeePattern: "Test Rule",
+            PayeeIsRegex: false,
+            Category: "Test Category"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules", createDto);
+        var created = await createResponse.Content.ReadFromJsonAsync<PayeeMatchingRuleResultDto>();
+
+        // When: Editor retrieves rule by key
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules/{created!.Key}");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain the rule
+        var retrieved = await response.Content.ReadFromJsonAsync<PayeeMatchingRuleResultDto>();
+        Assert.That(retrieved, Is.Not.Null);
+        Assert.That(retrieved!.Key, Is.EqualTo(created.Key));
+        Assert.That(retrieved.PayeePattern, Is.EqualTo("Test Rule"));
+        Assert.That(retrieved.Category, Is.EqualTo("Test Category"));
+    }
+
+    [Test]
     public async Task UpdateRule_NonExistent_Returns404()
     {
         // Given: User has Editor role
@@ -332,6 +425,92 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
 
         // Then: 404 Not Found should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    #endregion
+
+    #region Query Parameter Tests
+
+    [Test]
+    public async Task GetRules_WithPagination_ReturnsPagedResults()
+    {
+        // Given: User has Viewer role
+        SwitchToViewer();
+
+        // When: Request rules with pagination parameters
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=1&pageSize=10");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain pagination metadata
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<PayeeMatchingRuleResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Metadata.PageNumber, Is.EqualTo(1));
+        Assert.That(result.Metadata.PageSize, Is.EqualTo(10));
+    }
+
+    [Test]
+    public async Task GetRules_WithSorting_ReturnsSortedResults()
+    {
+        // Given: User has Editor role and creates multiple rules
+        SwitchToEditor();
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleEditDto("Zebra", false, "Last"));
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleEditDto("Alpha", false, "First"));
+
+        // When: Request rules sorted by PayeePattern
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?sortBy=PayeePattern");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should be properly sorted
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<PayeeMatchingRuleResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task GetRules_WithSearchText_ReturnsFilteredResults()
+    {
+        // Given: User has Editor role and creates rules with distinct patterns
+        SwitchToEditor();
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleEditDto("Amazon", false, "Shopping"));
+        await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleEditDto("Starbucks", false, "Coffee"));
+
+        // When: Request rules with search text
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?searchText=Amazon");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain search results
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<PayeeMatchingRuleResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task GetRules_WithInvalidPageNumber_ReturnsEmptyResults()
+    {
+        // Given: User has Viewer role
+        SwitchToViewer();
+
+        // When: Request rules with page number beyond available data
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=999&pageSize=10");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: Response should contain empty items but valid metadata
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<PayeeMatchingRuleResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items, Is.Empty);
+        Assert.That(result.Metadata.PageNumber, Is.EqualTo(999));
     }
 
     #endregion
