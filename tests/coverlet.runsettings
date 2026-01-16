@@ -6,7 +6,7 @@
         <Configuration>
           <!-- Include assemblies -->
           <Include>[YoFi.V3.Application]*,[YoFi.V3.Entities]*,[YoFi.V3.Data.Sqlite]*,[YoFi.V3.Controllers]*,[YoFi.V3.Backend]*</Include>
-          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*,[YoFi.V3.Application]System.*</Exclude>
+          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*,[YoFi.V3.Application]System.*,[YoFi.V3.Data.Sqlite]YoFi.V3.Data.Sqlite.Migrations.*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

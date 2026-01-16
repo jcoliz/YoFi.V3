@@ -42,8 +42,7 @@ function Run-TestsWithCoverage {
     Push-Location $TestProjectPath
     try {
         Remove-Item TestResults -Recurse -Force -ErrorAction SilentlyContinue
-        dotnet clean --nologo --verbosity quiet
-        dotnet test --collect:"XPlat Code Coverage" --settings:$SettingsPath
+        dotnet test --no-build --collect:"XPlat Code Coverage" --settings:$SettingsPath
         if ($LASTEXITCODE -ne 0) {
             throw "$TestName execution failed with exit code $LASTEXITCODE"
         }
@@ -88,7 +87,26 @@ try {
     Write-Host "Cleaning up previous coverage results..." -ForegroundColor Cyan
     Remove-Item $outputDir -Recurse -Force -ErrorAction SilentlyContinue
 
-    # Run all test projects with coverage
+    # Clean and build all test projects once
+    Write-Host "Cleaning solution..." -ForegroundColor Cyan
+    Push-Location $repoRoot
+    try {
+        dotnet clean --nologo --verbosity quiet
+        if ($LASTEXITCODE -ne 0) {
+            throw "Clean failed with exit code $LASTEXITCODE"
+        }
+
+        Write-Host "Building solution..." -ForegroundColor Cyan
+        dotnet build --nologo
+        if ($LASTEXITCODE -ne 0) {
+            throw "Build failed with exit code $LASTEXITCODE"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    # Run all test projects with coverage (without rebuilding)
     Run-TestsWithCoverage -TestProjectPath $unitTestPath -TestName "unit tests" -SettingsPath $coverletSettingsPath
     Run-TestsWithCoverage -TestProjectPath $appTestPath -TestName "application integration tests" -SettingsPath $coverletSettingsPath
     Run-TestsWithCoverage -TestProjectPath $controllerTestPath -TestName "controller integration tests" -SettingsPath $coverletSettingsPath
