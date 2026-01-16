@@ -1,29 +1,26 @@
 <#
 .SYNOPSIS
-Runs unit and application integration tests and collects code coverage metrics.
+Runs all unit and integration tests and collects combined code coverage metrics.
 
 .DESCRIPTION
-This script executes ONLY unit tests and application integration tests with code coverage
-collection. It generates both a combined HTML report and individual reports per test layer.
+This script executes unit tests and all three integration test projects (Application,
+Controller, Data) with code coverage collection across the entire application surface area.
+It generates a single combined HTML report showing coverage from all test layers.
 
-Coverage is intentionally limited to Unit + Application Integration tests to drive adoption
-of these layers as the primary testing approach. Controller, Data, and Functional tests are
-excluded from coverage metrics.
+Coverage includes all backend code: Application, Entities, Data.Sqlite, Controllers, and BackEnd.
+Functional tests are excluded as they test through the browser.
 
 .EXAMPLE
 .\Collect-CodeCoverage.ps1
-Runs unit and application integration tests and generates code coverage reports.
+Runs all unit and integration tests and generates a combined code coverage report.
 
 .NOTES
 Requires ReportGenerator to be installed globally:
     dotnet tool install -g dotnet-reportgenerator-globaltool
 
-Reports are generated in:
-- .\bin\coverage\combined\ - Combined coverage from Unit + Application Integration
-- .\bin\coverage\unit\ - Coverage from unit tests only
-- .\bin\coverage\application\ - Coverage from application integration tests only
+The combined report is generated in .\bin\coverage\ and opens automatically in your browser.
 
-The combined report opens automatically in your browser.
+Coverage configuration is defined in tests\coverlet.runsettings.
 
 .LINK
 https://github.com/danielpalme/ReportGenerator
@@ -58,66 +55,59 @@ function Run-TestsWithCoverage {
 
 try {
     $repoRoot = Split-Path $PSScriptRoot -Parent
-    $unitTestPath = "$repoRoot/tests/Unit"
-    $appTestPath = "$repoRoot/tests/Integration.Application"
-    $coverletSettingsPath = "$repoRoot/tests/Unit/coverlet.runsettings"
+    $testsDir = "$repoRoot/tests"
+    $unitTestPath = "$testsDir/Unit"
+    $appTestPath = "$testsDir/Integration.Application"
+    $controllerTestPath = "$testsDir/Integration.Controller"
+    $dataTestPath = "$testsDir/Integration.Data"
+    $coverletSettingsPath = "$testsDir/coverlet.runsettings"
     $outputDir = "$repoRoot/bin/coverage"
 
     # Verify test directories exist
-    if (-not (Test-Path $unitTestPath)) {
-        throw "Unit test directory not found: $unitTestPath"
+    $testPaths = @{
+        "Unit" = $unitTestPath
+        "Integration.Application" = $appTestPath
+        "Integration.Controller" = $controllerTestPath
+        "Integration.Data" = $dataTestPath
     }
-    if (-not (Test-Path $appTestPath)) {
-        throw "Application integration test directory not found: $appTestPath"
+
+    foreach ($testInfo in $testPaths.GetEnumerator()) {
+        if (-not (Test-Path $testInfo.Value)) {
+            throw "$($testInfo.Key) test directory not found: $($testInfo.Value)"
+        }
     }
+
     if (-not (Test-Path $coverletSettingsPath)) {
         throw "Coverlet settings file not found: $coverletSettingsPath"
     }
 
-    Write-Host "Collecting code coverage from Unit + Application Integration tests only" -ForegroundColor Cyan
-    Write-Host "(Controller, Data, and Functional tests excluded from coverage)" -ForegroundColor Gray
+    Write-Host "Collecting combined code coverage from all test layers" -ForegroundColor Cyan
+    Write-Host "(Unit + Integration.Application + Integration.Controller + Integration.Data)" -ForegroundColor Gray
     Write-Host ""
 
     Write-Host "Cleaning up previous coverage results..." -ForegroundColor Cyan
     Remove-Item $outputDir -Recurse -Force -ErrorAction SilentlyContinue
 
-    # Run unit tests
+    # Run all test projects with coverage
     Run-TestsWithCoverage -TestProjectPath $unitTestPath -TestName "unit tests" -SettingsPath $coverletSettingsPath
-
-    # Run application integration tests (PRIMARY coverage layer)
     Run-TestsWithCoverage -TestProjectPath $appTestPath -TestName "application integration tests" -SettingsPath $coverletSettingsPath
+    Run-TestsWithCoverage -TestProjectPath $controllerTestPath -TestName "controller integration tests" -SettingsPath $coverletSettingsPath
+    Run-TestsWithCoverage -TestProjectPath $dataTestPath -TestName "data integration tests" -SettingsPath $coverletSettingsPath
 
-    # Generate individual reports per test layer
-    Write-Host "`nGenerating per-layer coverage reports..." -ForegroundColor Cyan
-
-    Write-Host "  - Unit test coverage..." -ForegroundColor Gray
+    # Generate combined coverage report from all test layers
+    Write-Host "`nGenerating combined coverage report from all test layers..." -ForegroundColor Cyan
     reportgenerator `
-        -reports:"$unitTestPath/TestResults/*/coverage.cobertura.xml" `
-        -targetdir:"$outputDir/unit" `
-        -reporttypes:"Html" | Out-Null
-
-    Write-Host "  - Application integration test coverage..." -ForegroundColor Gray
-    reportgenerator `
-        -reports:"$appTestPath/TestResults/*/coverage.cobertura.xml" `
-        -targetdir:"$outputDir/application" `
-        -reporttypes:"Html" | Out-Null
-
-    # Generate combined coverage report (Unit + Application Integration only)
-    Write-Host "`nGenerating combined coverage report (Unit + Application Integration)..." -ForegroundColor Cyan
-    reportgenerator `
-        -reports:"$unitTestPath/TestResults/*/coverage.cobertura.xml;$appTestPath/TestResults/*/coverage.cobertura.xml" `
-        -targetdir:"$outputDir/combined"
+        -reports:"$unitTestPath/TestResults/*/coverage.cobertura.xml;$appTestPath/TestResults/*/coverage.cobertura.xml;$controllerTestPath/TestResults/*/coverage.cobertura.xml;$dataTestPath/TestResults/*/coverage.cobertura.xml" `
+        -targetdir:"$outputDir"
     if ($LASTEXITCODE -ne 0) {
         throw "Report generation failed with exit code $LASTEXITCODE"
     }
 
-    Write-Host "`nOK Coverage reports generated successfully" -ForegroundColor Green
-    Write-Host "`nCoverage reports available at:" -ForegroundColor Cyan
-    Write-Host "  Combined (Unit + App):  $outputDir/combined/index.html" -ForegroundColor White
-    Write-Host "  Unit only:              $outputDir/unit/index.html" -ForegroundColor White
-    Write-Host "  Application only:       $outputDir/application/index.html" -ForegroundColor White
-    Write-Host "`nOpening combined report in browser..." -ForegroundColor Cyan
-    Start-Process "$outputDir/combined/index.html"
+    Write-Host "`nOK Combined coverage report generated successfully" -ForegroundColor Green
+    Write-Host "`nCoverage report available at:" -ForegroundColor Cyan
+    Write-Host "  $outputDir/index.html" -ForegroundColor White
+    Write-Host "`nOpening report in browser..." -ForegroundColor Cyan
+    Start-Process "$outputDir/index.html"
 }
 catch {
     Write-Error "Failed to collect code coverage: $_"
