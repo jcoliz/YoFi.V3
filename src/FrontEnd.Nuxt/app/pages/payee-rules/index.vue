@@ -381,13 +381,6 @@ function formatDate(date: Date | undefined): string {
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h1 data-test-id="page-heading">Payee Matching Rules</h1>
-          <p
-            v-if="totalCount > 0"
-            class="text-muted"
-            data-test-id="total-rules-count"
-          >
-            {{ totalCount }} {{ totalCount === 1 ? 'rule' : 'rules' }}
-          </p>
         </div>
         <button
           v-if="canEditRules"
@@ -629,7 +622,7 @@ function formatDate(date: Date | undefined): string {
 
           <!-- Pagination -->
           <PaginationBar
-            v-if="paginationMetadata && paginationMetadata.totalPages > 1"
+            v-if="paginationMetadata"
             :page-info="paginationMetadata"
             @page-updated="handlePageChange"
           />
