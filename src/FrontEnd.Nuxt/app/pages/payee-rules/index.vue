@@ -15,54 +15,143 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
+import PayeeRuleSortSelector from '~/components/payee-rules/PayeeRuleSortSelector.vue'
 
 definePageMeta({
-  title: 'Payee Matching Rules',
+  title: 'Rules',
   order: 4,
   auth: true,
   layout: 'chrome',
 })
 
+/**
+ * User preferences store for managing current tenant/workspace selection.
+ */
 const userPreferencesStore = useUserPreferencesStore()
 
-// API Client
+/**
+ * Base URL for API requests.
+ */
 const { baseUrl } = useApiBaseUrl()
+
+/**
+ * Authenticated fetch function for API calls.
+ */
 const authFetch = useAuthFetch()
+
+/**
+ * API client for payee matching rule operations.
+ */
 const payeeRulesClient = new PayeeMatchingRulesClient(baseUrl, authFetch)
 
-// Page ready state (for SSR/hydration)
+/**
+ * Page ready state for SSR/hydration.
+ * Prevents hydration mismatches by deferring rendering until mounted.
+ */
 const ready = ref(false)
 
-// State
+/**
+ * List of payee matching rules loaded from the API.
+ */
 const rules = ref<PayeeMatchingRuleResultDto[]>([])
+
+/**
+ * Whether a loading operation is in progress.
+ */
 const loading = ref(false)
+
+/**
+ * Error details from failed API operations.
+ */
 const error = ref<IProblemDetails | undefined>(undefined)
+
+/**
+ * Whether to display the error message.
+ */
 const showError = ref(false)
+
+/**
+ * Whether the create rule dialog is visible.
+ */
 const showCreateDialog = ref(false)
+
+/**
+ * Whether the edit rule dialog is visible.
+ */
 const showEditDialog = ref(false)
+
+/**
+ * Whether the delete confirmation dialog is visible.
+ */
 const showDeleteDialog = ref(false)
+
+/**
+ * The rule currently selected for editing or deletion.
+ */
 const selectedRule = ref<PayeeMatchingRuleResultDto | null>(null)
 
-// Search and sort state
+/**
+ * Search text filter for rules.
+ */
 const searchText = ref('')
+
+/**
+ * Sort order for rules list.
+ */
 const sortBy = ref<PayeeRuleSortBy>(PayeeRuleSortBy.PayeePattern)
 
-// Pagination state
+/**
+ * Pagination metadata from the last API response.
+ */
 const paginationMetadata = ref<any>(null)
+
+/**
+ * Number of rules to display per page.
+ */
 const pageSize = ref(50)
+
+/**
+ * Current page number (1-based).
+ */
 const requestedPage = ref(1)
+
+/**
+ * Total count of rules matching the current filters.
+ *
+ * @returns Total count from pagination metadata or 0
+ */
 const totalCount = computed(() => paginationMetadata.value?.totalCount || 0)
 
-// Computed
+/**
+ * Current tenant/workspace key from user preferences.
+ *
+ * @returns Tenant key or undefined if no workspace selected
+ */
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
+
+/**
+ * Whether a workspace is currently selected.
+ *
+ * @returns True if user has selected a workspace
+ */
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
+
+/**
+ * Whether the current user has permission to edit rules.
+ * Requires Editor or Owner role in the current workspace.
+ *
+ * @returns True if user can create, edit, or delete rules
+ */
 const canEditRules = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
   if (!currentTenant?.role) return false
   return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
 })
 
-// Watch for workspace changes
+/**
+ * Watch for workspace changes and reload rules.
+ * Clears rules list when no workspace is selected.
+ */
 watch(currentTenantKey, async (newKey) => {
   if (newKey) {
     requestedPage.value = 1
@@ -72,7 +161,9 @@ watch(currentTenantKey, async (newKey) => {
   }
 })
 
-// Load rules on mount
+/**
+ * Load user preferences and initial rules on component mount.
+ */
 onMounted(async () => {
   ready.value = true
   userPreferencesStore.loadFromStorage()
@@ -81,7 +172,10 @@ onMounted(async () => {
   }
 })
 
-// Methods
+/**
+ * Loads payee matching rules from the API.
+ * Applies current search, sort, and pagination settings.
+ */
 async function loadRules() {
   if (!currentTenantKey.value) {
     error.value = {
@@ -115,20 +209,39 @@ async function loadRules() {
   }
 }
 
+/**
+ * Opens the create rule dialog.
+ */
 function openCreateDialog() {
   showCreateDialog.value = true
 }
 
+/**
+ * Opens the edit rule dialog with the specified rule's data.
+ *
+ * @param rule - The rule to edit
+ */
 function openEditDialog(rule: PayeeMatchingRuleResultDto) {
   selectedRule.value = rule
   showEditDialog.value = true
 }
 
+/**
+ * Opens the delete confirmation dialog for the specified rule.
+ *
+ * @param rule - The rule to delete
+ */
 function openDeleteDialog(rule: PayeeMatchingRuleResultDto) {
   selectedRule.value = rule
   showDeleteDialog.value = true
 }
 
+/**
+ * Creates a new payee matching rule.
+ * Reloads the rules list on success and closes the dialog.
+ *
+ * @param rule - The rule data to create
+ */
 async function createRule(rule: PayeeMatchingRuleEditDto) {
   if (!currentTenantKey.value) return
 
@@ -148,6 +261,12 @@ async function createRule(rule: PayeeMatchingRuleEditDto) {
   }
 }
 
+/**
+ * Updates an existing payee matching rule.
+ * Reloads the rules list on success and closes the dialog.
+ *
+ * @param rule - The updated rule data
+ */
 async function updateRule(rule: PayeeMatchingRuleEditDto) {
   if (!selectedRule.value?.key || !currentTenantKey.value) return
 
@@ -167,6 +286,10 @@ async function updateRule(rule: PayeeMatchingRuleEditDto) {
   }
 }
 
+/**
+ * Deletes the currently selected payee matching rule.
+ * Reloads the rules list on success and closes the dialog.
+ */
 async function deleteRule() {
   if (!selectedRule.value?.key || !currentTenantKey.value) return
 
@@ -186,27 +309,50 @@ async function deleteRule() {
   }
 }
 
+/**
+ * Handles the search button click.
+ * Resets to page 1 and reloads rules with the current search text.
+ */
 function handleSearch() {
   requestedPage.value = 1
   loadRules()
 }
 
+/**
+ * Clears the search text and reloads all rules.
+ * Resets to page 1.
+ */
 function clearSearch() {
   searchText.value = ''
   requestedPage.value = 1
   loadRules()
 }
 
+/**
+ * Handles sort order changes.
+ * Resets to page 1 and reloads rules with the new sort order.
+ */
 function handleSortChange() {
   requestedPage.value = 1
   loadRules()
 }
 
+/**
+ * Handles pagination page changes.
+ *
+ * @param page - The page number to load (1-based)
+ */
 function handlePageChange(page: number) {
   requestedPage.value = page
   loadRules()
 }
 
+/**
+ * Formats a date as a relative time string (e.g., "2 days ago", "Never").
+ *
+ * @param date - The date to format
+ * @returns Human-readable relative time string
+ */
 function formatDate(date: Date | undefined): string {
   if (!date) return 'Never'
   const d = new Date(date)
@@ -286,67 +432,52 @@ function formatDate(date: Date | undefined): string {
         class="card mb-4"
       >
         <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label
-                for="searchText"
-                class="form-label"
-                >Search</label
-              >
-              <div class="input-group">
-                <input
-                  id="searchText"
-                  v-model="searchText"
-                  type="text"
-                  class="form-control"
-                  placeholder="Search payee or category..."
-                  data-test-id="search-input"
-                  @keyup.enter="handleSearch"
-                />
-                <button
-                  class="btn btn-outline-secondary"
-                  data-test-id="search-button"
-                  :disabled="loading || !ready"
-                  @click="handleSearch"
-                >
-                  <FeatherIcon
-                    icon="search"
-                    size="16"
-                  />
-                </button>
-                <button
-                  v-if="searchText"
-                  class="btn btn-outline-secondary"
-                  data-test-id="clear-search-button"
-                  :disabled="loading || !ready"
-                  @click="clearSearch"
-                >
-                  <FeatherIcon
-                    icon="x"
-                    size="16"
-                  />
-                </button>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <label
-                for="sortBy"
-                class="form-label"
-                >Sort By</label
-              >
-              <select
-                id="sortBy"
-                v-model="sortBy"
-                class="form-select"
-                data-test-id="sort-dropdown"
+          <label
+            for="searchText"
+            class="form-label"
+            >Search</label
+          >
+          <div class="d-flex gap-2">
+            <div class="input-group flex-grow-1">
+              <input
+                id="searchText"
+                v-model="searchText"
+                type="text"
+                class="form-control"
+                placeholder="Search payee or category..."
+                data-test-id="search-input"
+                @keyup.enter="handleSearch"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                data-test-id="search-button"
                 :disabled="loading || !ready"
-                @change="handleSortChange"
+                @click="handleSearch"
               >
-                <option :value="PayeeRuleSortBy.PayeePattern">Payee Pattern (A-Z)</option>
-                <option :value="PayeeRuleSortBy.Category">Category (A-Z)</option>
-                <option :value="PayeeRuleSortBy.LastUsedAt">Last Used</option>
-              </select>
+                <FeatherIcon
+                  icon="search"
+                  size="16"
+                />
+              </button>
+              <button
+                v-if="searchText"
+                class="btn btn-outline-secondary"
+                data-test-id="clear-search-button"
+                :disabled="loading || !ready"
+                @click="clearSearch"
+              >
+                <FeatherIcon
+                  icon="x"
+                  size="16"
+                />
+              </button>
             </div>
+            <!-- Sort Selector Component -->
+            <PayeeRuleSortSelector
+              v-model="sortBy"
+              :disabled="loading || !ready"
+              @update:model-value="handleSortChange"
+            />
           </div>
         </div>
       </div>

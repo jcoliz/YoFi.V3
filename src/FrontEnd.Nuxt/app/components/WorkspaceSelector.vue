@@ -10,21 +10,43 @@
 import { TenantClient, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
-// Store
+/**
+ * User preferences store for managing current tenant selection.
+ */
 const userPreferencesStore = useUserPreferencesStore()
 
-// Emits
+/**
+ * Component events emitted by WorkspaceSelector.
+ */
 const emit = defineEmits<{
+  /** Emitted when user changes the current workspace */
   change: [tenant: TenantRoleResultDto]
+
+  /** Emitted when a new workspace is created */
   created: [tenant: TenantRoleResultDto]
 }>()
 
-// State
+/**
+ * List of available tenants/workspaces for the current user.
+ */
 const tenants = ref<TenantRoleResultDto[]>([])
+
+/**
+ * Whether the component is currently loading tenant data.
+ */
 const loading = ref(false)
+
+/**
+ * Error message from failed operations.
+ */
 const error = ref<string>('')
 
-// Computed
+/**
+ * Computes the currently selected tenant/workspace.
+ * First checks the store, then searches the loaded tenants list.
+ *
+ * @returns The current tenant or undefined if none is selected
+ */
 const currentTenant = computed(() => {
   // First check if we have it in the store
   if (userPreferencesStore.currentTenant) {
@@ -35,7 +57,12 @@ const currentTenant = computed(() => {
   return tenants.value.find((t) => t.key === key)
 })
 
-// Helper function to get role name
+/**
+ * Converts a TenantRole enum value to a human-readable string.
+ *
+ * @param role - The tenant role enum value
+ * @returns Human-readable role name (Owner, Editor, Viewer, or Unknown)
+ */
 function getRoleName(role: TenantRole | undefined): string {
   if (!role) return 'Unknown'
   switch (role) {
@@ -50,12 +77,25 @@ function getRoleName(role: TenantRole | undefined): string {
   }
 }
 
-// API Client
+/**
+ * Base URL for API requests.
+ */
 const { baseUrl } = useApiBaseUrl()
+
+/**
+ * Authenticated fetch function for API calls.
+ */
 const authFetch = useAuthFetch()
+
+/**
+ * API client for tenant operations.
+ */
 const tenantClient = new TenantClient(baseUrl, authFetch)
 
-// Load tenants on mount
+/**
+ * Load tenants on component mount.
+ * First loads preferences from localStorage, then fetches available tenants.
+ */
 onMounted(async () => {
   // Load preferences from localStorage first
   userPreferencesStore.loadFromStorage()
@@ -64,7 +104,10 @@ onMounted(async () => {
   await loadTenants()
 })
 
-// Methods
+/**
+ * Loads the list of available tenants from the API.
+ * Verifies stored tenant still exists and selects first tenant if none selected.
+ */
 async function loadTenants() {
   loading.value = true
   error.value = ''
@@ -98,6 +141,12 @@ async function loadTenants() {
   }
 }
 
+/**
+ * Selects a tenant as the current workspace.
+ * Updates the store and emits a change event.
+ *
+ * @param tenant - The tenant to select as current
+ */
 function selectTenant(tenant: TenantRoleResultDto) {
   if (tenant.key === userPreferencesStore.getCurrentTenantKey) return
 
@@ -108,6 +157,11 @@ function selectTenant(tenant: TenantRoleResultDto) {
   emit('change', tenant)
 }
 
+/**
+ * Handles workspace selection change from the dropdown.
+ *
+ * @param event - The change event from the select element
+ */
 function onWorkspaceChange(event: Event) {
   const select = event.target as HTMLSelectElement
   const selectedKey = select.value
@@ -120,7 +174,9 @@ function onWorkspaceChange(event: Event) {
   }
 }
 
-// Expose methods for parent component
+/**
+ * Expose methods and computed properties for parent component access.
+ */
 defineExpose({
   loadTenants,
   currentTenant,

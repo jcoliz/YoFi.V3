@@ -249,3 +249,187 @@ const props = withDefaults(defineProps<Props>(), {
 - **DON'T** rely on CSS classes for test locators (they change with styling)
 - **DON'T** rely on text content for locators (changes with i18n, copy updates)
 - **DON'T** use ARIA roles alone (not stable enough for automation)
+
+## Documentation Pattern
+
+### JSDoc for TypeScript Code
+
+**ALWAYS** add JSDoc documentation comments to all new TypeScript code, including Vue pages and components.
+
+TypeScript code uses **JSDoc** (not Javadoc) for documentation. JSDoc uses `/** */` block comment syntax and is the standard for JavaScript and TypeScript.
+
+#### What to Document
+
+**ALWAYS document:**
+- Component-level overview (at the top of `<script setup>`)
+- Interfaces (Props, Emits, custom types)
+- Reactive references and composables
+- Functions and methods
+- Computed properties
+- Watchers
+- Lifecycle hooks (when non-obvious)
+
+#### JSDoc Tags
+
+Common tags to use:
+- `@param` - Document function parameters
+- `@returns` / `@return` - Document return values
+- `@throws` - Document exceptions (rare in Vue/TypeScript)
+- `@example` - Provide usage examples (for composables/utilities)
+- `@deprecated` - Mark deprecated code
+
+#### Principles
+
+1. **Focus on behavior, not types** - TypeScript's type system provides type information, so JSDoc should explain *what the code does* rather than duplicating type annotations
+
+2. **Be concise** - Short, clear descriptions are better than lengthy explanations
+
+3. **IDE IntelliSense** - JSDoc comments appear in IDE tooltips and autocomplete, making them valuable for developer experience
+
+#### Examples
+
+**Component overview:**
+```vue
+<script setup lang="ts">
+/**
+ * Payee Rules Management Page
+ *
+ * Allows users to view, search, sort, create, edit, and delete payee matching rules.
+ */
+```
+
+**Props interface:**
+```typescript
+/**
+ * Component props for PayeeRuleDialog.
+ */
+interface Props {
+  /** Whether the dialog is visible */
+  show: boolean
+
+  /** Dialog mode - create new rule or edit existing rule */
+  mode: 'create' | 'edit'
+
+  /** Whether the save operation is in progress */
+  loading?: boolean
+
+  /** Initial value for payee pattern field (used in edit mode) */
+  initialPayeePattern?: string
+}
+```
+
+**Emits:**
+```typescript
+/**
+ * Component events emitted by PayeeRuleDialog.
+ */
+const emit = defineEmits<{
+  /** Emitted when dialog visibility changes (v-model support) */
+  'update:show': [value: boolean]
+
+  /** Emitted when user saves the rule */
+  save: [rule: PayeeMatchingRuleEditDto]
+
+  /** Emitted when user cancels the dialog */
+  cancel: []
+}>()
+```
+
+**Reactive references:**
+```typescript
+/**
+ * List of payee matching rules loaded from the API.
+ */
+const rules = ref<PayeeMatchingRuleResultDto[]>([])
+
+/**
+ * Whether a loading operation is in progress.
+ */
+const loading = ref(false)
+
+/**
+ * User preferences store for managing current tenant/workspace selection.
+ */
+const userPreferencesStore = useUserPreferencesStore()
+```
+
+**Functions:**
+```typescript
+/**
+ * Creates a new payee matching rule.
+ * Reloads the rules list on success and closes the dialog.
+ *
+ * @param rule - The rule data to create
+ */
+async function createRule(rule: PayeeMatchingRuleEditDto) {
+  // Implementation
+}
+
+/**
+ * Converts a TenantRole enum value to a human-readable string.
+ *
+ * @param role - The tenant role enum value
+ * @returns Human-readable role name (Owner, Editor, Viewer, or Unknown)
+ */
+function getRoleName(role: TenantRole | undefined): string {
+  // Implementation
+}
+```
+
+**Computed properties:**
+```typescript
+/**
+ * Whether the current user has permission to edit rules.
+ * Requires Editor or Owner role in the current workspace.
+ *
+ * @returns True if user can create, edit, or delete rules
+ */
+const canEditRules = computed(() => {
+  // Implementation
+})
+
+/**
+ * Total count of rules matching the current filters.
+ *
+ * @returns Total count from pagination metadata or 0
+ */
+const totalCount = computed(() => paginationMetadata.value?.totalCount || 0)
+```
+
+**Watchers:**
+```typescript
+/**
+ * Watch for workspace changes and reload rules.
+ * Clears rules list when no workspace is selected.
+ */
+watch(currentTenantKey, async (newKey) => {
+  // Implementation
+})
+```
+
+**Lifecycle hooks:**
+```typescript
+/**
+ * Load user preferences and initial rules on component mount.
+ */
+onMounted(async () => {
+  // Implementation
+})
+```
+
+#### Rules
+
+- **DO** add JSDoc to all new TypeScript code (components, pages, composables, utilities)
+- **DO** document the "why" and "what", not the "how"
+- **DO** use `@param` for all function parameters
+- **DO** use `@returns` for functions that return values (except `void`, `Task`, or `Task<IActionResult>`)
+- **DON'T** duplicate type information that TypeScript already provides
+- **DON'T** use `@param {type}` syntax - TypeScript types are sufficient
+- **DON'T** write lengthy documentation - keep it concise and focused
+
+#### Reference Examples
+
+See these files for comprehensive JSDoc documentation examples:
+- [`src/FrontEnd.Nuxt/app/components/PayeeRuleDialog.vue`](app/components/PayeeRuleDialog.vue)
+- [`src/FrontEnd.Nuxt/app/components/WorkspaceSelector.vue`](app/components/WorkspaceSelector.vue)
+- [`src/FrontEnd.Nuxt/app/pages/payee-rules/index.vue`](app/pages/payee-rules/index.vue)

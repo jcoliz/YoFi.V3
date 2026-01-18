@@ -8,13 +8,29 @@
 
 import { PayeeMatchingRuleEditDto } from '~/utils/apiclient'
 
+/**
+ * Component props for PayeeRuleDialog.
+ */
 interface Props {
+  /** Whether the dialog is visible */
   show: boolean
+
+  /** Dialog mode - create new rule or edit existing rule */
   mode: 'create' | 'edit'
+
+  /** Whether the save operation is in progress */
   loading?: boolean
+
+  /** Initial value for payee pattern field (used in edit mode) */
   initialPayeePattern?: string
+
+  /** Initial value for category field (used in edit mode) */
   initialCategory?: string
+
+  /** Initial value for regex checkbox (used in edit mode) */
   initialIsRegex?: boolean
+
+  /** Unique identifier of the rule being edited (used in edit mode) */
   ruleKey?: string
 }
 
@@ -26,27 +42,42 @@ const props = withDefaults(defineProps<Props>(), {
   ruleKey: undefined,
 })
 
+/**
+ * Component events emitted by PayeeRuleDialog.
+ */
 const emit = defineEmits<{
+  /** Emitted when dialog visibility changes (v-model support) */
   'update:show': [value: boolean]
+
+  /** Emitted when user saves the rule */
   save: [rule: PayeeMatchingRuleEditDto]
+
+  /** Emitted when user cancels the dialog */
   cancel: []
 }>()
 
-// Form data
+/**
+ * Form data model containing the rule fields.
+ */
 const formData = ref({
   payeePattern: '',
   payeeIsRegex: false,
   category: '',
 })
 
-// Form errors
+/**
+ * Form validation error messages.
+ */
 const formErrors = ref({
   payeePattern: '',
   category: '',
   regex: '',
 })
 
-// Watch for prop changes to reset form
+/**
+ * Watch for dialog visibility changes to reset form state.
+ * When the dialog opens, initializes form fields with prop values.
+ */
 watch(
   () => props.show,
   (newShow) => {
@@ -66,6 +97,11 @@ watch(
   },
 )
 
+/**
+ * Validates the form fields.
+ *
+ * @returns True if all validations pass, false otherwise
+ */
 function validateForm(): boolean {
   formErrors.value = {
     payeePattern: '',
@@ -93,6 +129,10 @@ function validateForm(): boolean {
   return isValid
 }
 
+/**
+ * Handles the save button click.
+ * Validates the form and emits the save event with rule data.
+ */
 function handleSave() {
   if (!validateForm()) return
 
@@ -105,15 +145,29 @@ function handleSave() {
   emit('save', rule)
 }
 
+/**
+ * Handles the cancel button click.
+ * Emits cancel event and closes the dialog.
+ */
 function handleCancel() {
   emit('cancel')
   emit('update:show', false)
 }
 
+/**
+ * Computes the dialog title based on the current mode.
+ *
+ * @returns "Create Payee Matching Rule" for create mode, "Edit Payee Matching Rule" for edit mode
+ */
 const dialogTitle = computed(() => {
   return props.mode === 'create' ? 'Create Payee Matching Rule' : 'Edit Payee Matching Rule'
 })
 
+/**
+ * Computes the primary button text based on mode and loading state.
+ *
+ * @returns "Creating..." or "Updating..." when loading, otherwise "Create" or "Update"
+ */
 const primaryButtonText = computed(() => {
   if (props.loading) {
     return props.mode === 'create' ? 'Creating...' : 'Updating...'
@@ -192,8 +246,8 @@ const primaryButtonText = computed(() => {
         Use regex pattern (case-insensitive)
       </label>
       <small class="form-text text-muted d-block">
-        If checked, the pattern will be treated as a regular expression.
-        If unchecked, it will be treated as a simple substring match.
+        If checked, the pattern will be treated as a regular expression. If unchecked, it will be
+        treated as a simple substring match.
       </small>
     </div>
 
@@ -214,9 +268,7 @@ const primaryButtonText = computed(() => {
         maxlength="200"
         data-test-id="category-input"
       />
-      <small class="form-text text-muted">
-        {{ formData.category.length }} / 200 characters
-      </small>
+      <small class="form-text text-muted"> {{ formData.category.length }} / 200 characters </small>
       <div
         v-if="formErrors.category"
         class="invalid-feedback"
