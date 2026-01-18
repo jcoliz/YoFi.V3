@@ -614,7 +614,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 
 **Table Structure:**
 - Table element: `data-test-id="payee-rules"`
-- Table headers: `data-test-id="payee-pattern"`, `data-test-id="category"`, `data-test-id="last-used"`, `data-test-id="match-count"`, `data-test-id="actions"`
+- Table headers: Convey what's shown in the column `data-test-id="payee-pattern"`, `data-test-id="category"`, `data-test-id="last-used"`, `data-test-id="match-count"`, `data-test-id="actions"`
 - Each rule row (TR element): `data-test-id="row-{key}"`
 - Edit button (within row): `data-test-id="edit-button"`
 - Delete button (within row): `data-test-id="delete-button"`
@@ -668,7 +668,8 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Button/action labeled: "Create Rule" or "Create Rule from This"
 
 **Dialog:**
-- **Reusable Vue component:** Same Quick Edit modal dialog component used on Payee Rules page
+- **IMPORTANT: Reusable Vue component:** This dialog MUST use the same Quick Edit modal dialog component as the "New Rule" dialog on the Payee Rules management page
+- **Common component requirement:** Both the Payee Rules page and the Transactions page should share a single dialog component to ensure consistent UX and reduce code duplication
 - Component should accept props for pre-population and mode (create vs edit)
 - Title: "Create Payee Matching Rule"
 - Fields pre-populated from transaction
