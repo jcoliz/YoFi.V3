@@ -4,6 +4,3 @@
 [submodule "submodules/NuxtIdentity"]
 	path = submodules/NuxtIdentity
 	url = https://github.com/jcoliz/NuxtIdentity.git
-[submodule "submodules/OFXSharp"]
-	path = submodules/OFXSharp
-	url = https://github.com/jcoliz/OFXSharp.git
