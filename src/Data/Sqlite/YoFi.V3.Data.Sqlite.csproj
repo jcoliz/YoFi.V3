@@ -13,9 +13,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="NuxtIdentity.EntityFrameworkCore" Version="0.0.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Entities\YoFi.V3.Entities.csproj" />
-    <ProjectReference Include="..\..\..\submodules\NuxtIdentity\src\EntityFrameworkCore\NuxtIdentity.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>
