@@ -9,10 +9,6 @@ COPY src/Controllers/YoFi.V3.Controllers.csproj src/Controllers/
 COPY src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj src/Data/Sqlite/
 COPY src/Application/YoFi.V3.Application.csproj src/Application/
 COPY src/BackEnd/YoFi.V3.BackEnd.csproj src/BackEnd/
-COPY submodules/NuxtIdentity/src/Core/NuxtIdentity.Core.csproj submodules/NuxtIdentity/src/Core/
-COPY submodules/NuxtIdentity/src/EntityFrameworkCore/NuxtIdentity.EntityFrameworkCore.csproj submodules/NuxtIdentity/src/EntityFrameworkCore/
-COPY submodules/NuxtIdentity/src/AspNetCore/NuxtIdentity.AspNetCore.csproj submodules/NuxtIdentity/src/AspNetCore/
-COPY submodules/OFXSharp/source/OfxSharp/OfxSharp.csproj submodules/OFXSharp/source/OfxSharp/
 
 WORKDIR /source/src/BackEnd
 RUN dotnet restore
