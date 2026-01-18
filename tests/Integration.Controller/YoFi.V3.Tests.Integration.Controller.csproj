@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BackEnd\YoFi.V3.BackEnd.csproj" />
-    <ProjectReference Include="..\..\submodules\NuxtIdentity\src\Core\NuxtIdentity.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
