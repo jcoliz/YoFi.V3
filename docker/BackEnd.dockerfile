@@ -22,7 +22,6 @@ ENV SOLUTION_VERSION=$SOLUTION_VERSION
 # copy everything else and build app
 WORKDIR /source
 COPY src/ src/
-COPY submodules/ submodules/
 WORKDIR /source/src/BackEnd
 RUN dotnet publish --self-contained false -o /app
 
