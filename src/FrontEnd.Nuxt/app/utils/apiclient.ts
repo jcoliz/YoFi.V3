@@ -2340,15 +2340,21 @@ export class TransactionsClient {
     }
 
     /**
-     * Retrieves all transactions for the tenant, optionally filtered by date range.
+     * Retrieves paginated transactions for the tenant, optionally filtered by date range.
+     * @param pageNumber (optional) Page number to retrieve (1-based). If not specified, defaults to first page.
+     * @param pageSize (optional) Number of items per page. If not specified, uses default page size.
      * @param fromDate (optional) The starting date for the date range filter (inclusive). If null, no lower bound is applied.
      * @param toDate (optional) The ending date for the date range filter (inclusive). If null, no upper bound is applied.
      */
-    getTransactions(fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<TransactionResultDto[]> {
+    getTransactions(pageNumber: number | null | undefined, pageSize: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (pageNumber !== undefined && pageNumber !== null)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize !== undefined && pageSize !== null)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
         if (toDate !== undefined && toDate !== null)
@@ -2367,21 +2373,14 @@ export class TransactionsClient {
         });
     }
 
-    protected processGetTransactions(response: Response): Promise<TransactionResultDto[]> {
+    protected processGetTransactions(response: Response): Promise<PaginatedResultDtoOfTransactionResultDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200!.push(TransactionResultDto.fromJS(item));
-            }
-            else {
-                result200 = null as any;
-            }
+            result200 = PaginatedResultDtoOfTransactionResultDto.fromJS(resultData200);
             return result200;
             });
         } else if (status === 400) {
@@ -2417,7 +2416,7 @@ export class TransactionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<TransactionResultDto[]>(null as any);
+        return Promise.resolve<PaginatedResultDtoOfTransactionResultDto>(null as any);
     }
 
     /**
@@ -4956,6 +4955,54 @@ export class PaginatedResultDtoOfString implements IPaginatedResultDtoOfString {
 
 export interface IPaginatedResultDtoOfString {
     items?: string[];
+    metadata?: PaginationMetadata;
+}
+
+export class PaginatedResultDtoOfTransactionResultDto implements IPaginatedResultDtoOfTransactionResultDto {
+    items?: TransactionResultDto[];
+    metadata?: PaginationMetadata;
+
+    constructor(data?: IPaginatedResultDtoOfTransactionResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(TransactionResultDto.fromJS(item));
+            }
+            this.metadata = _data["metadata"] ? PaginationMetadata.fromJS(_data["metadata"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): PaginatedResultDtoOfTransactionResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PaginatedResultDtoOfTransactionResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["metadata"] = this.metadata ? this.metadata.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IPaginatedResultDtoOfTransactionResultDto {
+    items?: TransactionResultDto[];
     metadata?: PaginationMetadata;
 }
 

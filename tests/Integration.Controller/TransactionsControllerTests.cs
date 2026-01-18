@@ -894,13 +894,13 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         // Then: 200 OK should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Response should be TransactionResultDto collection (no new fields)
-        var transactions = await response.Content.ReadFromJsonAsync<ICollection<TransactionResultDto>>();
-        Assert.That(transactions, Is.Not.Null);
-        Assert.That(transactions!.Count, Is.GreaterThan(0));
+        // And: Response should be PaginatedResultDto with TransactionResultDto items
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items.Count, Is.GreaterThan(0));
 
         // And: TransactionResultDto does not contain Memo, Source, ExternalId
-        var firstTransaction = transactions.First();
+        var firstTransaction = result.Items.First();
         Assert.That(firstTransaction.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(firstTransaction.Payee, Is.Not.Null);
     }

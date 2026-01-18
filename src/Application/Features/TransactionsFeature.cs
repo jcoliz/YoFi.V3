@@ -19,13 +19,23 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
     /// <summary>
-    /// Gets transactions for the current tenant, optionally filtered by date range.
+    /// Gets paginated transactions for the current tenant, optionally filtered by date range.
     /// </summary>
+    /// <param name="pageNumber">Page number to retrieve (1-based). If null, defaults to first page.</param>
+    /// <param name="pageSize">Number of items per page. If null, uses default page size.</param>
     /// <param name="fromDate">Optional start date for filtering transactions (inclusive).</param>
     /// <param name="toDate">Optional end date for filtering transactions (inclusive).</param>
-    /// <returns>Requested transactions for the current tenant.</returns>
-    public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsync(DateOnly? fromDate = null, DateOnly? toDate = null)
+    /// <returns>Paginated result containing transactions and pagination metadata.</returns>
+    public async Task<PaginatedResultDto<TransactionResultDto>> GetTransactionsAsync(
+        int? pageNumber = null,
+        int? pageSize = null,
+        DateOnly? fromDate = null,
+        DateOnly? toDate = null)
     {
+        // Apply defaults
+        var actualPageNumber = pageNumber ?? 1;
+        var actualPageSize = pageSize ?? 50;
+
         // Validate date range logic
         if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
         {
@@ -34,6 +44,9 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
                 "From date cannot be later than to date."
             );
         }
+
+        // Enforce max page size
+        actualPageSize = Math.Min(actualPageSize, 1000);
 
         var query = GetBaseTransactionQuery();
 
@@ -47,11 +60,21 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             query = query.Where(t => t.Date <= toDate.Value);
         }
 
-        var dtoQuery = query.Select(ToResultDto);
+        // Get total count before pagination
+        var totalCount = await dataProvider.CountAsync(query);
 
-        var result = await dataProvider.ToListNoTrackingAsync(dtoQuery);
+        // Apply pagination
+        var paginatedQuery = query
+            .Skip((actualPageNumber - 1) * actualPageSize)
+            .Take(actualPageSize);
 
-        return result;
+        var dtoQuery = paginatedQuery.Select(ToResultDto);
+        var items = await dataProvider.ToListNoTrackingAsync(dtoQuery);
+
+        // Calculate pagination metadata
+        var metadata = PaginationHelper.Calculate(actualPageNumber, actualPageSize, totalCount);
+
+        return new PaginatedResultDto<TransactionResultDto>(items, metadata);
     }
 
     /// <summary>

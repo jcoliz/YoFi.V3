@@ -58,7 +58,7 @@ onMounted(() => {
           icon="sliders"
           size="16"
         />
-    </button>
+      </button>
     </template>
     <template #default>
       <ul

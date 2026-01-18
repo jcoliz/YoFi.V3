@@ -202,15 +202,15 @@ public class EndToEndAuthenticationTests
         // Then: Request should succeed
         Assert.That(getTransactionsResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Response should contain both transactions
-        var retrievedTransactions = await getTransactionsResponse.Content
-            .ReadFromJsonAsync<ICollection<TransactionResultDto>>();
-        Assert.That(retrievedTransactions, Is.Not.Null);
-        Assert.That(retrievedTransactions!.Count, Is.EqualTo(2));
+        // And: Response should contain both transactions in paginated result
+        var result = await getTransactionsResponse.Content
+            .ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items.Count, Is.EqualTo(2));
 
         // And: Transactions should match the created data
-        var tx1 = retrievedTransactions.FirstOrDefault(t => t.Payee == "Test Payee 1");
-        var tx2 = retrievedTransactions.FirstOrDefault(t => t.Payee == "Test Payee 2");
+        var tx1 = result.Items.FirstOrDefault(t => t.Payee == "Test Payee 1");
+        var tx2 = result.Items.FirstOrDefault(t => t.Payee == "Test Payee 2");
         Assert.That(tx1, Is.Not.Null, "Transaction 1 should be in results");
         Assert.That(tx1!.Amount, Is.EqualTo(100.50m));
         Assert.That(tx1.Key, Is.EqualTo(createdTx1.Key));

@@ -6072,21 +6072,25 @@ namespace YoFi.V3.Tests.Functional.Generated
     public partial interface ITransactionsClient
     {
         /// <summary>
-        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
+        /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
+        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
+        /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
+        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates a new transaction in the tenant workspace.
@@ -6220,24 +6224,28 @@ namespace YoFi.V3.Tests.Functional.Generated
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
         /// <summary>
-        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
+        /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
+        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey)
+        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey)
         {
-            return GetTransactionsAsync(fromDate, toDate, tenantKey, System.Threading.CancellationToken.None);
+            return GetTransactionsAsync(pageNumber, pageSize, fromDate, toDate, tenantKey, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Retrieves all transactions for the tenant, optionally filtered by date range.
+        /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
+        /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
+        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TransactionResultDto>> GetTransactionsAsync(System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
             if (tenantKey == null)
                 throw new System.ArgumentNullException("tenantKey");
@@ -6258,6 +6266,14 @@ namespace YoFi.V3.Tests.Functional.Generated
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(tenantKey, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/Transactions");
                     urlBuilder_.Append('?');
+                    if (pageNumber != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageSize != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
                     if (fromDate != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("fromDate")).Append('=').Append(System.Uri.EscapeDataString(fromDate.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
@@ -6293,7 +6309,7 @@ namespace YoFi.V3.Tests.Functional.Generated
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<TransactionResultDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<PaginatedResultDtoOfTransactionResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -9387,6 +9403,18 @@ namespace YoFi.V3.Tests.Functional.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         public System.Collections.Generic.ICollection<string> Items { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("metadata")]
+        public PaginationMetadata Metadata { get; set; }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PaginatedResultDtoOfTransactionResultDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        public System.Collections.Generic.ICollection<TransactionResultDto> Items { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("metadata")]
         public PaginationMetadata Metadata { get; set; }

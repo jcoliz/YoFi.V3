@@ -28,22 +28,28 @@ namespace YoFi.V3.Controllers;
 public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
 {
     /// <summary>
-    /// Retrieves all transactions for the tenant, optionally filtered by date range.
+    /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
     /// </summary>
+    /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
+    /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
     /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
     /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
     [HttpGet()]
     [RequireTenantRole(TenantRole.Viewer)]
-    [ProducesResponseType(typeof(IReadOnlyCollection<TransactionResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResultDto<TransactionResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetTransactions([FromQuery] DateOnly? fromDate = null, [FromQuery] DateOnly? toDate = null)
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] int? pageNumber = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] DateOnly? fromDate = null,
+        [FromQuery] DateOnly? toDate = null)
     {
         LogStarting();
 
-        var transactions = await transactionsFeature.GetTransactionsAsync(fromDate, toDate);
+        var result = await transactionsFeature.GetTransactionsAsync(pageNumber, pageSize, fromDate, toDate);
 
-        LogOkCount(transactions.Count);
-        return Ok(transactions);
+        LogOkCount(result.Items.Count);
+        return Ok(result);
     }
 
     /// <summary>

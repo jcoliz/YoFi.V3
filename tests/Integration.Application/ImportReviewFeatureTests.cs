@@ -760,8 +760,8 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var transactions = await _transactionsFeature.GetTransactionsAsync();
 
         // Then: Should only return accepted transactions
-        Assert.That(transactions, Has.Count.EqualTo(1));
-        Assert.That(transactions.First().Payee, Is.EqualTo("Accepted Transaction"));
+        Assert.That(transactions.Items, Has.Count.EqualTo(1));
+        Assert.That(transactions.Items.First().Payee, Is.EqualTo("Accepted Transaction"));
 
         // And: Import review transactions should be separate
         var imports = await _context.ImportReviewTransactions

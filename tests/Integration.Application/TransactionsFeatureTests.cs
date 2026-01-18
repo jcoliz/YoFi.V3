@@ -284,14 +284,14 @@ public class TransactionsFeatureTests : FeatureTestBase
         var results = await _feature.GetTransactionsAsync();
 
         // Then: All transactions should have categories loaded
-        Assert.That(results, Has.Count.EqualTo(2));
-        Assert.That(results.All(t => !string.IsNullOrEmpty(t.Category)), Is.True,
+        Assert.That(results.Items, Has.Count.EqualTo(2));
+        Assert.That(results.Items.All(t => !string.IsNullOrEmpty(t.Category)), Is.True,
             "All transactions should have categories loaded from splits");
 
-        var result1 = results.First(t => t.Payee == "Payee 1");
+        var result1 = results.Items.First(t => t.Payee == "Payee 1");
         Assert.That(result1.Category, Is.EqualTo("Category 1"));
 
-        var result2 = results.First(t => t.Payee == "Payee 2");
+        var result2 = results.Items.First(t => t.Payee == "Payee 2");
         Assert.That(result2.Category, Is.EqualTo("Category 2"));
     }
 
@@ -324,9 +324,9 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync();
 
         // Then: All tenant transactions should be returned
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.Select(t => t.Payee), Contains.Item("Payee1"));
-        Assert.That(result.Select(t => t.Payee), Contains.Item("Payee2"));
+        Assert.That(result.Items, Has.Count.EqualTo(2));
+        Assert.That(result.Items.Select(t => t.Payee), Contains.Item("Payee1"));
+        Assert.That(result.Items.Select(t => t.Payee), Contains.Item("Payee2"));
     }
 
     [Test]
@@ -346,8 +346,8 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync(fromDate: yesterday);
 
         // Then: Only transactions from yesterday onwards should be returned
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.Select(t => t.Payee), Does.Not.Contain("TwoDaysAgo"));
+        Assert.That(result.Items, Has.Count.EqualTo(2));
+        Assert.That(result.Items.Select(t => t.Payee), Does.Not.Contain("TwoDaysAgo"));
     }
 
     [Test]
@@ -367,8 +367,8 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync(toDate: yesterday);
 
         // Then: Only transactions up to yesterday should be returned
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.Select(t => t.Payee), Does.Not.Contain("Today"));
+        Assert.That(result.Items, Has.Count.EqualTo(2));
+        Assert.That(result.Items.Select(t => t.Payee), Does.Not.Contain("Today"));
     }
 
     [Test]
@@ -390,9 +390,9 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync(fromDate: twoDaysAgo, toDate: yesterday);
 
         // Then: Only transactions in range should be returned
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.Select(t => t.Payee), Contains.Item("Yesterday"));
-        Assert.That(result.Select(t => t.Payee), Contains.Item("TwoDaysAgo"));
+        Assert.That(result.Items, Has.Count.EqualTo(2));
+        Assert.That(result.Items.Select(t => t.Payee), Contains.Item("Yesterday"));
+        Assert.That(result.Items.Select(t => t.Payee), Contains.Item("TwoDaysAgo"));
     }
 
     [Test]
@@ -441,8 +441,8 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync();
 
         // Then: Only current tenant transactions should be returned
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result.First().Payee, Is.EqualTo("CurrentTenant"));
+        Assert.That(result.Items, Has.Count.EqualTo(1));
+        Assert.That(result.Items.First().Payee, Is.EqualTo("CurrentTenant"));
     }
 
     [Test]
@@ -462,7 +462,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         var result = await _feature.GetTransactionsAsync();
 
         // Then: Should be ordered by date descending
-        var resultList = result.ToList();
+        var resultList = result.Items.ToList();
         Assert.That(resultList[0].Payee, Is.EqualTo("Newest"));
         Assert.That(resultList[1].Payee, Is.EqualTo("Middle"));
         Assert.That(resultList[2].Payee, Is.EqualTo("Oldest"));

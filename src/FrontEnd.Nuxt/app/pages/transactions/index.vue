@@ -7,9 +7,12 @@
 
 import {
   TransactionsClient,
+  PayeeMatchingRulesClient,
   TransactionEditDto,
   TransactionQuickEditDto,
+  PayeeMatchingRuleEditDto,
   TenantRole,
+  type PaginatedResultDtoOfTransactionResultDto,
   type TransactionResultDto,
   type IProblemDetails,
 } from '~/utils/apiclient'
@@ -29,18 +32,21 @@ const userPreferencesStore = useUserPreferencesStore()
 const { baseUrl } = useApiBaseUrl()
 const authFetch = useAuthFetch()
 const transactionsClient = new TransactionsClient(baseUrl, authFetch)
+const payeeRulesClient = new PayeeMatchingRulesClient(baseUrl, authFetch)
 
 // Page ready state (for SSR/hydration)
 const ready = ref(false)
 
 // State
-const transactions = ref<TransactionResultDto[]>([])
+const paginatedResult = ref<PaginatedResultDtoOfTransactionResultDto | undefined>(undefined)
+const transactions = computed(() => paginatedResult.value?.items || [])
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showCreateRuleModal = ref(false)
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
 // Form data
@@ -68,6 +74,9 @@ const formErrors = ref({
 const fromDate = ref<string>('')
 const toDate = ref<string>('')
 
+// State - Pagination
+const currentPage = ref(1)
+
 // Computed
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
@@ -82,7 +91,7 @@ watch(currentTenantKey, async (newKey) => {
   if (newKey) {
     await loadTransactions()
   } else {
-    transactions.value = []
+    paginatedResult.value = undefined
   }
 })
 
@@ -96,7 +105,7 @@ onMounted(async () => {
 })
 
 // Methods
-async function loadTransactions() {
+async function loadTransactions(pageNumber: number = 1) {
   if (!currentTenantKey.value) {
     error.value = {
       title: 'No workspace selected',
@@ -114,13 +123,27 @@ async function loadTransactions() {
     const from = fromDate.value ? new Date(fromDate.value) : undefined
     const to = toDate.value ? new Date(toDate.value) : undefined
 
-    transactions.value = await transactionsClient.getTransactions(from, to, currentTenantKey.value)
+    paginatedResult.value = await transactionsClient.getTransactions(
+      pageNumber,
+      undefined, // Let backend use default page size
+      from,
+      to,
+      currentTenantKey.value,
+    )
+    currentPage.value = pageNumber
   } catch (err) {
     error.value = handleApiError(err, 'Load Failed', 'Failed to load transactions')
     showError.value = true
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * Handle page change from PaginationBar
+ */
+function handlePageChange(pageNumber: number) {
+  loadTransactions(pageNumber)
 }
 
 function openCreateModal() {
@@ -173,6 +196,11 @@ function openEditModal(transaction: TransactionResultDto) {
 function openDeleteModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
   showDeleteModal.value = true
+}
+
+function openCreateRuleModal(transaction: TransactionResultDto) {
+  selectedTransaction.value = transaction
+  showCreateRuleModal.value = true
 }
 
 function validateForm(): boolean {
@@ -342,7 +370,7 @@ function navigateToDetails(key: string | undefined) {
 function clearFilters() {
   fromDate.value = ''
   toDate.value = ''
-  loadTransactions()
+  loadTransactions(1)
 }
 
 function formatDate(date: Date | undefined): string {
@@ -357,13 +385,50 @@ function formatCurrency(amount: number | undefined): string {
     currency: 'USD',
   }).format(amount)
 }
+
+async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
+  if (!currentTenantKey.value) return
+
+  loading.value = true
+  error.value = undefined
+  showError.value = false
+
+  try {
+    await payeeRulesClient.createRule(currentTenantKey.value, rule)
+
+    // If category was provided/modified, also update the source transaction
+    if (rule.category && rule.category.trim()) {
+      if (selectedTransaction.value?.key) {
+        const updateDto = new TransactionQuickEditDto({
+          payee: selectedTransaction.value.payee || '',
+          memo: selectedTransaction.value.memo,
+          category: rule.category.trim(),
+        })
+
+        await transactionsClient.quickEditTransaction(
+          selectedTransaction.value.key,
+          currentTenantKey.value,
+          updateDto,
+        )
+      }
+    }
+
+    await loadTransactions()
+    showCreateRuleModal.value = false
+  } catch (err) {
+    error.value = handleApiError(err, 'Create Rule Failed', 'Failed to create payee matching rule')
+    showError.value = true
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <template>
   <div>
     <!-- Workspace Selector -->
     <div class="workspace-selector-container">
-      <WorkspaceSelector @change="loadTransactions" />
+      <WorkspaceSelector @change="() => loadTransactions(1)" />
     </div>
 
     <!-- Main Content -->
@@ -426,7 +491,7 @@ function formatCurrency(amount: number | undefined): string {
                 v-model="fromDate"
                 type="date"
                 class="form-control"
-                @change="loadTransactions"
+                @change="() => loadTransactions(1)"
               />
             </div>
             <div class="col-md-4">
@@ -440,7 +505,7 @@ function formatCurrency(amount: number | undefined): string {
                 v-model="toDate"
                 type="date"
                 class="form-control"
-                @change="loadTransactions"
+                @change="() => loadTransactions(1)"
               />
             </div>
             <div class="col-md-4 d-flex align-items-end">
@@ -581,10 +646,29 @@ function formatCurrency(amount: number | undefined): string {
                         size="14"
                       />
                     </button>
+                    <button
+                      class="btn btn-sm btn-outline-success ms-1"
+                      title="Create Rule"
+                      data-test-id="create-rule-button"
+                      @click.stop="openCreateRuleModal(transaction)"
+                    >
+                      <FeatherIcon
+                        icon="zap"
+                        size="14"
+                      />
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
+
+            <!-- Pagination -->
+            <PaginationBar
+              v-if="paginatedResult?.metadata"
+              :page-info="paginatedResult.metadata"
+              class="mt-3"
+              @page-updated="handlePageChange"
+            />
           </div>
         </div>
       </div>
@@ -914,6 +998,18 @@ function formatCurrency(amount: number | undefined): string {
         {{ formatCurrency(selectedTransaction.amount) }}
       </div>
     </ModalDialog>
+
+    <!-- Create Rule from Transaction Dialog -->
+    <PayeeRuleDialog
+      v-model:show="showCreateRuleModal"
+      mode="create"
+      :loading="loading"
+      :initial-payee-pattern="selectedTransaction?.payee || ''"
+      :initial-category="selectedTransaction?.category || ''"
+      :initial-is-regex="false"
+      @save="createRuleFromTransaction"
+      @cancel="showCreateRuleModal = false"
+    />
   </div>
 </template>
 

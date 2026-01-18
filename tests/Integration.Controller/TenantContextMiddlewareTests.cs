@@ -136,13 +136,13 @@ public class TenantContextMiddlewareTests : AuthenticatedTestBase
         // Then: All expected transactions returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        var transactions = await response.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
-        Assert.That(transactions, Is.Not.Null);
-        Assert.That(transactions, Has.Count.EqualTo(ExpectedTransactionCount));
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Items, Has.Count.EqualTo(ExpectedTransactionCount));
 
         // Verify all transactions have expected data
-        Assert.That(transactions.All(t => t.Payee.StartsWith("Test Payee")), Is.True);
-        Assert.That(transactions.All(t => t.Amount > 0), Is.True);
+        Assert.That(result.Items.All(t => t.Payee.StartsWith("Test Payee")), Is.True);
+        Assert.That(result.Items.All(t => t.Amount > 0), Is.True);
     }
 
     [Test]
@@ -184,22 +184,22 @@ public class TenantContextMiddlewareTests : AuthenticatedTestBase
         var response1 = await multiTenantClient.GetAsync($"/api/tenant/{tenant1Key}/transactions");
         Assert.That(response1.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        var transactions1 = await response1.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
-        Assert.That(transactions1, Is.Not.Null);
+        var result1 = await response1.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result1, Is.Not.Null);
 
         // Then: Only tenant 1's transactions are returned
-        Assert.That(transactions1, Has.Count.EqualTo(tenant1TransactionCount));
-        Assert.That(transactions1.All(t => t.Payee.StartsWith("Tenant1 Payee")), Is.True);
+        Assert.That(result1!.Items, Has.Count.EqualTo(tenant1TransactionCount));
+        Assert.That(result1.Items.All(t => t.Payee.StartsWith("Tenant1 Payee")), Is.True);
 
         var response2 = await multiTenantClient.GetAsync($"/api/tenant/{tenant2Key}/transactions");
         Assert.That(response2.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        var transactions2 = await response2.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
-        Assert.That(transactions2, Is.Not.Null);
+        var result2 = await response2.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result2, Is.Not.Null);
 
         // Then: Only tenant 2's transactions are returned
-        Assert.That(transactions2, Has.Count.EqualTo(tenant2TransactionCount));
-        Assert.That(transactions2.All(t => t.Payee.StartsWith("Tenant2 Payee")), Is.True);
+        Assert.That(result2!.Items, Has.Count.EqualTo(tenant2TransactionCount));
+        Assert.That(result2.Items.All(t => t.Payee.StartsWith("Tenant2 Payee")), Is.True);
     }
 
     [Test]
@@ -275,8 +275,8 @@ public class TenantContextMiddlewareTests : AuthenticatedTestBase
         // Then: Should succeed (Viewer can read)
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        var transactions = await response.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
-        Assert.That(transactions, Has.Count.EqualTo(ExpectedTransactionCount));
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(result!.Items, Has.Count.EqualTo(ExpectedTransactionCount));
     }
 
     // Example of explicit Owner test
