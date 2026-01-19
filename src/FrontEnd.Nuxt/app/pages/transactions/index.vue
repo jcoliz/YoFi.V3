@@ -2,7 +2,9 @@
 /**
  * Transactions Page
  *
- * Displays and manages transactions for the selected workspace with full CRUD functionality
+ * Displays and manages transactions for the selected workspace.
+ * Supports viewing, creating, quick editing, filtering by date range, and creating payee rules.
+ * Delete functionality is restricted to the transaction details page only.
  */
 
 import {
@@ -26,29 +28,76 @@ definePageMeta({
   layout: 'chrome',
 })
 
+/**
+ * User preferences store for managing current workspace selection.
+ */
 const userPreferencesStore = useUserPreferencesStore()
 
-// API Client
+/**
+ * API client for transactions endpoint.
+ */
 const { baseUrl } = useApiBaseUrl()
 const authFetch = useAuthFetch()
 const transactionsClient = new TransactionsClient(baseUrl, authFetch)
+
+/**
+ * API client for payee matching rules endpoint.
+ */
 const payeeRulesClient = new PayeeMatchingRulesClient(baseUrl, authFetch)
 
-// Page ready state (for SSR/hydration)
+/**
+ * Whether the page is ready for interaction (signals client-side hydration is complete).
+ */
 const ready = ref(false)
 
-// State
+/**
+ * Paginated result containing transactions and metadata.
+ */
 const paginatedResult = ref<PaginatedResultDtoOfTransactionResultDto | undefined>(undefined)
+
+/**
+ * List of transactions from the current page.
+ */
 const transactions = computed(() => paginatedResult.value?.items || [])
+
+/**
+ * Whether a loading operation is in progress.
+ */
 const loading = ref(false)
+
+/**
+ * Current error from API operations.
+ */
 const error = ref<IProblemDetails | undefined>(undefined)
+
+/**
+ * Whether to display the error message.
+ */
 const showError = ref(false)
+
+/**
+ * Whether the create transaction modal is visible.
+ */
 const showCreateModal = ref(false)
+
+/**
+ * Whether the quick edit modal is visible.
+ */
 const showEditModal = ref(false)
+
+/**
+ * Whether the create rule dialog is visible.
+ */
 const showCreateRuleModal = ref(false)
+
+/**
+ * Currently selected transaction for edit or rule creation.
+ */
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
-// Form data
+/**
+ * Form data for create and edit operations.
+ */
 const formData = ref({
   date: '',
   amount: 0,
@@ -59,6 +108,9 @@ const formData = ref({
   externalId: '',
 })
 
+/**
+ * Validation errors for form fields.
+ */
 const formErrors = ref({
   date: '',
   amount: '',
@@ -69,23 +121,45 @@ const formErrors = ref({
   externalId: '',
 })
 
-// Date range filters
+/**
+ * Start date for filtering transactions (inclusive).
+ */
 const fromDate = ref<string>('')
+
+/**
+ * End date for filtering transactions (inclusive).
+ */
 const toDate = ref<string>('')
 
-// State - Pagination
+/**
+ * Current page number for pagination.
+ */
 const currentPage = ref(1)
 
-// Computed
+/**
+ * The unique key of the currently selected workspace.
+ */
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
+
+/**
+ * Whether a workspace is currently selected.
+ */
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
+
+/**
+ * Whether the current user has permission to edit transactions.
+ * Requires Editor or Owner role in the current workspace.
+ */
 const canEditTransactions = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
   if (!currentTenant?.role) return false
   return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
 })
 
-// Watch for workspace changes
+/**
+ * Watch for workspace changes and reload transactions.
+ * Clears transaction list when no workspace is selected.
+ */
 watch(currentTenantKey, async (newKey) => {
   if (newKey) {
     await loadTransactions()
@@ -94,7 +168,9 @@ watch(currentTenantKey, async (newKey) => {
   }
 })
 
-// Load transactions on mount
+/**
+ * Initialize page on mount by setting ready state and loading transactions.
+ */
 onMounted(async () => {
   ready.value = true
   userPreferencesStore.loadFromStorage()
@@ -103,7 +179,12 @@ onMounted(async () => {
   }
 })
 
-// Methods
+/**
+ * Loads transactions for the current workspace with optional date range filters.
+ * Displays validation error if no workspace is selected.
+ *
+ * @param pageNumber - The page number to load (defaults to 1)
+ */
 async function loadTransactions(pageNumber: number = 1) {
   if (!currentTenantKey.value) {
     error.value = {
@@ -139,12 +220,18 @@ async function loadTransactions(pageNumber: number = 1) {
 }
 
 /**
- * Handle page change from PaginationBar
+ * Handles page change events from the pagination component.
+ *
+ * @param pageNumber - The new page number to load
  */
 function handlePageChange(pageNumber: number) {
   loadTransactions(pageNumber)
 }
 
+/**
+ * Opens the create transaction modal with default values.
+ * Initializes form data with current date and clears any validation errors.
+ */
 function openCreateModal() {
   const today = new Date().toISOString().split('T')[0]
   formData.value = {
@@ -168,6 +255,12 @@ function openCreateModal() {
   showCreateModal.value = true
 }
 
+/**
+ * Opens the quick edit modal for a transaction.
+ * Populates form with transaction's payee, memo, and category (quick editable fields).
+ *
+ * @param transaction - The transaction to edit
+ */
 function openEditModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
   const dateStr = transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : ''
@@ -192,11 +285,22 @@ function openEditModal(transaction: TransactionResultDto) {
   showEditModal.value = true
 }
 
+/**
+ * Opens the payee rule creation dialog pre-populated with transaction's payee.
+ *
+ * @param transaction - The transaction to create a rule from
+ */
 function openCreateRuleModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
   showCreateRuleModal.value = true
 }
 
+/**
+ * Validates the create transaction form.
+ * Checks required fields and validates field length constraints.
+ *
+ * @returns True if form is valid, false otherwise
+ */
 function validateForm(): boolean {
   formErrors.value = {
     date: '',
@@ -246,6 +350,10 @@ function validateForm(): boolean {
   return isValid
 }
 
+/**
+ * Creates a new transaction in the current workspace.
+ * Validates form data, calls API, and reloads transactions on success.
+ */
 async function createTransaction() {
   if (!validateForm()) return
   if (!currentTenantKey.value) return
@@ -276,6 +384,11 @@ async function createTransaction() {
   }
 }
 
+/**
+ * Updates a transaction using the quick edit endpoint.
+ * Only updates payee, memo, and category fields.
+ * Validates form data, calls API, and reloads transactions on success.
+ */
 async function updateTransaction() {
   // For quick edit, validate payee, memo, and category
   formErrors.value = {
@@ -334,22 +447,42 @@ async function updateTransaction() {
   }
 }
 
+/**
+ * Navigates to the transaction details page.
+ *
+ * @param key - The unique key of the transaction
+ */
 function navigateToDetails(key: string | undefined) {
   if (!key) return
   navigateTo(`/transactions/${key}`)
 }
 
+/**
+ * Clears date range filters and reloads transactions from page 1.
+ */
 function clearFilters() {
   fromDate.value = ''
   toDate.value = ''
   loadTransactions(1)
 }
 
+/**
+ * Formats a date for display using the user's locale.
+ *
+ * @param date - The date to format
+ * @returns Formatted date string or empty string if undefined
+ */
 function formatDate(date: Date | undefined): string {
   if (!date) return ''
   return new Date(date).toLocaleDateString()
 }
 
+/**
+ * Formats a number as USD currency.
+ *
+ * @param amount - The amount to format
+ * @returns Formatted currency string (e.g., "$123.45")
+ */
 function formatCurrency(amount: number | undefined): string {
   if (amount === undefined) return '$0.00'
   return new Intl.NumberFormat('en-US', {
@@ -358,6 +491,13 @@ function formatCurrency(amount: number | undefined): string {
   }).format(amount)
 }
 
+/**
+ * Creates a payee matching rule from a transaction.
+ * If the rule has a category, also updates the source transaction with that category.
+ * Reloads transactions on success and closes the dialog.
+ *
+ * @param rule - The payee matching rule data to create
+ */
 async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
   if (!currentTenantKey.value) return
 
