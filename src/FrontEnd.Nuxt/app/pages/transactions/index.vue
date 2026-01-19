@@ -45,7 +45,6 @@ const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
-const showDeleteModal = ref(false)
 const showCreateRuleModal = ref(false)
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
@@ -193,11 +192,6 @@ function openEditModal(transaction: TransactionResultDto) {
   showEditModal.value = true
 }
 
-function openDeleteModal(transaction: TransactionResultDto) {
-  selectedTransaction.value = transaction
-  showDeleteModal.value = true
-}
-
 function openCreateRuleModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
   showCreateRuleModal.value = true
@@ -334,28 +328,6 @@ async function updateTransaction() {
     showEditModal.value = false
   } catch (err) {
     error.value = handleApiError(err, 'Update Failed', 'Failed to update transaction')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
-}
-
-async function deleteTransaction() {
-  if (!selectedTransaction.value?.key || !currentTenantKey.value) return
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    await transactionsClient.deleteTransaction(
-      selectedTransaction.value.key,
-      currentTenantKey.value,
-    )
-    await loadTransactions()
-    showDeleteModal.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Delete Failed', 'Failed to delete transaction')
     showError.value = true
   } finally {
     loading.value = false
@@ -632,17 +604,6 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
                     >
                       <FeatherIcon
                         icon="edit"
-                        size="14"
-                      />
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      title="Delete"
-                      data-test-id="delete-transaction-button"
-                      @click.stop="openDeleteModal(transaction)"
-                    >
-                      <FeatherIcon
-                        icon="trash-2"
                         size="14"
                       />
                     </button>
@@ -972,31 +933,6 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
           {{ loading ? 'Updating...' : 'Update' }}
         </button>
       </template>
-    </ModalDialog>
-
-    <!-- Delete Modal -->
-    <ModalDialog
-      v-model:show="showDeleteModal"
-      title="Delete Transaction"
-      :loading="loading"
-      primary-button-variant="danger"
-      :primary-button-text="loading ? 'Deleting...' : 'Delete'"
-      primary-button-test-id="delete-submit-button"
-      secondary-button-test-id="delete-cancel-button"
-      test-id="delete-transaction-modal"
-      @primary="deleteTransaction"
-    >
-      <p>Are you sure you want to delete this transaction?</p>
-      <div
-        v-if="selectedTransaction"
-        class="alert alert-warning"
-        data-test-id="delete-transaction-details"
-      >
-        <strong>{{ selectedTransaction.payee }}</strong
-        ><br />
-        {{ formatDate(selectedTransaction.date) }} -
-        {{ formatCurrency(selectedTransaction.amount) }}
-      </div>
     </ModalDialog>
 
     <!-- Create Rule from Transaction Dialog -->
