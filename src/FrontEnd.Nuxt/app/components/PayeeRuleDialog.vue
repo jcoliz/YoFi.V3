@@ -218,6 +218,7 @@ const primaryButtonText = computed(() => {
         placeholder="e.g., Amazon or ^AMZN.*"
         maxlength="200"
         data-test-id="payee-pattern-input"
+        @keydown.enter="handleSave"
       />
       <small class="form-text text-muted">
         {{ formData.payeePattern.length }} / 200 characters
@@ -245,7 +246,8 @@ const primaryButtonText = computed(() => {
       >
         Use regex pattern (case-insensitive)
       </label>
-      <small class="form-text text-muted d-block">
+      <!-- Keeping this around in case I want it later -->
+      <small class="form-text text-muted d-none">
         If checked, the pattern will be treated as a regular expression. If unchecked, it will be
         treated as a simple substring match.
       </small>
@@ -267,6 +269,7 @@ const primaryButtonText = computed(() => {
         placeholder="e.g., Shopping, Groceries, Utilities"
         maxlength="200"
         data-test-id="category-input"
+        @keydown.enter="handleSave"
       />
       <small class="form-text text-muted"> {{ formData.category.length }} / 200 characters </small>
       <div
