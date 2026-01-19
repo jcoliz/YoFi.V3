@@ -94,10 +94,7 @@ async function switchWorkspace(workspace: TenantRoleResultDto) {
     </div>
 
     <!-- Quick Switch List (max 4) -->
-    <div
-      v-if="otherWorkspaces.length > 0"
-      class="mb-2"
-    >
+    <div v-if="otherWorkspaces.length > 0">
       <a
         v-for="workspace in otherWorkspaces.slice(0, 4)"
         :key="workspace.key"
@@ -115,21 +112,23 @@ async function switchWorkspace(workspace: TenantRoleResultDto) {
     >
       <BaseSpinner size="sm" />
     </div>
+  </li>
+  <!-- Link to Full Page -->
+  <li><hr class="dropdown-divider" /></li>
+  <li class="px-3 py-2">
+    <div class="mb-2">
+      <small class="text-muted text-uppercase fw-bold">Account</small>
+    </div>
+  </li>
 
-    <!-- Link to Full Page -->
-    <a
-      href="/workspaces"
-      class="dropdown-item dropdown-item-sm text-primary"
+  <!-- User Actions -->
+  <li>
+    <NuxtLink
+      class="dropdown-item"
+      to="/workspaces"
       data-test-id="all-workspaces-link"
-      @click.prevent="navigateTo('/workspaces')"
+      >Workspaces</NuxtLink
     >
-      <FeatherIcon
-        icon="arrow-right"
-        size="14"
-        class="me-1"
-      />
-      All Workspaces
-    </a>
   </li>
 </template>
 

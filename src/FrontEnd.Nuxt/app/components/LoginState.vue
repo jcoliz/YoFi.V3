@@ -65,8 +65,6 @@ const systemLogout = async () => {
           <!-- Workspace slot - inject custom content -->
           <slot />
 
-          <li v-if="$slots.default"><hr class="dropdown-divider" /></li>
-
           <!-- User Actions -->
           <li>
             <NuxtLink
