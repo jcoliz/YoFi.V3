@@ -62,6 +62,12 @@ const systemLogout = async () => {
       <!-- Note that popper is handling absolute positioning of the drop-down -->
       <ul class="dropdown-menu dropdown-menu-end text-small shadow">
         <template v-if="status === 'authenticated'">
+          <!-- Workspace slot - inject custom content -->
+          <slot />
+
+          <li v-if="$slots.default"><hr class="dropdown-divider" /></li>
+
+          <!-- User Actions -->
           <li>
             <NuxtLink
               class="dropdown-item"

@@ -329,9 +329,9 @@ For maximum reusability across projects, use Vue slots to separate workspace log
       <ul class="dropdown-menu dropdown-menu-end text-small shadow">
         <template v-if="status === 'authenticated'">
           <!-- Workspace slot - inject custom content -->
-          <slot name="workspace-section" />
+          <slot />
 
-          <li v-if="$slots['workspace-section']"><hr class="dropdown-divider" /></li>
+          <li v-if="$slots.default"><hr class="dropdown-divider" /></li>
 
           <!-- User Actions -->
           <li>
@@ -485,9 +485,7 @@ async function switchWorkspace(workspace: TenantRoleResultDto) {
 
 ```vue
 <LoginState>
-  <template #workspace-section>
-    <WorkspaceMenuSection />
-  </template>
+  <WorkspaceMenuSection />
 </LoginState>
 ```
 

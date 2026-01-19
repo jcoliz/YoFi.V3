@@ -41,7 +41,9 @@ const displayRoutes = useRouter()
           >
         </ul>
       </nav>
-      <LoginState class="ms-4 align-self-center" />
+      <LoginState class="ms-4 align-self-center">
+        <WorkspaceMenuSection />
+      </LoginState>
     </header>
   </div>
 </template>
