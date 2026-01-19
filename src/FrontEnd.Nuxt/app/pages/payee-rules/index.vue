@@ -106,21 +106,9 @@ const sortBy = ref<PayeeRuleSortBy>(PayeeRuleSortBy.PayeePattern)
 const paginationMetadata = ref<any>(null)
 
 /**
- * Number of rules to display per page.
- */
-const pageSize = ref(50)
-
-/**
  * Current page number (1-based).
  */
 const requestedPage = ref(1)
-
-/**
- * Total count of rules matching the current filters.
- *
- * @returns Total count from pagination metadata or 0
- */
-const totalCount = computed(() => paginationMetadata.value?.totalCount || 0)
 
 /**
  * Current tenant/workspace key from user preferences.
@@ -193,7 +181,6 @@ async function loadRules() {
   try {
     const result = await payeeRulesClient.getRules(
       requestedPage.value,
-      pageSize.value,
       sortBy.value,
       searchText.value || null,
       currentTenantKey.value,

@@ -81,17 +81,15 @@ public partial class ImportController(
     /// Retrieves pending import review transactions for the current tenant with pagination support.
     /// </summary>
     /// <param name="pageNumber">The page number to retrieve (default: 1).</param>
-    /// <param name="pageSize">The number of items per page (default: 50, max: 1000).</param>
     /// <returns>Paginated response containing transactions and pagination metadata.</returns>
     [HttpGet("review")]
     [ProducesResponseType(typeof(PaginatedResultDto<ImportReviewTransactionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPendingReview(
-        [FromQuery] int? pageNumber = null,
-        [FromQuery] int? pageSize = null)
+        [FromQuery] int? pageNumber = null)
     {
         LogStarting();
 
-        var result = await importReviewFeature.GetPendingReviewAsync(pageNumber, pageSize);
+        var result = await importReviewFeature.GetPendingReviewAsync(pageNumber);
 
         LogOkCount(result.Items.Count);
         return Ok(result);

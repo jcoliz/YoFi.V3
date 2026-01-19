@@ -9,20 +9,19 @@ public static class PaginationHelper
     /// Calculates pagination metadata for a given page configuration.
     /// </summary>
     /// <param name="pageNumber">The current page number (1-based).</param>
-    /// <param name="pageSize">The number of items per page.</param>
     /// <param name="totalCount">The total number of items across all pages.</param>
     /// <returns>A <see cref="PaginationMetadata"/> object containing all calculated pagination values.</returns>
-    public static PaginationMetadata Calculate(int pageNumber, int pageSize, int totalCount)
+    public static PaginationMetadata Calculate(int pageNumber, int totalCount)
     {
-        var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
+        var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)ItemsPerPage) : 0;
         var hasPreviousPage = pageNumber > 1;
         var hasNextPage = pageNumber < totalPages;
-        var firstItem = totalCount > 0 ? (pageNumber - 1) * pageSize + 1 : 0;
-        var lastItem = totalCount > 0 ? Math.Min(pageNumber * pageSize, totalCount) : 0;
+        var firstItem = totalCount > 0 ? (pageNumber - 1) * ItemsPerPage + 1 : 0;
+        var lastItem = totalCount > 0 ? Math.Min(pageNumber * ItemsPerPage, totalCount) : 0;
 
         return new PaginationMetadata(
             PageNumber: pageNumber,
-            PageSize: pageSize,
+            PageSize: ItemsPerPage,
             TotalCount: totalCount,
             TotalPages: totalPages,
             HasPreviousPage: hasPreviousPage,
@@ -31,6 +30,11 @@ public static class PaginationHelper
             LastItem: lastItem
         );
     }
+
+    /// <summary>
+    /// Default number of items per page, throughout the application.
+    /// </summary>
+    public const int ItemsPerPage = 50;
 }
 
 /// <summary>

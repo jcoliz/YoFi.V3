@@ -340,18 +340,15 @@ export class ImportClient {
     /**
      * Retrieves pending import review transactions for the current tenant with pagination support.
      * @param pageNumber (optional) The page number to retrieve (default: 1).
-     * @param pageSize (optional) The number of items per page (default: 50, max: 1000).
      * @return Paginated response containing transactions and pagination metadata.
      */
-    getPendingReview(pageNumber: number | null | undefined, pageSize: number | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfImportReviewTransactionDto> {
+    getPendingReview(pageNumber: number | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfImportReviewTransactionDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/import/review?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         if (pageNumber !== undefined && pageNumber !== null)
             url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize !== undefined && pageSize !== null)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -783,19 +780,16 @@ export class PayeeMatchingRulesClient {
     /**
      * Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
      * @param pageNumber (optional) Page number to retrieve (default: 1).
-     * @param pageSize (optional) Number of items per page (default: 50, max: 1000).
      * @param sortBy (optional) Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.
      * @param searchText (optional) Optional plain text search across PayeePattern and Category (case-insensitive).
      */
-    getRules(pageNumber: number | null | undefined, pageSize: number | null | undefined, sortBy: PayeeRuleSortBy | null | undefined, searchText: string | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfPayeeMatchingRuleResultDto> {
+    getRules(pageNumber: number | null | undefined, sortBy: PayeeRuleSortBy | null | undefined, searchText: string | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfPayeeMatchingRuleResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/payee-rules?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         if (pageNumber !== undefined && pageNumber !== null)
             url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize !== undefined && pageSize !== null)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (sortBy !== undefined && sortBy !== null)
             url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
         if (searchText !== undefined && searchText !== null)
@@ -2218,19 +2212,14 @@ export class TestControlClient {
     /**
      * Get a paginated result of test strings.
      * @param pageNumber (optional) The page number (1-based). Defaults to 1.
-     * @param pageSize (optional) The number of items per page. Defaults to 10.
      * @return A paginated result containing test strings.
      */
-    getPaginatedStrings(pageNumber: number | undefined, pageSize: number | undefined): Promise<PaginatedResultDtoOfString> {
+    getPaginatedStrings(pageNumber: number | undefined): Promise<PaginatedResultDtoOfString> {
         let url_ = this.baseUrl + "/TestControl/pagination/strings?";
         if (pageNumber === null)
             throw new globalThis.Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)
             url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
-        else if (pageSize !== undefined)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -2342,19 +2331,16 @@ export class TransactionsClient {
     /**
      * Retrieves paginated transactions for the tenant, optionally filtered by date range.
      * @param pageNumber (optional) Page number to retrieve (1-based). If not specified, defaults to first page.
-     * @param pageSize (optional) Number of items per page. If not specified, uses default page size.
      * @param fromDate (optional) The starting date for the date range filter (inclusive). If null, no lower bound is applied.
      * @param toDate (optional) The ending date for the date range filter (inclusive). If null, no upper bound is applied.
      */
-    getTransactions(pageNumber: number | null | undefined, pageSize: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
+    getTransactions(pageNumber: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         if (pageNumber !== undefined && pageNumber !== null)
             url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
-        if (pageSize !== undefined && pageSize !== null)
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
         if (toDate !== undefined && toDate !== null)

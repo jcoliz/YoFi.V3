@@ -47,8 +47,6 @@ public class ImportReviewFeature(
     IPayeeMatchingService payeeMatchingService)
 {
     private const int DefaultPageNumber = 1;
-    private const int DefaultPageSize = 50;
-    private const int MaxPageSize = 1000;
 
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
@@ -162,23 +160,17 @@ public class ImportReviewFeature(
     /// <param name="pageSize">The number of items per page. If null or less than 1, defaults to 50. Maximum is 1000.</param>
     /// <returns>A <see cref="PaginatedResultDto{T}"/> containing transactions and pagination metadata.</returns>
     public async Task<PaginatedResultDto<ImportReviewTransactionDto>> GetPendingReviewAsync(
-        int? pageNumber = null,
-        int? pageSize = null)
+        int? pageNumber = null)
     {
         // Validate and normalize pagination parameters
-        var normalizedPageNumber = pageNumber is null or < 1 ? DefaultPageNumber : pageNumber.Value;
-        var normalizedPageSize = pageSize is null or < 1 ? DefaultPageSize : pageSize.Value;
-
-        if (normalizedPageSize > MaxPageSize)
-        {
-            normalizedPageSize = MaxPageSize;
-        }
+        var normalizedPageNumber = pageNumber is null or < 1 ? 1 : pageNumber.Value;
+        var normalizedPageSize = PaginationHelper.ItemsPerPage;
 
         // Query total count for pagination metadata
         var totalCount = await dataProvider.CountAsync(GetTenantScopedQuery());
 
         // Calculate pagination metadata
-        var metadata = PaginationHelper.Calculate(normalizedPageNumber, normalizedPageSize, totalCount);
+        var metadata = PaginationHelper.Calculate(normalizedPageNumber, totalCount);
 
         // Query paginated data ordered by date descending
         var paginatedQuery = GetBaseImportReviewQuery()

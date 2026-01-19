@@ -32,7 +32,6 @@ public partial class PayeeMatchingRulesController(
     /// Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
     /// </summary>
     /// <param name="pageNumber">Page number to retrieve (default: 1).</param>
-    /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
     /// <param name="sortBy">Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.</param>
     /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
     [HttpGet()]
@@ -40,7 +39,6 @@ public partial class PayeeMatchingRulesController(
     [ProducesResponseType(typeof(PaginatedResultDto<PayeeMatchingRuleResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRules(
         [FromQuery] int? pageNumber = null,
-        [FromQuery] int? pageSize = null,
         [FromQuery] PayeeRuleSortBy? sortBy = null,
         [FromQuery] string? searchText = null)
     {
@@ -48,7 +46,6 @@ public partial class PayeeMatchingRulesController(
 
         var rules = await payeeMatchingRuleFeature.GetRulesAsync(
             pageNumber ?? 1,
-            pageSize ?? 50,
             sortBy ?? PayeeRuleSortBy.PayeePattern,
             searchText);
 

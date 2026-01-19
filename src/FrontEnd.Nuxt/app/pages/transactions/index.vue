@@ -205,7 +205,6 @@ async function loadTransactions(pageNumber: number = 1) {
 
     paginatedResult.value = await transactionsClient.getTransactions(
       pageNumber,
-      undefined, // Let backend use default page size
       from,
       to,
       currentTenantKey.value,

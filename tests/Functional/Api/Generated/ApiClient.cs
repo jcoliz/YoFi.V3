@@ -813,20 +813,18 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves pending import review transactions for the current tenant with pagination support.
         /// </summary>
         /// <param name="pageNumber">The page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">The number of items per page (default: 50, max: 1000).</param>
         /// <returns>Paginated response containing transactions and pagination metadata.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, int? pageSize, string tenantKey);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Retrieves pending import review transactions for the current tenant with pagination support.
         /// </summary>
         /// <param name="pageNumber">The page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">The number of items per page (default: 50, max: 1000).</param>
         /// <returns>Paginated response containing transactions and pagination metadata.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, int? pageSize, string tenantKey, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes all pending import review transactions for the current tenant.
@@ -1118,12 +1116,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves pending import review transactions for the current tenant with pagination support.
         /// </summary>
         /// <param name="pageNumber">The page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">The number of items per page (default: 50, max: 1000).</param>
         /// <returns>Paginated response containing transactions and pagination metadata.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, int? pageSize, string tenantKey)
+        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, string tenantKey)
         {
-            return GetPendingReviewAsync(pageNumber, pageSize, tenantKey, System.Threading.CancellationToken.None);
+            return GetPendingReviewAsync(pageNumber, tenantKey, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -1131,10 +1128,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves pending import review transactions for the current tenant with pagination support.
         /// </summary>
         /// <param name="pageNumber">The page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">The number of items per page (default: 50, max: 1000).</param>
         /// <returns>Paginated response containing transactions and pagination metadata.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, int? pageSize, string tenantKey, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfImportReviewTransactionDto> GetPendingReviewAsync(int? pageNumber, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
             if (tenantKey == null)
                 throw new System.ArgumentNullException("tenantKey");
@@ -1158,10 +1154,6 @@ namespace YoFi.V3.Tests.Functional.Generated
                     if (pageNumber != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
-                    }
-                    if (pageSize != null)
-                    {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -2097,22 +2089,20 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
         /// <param name="sortBy">Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.</param>
         /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, int? pageSize, PayeeRuleSortBy? sortBy, string searchText, string tenantKey);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, PayeeRuleSortBy? sortBy, string searchText, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
         /// <param name="sortBy">Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.</param>
         /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, int? pageSize, PayeeRuleSortBy? sortBy, string searchText, string tenantKey, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, PayeeRuleSortBy? sortBy, string searchText, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates a new payee matching rule in the tenant workspace.
@@ -2232,13 +2222,12 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
         /// <param name="sortBy">Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.</param>
         /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, int? pageSize, PayeeRuleSortBy? sortBy, string searchText, string tenantKey)
+        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, PayeeRuleSortBy? sortBy, string searchText, string tenantKey)
         {
-            return GetRulesAsync(pageNumber, pageSize, sortBy, searchText, tenantKey, System.Threading.CancellationToken.None);
+            return GetRulesAsync(pageNumber, sortBy, searchText, tenantKey, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -2246,11 +2235,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves all payee matching rules for the tenant with optional pagination, sorting, and search.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (default: 1).</param>
-        /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
         /// <param name="sortBy">Sort order (default: PayeePattern). Valid values: PayeePattern, Category, LastUsedAt.</param>
         /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, int? pageSize, PayeeRuleSortBy? sortBy, string searchText, string tenantKey, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfPayeeMatchingRuleResultDto> GetRulesAsync(int? pageNumber, PayeeRuleSortBy? sortBy, string searchText, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
             if (tenantKey == null)
                 throw new System.ArgumentNullException("tenantKey");
@@ -2274,10 +2262,6 @@ namespace YoFi.V3.Tests.Functional.Generated
                     if (pageNumber != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
-                    }
-                    if (pageSize != null)
-                    {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (sortBy != null)
                     {
@@ -3497,10 +3481,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <br/>Generates strings in format "Item N" where N is the sequential item number.
         /// </remarks>
         /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
-        /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
         /// <returns>A paginated result containing test strings.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, int? pageSize);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -3511,10 +3494,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <br/>Generates strings in format "Item N" where N is the sequential item number.
         /// </remarks>
         /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
-        /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
         /// <returns>A paginated result containing test strings.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, int? pageSize, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Test endpoint to verify CollectionRequest validation is working.
@@ -5708,12 +5690,11 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <br/>Generates strings in format "Item N" where N is the sequential item number.
         /// </remarks>
         /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
-        /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
         /// <returns>A paginated result containing test strings.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, int? pageSize)
+        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber)
         {
-            return GetPaginatedStringsAsync(pageNumber, pageSize, System.Threading.CancellationToken.None);
+            return GetPaginatedStringsAsync(pageNumber, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -5725,10 +5706,9 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// <br/>Generates strings in format "Item N" where N is the sequential item number.
         /// </remarks>
         /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
-        /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
         /// <returns>A paginated result containing test strings.</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, int? pageSize, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfString> GetPaginatedStringsAsync(int? pageNumber, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -5747,10 +5727,6 @@ namespace YoFi.V3.Tests.Functional.Generated
                     if (pageNumber != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
-                    }
-                    if (pageSize != null)
-                    {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -6075,22 +6051,20 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
-        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
         /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
-        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Creates a new transaction in the tenant workspace.
@@ -6227,13 +6201,12 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
-        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey)
+        public virtual System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey)
         {
-            return GetTransactionsAsync(pageNumber, pageSize, fromDate, toDate, tenantKey, System.Threading.CancellationToken.None);
+            return GetTransactionsAsync(pageNumber, fromDate, toDate, tenantKey, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -6241,11 +6214,10 @@ namespace YoFi.V3.Tests.Functional.Generated
         /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
         /// </summary>
         /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
-        /// <param name="pageSize">Number of items per page. If not specified, uses default page size.</param>
         /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
         /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, int? pageSize, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<PaginatedResultDtoOfTransactionResultDto> GetTransactionsAsync(int? pageNumber, System.DateTimeOffset? fromDate, System.DateTimeOffset? toDate, string tenantKey, System.Threading.CancellationToken cancellationToken)
         {
             if (tenantKey == null)
                 throw new System.ArgumentNullException("tenantKey");
@@ -6269,10 +6241,6 @@ namespace YoFi.V3.Tests.Functional.Generated
                     if (pageNumber != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageNumber")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageNumber, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
-                    }
-                    if (pageSize != null)
-                    {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     if (fromDate != null)
                     {

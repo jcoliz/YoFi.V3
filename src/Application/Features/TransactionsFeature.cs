@@ -22,19 +22,16 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// Gets paginated transactions for the current tenant, optionally filtered by date range.
     /// </summary>
     /// <param name="pageNumber">Page number to retrieve (1-based). If null, defaults to first page.</param>
-    /// <param name="pageSize">Number of items per page. If null, uses default page size.</param>
     /// <param name="fromDate">Optional start date for filtering transactions (inclusive).</param>
     /// <param name="toDate">Optional end date for filtering transactions (inclusive).</param>
     /// <returns>Paginated result containing transactions and pagination metadata.</returns>
     public async Task<PaginatedResultDto<TransactionResultDto>> GetTransactionsAsync(
         int? pageNumber = null,
-        int? pageSize = null,
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
         // Apply defaults
         var actualPageNumber = pageNumber ?? 1;
-        var actualPageSize = pageSize ?? 50;
 
         // Validate date range logic
         if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
@@ -44,9 +41,6 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
                 "From date cannot be later than to date."
             );
         }
-
-        // Enforce max page size
-        actualPageSize = Math.Min(actualPageSize, 1000);
 
         var query = GetBaseTransactionQuery();
 
@@ -64,6 +58,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         var totalCount = await dataProvider.CountAsync(query);
 
         // Apply pagination
+        var actualPageSize = PaginationHelper.ItemsPerPage;
         var paginatedQuery = query
             .Skip((actualPageNumber - 1) * actualPageSize)
             .Take(actualPageSize);
@@ -72,7 +67,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         var items = await dataProvider.ToListNoTrackingAsync(dtoQuery);
 
         // Calculate pagination metadata
-        var metadata = PaginationHelper.Calculate(actualPageNumber, actualPageSize, totalCount);
+        var metadata = PaginationHelper.Calculate(actualPageNumber, totalCount);
 
         return new PaginatedResultDto<TransactionResultDto>(items, metadata);
     }

@@ -262,15 +262,15 @@ public class ImportReviewFeatureTests : FeatureTestBase
         // Given: 100 import review transactions
         await _feature.SeedTestDataAsync(100);
 
-        // When: Getting page 2 with page size 20
-        var result = await _feature.GetPendingReviewAsync(pageNumber: 2, pageSize: 20);
+        // When: Getting page 2
+        var result = await _feature.GetPendingReviewAsync(pageNumber: 2);
 
         // Then: Should return page 2
-        Assert.That(result.Items.Count, Is.EqualTo(20));
+        Assert.That(result.Items.Count, Is.EqualTo(50));
         Assert.That(result.Metadata.PageNumber, Is.EqualTo(2));
-        Assert.That(result.Metadata.PageSize, Is.EqualTo(20));
+        Assert.That(result.Metadata.PageSize, Is.EqualTo(50));
         Assert.That(result.Metadata.TotalCount, Is.EqualTo(100));
-        Assert.That(result.Metadata.TotalPages, Is.EqualTo(5));
+        Assert.That(result.Metadata.TotalPages, Is.EqualTo(2));
     }
 
     [Test]
@@ -286,31 +286,6 @@ public class ImportReviewFeatureTests : FeatureTestBase
         Assert.That(result.Metadata.PageNumber, Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task GetPendingReviewAsync_InvalidPageSize_DefaultsTo50()
-    {
-        // Given: Pending transactions
-        await _feature.SeedTestDataAsync(10);
-
-        // When: Requesting invalid page size
-        var result = await _feature.GetPendingReviewAsync(pageSize: -5);
-
-        // Then: Should default to 50
-        Assert.That(result.Metadata.PageSize, Is.EqualTo(50));
-    }
-
-    [Test]
-    public async Task GetPendingReviewAsync_ExcessivePageSize_ClampsToMaximum()
-    {
-        // Given: Pending transactions
-        await _feature.SeedTestDataAsync(10);
-
-        // When: Requesting excessive page size
-        var result = await _feature.GetPendingReviewAsync(pageSize: 5000);
-
-        // Then: Should clamp to maximum (1000)
-        Assert.That(result.Metadata.PageSize, Is.EqualTo(1000));
-    }
 
     [Test]
     public async Task GetPendingReviewAsync_TenantIsolation_OnlyReturnsCurrentTenantTransactions()

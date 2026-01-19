@@ -59,7 +59,6 @@ const importing = ref(false)
 
 // State - Pagination
 const currentPage = ref(1)
-const pageSize = ref(50)
 
 // Computed - Workspace and Permissions
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
@@ -121,11 +120,7 @@ async function loadPendingReview(pageNumber: number = 1) {
   showError.value = false
 
   try {
-    paginatedResult.value = await importClient.getPendingReview(
-      pageNumber,
-      pageSize.value,
-      currentTenantKey.value,
-    )
+    paginatedResult.value = await importClient.getPendingReview(pageNumber, currentTenantKey.value)
     currentPage.value = pageNumber
   } catch (err) {
     error.value = handleApiError(err, 'Load Failed', 'Failed to load pending imports')

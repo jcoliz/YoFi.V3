@@ -437,17 +437,17 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         // Given: User has Viewer role
         SwitchToViewer();
 
-        // When: Request rules with pagination parameters
-        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=1&pageSize=10");
+        // When: Request rules with pagination parameters (pageSize is ignored, uses constant)
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=1");
 
         // Then: 200 OK should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
 
-        // And: Response should contain pagination metadata
+        // And: Response should contain pagination metadata with constant page size
         var result = await response.Content.ReadFromJsonAsync<PaginatedResultDto<PayeeMatchingRuleResultDto>>();
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Metadata.PageNumber, Is.EqualTo(1));
-        Assert.That(result.Metadata.PageSize, Is.EqualTo(10));
+        Assert.That(result.Metadata.PageSize, Is.EqualTo(50));
     }
 
     [Test]
@@ -501,7 +501,7 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         SwitchToViewer();
 
         // When: Request rules with page number beyond available data
-        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=999&pageSize=10");
+        var response = await _client.GetAsync($"/api/tenant/{_testTenantKey}/payee-rules?pageNumber=999");
 
         // Then: 200 OK should be returned
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));

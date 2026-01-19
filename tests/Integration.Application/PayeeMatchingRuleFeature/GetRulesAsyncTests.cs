@@ -134,12 +134,12 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
     [Test]
     public async Task GetRulesAsync_WithPagination_ReturnsCorrectPage()
     {
-        // Given: 10 rules
-        for (int i = 1; i <= 10; i++)
+        // Given: 100 rules (more than one page at 50 items per page)
+        for (int i = 1; i <= 100; i++)
         {
             var rule = new PayeeMatchingRule
             {
-                PayeePattern = $"Pattern{i:D2}",
+                PayeePattern = $"Pattern{i:D3}",
                 Category = "Cat",
                 TenantId = _testTenant.Id
             };
@@ -147,21 +147,20 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
         }
         await _context.SaveChangesAsync();
 
-        // When: Getting page 2 with 3 items per page
-        var result = await _feature.GetRulesAsync(pageNumber: 2, pageSize: 3);
+        // When: Getting page 2
+        var result = await _feature.GetRulesAsync(pageNumber: 2);
 
         // Then: Should return correct page
-        Assert.That(result.Items, Has.Count.EqualTo(3));
-        Assert.That(result.Metadata.TotalCount, Is.EqualTo(10));
+        Assert.That(result.Items, Has.Count.EqualTo(50));
+        Assert.That(result.Metadata.TotalCount, Is.EqualTo(100));
         Assert.That(result.Metadata.PageNumber, Is.EqualTo(2));
-        Assert.That(result.Metadata.PageSize, Is.EqualTo(3));
-        Assert.That(result.Metadata.TotalPages, Is.EqualTo(4));
+        Assert.That(result.Metadata.PageSize, Is.EqualTo(50));
+        Assert.That(result.Metadata.TotalPages, Is.EqualTo(2));
 
-        // And: Should contain items 4, 5, 6 (sorted by pattern)
+        // And: Should contain items 51-100 (sorted by pattern)
         var itemsList = result.Items.ToList();
-        Assert.That(itemsList[0].PayeePattern, Is.EqualTo("Pattern04"));
-        Assert.That(itemsList[1].PayeePattern, Is.EqualTo("Pattern05"));
-        Assert.That(itemsList[2].PayeePattern, Is.EqualTo("Pattern06"));
+        Assert.That(itemsList[0].PayeePattern, Is.EqualTo("Pattern051"));
+        Assert.That(itemsList[49].PayeePattern, Is.EqualTo("Pattern100"));
     }
 
     [Test]

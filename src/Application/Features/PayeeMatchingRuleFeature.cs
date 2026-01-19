@@ -32,19 +32,14 @@ public class PayeeMatchingRuleFeature(
     /// Gets paginated, sorted, and optionally filtered payee matching rules for the current tenant.
     /// </summary>
     /// <param name="pageNumber">Page number to retrieve (1-based, default: 1).</param>
-    /// <param name="pageSize">Number of items per page (default: 50, max: 1000).</param>
     /// <param name="sortBy">Sort order (default: PayeePattern).</param>
     /// <param name="searchText">Optional plain text search across PayeePattern and Category (case-insensitive).</param>
     /// <returns>Paginated result containing rules and pagination metadata.</returns>
     public async Task<PaginatedResultDto<PayeeMatchingRuleResultDto>> GetRulesAsync(
         int pageNumber = 1,
-        int pageSize = 50,
         PayeeRuleSortBy sortBy = PayeeRuleSortBy.PayeePattern,
         string? searchText = null)
     {
-        // Enforce max page size
-        pageSize = Math.Min(pageSize, 1000);
-
         // Load all rules from cache
         var allRules = await GetRulesForTenantAsync();
 
@@ -59,17 +54,18 @@ public class PayeeMatchingRuleFeature(
         var sortedRules = SortRules(filteredRules, sortBy);
 
         // Paginate in-memory
+        var actualPageSize = PaginationHelper.ItemsPerPage;
         var totalCount = sortedRules.Count;
         var paginatedRules = sortedRules
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((pageNumber - 1) * actualPageSize)
+            .Take(actualPageSize)
             .ToList();
 
         // Convert to DTOs
         var dtos = paginatedRules.Select(ToResultDto).ToList();
 
         // Calculate pagination metadata
-        var metadata = PaginationHelper.Calculate(pageNumber, pageSize, totalCount);
+        var metadata = PaginationHelper.Calculate(pageNumber, totalCount);
 
         return new PaginatedResultDto<PayeeMatchingRuleResultDto>(dtos, metadata);
     }

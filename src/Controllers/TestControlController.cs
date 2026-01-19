@@ -1047,7 +1047,6 @@ public partial class TestControlController(
     /// Get a paginated result of test strings.
     /// </summary>
     /// <param name="pageNumber">The page number (1-based). Defaults to 1.</param>
-    /// <param name="pageSize">The number of items per page. Defaults to 10.</param>
     /// <returns>A paginated result containing test strings.</returns>
     /// <remarks>
     /// This endpoint is for testing pagination UI components with a simple string data type.
@@ -1055,7 +1054,7 @@ public partial class TestControlController(
     /// </remarks>
     [HttpGet("pagination/strings")]
     [ProducesResponseType(typeof(PaginatedResultDto<string>), StatusCodes.Status200OK)]
-    public IActionResult GetPaginatedStrings([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public IActionResult GetPaginatedStrings([FromQuery] int pageNumber = 1)
     {
         LogStarting();
 
@@ -1065,20 +1064,15 @@ public partial class TestControlController(
             pageNumber = 1;
         }
 
-        if (pageSize < 1 || pageSize > 100)
-        {
-            pageSize = 10;
-        }
-
-        // Generate total of 50 test items
-        const int totalCount = 50;
+        // Generate total of 10 test pages of items
+        const int totalCount = 10 * PaginationHelper.ItemsPerPage;
 
         // Calculate pagination metadata
-        var metadata = PaginationHelper.Calculate(pageNumber, pageSize, totalCount);
+        var metadata = PaginationHelper.Calculate(pageNumber, totalCount);
 
         // Calculate skip and take
-        var skip = (pageNumber - 1) * pageSize;
-        var take = Math.Min(pageSize, totalCount - skip);
+        var skip = (pageNumber - 1) * PaginationHelper.ItemsPerPage;
+        var take = Math.Min(PaginationHelper.ItemsPerPage, totalCount - skip);
 
         // Generate items for the current page
         var items = Enumerable.Range(skip + 1, take)
