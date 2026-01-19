@@ -20,12 +20,14 @@ During the development process, the development team needs a simple way to impor
 
 ### Goals
 - [ ] Clear workspace data sets
-- [ ] Upload/Download workspace data sets
-- [ ] Starting with payee matching rules. Will add more data sets when starting work on those areas.
+- [ ] Upload/Download workspace data sets in simple form
+- [ ] Include payee matching rules
+- [ ] Include transactions
 - [ ] Will grow into the full tenant data admin functionality in the future
 
 ### Non-Goals
 - Not designed to be a user facing feature
+- Not including other data sets beyond those listed above. Will add more data sets when starting work on those areas.
 
 ---
 
@@ -33,16 +35,20 @@ During the development process, the development team needs a simple way to impor
 
 ### Story 1: Workspace Owner - Manages payee matching rules in a simple way
 **As a** workspace owner
-**I want** quick access to large changes in my payee matching rules
+**I want** quick access to large changes in my supported domains
 **So that** I can rapidly iterate on feature development
 
+**Supported Domains**:
+- Payee matching rules
+- Transactions
+
 **Acceptance Criteria**:
-- [ ] Owner can clear the payee matching rules in a workspace, with comfirmation
-- [ ] Owner cannot recovered data once deleted
-- [ ] Owner can download current payee matching rules in a workspace
-- [ ] Owner can upload a YAML file containing payee matching rules
-- [ ] When uploading payee matching rules, if new item matches existing item on ID, it is replaced
-- [ ] When uploading payee matching rules, if there is no ID or no ID match, it is added.
+- [ ] Owner can clear the entire data set for a chosen domain in a specific workspace, with confirmation
+- [ ] Owner cannot recover data once deleted
+- [ ] Owner can download entire database for a chosen domain in a specific workspace
+- [ ] Owner can upload a YAML file containing items for a chosen domain, which will be immediately placed into the database for the specific workspace
+- [ ] When domain data, if new item matches existing item on Key, it is replaced
+- [ ] When domain data, if there is no Key or no Key match, it is added.
 
 ---
 
@@ -78,7 +84,7 @@ During the development process, the development team needs a simple way to impor
 
 ## Open Questions
 
-- [ ] [Question 1 that needs resolution]
+- [ ] Should we ACTUALLY add clear and bulk upload/download into each specific domain feature? Or should I have a Tenant Data Admin feature for all of it?
 - [ ] [Question 2 that needs resolution]
 
 ---
