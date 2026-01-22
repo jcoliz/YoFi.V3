@@ -133,8 +133,9 @@ Rule: Permission Levels
         # Error: Should not have multitle When/Then logic in a scenario
         When I update that transaction
         Then my changes should be saved
-        When I delete that transaction
-        Then it should be removed
+        #TODO: Needs to be re-implemented to click into details page
+        #When I delete that transaction
+        #Then it should be removed
 
     Scenario: Owner can do everything including managing the workspace
         Given "alice" owns "My Workspace"

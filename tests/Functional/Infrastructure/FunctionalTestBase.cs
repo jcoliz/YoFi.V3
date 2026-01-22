@@ -293,11 +293,14 @@ public abstract partial class FunctionalTestBase : PageTest, ITestContext
     {
         try
         {
+            // Need to rework this in case user is using a custom channel
+            #if false
             // Attempt to create a simple browser instance to verify installation
             var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
             var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
             await browser.CloseAsync();
             playwright.Dispose();
+            #endif
         }
         catch (Microsoft.Playwright.PlaywrightException ex) when (ex.Message.Contains("Executable doesn't exist"))
         {
