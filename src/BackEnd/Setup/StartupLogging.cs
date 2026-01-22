@@ -45,11 +45,16 @@ public static partial class StartupLogging
         this ILogger logger,
         [CallerMemberName] string? location = null);
 
-    [LoggerMessage(12, LogLevel.Critical, "{Location}: Failed to start {App}")]
+    [LoggerMessage(12, LogLevel.Critical, "{Location}: Failed to start")]
     public static partial void LogStartupFailed(
         this ILogger logger,
         Exception exception,
-        string app,
+        [CallerMemberName] string? location = null);
+
+    [LoggerMessage(13, LogLevel.Information, "{Location}: Checkpoint {Checkpoint} reached")]
+    public static partial void LogCheckpointReached(
+        this ILogger logger,
+        string checkpoint,
         [CallerMemberName] string? location = null);
 
     [LoggerMessage(21, LogLevel.Information, "{Location}: Version: {Version}")]

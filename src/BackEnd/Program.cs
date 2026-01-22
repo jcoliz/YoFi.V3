@@ -44,28 +44,40 @@ try
     //
     // Add services to the container
     //
-
+    logger.LogCheckpointReached("Adding Services");
     builder.Services.AddControllers();
+    logger.LogCheckpointReached("Added Controllers");
     builder.Services.AddProblemDetails();
+    logger.LogCheckpointReached("Added ProblemDetails");
     builder.Services.AddControllerServices();
+    logger.LogCheckpointReached("Added Controller Services");
     builder.Services.AddSwagger();
+    logger.LogCheckpointReached("Added Swagger");
     builder.Services.AddApplicationFeatures();
+    logger.LogCheckpointReached("Added Application Features");
     builder.Services.AddDatabase(builder.Configuration);
+    logger.LogCheckpointReached("Added Database");
     builder.Services.AddIdentityConfiguration(builder.Configuration);
+    logger.LogCheckpointReached("Added Identity Configuration");
     builder.Services.AddTenancy();
+    logger.LogCheckpointReached("Added Tenancy");
     builder.Services.AddCorsServices(applicationOptions, logger);
+    logger.LogCheckpointReached("Added CORS Services");
 
     //
     // Build and configure the app
     //
 
     var app = builder.Build();
+    logger.LogCheckpointReached("Built Application");
 
     // Prepare the database
     app.PrepareDatabaseAsync();
+    logger.LogCheckpointReached("Prepared Database");
 
     // Configure the HTTP request pipeline
     app.ConfigureMiddlewarePipeline(app.Environment, logger);
+    logger.LogCheckpointReached("Configured Middleware Pipeline");
 
     logger.LogOkEnvironment(app.Environment.EnvironmentName);
 
@@ -78,7 +90,7 @@ catch (Exception ex)
 {
     if (logger is not null)
     {
-        logger.LogStartupFailed(ex, Assembly.GetExecutingAssembly().FullName ?? "Unknown");
+        logger.LogStartupFailed(ex);
     }
     else
     {
