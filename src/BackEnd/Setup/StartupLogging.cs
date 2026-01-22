@@ -51,7 +51,7 @@ public static partial class StartupLogging
         Exception exception,
         [CallerMemberName] string? location = null);
 
-    [LoggerMessage(13, LogLevel.Information, "{Location}: Checkpoint {Checkpoint} reached")]
+    [LoggerMessage(13, LogLevel.Debug, "{Location}: Checkpoint {Checkpoint} reached")]
     public static partial void LogCheckpointReached(
         this ILogger logger,
         string checkpoint,

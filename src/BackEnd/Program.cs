@@ -9,7 +9,6 @@ using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;
 
-
 ILogger? logger = default;
 try
 {
@@ -45,23 +44,17 @@ try
     // Add services to the container
     //
     logger.LogCheckpointReached("Adding Services");
+
     builder.Services.AddControllers();
-    logger.LogCheckpointReached("Added Controllers");
     builder.Services.AddProblemDetails();
-    logger.LogCheckpointReached("Added ProblemDetails");
     builder.Services.AddControllerServices();
-    logger.LogCheckpointReached("Added Controller Services");
     builder.Services.AddSwagger();
-    logger.LogCheckpointReached("Added Swagger");
     builder.Services.AddApplicationFeatures();
-    logger.LogCheckpointReached("Added Application Features");
     builder.Services.AddDatabase(builder.Configuration);
-    logger.LogCheckpointReached("Added Database");
     builder.Services.AddIdentityConfiguration(builder.Configuration);
-    logger.LogCheckpointReached("Added Identity Configuration");
     builder.Services.AddTenancy();
-    logger.LogCheckpointReached("Added Tenancy");
     builder.Services.AddCorsServices(applicationOptions, logger);
+
     logger.LogCheckpointReached("Added CORS Services");
 
     //
