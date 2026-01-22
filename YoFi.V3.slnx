@@ -1,0 +1,16 @@
+<Solution>
+  <Project Path="src/Application/YoFi.V3.Application.csproj"/>
+  <Project Path="src/AppHost/YoFi.V3.AppHost.csproj" />
+  <Project Path="src/BackEnd/YoFi.V3.BackEnd.csproj" />
+  <Project Path="src/Controllers/YoFi.V3.Controllers.csproj"/>
+  <Project Path="src/Data/Sqlite.MigrationHost/YoFi.V3.Data.Sqlite.MigrationHost.csproj" />
+  <Project Path="src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj" />
+  <Project Path="src/Entities/YoFi.V3.Entities.csproj"/>
+  <Project Path="src/ServiceDefaults/YoFi.V3.ServiceDefaults.csproj" />
+  <Project Path="src/WireApiHost/YoFi.V3.WireApiHost.csproj"/>
+  <Project Path="tests/Functional/YoFi.V3.Tests.Functional.csproj"/>
+  <Project Path="tests/Integration.Application/YoFi.V3.Tests.Integration.Application.csproj" />
+  <Project Path="tests/Integration.Controller/YoFi.V3.Tests.Integration.Controller.csproj" />
+  <Project Path="tests/Integration.Data/YoFi.V3.Tests.Integration.Data.csproj" />
+  <Project Path="tests/Unit/YoFi.V3.Tests.Unit.csproj" />
+</Solution>
