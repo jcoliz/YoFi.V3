@@ -1,8 +1,7 @@
 name: yofi-v3
 services:
-  aspire-dashboard:
+  dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13
-    container_name: aspire-dashboard
     ports:
       - '18888:18888'  # Dashboard UI
       - '18889:18889'  # OTLP/gRPC endpoint
@@ -52,4 +51,43 @@ services:
     ports:
       - '5001:8080'
     depends_on:
-      - aspire-dashboard
+      - dashboard
+  db:
+    image: postgres:18.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=development
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - PGUSER=postgres
+    healthcheck:
+      test: [ "CMD-SHELL" , "pg_isready" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+  dbadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False      
+    ports:
+      - '5050:80'
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - ./pgpass:/pgpass:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+# NOTE: It takes a while for pgadmin4 to become healthy. We don't want
+# the backend service to wait that long, so we don't set a depends_on
+# for it here. Instead, just make sure pgadmin4 is healthy before trying
+# to use it.
+#    healthcheck:
+#      test: ["CMD", "wget", "-O", "-", "http://localhost:80/misc/ping"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
