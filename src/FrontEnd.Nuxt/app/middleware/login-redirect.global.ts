@@ -1,3 +1,11 @@
+/**
+ * Redirects authenticated users away from the login page.
+ *
+ * Unlike `redirectIfAuthenticated` (which only supports static paths), this middleware
+ * preserves the `?redirect=` query parameter for deep-link flows. When nuxt-auth sends
+ * unauthenticated users to `/login?redirect=/original-page`, this middleware ensures
+ * they return to their original destination after login—not a hardcoded fallback.
+ */
 export default defineNuxtRouteMiddleware((to) => {
   const { status } = useAuth()
 
