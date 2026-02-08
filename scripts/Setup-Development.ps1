@@ -6,13 +6,14 @@
     Prepares a freshly cloned YoFi.V3 repository for development by:
     - Verifying required tools are installed (.NET SDK, Node.js, pnpm)
     - Restoring .NET dependencies
+    - Trusting the .NET HTTPS development certificate
     - Installing frontend npm packages
     - Building the solution
     - Running tests to verify setup
 
 .EXAMPLE
     .\Setup-Development.ps1
-    
+
     Runs the complete development environment setup process.
 
 .NOTES
@@ -93,6 +94,22 @@ try {
     }
     Write-Host "OK .NET dependencies restored" -ForegroundColor Green
 
+    # Trust HTTPS development certificate
+    Write-Host "`nChecking HTTPS development certificate..." -ForegroundColor Cyan
+    $certCheckOutput = dotnet dev-certs https --check --trust 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "HTTPS dev certificate is not trusted. Trusting now..." -ForegroundColor Yellow
+        dotnet dev-certs https --trust
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "WARNING Failed to trust HTTPS dev certificate. You may need to run this manually:" -ForegroundColor Yellow
+            Write-Host "        dotnet dev-certs https --trust" -ForegroundColor Yellow
+        } else {
+            Write-Host "OK HTTPS development certificate trusted" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "OK HTTPS development certificate already trusted" -ForegroundColor Green
+    }
+
     # Install frontend dependencies
     Write-Host "`nInstalling frontend dependencies..." -ForegroundColor Cyan
     Push-Location src/FrontEnd.Nuxt
@@ -127,7 +144,7 @@ try {
     Write-Host "`nDevelopment environment setup complete!" -ForegroundColor Green
     Write-Host "`nNext steps:" -ForegroundColor Cyan
     Write-Host "  1. Run the application:"
-    Write-Host "     dotnet watch --project src/AppHost"
+    Write-Host "     ./scripts/Start-LocalDev.ps1"
     Write-Host "`n  2. Or run in containers:"
     Write-Host "     ./scripts/Build-Container.ps1"
     Write-Host "     ./scripts/Start-Container.ps1"
