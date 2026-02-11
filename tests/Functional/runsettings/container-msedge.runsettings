@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+	<Playwright>
+		<BrowserName>chromium</BrowserName>
+		<LaunchOptions>
+			<Channel>msedge</Channel>
+			<Headless>true</Headless> <!-- Optional: set to true or remove for headless mode -->
+		</LaunchOptions>
+	</Playwright>
+	<TestRunParameters>
+		<Parameter name="webAppUrl" value="http://localhost:5000/" />
+		<Parameter name="apiBaseUrl" value="http://localhost:5001/" />
+		<Parameter name="defaultTimeout" value="5000" />
+		<Parameter name="screenshotContext" value="Container" />
+	</TestRunParameters>
+	 <RunConfiguration>
+	   <MaxCpuCount>1</MaxCpuCount>
+	   <EnvironmentVariables>
+	     <PWDEBUG>0</PWDEBUG>
+	   </EnvironmentVariables>
+	 </RunConfiguration>
+	 <NUnit>
+	   <NumberOfTestWorkers>1</NumberOfTestWorkers>
+	 </NUnit>
+</RunSettings>
