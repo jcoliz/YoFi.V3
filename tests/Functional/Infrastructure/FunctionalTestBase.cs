@@ -86,32 +86,11 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     }
     #endregion
 
-    #region Overrides
-
-    public override BrowserNewContextOptions ContextOptions() =>
-        new()
-        {
-            AcceptDownloads = true,
-            ViewportSize = new ViewportSize() { Width = 1280, Height = 720 },
-            BaseURL = GetRequiredParameter("webAppUrl")
-        };
-    #endregion
-
     #region Setup
 
     [SetUp]
     public async Task SetUp()
     {
-        // By convention, I put data-test-id attributes on important elements
-        Playwright.Selectors.SetTestIdAttribute("data-test-id");
-
-        // Note that this does need to be done in setup, because we get a new
-        // browser context every time. Is there a place we could tell Playwright
-        // this just ONCE??
-        var defaultTimeoutParam = TestContext.Parameters["defaultTimeout"];
-        if (Int32.TryParse(defaultTimeoutParam, out var val))
-            Context.SetDefaultTimeout(val);
-
         // Need a fresh object store for each test
         _objectStore = new ObjectStore();
 
