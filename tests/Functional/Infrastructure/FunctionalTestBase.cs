@@ -2,8 +2,8 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Web;
 using DotNetEnv;
+using jcoliz.FunctionalTests;
 using Microsoft.Playwright;
-using Microsoft.Playwright.NUnit;
 using YoFi.V3.Tests.Functional.Generated;
 
 namespace YoFi.V3.Tests.Functional.Infrastructure;
@@ -21,7 +21,7 @@ namespace YoFi.V3.Tests.Functional.Infrastructure;
 /// - Test Control API client access
 /// </remarks>
 [GeneratedTestBase(UseNamespace = "YoFi.V3.Tests.Functional.Features")]
-public abstract partial class FunctionalTestBase : PageTest, ITestContext
+public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 {
     #region Fields
 

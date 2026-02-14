@@ -1,3 +1,6 @@
 [submodule "infra/AzDeploy.Bicep"]
 	path = infra/AzDeploy.Bicep
 	url = https://github.com/jcoliz/AzDeploy.Bicep
+[submodule "submodules/jcoliz.FunctionalTests"]
+	path = submodules/jcoliz.FunctionalTests
+	url = https://www.github.com/jcoliz/jcoliz.FunctionalTests
