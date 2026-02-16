@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
-public partial class WeatherPage(IPage? _page): BasePage(_page)
+public partial class WeatherPage(IPage _page): BasePage(_page)
 {
     [GeneratedRegex("/api/Weather")]
     private static partial Regex WeatherApiRegex();
@@ -31,7 +31,7 @@ public partial class WeatherPage(IPage? _page): BasePage(_page)
     {
         await WaitForApi(async () =>
         {
-            await Page!.GotoAsync("/weather");
+            await Page.GotoAsync("/weather");
         }, WeatherApiRegex());
     }
 

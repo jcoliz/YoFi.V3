@@ -1,3 +1,4 @@
+using jcoliz.FunctionalTests;
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Generated;
 
@@ -106,7 +107,7 @@ public interface ITestContext
     ///
     /// This ensures page objects are created once per test and reused across steps.
     /// </remarks>
-    T GetOrCreatePage<T>() where T : class;
+    T GetOrCreatePage<T>() where T : PageObjectModel;
 
     /// <summary>
     /// Creates unique test user credentials for the current test.

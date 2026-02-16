@@ -3,14 +3,14 @@ using System.Text.RegularExpressions;
 
 namespace YoFi.V3.Tests.Functional.Pages;
 
-public class HomePage(IPage? _page): BasePage(_page)
+public class HomePage(IPage _page): BasePage(_page)
 {
     #region Page Elements
 
     /// <summary>
     /// Main brochure section on the home page
     /// </summary>
-    public ILocator BrochureSection => Page!.GetByTestId("brochure-section");
+    public ILocator BrochureSection => Page.GetByTestId("brochure-section");
 
     #endregion
 

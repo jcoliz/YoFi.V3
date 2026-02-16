@@ -601,8 +601,20 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         return key;
     }
 
-    /// <inheritdoc />
-    public T GetOrCreatePage<T>() where T : class
+    /// <summary>
+    /// Gets or creates a page object model of the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type of page object model to retrieve or create.</typeparam>
+    /// <returns>An instance of the specified page object model type.</returns>
+    /// <remarks>
+    /// This method implements a caching pattern:
+    /// - If the page object already exists in the ObjectStore, returns the existing instance
+    /// - Otherwise, creates a new instance using the constructor that takes IPage
+    /// - Stores the new instance in the ObjectStore for reuse
+    ///
+    /// This ensures page objects are created once per test and reused across steps.
+    /// </remarks>
+    public T GetOrCreatePage<T>() where T : PageObjectModel
     {
         if (_objectStore.Contains<T>())
         {
