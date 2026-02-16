@@ -27,7 +27,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 
     private static bool _prerequisiteCheckFailed = false;
 
-    protected ObjectStore _objectStore = new();
     protected Activity? _testActivity;
 
     // Track user credentials by friendly name for lookups AND cleanup
@@ -91,9 +90,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     [SetUp]
     public async Task SetUp()
     {
-        // Need a fresh object store for each test
-        _objectStore = new ObjectStore();
-
         // Clear user credentials for each test
         _userCredentials.Clear();
 
@@ -101,6 +97,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         _workspaceKeys.Clear();
 
         // Add a basepage object to the object store
+        // TODO: WHY??
         _objectStore.Add(new Pages.BasePage(Page));
 
         //
