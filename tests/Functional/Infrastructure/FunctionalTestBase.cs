@@ -25,6 +25,17 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 {
     #region Fields
 
+    private static string? _cachedApiBaseUrl;
+
+    /// <summary>
+    /// Gets the cached API base URL, resolving it from test parameters on first access.
+    /// </summary>
+    /// <remarks>
+    /// The value is resolved once from <c>GetRequiredParameter("apiBaseUrl")</c> and cached
+    /// in a static field for all subsequent accesses across test instances.
+    /// </remarks>
+    protected static string ApiBaseUrl => _cachedApiBaseUrl ??= GetRequiredParameter("apiBaseUrl");
+
     private static bool _prerequisiteCheckFailed = false;
 
     protected Activity? _testActivity;
@@ -38,8 +49,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 
     protected T It<T>() where T : class => _objectStore.Get<T>();
     protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
-
-    protected Uri? baseUrl { get; private set; }
 
     // Experiment with reusable HttpClient for TestControlClient, which we can change
     // headers on whenever we want
@@ -76,7 +85,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 }
 
                 _testControlClient = new TestControlClient(
-                    baseUrl: GetRequiredParameter("apiBaseUrl"),
+                    baseUrl: ApiBaseUrl,
                     httpClient: httpClient
                 );
             }
@@ -168,9 +177,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
             return;
         }
 
-        var url = GetRequiredParameter("webAppUrl");
-        baseUrl = new(url);
-
         // Check prerequisites before running any tests - fail with clear message if they're not met
         try
         {
@@ -251,8 +257,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     {
         try
         {
-            var apiBaseUrl = GetRequiredParameter("apiBaseUrl");
-            var normalizedBaseUrl = apiBaseUrl.TrimEnd('/');
+            var normalizedBaseUrl = ApiBaseUrl.TrimEnd('/');
             var healthUrl = $"{normalizedBaseUrl}/health";
 
             using var httpClient = new HttpClient();
@@ -280,18 +285,8 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         catch (HttpRequestException ex)
         {
             // Try to get the parameter for error message, fallback to "unknown" if it fails
-            string apiBaseUrl;
-            try
-            {
-                apiBaseUrl = GetRequiredParameter("apiBaseUrl");
-            }
-            catch
-            {
-                apiBaseUrl = "unknown";
-            }
-
             var message = $"""
-                Cannot connect to backend API at {apiBaseUrl}/health
+                Cannot connect to backend API at {ApiBaseUrl}/health
 
                 Please ensure the backend is running:
                 - For local development: Start the backend with 'pwsh scripts/Start-LocalDev.ps1'
@@ -305,18 +300,8 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         catch (TaskCanceledException ex)
         {
             // Try to get the parameter for error message, fallback to "unknown" if it fails
-            string apiBaseUrl;
-            try
-            {
-                apiBaseUrl = GetRequiredParameter("apiBaseUrl");
-            }
-            catch
-            {
-                apiBaseUrl = "unknown";
-            }
-
             var message = $"""
-                Backend API health check timed out (5 seconds) at {apiBaseUrl}/health
+                Backend API health check timed out (5 seconds) at {ApiBaseUrl}/health
 
                 The backend may be starting up or experiencing issues.
                 Please ensure the backend is running and responsive:
