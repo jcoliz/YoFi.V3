@@ -317,15 +317,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     #region Helpers
 
     /// <summary>
-    /// Saves a screenshot for debugging purposes.
-    /// </summary>
-    protected async Task SaveScreenshotAsync()
-    {
-        var pageModel = It<Pages.BasePage>();
-        await pageModel.SaveScreenshotAsync();
-    }
-
-    /// <summary>
     /// Builds test correlation headers for distributed tracing.
     /// </summary>
     /// <returns>Dictionary of HTTP headers including W3C Trace Context and custom test correlation headers.</returns>
@@ -570,32 +561,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
             throw new KeyNotFoundException($"Workspace key for '{workspaceName}' not found. Did you forget to track the workspace?");
         }
         return key;
-    }
-
-    /// <summary>
-    /// Gets or creates a page object model of the specified type.
-    /// </summary>
-    /// <typeparam name="T">The type of page object model to retrieve or create.</typeparam>
-    /// <returns>An instance of the specified page object model type.</returns>
-    /// <remarks>
-    /// This method implements a caching pattern:
-    /// - If the page object already exists in the ObjectStore, returns the existing instance
-    /// - Otherwise, creates a new instance using the constructor that takes IPage
-    /// - Stores the new instance in the ObjectStore for reuse
-    ///
-    /// This ensures page objects are created once per test and reused across steps.
-    /// </remarks>
-    public T GetOrCreatePage<T>() where T : PageObjectModel
-    {
-        if (_objectStore.Contains<T>())
-        {
-            return _objectStore.Get<T>();
-        }
-
-        // Create new page using constructor that takes IPage
-        var page = (T)Activator.CreateInstance(typeof(T), Page)!;
-        _objectStore.Add(page);
-        return page;
     }
 
     // CreateTestUserCredentials - already implemented as protected method (lines 550-568)
