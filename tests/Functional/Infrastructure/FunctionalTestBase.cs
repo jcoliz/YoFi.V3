@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using System.Text.RegularExpressions;
-using System.Web;
-using DotNetEnv;
 using jcoliz.FunctionalTests;
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Generated;
@@ -38,8 +34,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 
     private static bool _prerequisiteCheckFailed = false;
 
-    protected Activity? _testActivity;
-
     // Track user credentials by friendly name for lookups AND cleanup
     protected readonly Dictionary<string, TestUserCredentials> _userCredentials = new();
 
@@ -70,10 +64,10 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
             {
                 var httpClient = new HttpClient();
 
-                // Add test correlation headers if test activity exists
-                if (_testActivity is not null)
+                // Add test correlation headers if correlation context exists
+                if (_correlationContext is not null)
                 {
-                    var headers = BuildTestCorrelationHeaders();
+                    var headers = _correlationContext.BuildCorrelationHeaders();
                     foreach (var header in headers)
                     {
                         httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
@@ -81,7 +75,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 }
                 else
                 {
-                    TestContext.Out.WriteLine("[TestControlClient] Warning: Test activity is null, correlation headers will not be set.");
+                    TestContext.Out.WriteLine("[TestControlClient] Warning: Correlation context is null, correlation headers will not be set.");
                 }
 
                 _testControlClient = new TestControlClient(
@@ -104,25 +98,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 
         // Clear workspace keys for each test
         _workspaceKeys.Clear();
-
-        //
-        // Create test activity for distributed tracing
-        //
-        var testName = TestContext.CurrentContext.Test.Name;
-        var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
-        var testId = Guid.NewGuid().ToString();
-
-        _testActivity = new Activity("FunctionalTest");
-        _testActivity.SetTag("test.name", testName);
-        _testActivity.SetTag("test.class", testClass);
-        _testActivity.SetTag("test.id", testId);
-        _testActivity.Start();
-
-        //
-        // Set headers for both W3C trace propagation and direct correlation
-        //
-        var headers = BuildTestCorrelationHeaders();
-        await Context.SetExtraHTTPHeadersAsync(headers);
 
         //
         // Capture console logs from browser
@@ -162,9 +137,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     {
         // Clean up test-specific users and workspaces
         await CleanupTestResourcesAsync();
-
-        _testActivity?.Stop();
-        _testActivity?.Dispose();
     }
 
     [OneTimeSetUp]
@@ -315,40 +287,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     #endregion
 
     #region Helpers
-
-    /// <summary>
-    /// Builds test correlation headers for distributed tracing.
-    /// </summary>
-    /// <returns>Dictionary of HTTP headers including W3C Trace Context and custom test correlation headers.</returns>
-    private Dictionary<string, string> BuildTestCorrelationHeaders()
-    {
-        if (_testActivity is null)
-        {
-            TestContext.Out.WriteLine("[TestControlClient] Warning: Test activity is null, correlation headers will not be set.");
-            return new Dictionary<string, string>();
-        }
-
-        var testName = TestContext.CurrentContext.Test.Name;
-        var testClass = TestContext.CurrentContext.Test.ClassName ?? "Unknown";
-        var testId = _testActivity.GetTagItem("test.id")?.ToString() ?? Guid.NewGuid().ToString();
-        var traceParent = $"00-{_testActivity.TraceId}-{_testActivity.SpanId}-01";
-
-        // Enable this for additional correlation debugging
-#if false
-        TestContext.Out.WriteLine($"[TestControlClient] Building test correlation headers: TestName={testName}, TestId={testId}, TestClass={testClass}, TraceParent={traceParent}");
-#endif
-
-        return new Dictionary<string, string>
-        {
-            // W3C Trace Context standard
-            ["traceparent"] = traceParent,
-
-            // Direct test correlation (fallback and convenience)
-            ["X-Test-Name"] = HttpUtility.UrlEncode(testName),
-            ["X-Test-Id"] = testId,
-            ["X-Test-Class"] = testClass
-        };
-    }
 
     /// <summary>
     /// Generates unique test user credentials based on test context.
