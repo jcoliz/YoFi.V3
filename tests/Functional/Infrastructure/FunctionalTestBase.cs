@@ -96,10 +96,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         // Clear workspace keys for each test
         _workspaceKeys.Clear();
 
-        // Add a basepage object to the object store
-        // TODO: WHY??
-        _objectStore.Add(new Pages.BasePage(Page));
-
         //
         // Create test activity for distributed tracing
         //
@@ -155,13 +151,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     [TearDown]
     public async Task TearDown()
     {
-        // Capture screenshot only on test failure
-        if (TestContext.CurrentContext.Result.Outcome.Status == NUnit.Framework.Interfaces.TestStatus.Failed)
-        {
-            var pageModel = It<Pages.BasePage>();
-            await pageModel.SaveScreenshotAsync($"FAILED");
-        }
-
         // Clean up test-specific users and workspaces
         await CleanupTestResourcesAsync();
 
