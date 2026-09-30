@@ -11,6 +11,7 @@ This folder contains documentation for the YoFi.V3 personal finance application.
 
 - **[Contributing Guide](CONTRIBUTING.md)** - How to set up your development environment and contribute to the project
 - **[Commit Conventions](COMMIT-CONVENTIONS.md)** - Guidelines for writing clear and consistent commit messages
+- **[Validation Policy](VALIDATION-POLICY.md)** - How input validation is layered and wired in (FluentValidation, DataAnnotations, exceptions)
 - **[TODO List](TODO.md)** - Recommendations for scaling up the codebase (from AI analysis)
 
 ## Testing
