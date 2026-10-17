@@ -61,6 +61,12 @@ This project follows Clean Architecture with clear separation:
 - Fix all linter warnings
 - Follow all prettier formatting guidelines
 
+### Dependency Management
+
+- .NET NuGet package versions are managed centrally in [`Directory.Packages.props`](../Directory.Packages.props). Keep `PackageReference` entries in project files versionless and update package versions in that file.
+- The `jcoliz.FunctionalTests` Git submodule manages its NuGet versions independently.
+- Frontend dependencies remain declared in `src/FrontEnd.Nuxt/package.json` and locked by `pnpm-lock.yaml`.
+
 ## Testing
 
 - Write unit tests for all Application Features
