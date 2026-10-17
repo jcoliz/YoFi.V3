@@ -24,15 +24,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-function Test-DockerRunning {
-    try {
-        $null = docker info 2>&1
-        return ($LASTEXITCODE -eq 0)
-    }
-    catch {
-        return $false
-    }
-}
+Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
 
 try {
     if (-not (Test-DockerRunning)) {
@@ -40,26 +32,15 @@ try {
         exit 1
     }
 
-    $env:SOLUTION_VERSION = & "$PSScriptRoot/Get-Version.ps1" -Stable
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to get version with exit code $LASTEXITCODE"
-    }
-
-    $env:SOLUTION_VERSION = "$env:SOLUTION_VERSION-bcps"
-    Write-Host "Building containers with version: $env:SOLUTION_VERSION" -ForegroundColor Cyan
-
     docker compose -f "$PSScriptRoot/../docker/docker-compose-ci.yml" build
     if ($LASTEXITCODE -ne 0) {
         throw "Docker build failed with exit code $LASTEXITCODE"
     }
 
-    Write-Host "Built Docker CI containers with solution version $env:SOLUTION_VERSION" -ForegroundColor Green
+    Write-Host "Built Docker CI containers" -ForegroundColor Green
 }
 catch {
     Write-Error "Failed to build containers: $_"
     Write-Error $_.ScriptStackTrace
     exit 1
-}
-finally {
-    Remove-Item env:SOLUTION_VERSION -ErrorAction SilentlyContinue
 }

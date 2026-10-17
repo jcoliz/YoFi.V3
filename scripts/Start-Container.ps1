@@ -5,12 +5,20 @@ Starts the Docker CI containers locally.
 .DESCRIPTION
 This script starts the Docker containers defined in docker-compose-ci.yml in detached mode
 and waits for them to be ready. Once the containers are running, it automatically opens
-the application in a browser at http://localhost:5000. This is useful for debugging CI
+the application in a browser at http://localhost:5400. This is useful for debugging CI
 build issues locally and running functional tests locally.
 
 .EXAMPLE
 .\Start-Container.ps1
 Starts the Docker containers and opens the application in a browser.
+
+.EXAMPLE
+.\Start-Container.ps1 -Build
+Builds the containers first using Build-Container.ps1 if it exists, then starts the stack.
+
+.EXAMPLE
+.\Start-Container.ps1 -NoBrowser
+Starts the stack without opening browser windows, for CI or headless use.
 
 .NOTES
 The containers run in detached mode (-d) and the script waits (--wait) for them to be ready.
@@ -22,24 +30,33 @@ https://docs.docker.com/compose/
 
 
 [CmdletBinding()]
-param()
+param(
+    [switch]$Build,
+    [switch]$NoBrowser
+)
 
 $ErrorActionPreference = "Stop"
 
-function Test-DockerRunning {
-    try {
-        $null = docker info 2>&1
-        return ($LASTEXITCODE -eq 0)
-    }
-    catch {
-        return $false
-    }
-}
+Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
 
 try {
     if (-not (Test-DockerRunning)) {
         Write-Error "Docker is not running. Please start Docker Desktop and try again."
         exit 1
+    }
+
+    if ($Build) {
+        $buildScript = Join-Path $PSScriptRoot "Build-Container.ps1"
+        if (Test-Path $buildScript) {
+            Write-Host "Running Build-Container.ps1 before startup..." -ForegroundColor Cyan
+            & $buildScript
+            if ($LASTEXITCODE -ne 0) {
+                throw "Build-Container.ps1 failed with exit code $LASTEXITCODE"
+            }
+        }
+        else {
+            Write-Warning "Build-Container.ps1 was not found at $buildScript; continuing without a build step."
+        }
     }
 
     Write-Host "Starting Docker CI containers..." -ForegroundColor Cyan
@@ -49,10 +66,13 @@ try {
     }
 
     Write-Host "OK Containers started successfully" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Opening application and dashboard..." -ForegroundColor Cyan
-    Start-Process "http://localhost:5000"   # Frontend
-    Start-Process "http://localhost:18888"  # Aspire Dashboard
+    if (-not $NoBrowser) {
+        Write-Host ""
+        Write-Host "Opening application and dashboard..." -ForegroundColor Cyan
+        Start-Process "http://localhost:18888"
+        Start-Process "http://localhost:5001/swagger"
+        Start-Process "http://localhost:5000"
+    }
 }
 catch {
     Write-Error "Failed to start containers: $_"

@@ -20,7 +20,7 @@ services:
           # perspective of JS code running in user's browser, *not* from the perspective of
           # within the container.
         - NUXT_PUBLIC_API_BASE_URL=http://localhost:5001
-        - NUXT_PUBLIC_SOLUTION_VERSION=${SOLUTION_VERSION:-'docker-compose'}
+        - NUXT_PUBLIC_SOLUTION_VERSION=${SOLUTION_VERSION:-container}
         - NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     restart: always
     ports:
@@ -48,6 +48,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
+      - USER__0__PASSWORD=${TESTPWORD}
     restart: always
     ports:
       - '5001:8080'

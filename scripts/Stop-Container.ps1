@@ -23,15 +23,7 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-function Test-DockerRunning {
-    try {
-        $null = docker info 2>&1
-        return ($LASTEXITCODE -eq 0)
-    }
-    catch {
-        return $false
-    }
-}
+Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
 
 try {
     if (-not (Test-DockerRunning)) {
