@@ -396,7 +396,7 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
-    public void GetTransactionsAsync_FromDateAfterToDate_ThrowsValidationException()
+    public async Task GetTransactionsAsync_FromDateAfterToDate_ThrowsValidationException()
     {
         // Given: Invalid date range
         var today = DateOnly.FromDateTime(DateTime.Now);
@@ -404,7 +404,7 @@ public class TransactionsFeatureTests : FeatureTestBase
 
         // When: From date is after to date
         // Then: Should throw ValidationException
-        var ex = Assert.ThrowsAsync<ValidationException>(async () =>
+        var ex = await Assert.ThrowsAsync<ValidationException>(async () =>
             await _feature.GetTransactionsAsync(fromDate: today, toDate: yesterday));
 
         Assert.That(ex!.ParameterName, Is.EqualTo("fromDate"));
@@ -493,14 +493,14 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
-    public void GetTransactionByKeyAsync_NonExistentKey_ThrowsTransactionNotFoundException()
+    public async Task GetTransactionByKeyAsync_NonExistentKey_ThrowsTransactionNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
 
         // When: Getting transaction by non-existent key
         // Then: Should throw TransactionNotFoundException
-        var ex = Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
+        var ex = await Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _feature.GetTransactionByKeyAsync(nonExistentKey));
 
         Assert.That(ex!.Message, Does.Contain(nonExistentKey.ToString()));
@@ -526,7 +526,7 @@ public class TransactionsFeatureTests : FeatureTestBase
 
         // When: Trying to get other tenant's transaction
         // Then: Should throw TransactionNotFoundException
-        Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
+        await Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _feature.GetTransactionByKeyAsync(otherTenantTransaction.Key));
     }
 
@@ -655,7 +655,7 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
-    public void UpdateTransactionAsync_NonExistentTransaction_ThrowsTransactionNotFoundException()
+    public async Task UpdateTransactionAsync_NonExistentTransaction_ThrowsTransactionNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
@@ -671,7 +671,7 @@ public class TransactionsFeatureTests : FeatureTestBase
 
         // When: Updating non-existent transaction
         // Then: Should throw TransactionNotFoundException
-        Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
+        await Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _feature.UpdateTransactionAsync(nonExistentKey, updateDto));
     }
 
@@ -698,14 +698,14 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
-    public void DeleteTransactionAsync_NonExistentTransaction_ThrowsTransactionNotFoundException()
+    public async Task DeleteTransactionAsync_NonExistentTransaction_ThrowsTransactionNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
 
         // When: Deleting non-existent transaction
         // Then: Should throw TransactionNotFoundException
-        Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
+        await Assert.ThrowsAsync<TransactionNotFoundException>(async () =>
             await _feature.DeleteTransactionAsync(nonExistentKey));
     }
 

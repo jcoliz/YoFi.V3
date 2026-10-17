@@ -73,14 +73,14 @@ public class PayeeMatchingRuleFeatureUpdateRuleAsyncTests : PayeeMatchingRuleFea
     }
 
     [Test]
-    public void UpdateRuleAsync_NonExistentKey_ThrowsNotFoundException()
+    public async Task UpdateRuleAsync_NonExistentKey_ThrowsNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
         var updateDto = new PayeeMatchingRuleEditDto("Pattern", false, "Category");
 
         // When/Then: Updating should throw
-        Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
+        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
             async () => await _feature.UpdateRuleAsync(nonExistentKey, updateDto));
     }
 }

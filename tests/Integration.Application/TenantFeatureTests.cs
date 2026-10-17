@@ -199,7 +199,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: User requests the non-existent tenant
         // Then: TenantNotFoundException should be thrown
-        var ex = Assert.ThrowsAsync<TenantNotFoundException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantNotFoundException>(async () =>
             await _tenantFeature.GetTenantForUserAsync(userId, nonExistentKey));
 
         Assert.That(ex!.Message, Does.Contain(nonExistentKey.ToString()));
@@ -217,7 +217,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: User 2 attempts to access User 1's tenant
         // Then: TenantAccessDeniedException should be thrown
-        var ex = Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
             await _tenantFeature.GetTenantForUserAsync(user2Id, tenantKey));
 
         Assert.That(ex, Is.Not.Null);
@@ -268,7 +268,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: User attempts to update non-existent tenant
         // Then: TenantNotFoundException should be thrown
-        var ex = Assert.ThrowsAsync<TenantNotFoundException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantNotFoundException>(async () =>
             await _tenantFeature.UpdateTenantForUserAsync(userId, nonExistentKey, updateDto));
 
         Assert.That(ex!.Message, Does.Contain(nonExistentKey.ToString()));
@@ -289,7 +289,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: Other user attempts to update the tenant
         // Then: TenantAccessDeniedException should be thrown
-        var ex = Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
             await _tenantFeature.UpdateTenantForUserAsync(otherUserId, tenantKey, updateDto));
 
         // And: Exception should contain tenant key and userId property
@@ -336,7 +336,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: User attempts to delete non-existent tenant
         // Then: TenantNotFoundException should be thrown
-        var ex = Assert.ThrowsAsync<TenantNotFoundException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantNotFoundException>(async () =>
             await _tenantFeature.DeleteTenantForUserAsync(userId, nonExistentKey));
 
         Assert.That(ex!.Message, Does.Contain(nonExistentKey.ToString()));
@@ -354,7 +354,7 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: Other user attempts to delete the tenant
         // Then: TenantAccessDeniedException should be thrown
-        var ex = Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
+        var ex = await Assert.ThrowsAsync<TenantAccessDeniedException>(async () =>
             await _tenantFeature.DeleteTenantForUserAsync(otherUserId, tenantKey));
 
         // And: Exception should contain tenant key and userId property
@@ -595,7 +595,7 @@ public class TenantFeatureTests : FeatureTestBase
     }
 
     [Test]
-    public void AddUserTenantRoleAsync_DuplicateRole_ThrowsDuplicateUserTenantRoleException()
+    public async Task AddUserTenantRoleAsync_DuplicateRole_ThrowsDuplicateUserTenantRoleException()
     {
         // Given: A tenant with a user already assigned a role
         var tenantDto = new TenantEditDto("__TEST__Workspace", "Test workspace");
@@ -607,7 +607,7 @@ public class TenantFeatureTests : FeatureTestBase
         _tenantFeature.AddUserTenantRoleAsync(userId, tenant.Id, TenantRole.Owner).GetAwaiter().GetResult();
 
         // Then: Attempting to add the same user again should throw
-        var ex = Assert.ThrowsAsync<DuplicateUserTenantRoleException>(async () =>
+        var ex = await Assert.ThrowsAsync<DuplicateUserTenantRoleException>(async () =>
             await _tenantFeature.AddUserTenantRoleAsync(userId, tenant.Id, TenantRole.Editor));
 
         Assert.That(ex, Is.Not.Null);

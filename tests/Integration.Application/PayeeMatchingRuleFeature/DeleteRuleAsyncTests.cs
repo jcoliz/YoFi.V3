@@ -32,13 +32,13 @@ public class PayeeMatchingRuleFeatureDeleteRuleAsyncTests : PayeeMatchingRuleFea
     }
 
     [Test]
-    public void DeleteRuleAsync_NonExistentKey_ThrowsNotFoundException()
+    public async Task DeleteRuleAsync_NonExistentKey_ThrowsNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
 
         // When/Then: Deleting should throw
-        Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
+        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
             async () => await _feature.DeleteRuleAsync(nonExistentKey));
     }
 }

@@ -222,7 +222,7 @@ public class TenantRepositoryTests
 
         // When: Attempting to add the duplicate
         // Then: Should throw DuplicateUserTenantRoleException
-        var ex = Assert.ThrowsAsync<DuplicateUserTenantRoleException>(
+        var ex = await Assert.ThrowsAsync<DuplicateUserTenantRoleException>(
             async () => await _repository.AddUserTenantRoleAsync(duplicate));
 
         // And: Exception should contain correct information
@@ -265,7 +265,7 @@ public class TenantRepositoryTests
 
         // When: Attempting to remove the non-existing assignment
         // Then: Should throw UserTenantRoleNotFoundException
-        var ex = Assert.ThrowsAsync<UserTenantRoleNotFoundException>(
+        var ex = await Assert.ThrowsAsync<UserTenantRoleNotFoundException>(
             async () => await _repository.RemoveUserTenantRoleAsync(nonExisting));
 
         // And: Exception should contain correct information
@@ -299,7 +299,7 @@ public class TenantRepositoryTests
 
         // When: Removing the untracked assignment
         // Then: Should not throw (the check will find it exists)
-        Assert.DoesNotThrowAsync(async () => await _repository.RemoveUserTenantRoleAsync(untrackedAssignment));
+        await Assert.DoesNotThrowAsync(async () => await _repository.RemoveUserTenantRoleAsync(untrackedAssignment));
 
         // And: Assignment should be removed
         var removed = await _context.UserTenantRoleAssignments.FindAsync(assignmentId);

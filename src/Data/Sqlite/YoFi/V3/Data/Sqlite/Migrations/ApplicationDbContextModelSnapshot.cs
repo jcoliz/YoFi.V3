@@ -15,7 +15,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -224,6 +224,9 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid>("Key")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -233,6 +236,9 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
 
                     b.HasIndex("TokenHash");
 

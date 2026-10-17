@@ -107,7 +107,7 @@ public class PayeeMatchingRuleTests
         _context.PayeeMatchingRules.Add(rule);
 
         // When/Then: Saving should fail with a database constraint error
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
@@ -124,7 +124,7 @@ public class PayeeMatchingRuleTests
         _context.PayeeMatchingRules.Add(rule);
 
         // When/Then: Saving should fail due to foreign key constraint
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
@@ -328,7 +328,7 @@ public class PayeeMatchingRuleTests
         _context.PayeeMatchingRules.Add(rule);
 
         // When/Then: Saving should fail with constraint violation
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
@@ -345,7 +345,7 @@ public class PayeeMatchingRuleTests
         _context.PayeeMatchingRules.Add(rule);
 
         // When/Then: Saving should fail with constraint violation
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]

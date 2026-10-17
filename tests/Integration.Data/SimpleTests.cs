@@ -191,13 +191,13 @@ public class SimpleTests
     }
 
     [Test]
-    public void Add_WithNullEntity_ThrowsException()
+    public async Task Add_WithNullEntity_ThrowsException()
     {
         // Given: A data provider
         IDataProvider provider = _context;
 
         // When/Then: Adding null should throw an exception
-        Assert.ThrowsAsync<ArgumentNullException>(() =>
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
         {
             provider.Add(null!);
             return _context.SaveChangesAsync();
@@ -263,7 +263,7 @@ public class SimpleTests
 
         // Then: Second save should either succeed (last-write-wins) or throw concurrency exception
         // The exact behavior depends on your concurrency strategy
-        Assert.DoesNotThrowAsync(async () => await context2.SaveChangesAsync());
+        await Assert.DoesNotThrowAsync(async () => await context2.SaveChangesAsync());
     }
 
     [Test]
@@ -352,7 +352,7 @@ public class SimpleTests
     }
 
     [Test]
-    public void SingleOrDefaultAsync_ThrowsWhenMultipleEntitiesFound()
+    public async Task SingleOrDefaultAsync_ThrowsWhenMultipleEntitiesFound()
     {
         // Given: Multiple weather forecasts with the same summary
         IDataProvider provider = _context;
@@ -364,7 +364,7 @@ public class SimpleTests
 
         // When/Then: Querying for multiple entities should throw
         var query = provider.Get<WeatherForecast>().Where(f => f.Summary == "Sunny");
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.SingleOrDefaultAsync(query));
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.SingleOrDefaultAsync(query));
     }
 
     [Test]

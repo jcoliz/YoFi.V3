@@ -121,7 +121,7 @@ public class UserTenantRoleAssignmentTests
         _context.UserTenantRoleAssignments.Add(assignment);
 
         // When/Then: Saving should fail due to foreign key constraint
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
@@ -203,7 +203,7 @@ public class UserTenantRoleAssignmentTests
         _context.UserTenantRoleAssignments.Add(assignment2);
 
         // Then: Should fail due to unique constraint
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]

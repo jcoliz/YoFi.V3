@@ -33,13 +33,13 @@ public class PayeeMatchingRuleFeatureGetRuleByKeyAsyncTests : PayeeMatchingRuleF
     }
 
     [Test]
-    public void GetRuleByKeyAsync_NonExistentKey_ThrowsNotFoundException()
+    public async Task GetRuleByKeyAsync_NonExistentKey_ThrowsNotFoundException()
     {
         // Given: Non-existent key
         var nonExistentKey = Guid.NewGuid();
 
         // When/Then: Getting rule should throw
-        Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
+        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
             async () => await _feature.GetRuleByKeyAsync(nonExistentKey));
     }
 
@@ -61,7 +61,7 @@ public class PayeeMatchingRuleFeatureGetRuleByKeyAsyncTests : PayeeMatchingRuleF
         await _context.SaveChangesAsync(); // Then save rule
 
         // When/Then: Getting rule from current tenant should throw
-        Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
+        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
             async () => await _feature.GetRuleByKeyAsync(rule.Key));
     }
 }

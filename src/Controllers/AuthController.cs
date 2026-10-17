@@ -29,15 +29,21 @@ namespace YoFi.V3.Controllers;
 public partial class AuthController(
     TenantFeature tenantFeature,
     IJwtTokenService<IdentityUser> jwtTokenService,
+    IEnumerable<IUserClaimsProvider<IdentityUser>> userClaimsProviders,
     IRefreshTokenService refreshTokenService,
     UserManager<IdentityUser> userManager,
     SignInManager<IdentityUser> signInManager,
+    IEnumerable<IUserNotifier> userNotifiers,
+    IEnumerable<IInvitationService> invitationServices,
     ILogger<AuthController> logger)
     : NuxtAuthControllerBase<IdentityUser>(
         jwtTokenService,
+        userClaimsProviders,
         refreshTokenService,
         userManager,
         signInManager,
+        userNotifiers,
+        invitationServices,
         logger)
 {
     /// <summary>

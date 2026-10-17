@@ -360,7 +360,7 @@ public class SplitTests
         _context.Splits.Add(split);
 
         // When/Then: Saving should fail due to foreign key constraint
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]

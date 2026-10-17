@@ -566,7 +566,7 @@ public class ImportReviewFeatureTests
     }
 
     [Test]
-    public void SeedTestDataAsync_SelectedCountGreaterThanCount_ThrowsArgumentOutOfRangeException()
+    public async Task SeedTestDataAsync_SelectedCountGreaterThanCount_ThrowsArgumentOutOfRangeException()
     {
         // Given: Mock dependencies and feature configured for invalid selectedCount
         var (feature, _) = CreateFeatureWithMocks();
@@ -574,7 +574,7 @@ public class ImportReviewFeatureTests
         var selectedCount = 10;
 
         // When/Then: SeedTestDataAsync should throw ArgumentOutOfRangeException
-        var ex = Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+        var ex = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
             await feature.SeedTestDataAsync(count, selectedCount));
 
         // And: Exception should indicate valid range
@@ -584,7 +584,7 @@ public class ImportReviewFeatureTests
     }
 
     [Test]
-    public void SeedTestDataAsync_NegativeSelectedCount_ThrowsArgumentOutOfRangeException()
+    public async Task SeedTestDataAsync_NegativeSelectedCount_ThrowsArgumentOutOfRangeException()
     {
         // Given: Mock dependencies and feature configured for negative selectedCount
         var (feature, _) = CreateFeatureWithMocks();
@@ -592,7 +592,7 @@ public class ImportReviewFeatureTests
         var selectedCount = -1;
 
         // When/Then: SeedTestDataAsync should throw ArgumentOutOfRangeException
-        var ex = Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+        var ex = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
             await feature.SeedTestDataAsync(count, selectedCount));
 
         // And: Exception should indicate valid range

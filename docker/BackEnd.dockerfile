@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.100 AS build
 WORKDIR /source
 
+COPY Directory.Packages.props ./
 COPY src/Entities/YoFi.V3.Entities.csproj src/Entities/
 COPY src/Directory.Build.props src
 COPY scripts/Get-Version.ps1 scripts/

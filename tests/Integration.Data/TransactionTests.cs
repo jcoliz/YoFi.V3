@@ -109,7 +109,7 @@ public class TransactionTests
         _context.Transactions.Add(transaction);
 
         // When/Then: Saving should fail with a database constraint error
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
@@ -127,7 +127,7 @@ public class TransactionTests
         _context.Transactions.Add(transaction);
 
         // When/Then: Saving should fail due to foreign key constraint
-        Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateException>(async () => await _context.SaveChangesAsync());
     }
 
     [Test]
