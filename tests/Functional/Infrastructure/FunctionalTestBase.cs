@@ -41,8 +41,8 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     // (keys are FULL workspace names as returned by API)
     protected readonly Dictionary<string, Guid> _workspaceKeys = new();
 
-    protected T It<T>() where T : class => _objectStore.Get<T>();
-    protected T The<T>(string key) where T : class => _objectStore.Get<T>(key);
+    protected T It<T>() where T : class => base.ObjectStore.Get<T>();
+    protected T The<T>(string key) where T : class => base.ObjectStore.Get<T>(key);
 
     // Experiment with reusable HttpClient for TestControlClient, which we can change
     // headers on whenever we want
@@ -425,9 +425,9 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 }
             }
 
-            if (_objectStore.Contains<string>(ObjectStoreKeys.OfxFilePath))
+            if (ObjectStore.Contains<string>(ObjectStoreKeys.OfxFilePath))
             {
-                var ofxFilePath = _objectStore.Get<string>(ObjectStoreKeys.OfxFilePath);
+                var ofxFilePath = ObjectStore.Get<string>(ObjectStoreKeys.OfxFilePath);
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(ofxFilePath) && File.Exists(ofxFilePath))
@@ -452,9 +452,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     #endregion
 
     #region ITestContext Implementation
-
-    /// <inheritdoc />
-    public ObjectStore ObjectStore => _objectStore;
 
     /// <inheritdoc />
     public TestControlClient TestControlClient => testControlClient;

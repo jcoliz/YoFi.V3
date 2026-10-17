@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Gherkin.Generator" />
+    <PackageReference Include="jcoliz.Net.FunctionalTests" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
@@ -26,10 +27,6 @@
   <ItemGroup>
     <Using Include="NUnit.Framework" />
     <Using Include="Gherkin.Generator.Utils" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\submodules\jcoliz.FunctionalTests\src\FunctionalTests\jcoliz.FunctionalTests.csproj" />
   </ItemGroup>
 
   <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
