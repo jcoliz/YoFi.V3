@@ -1,72 +1,87 @@
 <#
 .SYNOPSIS
-    Run unit and integration tests
+    Run selected unit, integration, and functional tests.
 
 .DESCRIPTION
-    Builds the solution and runs all unit and integration tests.
-    Does NOT run functional tests, as those require containers to be running.
+    Runs unit tests by default. Use -Unit, -Integration, and -Functional in any
+    combination to select test suites. Each selected test project is built by
+    dotnet test; the solution is not built.
 
     Test projects included:
     - tests/Unit - Unit tests for Application layer
     - tests/Integration.Application - Integration tests for Application layer (PRIMARY)
     - tests/Integration.Data - Integration tests for Data layer
     - tests/Integration.Controller - Integration tests for Controller layer
+    - tests/Functional - Functional tests against running containers
 
-    Functional tests are excluded because they require running containers.
-    To run functional tests, use Run-FunctionalTestsVsContainer.ps1 instead.
+    Functional tests require Docker and the application containers to be running.
+    Use Run-FunctionalTestsVsContainer.ps1 to manage containers automatically.
+
+.PARAMETER Unit
+    Run unit tests.
+
+.PARAMETER Integration
+    Run all three integration test projects.
+
+.PARAMETER Functional
+    Check Docker availability and run functional tests.
+
+.PARAMETER Filter
+    Pass a dotnet test filter expression to every selected test project.
 
 .EXAMPLE
     .\Run-Tests.ps1
 
-    Builds the solution and runs all unit and integration tests.
+    Runs unit tests.
 
-.NOTES
-    This script does not run functional tests.
-    For functional tests, use: .\Run-FunctionalTestsVsContainer.ps1
+.EXAMPLE
+    .\Run-Tests.ps1 -Unit -Integration -Filter "FullyQualifiedName~Transaction"
+
+    Runs matching unit and integration tests.
+
+.EXAMPLE
+    .\Run-Tests.ps1 -Functional
+
+    Checks Docker and runs functional tests against running containers.
 #>
 
 [CmdletBinding()]
-param()
+param(
+    [switch]$Unit,
+    [switch]$Integration,
+    [switch]$Functional,
+    [string]$Filter
+)
+
+$ErrorActionPreference = "Stop"
+
+if (-not $Unit -and -not $Integration -and -not $Functional) {
+    $Unit = $true
+}
+
+if ($Functional) {
+    Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
+}
 
 # Ensure we're in the repository root
 $repoRoot = Split-Path $PSScriptRoot -Parent
 Push-Location $repoRoot
 
 try {
-    Write-Host "Running unit and integration tests..." -ForegroundColor Cyan
-
-    # Build solution
-    Write-Host "`nBuilding solution..." -ForegroundColor Cyan
-    dotnet build
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR Build failed" -ForegroundColor Red
-        exit 1
+    $selectedSuites = @()
+    if ($Unit) {
+        $selectedSuites += @{ Name = "Unit"; Path = "tests\Unit" }
     }
-    Write-Host "OK Build succeeded" -ForegroundColor Green
-
-    # Run unit tests
-    Write-Host "`nRunning unit tests..." -ForegroundColor Cyan
-    $unitOutput = dotnet test tests/Unit --no-build 2>&1
-    $unitTestResult = $LASTEXITCODE
-    Write-Host $unitOutput
-
-    # Run application integration tests
-    Write-Host "`nRunning application integration tests..." -ForegroundColor Cyan
-    $appOutput = dotnet test tests/Integration.Application --no-build 2>&1
-    $appIntegrationTestResult = $LASTEXITCODE
-    Write-Host $appOutput
-
-    # Run data integration tests
-    Write-Host "`nRunning data integration tests..." -ForegroundColor Cyan
-    $dataOutput = dotnet test tests/Integration.Data --no-build 2>&1
-    $dataIntegrationTestResult = $LASTEXITCODE
-    Write-Host $dataOutput
-
-    # Run controller integration tests
-    Write-Host "`nRunning controller integration tests..." -ForegroundColor Cyan
-    $controllerOutput = dotnet test tests/Integration.Controller --no-build 2>&1
-    $controllerIntegrationTestResult = $LASTEXITCODE
-    Write-Host $controllerOutput
+    if ($Integration) {
+        $selectedSuites += @(
+            @{ Name = "Application Integration"; Path = "tests\Integration.Application" }
+            @{ Name = "Data Integration"; Path = "tests\Integration.Data" }
+            @{ Name = "Controller Integration"; Path = "tests\Integration.Controller" }
+        )
+    }
+    if ($Functional) {
+        $selectedSuites += @{ Name = "Functional"; Path = "tests\Functional" }
+    }
 
     # Parse test counts and durations from output
     function Parse-TestResults {
@@ -82,42 +97,49 @@ try {
         return @{ Count = 0; Duration = "N/A" }
     }
 
-    $unitStats = Parse-TestResults -Output $unitOutput
-    $appStats = Parse-TestResults -Output $appOutput
-    $dataStats = Parse-TestResults -Output $dataOutput
-    $controllerStats = Parse-TestResults -Output $controllerOutput
-    $totalTests = $unitStats.Count + $appStats.Count + $dataStats.Count + $controllerStats.Count
+    Write-Host "Running selected tests..." -ForegroundColor Cyan
+    foreach ($suite in $selectedSuites) {
+        if ($suite.Name -eq "Functional") {
+            Write-Host "`nChecking Docker availability..." -ForegroundColor Cyan
+            if (-not (Test-DockerRunning)) {
+                Write-Host "ERROR Docker is not running or not available. Start Docker Desktop or the Docker daemon and try again." -ForegroundColor Red
+                exit 1
+            }
+        }
+
+        Write-Host "`nRunning $($suite.Name) tests..." -ForegroundColor Cyan
+        $testArgs = @('test', $suite.Path)
+        if (-not [string]::IsNullOrWhiteSpace($Filter)) {
+            $testArgs += @('--filter', $Filter)
+        }
+
+        & dotnet @testArgs 2>&1 | Tee-Object -Variable capturedOutput | ForEach-Object { Write-Host $_ }
+        $suite.ExitCode = $LASTEXITCODE
+        $suite.Stats = Parse-TestResults -Output ($capturedOutput -join "`n")
+    }
 
     # Summary
     Write-Host "`n==================== TEST SUMMARY ====================" -ForegroundColor Cyan
-    Write-Host "Unit Tests:               $($unitStats.Count.ToString().PadLeft(4)) tests in $($unitStats.Duration)" -ForegroundColor White
-    Write-Host "Application Integration:  $($appStats.Count.ToString().PadLeft(4)) tests in $($appStats.Duration)" -ForegroundColor White
-    Write-Host "Data Integration:         $($dataStats.Count.ToString().PadLeft(4)) tests in $($dataStats.Duration)" -ForegroundColor White
-    Write-Host "Controller Integration:   $($controllerStats.Count.ToString().PadLeft(4)) tests in $($controllerStats.Duration)" -ForegroundColor White
+    $totalTests = 0
+    $hasFailures = $false
+    foreach ($suite in $selectedSuites) {
+        $totalTests += $suite.Stats.Count
+        Write-Host "$($suite.Name.PadRight(24)) $($suite.Stats.Count.ToString().PadLeft(4)) tests in $($suite.Stats.Duration)" -ForegroundColor White
+        if ($suite.ExitCode -ne 0) {
+            Write-Host "WARNING $($suite.Name) tests failed" -ForegroundColor Yellow
+            $hasFailures = $true
+        }
+    }
     Write-Host "======================================================" -ForegroundColor Cyan
     Write-Host "TOTAL:                    $($totalTests.ToString().PadLeft(4)) tests" -ForegroundColor Cyan
     Write-Host "======================================================`n" -ForegroundColor Cyan
 
-    if ($unitTestResult -eq 0 -and $appIntegrationTestResult -eq 0 -and $dataIntegrationTestResult -eq 0 -and $controllerIntegrationTestResult -eq 0) {
-        Write-Host "OK All tests passed" -ForegroundColor Green
-    } else {
-        if ($unitTestResult -ne 0) {
-            Write-Host "WARNING Unit tests failed" -ForegroundColor Yellow
-        }
-        if ($appIntegrationTestResult -ne 0) {
-            Write-Host "WARNING Application integration tests failed" -ForegroundColor Yellow
-        }
-        if ($dataIntegrationTestResult -ne 0) {
-            Write-Host "WARNING Data integration tests failed" -ForegroundColor Yellow
-        }
-        if ($controllerIntegrationTestResult -ne 0) {
-            Write-Host "WARNING Controller integration tests failed" -ForegroundColor Yellow
-        }
+    if ($hasFailures) {
         exit 1
     }
 
-    Write-Host "`nNote: Functional tests were not run." -ForegroundColor Cyan
-    Write-Host "To run functional tests: .\scripts\Run-FunctionalTestsVsContainer.ps1"
+    Write-Host "OK All selected tests passed" -ForegroundColor Green
+    exit 0
 
 } finally {
     Pop-Location

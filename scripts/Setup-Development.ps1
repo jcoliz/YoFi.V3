@@ -135,7 +135,7 @@ try {
 
     # Run tests to verify setup
     Write-Host "`nRunning tests..." -ForegroundColor Cyan
-    & "$PSScriptRoot\Run-Tests.ps1"
+    & "$PSScriptRoot\Run-Tests.ps1" -Unit -Integration
     if ($LASTEXITCODE -ne 0) {
         Write-Host "WARNING Some tests failed. Review test output above." -ForegroundColor Yellow
     }

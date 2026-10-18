@@ -20,7 +20,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 
 | Script | Synopsis |
 |--------|----------|
-| [`Run-Tests.ps1`](Run-Tests.ps1) | Run unit and integration tests (excludes functional tests) |
+| [`Run-Tests.ps1`](Run-Tests.ps1) | Run selected test types with optional filtering (unit tests by default) |
 | [`Run-FunctionalTestsVsContainer.ps1`](Run-FunctionalTestsVsContainer.ps1) | Runs functional tests against the CI Docker containers |
 | [`Collect-CodeCoverage.ps1`](Collect-CodeCoverage.ps1) | Runs unit and controller integration tests and collects combined code coverage metrics with HTML report generation |
 | [`Analyze-StepPatterns.ps1`](Analyze-StepPatterns.ps1) | Analyzes functional test step definition patterns for duplicates |
@@ -75,15 +75,28 @@ This folder contains scripts of many different kinds. Often these would be scatt
 ### Running Tests
 
 ```powershell
-# Run unit and integration tests
+# Run unit tests (default, or use -Unit explicitly)
 .\Run-Tests.ps1
 
-# Run functional tests (requires Docker)
+# Run unit and all integration tests
+.\Run-Tests.ps1 -Unit -Integration
+
+# Apply a filter to every selected test project
+.\Run-Tests.ps1 -Unit -Integration -Filter "FullyQualifiedName~Transaction"
+
+# Run functional tests against already running containers (checks Docker first)
+.\Run-Tests.ps1 -Functional
+
+# Build/start containers, run functional tests, then clean up
 .\Run-FunctionalTestsVsContainer.ps1
 
 # Collect code coverage
 .\Collect-CodeCoverage.ps1
 ```
+
+Test type switches can be combined, including `-Unit -Integration -Functional`.
+Only selected test projects and their dependencies are built by `dotnet test`;
+the script does not build the solution.
 
 ### Docker Workflows
 

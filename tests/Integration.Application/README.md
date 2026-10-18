@@ -96,7 +96,7 @@ See [`WeatherFeatureTests.cs`](WeatherFeatureTests.cs) for a complete working ex
 
 ```powershell
 # Run all backend tests (includes Integration.Application)
-pwsh -File ./scripts/Run-Tests.ps1
+pwsh -File .\scripts\Run-Tests.ps1 -Unit -Integration
 
 # Run only Integration.Application tests
 dotnet test tests/Integration.Application
