@@ -30,16 +30,10 @@
 
   <!-- Generate version using Get-Version.ps1 -->
   <Target Name="SetSolutionVersion" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo">
-    <!-- Only run the script if SolutionVersion not already set -->
-    <Exec Command="pwsh -Command &quot;&amp;'$(ProjectDir)\..\..\scripts\Get-Version.ps1'&quot;"
-          ConsoleToMSBuild="true"
-          Condition="'$(SolutionVersion)' == ''">
-      <Output TaskParameter="ConsoleOutput" PropertyName="SolutionVersion" />
-    </Exec>
 
-    <!-- Fallback value -->
     <PropertyGroup>
-      <SolutionVersion Condition="'$(SolutionVersion)' == ''">local-build-unknown</SolutionVersion>
+      <SolutionVersion Condition="'$(SolutionVersion)' == '' and '$(SOLUTION_VERSION)' != ''">$(SOLUTION_VERSION)</SolutionVersion>
+      <SolutionVersion Condition="'$(SolutionVersion)' == ''">development</SolutionVersion>
       <InformationalVersion>$(SolutionVersion)</InformationalVersion>
     </PropertyGroup>
 
