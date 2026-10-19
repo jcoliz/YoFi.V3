@@ -90,6 +90,9 @@ This folder contains scripts of many different kinds. Often these would be scatt
 # Build/start containers, run functional tests, then clean up
 .\Run-FunctionalTestsVsContainer.ps1
 
+# Leave containers running after functional tests for investigation
+.\Run-FunctionalTestsVsContainer.ps1 -KeepAlive
+
 # Collect code coverage
 .\Collect-CodeCoverage.ps1
 ```
@@ -97,6 +100,11 @@ This folder contains scripts of many different kinds. Often these would be scatt
 Test type switches can be combined, including `-Unit -Integration -Functional`.
 Only selected test projects and their dependencies are built by `dotnet test`;
 the script does not build the solution.
+
+The functional container wrapper starts containers without opening browser windows
+and uses the functional test project's default runsettings. It does not set a
+solution version; version overrides are reserved for CI/CD pipelines.
+Use `Stop-Container.ps1` to clean up after running with `-KeepAlive`.
 
 ### Docker Workflows
 
