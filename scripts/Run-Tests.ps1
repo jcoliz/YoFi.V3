@@ -87,11 +87,11 @@ try {
     function Parse-TestResults {
         param([string]$Output)
 
-        # Match "Passed! - Failed: 0, Passed: 249, Skipped: 0, Total: 249, Duration: 1 s" or "Duration: 676 ms"
-        if ($Output -match 'Passed:\s+(\d+).*?Duration:\s+([\d\.]+ (?:ms|s))') {
+        # Capture the full duration up to the assembly suffix, including values like "1 m 27 s".
+        if ($Output -match 'Passed:\s+(\d+).*?Duration:\s+([^\r\n]+?)(?:\s+-\s+|[\r\n]|$)') {
             return @{
                 Count = [int]$Matches[1]
-                Duration = $Matches[2]
+                Duration = $Matches[2].Trim()
             }
         }
         return @{ Count = 0; Duration = "N/A" }
