@@ -1,16 +1,17 @@
-tests
+docs/
+scripts/
+tests/
+tools/
+out/
+.azure/
 src/WireApiHost/
 src/FrontEnd.Nuxt/
 **/bin/
-out/
 **/obj/
-docs/
-scripts/
 !scripts/Get-Version.ps1
 docker/
 !docker/config-docker.toml
 **/*.sln
-.azure/
 **/bin
 **/obj
 *.log
@@ -20,6 +21,9 @@ docker/
 **/pnpm-debug.log*
 **/lerna-debug.log*
 **/version.txt
+
+# Not currently using submodules. Correct this if changes.
+submodules/
 
 **/*.local
 
