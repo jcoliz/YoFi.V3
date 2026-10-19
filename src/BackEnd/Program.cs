@@ -3,11 +3,12 @@ using YoFi.V3.Application;
 using YoFi.V3.BackEnd.Logging;
 using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.BackEnd.Startup;
-using YoFi.V3.Controllers;
 using YoFi.V3.Controllers.Extensions;
 using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;
+using NuxtIdentity.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Identity;
 
 ILogger? logger = default;
 try
@@ -67,6 +68,9 @@ try
     // Prepare the database
     app.PrepareDatabaseAsync();
     logger.LogCheckpointReached("Prepared Database");
+
+    await app.SeedNuxtIdentityAsync<IdentityUser>();
+    logger.LogCheckpointReached("Completed NuxtIdentity Seeding");
 
     // Configure the HTTP request pipeline
     app.ConfigureMiddlewarePipeline(app.Environment, logger);
