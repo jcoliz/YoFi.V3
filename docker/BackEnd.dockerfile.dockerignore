@@ -3,7 +3,10 @@ scripts/
 tests/
 tools/
 out/
+infra/
+local-packages/
 .azure/
+.github/
 src/WireApiHost/
 src/FrontEnd.Nuxt/
 **/bin/
@@ -44,3 +47,4 @@ submodules/
 **/.coverage.*
 **/.env
 **/.aws
+**/.editorconfig
