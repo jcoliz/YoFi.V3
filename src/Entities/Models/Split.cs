@@ -21,7 +21,7 @@ public record Split : BaseModel
     /// <summary>
     /// Foreign key to the parent transaction.
     /// </summary>
-    public long TransactionId { get; set; }
+    public int TransactionId { get; set; }
 
     /// <summary>
     /// Amount allocated to this category.
