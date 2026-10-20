@@ -39,16 +39,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Container
       - APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000
       - APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
-      - JWT__ISSUER=${JWT_ISSUER:-http://localhost:5001}
-      - JWT__AUDIENCE=${JWT_AUDIENCE:-http://localhost:5001}
-      # Warning: This key is for development / testing purposes only. Do not use in production!
-      - JWT__KEY=${JWT_KEY:-YeO9WbjMjlalrCq5CpJEdBPFMevqfN4UtczfTtEmL14=}
-      - JWT__LIFESPAN=${JWT_LIFESPAN:-00:10:00}
-      - LOGGING__LOGLEVEL__YOFI=Debug
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
       - USER__0__PASSWORD=${TESTPWORD}
+      - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD}
     restart: always
     ports:
       - '5001:8080'
