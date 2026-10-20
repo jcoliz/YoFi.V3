@@ -42,7 +42,6 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
-      - USER__0__PASSWORD=${TESTPWORD}
       - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD}
     restart: always
     ports:
