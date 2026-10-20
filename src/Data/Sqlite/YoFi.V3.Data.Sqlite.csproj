@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Entities\YoFi.V3.Entities.csproj" />
+    <ProjectReference Include="..\..\..\submodules\DotNetNuxt\src\EntityFrameworkCore\DotNetNuxt.EntityFrameworkCore.csproj" />
   </ItemGroup>
 </Project>

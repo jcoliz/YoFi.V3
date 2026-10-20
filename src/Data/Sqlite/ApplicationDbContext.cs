@@ -1,7 +1,5 @@
-using System.Linq.Expressions;
 using DotNetNuxt.Abstractions;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using DotNetNuxt.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
@@ -52,7 +50,7 @@ namespace YoFi.V3.Data;
 /// </para>
 /// </remarks>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-    : IdentityDbContext<IdentityUser>(options), IDataProvider, ITenantRepository
+    : StandardIdentityDbContext(options), IDataProvider, ITenantRepository
 {
     #region Data
 
@@ -359,88 +357,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     #endregion
 
-    #region Query Builders
-
-    /// <inheritdoc />
-    IQueryable<T> IDataProvider.Get<T>()
-        => base.Set<T>();
-
-    /// <inheritdoc />
-    IQueryable<TEntity> IDataProvider.GetIncluding<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> navigationPropertyPath)
-    {
-        IQueryable<TEntity> query = Set<TEntity>();
-        query = query.Include(navigationPropertyPath);
-        return query;
-    }
-
-    #endregion
-
-    #region Modifiers
-
-    /// <inheritdoc />
-    void IDataProvider.Add(IModel item)
-        => base.Add(item);
-
-    /// <inheritdoc />
-    public void AddRange(IEnumerable<IModel> items)
-        => base.AddRange(items);
-
-    /// <inheritdoc />
-    void IDataProvider.Update(IModel item)
-        => base.Update(item);
-
-    /// <inheritdoc />
-    public void UpdateRange(IEnumerable<IModel> items)
-        => base.UpdateRange(items);
-
-    /// <inheritdoc />
-    void IDataProvider.Remove(IModel item)
-        => base.Remove(item);
-
-    /// <inheritdoc />
-    public void RemoveRange(IEnumerable<IModel> items)
-        => base.RemoveRange(items);
-
-    #endregion
-
-    #region Query Runners
-
-#pragma warning disable S2325 // These methods can't be static, as they are accessed via interface
-
-    /// <inheritdoc />
-    Task<List<T>> IDataProvider.ToListNoTrackingAsync<T>(IQueryable<T> query)
-        => query.AsNoTracking().ToListAsync();
-
-    /// <inheritdoc />
-    Task<List<T>> IDataProvider.ToListAsync<T>(IQueryable<T> query)
-        => query.ToListAsync();
-
-    /// <inheritdoc />
-    Task<T?> IDataProvider.SingleOrDefaultAsync<T>(IQueryable<T> query) where T : class
-        => query.SingleOrDefaultAsync();
-
-    /// <inheritdoc />
-    Task<int> IDataProvider.CountAsync<T>(IQueryable<T> query)
-        => query.CountAsync();
-
-    /// <inheritdoc />
-    Task<int> IDataProvider.BulkDeleteAsync<T>(IQueryable<T> query)
-        => query.ExecuteDeleteAsync();
-
-    /// <inheritdoc />
-    Task<int> IDataProvider.BulkUpdateAsync<TEntity, TProperty>(
-        IQueryable<TEntity> query,
-        Expression<Func<TEntity, TProperty>> propertySelector,
-        TProperty newValue,
-        CancellationToken cancellationToken)
-        => query.ExecuteUpdateAsync(
-            s => s.SetProperty(propertySelector, newValue),
-            cancellationToken);
-
-#pragma warning restore S2325
-
-    #endregion
-
     #region ITenantRepository Implementation
 
     /// <inheritdoc />
@@ -558,27 +474,4 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     #endregion
 
-    #region Interface Unimplemented Methods
-
-    public Task<int> ClearAsync<T>() where T : class, IModel
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> AnyAsync<T>(IQueryable<T> query)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task BulkInsertAsync<T>(IList<T> items) where T : IModel
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<int> BulkUpdateAsync<T>(IQueryable<T> items, T newValues, List<string> columns) where T : IModel
-    {
-        throw new NotImplementedException();
-    }
-
-    #endregion
 }
