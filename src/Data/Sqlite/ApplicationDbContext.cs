@@ -560,7 +560,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     #region Interface Unimplemented Methods
 
-    public Task<int> ClearAsync<T>() where T : IModel
+    public Task<int> ClearAsync<T>() where T : class, IModel
     {
         throw new NotImplementedException();
     }
