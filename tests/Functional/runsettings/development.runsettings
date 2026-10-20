@@ -5,6 +5,8 @@
 		<Parameter name="apiBaseUrl" value="http://localhost:5379/" />
 		<Parameter name="defaultTimeout" value="5000" />
 		<Parameter name="screenshotContext" value="Development" />
+		<Parameter name="userName" value="Tester" />
+		<Parameter name="userPassword" value="{TESTPWORD_DEV}" />
 	</TestRunParameters>
 	 <RunConfiguration>
 	   <MaxCpuCount>1</MaxCpuCount>
