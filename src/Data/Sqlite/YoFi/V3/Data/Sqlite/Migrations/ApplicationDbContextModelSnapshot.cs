@@ -249,7 +249,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.ImportReviewTransaction", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -316,7 +316,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.PayeeMatchingRule", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -369,7 +369,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.Split", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -392,7 +392,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("TransactionId")
+                    b.Property<int>("TransactionId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -411,7 +411,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.Transaction", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -461,7 +461,7 @@ namespace YoFi.V3.Data.Sqlite.Migrations
 
             modelBuilder.Entity("YoFi.V3.Entities.Models.WeatherForecast", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
