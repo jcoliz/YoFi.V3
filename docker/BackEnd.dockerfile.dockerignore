@@ -9,6 +9,12 @@ local-packages/
 .github/
 src/WireApiHost/
 src/FrontEnd.Nuxt/
+
+# Not currently using submodules. Correct this if changes.
+submodules/
+!submodules/DotNetNuxt/src/Abstractions
+!submodules/DotNetNuxt/*.props
+
 **/bin/
 **/obj/
 !scripts/Get-Version.ps1
@@ -25,8 +31,6 @@ docker/
 **/lerna-debug.log*
 **/version.txt
 
-# Not currently using submodules. Correct this if changes.
-submodules/
 
 **/*.local
 

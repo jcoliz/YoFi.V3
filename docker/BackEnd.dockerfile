@@ -10,6 +10,7 @@ COPY src/Controllers/YoFi.V3.Controllers.csproj src/Controllers/
 COPY src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj src/Data/Sqlite/
 COPY src/Application/YoFi.V3.Application.csproj src/Application/
 COPY src/BackEnd/YoFi.V3.BackEnd.csproj src/BackEnd/
+COPY submodules/DotNetNuxt/src/Abstractions submodules/DotNetNuxt/src/Abstractions
 
 WORKDIR /source/src/BackEnd
 RUN dotnet restore
