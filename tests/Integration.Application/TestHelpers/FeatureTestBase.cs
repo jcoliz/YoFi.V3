@@ -1,6 +1,6 @@
+using DotNetNuxt.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using YoFi.V3.Data;
-using YoFi.V3.Entities.Providers;
 
 namespace YoFi.V3.Tests.Integration.Application.TestHelpers;
 

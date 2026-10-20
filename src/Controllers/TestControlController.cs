@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -12,12 +11,8 @@ using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Application.Tenancy.Features;
-using YoFi.V3.Controllers.Tenancy.Context;
-using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
-using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Controllers;
 

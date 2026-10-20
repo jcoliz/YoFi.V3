@@ -1,6 +1,11 @@
 <Solution>
   <Project Path="src/Application/YoFi.V3.Application.csproj" />
   <Folder Name="/submodules/" />
+  <Folder Name="/submodules/DotNetNuxt/" />
+  <Folder Name="/submodules/DotNetNuxt/src/" />
+  <Folder Name="/submodules/DotNetNuxt/src/Abstractions/">
+    <Project Path="submodules/DotNetNuxt/src/Abstractions/DotNetNuxt.Abstractions.csproj" />
+  </Folder>
   <Folder Name="/submodules/jcoliz.FunctionalTests/" />
   <Folder Name="/submodules/jcoliz.FunctionalTests/src/" />
   <Folder Name="/submodules/jcoliz.FunctionalTests/src/FunctionalTests/">

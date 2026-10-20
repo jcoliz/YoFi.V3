@@ -4,3 +4,6 @@
 [submodule "submodules/jcoliz.FunctionalTests"]
 	path = submodules/jcoliz.FunctionalTests
 	url = https://www.github.com/jcoliz/jcoliz.FunctionalTests
+[submodule "submodules/DotNetNuxt"]
+	path = submodules/DotNetNuxt
+	url = https://github.com/jcoliz/DotNetNuxt.git

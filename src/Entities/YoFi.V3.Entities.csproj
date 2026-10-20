@@ -1,2 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\submodules\DotNetNuxt\src\Abstractions\DotNetNuxt.Abstractions.csproj" />
+  </ItemGroup>
 </Project>

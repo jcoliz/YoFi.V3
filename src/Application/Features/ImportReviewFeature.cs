@@ -1,8 +1,8 @@
+using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Services;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
@@ -252,7 +252,7 @@ public class ImportReviewFeature(
         var count = await dataProvider.CountAsync(GetTenantScopedQuery());
 
         // Bulk delete without loading entities into memory
-        await dataProvider.ExecuteDeleteAsync(GetTenantScopedQuery());
+        await dataProvider.BulkDeleteAsync(GetTenantScopedQuery());
 
         return count;
     }
@@ -397,10 +397,11 @@ public class ImportReviewFeature(
     /// <param name="isSelected">The desired selection state.</param>
     public async Task SetSelectionAsync(IReadOnlyCollection<Guid> keys, bool isSelected)
     {
-        await dataProvider.ExecuteUpdatePropertyAsync(
+        await dataProvider.BulkUpdateAsync(
             GetTenantScopedQuery().Where(t => keys.Contains(t.Key)),
             t => t.IsSelected,
-            isSelected
+            isSelected,
+            default
         );
     }
 
@@ -409,10 +410,11 @@ public class ImportReviewFeature(
     /// </summary>
     public async Task SelectAllAsync()
     {
-        await dataProvider.ExecuteUpdatePropertyAsync(
+        await dataProvider.BulkUpdateAsync(
             GetTenantScopedQuery(),
             t => t.IsSelected,
-            true
+            true,
+            default
         );
     }
 
@@ -421,10 +423,11 @@ public class ImportReviewFeature(
     /// </summary>
     public async Task DeselectAllAsync()
     {
-        await dataProvider.ExecuteUpdatePropertyAsync(
+        await dataProvider.BulkUpdateAsync(
             GetTenantScopedQuery(),
             t => t.IsSelected,
-            false
+            false,
+            default
         );
     }
 

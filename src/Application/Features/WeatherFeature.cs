@@ -2,7 +2,7 @@ namespace YoFi.V3.Application.Features;
 
 using System.Threading.Tasks;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
+using DotNetNuxt.Abstractions;
 
 public class WeatherFeature(IDataProvider dataProvider)
 {

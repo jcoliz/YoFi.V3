@@ -1,3 +1,5 @@
+using DotNetNuxt.Abstractions;
+
 namespace YoFi.V3.Entities.Models;
 
 /// <summary>
@@ -7,10 +9,10 @@ namespace YoFi.V3.Entities.Models;
 /// Helpful so we don't always have to remember to set a GUID Key
 /// when creating new records.
 /// </remarks>
-public record BaseModel : IModel
+public record BaseModel : IKeyedModel
 {
     /// <inheritdoc/>
-    public long Id { get; set; }
+    public int Id { get; set; }
 
     /// <inheritdoc/>
     public Guid Key { get; set; } = Guid.NewGuid();

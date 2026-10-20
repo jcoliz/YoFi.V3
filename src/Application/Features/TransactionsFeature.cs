@@ -1,9 +1,9 @@
 using System.Linq.Expressions;
+using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
@@ -326,7 +326,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <returns>A queryable of transactions for the current tenant, ordered by date descending, with splits loaded.</returns>
     private IQueryable<Transaction> GetBaseTransactionQuery()
     {
-        return dataProvider.GetWithIncludes<Transaction>(t => t.Splits)
+        return dataProvider.GetIncluding((Transaction t) => t.Splits)
             .Where(t => t.TenantId == _currentTenant.Id)
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using DotNetNuxt.Abstractions;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 
 namespace YoFi.V3.Tests.Unit.TestHelpers;
 
@@ -58,7 +58,7 @@ public class InMemoryDataProvider : IDataProvider
         throw new NotSupportedException($"Entity type {typeof(TEntity)} is not supported.");
     }
 
-    IQueryable<TEntity> IDataProvider.GetWithIncludes<TEntity>(params Expression<Func<TEntity, object>>[] includes)
+    IQueryable<TEntity> IDataProvider.GetIncluding<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> navigationPropertyPath)
         // In-memory provider: Navigation properties are already in memory with the entity objects
         // No need for explicit Include() since we're not using a real database, just delegate to Get<TEntity>()
         => ((IDataProvider)this).Get<TEntity>();
@@ -101,6 +101,30 @@ public class InMemoryDataProvider : IDataProvider
     {
         // In-memory updates are already reflected since we're working with references
         // No action needed
+    }
+
+    void IDataProvider.Update(IModel item)
+    {
+        // In-memory updates are already reflected since we're working with references
+    }
+
+    Task<int> IDataProvider.ClearAsync<T>()
+    {
+        if (typeof(T) == typeof(WeatherForecast))
+        {
+            var count = _weatherForecasts.Count;
+            _weatherForecasts.Clear();
+            return Task.FromResult(count);
+        }
+
+        if (typeof(T) == typeof(Transaction))
+        {
+            var count = _transactions.Count;
+            _transactions.Clear();
+            return Task.FromResult(count);
+        }
+
+        throw new NotSupportedException($"Entity type {typeof(T)} is not supported.");
     }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -147,12 +171,27 @@ public class InMemoryDataProvider : IDataProvider
         return Task.FromResult(query.SingleOrDefault());
     }
 
-    public Task<int> CountAsync<T>(IQueryable<T> query) where T : class
+    Task<int> IDataProvider.CountAsync<T>(IQueryable<T> query)
     {
         return Task.FromResult(query.Count());
     }
 
-    public Task<int> ExecuteDeleteAsync<T>(IQueryable<T> query) where T : class
+    Task<bool> IDataProvider.AnyAsync<T>(IQueryable<T> query)
+    {
+        return Task.FromResult(query.Any());
+    }
+
+    Task IDataProvider.BulkInsertAsync<T>(IList<T> items)
+    {
+        foreach (var item in items)
+        {
+            Add(item);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    Task<int> IDataProvider.BulkDeleteAsync<T>(IQueryable<T> query)
     {
         var itemsToDelete = query.ToList();
         foreach (var item in itemsToDelete)
@@ -165,13 +204,14 @@ public class InMemoryDataProvider : IDataProvider
         return Task.FromResult(itemsToDelete.Count);
     }
 
-    public Task<int> ExecuteUpdatePropertyAsync<TEntity, TProperty>(
+    Task<int> IDataProvider.BulkUpdateAsync<TEntity, TProperty>(
         IQueryable<TEntity> query,
         Expression<Func<TEntity, TProperty>> propertySelector,
         TProperty newValue,
-        CancellationToken cancellationToken = default)
-        where TEntity : class
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var items = query.ToList();
         var propertyInfo = GetPropertyInfo(propertySelector);
 

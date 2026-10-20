@@ -1,12 +1,11 @@
 using System.Linq.Expressions;
+using DotNetNuxt.Abstractions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using NuxtIdentity.Core.Abstractions;
 using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
@@ -367,13 +366,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         => base.Set<T>();
 
     /// <inheritdoc />
-    IQueryable<TEntity> IDataProvider.GetWithIncludes<TEntity>(params Expression<Func<TEntity, object>>[] includes)
+    IQueryable<TEntity> IDataProvider.GetIncluding<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> navigationPropertyPath)
     {
         IQueryable<TEntity> query = Set<TEntity>();
-        foreach (var include in includes)
-        {
-            query = query.Include(include);
-        }
+        query = query.Include(navigationPropertyPath);
         return query;
     }
 
@@ -388,6 +384,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     public void AddRange(IEnumerable<IModel> items)
         => base.AddRange(items);
+
+    /// <inheritdoc />
+    void IDataProvider.Update(IModel item)
+        => base.Update(item);
 
     /// <inheritdoc />
     public void UpdateRange(IEnumerable<IModel> items)
@@ -424,11 +424,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         => query.CountAsync();
 
     /// <inheritdoc />
-    Task<int> IDataProvider.ExecuteDeleteAsync<T>(IQueryable<T> query)
+    Task<int> IDataProvider.BulkDeleteAsync<T>(IQueryable<T> query)
         => query.ExecuteDeleteAsync();
 
     /// <inheritdoc />
-    Task<int> IDataProvider.ExecuteUpdatePropertyAsync<TEntity, TProperty>(
+    Task<int> IDataProvider.BulkUpdateAsync<TEntity, TProperty>(
         IQueryable<TEntity> query,
         Expression<Func<TEntity, TProperty>> propertySelector,
         TProperty newValue,
@@ -558,4 +558,27 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     #endregion
 
+    #region Interface Unimplemented Methods
+
+    public Task<int> ClearAsync<T>() where T : IModel
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> AnyAsync<T>(IQueryable<T> query)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task BulkInsertAsync<T>(IList<T> items) where T : IModel
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<int> BulkUpdateAsync<T>(IQueryable<T> items, T newValues, List<string> columns) where T : IModel
+    {
+        throw new NotImplementedException();
+    }
+
+    #endregion
 }

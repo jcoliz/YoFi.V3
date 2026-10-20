@@ -1,10 +1,10 @@
+using DotNetNuxt.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Services;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
-using YoFi.V3.Entities.Providers;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
