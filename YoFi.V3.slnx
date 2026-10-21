@@ -6,6 +6,15 @@
   <Folder Name="/submodules/DotNetNuxt/src/Abstractions/">
     <Project Path="submodules/DotNetNuxt/src/Abstractions/DotNetNuxt.Abstractions.csproj" />
   </Folder>
+  <Folder Name="/submodules/DotNetNuxt/src/AspNetCore/">
+    <Project Path="submodules/DotNetNuxt/src/AspNetCore/DotNetNuxt.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/submodules/DotNetNuxt/src/EntityFrameworkCore/">
+    <Project Path="submodules/DotNetNuxt/src/EntityFrameworkCore/DotNetNuxt.EntityFrameworkCore.csproj" />
+  </Folder>
+  <Folder Name="/submodules/DotNetNuxt/src/Hosting/">
+    <Project Path="submodules/DotNetNuxt/src/Hosting/DotNetNuxt.Hosting.csproj" />
+  </Folder>
   <Folder Name="/submodules/jcoliz.FunctionalTests/" />
   <Folder Name="/submodules/jcoliz.FunctionalTests/src/" />
   <Folder Name="/submodules/jcoliz.FunctionalTests/src/FunctionalTests/">

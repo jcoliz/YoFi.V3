@@ -16,6 +16,7 @@ submodules/
 !submodules/DotNetNuxt/src/Abstractions
 !submodules/DotNetNuxt/src/EntityFrameworkCore
 !submodules/DotNetNuxt/src/Hosting
+!submodules/DotNetNuxt/src/AspNetCore
 
 **/bin/
 **/obj/

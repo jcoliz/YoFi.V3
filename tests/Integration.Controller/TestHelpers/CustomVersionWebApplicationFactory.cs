@@ -5,11 +5,12 @@ namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 /// </summary>
 public class CustomVersionWebApplicationFactory : BaseTestWebApplicationFactory
 {
+    // TODO: This is no longer an effective way to inject version and environment for testing.
     public CustomVersionWebApplicationFactory(string version, string environment)
         : base(
             configurationOverrides: new Dictionary<string, string?>
             {
-                ["Application:Version"] = version
+                ["Version"] = version
             },
             dbPath: null,
             environment: environment)

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using DotNetNuxt.AspNetCore.Options;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
@@ -20,7 +21,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddControllerServices(this IServiceCollection services)
+    public static IServiceCollection AddControllerServices(this IServiceCollection services, string version)
     {
         // Register custom exception handler for application-specific exceptions
         services.AddExceptionHandler<CustomExceptionHandler>();
@@ -37,6 +38,9 @@ public static class ServiceCollectionExtensions
         // Invalid DTOs will return 400 Bad Request with validation error details, preventing
         // invalid data from reaching controller methods or the Application layer.
         services.AddFluentValidationAutoValidation();
+
+        // Add version information to the service collection for later use in controllers or middleware.
+        services.Configure<VersionOptions>(options => options.Version = version);
 
         // Customize validation error response format to include a "detail" field
         // that combines all validation errors into a single string for frontend compatibility.

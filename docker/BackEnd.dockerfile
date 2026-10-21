@@ -2,20 +2,21 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.100 AS build
 WORKDIR /source
 
 COPY Directory.Packages.props ./
+COPY src/Directory.Build.props src/
+COPY submodules/DotNetNuxt/Directory.Build.props submodules/DotNetNuxt/
+COPY submodules/DotNetNuxt/Directory.Packages.props submodules/DotNetNuxt/
+
 COPY src/Entities/YoFi.V3.Entities.csproj src/Entities/
-COPY src/Directory.Build.props src
-COPY scripts/Get-Version.ps1 scripts/
 COPY src/ServiceDefaults/YoFi.V3.ServiceDefaults.csproj src/ServiceDefaults/
 COPY src/Controllers/YoFi.V3.Controllers.csproj src/Controllers/
 COPY src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj src/Data/Sqlite/
 COPY src/Application/YoFi.V3.Application.csproj src/Application/
 COPY src/BackEnd/YoFi.V3.BackEnd.csproj src/BackEnd/
-COPY submodules/DotNetNuxt/Directory.Build.props submodules/DotNetNuxt/
-COPY submodules/DotNetNuxt/Directory.Packages.props submodules/DotNetNuxt/
-COPY submodules/DotNetNuxt/src/Abstractions submodules/DotNetNuxt/src/Abstractions
-COPY submodules/DotNetNuxt/src/EntityFrameworkCore submodules/DotNetNuxt/src/EntityFrameworkCore
-COPY submodules/DotNetNuxt/src/EntityFrameworkCore submodules/DotNetNuxt/src/EntityFrameworkCore
-COPY submodules/DotNetNuxt/src/Hosting submodules/DotNetNuxt/src/Hosting
+COPY submodules/DotNetNuxt/src/Abstractions/DotNetNuxt.Abstractions.csproj submodules/DotNetNuxt/src/Abstractions/
+COPY submodules/DotNetNuxt/src/EntityFrameworkCore/DotNetNuxt.EntityFrameworkCore.csproj submodules/DotNetNuxt/src/EntityFrameworkCore/
+COPY submodules/DotNetNuxt/src/AspNetCore/DotNetNuxt.AspNetCore.csproj submodules/DotNetNuxt/src/AspNetCore/
+COPY submodules/DotNetNuxt/src/Hosting/DotNetNuxt.Hosting.csproj submodules/DotNetNuxt/src/Hosting/
+
 WORKDIR /source/src/BackEnd
 RUN dotnet restore
 
@@ -28,6 +29,7 @@ ENV SOLUTION_VERSION=${SOLUTION_VERSION:-container}
 # copy everything else and build app
 WORKDIR /source
 COPY src/ src/
+COPY submodules/DotNetNuxt/src/ submodules/DotNetNuxt/src/
 WORKDIR /source/src/BackEnd
 RUN dotnet publish --self-contained false -o /app
 

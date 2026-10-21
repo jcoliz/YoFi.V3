@@ -5,10 +5,10 @@ using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers.Extensions;
 using YoFi.V3.Controllers.Tenancy;
 using YoFi.V3.Data;
-using YoFi.V3.Entities.Options;
 using NuxtIdentity.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Identity;
 using static DotNetNuxt.Hosting.Logging.BootLoggerExtensions;
+using static DotNetNuxt.Hosting.VersionHelpers;
 using DotNetNuxt.Hosting.Logging;
 using DotNetNuxt.Hosting.Options;
 using DotNetNuxt.Hosting;
@@ -34,15 +34,12 @@ try
     // Configure application logging
     builder.Logging.AddTerseConsoleLogFormatter(options => options.IncludeScopes = false);
 
-    // Get application options, which can be used during startup configuration
-    ApplicationOptions applicationOptions = new();
-    builder.Configuration.Bind(ApplicationOptions.Section, applicationOptions);
-
     // Add service defaults & Aspire client integrations.
     builder.AddServiceDefaults(logger);
 
-    // Add version information to the configuration
-    builder.AddApplicationOptions(logger);
+    // Retrieve app version from the assembly
+    var version = GetVersion(typeof(Program).Assembly);
+    logger.LogVersion(version);
 
     // Add the usual Startup options
     StartupOptions startupOptions = builder.AddStandardStartupOptions();
@@ -54,7 +51,7 @@ try
 
     builder.Services.AddControllers();
     builder.Services.AddProblemDetails();
-    builder.Services.AddControllerServices();
+    builder.Services.AddControllerServices(version);
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration);
