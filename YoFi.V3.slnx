@@ -27,7 +27,7 @@
   <Project Path="src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj" />
   <Project Path="src/Entities/YoFi.V3.Entities.csproj" />
   <Project Path="src/ServiceDefaults/YoFi.V3.ServiceDefaults.csproj" />
-  <Project Path="src/WireApiHost/YoFi.V3.WireApiHost.csproj" />
+  <Project Path="tools/WireApiHost/YoFi.V3.WireApiHost.csproj" />
   <Project Path="tests/Functional/YoFi.V3.Tests.Functional.csproj" />
   <Project Path="tests/Integration.Application/YoFi.V3.Tests.Integration.Application.csproj" />
   <Project Path="tests/Integration.Controller/YoFi.V3.Tests.Integration.Controller.csproj" />

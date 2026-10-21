@@ -5,6 +5,7 @@ WORKDIR /source
 ENV NUGET_XMLDOC_MODE=none
 
 COPY Directory.Packages.props ./
+COPY Directory.Build.props ./
 COPY src/Directory.Build.props src/
 COPY submodules/DotNetNuxt/Directory.Build.props submodules/DotNetNuxt/
 COPY submodules/DotNetNuxt/Directory.Packages.props submodules/DotNetNuxt/

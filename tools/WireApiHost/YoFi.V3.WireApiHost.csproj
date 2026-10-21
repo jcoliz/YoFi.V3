@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
+    <ProjectReference Include="..\..\src\Controllers\YoFi.V3.Controllers.csproj" />
   </ItemGroup>
 
   <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
