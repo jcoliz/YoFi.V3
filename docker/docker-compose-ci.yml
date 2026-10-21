@@ -1,8 +1,7 @@
 name: yofi-v3
 services:
-  aspire-dashboard:
+  dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13
-    container_name: aspire-dashboard
     ports:
       - '18788:18888'  # Dashboard UI
     environment:
@@ -45,4 +44,4 @@ services:
     ports:
       - '5001:8080'
     depends_on:
-      - aspire-dashboard
+      - dashboard
