@@ -66,12 +66,8 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
         _dbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.db");
         _environment = environment;
 
-        // Set default configuration if not provided
-        if (!_configurationOverrides.ContainsKey("Application:Version"))
-            _configurationOverrides["Application:Version"] = "test-version";
-
         if (!_configurationOverrides.ContainsKey("Application:AllowedCorsOrigins:0"))
-            _configurationOverrides["Application:AllowedCorsOrigins:0"] = "http://localhost:3000";
+            _configurationOverrides["Startup:AllowedCorsOrigins:0"] = "http://localhost:3000";
 
         if (!_configurationOverrides.ContainsKey("ConnectionStrings:DefaultConnection"))
             _configurationOverrides["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}";

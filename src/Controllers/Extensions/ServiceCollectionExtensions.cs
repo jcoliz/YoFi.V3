@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     /// Adds Controllers-specific services to the service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
+    /// <param name="version">Application version reported by the version endpoint.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddControllerServices(this IServiceCollection services, string version)
     {
