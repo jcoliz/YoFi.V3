@@ -1,6 +1,5 @@
 using System.Reflection;
 using YoFi.V3.Application;
-using YoFi.V3.BackEnd.Logging;
 using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers.Extensions;
@@ -9,6 +8,8 @@ using YoFi.V3.Data;
 using YoFi.V3.Entities.Options;
 using NuxtIdentity.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Identity;
+using static DotNetNuxt.Hosting.Logging.BootLoggerExtensions;
+using DotNetNuxt.Hosting.Logging;
 
 ILogger? logger = default;
 try
@@ -17,7 +18,7 @@ try
     // Set up Startup logger
     //
 
-    logger = YoFi.V3.BackEnd.Logging.LoggingBuilderExtensions.CreateStartupLogger();
+    logger = CreateStandardBootLogger();
     logger.LogStarting(
         Assembly.GetExecutingAssembly().FullName ?? "Unknown",
         Environment.ProcessId,
@@ -29,7 +30,7 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // Configure application logging
-    builder.Logging.AddApplicationLogging();
+    builder.Logging.AddTerseConsoleLogFormatter(options => options.IncludeScopes = false);
 
     // Get application options, which can be used during startup configuration
     ApplicationOptions applicationOptions = new();
