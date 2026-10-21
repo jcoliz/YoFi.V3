@@ -1,0 +1,1518 @@
+{
+  "x-generator": "NSwag v14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ListsWebApp Test Control API",
+    "description": "Test control services for functional tests.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/TestControl/ident": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Identify the current test by logging test correlation metadata from the request context.",
+        "description": "IMPORTANT: Every test should call this endpoint at the start of execution to ensure\nthat test correlation metadata is properly logged and associated with the test run.\nExtracts test name, test ID, and test class from Activity tags (set by TestCorrelationMiddleware)\nand logs them explicitly. Useful for verifying test correlation is working correctly.",
+        "operationId": "TestControl_Identify",
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content"
+          }
+        }
+      }
+    },
+    "/TestControl/users": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Create multiple test users with credentials",
+        "description": "All users are automatically approved (email confirmed) for immediate use in tests.\nUser name is prefixed with __TEST__ if not already present, and a unique suffix is added to avoid collisions.\nEach user receives a unique, secure random password.",
+        "operationId": "TestControl_CreateUsers",
+        "requestBody": {
+          "x-name": "usernames",
+          "description": "Collection of usernames to create (doesn't need to include __TEST__ prefix, it will be added)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Collection of created user credentials including IDs and passwords",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestUserCredentials"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Deletes all test users from the system.",
+        "description": "Deletes all users whose username contains the __TEST__ prefix.",
+        "operationId": "TestControl_DeleteUsers",
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content on success."
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/approve": {
+      "put": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Approve a test user",
+        "description": "This simulates the email approval step. When a user is created, they have to be\napproved before they can log in. Only users with __TEST__ in their username can be approved\nvia this method.",
+        "operationId": "TestControl_ApproveUser",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/v2/users": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Create multiple test users from provided credentials (V2 - accepts full credentials).",
+        "description": "V2 endpoint that accepts complete credential objects from the client.\nClient generates unique usernames and passwords, server just validates and stores in DB.\nAll usernames must start with __TEST__ prefix for safety.\nSupports parallel test execution by allowing client-side credential generation.",
+        "operationId": "TestControl_CreateUsersV2",
+        "requestBody": {
+          "x-name": "credentialsList",
+          "description": "Collection of credentials including username, email, password",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TestUserCredentials"
+                }
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Collection of created user credentials with IDs populated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestUserCredentials"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Delete specific test users by username list (V2 - requires explicit list).",
+        "description": "V2 endpoint that requires explicit username list for safety.\nEmpty or null list returns 400 Bad Request (no \"delete all\" behavior).\nAll usernames must start with __TEST__ prefix.\nSupports parallel test execution by only deleting specified users.",
+        "operationId": "TestControl_DeleteUsersV2",
+        "requestBody": {
+          "x-name": "usernames",
+          "description": "Collection of usernames to delete. Must not be empty.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content on success."
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Create a workspace for a test user with specified role.",
+        "description": "Validates that both username and workspace name have __TEST__ prefix for safety.\nReturns 403 if either username or workspace name lacks the prefix.",
+        "operationId": "TestControl_CreateWorkspaceForUser",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "description": "The workspace creation details.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceCreateRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The created workspace information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces/{workspaceKey}/assign": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Assign a user to an existing workspace with a specific role.",
+        "description": "Validates that both user and workspace have __TEST__ prefix for safety.\nReturns 403 if either username or workspace name lacks the prefix.",
+        "operationId": "TestControl_AssignUserToWorkspace",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "assignment",
+          "description": "The role assignment details.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRoleAssignment"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content on success."
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Seed test transactions in a workspace for a user.",
+        "description": "Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.\nUses anonymous tenant access policy to allow unauthenticated seeding of test data.\nThe authorization handler sets the tenant context, and TenantContextMiddleware applies it\nbefore TransactionsFeature is injected via DI.\nReturns 403 if either username or workspace name lacks the prefix.",
+        "operationId": "TestControl_SeedTransactions",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tenantKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "description": "The transaction seeding details.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionSeedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The collection of created transactions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionResultDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-precise": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Seed precise test transactions in a workspace for a user.",
+        "description": "Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.\nEach transaction in the collection is automatically validated by FluentValidation before this method executes.\nUses anonymous tenant access policy to allow unauthenticated seeding of test data.\nThe authorization handler sets the tenant context, and TenantContextMiddleware applies it\nbefore TransactionsFeature is injected via DI.\nReturns 403 if either username or workspace name lacks the prefix.\nReturns 400 if any transaction fails validation (automatic via FluentValidation).\nUnlike SeedTransactions which generates random transaction data, this endpoint accepts\nprecise transaction details provided by the caller.",
+        "operationId": "TestControl_SeedTransactionsPrecise",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tenantKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "description": "The collection of transactions to create, wrapped for automatic validation.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionRequestOfTransactionEditDto"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The collection of created transactions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransactionResultDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces/{tenantKey}/import/seed": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Seed test import review transactions in a workspace for a user.",
+        "description": "Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.\nGenerates deterministic transaction data via ImportReviewFeature.SeedTestDataAsync().\nUses anonymous tenant access policy to allow unauthenticated seeding of test data.\nReturns 403 if either username or workspace name lacks the prefix.\nAll transactions are marked as New status. The first selectedCount transactions are marked as selected.",
+        "operationId": "TestControl_SeedImportReviewTransactions",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tenantKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "description": "Number of import review transactions to create.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "x-position": 3
+          },
+          {
+            "name": "selectedCount",
+            "in": "query",
+            "description": "Number of transactions to mark as selected. Defaults to all transactions.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Count of seeded import review transactions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/data": {
+      "delete": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Delete all test data including test users and test workspaces.",
+        "description": "Deletes all workspaces with __TEST__ prefix and all users with __TEST__ prefix.\nCascade deletes will remove associated role assignments and transactions.",
+        "operationId": "TestControl_DeleteAllTestData",
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content on success."
+          }
+        }
+      }
+    },
+    "/TestControl/users/{username}/workspaces/bulk": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Create multiple workspaces for a user in a single request.",
+        "description": "Validates that username and all workspace names have __TEST__ prefix before creating any.\nReturns 403 if username or any workspace name lacks the prefix.",
+        "operationId": "TestControl_BulkWorkspaceSetup",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "workspaces",
+          "description": "The collection of workspace setup requests.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WorkspaceSetupRequest"
+                }
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The collection of created workspace results with keys and roles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceSetupResult"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/workspaces": {
+      "delete": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Delete multiple test workspaces by their keys.",
+        "description": "Validates that all workspaces have __TEST__ prefix for safety.\nCascade deletes will remove associated role assignments and transactions.\nReturns 403 if any workspace name lacks the prefix.\nEmpty or null list returns 400 Bad Request (no \"delete all\" behavior).",
+        "operationId": "TestControl_DeleteWorkspaces",
+        "requestBody": {
+          "x-name": "workspaceKeys",
+          "description": "Collection of workspace keys to delete. Must not be empty.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "guid"
+                }
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "204 No Content on success."
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/errors": {
+      "get": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "List available error codes that can be generated for testing",
+        "operationId": "TestControl_ListErrors",
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "A collection of error code descriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ErrorCodeInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/errors/{code}": {
+      "get": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Generate various error codes for testing purposes",
+        "operationId": "TestControl_ReturnError",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Kind of error desired",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/pagination/strings": {
+      "get": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Get a paginated result of test strings.",
+        "description": "This endpoint is for testing pagination UI components with a simple string data type.\nGenerates strings in format \"Item N\" where N is the sequential item number.",
+        "operationId": "TestControl_GetPaginatedStrings",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "description": "The page number (1-based). Defaults to 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "A paginated result containing test strings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResultDtoOfString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/TestControl/validate/transactions": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Test endpoint to verify CollectionRequest validation is working.",
+        "description": "This endpoint accepts a CollectionRequest of TransactionEditDto and returns success\nif FluentValidation passes. It does NOT create any transactions. Use this to test\nthat collection validation is working correctly before calling seed-precise.",
+        "operationId": "TestControl_ValidateTransactions",
+        "requestBody": {
+          "x-name": "request",
+          "description": "Collection of transactions to validate (but not persist).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionRequestOfTransactionEditDto"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "200 OK if validation passes, 400 Bad Request if validation fails.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "additionalProperties": {
+          "nullable": true
+        },
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TestUserCredentials": {
+        "type": "object",
+        "description": "Data transfer object for test user credentials including unique identifier",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The unique identifier (GUID) of the created user",
+            "format": "guid"
+          },
+          "shortName": {
+            "type": "string",
+            "description": "The short username without __TEST__ prefix or unique run ID"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username for authentication"
+          },
+          "email": {
+            "type": "string",
+            "description": "The email address for authentication"
+          },
+          "password": {
+            "type": "string",
+            "description": "The generated password for authentication"
+          }
+        }
+      },
+      "TenantResultDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WorkspaceCreateRequest": {
+        "type": "object",
+        "description": "Request to create a workspace for a test user.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the workspace (must include __TEST__ prefix)."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the workspace."
+          },
+          "role": {
+            "type": "string",
+            "description": "The role to assign to the user (default: Owner)."
+          }
+        }
+      },
+      "UserRoleAssignment": {
+        "type": "object",
+        "description": "Request to assign a user to an existing workspace.",
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The role to assign to the user in the workspace."
+          }
+        }
+      },
+      "TransactionResultDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "guid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "payee": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionSeedRequest": {
+        "type": "object",
+        "description": "Request to seed transactions in a workspace.",
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Number of transactions to create.",
+            "format": "int32"
+          },
+          "payeePrefix": {
+            "type": "string",
+            "description": "Prefix for payee names (default: \"Test Transaction\")."
+          },
+          "memo": {
+            "type": "string",
+            "description": "Optional memo text to apply to all seeded transactions.",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Optional source text to apply to all seeded transactions.",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Optional external ID text to apply to all seeded transactions.",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category text to apply to all seeded transactions.",
+            "nullable": true
+          }
+        }
+      },
+      "CollectionRequestOfTransactionEditDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionEditDto"
+            }
+          }
+        }
+      },
+      "TransactionEditDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "payee": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "WorkspaceSetupResult": {
+        "type": "object",
+        "description": "Result of workspace setup including key, name, and assigned role.",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The unique identifier of the created workspace.",
+            "format": "guid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the workspace."
+          },
+          "role": {
+            "type": "string",
+            "description": "The role assigned to the user."
+          }
+        }
+      },
+      "WorkspaceSetupRequest": {
+        "type": "object",
+        "description": "Request for setting up a workspace with a specific role.",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the workspace."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the workspace."
+          },
+          "role": {
+            "type": "string",
+            "description": "The role to assign to the user."
+          }
+        }
+      },
+      "ErrorCodeInfo": {
+        "type": "object",
+        "description": "Information about an error code available for testing",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The error code to use in the query parameter"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what error will be generated"
+          }
+        }
+      },
+      "PaginatedResultDtoOfString": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PaginationMetadata"
+          }
+        }
+      },
+      "PaginationMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "firstItem": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastItem": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  }
+}

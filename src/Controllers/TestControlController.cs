@@ -121,6 +121,7 @@ public record ErrorCodeInfo(string Code, string Description);
 [ApiController]
 [Produces("application/json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+[ApiExplorerSettings(GroupName = "TestControl")]
 public partial class TestControlController(
     UserManager<IdentityUser> userManager,
     TenantFeature tenantFeature,

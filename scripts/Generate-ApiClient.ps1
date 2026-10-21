@@ -28,7 +28,7 @@ Generated files:
 NEVER edit these files manually - they will be overwritten on regeneration.
 
 NSwag configurations:
-- src/WireApiHost/nswag.json (TypeScript client)
+- tools/WireApiHost/nswag.json (TypeScript client)
 - tests/Functional/Api/nswag.json (C# client)
 
 .LINK
@@ -47,7 +47,7 @@ $ErrorActionPreference = "Stop"
 
 try {
     $repoRoot = Split-Path $PSScriptRoot -Parent
-    $wireApiHostPath = "$repoRoot/src/WireApiHost"
+    $wireApiHostPath = "$repoRoot/tools/WireApiHost"
     $functionalTestsPath = "$repoRoot/tests/Functional"
     $typeScriptClient = "$repoRoot/src/FrontEnd.Nuxt/app/utils/apiclient.ts"
     $csharpClient = "$functionalTestsPath/Api/Generated/ApiClient.cs"
@@ -80,7 +80,7 @@ try {
         }
 
         $msbuildOutput = "bin/$Configuration/net10.0/"
-        $variables = "Configuration=$Configuration,MSBuildOutputPath=$msbuildOutput,MSBuildProjectFile=YoFi.V3.WireApiHost.csproj,OutputFile=../FrontEnd.Nuxt/app/utils/apiclient.ts"
+        $variables = "Configuration=$Configuration,MSBuildOutputPath=$msbuildOutput,MSBuildProjectFile=YoFi.V3.WireApiHost.csproj,OutputFile=../../src/FrontEnd.Nuxt/app/utils/apiclient.ts"
         dotnet $nswagExe run nswag.json /variables:$variables
 
         if ($LASTEXITCODE -ne 0) {

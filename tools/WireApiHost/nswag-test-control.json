@@ -1,0 +1,21 @@
+{
+  "runtime": "Net100",
+  "defaultVariables": null,
+  "documentGenerator": {
+    "aspNetCoreToOpenApi": {
+      "project": "$(MSBuildProjectFile)",
+      "documentName": "TestControl",
+      "msBuildProjectExtensionsPath": null,
+      "configuration": "$(Configuration)",
+      "runtime": null,
+      "targetFramework": null,
+      "noBuild": true,
+      "msBuildOutputPath": "$(MSBuildOutputPath)",
+      "verbose": true,
+      "workingDirectory": null,
+      "aspNetCoreEnvironment": "Development",
+      "output": "$(OutputFile)",
+      "newLineBehavior": "Auto"
+    }
+  }
+}
