@@ -3,6 +3,7 @@
   <PropertyGroup>
     <!-- Configure dotnet watch to ignore database files -->
     <DefaultItemExcludes>$(DefaultItemExcludes);**/*.db;**/*.db-shm;**/*.db-wal</DefaultItemExcludes>
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
   </PropertyGroup>
 
   <!-- Copy Controllers XML documentation to output for Swagger -->

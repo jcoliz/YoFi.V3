@@ -1,6 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0.100 AS build
 WORKDIR /source
 
+# Keep package XML documentation for the inherited auth endpoints in Swagger.
+ENV NUGET_XMLDOC_MODE=none
+
 COPY Directory.Packages.props ./
 COPY src/Directory.Build.props src/
 COPY submodules/DotNetNuxt/Directory.Build.props submodules/DotNetNuxt/

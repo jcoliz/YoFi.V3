@@ -72,6 +72,14 @@ Or use the convenience script:
 .\scripts\Build-Container.ps1
 ```
 
+### Swagger Documentation
+
+The SDK image defaults to `NUGET_XMLDOC_MODE=skip`, which omits XML documentation
+when restoring NuGet packages. The backend Dockerfile overrides this to `none`
+before restore, and the backend project enables `CopyDocumentationFilesFromPackages`
+to include those files in the published application. Both settings are needed for
+Swagger descriptions on auth endpoints inherited from NuxtIdentity.
+
 ### Build Arguments
 
 | Argument | Description | Default |
