@@ -45,8 +45,7 @@ WORKDIR /app
 COPY --from=build /app .
 
 # Standard health check endpoint
-HEALTHCHECK --interval=5s --timeout=5s --start-period=5s --retries=10 \
-  CMD curl --fail http://localhost:8080/health || exit 1
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 CMD [ "curl", "--fail", "--silent", "--show-error", "http://localhost:8080/health" ]
 
 ENTRYPOINT ["dotnet", "YoFi.V3.BackEnd.dll"]
 

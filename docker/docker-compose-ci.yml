@@ -4,9 +4,7 @@ services:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13
     container_name: aspire-dashboard
     ports:
-      - '18888:18888'  # Dashboard UI
-      - '18889:18889'  # OTLP/gRPC endpoint
-      - '18890:18890'  # OTLP/HTTP endpoint
+      - '18788:18888'  # Dashboard UI
     environment:
       - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
     restart: unless-stopped
@@ -22,7 +20,7 @@ services:
         - NUXT_PUBLIC_API_BASE_URL=http://localhost:5001
         - NUXT_PUBLIC_SOLUTION_VERSION=${SOLUTION_VERSION:-container}
         - NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
-    restart: always
+    restart: unless-stopped
     ports:
       - '5000:80'
     depends_on:
@@ -43,7 +41,7 @@ services:
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
       - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD}
-    restart: always
+    restart: unless-stopped
     ports:
       - '5001:8080'
     depends_on:
