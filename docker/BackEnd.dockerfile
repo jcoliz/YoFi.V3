@@ -14,7 +14,8 @@ COPY submodules/DotNetNuxt/Directory.Build.props submodules/DotNetNuxt/
 COPY submodules/DotNetNuxt/Directory.Packages.props submodules/DotNetNuxt/
 COPY submodules/DotNetNuxt/src/Abstractions submodules/DotNetNuxt/src/Abstractions
 COPY submodules/DotNetNuxt/src/EntityFrameworkCore submodules/DotNetNuxt/src/EntityFrameworkCore
-
+COPY submodules/DotNetNuxt/src/EntityFrameworkCore submodules/DotNetNuxt/src/EntityFrameworkCore
+COPY submodules/DotNetNuxt/src/Hosting submodules/DotNetNuxt/src/Hosting
 WORKDIR /source/src/BackEnd
 RUN dotnet restore
 

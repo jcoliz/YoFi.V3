@@ -12,9 +12,10 @@ src/FrontEnd.Nuxt/
 
 # Not currently using submodules. Correct this if changes.
 submodules/
+!submodules/DotNetNuxt/*.props
 !submodules/DotNetNuxt/src/Abstractions
 !submodules/DotNetNuxt/src/EntityFrameworkCore
-!submodules/DotNetNuxt/*.props
+!submodules/DotNetNuxt/src/Hosting
 
 **/bin/
 **/obj/
