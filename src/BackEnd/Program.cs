@@ -10,6 +10,8 @@ using NuxtIdentity.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Identity;
 using static DotNetNuxt.Hosting.Logging.BootLoggerExtensions;
 using DotNetNuxt.Hosting.Logging;
+using DotNetNuxt.Hosting.Options;
+using DotNetNuxt.Hosting;
 
 ILogger? logger = default;
 try
@@ -42,6 +44,9 @@ try
     // Add version information to the configuration
     builder.AddApplicationOptions(logger);
 
+    // Add the usual Startup options
+    StartupOptions startupOptions = builder.AddStandardStartupOptions();
+
     //
     // Add services to the container
     //
@@ -55,9 +60,9 @@ try
     builder.Services.AddDatabase(builder.Configuration);
     builder.Services.AddIdentityConfiguration(builder.Configuration);
     builder.Services.AddTenancy();
-    builder.Services.AddCorsServices(applicationOptions, logger);
+    builder.Services.AddStandardCorsPolicy(startupOptions.AllowedCorsOrigins);
 
-    logger.LogCheckpointReached("Added CORS Services");
+    logger.LogCheckpointReached("Added All Services");
 
     //
     // Build and configure the app
