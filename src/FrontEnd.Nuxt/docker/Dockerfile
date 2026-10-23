@@ -1,13 +1,16 @@
 # Build stage
 FROM node:24-alpine AS builder
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@11.28.6 --activate
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files including pnpm lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies using pnpm
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY ./ ./
@@ -25,7 +28,7 @@ ARG NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING=
 ENV NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING=$NUXT_PUBLIC_APPLICATION_INSIGHTS_CONNECTION_STRING
 
 # Build the static site
-RUN npm run generate
+RUN pnpm run generate
 
 # Production stage
 FROM nginx:alpine

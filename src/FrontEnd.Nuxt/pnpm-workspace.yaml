@@ -1,0 +1,8 @@
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  esbuild: true
+  ngrok: false
+  unrs-resolver: true
+  uws: true
+  wd: true
