@@ -29,8 +29,24 @@
     <Using Include="Gherkin.Generator.Utils" />
   </ItemGroup>
 
-  <!-- API client generation has been moved to scripts/Generate-ApiClient.ps1 to avoid rebuilding on every test run.
-       The generated file (Api/Generated/ApiClient.cs) is checked into source control and automatically included by SDK.
-       Run the script manually when the API changes. -->
+  <PropertyGroup>
+    <TestControlOpenApiFile>$(MSBuildProjectDirectory)\Infrastructure\TestControl\openapi-test-control.json</TestControlOpenApiFile>
+    <TestControlClientConfigFile>$(MSBuildProjectDirectory)\Infrastructure\TestControl\nswag-test-control-client.json</TestControlClientConfigFile>
+    <TestControlClientOutputFile>$(MSBuildProjectDirectory)\$(CompilerGeneratedFilesOutputPath)\TestControlClient.g.cs</TestControlClientOutputFile>
+  </PropertyGroup>
+
+  <Target Name="GenerateTestControlClient"
+          BeforeTargets="BeforeBuild"
+          Inputs="$(TestControlClientConfigFile);$(TestControlOpenApiFile)"
+          Outputs="$(TestControlClientOutputFile)">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(TestControlClientOutputFile)'))" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="$(NSwagExe_Net100) run $(TestControlClientConfigFile) /variables:OutputFile=$(TestControlClientOutputFile)"
+          ConsoleToMSBuild="true" />
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="$(TestControlClientOutputFile)" />
+  </ItemGroup>
 
 </Project>

@@ -1,0 +1,28 @@
+{
+  "runtime": "Net100",
+  "defaultVariables": null,
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "openapi-test-control.json",
+      "output": null,
+      "newLineBehavior": "Auto"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "className": "TestControlApiClient",
+      "namespace": "YoFi.V3.Tests.Functional.Infrastructure.TestControl",
+      "clientBaseClass": "YoFi.V3.Tests.Functional.Infrastructure.TestControl.TestControlClientBase",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "generateClientInterfaces": false,
+      "injectHttpClient": true,
+      "disposeHttpClient": false,
+      "generatePrepareRequestAndProcessResponseAsAsyncMethods": true,
+      "useBaseUrl": false,
+      "dateTimeType": "System.DateTime",
+      "jsonLibrary": "SystemTextJson",
+      "output": "$(OutputFile)",
+      "newLineBehavior": "Auto"
+    }
+  }
+}
