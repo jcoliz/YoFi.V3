@@ -1,0 +1,66 @@
+#
+# Example Development configuration and secrets
+#
+# To use: Copy this to `config.toml` in the `Main.Vue` directory, and then fill
+# in with your data. It will not be checked into source control.
+#
+# In production, this file is not used. Local site configuration is handled by Azure
+# App Service environment vars. Secrets are handled by Azure Key Vault.
+#
+
+#
+# Seed deployment-specific identity
+#
+
+[IdentitySeeder.Deployment]
+Order = 100
+
+#
+# Seed deployment-specific roles
+#
+
+[[IdentitySeeder.Deployment.Roles]]
+Name = "User"
+Id = "5cbf9566-2d41-466f-9672-8ba9c155b53a"
+
+#
+# Seed users
+#
+
+# Important to seed a functional test user named `Tester`.
+# The functional tests will look for this user.
+
+[[IdentitySeeder.Deployment.Users]]
+Email = ""
+UserName = "Tester"
+Password = ""
+Roles = [ "Functional Tests", "Administrator" ]
+
+# Optional additional users can be seeded here for ad-hoc testing
+#
+
+[[IdentitySeeder.Deployment.Users]]
+Email = ""
+UserName = "User"
+Password = ""
+Roles = [ "User" ]
+
+[[IdentitySeeder.Deployment.Users]]
+Email = ""
+UserName = "Administrator"
+Password = ""
+Roles = [ "User", "Administrator" ]
+
+#
+# Seed invitations
+#
+
+# Fill these in with actual GUIDs to seed some invitations
+
+[[IdentitySeeder.Deployment.Invitations]]
+Code = "00000000-0000-0000-0000-000000000000"
+Roles = [ "User", "Administrator" ]
+
+[[IdentitySeeder.Deployment.Invitations]]
+Code = "00000000-0000-0000-0000-000000000000"
+Roles = [ "Administrator" ]
