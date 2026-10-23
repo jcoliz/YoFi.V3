@@ -2,7 +2,7 @@
 <RunSettings>
 	<TestRunParameters>
 		<Parameter name="webAppUrl" value="{PRODUCTION_WEB_APP_URL}" />
-		<Parameter name="apiBaseUrl" value="{PRODUCTION_API_BASE_URL}" />
+		<Parameter name="apiUrl" value="{PRODUCTION_API_BASE_URL}" />
 		<Parameter name="defaultTimeout" value="30000" />
 		<Parameter name="screenshotContext" value="Production" />
 		<Parameter name="userName" value="Tester" />

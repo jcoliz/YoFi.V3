@@ -2,7 +2,7 @@
 <RunSettings>
 	<TestRunParameters>
 		<Parameter name="webAppUrl" value="http://localhost:5000/" />
-		<Parameter name="apiBaseUrl" value="http://localhost:5001/" />
+		<Parameter name="apiUrl" value="http://localhost:5001/" />
 		<Parameter name="defaultTimeout" value="5000" />
 		<Parameter name="screenshotContext" value="Container" />
 		<Parameter name="userName" value="Tester" />

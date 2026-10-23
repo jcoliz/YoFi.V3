@@ -92,13 +92,13 @@ public abstract class TestControlClientBase
 
     private async Task EnsureAuthenticatedAsync(CancellationToken cancellationToken)
     {
-        if (_accessToken is not null && _tenantId is not null)
+        if (_accessToken is not null)
             return;
 
         await _authenticationLock.WaitAsync(cancellationToken);
         try
         {
-            if (_accessToken is not null && _tenantId is not null)
+            if (_accessToken is not null)
                 return;
 
             var loginPayload = new { username = _userName, password = _userPassword };
@@ -117,29 +117,23 @@ public abstract class TestControlClientBase
             var accessToken = loginResult.Token?.AccessToken
                 ?? throw new InvalidOperationException("Login response missing access token");
 
+            _accessToken = accessToken;
+
             TestContext.Out.WriteLine("[TestControlClient] Login: OK");
 
             var entitlementClaims = loginResult.User?.Claims?
                 .Where(claim => claim.Type == "entitlement" && claim.Value.Contains(":Default"))
                 .ToList();
 
-            if (entitlementClaims is null)
-                throw new InvalidOperationException("No entitlement claims found for test user");
-
-            if (entitlementClaims.Count == 0)
-                throw new InvalidOperationException("No default entitlement claims found for test user");
-
-            if (entitlementClaims.Count > 1)
-                throw new InvalidOperationException("Multiple default entitlement claims found for test user");
-
-            var parts = entitlementClaims[0].Value.Split(':');
-            if (parts.Length == 0 || !Guid.TryParse(parts[0], out var tenantId))
-                throw new InvalidOperationException(
-                    $"Cannot parse tenant GUID from entitlement claim: {entitlementClaims[0].Value}");
-
-            _accessToken = accessToken;
-            _tenantId = tenantId;
-            TestContext.Out.WriteLine($"[TestControlClient] Tenant: {_tenantId}");
+            if (entitlementClaims is { Count: 1 })
+            {
+                var parts = entitlementClaims[0].Value.Split(':');
+                if (parts.Length > 0 && Guid.TryParse(parts[0], out var tenantId))
+                {
+                    _tenantId = tenantId;
+                    TestContext.Out.WriteLine($"[TestControlClient] Tenant: {_tenantId}");
+                }
+            }
         }
         finally
         {

@@ -21,16 +21,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
 {
     #region Fields
 
-    private static string? _cachedApiBaseUrl;
-
-    /// <summary>
-    /// Gets the cached API base URL, resolving it from test parameters on first access.
-    /// </summary>
-    /// <remarks>
-    /// The value is resolved once from <c>GetRequiredParameter("apiBaseUrl")</c> and cached
-    /// in a static field for all subsequent accesses across test instances.
-    /// </remarks>
-    protected static string ApiBaseUrl => _cachedApiBaseUrl ??= GetRequiredParameter("apiBaseUrl");
 
     private static bool _prerequisiteCheckFailed = false;
 
@@ -205,7 +195,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     {
         try
         {
-            var normalizedBaseUrl = ApiBaseUrl.TrimEnd('/');
+            var normalizedBaseUrl = ApiUrl.TrimEnd('/');
             var healthUrl = $"{normalizedBaseUrl}/health";
 
             using var httpClient = new HttpClient();
@@ -234,7 +224,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         {
             // Try to get the parameter for error message, fallback to "unknown" if it fails
             var message = $"""
-                Cannot connect to backend API at {ApiBaseUrl}/health
+                Cannot connect to backend API at {ApiUrl}/health
 
                 Please ensure the backend is running:
                 - For local development: Start the backend with 'pwsh scripts/Start-LocalDev.ps1'
@@ -249,7 +239,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         {
             // Try to get the parameter for error message, fallback to "unknown" if it fails
             var message = $"""
-                Backend API health check timed out (5 seconds) at {ApiBaseUrl}/health
+                Backend API health check timed out (5 seconds) at {ApiUrl}/health
 
                 The backend may be starting up or experiencing issues.
                 Please ensure the backend is running and responsive:
