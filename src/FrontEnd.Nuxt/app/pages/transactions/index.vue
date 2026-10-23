@@ -24,8 +24,8 @@ import { handleApiError } from '~/utils/errorHandler'
 definePageMeta({
   title: 'Transactions',
   order: 3,
-  auth: true,
   layout: 'chrome',
+  name: 'transactions'
 })
 
 /**
@@ -169,15 +169,21 @@ watch(currentTenantKey, async (newKey) => {
 })
 
 /**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
+/**
  * Initialize page on mount by setting ready state and loading transactions.
  */
-onMounted(async () => {
+async function afterMounted() {
   ready.value = true
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value) {
     await loadTransactions()
   }
-})
+}
 
 /**
  * Loads transactions for the current workspace with optional date range filters.

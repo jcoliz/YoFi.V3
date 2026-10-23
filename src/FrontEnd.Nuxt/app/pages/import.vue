@@ -23,7 +23,6 @@ import { handleApiError } from '~/utils/errorHandler'
 definePageMeta({
   title: 'Import',
   order: 4,
-  auth: true,
   layout: 'chrome',
 })
 
@@ -88,15 +87,22 @@ watch(currentTenantKey, async (newKey) => {
   }
 })
 
-// Load on mount
-onMounted(async () => {
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
+
+// Load after authentication is confirmed
+async function afterMounted() {
   ready.value = true
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value && canImport.value) {
     await loadPendingReview()
     await loadSummary()
   }
-})
+}
 
 /**
  * Load pending review transactions from API (paginated)

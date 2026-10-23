@@ -23,6 +23,13 @@ onMounted(() => {
   ready.value = true
 })
 
+/**
+ * This page requires a guest user (not authenticated). If the user is already authenticated, we will redirect them to the
+ * redirect query param if present, otherwise to the default page (currently browse).
+ */
+useAuthenticationGuard().requireGuestUser(route.query.redirect as string)
+
+
 // Reactive form data
 const form = ref({
   username: '',

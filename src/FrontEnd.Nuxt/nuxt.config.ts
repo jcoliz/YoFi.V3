@@ -31,7 +31,7 @@ export default defineNuxtConfig({
   },
   auth: {
     originEnvKey: 'NUXT_PUBLIC_API_BASE_URL',
-    // disableServerSideAuth: true, // enabling this helps correlation, but fails UserViewsTheirAccountDetails test :(
+    disableServerSideAuth: true, // TODO: Review UserViewsTheirAccountDetails test
     provider: {
       type: 'local',
       endpoints: {
@@ -40,7 +40,6 @@ export default defineNuxtConfig({
         getSession: { path: '/api/auth/user' },
         signUp: { path: '/api/auth/signup', method: 'post' },
       },
-      // not 'pages'??
       pages: {
         login: '/login', // Path to the login page (where unauthenticated users are sent)
       },
@@ -75,12 +74,12 @@ export default defineNuxtConfig({
       // IMPORTANT: Disabled periodic refresh to prevent race conditions with token updates
       // The aggressive 5-second interval was causing multiple simultaneous refresh calls
       // before the state could update, leading to 401 errors with reused refresh tokens
-      enablePeriodically: 60000, // for testing
+      enablePeriodically: false,
       // Custom refresh handler - uncomment to use
       // handler: './config/AuthRefreshHandler'
     },
     globalAppMiddleware: {
-      isEnabled: true,
+      isEnabled: false,
     },
   },
   runtimeConfig: {
@@ -92,7 +91,7 @@ export default defineNuxtConfig({
       // Don't fill this in with a default value here, or it will cause problems!
       apiBaseUrl: ``,
       // WARNING: Capitalization must match underscores exactly when overriding from environment variable
-      applicationInsightsConnectionString: 'nuxt.config.ts',
+      applicationInsightsConnectionString: '',
     },
   },
   appConfig: {

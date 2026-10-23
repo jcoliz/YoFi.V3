@@ -17,7 +17,6 @@ import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
   title: 'Transaction Details',
-  auth: true,
   layout: 'chrome',
 })
 
@@ -73,14 +72,20 @@ const canEditTransactions = computed(() => {
   return currentTenant.role === TenantRole.Editor || currentTenant.role === TenantRole.Owner
 })
 
-// Load transaction on mount
-onMounted(async () => {
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
+// Load transaction after authentication is confirmed
+async function afterMounted() {
   ready.value = true
   userPreferencesStore.loadFromStorage()
   if (currentTenantKey.value && transactionKey.value) {
     await loadTransaction()
   }
-})
+}
 
 // Methods
 async function loadTransaction() {
