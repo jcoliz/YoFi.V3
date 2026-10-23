@@ -1,5 +1,6 @@
 {
   "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
-  "dotnet.unitTests.runSettingsPath": "runsettings/development-msedge.runsettings",
+  "dotnet.unitTests.runSettingsPath": "runsettings/container-msedge.runsettings",
+  "dotnet.testWindow.enableNextTest": false,
   "dotnet.automaticallyCreateSolutionInWorkspace": false,
 }
