@@ -1,7 +1,7 @@
 using YoFi.V3.Tests.Functional.Attributes;
-using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps.BankImport;

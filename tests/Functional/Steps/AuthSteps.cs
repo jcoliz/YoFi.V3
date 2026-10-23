@@ -150,7 +150,7 @@ public class AuthSteps(ITestContext _context)
         var credentialsList = friendlyNames.Select(name => _context.CreateTestUserCredentials(name)).ToList();
 
         // Create all users in bulk
-        var created = await _context.TestControlClient.CreateUsersV2Async(credentialsList);
+        var created = await _context.TestControlClient.TestControl_CreateUsersV2Async(credentialsList);
 
         // Credentials are already tracked by CreateTestUserCredentials
         // Verify they were created successfully

@@ -1,6 +1,6 @@
 using jcoliz.FunctionalTests;
 using Microsoft.Playwright;
-using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 
 namespace YoFi.V3.Tests.Functional.Infrastructure;
 
@@ -38,7 +38,7 @@ public interface ITestContext
     /// Provides access to backend test control endpoints for creating
     /// and managing test data (users, workspaces, transactions).
     /// </remarks>
-    TestControlClient TestControlClient { get; }
+    TestControlApiClient TestControlClient { get; }
 
     /// <summary>
     /// Gets the Playwright page instance for browser automation.

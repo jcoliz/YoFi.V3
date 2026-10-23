@@ -1,6 +1,6 @@
 using jcoliz.FunctionalTests;
 using Microsoft.Playwright;
-using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 
 namespace YoFi.V3.Tests.Functional.Infrastructure;
 
@@ -51,41 +51,11 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     #endregion
 
     #region Properties
-    private TestControlClient? _testControlClient;
-
     /// <summary>
     /// Gets the Test Control API client for test data setup and cleanup.
     /// </summary>
-    protected TestControlClient testControlClient
-    {
-        get
-        {
-            if (_testControlClient is null)
-            {
-                var httpClient = new HttpClient();
+    public TestControlApiClient TestControlClient { get; private set; } = null!;
 
-                // Add test correlation headers if correlation context exists
-                if (_correlationContext is not null)
-                {
-                    var headers = _correlationContext.BuildCorrelationHeaders();
-                    foreach (var header in headers)
-                    {
-                        httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
-                    }
-                }
-                else
-                {
-                    TestContext.Out.WriteLine("[TestControlClient] Warning: Correlation context is null, correlation headers will not be set.");
-                }
-
-                _testControlClient = new TestControlClient(
-                    baseUrl: ApiBaseUrl,
-                    httpClient: httpClient
-                );
-            }
-            return _testControlClient;
-        }
-    }
     #endregion
 
     #region Setup
@@ -113,12 +83,18 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         //
         // Wipe out the test control client, ensuring we get a new one every run
         //
-        _testControlClient = null;
+        // HttpClient already has the test API base address configured by FunctionalTest.
+        TestControlClient = new TestControlApiClient(HttpClient);
+        await TestControlClient.InitializeAsync(
+            HttpClient,
+            GetRequiredParameter("userName"),
+            GetRequiredParameter("userPassword"));
+
 
         //
         // Identify the test with the backend. This helps us quickly locate the traces for test runs
         //
-        await testControlClient.IdentifyAsync();
+        await TestControlClient.TestControl_IdentifyAsync();
     }
 
     private static readonly string[] ignoredConsoleMessages = new[]
@@ -322,7 +298,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
         var userCreds = CreateTestUserCredentials(friendlyName);  // Auto-tracked
         try
         {
-            var created = await testControlClient.CreateUsersV2Async(new[] { userCreds });
+            var created = await TestControlClient.TestControl_CreateUsersV2Async(new[] { userCreds });
 
             // Update with server-populated ID
             var createdUser = created.Single();
@@ -396,7 +372,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
             {
                 try
                 {
-                    await testControlClient.DeleteWorkspacesAsync(_workspaceKeys.Values);
+                    await TestControlClient.TestControl_DeleteWorkspacesAsync(_workspaceKeys.Values);
                 }
                 catch (ApiException<ProblemDetails> ex)
                 {
@@ -416,7 +392,7 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 try
                 {
                     var usernames = _userCredentials.Values.Select(u => u.Username).ToList();
-                    await testControlClient.DeleteUsersV2Async(usernames);
+                    await TestControlClient.TestControl_DeleteUsersV2Async(usernames);
                 }
                 catch (Exception ex)
                 {
@@ -452,9 +428,6 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
     #endregion
 
     #region ITestContext Implementation
-
-    /// <inheritdoc />
-    public TestControlClient TestControlClient => testControlClient;
 
     /// <inheritdoc />
     IPage ITestContext.Page => Page;

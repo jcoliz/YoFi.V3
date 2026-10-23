@@ -1,5 +1,5 @@
 using System.Text;
-using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 
 namespace YoFi.V3.Tests.Functional.Helpers;
 

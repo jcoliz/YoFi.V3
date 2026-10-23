@@ -1,5 +1,5 @@
 using YoFi.V3.Tests.Functional.Attributes;
-using YoFi.V3.Tests.Functional.Generated;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Steps.Workspace;
@@ -46,7 +46,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     {
         // Given: Clear existing test data
         // TODO: Remove! We are not clearing all test data between tests anymore.
-        await _context.TestControlClient.DeleteAllTestDataAsync();
+        await _context.TestControlClient.TestControl_DeleteAllTestDataAsync();
 
         // And: Create user context for an Editor user
         var friendlyName = "editor-user";
@@ -58,14 +58,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         var workspaceName = "Test Workspace";
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        var request = new Generated.WorkspaceSetupRequest
+        var request = new WorkspaceSetupRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
             Role = "Editor"
         };
 
-        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(credentials.Username, new[] { request });
+        var results = await _context.TestControlClient.TestControl_BulkWorkspaceSetupAsync(credentials.Username, new[] { request });
         var result = results.First();
 
         // And: Track workspace for cleanup
@@ -97,17 +97,17 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         // Get user credentials from context (created by GivenIHaveAnExistingAccount)
         var cred = _context.GetUserCredentials("I");
 
-        var request = new Generated.WorkspaceCreateRequest
+        var request = new WorkspaceCreateRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
             Role = "Editor"
         };
 
-        Generated.TenantResultDto? result;
+        TenantResultDto? result;
         try
         {
-            result = await _context.TestControlClient.CreateWorkspaceForUserAsync(cred.Username, request);
+            result = await _context.TestControlClient.TestControl_CreateWorkspaceForUserAsync(cred.Username, request);
         }
         catch (Exception ex)
         {
@@ -153,7 +153,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
             cred = await _context.CreateTestUserCredentialsOnServer(shortName);
         }
 
-        var request = new Generated.WorkspaceCreateRequest
+        var request = new WorkspaceCreateRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
@@ -163,7 +163,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         TenantResultDto? result;
         try
         {
-            result = await _context.TestControlClient.CreateWorkspaceForUserAsync(cred.Username, request);
+            result = await _context.TestControlClient.TestControl_CreateWorkspaceForUserAsync(cred.Username, request);
         }
         catch (Exception ex)
         {
@@ -198,14 +198,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         var cred = _context.GetUserCredentials(shortName);
 
         // Add __TEST__ prefix to workspace names before API call
-        var requests = workspacesTable.Select(row => new Generated.WorkspaceSetupRequest
+        var requests = workspacesTable.Select(row => new WorkspaceSetupRequest
         {
             Name = AddTestPrefix(row["Workspace Name"]),
             Description = $"Test workspace: {row["Workspace Name"]}",
             Role = row["My Role"]
         }).ToList();
 
-        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(cred.Username, requests);
+        var results = await _context.TestControlClient.TestControl_BulkWorkspaceSetupAsync(cred.Username, requests);
 
         // Track all workspaces for cleanup
         foreach (var result in results)
@@ -237,14 +237,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
         var cred = _context.GetUserCredentials(shortName);
 
-        var request = new Generated.WorkspaceSetupRequest
+        var request = new WorkspaceSetupRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
             Role = "Viewer" // Default to minimum access level
         };
 
-        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
+        var results = await _context.TestControlClient.TestControl_BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
 
         // Track workspace for cleanup
@@ -287,14 +287,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
             cred = await _context.CreateTestUserCredentialsOnServer(shortName);
         }
 
-        var request = new Generated.WorkspaceSetupRequest
+        var request = new WorkspaceSetupRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
             Role = "Editor"
         };
 
-        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
+        var results = await _context.TestControlClient.TestControl_BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
 
         // Track workspace for cleanup
@@ -334,7 +334,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         {
             Role = "Editor"
         };
-        await _context.TestControlClient.AssignUserToWorkspaceAsync(cred.Username, fullWorkspaceKey, roleAssignment);
+        await _context.TestControlClient.TestControl_AssignUserToWorkspaceAsync(cred.Username, fullWorkspaceKey, roleAssignment);
     }
 
     /// <summary>
@@ -370,14 +370,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
             cred = await _context.CreateTestUserCredentialsOnServer(shortName);
         }
 
-        var request = new Generated.WorkspaceSetupRequest
+        var request = new WorkspaceSetupRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace: {workspaceName}",
             Role = "Viewer"
         };
 
-        var results = await _context.TestControlClient.BulkWorkspaceSetupAsync(cred.Username, new[] { request });
+        var results = await _context.TestControlClient.TestControl_BulkWorkspaceSetupAsync(cred.Username, new[] { request });
         var result = results.First();
 
         // Track workspace for cleanup
@@ -409,14 +409,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
         // Create workspace for the other user
-        var request = new Generated.WorkspaceCreateRequest
+        var request = new WorkspaceCreateRequest
         {
             Name = fullWorkspaceName,
             Description = $"Test workspace (no access for {shortName}): {workspaceName}",
             Role = "Owner"
         };
 
-        var result = await _context.TestControlClient.CreateWorkspaceForUserAsync(otherUser.Username, request);
+        var result = await _context.TestControlClient.TestControl_CreateWorkspaceForUserAsync(otherUser.Username, request);
 
         // Track workspace for cleanup
         _context.TrackCreatedWorkspace(result.Name, result.Key);
@@ -440,13 +440,13 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
         var workspaceKey = _context.GetWorkspaceKey(fullWorkspaceName);
 
-        var request = new Generated.TransactionSeedRequest
+        var request = new TransactionSeedRequest
         {
             Count = transactionCount,
             PayeePrefix = "Test Transaction"
         };
 
-        await _context.TestControlClient.SeedTransactionsAsync(currentUsername, workspaceKey, request);
+        await _context.TestControlClient.TestControl_SeedTransactionsAsync(currentUsername, workspaceKey, request);
     }
 
     /// <summary>
@@ -469,14 +469,14 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
 
             var ownerCred = _context.GetUserCredentials(owner);
 
-            var request = new Generated.WorkspaceCreateRequest
+            var request = new WorkspaceCreateRequest
             {
                 Name = fullWorkspaceName,
                 Description = $"Test workspace for {owner}: {workspaceName}",
                 Role = "Owner"
             };
 
-            var result = await _context.TestControlClient.CreateWorkspaceForUserAsync(ownerCred.Username, request);
+            var result = await _context.TestControlClient.TestControl_CreateWorkspaceForUserAsync(ownerCred.Username, request);
 
             // Track workspace for cleanup
             _context.TrackCreatedWorkspace(result.Name, result.Key);

@@ -1,7 +1,7 @@
 using System.Globalization;
 using YoFi.V3.Tests.Functional.Attributes;
-using YoFi.V3.Tests.Functional.Generated;
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps.Transaction;
@@ -50,7 +50,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // And: Convert datatable to TransactionEditDtos
-        var transactions = table.Rows.Select(row => new Generated.TransactionEditDto
+        var transactions = table.Rows.Select(row => new TransactionEditDto
         {
             ExternalId = row["ExternalId"],
             Date = DateTimeOffset.Parse(row["Date"], CultureInfo.InvariantCulture),
@@ -61,7 +61,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             Category = string.Empty
         }).ToArray();
 
-        var seedRequest = new Generated.CollectionRequestOfTransactionEditDto
+        var seedRequest = new CollectionRequestOfTransactionEditDto
         {
             Items = transactions
         };
@@ -70,7 +70,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         ICollection<TransactionResultDto>? seededTransactions = null;
         try
         {
-            seededTransactions = await _context.TestControlClient.SeedTransactionsPreciseAsync(
+            seededTransactions = await _context.TestControlClient.TestControl_SeedTransactionsPreciseAsync(
                 loggedInUser,
                 workspaceKey,
                 seedRequest
@@ -146,7 +146,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // And: Seed transaction via test control API with specific payee
-        var seedRequest = new Generated.TransactionEditDto
+        var seedRequest = new TransactionEditDto
         {
             Payee = payee,
             Memo = memo,
@@ -160,10 +160,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         ICollection<TransactionResultDto>? seededTransactions = null;
         try
         {
-            seededTransactions = await _context.TestControlClient.SeedTransactionsPreciseAsync(
+            seededTransactions = await _context.TestControlClient.TestControl_SeedTransactionsPreciseAsync(
                             loggedInUser,
                             workspaceKey,
-                            new Generated.CollectionRequestOfTransactionEditDto { Items = new[] { seedRequest } }
+                            new CollectionRequestOfTransactionEditDto { Items = new[] { seedRequest } }
                     );
         }
         catch (ApiException<ProblemDetails> ex)
@@ -293,10 +293,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
         // Seed count transactions into the current workspace
-        var transactions = await _context.TestControlClient.SeedTransactionsAsync(
+        var transactions = await _context.TestControlClient.TestControl_SeedTransactionsAsync(
             loggedInUser,
             workspaceKey,
-            new Generated.TransactionSeedRequest
+            new TransactionSeedRequest
             {
                 Count = count,
                 PayeePrefix = "Existing Transaction ",

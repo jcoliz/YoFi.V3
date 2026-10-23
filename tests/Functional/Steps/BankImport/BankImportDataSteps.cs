@@ -40,7 +40,7 @@ public class BankImportDataSteps(ITestContext context) : BankImportStepsBase(con
         var workspaceKey = GetWorkspaceKey(workspaceName);
 
         // When: Seed import review transactions via Test Control API
-        await _context.TestControlClient.SeedImportReviewTransactionsAsync(
+        await _context.TestControlClient.TestControl_SeedImportReviewTransactionsAsync(
             username,
             workspaceKey,
             count,
