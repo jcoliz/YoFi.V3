@@ -5,9 +5,11 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using NuxtIdentity.AspNetCore.Extensions;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Validation;
 using YoFi.V3.Controllers.Middleware;
+using YoFi.V3.Controllers.Tenancy.Seeding;
 
 namespace YoFi.V3.Controllers.Extensions;
 
@@ -42,6 +44,10 @@ public static class ServiceCollectionExtensions
 
         // Add version information to the service collection for later use in controllers or middleware.
         services.Configure<VersionOptions>(options => options.Version = version);
+
+        // Add tenancy seeders
+        services.AddSeedStage<TenantSeedStage>();
+        services.AddSeedStage<TenantRoleSeedStage>();
 
         // Customize validation error response format to include a "detail" field
         // that combines all validation errors into a single string for frontend compatibility.

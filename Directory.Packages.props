@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.6.1" />
+    <PackageVersion Include="Alexinea.Extensions.Configuration.Toml" Version="7.0.0" />
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="DotNetEnv" Version="3.2.0" />

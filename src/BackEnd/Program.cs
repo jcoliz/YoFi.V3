@@ -31,6 +31,9 @@ try
     //
     var builder = WebApplication.CreateBuilder(args);
 
+    // Add site-specific config option
+    builder.Configuration.AddTomlFile("config.toml", optional: true, reloadOnChange: true);
+
     // Configure application logging
     builder.Logging.AddTerseConsoleLogFormatter(options => options.IncludeScopes = false);
 

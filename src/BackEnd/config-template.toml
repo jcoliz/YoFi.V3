@@ -64,3 +64,17 @@ Roles = [ "User", "Administrator" ]
 [[IdentitySeeder.Deployment.Invitations]]
 Code = "00000000-0000-0000-0000-000000000000"
 Roles = [ "Administrator" ]
+
+#
+# Seed tenants and roles
+#
+
+[[IdentitySeeder.Deployment.Tenants]]
+Key = "00000000-0000-0000-0000-000000000000"
+Name = "Demo Tenant"
+Description = "This is the demo tenant."
+
+[[IdentitySeeder.Deployment.TenantRoles]]
+Key = "00000000-0000-0000-0000-000000000000"
+UserName = "Tester"
+Role = "Owner"
