@@ -7,7 +7,7 @@
 
 import {
   PayeeMatchingRulesClient,
-  PayeeMatchingRuleEditDto,
+  type PayeeMatchingRuleEditDto,
   PayeeRuleSortBy,
   TenantRole,
   type PayeeMatchingRuleResultDto,
@@ -103,7 +103,7 @@ const sortBy = ref<PayeeRuleSortBy>(PayeeRuleSortBy.PayeePattern)
 /**
  * Pagination metadata from the last API response.
  */
-const paginationMetadata = ref<any>(null)
+const paginationMetadata = ref<IPaginationMetadata | undefined>(undefined)
 
 /**
  * Current page number (1-based).
@@ -187,7 +187,7 @@ async function loadRules() {
     )
 
     rules.value = result.items || []
-    paginationMetadata.value = result.metadata || null
+    paginationMetadata.value = result.metadata
   } catch (err) {
     error.value = handleApiError(err, 'Load Failed', 'Failed to load payee matching rules')
     showError.value = true

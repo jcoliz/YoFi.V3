@@ -12,7 +12,7 @@ import {
   PayeeMatchingRulesClient,
   TransactionEditDto,
   TransactionQuickEditDto,
-  PayeeMatchingRuleEditDto,
+  type PayeeMatchingRuleEditDto,
   TenantRole,
   type PaginatedResultDtoOfTransactionResultDto,
   type TransactionResultDto,

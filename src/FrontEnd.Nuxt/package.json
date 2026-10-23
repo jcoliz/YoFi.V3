@@ -41,6 +41,7 @@
     "nuxi": "^4.0.1",
     "prettier": "^3.9.10",
     "sass": "1.106.1",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.0",
     "vue-eslint-parser": "^10.4.1"
   }

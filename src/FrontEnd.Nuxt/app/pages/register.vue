@@ -82,22 +82,39 @@ const handleSubmit = async () => {
       },
       { preventLoginFlow: true },
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const status =
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      typeof error.status === 'number'
+        ? error.status
+        : undefined
+    const message =
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : undefined
+    const data =
+      typeof error === 'object' && error !== null && 'data' in error ? error.data : undefined
+
     console.error('*** Registration error:')
-    console.log('- Status:', error.status)
-    console.log('- Message:', error.message)
-    console.log('- Data:', error.data)
+    console.log('- Status:', status)
+    console.log('- Message:', message)
+    console.log('- Data:', data)
     console.log('- Full error object:', error)
 
     // If the API returned a problem details object in error.data, use it
-    if (error.data && typeof error.data === 'object' && 'title' in error.data) {
-      errorProblem.value = error.data as IProblemDetails
+    if (data && typeof data === 'object' && 'title' in data) {
+      errorProblem.value = data as IProblemDetails
     } else {
       // Otherwise, compose an ad-hoc problem details object
       errorProblem.value = {
         title: 'Registration failed',
-        detail: error.message ?? 'Please try again',
-        status: error.status,
+        detail: message ?? 'Please try again',
+        status,
       }
     }
     showError.value = true

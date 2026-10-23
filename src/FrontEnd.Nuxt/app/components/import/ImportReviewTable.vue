@@ -23,8 +23,7 @@ interface Props {
   loading?: boolean
 }
 
-// eslint-disable-next-line no-unused-vars
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   transactions: () => [],
   loading: false,
 })

@@ -8,6 +8,7 @@
  */
 export function useAuthFetch() {
   const { token } = useAuth()
+  type FetchOptions = NonNullable<Parameters<typeof $fetch.raw>[1]>
 
   // Create a wrapper that matches the interface expected by NSwag clients
   const authFetch = {
@@ -18,8 +19,8 @@ export function useAuthFetch() {
       // Use Nuxt's $fetch which handles auth automatically
       try {
         const response = await $fetch.raw(urlString, {
-          method: (init?.method || 'GET') as any,
-          body: init?.body as any,
+          method: (init?.method || 'GET') as FetchOptions['method'],
+          body: init?.body,
           headers: {
             ...init?.headers,
             // @sidebase/nuxt-auth automatically adds Authorization header
@@ -34,13 +35,22 @@ export function useAuthFetch() {
           statusText: response.statusText,
           headers: response.headers,
         })
-      } catch (error: any) {
+      } catch (error: unknown) {
+        if (!(error instanceof Error)) {
+          throw error
+        }
+
+        const errorResponse =
+          'response' in error && error.response instanceof Response ? error.response : undefined
+
         // Handle fetch errors and convert to Response for NSwag client
-        const status = error.response?.status || 500
-        const statusText = error.response?.statusText || 'Internal Server Error'
+        const status = errorResponse?.status || 500
+        const statusText = errorResponse?.statusText || 'Internal Server Error'
 
         // If there's a response body, use it; otherwise create RFC 7807 Problem Details
-        let body = error.response?._data || error.data
+        let body =
+          (errorResponse && '_data' in errorResponse ? errorResponse._data : undefined) ||
+          ('data' in error ? error.data : undefined)
         if (!body) {
           // Network error or no response - create proper Problem Details
           body = {
@@ -55,7 +65,7 @@ export function useAuthFetch() {
         return new Response(JSON.stringify(body), {
           status,
           statusText,
-          headers: error.response?.headers || {},
+          headers: errorResponse?.headers || {},
         })
       }
     },

@@ -133,9 +133,9 @@ async function loadTenants() {
     if (!userPreferencesStore.hasTenant && tenants.value.length > 0 && tenants.value[0]) {
       selectTenant(tenants.value[0])
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load tenants:', err)
-    error.value = err.message || 'Failed to load workspaces'
+    error.value = (err instanceof Error && err.message) || 'Failed to load workspaces'
   } finally {
     loading.value = false
   }
