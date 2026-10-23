@@ -31,13 +31,21 @@ const frontEndVersion = runtimeConfig.public.solutionVersion
 const applicationInsightsConnectionString = runtimeConfig.public.applicationInsightsConnectionString
 
 /**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
+/**
  * When mounted, get the view data from server
  */
-onMounted(() => {
-  client.getVersion().then((result) => {
-    version.value = result
+async function afterMounted() {
+  client.index().then((result) => {
+
+    // TODO: This returns a File Response?!?!
+    version.value = "fetched" //result
   })
-})
+}
 </script>
 <template>
   <div class="row">

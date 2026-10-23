@@ -99,6 +99,12 @@ const handleUpdate = async () => {
     isLoading.value = false
   }
 }
+
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser()
 </script>
 
 <template>

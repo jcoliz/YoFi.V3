@@ -52,11 +52,10 @@ async function getData() {
 }
 
 /**
- * When mounted, get the view data from server
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
  */
-onMounted(() => {
-  getData()
-})
+useAuthenticationGuard().requireAuthenticatedUser(getData)
 </script>
 
 <template>

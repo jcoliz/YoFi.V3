@@ -12,7 +12,6 @@ import type { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 definePageMeta({
   title: 'Counter',
-  auth: true,
 })
 
 const count = ref(0)
@@ -33,6 +32,12 @@ const increaseCount = () => {
     appInsights.trackEvent({ name: 'CountIncreased', properties: { count: count.value } })
   }
 }
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser()
+
 </script>
 
 <template>
