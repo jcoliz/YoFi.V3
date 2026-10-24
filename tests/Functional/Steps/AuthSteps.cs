@@ -481,10 +481,7 @@ public class AuthSteps(ITestContext _context)
     {
         var profilePage = _context.GetOrCreatePage<ProfilePage>();
         var testUser = _context.GetUserCredentials("I");
-        var hasAccountInformation = await profilePage.HasAccountInformationAsync(testUser.Email, testUser.Username);
-
-        Assert.That(hasAccountInformation, Is.True,
-            "Should display correct account information");
+        await profilePage.ExpectAccountInformationAsync(testUser.Email, testUser.Username);
     }
 
     /// <summary>

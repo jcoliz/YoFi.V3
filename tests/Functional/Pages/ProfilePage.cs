@@ -108,6 +108,17 @@ public class ProfilePage(IPage _page): BasePage(_page)
     }
 
     /// <summary>
+    /// Waits until the account information matches the provided email and username.
+    /// </summary>
+    /// <param name="email">Expected email</param>
+    /// <param name="username">Expected username</param>
+    public async Task ExpectAccountInformationAsync(string email, string username)
+    {
+        await Assertions.Expect(EmailDisplay).ToHaveTextAsync(email);
+        await Assertions.Expect(UsernameDisplay).ToHaveTextAsync(username);
+    }
+
+    /// <summary>
     /// Checks if workspace information section is visible
     /// </summary>
     public async Task<bool> HasWorkspaceInformationAsync()
