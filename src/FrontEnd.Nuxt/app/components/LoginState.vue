@@ -40,7 +40,10 @@ const systemLogout = async () => {
         data-bs-toggle="dropdown"
         aria-expanded="false"
       >
-        <template v-if="data">
+        <!-- Gate on `ready` so the hydrated ClientOnly fallback matches SSR output
+             (auth data isn't available on the server). A mismatch here leaves the
+             dropdown empty after ClientOnly swaps in its client content. -->
+        <template v-if="ready && data">
           <strong
             class="me-2"
             data-test-id="username"
