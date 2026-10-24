@@ -95,24 +95,6 @@ const showCreateRuleModal = ref(false)
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
 /**
- * Form data for quick edit operations.
- */
-const formData = ref({
-  payee: '',
-  memo: '',
-  category: '',
-})
-
-/**
- * Validation errors for form fields.
- */
-const formErrors = ref({
-  payee: '',
-  memo: '',
-  category: '',
-})
-
-/**
  * Start date for filtering transactions (inclusive).
  */
 const fromDate = ref<string>('')
@@ -226,22 +208,11 @@ function handlePageChange(pageNumber: number) {
 
 /**
  * Opens the quick edit modal for a transaction.
- * Populates form with transaction's payee, memo, and category (quick editable fields).
  *
  * @param transaction - The transaction to edit
  */
 function openEditModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
-  formData.value = {
-    payee: transaction.payee || '',
-    memo: transaction.memo || '',
-    category: transaction.category || '',
-  }
-  formErrors.value = {
-    payee: '',
-    memo: '',
-    category: '',
-  }
   showEditModal.value = true
 }
 
@@ -253,65 +224,6 @@ function openEditModal(transaction: TransactionResultDto) {
 function openCreateRuleModal(transaction: TransactionResultDto) {
   selectedTransaction.value = transaction
   showCreateRuleModal.value = true
-}
-
-/**
- * Updates a transaction using the quick edit endpoint.
- * Only updates payee, memo, and category fields.
- * Validates form data, calls API, and reloads transactions on success.
- */
-async function updateTransaction() {
-  // For quick edit, validate payee, memo, and category
-  formErrors.value = {
-    payee: '',
-    memo: '',
-    category: '',
-  }
-  let isValid = true
-
-  if (!formData.value.payee || !formData.value.payee.trim()) {
-    formErrors.value.payee = 'Payee is required'
-    isValid = false
-  }
-
-  if (formData.value.memo && formData.value.memo.length > 1000) {
-    formErrors.value.memo = 'Memo cannot exceed 1000 characters'
-    isValid = false
-  }
-
-  if (formData.value.category && formData.value.category.length > 100) {
-    formErrors.value.category = 'Category cannot exceed 100 characters'
-    isValid = false
-  }
-
-  if (!isValid) return
-  if (!selectedTransaction.value?.key || !currentTenantKey.value) return
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    // Use quick edit endpoint: sends payee, memo, and category
-    const dto = new TransactionQuickEditDto({
-      payee: formData.value.payee.trim(),
-      memo: formData.value.memo.trim() || undefined,
-      category: formData.value.category.trim() || undefined,
-    })
-
-    await transactionsClient.quickEditTransaction(
-      selectedTransaction.value.key,
-      currentTenantKey.value,
-      dto,
-    )
-    await loadTransactions()
-    showEditModal.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Update Failed', 'Failed to update transaction')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
 }
 
 /**
@@ -649,127 +561,11 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
     />
 
     <!-- Edit Modal (Quick Edit - Payee, Category, and Memo) -->
-    <ModalDialog
+    <TransactionEditModal
       v-model:show="showEditModal"
-      title="Quick Edit Transaction"
-      :loading="loading"
-      :primary-button-text="loading ? 'Updating...' : 'Update'"
-      primary-button-test-id="edit-submit-button"
-      secondary-button-test-id="edit-cancel-button"
-      test-id="edit-transaction-modal"
-      @primary="updateTransaction"
-    >
-      <div class="mb-3">
-        <label
-          for="editPayee"
-          class="form-label"
-          >Payee</label
-        >
-        <input
-          id="editPayee"
-          v-model="formData.payee"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.payee }"
-          placeholder="Enter payee name"
-          data-test-id="edit-transaction-payee"
-        />
-        <div
-          v-if="formErrors.payee"
-          class="invalid-feedback"
-        >
-          {{ formErrors.payee }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <label
-          for="editCategory"
-          class="form-label"
-          >Category</label
-        >
-        <input
-          id="editCategory"
-          v-model="formData.category"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.category }"
-          placeholder="Category (optional)"
-          maxlength="100"
-          data-test-id="edit-transaction-category"
-        />
-        <small class="form-text text-muted">Optional category for this transaction</small>
-        <div
-          v-if="formErrors.category"
-          class="invalid-feedback"
-        >
-          {{ formErrors.category }}
-        </div>
-      </div>
-      <div class="mb-3">
-        <label
-          for="editMemo"
-          class="form-label"
-          >Memo</label
-        >
-        <textarea
-          id="editMemo"
-          v-model="formData.memo"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.memo }"
-          placeholder="Add notes about this transaction..."
-          rows="3"
-          maxlength="1000"
-          data-test-id="edit-transaction-memo"
-        ></textarea>
-        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
-        <div
-          v-if="formErrors.memo"
-          class="invalid-feedback"
-        >
-          {{ formErrors.memo }}
-        </div>
-      </div>
-
-      <template #footer>
-        <button
-          type="button"
-          class="btn btn-outline-secondary me-auto"
-          data-test-id="edit-more-button"
-          :disabled="loading"
-          @click="navigateToDetails(selectedTransaction?.key)"
-        >
-          <FeatherIcon
-            icon="arrow-right"
-            size="14"
-            class="me-1"
-          />
-          More
-        </button>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          data-test-id="edit-cancel-button"
-          :disabled="loading"
-          @click="showEditModal = false"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          data-test-id="edit-submit-button"
-          :disabled="loading"
-          @click="updateTransaction"
-        >
-          <BaseSpinner
-            v-if="loading"
-            size="sm"
-            class="me-1"
-          />
-          {{ loading ? 'Updating...' : 'Update' }}
-        </button>
-      </template>
-    </ModalDialog>
+      :transaction="selectedTransaction"
+      @updated="loadTransactions()"
+    />
 
     <!-- Create Rule from Transaction Dialog -->
     <PayeeRuleDialog
