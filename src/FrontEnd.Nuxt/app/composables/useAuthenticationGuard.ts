@@ -69,7 +69,6 @@
 export function useAuthenticationGuard() {
   const { status } = useAuth()
   const route = useRoute()
-  const userPreferences = useUserPreferencesStore()
 
   const previousPreviousStatus = ref(status.value)
 
@@ -163,7 +162,14 @@ export function useAuthenticationGuard() {
         })
         authenticatedAction?.()
       } else if (currentStatus === 'unauthenticated') {
-        redirectToLogin(unauthenticatedRedirect)
+        if (previousStatus === 'authenticated') {
+          // If the user has now logged out, redirect to the home page
+          redirectToLogin('/')
+        } else {
+          // If previously `loading`, they've actually been logged out the whole time
+          // but we just found out about it. send them to login page.
+          redirectToLogin(unauthenticatedRedirect)
+        }
       } else if (currentStatus === 'loading') {
         logger.debug('loading', { source: 'watcher', bug: 2108 })
       }
