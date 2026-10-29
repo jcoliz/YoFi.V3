@@ -45,9 +45,6 @@ const editDescription = ref('')
 // Delete state
 const deletingTenant = ref<TenantRoleResultDto | null>(null)
 const showDeleteModal = ref(false)
-const deleting = ref(false)
-const deleteError = ref<IProblemDetails | undefined>(undefined)
-const showDeleteError = ref(false)
 
 // API Client
 const { baseUrl } = useApiBaseUrl()
@@ -233,35 +230,12 @@ async function updateWorkspace() {
 // Delete operations
 function startDelete(tenant: TenantRoleResultDto) {
   deletingTenant.value = tenant
-  deleteError.value = undefined
-  showDeleteError.value = false
   showDeleteModal.value = true
 }
 
-async function deleteWorkspace() {
-  if (!deletingTenant.value) return
-
-  deleting.value = true
-  deleteError.value = undefined
-  showDeleteError.value = false
-
-  try {
-    await tenantClient.deleteTenant(deletingTenant.value.key!)
-
-    // If we deleted the current workspace, clear it
-    if (deletingTenant.value.key === userPreferencesStore.getCurrentTenantKey) {
-      userPreferencesStore.clearPreferences()
-    }
-
-    await loadTenants()
-    showDeleteModal.value = false
-    deletingTenant.value = null
-  } catch (err) {
-    deleteError.value = handleApiError(err, 'Delete Failed', 'Failed to delete workspace')
-    showDeleteError.value = true
-  } finally {
-    deleting.value = false
-  }
+async function handleWorkspaceDeleted() {
+  deletingTenant.value = null
+  await loadTenants()
 }
 
 definePageMeta({
@@ -590,33 +564,11 @@ definePageMeta({
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <ModalDialog
+    <WorkspaceDeleteModal
       v-model:show="showDeleteModal"
-      title="Delete Workspace"
-      :loading="deleting"
-      primary-button-variant="danger"
-      :primary-button-text="deleting ? 'Deleting...' : 'Delete'"
-      primary-button-test-id="delete-submit-button"
-      secondary-button-test-id="delete-cancel-button"
-      test-id="delete-modal"
-      @primary="deleteWorkspace"
-    >
-      <ErrorDisplay
-        v-model:show="showDeleteError"
-        :problem="deleteError"
-      />
-
-      <p>
-        Are you sure you want to delete the workspace
-        <strong data-test-id="deleting-workspace-name">{{ deletingTenant?.name }}</strong
-        >?
-      </p>
-      <p class="text-danger">
-        <strong>Warning:</strong> This action cannot be undone. All data associated with this
-        workspace will be permanently deleted.
-      </p>
-    </ModalDialog>
+      :workspace="deletingTenant"
+      @deleted="handleWorkspaceDeleted"
+    />
   </div>
 </template>
 
