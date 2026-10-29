@@ -9,7 +9,6 @@
 
 import {
   TenantClient,
-  TenantEditDto,
   TenantRole,
   type TenantRoleResultDto,
   type IProblemDetails,
@@ -31,11 +30,6 @@ const showCreateForm = ref(false)
 
 // Edit state
 const editingTenant = ref<TenantRoleResultDto | null>(null)
-const updating = ref(false)
-const updateError = ref<IProblemDetails | undefined>(undefined)
-const showUpdateError = ref(false)
-const editName = ref('')
-const editDescription = ref('')
 
 // Delete state
 const deletingTenant = ref<TenantRoleResultDto | null>(null)
@@ -124,53 +118,9 @@ function handleWorkspaceChange() {
   loadTenants()
 }
 
-// Edit operations
-function startEdit(tenant: TenantRoleResultDto) {
-  editingTenant.value = tenant
-  editName.value = tenant.name || ''
-  editDescription.value = tenant.description || ''
-  updateError.value = undefined
-  showUpdateError.value = false
-}
-
-function cancelEdit() {
+async function handleWorkspaceUpdated() {
   editingTenant.value = null
-  editName.value = ''
-  editDescription.value = ''
-  updateError.value = undefined
-  showUpdateError.value = false
-}
-
-async function updateWorkspace() {
-  if (!editingTenant.value || !editName.value.trim()) {
-    updateError.value = {
-      title: 'Validation Error',
-      detail: 'Workspace name is required',
-    }
-    showUpdateError.value = true
-    return
-  }
-
-  updating.value = true
-  updateError.value = undefined
-  showUpdateError.value = false
-
-  try {
-    const updateDto = new TenantEditDto({
-      name: editName.value.trim(),
-      description: editDescription.value.trim() || undefined,
-    })
-
-    await tenantClient.updateTenant(editingTenant.value.key!, updateDto)
-    await loadTenants()
-
-    cancelEdit()
-  } catch (err) {
-    updateError.value = handleApiError(err, 'Update Failed', 'Failed to update workspace')
-    showUpdateError.value = true
-  } finally {
-    updating.value = false
-  }
+  await loadTenants()
 }
 
 // Delete operations
@@ -263,63 +213,12 @@ definePageMeta({
             :data-test-id="`workspace-card-${tenant.key}`"
           >
             <div class="card-body">
-              <!-- Edit Form -->
-              <div
+              <WorkspaceEditPane
                 v-if="editingTenant?.key === tenant.key"
-                data-test-id="edit-form"
-              >
-                <ErrorDisplay
-                  v-model:show="showUpdateError"
-                  :problem="updateError"
-                  class="mb-3"
-                />
-
-                <div class="mb-3">
-                  <label class="form-label">Name <span class="text-danger">*</span></label>
-                  <input
-                    v-model="editName"
-                    type="text"
-                    class="form-control form-control-sm"
-                    :disabled="updating"
-                    data-test-id="edit-workspace-name"
-                  />
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Description</label>
-                  <textarea
-                    v-model="editDescription"
-                    class="form-control form-control-sm"
-                    rows="2"
-                    :disabled="updating"
-                    data-test-id="edit-workspace-description"
-                  />
-                </div>
-
-                <div class="d-flex gap-2">
-                  <button
-                    class="btn btn-sm btn-primary"
-                    :disabled="updating || !editName.trim()"
-                    data-test-id="edit-workspace-submit"
-                    @click="updateWorkspace"
-                  >
-                    <BaseSpinner
-                      v-if="updating"
-                      size="sm"
-                      class="me-1"
-                    />
-                    {{ updating ? 'Saving...' : 'Save' }}
-                  </button>
-                  <button
-                    class="btn btn-sm btn-secondary"
-                    :disabled="updating"
-                    data-test-id="edit-workspace-cancel"
-                    @click="cancelEdit"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+                :workspace="tenant"
+                @cancel="editingTenant = null"
+                @updated="handleWorkspaceUpdated"
+              />
 
               <!-- View Mode -->
               <div v-else>
@@ -383,7 +282,7 @@ definePageMeta({
                     v-if="canManageTenant(tenant)"
                     class="btn btn-sm btn-outline-primary"
                     data-test-id="edit-workspace-button"
-                    @click="startEdit(tenant)"
+                    @click="editingTenant = tenant"
                   >
                     <FeatherIcon
                       icon="edit"
