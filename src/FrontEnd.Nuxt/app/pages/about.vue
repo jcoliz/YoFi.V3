@@ -41,9 +41,8 @@ useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
  */
 async function afterMounted() {
   client.index().then((result) => {
-
     // TODO: This returns a File Response?!?!
-    version.value = "fetched" //result
+    version.value = 'fetched' //result
   })
 }
 </script>

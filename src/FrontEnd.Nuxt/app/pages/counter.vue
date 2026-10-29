@@ -37,7 +37,6 @@ const increaseCount = () => {
  * Only after we've confirmed authentication, do we call getData() to load the data for this page.
  */
 useAuthenticationGuard().requireAuthenticatedUser()
-
 </script>
 
 <template>

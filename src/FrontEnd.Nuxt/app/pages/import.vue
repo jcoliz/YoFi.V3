@@ -93,7 +93,6 @@ watch(currentTenantKey, async (newKey) => {
  */
 useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
 
-
 // Load after authentication is confirmed
 async function afterMounted() {
   ready.value = true
