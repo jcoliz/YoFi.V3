@@ -28,11 +28,6 @@ const showError = ref(false)
 
 // Create state
 const showCreateForm = ref(false)
-const creating = ref(false)
-const createError = ref<IProblemDetails | undefined>(undefined)
-const showCreateError = ref(false)
-const newWorkspaceName = ref('')
-const newWorkspaceDescription = ref('')
 
 // Edit state
 const editingTenant = ref<TenantRoleResultDto | null>(null)
@@ -129,55 +124,6 @@ function handleWorkspaceChange() {
   loadTenants()
 }
 
-// Create operations
-function openCreateForm() {
-  showCreateForm.value = true
-  createError.value = undefined
-  showCreateError.value = false
-  newWorkspaceName.value = ''
-  newWorkspaceDescription.value = ''
-}
-
-function cancelCreate() {
-  showCreateForm.value = false
-  newWorkspaceName.value = ''
-  newWorkspaceDescription.value = ''
-  createError.value = undefined
-  showCreateError.value = false
-}
-
-async function createWorkspace() {
-  if (!newWorkspaceName.value.trim()) {
-    createError.value = {
-      title: 'Validation Error',
-      detail: 'Workspace name is required',
-    }
-    showCreateError.value = true
-    return
-  }
-
-  creating.value = true
-  createError.value = undefined
-  showCreateError.value = false
-
-  try {
-    const newTenant = new TenantEditDto({
-      name: newWorkspaceName.value.trim(),
-      description: newWorkspaceDescription.value.trim() || undefined,
-    })
-
-    await tenantClient.createTenant(newTenant)
-    await loadTenants()
-
-    cancelCreate()
-  } catch (err) {
-    createError.value = handleApiError(err, 'Create Failed', 'Failed to create workspace')
-    showCreateError.value = true
-  } finally {
-    creating.value = false
-  }
-}
-
 // Edit operations
 function startEdit(tenant: TenantRoleResultDto) {
   editingTenant.value = tenant
@@ -262,7 +208,7 @@ definePageMeta({
           class="btn btn-primary"
           :disabled="showCreateForm"
           data-test-id="create-workspace-button"
-          @click="openCreateForm"
+          @click="showCreateForm = true"
         >
           <FeatherIcon
             icon="plus"
@@ -280,79 +226,10 @@ definePageMeta({
         class="mb-4"
       />
 
-      <!-- Create Form -->
-      <div
-        v-if="showCreateForm"
-        class="card mb-4"
-        data-test-id="create-form-card"
-      >
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0">Create New Workspace</h5>
-        </div>
-        <div class="card-body">
-          <ErrorDisplay
-            v-model:show="showCreateError"
-            :problem="createError"
-          />
-
-          <div class="mb-3">
-            <label
-              for="create-name"
-              class="form-label"
-              >Name <span class="text-danger">*</span></label
-            >
-            <input
-              id="create-name"
-              v-model="newWorkspaceName"
-              type="text"
-              class="form-control"
-              placeholder="Enter workspace name"
-              :disabled="creating"
-              @keyup.enter="createWorkspace"
-            />
-          </div>
-
-          <div class="mb-3">
-            <label
-              for="create-description"
-              class="form-label"
-              >Description</label
-            >
-            <textarea
-              id="create-description"
-              v-model="newWorkspaceDescription"
-              class="form-control"
-              rows="3"
-              placeholder="Enter workspace description (optional)"
-              :disabled="creating"
-            />
-          </div>
-
-          <div class="d-flex gap-2">
-            <button
-              class="btn btn-primary"
-              :disabled="creating || !newWorkspaceName.trim()"
-              data-test-id="create-submit-button"
-              @click="createWorkspace"
-            >
-              <BaseSpinner
-                v-if="creating"
-                size="sm"
-                class="me-1"
-              />
-              {{ creating ? 'Creating...' : 'Create' }}
-            </button>
-            <button
-              class="btn btn-secondary"
-              :disabled="creating"
-              data-test-id="create-cancel-button"
-              @click="cancelCreate"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
+      <WorkspaceCreatePane
+        v-model:show="showCreateForm"
+        @created="loadTenants"
+      />
 
       <!-- Loading State -->
       <div
@@ -552,7 +429,7 @@ definePageMeta({
           v-if="!showCreateForm"
           class="btn btn-primary"
           data-test-id="create-workspace-button"
-          @click="openCreateForm"
+          @click="showCreateForm = true"
         >
           <FeatherIcon
             icon="plus"
