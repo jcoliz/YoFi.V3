@@ -1,4 +1,7 @@
 import { jwtDecode } from 'jwt-decode'
+import { FetchError } from 'ofetch'
+
+type FetchOptions = NonNullable<Parameters<typeof $fetch.raw>[1]>
 
 /** Buffer in seconds before actual expiry to trigger a proactive refresh */
 const REFRESH_BUFFER_SECONDS = 30
@@ -120,8 +123,8 @@ export function useAuthFetch(useTokenCheck = true) {
       // Use Nuxt's $fetch which handles auth automatically
       try {
         const response = await $fetch.raw(urlString, {
-          method: (init?.method || 'GET') as any,
-          body: init?.body as any,
+          method: (init?.method || 'GET') as FetchOptions['method'],
+          body: init?.body,
           headers: {
             ...init?.headers,
             // @sidebase/nuxt-auth automatically adds Authorization header
@@ -157,15 +160,18 @@ export function useAuthFetch(useTokenCheck = true) {
           statusText: response.statusText,
           headers: response.headers,
         })
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle fetch errors and convert to Response for NSwag client
+        const fetchError: FetchError<unknown> | undefined =
+          error instanceof FetchError ? error : undefined
         const timedOut = isRequestTimeout(error)
-        const status = error.response?.status || (timedOut ? 408 : 500)
+        const status = fetchError?.response?.status || (timedOut ? 408 : 500)
         const statusText =
-          error.response?.statusText || (timedOut ? 'Request Timeout' : 'Internal Server Error')
+          fetchError?.response?.statusText ||
+          (timedOut ? 'Request Timeout' : 'Internal Server Error')
 
         // If there's a response body, use it; otherwise create RFC 7807 Problem Details
-        let body = error.response?._data || error.data
+        let body = fetchError?.response?._data || fetchError?.data
         if (!body) {
           // Network error or no response - create proper Problem Details
           body = {
@@ -174,7 +180,7 @@ export function useAuthFetch(useTokenCheck = true) {
             status,
             detail: timedOut
               ? 'The server did not respond before the request timed out.'
-              : error.message || 'Failed to connect to the server',
+              : (error instanceof Error && error.message) || 'Failed to connect to the server',
             instance: urlString,
           }
         }
@@ -182,7 +188,7 @@ export function useAuthFetch(useTokenCheck = true) {
         return new Response(JSON.stringify(body), {
           status,
           statusText,
-          headers: error.response?.headers || {},
+          headers: fetchError?.response?.headers || {},
         })
       }
     },
