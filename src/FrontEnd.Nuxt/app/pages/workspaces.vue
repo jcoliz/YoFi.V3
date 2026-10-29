@@ -36,9 +36,7 @@ const deletingTenant = ref<TenantRoleResultDto | undefined>(undefined)
 const showDeleteModal = ref(false)
 
 // API Client
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const tenantClient = new TenantClient(baseUrl, authFetch)
+const tenantClient = useApiClient(TenantClient)
 
 // Helper function to get role name
 function getRoleName(role: TenantRole | undefined): string {
