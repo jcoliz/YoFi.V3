@@ -7,7 +7,7 @@
  * and client-side data rendering with loading states.
  */
 
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import * as api from '../utils/apiclient'
 import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({

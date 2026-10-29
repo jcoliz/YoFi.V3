@@ -40,7 +40,7 @@ useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
  * When mounted, get the view data from server
  */
 async function afterMounted() {
-  client.index().then((result) => {
+  client.index().then(() => {
     // TODO: This returns a File Response?!?!
     version.value = 'fetched' //result
   })
