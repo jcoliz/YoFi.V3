@@ -29,10 +29,10 @@ const showError = ref(false)
 const showCreateForm = ref(false)
 
 // Edit state
-const editingTenant = ref<TenantRoleResultDto | null>(null)
+const editingTenant = ref<TenantRoleResultDto | undefined>(undefined)
 
 // Delete state
-const deletingTenant = ref<TenantRoleResultDto | null>(null)
+const deletingTenant = ref<TenantRoleResultDto | undefined>(undefined)
 const showDeleteModal = ref(false)
 
 // API Client
@@ -119,7 +119,7 @@ function handleWorkspaceChange() {
 }
 
 async function handleWorkspaceUpdated() {
-  editingTenant.value = null
+  editingTenant.value = undefined
   await loadTenants()
 }
 
@@ -130,7 +130,7 @@ function startDelete(tenant: TenantRoleResultDto) {
 }
 
 async function handleWorkspaceDeleted() {
-  deletingTenant.value = null
+  deletingTenant.value = undefined
   await loadTenants()
 }
 
@@ -216,7 +216,7 @@ definePageMeta({
               <WorkspaceEditPane
                 v-if="editingTenant?.key === tenant.key"
                 :workspace="tenant"
-                @cancel="editingTenant = null"
+                @cancel="editingTenant = undefined"
                 @updated="handleWorkspaceUpdated"
               />
 

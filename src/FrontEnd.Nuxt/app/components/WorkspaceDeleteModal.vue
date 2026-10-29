@@ -8,7 +8,7 @@ import { handleApiError } from '~/utils/errorHandler'
 
 const props = defineProps<{
   show: boolean
-  workspace: TenantRoleResultDto | null
+  workspace: TenantRoleResultDto | undefined
 }>()
 
 const emit = defineEmits<{
