@@ -11,6 +11,7 @@ owner: James Coliz
 YoFi.V3 is a modern personal finance tracking application that makes managing household money **effortless through intelligent automation**. We eliminate tedious manual categorization while providing the insights users need to make informed financial decisions.
 
 **Core Principles:**
+
 - **Automation First** - Minimize manual work through smart rules and pattern matching
 - **Multi-User Ready** - Built for households and teams from day one
 - **Data Privacy** - Your financial data stays under your control
@@ -39,6 +40,7 @@ graph TB
 ```
 
 **Primary Flow:**
+
 1. **Download** transactions from bank → **Import** into YoFi
 2. **Auto-categorize** transactions via payee matching rules
 3. **Review/Edit** transactions (splits, categories, reconciliation)
@@ -46,6 +48,7 @@ graph TB
 5. **Export** data via API to Excel or external apps
 
 **Side Quests (branch off from Review step):**
+
 - **Update Payee Rules** - Create/edit matching rules, then re-match transactions
 - **Workspace Data Management** - Bulk import/export all workspace data (XLSX)
 - **Create/Modify Budgets** - Set up category budgets and spending targets
@@ -55,54 +58,64 @@ graph TB
 ## Strategic Themes
 
 ### 🧮 Core Transaction Management
+
 **Goal**: Provide robust, flexible transaction tracking that handles real-world complexity
 
 **Why It Matters**: Users need accurate transaction records as the foundation for all financial insights. Single-category transactions are insufficient for real-world scenarios (grocery trips with food + household items, business expenses with mixed categories).
 
 **Features**:
+
 - Transaction CRUD with splits → [PRD: Transaction Record](wip/transactions/PRD-TRANSACTION-RECORD.md), [PRD: Transaction Splits](wip/transactions/PRD-TRANSACTION-SPLITS.md)
 - Transaction filtering and search → [PRD: Transaction Filtering](wip/transactions/PRD-TRANSACTION-FILTERING.md)
 - Transaction record validation
 - Investment transactions management
 
 ### 🤖 Data Intelligence & Automation
+
 **Goal**: Reduce manual categorization work through intelligent pattern matching
 
 **Why It Matters**: Manual categorization at scale (hundreds of transactions per month) creates friction that prevents users from maintaining their financial tracking. Automation is the key differentiator that makes YoFi practical for daily use.
 
 **Features**:
+
 - Payee matching rules (substring and regex) → [PRD: Payee Rules](wip/payee-rules/PRD-PAYEE-RULES.md)
 - Category autocomplete (future)
 - Split templates (future)
 - Bulk operations (future)
 
 ### 📥 Import & Integration
+
 **Goal**: Seamlessly bring in transaction data from external sources
 
 **Why It Matters**: Manual data entry is the #1 barrier to adoption. Users need frictionless import from their banks and other financial institutions.
 
 **Features**:
+
 - Bank file import (OFX/QFX) with duplicate detection → [PRD: Bank Import](wip/import-export/PRD-BANK-IMPORT.md)
 - Tenant data administration (XLSX import/export) → [PRD: Tenant Data Admin](wip/import-export/PRD-TENANT-DATA-ADMIN.md)
 - API integrations (future - Plaid, etc.)
 
 ### 👥 Multi-User & Collaboration
+
 **Goal**: Enable households and teams to manage finances together
 
 **Why It Matters**: Financial management is often a shared responsibility. Multi-tenancy with role-based access enables collaboration while maintaining data isolation.
 
 **Features**:
+
 - Multi-tenancy (workspace) foundation
 - Role-based access (Owner/Editor/Viewer)
 - User management
 - Activity auditing (future)
 
 ### 📊 Reports & Insights
+
 **Goal**: Transform transaction data into actionable insights
 
 **Why It Matters**: The ultimate value of transaction tracking is understanding spending patterns and making informed decisions. Reports close the loop on the user journey.
 
 **Features**:
+
 - Category spending reports → [PRD: Reports](wip/reports/PRD-REPORTS.md)
 - Trend analysis and visualizations
 - Budget creation and tracking → [PRD: Budgets](wip/budgets/PRD-BUDGETS.md)
@@ -112,11 +125,13 @@ graph TB
 - Tax planning and historical tax analysis
 
 ### 📎 Document Management
+
 **Goal**: Connect supporting documents with transactions for complete records
 
 **Why It Matters**: Financial tracking requires receipts, invoices, and statements as evidence. Automating attachment matching reduces manual filing work.
 
 **Features**:
+
 - Transaction receipts (attachments) → [PRD: Transaction Receipts](wip/transactions/PRD-TRANSACTION-ATTACHMENTS.md)
 - Bulk receipt upload with inbox zero workflow
 - Filename-based matching algorithm with confidence levels
@@ -130,12 +145,12 @@ graph TB
 
 Happy path works end to end. First version it would make sense to send out for evaluation. There may be additional Alpha releases TBD, if more is needed before going Beta.
 
-**Feature readiness**
+#### Feature readiness
 
 - Minimum useful user stories from features on the primary path.
 - Probably needs import with first set of sample data
 
-**System readiness**
+#### System readiness
 
 - All alpha builds of YoFi are not supported with real financial data.
 - We need an evaluator's guide.
@@ -146,28 +161,28 @@ Happy path works end to end. First version it would make sense to send out for e
 
 Just enough for me to use it personally for very limited scenarios with my personal data.
 
-**Feature readiness**
+#### Feature readiness
 
 TBD. Enough that I can use it for my personal finances. Probably needs at least data import.
 
-**System readiness**
+#### System readiness
 
 Actual financial data now here, so production security needs to be tighter.
 
--	Test API Key in prod
--	Seed User
--	No registration without invitation. Perhaps make test control API generate invitations.
--	Log redaction for financial data
--	Functional tests against production
--	Production troubleshooting guide
+- Test API Key in prod
+- Seed User
+- No registration without invitation. Perhaps make test control API generate invitations.
+- Log redaction for financial data
+- Functional tests against production
+- Production troubleshooting guide
 
 ### Beta 2: Household usable
 
 Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
 
-**System Readiness**
+#### System readiness
 
--	Invitations MVP
+- Invitations MVP
 
 ### Beta 3: Household active
 
@@ -219,11 +234,11 @@ My general practice is to break release miletones down into iterations as it app
 | Story 3 - Default Date Range                    | V3.0      |           | 🎨 Design Complete   |
 | Story 4 - Advanced Filtering                    | B1        |           | 🎨 Design Complete   |
 | Story 5 - Reports Integration                   | V3.1      |           | 💡 Future            |
-| **Bank Import**                                 |           |           | ✔️ Approved          |
-| Story 1 - Upload Bank File                      | A1        | 1         | ✔️ Approved          |
-| Story 2 - Review Imported Transactions          | B2        |           | ✔️ Approved          |
-| Story 3 - Manage Import State                   | B2        |           | ✔️ Approved          |
-| Story 4 - Handle Import Errors                  | B2        |           | ✔️ Approved          |
+| **Bank Import**                                 |           |           | ✅ Implemented       |
+| Story 1 - Upload Bank File                      | A1        | 1         | ✅ Implemented       |
+| Story 2 - Review Imported Transactions          | B2        |           | ✅ Implemented       |
+| Story 3 - Manage Import State                   | B2        |           | ✅ Implemented       |
+| Story 4 - Handle Import Errors                  | B2        |           | ✅ Implemented       |
 | **Payee Rules**                                 |           |           | ✔️ Approved          |
 | Story 1 - Establish Rules (CRUD)                | B2        |           | ✔️ Approved          |
 | Story 2 - Auto-categorize on Import             | A1        | 3         | ✔️ Approved          |
@@ -262,14 +277,14 @@ My general practice is to break release miletones down into iterations as it app
 | Story 4 - Create Budget from Historical Data    | Post V3   |           | ✔️ Approved          |
 | Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | ✔️ Approved          |
 
-### Reading this timeline:
+### Reading this timeline
 
 - Each row represents one **user story** from a PRD
 - Stories within a feature may be worked on in parallel, or at completely unrelated times
 - Features are complete when all their stories show ✅
 - This is a working timeline - move stories between iterations as priorities change
 
-### How to use this timeline:
+### How to use this timeline
 
 1. **Planning**: Assign stories to iterations based on priority and dependencies
 2. **Tracking**: Update status as stories progress
@@ -277,12 +292,13 @@ My general practice is to break release miletones down into iterations as it app
 4. **Communicating**: Share progress by pointing to specific story completions
 
 ### Status Values
+
 - **💡 Future** - Identified but not yet planned
 - **📝 Draft** - Initial requirements gathering, not yet reviewed
 - **✔️ Approved** - Requirements approved, ready for design
 - **🎨 Design Complete** - Technical design finished, ready for implementation
 - **🚧 In Progress** - Implementation underway
-- **✅ Implemented** - Code complete and deployed to production
+- **✅ Implemented** - Code complete and production-ready
 - **🚫 Superseded** - Story kept for reference but replaced by another story or approach
 
 ---
@@ -290,12 +306,14 @@ My general practice is to break release miletones down into iterations as it app
 ## Story Delivery Approach
 
 **Incremental Delivery Philosophy:**
+
 - Features are delivered through **individual user stories**, not monolithic releases
 - Stories are prioritized based on user value and technical dependencies
 - A "feature" may have stories delivered across multiple releases
 - Features remain in "🚧 In Progress" until all stories are complete
 
 **Example: Payee Rules Feature**
+
 ```
 Story 1: Establish Rules (CRUD) → Delivered in Beta 2
 Story 2: Auto-categorize on Import → Delivered in Alpha 1, Iteration 3
@@ -305,6 +323,7 @@ Story 5: Rule Cleanup → Delivered Post V3
 ```
 
 **Tracking Story Progress:**
+
 - Each PRD lists user stories with acceptance criteria
 - Feature Map shows "X/Y complete" to track progress
 - Stories can be linked to ADO work items for detailed tracking
@@ -315,25 +334,30 @@ Story 5: Rule Cleanup → Delivered Post V3
 ### Product-Level KPIs
 
 **User Engagement**:
+
 - Monthly Active Users (MAU) growth rate
 - Average transactions tracked per user per month (target: 100+)
 - User retention rate at 90 days (target: >60%)
 
 **Automation Effectiveness**:
+
 - % of transactions auto-categorized via payee rules (target: >80%)
 - Average time to categorize 100 transactions (target: <20 seconds)
 - % of users who create payee rules within first month (target: >90%)
 
 **Data Quality**:
+
 - % of unbalanced split transactions (target: <1%)
 - % of uncategorized transactions older than 30 days (target: <5%)
 
 **Feature Adoption**:
+
 - % of users using bank import (target: >60% within 30 days)
 - % of users creating split transactions (target: >20%)
 - Average payee rules per active user (target: >50)
 
 ### Feature-Specific Metrics
+
 See individual PRDs for detailed feature success metrics.
 
 ---
@@ -341,6 +365,7 @@ See individual PRDs for detailed feature success metrics.
 ## Out of Scope
 
 **Explicitly NOT in YoFi.V3**:
+
 - ❌ **Bill payment integration** - Tracking only, no payment execution
 - ❌ **Tax preparation software** - Tax planning yes, but not a tax prep tool
 - ❌ **Multi-currency** - Single currency per tenant (USD assumed)
@@ -359,15 +384,18 @@ For guidance on creating a new PRD, see [`PRD-GUIDANCE.md`](wip/PRD-GUIDANCE.md#
 ## Related Documentation
 
 ### Architecture & Decisions
+
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - System architecture overview
 - [`adr/README.md`](adr/README.md) - Architecture Decision Records
 
 ### Technical Guides
+
 - [`TENANCY.md`](TENANCY.md) - Multi-tenancy architecture
 - [`LOGGING-POLICY.md`](LOGGING-POLICY.md) - Logging standards
 - [`COMMIT-CONVENTIONS.md`](COMMIT-CONVENTIONS.md) - Git commit format
 
 ### Development
+
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - Development guidelines
 - [`scripts/README.md`](../scripts/README.md) - Automation scripts
 - [`.roorules`](../.roorules) - Project coding standards
@@ -379,6 +407,7 @@ For guidance on creating a new PRD, see [`PRD-GUIDANCE.md`](wip/PRD-GUIDANCE.md#
 This roadmap is a living document. As we learn from users and evolve our understanding of their needs, features may move between releases or change priority.
 
 **How to provide feedback:**
+
 - Open a GitHub Discussion for strategic questions
 - Open a GitHub Issue for specific feature requests
 - Contact the owner directly for roadmap questions
