@@ -34,11 +34,13 @@ const formData = ref({
   category: '',
 })
 
-const formErrors = ref({
-  payee: '',
-  memo: '',
-  category: '',
-})
+const validationErrors = ref<Partial<Record<'Payee' | 'Memo' | 'Category', string[]>>>({})
+
+const formErrors = computed(() => ({
+  payee: validationErrors.value.Payee?.[0] ?? '',
+  memo: validationErrors.value.Memo?.[0] ?? '',
+  category: validationErrors.value.Category?.[0] ?? '',
+}))
 
 watch(
   () => [props.show, props.transaction] as const,
@@ -50,11 +52,7 @@ watch(
       memo: transaction?.memo || '',
       category: transaction?.category || '',
     }
-    formErrors.value = {
-      payee: '',
-      memo: '',
-      category: '',
-    }
+    validationErrors.value = {}
     error.value = undefined
     showError.value = false
   },
@@ -62,33 +60,36 @@ watch(
 )
 
 function validateForm(): boolean {
-  formErrors.value = {
-    payee: '',
-    memo: '',
-    category: '',
-  }
-  let isValid = true
+  validationErrors.value = {}
 
   if (!formData.value.payee || !formData.value.payee.trim()) {
-    formErrors.value.payee = 'Payee is required'
-    isValid = false
+    validationErrors.value.Payee = ['Payee is required']
   }
 
   if (formData.value.memo && formData.value.memo.length > 1000) {
-    formErrors.value.memo = 'Memo cannot exceed 1000 characters'
-    isValid = false
+    validationErrors.value.Memo = ['Memo cannot exceed 1000 characters']
   }
 
   if (formData.value.category && formData.value.category.length > 100) {
-    formErrors.value.category = 'Category cannot exceed 100 characters'
-    isValid = false
+    validationErrors.value.Category = ['Category cannot exceed 100 characters']
   }
 
-  return isValid
+  if (Object.keys(validationErrors.value).length === 0) return true
+
+  error.value = {
+    title: 'Please fix the following errors:',
+    errors: validationErrors.value,
+  }
+  showError.value = true
+  return false
 }
 
 async function updateTransaction() {
-  if (loading.value || !validateForm()) return
+  if (loading.value) return
+
+  error.value = undefined
+  showError.value = false
+  if (!validateForm()) return
 
   const tenantKey = userPreferencesStore.getCurrentTenantKey
   if (!tenantKey) {
@@ -111,8 +112,6 @@ async function updateTransaction() {
   }
 
   loading.value = true
-  error.value = undefined
-  showError.value = false
 
   try {
     const dto = new TransactionQuickEditDto({

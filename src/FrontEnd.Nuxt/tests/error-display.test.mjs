@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { test } from 'node:test'
 import { compileScript, parse } from 'vue/compiler-sfc'
-import { createRenderer, h, nextTick, ref } from 'vue'
+import { computed, createRenderer, h, nextTick, ref, watch } from 'vue'
 import ts from 'typescript'
 
 const require = createRequire(import.meta.url)
 
-// Compile the actual SFCs; provide only the Nuxt auto-import used by the adapter.
-function loadComponent(name, useProblemDetails) {
+// Compile the actual SFCs, with injectable imports and Nuxt auto-imports for component tests.
+function loadComponent(name, useProblemDetails, { imports = {}, globals = {} } = {}) {
   const filename = `${name}.vue`
   const source = readFileSync(new URL(`../app/components/${filename}`, import.meta.url), 'utf8')
   const { descriptor } = parse(source, { filename })
@@ -18,10 +18,11 @@ function loadComponent(name, useProblemDetails) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   })
   const exports = {}
-  new Function('require', 'exports', 'useProblemDetails', outputText)(
-    require,
+  new Function('require', 'exports', 'useProblemDetails', ...Object.keys(globals), outputText)(
+    (id) => imports[id] ?? require(id),
     exports,
     useProblemDetails,
+    ...Object.values(globals),
   )
   return exports.default
 }
@@ -62,11 +63,15 @@ const renderer = createRenderer({
 
 const ErrorDisplay = loadComponent('ErrorDisplay')
 
-function mount(t, render) {
+function mount(t, render, components = {}) {
   const root = node('root')
   const app = renderer.createApp({ render })
   app.component('ErrorDisplay', ErrorDisplay)
   app.component('FeatherIcon', { render: () => h('i') })
+  app.component('BaseSpinner', { render: () => h('span') })
+  for (const [name, component] of Object.entries(components)) {
+    app.component(name, component)
+  }
   app.mount(root)
   t.after(() => app.unmount())
   return root
@@ -85,7 +90,7 @@ function text(root) {
 async function click(root, testId) {
   const target = find(root, testId)
   assert.ok(target, `Missing ${testId}`)
-  target.props.onClick({ preventDefault() {} })
+  await target.props.onClick({ preventDefault() {} })
   await nextTick()
 }
 
@@ -214,4 +219,166 @@ test('local dismissal hides the display without changing local or global problem
   assert.equal(globalProblem.value.title, 'Global failure')
   assert.equal(find(root, 'error-display'), undefined)
   assert.ok(find(root, 'problem-details-viewer'))
+})
+
+function mountTransactionModal(t, { transaction = {}, save = async () => {} } = {}) {
+  const calls = []
+  const events = []
+  const show = ref(true)
+  const Modal = loadComponent('TransactionEditModal', undefined, {
+    imports: {
+      '~/utils/apiclient': {
+        TransactionsClient: class {},
+        TransactionQuickEditDto: class {
+          constructor(data) {
+            Object.assign(this, data)
+          }
+        },
+      },
+      '~/stores/userPreferences': {
+        useUserPreferencesStore: () => ({ getCurrentTenantKey: 'workspace-key' }),
+      },
+      '~/utils/errorHandler': {
+        handleApiError: () => ({ title: 'Update Failed', detail: 'The request failed.' }),
+      },
+      // Native input events are outside the in-memory renderer; drive the compiled model handlers.
+      vue: { ...require('vue'), vModelText: {} },
+    },
+    globals: {
+      ref,
+      computed,
+      watch,
+      useApiClient: () => ({
+        async quickEditTransaction(...args) {
+          calls.push(args)
+          await save(...args)
+        },
+      }),
+    },
+  })
+  const root = mount(
+    t,
+    () =>
+      h(Modal, {
+        show: show.value,
+        transaction: { key: 'transaction-key', payee: 'Original payee', ...transaction },
+        'onUpdate:show': (value) => events.push(['show', value]),
+        onUpdated: () => events.push(['updated']),
+      }),
+    {
+      ModalDialog: {
+        setup(_props, { slots }) {
+          return () => h('section', [slots.default?.(), slots.footer?.()])
+        },
+      },
+    },
+  )
+  return { root, calls, events, show }
+}
+
+async function setField(root, field, value) {
+  find(root, `edit-transaction-${field}`).props['onUpdate:modelValue'](value)
+  await nextTick()
+}
+
+function isInvalid(root, field) {
+  return find(root, `edit-transaction-${field}`).props.class.includes('is-invalid')
+}
+
+test('quick edit shares validation messages between summary and fields without calling the API', async (t) => {
+  const { root, calls } = mountTransactionModal(t, {
+    transaction: { payee: '   ', category: 'c'.repeat(101), memo: 'm'.repeat(1001) },
+  })
+  await click(root, 'edit-submit-button')
+  assert.equal(calls.length, 0)
+  assert.equal(text(find(root, 'title-display')), 'Please fix the following errors:')
+  const summary = text(find(root, 'validation-errors'))
+  for (const [field, message] of [
+    ['payee', 'Payee is required'],
+    ['category', 'Category cannot exceed 100 characters'],
+    ['memo', 'Memo cannot exceed 1000 characters'],
+  ]) {
+    assert.ok(isInvalid(root, field))
+    assert.ok(summary.includes(message))
+    const input = find(root, `edit-transaction-${field}`)
+    const feedback = input.parent.children.find((child) =>
+      child.props.class?.includes('invalid-feedback'),
+    )
+    assert.equal(text(feedback).trim(), message)
+  }
+
+  await click(root, 'close-button')
+  assert.equal(find(root, 'error-display'), undefined)
+  assert.ok(isInvalid(root, 'payee'))
+  await click(root, 'edit-submit-button')
+  assert.ok(find(root, 'validation-errors'))
+  assert.equal(calls.length, 0)
+})
+
+test('quick edit clears a stale API failure before showing validation and submits corrected boundary values', async (t) => {
+  let shouldFail = true
+  const { root, calls, events } = mountTransactionModal(t, {
+    save: async () => {
+      if (shouldFail) throw new Error('Request failed')
+    },
+  })
+  await click(root, 'edit-submit-button')
+  assert.equal(text(find(root, 'title-display')), 'Update Failed')
+  assert.equal(calls.length, 1)
+
+  await setField(root, 'payee', '')
+  await click(root, 'edit-submit-button')
+  assert.equal(text(find(root, 'title-display')), 'Please fix the following errors:')
+  assert.equal(find(root, 'detail-display'), undefined)
+  assert.equal(calls.length, 1)
+
+  shouldFail = false
+  await setField(root, 'payee', '  Corrected payee  ')
+  await setField(root, 'category', 'c'.repeat(100))
+  await setField(root, 'memo', 'm'.repeat(1000))
+  await click(root, 'edit-submit-button')
+  assert.equal(calls.length, 2)
+  const [key, tenant, dto] = calls[1]
+  assert.equal(key, 'transaction-key')
+  assert.equal(tenant, 'workspace-key')
+  assert.equal(dto.payee, 'Corrected payee')
+  assert.equal(dto.category.length, 100)
+  assert.equal(dto.memo.length, 1000)
+  assert.equal(find(root, 'error-display'), undefined)
+  assert.ok(!isInvalid(root, 'payee'))
+  assert.deepEqual(events, [['show', false], ['updated']])
+})
+
+test('reopening quick edit resets validation and summary', async (t) => {
+  const { root, show } = mountTransactionModal(t, { transaction: { payee: '' } })
+  await click(root, 'edit-submit-button')
+  assert.ok(isInvalid(root, 'payee'))
+  show.value = false
+  await nextTick()
+  show.value = true
+  await nextTick()
+  assert.equal(find(root, 'error-display'), undefined)
+  assert.ok(!isInvalid(root, 'payee'))
+})
+
+test('quick edit ignores duplicate submissions while loading and preserves optional fields', async (t) => {
+  let finish
+  const pending = new Promise((resolve) => (finish = resolve))
+  const { root, calls } = mountTransactionModal(t, {
+    transaction: { memo: '  ', category: '' },
+    save: () => pending,
+  })
+  const button = find(root, 'edit-submit-button')
+  const submission = button.props.onClick()
+  try {
+    await nextTick()
+    assert.equal(button.props.disabled, true)
+    await button.props.onClick()
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0][2].memo, undefined)
+    assert.equal(calls[0][2].category, undefined)
+  } finally {
+    finish()
+    await submission
+  }
 })
