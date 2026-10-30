@@ -7,7 +7,6 @@
 
 import {
   TransactionsClient,
-  TransactionEditDto,
   TenantRole,
   type TransactionDetailDto,
   type IProblemDetails,
@@ -34,31 +33,13 @@ const ready = ref(false)
 const transaction = ref<TransactionDetailDto | null>(null)
 const loading = ref(false)
 const saving = ref(false)
+const editSaving = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 const showDeleteModal = ref(false)
 
 // Editing state
 const isEditing = ref(false)
-const editData = ref({
-  date: '',
-  amount: 0,
-  payee: '',
-  memo: '',
-  category: '',
-  source: '',
-  externalId: '',
-})
-
-const formErrors = ref({
-  date: '',
-  amount: '',
-  payee: '',
-  memo: '',
-  category: '',
-  source: '',
-  externalId: '',
-})
 
 // Computed
 const transactionKey = computed(() => route.params.key as string)
@@ -108,121 +89,16 @@ async function loadTransaction() {
 
 function startEditing() {
   if (!transaction.value) return
-
-  const dateStr = transaction.value.date
-    ? new Date(transaction.value.date).toISOString().split('T')[0]
-    : ''
-
-  editData.value = {
-    date: dateStr || '',
-    amount: transaction.value.amount || 0,
-    payee: transaction.value.payee || '',
-    memo: transaction.value.memo || '',
-    category: transaction.value.category || '',
-    source: transaction.value.source || '',
-    externalId: transaction.value.externalId || '',
-  }
-  formErrors.value = {
-    date: '',
-    amount: '',
-    payee: '',
-    memo: '',
-    category: '',
-    source: '',
-    externalId: '',
-  }
   isEditing.value = true
 }
 
 function cancelEditing() {
   isEditing.value = false
-  formErrors.value = {
-    date: '',
-    amount: '',
-    payee: '',
-    memo: '',
-    category: '',
-    source: '',
-    externalId: '',
-  }
 }
 
-function validateForm(): boolean {
-  formErrors.value = {
-    date: '',
-    amount: '',
-    payee: '',
-    memo: '',
-    category: '',
-    source: '',
-    externalId: '',
-  }
-  let isValid = true
-
-  if (!editData.value.date) {
-    formErrors.value.date = 'Date is required'
-    isValid = false
-  }
-
-  if (!editData.value.payee || !editData.value.payee.trim()) {
-    formErrors.value.payee = 'Payee is required'
-    isValid = false
-  }
-
-  if (editData.value.memo && editData.value.memo.length > 1000) {
-    formErrors.value.memo = 'Memo cannot exceed 1000 characters'
-    isValid = false
-  }
-
-  if (editData.value.category && editData.value.category.length > 100) {
-    formErrors.value.category = 'Category cannot exceed 100 characters'
-    isValid = false
-  }
-
-  if (editData.value.source && editData.value.source.length > 200) {
-    formErrors.value.source = 'Source cannot exceed 200 characters'
-    isValid = false
-  }
-
-  if (editData.value.externalId && editData.value.externalId.length > 100) {
-    formErrors.value.externalId = 'External ID cannot exceed 100 characters'
-    isValid = false
-  }
-
-  return isValid
-}
-
-async function saveTransaction() {
-  if (!validateForm()) return
-  if (!transaction.value?.key || !currentTenantKey.value) return
-
-  saving.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    const dto = new TransactionEditDto({
-      date: new Date(editData.value.date),
-      amount: editData.value.amount,
-      payee: editData.value.payee.trim(),
-      memo: editData.value.memo.trim() || undefined,
-      category: editData.value.category.trim() || undefined,
-      source: editData.value.source.trim() || undefined,
-      externalId: editData.value.externalId.trim() || undefined,
-    })
-
-    transaction.value = await transactionsClient.updateTransaction(
-      transaction.value.key,
-      currentTenantKey.value,
-      dto,
-    )
-    isEditing.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Save Failed', 'Failed to save transaction')
-    showError.value = true
-  } finally {
-    saving.value = false
-  }
+function handleTransactionUpdated(updatedTransaction: TransactionDetailDto) {
+  transaction.value = updatedTransaction
+  isEditing.value = false
 }
 
 function openDeleteModal() {
@@ -324,20 +200,21 @@ function formatCurrency(amount: number | undefined): string {
           <button
             class="btn btn-primary me-2"
             data-test-id="save-button"
-            :disabled="saving"
-            @click="saveTransaction"
+            type="submit"
+            form="transaction-edit-form"
+            :disabled="editSaving"
           >
             <FeatherIcon
               icon="save"
               size="16"
               class="me-1"
             />
-            {{ saving ? 'Saving...' : 'Save' }}
+            {{ editSaving ? 'Saving...' : 'Save' }}
           </button>
           <button
             class="btn btn-outline-secondary"
             data-test-id="cancel-edit-button"
-            :disabled="saving"
+            :disabled="editSaving"
             @click="cancelEditing"
           >
             Cancel
@@ -453,183 +330,12 @@ function formatCurrency(amount: number | undefined): string {
       </div>
 
       <!-- Edit Form -->
-      <div
+      <TransactionEditPane
         v-else-if="transaction && isEditing"
-        class="card"
-        data-test-id="transaction-edit-card"
-      >
-        <div class="card-body">
-          <h2 class="card-title mb-4">Edit Transaction</h2>
-
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label
-                for="editDate"
-                class="form-label"
-                >Date</label
-              >
-              <input
-                id="editDate"
-                v-model="editData.date"
-                type="date"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.date }"
-                data-test-id="edit-date"
-              />
-              <div
-                v-if="formErrors.date"
-                class="invalid-feedback"
-              >
-                {{ formErrors.date }}
-              </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
-              <label
-                for="editAmount"
-                class="form-label"
-                >Amount</label
-              >
-              <input
-                id="editAmount"
-                v-model.number="editData.amount"
-                type="number"
-                step="0.01"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.amount }"
-                data-test-id="edit-amount"
-              />
-              <div
-                v-if="formErrors.amount"
-                class="invalid-feedback"
-              >
-                {{ formErrors.amount }}
-              </div>
-            </div>
-
-            <div class="col-12 mb-3">
-              <label
-                for="editPayee"
-                class="form-label"
-                >Payee</label
-              >
-              <input
-                id="editPayee"
-                v-model="editData.payee"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.payee }"
-                data-test-id="edit-payee"
-              />
-              <div
-                v-if="formErrors.payee"
-                class="invalid-feedback"
-              >
-                {{ formErrors.payee }}
-              </div>
-            </div>
-
-            <div class="col-12 mb-3">
-              <label
-                for="editMemo"
-                class="form-label"
-                >Memo</label
-              >
-              <textarea
-                id="editMemo"
-                v-model="editData.memo"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.memo }"
-                rows="3"
-                maxlength="1000"
-                data-test-id="edit-memo"
-              ></textarea>
-              <small class="form-text text-muted"
-                >{{ editData.memo.length }} / 1000 characters</small
-              >
-              <div
-                v-if="formErrors.memo"
-                class="invalid-feedback"
-              >
-                {{ formErrors.memo }}
-              </div>
-            </div>
-
-            <div class="col-12 mb-3">
-              <label
-                for="editCategory"
-                class="form-label"
-                >Category</label
-              >
-              <input
-                id="editCategory"
-                v-model="editData.category"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.category }"
-                placeholder="Category (optional)"
-                maxlength="100"
-                data-test-id="edit-category"
-              />
-              <small class="form-text text-muted">Optional category for this transaction</small>
-              <div
-                v-if="formErrors.category"
-                class="invalid-feedback"
-              >
-                {{ formErrors.category }}
-              </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
-              <label
-                for="editSource"
-                class="form-label"
-                >Source</label
-              >
-              <input
-                id="editSource"
-                v-model="editData.source"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.source }"
-                maxlength="200"
-                data-test-id="edit-source"
-              />
-              <small class="form-text text-muted">Bank account (optional)</small>
-              <div
-                v-if="formErrors.source"
-                class="invalid-feedback"
-              >
-                {{ formErrors.source }}
-              </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
-              <label
-                for="editExternalId"
-                class="form-label"
-                >External ID</label
-              >
-              <input
-                id="editExternalId"
-                v-model="editData.externalId"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': formErrors.externalId }"
-                maxlength="100"
-                data-test-id="edit-external-id"
-              />
-              <small class="form-text text-muted">Bank's unique identifier (optional)</small>
-              <div
-                v-if="formErrors.externalId"
-                class="invalid-feedback"
-              >
-                {{ formErrors.externalId }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        :transaction="transaction"
+        @updated="handleTransactionUpdated"
+        @saving="editSaving = $event"
+      />
     </div>
 
     <!-- Delete Modal -->
