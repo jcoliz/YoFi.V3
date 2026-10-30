@@ -990,6 +990,8 @@ public partial class TestControlController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public IActionResult ReturnError(string code)
     {
+        LogErrorStarting(code);
+
         switch (code?.ToLowerInvariant())
         {
             case "400":
@@ -1388,5 +1390,7 @@ public partial class TestControlController(
     [LoggerMessage(14, LogLevel.Warning, "{Location}: No current Activity found")]
     private partial void LogIdentifyNoActivity([CallerMemberName] string? location = null);
 
+    [LoggerMessage(7, LogLevel.Debug, "{Location}: Error Starting {Code}")]
+    private partial void LogErrorStarting(string code, [CallerMemberName] string? location = null);
     #endregion
 }
