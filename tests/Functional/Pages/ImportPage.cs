@@ -449,8 +449,9 @@ public partial class ImportPage(IPage page) : BasePage(page)
             await ImportConfirmButton.ClickAsync();
         }, ImportCompleteApiRegex());
 
-        // Wait for navigation to transactions page
-        await Page!.WaitForURLAsync("**/transactions");
+        // Wait for navigation to transactions page (See AB#2193)
+        await Assertions.Expect(Page!).ToHaveURLAsync(
+            new Regex(@"/transactions$"));
     }
 
     /// <summary>
