@@ -78,19 +78,9 @@ function getRoleName(role: TenantRole | undefined): string {
 }
 
 /**
- * Base URL for API requests.
- */
-const { baseUrl } = useApiBaseUrl()
-
-/**
- * Authenticated fetch function for API calls.
- */
-const authFetch = useAuthFetch()
-
-/**
  * API client for tenant operations.
  */
-const tenantClient = new TenantClient(baseUrl, authFetch)
+const tenantClient = useApiClient(TenantClient)
 
 /**
  * Load tenants on component mount.

@@ -13,9 +13,7 @@ const userPreferencesStore = useUserPreferencesStore()
 const workspaces = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
 
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const tenantClient = new TenantClient(baseUrl, authFetch)
+const tenantClient = useApiClient(TenantClient)
 
 onMounted(async () => {
   userPreferencesStore.loadFromStorage()

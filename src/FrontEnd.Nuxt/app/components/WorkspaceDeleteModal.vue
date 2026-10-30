@@ -17,8 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const userPreferencesStore = useUserPreferencesStore()
-const { baseUrl } = useApiBaseUrl()
-const tenantClient = new TenantClient(baseUrl, useAuthFetch())
+const tenantClient = useApiClient(TenantClient)
 
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)

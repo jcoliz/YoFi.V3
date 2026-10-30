@@ -25,9 +25,7 @@ const router = useRouter()
 const userPreferencesStore = useUserPreferencesStore()
 
 // API Client
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const transactionsClient = new TransactionsClient(baseUrl, authFetch)
+const transactionsClient = useApiClient(TransactionsClient)
 
 // Page ready state (for SSR/hydration)
 const ready = ref(false)

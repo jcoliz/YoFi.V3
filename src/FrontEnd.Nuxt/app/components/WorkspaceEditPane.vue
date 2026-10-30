@@ -19,8 +19,7 @@ const emit = defineEmits<{
   updated: []
 }>()
 
-const { baseUrl } = useApiBaseUrl()
-const tenantClient = new TenantClient(baseUrl, useAuthFetch())
+const tenantClient = useApiClient(TenantClient)
 
 const updating = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)

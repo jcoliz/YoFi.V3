@@ -8,7 +8,6 @@
  */
 
 import * as api from '../utils/apiclient'
-import { useAuthFetch } from '../composables/useAuthFetch'
 definePageMeta({
   title: 'About',
   auth: true,
@@ -17,9 +16,7 @@ definePageMeta({
 /**
  * Client for communicating with server
  */
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const client = new api.VersionClient(baseUrl, authFetch)
+const client = useApiClient(api.VersionClient)
 
 /**
  * Version data to display
@@ -29,6 +26,7 @@ const version = ref<string>('Loading...')
 const runtimeConfig = useRuntimeConfig()
 const frontEndVersion = runtimeConfig.public.solutionVersion
 const applicationInsightsConnectionString = runtimeConfig.public.applicationInsightsConnectionString
+const { baseUrl } = useApiBaseUrl()
 
 /**
  * This page requires an authenticated user. If not authenticated, redirect to login page.

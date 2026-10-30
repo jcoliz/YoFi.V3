@@ -30,19 +30,10 @@ definePageMeta({
 const userPreferencesStore = useUserPreferencesStore()
 
 /**
- * Base URL for API requests.
- */
-const { baseUrl } = useApiBaseUrl()
-
-/**
- * Authenticated fetch function for API calls.
- */
-const authFetch = useAuthFetch()
-
-/**
  * API client for payee matching rule operations.
  */
-const payeeRulesClient = new PayeeMatchingRulesClient(baseUrl, authFetch)
+const payeeRulesClient = useApiClient(PayeeMatchingRulesClient)
+
 
 /**
  * Page ready state for SSR/hydration.

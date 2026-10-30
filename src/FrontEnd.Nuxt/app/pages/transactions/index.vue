@@ -35,14 +35,12 @@ const userPreferencesStore = useUserPreferencesStore()
 /**
  * API client for transactions endpoint.
  */
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const transactionsClient = new TransactionsClient(baseUrl, authFetch)
+const transactionsClient = useApiClient(TransactionsClient)
 
 /**
  * API client for payee matching rules endpoint.
  */
-const payeeRulesClient = new PayeeMatchingRulesClient(baseUrl, authFetch)
+const payeeRulesClient = useApiClient(PayeeMatchingRulesClient)
 
 /**
  * Whether the page is ready for interaction (signals client-side hydration is complete).

@@ -29,9 +29,7 @@ definePageMeta({
 const userPreferencesStore = useUserPreferencesStore()
 
 // API Client
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
-const importClient = new ImportClient(baseUrl, authFetch)
+const importClient = useApiClient(ImportClient)
 
 // Page ready state (for SSR/hydration)
 const ready = ref(false)

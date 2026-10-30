@@ -16,8 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const userPreferencesStore = useUserPreferencesStore()
-const { baseUrl } = useApiBaseUrl()
-const transactionsClient = new TransactionsClient(baseUrl, useAuthFetch())
+const transactionsClient = useApiClient(TransactionsClient)
 
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)

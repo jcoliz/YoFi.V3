@@ -16,8 +16,8 @@ definePageMeta({
 })
 
 // API Client
-const { baseUrl } = useApiBaseUrl()
-const testControlClient = new TestControlClient(baseUrl)
+
+const testControlClient = useApiClient(TestControlClient, false)
 
 // State
 const errorTypes = ref<ErrorCodeInfo[]>([])
