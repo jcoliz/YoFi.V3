@@ -239,9 +239,9 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2 - Review Imported Transactions          | B2        |           | ✅ Implemented       |
 | Story 3 - Manage Import State                   | B2        |           | ✅ Implemented       |
 | Story 4 - Handle Import Errors                  | B2        |           | ✅ Implemented       |
-| **Payee Rules**                                 |           |           | ✔️ Approved          |
-| Story 1 - Establish Rules (CRUD)                | B2        |           | ✔️ Approved          |
-| Story 2 - Auto-categorize on Import             | A1        | 3         | ✔️ Approved          |
+| **Payee Rules**                                 |           |           | 🚧 In Progress       |
+| Story 1 - Establish Rules (CRUD)                | B2        |           | 🚧 In Progress       |
+| Story 2 - Auto-categorize on Import             | A1        | 3         | 🚧 In Progress       |
 | Story 3 - Manual Trigger Matching               | B3        |           | ✔️ Approved          |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
