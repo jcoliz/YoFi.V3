@@ -3,10 +3,11 @@
  * Error Display Component
  *
  * Displays error messages in a Bootstrap alert with optional expandable details.
+ * Shows validation errors inline and diagnostic extensions in expandable details.
  * Supports RFC 7807 Problem Details format and shows trace IDs for server errors.
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { IProblemDetails } from '~/utils/apiclient'
 
 /**
@@ -33,10 +34,25 @@ const isServerError = computed(() => {
 const additionalFields = computed(() => {
   if (!props.problem) return undefined
 
-  const standardFields = ['type', 'title', 'status', 'detail', 'instance']
+  const standardFields = ['type', 'title', 'status', 'detail', 'instance', 'errors']
   const entries = Object.entries(props.problem).filter(([key]) => !standardFields.includes(key))
 
   return entries.length > 0 ? Object.fromEntries(entries) : undefined
+})
+
+// Validation messages are actionable, so keep them visible even when diagnostics are collapsed.
+const validationErrors = computed(() => {
+  const raw: unknown = props.problem?.errors
+  if (!raw || typeof raw !== 'object') return undefined
+
+  const items = Object.entries(raw).flatMap(([field, messages]) =>
+    (Array.isArray(messages) ? messages : [messages]).map((message) => ({
+      field,
+      message: String(message),
+    })),
+  )
+
+  return items.length > 0 ? items : undefined
 })
 
 // Auto-expand for server errors when there are additional fields
@@ -78,6 +94,19 @@ const toggleMore = () => {
     >
       {{ problem.detail }}
     </span>
+    <ul
+      v-if="validationErrors"
+      class="mt-2 mb-0"
+      data-test-id="validation-errors"
+    >
+      <li
+        v-for="(item, index) in validationErrors"
+        :key="index"
+      >
+        <strong v-if="item.field">{{ item.field }}:</strong>
+        {{ item.message }}
+      </li>
+    </ul>
     <div
       v-if="additionalFields"
       class="mt-2"
