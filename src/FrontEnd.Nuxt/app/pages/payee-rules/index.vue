@@ -34,7 +34,6 @@ const userPreferencesStore = useUserPreferencesStore()
  */
 const payeeRulesClient = useApiClient(PayeeMatchingRulesClient)
 
-
 /**
  * Page ready state for SSR/hydration.
  * Prevents hydration mismatches by deferring rendering until mounted.
