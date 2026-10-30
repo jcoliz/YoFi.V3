@@ -113,6 +113,7 @@ public record ErrorCodeInfo(string Code, string Description);
 /// </list>
 ///
 /// <para><strong>Error Testing:</strong></para>
+/// <para>Endpoints in the Error Testing region allow anonymous access.</para>
 /// <list type="bullet">
 /// <item><description>List available error codes</description></item>
 /// <item><description>Generate specific HTTP error responses</description></item>
@@ -946,6 +947,7 @@ public partial class TestControlController(
     /// </summary>
     /// <returns>A collection of error code descriptions</returns>
     [HttpGet("errors")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(IReadOnlyCollection<ErrorCodeInfo>), StatusCodes.Status200OK)]
     public IActionResult ListErrors()
     {
@@ -979,6 +981,7 @@ public partial class TestControlController(
     /// <param name="code">Kind of error desired</param>
     /// <returns></returns>
     [HttpGet("errors/{code}")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -1051,6 +1054,7 @@ public partial class TestControlController(
     /// Generates strings in format "Item N" where N is the sequential item number.
     /// </remarks>
     [HttpGet("pagination/strings")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(PaginatedResultDto<string>), StatusCodes.Status200OK)]
     public IActionResult GetPaginatedStrings([FromQuery] int pageNumber = 1)
     {
@@ -1097,6 +1101,7 @@ public partial class TestControlController(
     /// that collection validation is working correctly before calling seed-precise.
     /// </remarks>
     [HttpPost("validate/transactions")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult ValidateTransactions([FromBody] CollectionRequest<TransactionEditDto> request)
