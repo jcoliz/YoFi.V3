@@ -22,6 +22,7 @@ This document provides the detailed technical design for implementing Stories 1 
 The Payee Matching Rules feature enables users to automatically categorize transactions based on payee name patterns. Users create rules that match transaction payees (via substring or regex) and assign categories. During bank import, these rules are applied to set the category on imported transactions before review.
 
 **Key capabilities:**
+
 - Create, read, update, and delete payee matching rules with substring or regex patterns
 - Validate regex patterns for correctness and ReDoS vulnerabilities
 - Apply matching rules during bank import to auto-categorize transactions
@@ -33,11 +34,13 @@ The Payee Matching Rules feature enables users to automatically categorize trans
 The Payee Matching Rules feature follows Clean Architecture principles with clear separation across layers:
 
 ### Data Layer
+
 - **PayeeMatchingRule entity** - Stores user-defined rules for matching and categorizing transactions
 - **Migration** - Creates `YoFi.V3.PayeeMatchingRules` table with tenant isolation and indexes
 - **DbContext** - Exposes PayeeMatchingRules DbSet for Application layer queries
 
 ### Application Layer
+
 - **PayeeMatchingRuleFeature** - Business logic for CRUD operations on rules, rule matching, and cache management
 - **PayeeMatchingHelper** - Pure matching algorithm (static) for rule precedence resolution
 - **RegexValidationService** - Validates regex patterns and tests for ReDoS vulnerabilities
@@ -45,15 +48,18 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - **Validation** - Ensures rules meet schema requirements (category required, valid regex)
 
 ### API Layer
+
 - **PayeeMatchingRulesController** - Endpoints for CRUD operations on rules
 - **Authentication/Authorization** - Tenant-scoped access control, Viewer for GET, Editor for POST/PUT/DELETE
 - **Integration with ImportReviewFeature** - Applies matching during bank import workflow
 
 ### Integration Points
+
 - **Bank Import workflow** - After parsing OFX, before storing ImportReviewTransactions, apply matching rules to set Category field
 - **Transactions page** - "Create Rule from Transaction" action allows users to create rules based on existing transactions
 
 ### Workflow (Story 2: Auto-categorize on import)
+
 1. User uploads OFX file → Frontend sends multipart POST to `/api/import/upload`
 2. Backend parses file → OFXParsingService extracts transactions
 3. **NEW: Apply matching rules** → PayeeMatchingService matches each transaction against tenant's rules
@@ -77,7 +83,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Fields:**
 
 | Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
+| ------- | ------ | ------------- | ------------- |
 | PayeePattern | string | Required, MaxLength(200) | Pattern to match (substring or regex), case-insensitive |
 | PayeeIsRegex | bool | Default: false | If false: substring matching. If true: regex with IgnoreCase and 100ms timeout |
 | Category | string | Required, MaxLength(200) | Category to assign when matched, **sanitized on save** (never store unsanitized) |
@@ -88,6 +94,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 | Tenant | Tenant? | Navigation property | Foreign key relationship |
 
 **Future fields (Stories 4-7, not in this design):**
+
 - SourcePattern, SourceIsRegex (Story 4 - match by source)
 - AmountExact, AmountMin, AmountMax (Story 4 - match by amount)
 - Loan details, split rules (Stories 6-7)
@@ -99,10 +106,12 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Table name:** `YoFi.V3.PayeeMatchingRules`
 
 **Required indexes:**
+
 1. `IX_PayeeMatchingRules_Key` (unique) - Business key lookup
 2. `IX_PayeeMatchingRules_TenantId` - Load all rules for tenant (used by both matching service and display endpoints)
 
 **Why no sort-specific indexes?**
+
 - Typical rule sets are ~500 rules (~40KB per tenant)
 - Rules are cached in memory for matching performance
 - Display endpoints can reuse the same cache and sort in-memory
@@ -113,6 +122,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Foreign key:** TenantId → Tenants(Id) with `ON DELETE CASCADE`
 
 **SQLite considerations:**
+
 - DateTimeOffset stored as TEXT in ISO 8601 format ("O" format string)
 - Bool stored as INTEGER (0 = false, 1 = true)
 - Use EF Core HasConversion for both field types
@@ -122,6 +132,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Location:** `src/Data/Sqlite/ApplicationDbContext.cs`
 
 **Changes required:**
+
 1. Add `DbSet<PayeeMatchingRule>` property
 2. Configure entity in `OnModelCreating()`:
    - Apply two required indexes (Key unique, TenantId composite)
@@ -136,6 +147,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Location:** `src/Entities/Models/ImportReviewTransaction.cs`
 
 **Add field:**
+
 - `Category` (string?, MaxLength 200) - Populated by PayeeMatchingService during import, displayed read-only in UI, becomes split.Category when accepted
 
 **Note:** ImportReviewTransactionDto already includes Category field per Bank Import design, so no DTO changes needed.
@@ -151,6 +163,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Purpose:** Input DTO for creating or updating payee matching rules
 
 **Fields:**
+
 - `PayeePattern` (string, required)
 - `PayeeIsRegex` (bool)
 - `Category` (string, required)
@@ -164,6 +177,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Purpose:** Output DTO for displaying payee matching rules
 
 **Fields:**
+
 - `Key` (Guid)
 - `PayeePattern` (string)
 - `PayeeIsRegex` (bool)
@@ -182,6 +196,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Framework:** FluentValidation (injected via DI)
 
 **Validation rules:**
+
 1. **PayeePattern** - NotEmpty, MaxLength(200)
 2. **Category** - NotEmpty, not whitespace-only, MaxLength(200)
 3. **Regex validation (when PayeeIsRegex=true):**
@@ -204,22 +219,26 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Returns:** `RegexValidationResult(bool IsValid, string? ErrorMessage)`
 
 **Validation process:**
+
 1. Check pattern is not null/whitespace
 2. Attempt to compile with `RegexOptions.IgnoreCase | RegexOptions.NonBacktracking`
 3. Catch `NotSupportedException` → Pattern uses unsupported features (backreferences, lookahead/lookbehind), return user-friendly error
 4. Catch `ArgumentException` → Invalid syntax, return .NET error message including exception text
 
 **Why NonBacktracking:**
+
 - .NET 7+ feature that guarantees linear time complexity O(n)
 - Completely eliminates ReDoS vulnerabilities (no timeout testing needed)
 - Rejects patterns with advanced features (backreferences, lookahead/lookbehind) that could cause backtracking
 - More reliable than timeout-based testing with adversarial strings
 
 **Used by:**
+
 - `PayeeMatchingRuleEditDtoValidator` - Injected via constructor to validate regex patterns during create/update operations
 - Future validators (Story 4+) - When source pattern validation is added
 
 **Why a service and not a static helper?**
+
 - **FluentValidation pattern** - Validators use constructor injection for dependencies, requiring DI-registered services
 - **Testability** - Can be mocked in validator unit tests to test validation logic independently
 - **Reusability** - Single instance shared across all validators that need regex validation
@@ -238,12 +257,14 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Method:** `static string? FindBestMatch(string payee, IReadOnlyCollection<PayeeMatchingRule> rules)`
 
 **Parameters:**
+
 - `payee` - Transaction payee string to match against
 - `rules` - Pre-sorted rule list (sorted by ModifiedAt DESC for conflict resolution)
 
 **Returns:** Category string from best matching rule, or null if no match
 
 **Matching algorithm:**
+
 1. Track separate best regex match and best substring match
 2. For each rule:
    - If regex: test with `Regex.IsMatch()` using `RegexOptions.IgnoreCase | RegexOptions.NonBacktracking`
@@ -252,22 +273,26 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 4. Return: regex match > substring match > null
 
 **Conflict resolution precedence (per Story 2):**
+
 1. Regex pattern beats substring pattern (always)
 2. For substring: longer pattern beats shorter
 3. For equal length/both regex: most recently modified wins (first in pre-sorted list)
 
 **Exception handling:**
+
 - `NotSupportedException` during matching → thrown back to caller (shouldn't happen due to validation, but callers must handle)
 - `ArgumentException` during matching → thrown back to caller (shouldn't happen due to validation, but callers must handle)
 - **Caller responsibility:** PayeeMatchingRuleFeature must catch these exceptions and convert to appropriate application exceptions that CustomExceptionHandler can handle
 
 **Why static?**
+
 - Pure function with no dependencies or state
 - Takes all inputs as parameters, returns computed result
 - Easily unit testable without mocking
 - Lightweight - no need for DI overhead
 
 **Performance:**
+
 - Regex compiled on-demand (not cached initially)
 - All matching in-memory
 - Expected time: <100ms for 1,000 transactions × 500 rules
@@ -281,6 +306,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Purpose:** Business logic for CRUD operations on payee matching rules, rule matching, and cache management
 
 **Dependencies (constructor injection):**
+
 - `ITenantProvider` - For current tenant context, caches `_tenantId`
 - `IDataProvider` - For querying and updating PayeeMatchingRule entities
 - `IMemoryCache` - For caching rules per tenant (from `Microsoft.Extensions.Caching.Memory`)
@@ -288,6 +314,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **CRUD Methods:**
 
 **`GetRulesAsync(pageNumber, pageSize, sortBy, searchText)`**
+
 - Accepts optional pagination parameters: `pageNumber` (default 1), `pageSize` (default 50, max 1000)
 - Accepts optional `sortBy` parameter (enum: PayeePattern, Category, LastUsedAt)
 - Accepts optional `searchText` parameter (plain text search across PayeePattern and Category)
@@ -298,16 +325,19 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - Returns `PaginatedResultDto<PayeeMatchingRuleResultDto>` with items and pagination metadata
 
 **`GetRuleByKeyAsync(key)`**
+
 - Single rule lookup by Key
 - Throws `NotFoundException` if not found or wrong tenant
 
 **`CreateRuleAsync(ruleDto)`**
+
 - **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
 - Creates new entity with sanitized category, sets TenantId, CreatedAt, ModifiedAt (same timestamp)
 - Saves to database, **invalidates cache**
 - Returns PayeeMatchingRuleResultDto with generated Key
 
 **`UpdateRuleAsync(key, ruleDto)`**
+
 - Loads existing rule (throws NotFoundException if not found)
 - **Sanitizes Category** using [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs)
 - Updates PayeePattern, PayeeIsRegex, Category (sanitized)
@@ -316,12 +346,14 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - Returns updated DTO
 
 **`DeleteRuleAsync(key)`**
+
 - Loads rule, removes, saves changes, **invalidates cache**
 - Throws NotFoundException if not found
 
 **Matching Methods:**
 
 **`ApplyMatchingRulesAsync(transactions)`**
+
 - Loads all rules for current tenant from cache (sorted by ModifiedAt DESC)
 - Iterates through transactions, calls `PayeeMatchingHelper.FindBestMatch()` for each
 - Modifies transaction.Category in-place (mutable DTO)
@@ -329,6 +361,7 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 - Returns Task (no return value, transactions modified)
 
 **`FindBestMatchAsync(payee)`**
+
 - Single-payee variant for manual matching (Story 3)
 - Loads rules from cache, calls `PayeeMatchingHelper.FindBestMatch()`
 - Returns category string or null if no match
@@ -336,16 +369,19 @@ The Payee Matching Rules feature follows Clean Architecture principles with clea
 **Cache Management (private methods):**
 
 **`GetRulesForTenantAsync()`**
+
 - Checks cache first using key pattern: `payee-rules:{_tenantId}`
 - On cache miss: queries database (simple TenantId filter), stores in cache
 - Returns unsorted list (callers sort in-memory based on their needs)
 - No expiration policy (explicit invalidation on changes)
 
 **`InvalidateCache()`**
+
 - Removes cached rules for current tenant
 - Called after Create/Update/Delete operations
 
 **Caching Strategy:**
+
 - Cache key pattern: `payee-rules:{tenantId}`
 - Cache entry contains complete entity list for tenant (NOT sorted - sorting happens at call site)
 - Memory impact: ~500 rules ≈ 40KB per tenant (with GUID keys)
@@ -384,22 +420,26 @@ public interface IPayeeMatchingService
 **Modified file:** `src/Application/Features/ImportReviewFeature.cs`
 
 **Constructor changes:**
+
 - Add `IPayeeMatchingService payeeMatchingService` parameter (focused interface dependency)
 
 **ImportFileAsync method changes:**
 
 **New step after OFX parsing:**
+
 ```csharp
 // 2. Apply payee matching rules to set Category field
 await _payeeMatchingService.ApplyMatchingRulesAsync(parsingResult.Transactions);
 ```
 
 **When creating ImportReviewTransaction entities:**
+
 ```csharp
 Category = transaction.Category, // NEW: Category from matching rules (may be null)
 ```
 
 **Impact:**
+
 - Interface-based dependency: ImportReviewFeature depends on `IPayeeMatchingService`, not full feature
 - Minimal surface area: Only exposes `ApplyMatchingRulesAsync()`, not CRUD operations
 - Single method call added after OFX parsing
@@ -415,11 +455,13 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 **Route:** `/api/tenant/{tenantKey:guid}/payee-rules`
 
 **Authorization:**
+
 - GET endpoints (viewing rules): `[RequireTenantRole(TenantRole.Viewer)]`
 - POST, PUT, DELETE endpoints (modifying rules): `[RequireTenantRole(TenantRole.Editor)]`
 - Owner role not required for any operations
 
 **Base attributes:**
+
 - `[ApiController]`
 - `[Produces("application/json")]`
 - Standard ProblemDetails responses: 401, 403, 500
@@ -429,7 +471,7 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 **Endpoints:**
 
 | Method | Path | Description | Query Parameters | Request Body | Response | Status Codes |
-|--------|------|-------------|------------------|--------------|----------|--------------|
+| -------- | ------ | ------------- | ------------------ | -------------- | ---------- | -------------- |
 | GET | `/` | Get all rules (paginated) | `pageNumber`, `pageSize`, `sortBy`, `searchText` (all optional) | - | `PaginatedResultDto<PayeeMatchingRuleResultDto>` | 200, 401, 403 |
 | GET | `/{key:guid}` | Get rule by key | - | - | `PayeeMatchingRuleResultDto` | 200, 401, 403, 404 |
 | POST | `/` | Create rule | - | `PayeeMatchingRuleEditDto` | `PayeeMatchingRuleResultDto` | 201, 400, 401, 403 |
@@ -437,17 +479,20 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 | DELETE | `/{key:guid}` | Delete rule | - | - | None | 204, 401, 403, 404 |
 
 **GET `/` Query Parameters:**
+
 - `pageNumber` (optional, default: 1) - Page number to retrieve (1-based)
 - `pageSize` (optional, default: 50, max: 1000) - Number of items per page
 - `sortBy` (optional, default: PayeePattern) - Sort order: PayeePattern, Category, or LastUsedAt
 - `searchText` (optional) - Plain text search across PayeePattern and Category (case-insensitive substring match)
 
 **Pagination Implementation:**
+
 - Follows standard project pattern using [`PaginatedResultDto<T>`](src/Application/Dto/PaginatedResultDto.cs) and [`PaginationHelper`](src/Application/Helpers/PaginationHelper.cs)
 - Filter and sort operations happen in-memory on cached rule set before pagination
 - Returns pagination metadata (page numbers, total count, has previous/next page flags)
 
 **Logging pattern:**
+
 - Follow project [`LOGGING-POLICY.md`](../../LOGGING-POLICY.md)
 - Use `[LoggerMessage]` attribute with partial methods
 - Event IDs: 1 (Debug Starting), 2 (Debug Starting with Key), 3 (Info OK with Key), 4 (Info OK with Count)
@@ -455,17 +500,20 @@ Category = transaction.Category, // NEW: Category from matching rules (may be nu
 - Log at entry (Debug) and successful exit (Information)
 
 **Error handling:**
+
 - FluentValidation errors → 400 Bad Request with validation details
 - NotFoundException → 404 Not Found via CustomExceptionHandler
 - Regex validation errors → 400 Bad Request with regex error message
 
 **POST endpoint specifics:**
+
 - Returns `CreatedAtAction` with location header
 - Location points to GET `/{key}` endpoint
 
 ### Service Registration
 
 **Application services** (`src/Application/ServiceCollectionExtensions.cs`):
+
 ```csharp
 services.AddScoped<PayeeMatchingRuleFeature>();
 services.AddScoped<IPayeeMatchingService, PayeeMatchingRuleFeature>(); // Interface for bank import
@@ -473,6 +521,7 @@ services.AddSingleton<IRegexValidationService, RegexValidationService>();
 ```
 
 **Controller validators** (`src/Controllers/Extensions/ServiceCollectionExtensions.cs`):
+
 ```csharp
 services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDtoValidator>();
 ```
@@ -480,6 +529,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 **Note:** `PayeeMatchingHelper` is a static class with static methods, so no DI registration needed.
 
 **Explanation:** `PayeeMatchingRuleFeature` is registered twice:
+
 1. As concrete type (for `PayeeMatchingRulesController` dependency injection)
 2. As `IPayeeMatchingService` interface (for `ImportReviewFeature` dependency injection)
 
@@ -494,6 +544,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 #### Layout Structure
 
 **Page Header:**
+
 - Workspace selector component (standard tenant switcher - currently separate component)
 - Page title: "Payee Matching Rules"
 - "New Rule" button (primary action) - Opens create form
@@ -502,6 +553,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - Total rules count display (e.g., "120 rules")
 
 **Search and Filter Bar:**
+
 - Search input field with placeholder "Search payee or category..."
 - Search button next to input field
 - Search executes when user presses Enter key or clicks Search button
@@ -512,6 +564,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
   - "Last Used"
 
 **Rules Table/List:**
+
 - Displays paginated rules (50 per page by default)
 - Columns:
   - **Payee Pattern** - Display pattern text, small badge if regex (e.g., "Regex" pill)
@@ -523,6 +576,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
     - Hidden for Viewer role (no Actions column shown at all)
 
 **Pagination Controls:**
+
 - Standard pagination UI at bottom of list
 - Shows current page and total pages
 - Previous/Next navigation buttons
@@ -533,6 +587,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 **Note:** "Quick Edit" distinguishes this from future detailed edit on dedicated page (Stories 4+)
 
 **Edit Dialog Pattern:**
+
 - Follow same pattern as Transactions page quick edit
 - When user clicks Edit button on a row, open a modal dialog
 - Dialog contains editable fields:
@@ -544,6 +599,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - On success, close dialog and refresh rule in list
 
 **Validation:**
+
 - Validation occurs on Save button click
 - Error messages displayed in dialog (inline or at top)
 - Regex validation errors show user-friendly message including .NET Regex error text
@@ -551,6 +607,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - Keep dialog open on validation failure
 
 **Create New Rule:**
+
 - Opens same modal dialog pattern as Edit
 - "New Rule" button in page header triggers dialog
 - Same fields as edit dialog (Payee Pattern, Regex checkbox, Category)
@@ -559,6 +616,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 - On success, close dialog and refresh list to show new rule
 
 **Delete Confirmation:**
+
 - Clicking Delete button shows confirmation dialog
 - "Are you sure you want to delete this rule? This action cannot be undone."
 - Confirm and Cancel buttons
@@ -567,11 +625,13 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 #### Empty States
 
 **No Rules:**
+
 - Empty state illustration or message
 - "You haven't created any payee matching rules yet"
 - "Create your first rule" button
 
 **No Search Results:**
+
 - "No rules match your search"
 - Show current search term
 - "Clear search" button to reset
@@ -579,12 +639,15 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 #### Loading States
 
 **Initial Load:**
+
 - Skeleton loaders or spinner while fetching rules from API
 
 **Pagination:**
+
 - Brief loading indicator when changing pages
 
 **Save/Delete:**
+
 - Disable buttons and show spinner during API call
 - Success feedback (toast notification or inline message)
 - Error feedback if API call fails
@@ -592,9 +655,11 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 #### Responsive Behavior
 
 **Desktop:**
+
 - Full table layout with all columns visible
 
 **Mobile/Responsive:**
+
 - Follow same pattern as Transactions page (whatever is currently implemented)
 - Ensure table remains usable on smaller screens (horizontal scroll or responsive columns)
 
@@ -605,6 +670,7 @@ services.AddScoped<IValidator<PayeeMatchingRuleEditDto>, PayeeMatchingRuleEditDt
 All interactive elements and status displays must include `data-test-id` attributes for functional test automation:
 
 **Interactive Elements (user input/clicks):**
+
 - Search input field: `data-test-id="search-input"`
 - Search button: `data-test-id="search-button"`
 - Clear search button: `data-test-id="clear-search-button"`
@@ -613,6 +679,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Pagination controls: Covered by pagination component (no need to specify here)
 
 **Table Structure:**
+
 - Table element: `data-test-id="payee-rules"`
 - Table headers: Convey what's shown in the column `data-test-id="payee-pattern"`, `data-test-id="category"`, `data-test-id="last-used"`, `data-test-id="match-count"`, `data-test-id="actions"`
 - Each rule row (TR element): `data-test-id="row-{key}"`
@@ -621,6 +688,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Regex badge (within row): `data-test-id="regex-badge"`
 
 **Modal Dialog Elements:**
+
 - Dialog container: `data-test-id="rule-edit-dialog"` or `data-test-id="rule-create-dialog"`
 - Payee Pattern input: `data-test-id="payee-pattern-input"`
 - Regex checkbox: `data-test-id="regex-checkbox"`
@@ -629,6 +697,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Cancel button: `data-test-id="cancel-button"`
 
 **Status/Display Elements:**
+
 - Total rules count: `data-test-id="total-rules-count"`
 - Current page number: `data-test-id="current-page"`
 - Empty state message: `data-test-id="empty-state"`
@@ -656,18 +725,21 @@ All interactive elements and status displays must include `data-test-id` attribu
 7. Success message shown, user can continue working with transactions
 
 **Note:** This combines two operations:
+
 - Create payee matching rule (always happens)
 - Update transaction category (only if category field is filled/modified)
 
 #### UI Elements
 
 **Transactions Page:**
+
 - Add "Create Rule" action button/menu item per transaction row
 - **Only shown for Editor/Owner roles**
 - Hidden for Viewer role
 - Button/action labeled: "Create Rule" or "Create Rule from This"
 
 **Dialog:**
+
 - **IMPORTANT: Reusable Vue component:** This dialog MUST use the same Quick Edit modal dialog component as the "New Rule" dialog on the Payee Rules management page
 - **Common component requirement:** Both the Payee Rules page and the Transactions page should share a single dialog component to ensure consistent UX and reduce code duplication
 - Component should accept props for pre-population and mode (create vs edit)
@@ -677,6 +749,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Standard validation applies (empty category, regex syntax, ReDoS check)
 
 **Component Design:**
+
 - Component name: `PayeeRuleDialog.vue` (or similar)
 - Used by both:
   - Payee Rules management page (create/edit rules)
@@ -707,6 +780,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 #### Test Automation
 
 **data-test-id Attributes:**
+
 - Create Rule button (on transaction row): `data-test-id="create-rule-button"`
 - Dialog uses same test IDs as regular create dialog
 
@@ -715,6 +789,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 **Reference:** See [`DESIGN-BANK-IMPORT-FRONTEND.md`](../import-export/DESIGN-BANK-IMPORT-FRONTEND.md) for complete import review UI design
 
 **Integration Point:**
+
 - Import review page displays **Category** column (read-only)
 - Category value populated by backend via PayeeMatchingRuleFeature during import
 - If category is present, display in dedicated column
@@ -723,6 +798,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Category is informational only - helps user decide whether to accept transaction
 
 **Visual Treatment:**
+
 - Category displayed with same styling as other transaction fields
 - No special highlighting or indication of "auto-matched" status in Stories 1-2
 - Future enhancement (Story 5+): Could add indicator showing which rule matched
@@ -730,12 +806,14 @@ All interactive elements and status displays must include `data-test-id` attribu
 ## Security Considerations
 
 ### Tenant Isolation
+
 - All operations scoped to authenticated user's tenant via TenantContext middleware
 - PayeeMatchingRules table has TenantId foreign key with CASCADE DELETE
 - All queries filter by TenantId (enforced by Feature layer)
 - No cross-tenant access possible
 
 ### Regex Security (ReDoS Protection)
+
 - **NonBacktracking engine:** All regex operations use `RegexOptions.NonBacktracking` (available in .NET 7+, guaranteed in .NET 10+)
 - **Guaranteed linear time:** NonBacktracking provides O(n) time complexity, completely eliminating ReDoS vulnerabilities
 - **Validation-time checking:** Patterns validated during create/update using NonBacktracking compilation
@@ -744,12 +822,14 @@ All interactive elements and status displays must include `data-test-id` attribu
 - **User feedback:** Invalid patterns rejected with clear error messages including .NET Regex error text
 
 ### Authorization
+
 - **Viewer role:** Can view payee rules (GET endpoints)
 - **Editor role:** Required for creating, updating, or deleting rules (POST, PUT, DELETE endpoints)
 - **Owner role:** Not required for any payee rule operations
 - **Import integration:** Rule matching applied during import (already requires Editor role)
 
 ### Data Integrity
+
 - **Category sanitization:** Applied via [`CategoryHelper.SanitizeCategory()`](src/Application/Helpers/CategoryHelper.cs) **when rules are created/updated** (stored sanitized in database)
 - **Matching uses sanitized value:** PayeeMatchingService returns already-sanitized category from rule
 - **Empty category validation:** Empty/whitespace-only categories rejected by FluentValidation
@@ -758,6 +838,7 @@ All interactive elements and status displays must include `data-test-id` attribu
 ## Performance Considerations
 
 ### Rule Matching Performance
+
 - **Single query per import:** Rules loaded once per import batch, not per transaction
 - **In-memory matching:** All pattern testing after initial load
 - **Typical rule set:** ~500 rules (~40KB memory)
@@ -765,10 +846,12 @@ All interactive elements and status displays must include `data-test-id` attribu
 - **No N+1 queries:** Bulk load, bulk match
 
 ### Database Indexes
+
 - **Key (unique):** Business key lookup for single-rule operations
 - **TenantId:** Load all rules for tenant (used by cache on miss)
 
 **Why so minimal?**
+
 - All rules cached in memory after first load
 - Rule sets are small (typically 50-200 rules)
 - Sorting happens in-memory (negligible cost for small datasets)
@@ -777,12 +860,14 @@ All interactive elements and status displays must include `data-test-id` attribu
 - Simpler schema, faster writes, easier maintenance
 
 ### Regex Performance
+
 - **On-demand compilation:** Regex patterns compiled during matching (not cached initially)
 - **Future optimization:** Consider caching compiled Regex objects with LRU eviction if profiling shows benefit
 - **Timeout protection:** 100ms timeout prevents runaway evaluation
 - **Pattern complexity:** Most user patterns are simple (substring or basic regex), compilation overhead minimal
 
 ### Import Performance Impact
+
 - **Payee matching overhead:** <100ms added to import workflow
 - **Compared to existing:** Minimal compared to OFX parsing (~1 second) and duplicate detection
 - **No additional DB queries:** Single rule load at start
@@ -798,6 +883,7 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 **Purpose:** Test Application Features with real IDataContext to verify business logic + database integration.
 
 **PayeeMatchingRuleFeature Tests:**
+
 - Create rule → stored in database with correct TenantId and sanitized category
 - Get rules → returns only current tenant's rules
 - Get rules with pagination → returns correct page and metadata
@@ -811,6 +897,7 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 - Usage statistics → MatchCount incremented and LastUsedAt updated when rules match
 
 **ImportReviewFeature Integration Tests:**
+
 - Import with matching rules → Category field set on ImportReviewTransaction entities
 - Import without rules → Category remains null
 - Multiple matching rules → correct precedence applied (regex > substring, longer > shorter, newer > older)
@@ -828,6 +915,7 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 **Purpose:** Test HTTP boundary concerns ONLY - authentication, authorization, status codes, serialization.
 
 **PayeeMatchingRulesController Tests:**
+
 - GET endpoints with Viewer role → 200 OK
 - GET endpoints without authentication → 401 Unauthorized
 - POST/PUT/DELETE with Editor role → Success responses (201, 200, 204)
@@ -850,6 +938,7 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 **Purpose:** Test pure business logic without any dependencies (no database, no HTTP).
 
 **PayeeMatchingHelper Tests:**
+
 - Substring matching case-insensitive
 - Regex matching with IgnoreCase and NonBacktracking
 - Conflict resolution: regex > substring
@@ -860,12 +949,14 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 - Exception propagation: NotSupportedException and ArgumentException thrown to caller
 
 **RegexValidationService Tests:**
+
 - Valid patterns accepted (simple and complex)
 - Invalid syntax rejected with error message
 - ReDoS vulnerable patterns rejected with NotSupportedException
 - Edge cases: null, empty, whitespace patterns
 
 **PayeeMatchingRuleEditDtoValidator Tests:**
+
 - Empty PayeePattern rejected
 - Empty Category rejected
 - Whitespace-only Category rejected
@@ -882,6 +973,7 @@ YoFi.V3 uses a five-layer testing strategy optimized for testing where the actua
 **Purpose:** Test database layer directly - EF Core configurations, schema, relationships.
 
 **PayeeMatchingRule Entity Tests:**
+
 - Entity configuration → MaxLength constraints enforced
 - Foreign key → TenantId relationship configured with CASCADE DELETE
 - Indexes → Key (unique) and TenantId indexes exist
@@ -985,22 +1077,26 @@ Scenario: Conflict resolution - newer rule beats older
 ## Migration and Rollout
 
 ### Database Migration
+
 1. Create PayeeMatchingRules table with all indexes
 2. Add Category field to ImportReviewTransaction table (nullable)
 3. No changes to Transactions table (category already in splits)
 
 ### Rollout Strategy
+
 1. Deploy backend with new table, API endpoints, matching service
 2. Regenerate API client for frontend
 3. Deploy frontend with Payee Rules management page
 4. Monitor logs for regex timeout exceptions and matching errors
 
 ### Backward Compatibility
+
 - Category field in ImportReviewTransaction is nullable (existing data unaffected)
 - PayeeMatchingService handles zero rules gracefully (no-op)
 - No breaking changes to existing APIs
 
 ### Feature Flag
+
 Not required - feature is net-new, no existing functionality to replace
 
 ## Open Questions
@@ -1027,21 +1123,25 @@ Not required - feature is net-new, no existing functionality to replace
 ## References
 
 **Requirements:**
+
 - [`PRD-PAYEE-RULES.md`](PRD-PAYEE-RULES.md) - Product requirements and user stories
 - [`PRD-PAYEE-RULES-REVIEW.md`](PRD-PAYEE-RULES-REVIEW.md) - PRD review and approval
 
 **Design References:**
+
 - [`DESIGN-BANK-IMPORT.md`](../import-export/DESIGN-BANK-IMPORT.md) - Reference architecture pattern
 - [`DESIGN-BANK-IMPORT-DATABASE.md`](../import-export/DESIGN-BANK-IMPORT-DATABASE.md) - Entity and migration patterns
 - [`DESIGN-BANK-IMPORT-APPLICATION.md`](../import-export/DESIGN-BANK-IMPORT-APPLICATION.md) - Application layer patterns
 - [`DESIGN-BANK-IMPORT-API.md`](../import-export/DESIGN-BANK-IMPORT-API.md) - Controller and API patterns
 
 **Related Features:**
+
 - [`PRD-BANK-IMPORT.md`](../import-export/PRD-BANK-IMPORT.md) - Import workflow integration point
 - [`PRD-TRANSACTION-RECORD.md`](../transactions/PRD-TRANSACTION-RECORD.md) - Transaction and category model
 - [`PRD-TRANSACTION-SPLITS.md`](../transactions/PRD-TRANSACTION-SPLITS.md) - Split handling and category sanitization
 
 **Existing Code Patterns:**
+
 - [`Transaction.cs`](../../src/Entities/Models/Transaction.cs) - Entity pattern reference
 - [`TransactionEditDto.cs`](../../src/Application/Dto/TransactionEditDto.cs) - DTO pattern reference
 - [`TransactionEditDtoValidator.cs`](../../src/Application/Validation/TransactionEditDtoValidator.cs) - Validation pattern
@@ -1050,6 +1150,7 @@ Not required - feature is net-new, no existing functionality to replace
 - [`CategoryHelper.cs`](../../src/Application/Helpers/CategoryHelper.cs) - Category sanitization
 
 **Project Standards:**
+
 - [`docs/LOGGING-POLICY.md`](../../LOGGING-POLICY.md) - Logging conventions and patterns
 - [`docs/TESTING-STRATEGY.md`](../../TESTING-STRATEGY.md) - Testing strategy and layer guidance
 - [`.roorules`](../../.roorules) - Project coding standards and patterns
