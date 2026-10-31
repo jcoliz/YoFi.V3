@@ -22,6 +22,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Enable transactions to be split across multiple categories with individual amounts
 - [x] Maintain simple UX for the common case (single category per transaction) - **Alpha-1 Complete**
 - [x] Support category-based reporting (primary use case for personal finance) - **Alpha-1 Complete**
@@ -29,6 +30,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Detect and warn users about unbalanced transactions (splits don't sum to transaction amount) - **Beta-2 Planned**
 
 ### Non-Goals
+
 - Category hierarchies or parent/child relationships (future enhancement)
 - Split templates or saved patterns (future enhancement)
 - ML-based category suggestions (future enhancement)
@@ -43,6 +45,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 **Scope**: Single-split per transaction workflow (Stories 3 & 5)
 
 **Stories Implemented**:
+
 - ✅ **Story 3**: User - Simple Single-Category Workflow
   - Transactions auto-create single split with category
   - Category sanitization implemented (whitespace, capitalization, hierarchy delimiters)
@@ -54,6 +57,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
   - Source field available for import tracking
 
 **Components Delivered**:
+
 - Database: Split entity, migration, indexes
 - Backend: TransactionsFeature with split auto-creation, CategoryHelper sanitization
 - Controllers: Updated CRUD endpoints with category support
@@ -61,34 +65,38 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - Tests: 105 tests across all layers (39% unit, 30.5% data integration, 20% controller integration, 10.5% functional)
 
 **Documentation**:
+
 - [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) - Complete implementation details
 - [`TRANSACTION-SPLITS-ALPHA1-SUMMARY.md`](TRANSACTION-SPLITS-ALPHA1-SUMMARY.md) - Implementation summary
 
 ### Beta-2 Release (Planned)
 
 **Remaining Stories**:
+
 - [ ] **Story 1**: User - Split Single Transaction (multi-split support)
 - [ ] **Story 2**: User - View Category Reports (superseded by Reports feature)
 - [ ] **Story 4**: User - Detect Unbalanced Transactions
 - [ ] **Story 6**: User - Upload splits (bulk import from Excel)
 
 **Planned Components**:
+
 - Split CRUD UI (add/edit/delete splits in transaction detail)
 - Multi-split display in transaction list
 - Balance validation and warnings
 - Excel upload endpoint and UI
-
 
 ---
 
 ## User Stories
 
 ### Story 1: User - Split Single Transaction
+
 **As a** personal finance user
 **I want** to split a grocery store transaction across "Food" and "Home" categories
 **So that** my category reports accurately reflect spending in each area
 
 **Acceptance Criteria**:
+
 - [ ] User can add multiple splits to an existing transaction
 - [ ] Each split has its own amount and category
 - [ ] Entire list of splits can be viewed from a "transaction detail" page showing all aspects of a transaction
@@ -98,6 +106,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Split amounts can be negative or positive. Negative indicates money flowing away from us, positive indicates money flowing toward us.
 
 ### Story 2: User - View Category Reports [SUPERSEDED]
+
 **As a** personal finance user
 **I want** to see total spending by category
 **So that** I can understand my spending patterns and make budget decisions
@@ -105,11 +114,13 @@ Personal finance tracking requires categorizing transactions across multiple cat
 > [!WARNING] This story is superseded by the [Reports](../reports/PRD-REPORTS.md) feature.
 
 ### Story 3: User - Simple Single-Category Workflow ✅ Alpha-1 Complete
+
 **As a** casual user
 **I want** to create and edit transactions without thinking about splits
 **So that** I can quickly record transactions without complexity
 
 **Acceptance Criteria**:
+
 - [x] Creating a transaction automatically creates a single split (user doesn't see split complexity)
 - [x] Editing single-category transaction amount updates the single split automatically
 - [x] UI hides split complexity for transactions with only one split
@@ -117,22 +128,26 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [x] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)
 
 ### Story 4: User - Detect Unbalanced Transactions
+
 **As a** detail-oriented user
 **I want** to be warned when my splits don't match the transaction amount
 **So that** I can catch and correct data entry errors immediately
 
 **Acceptance Criteria**:
+
 - [ ] List view shows visual indicator for unbalanced transactions
 - [ ] Detail view shows transaction amount, splits total, and balance status
 - [ ] Warning is prominent but doesn't block saving (user's choice to fix later)
 - [ ] After editing split amount, balance status updates immediately
 
 ### Story 5: User - Import Transactions with Splits ✅ Alpha-1 Complete
+
 **As a** power user
 **I want** to import transactions from my bank and then categorize them with splits
 **So that** I can efficiently process monthly statements
 
 **Acceptance Criteria**:
+
 - [x] Imported transactions have single uncategorized split by default
 - [x] Imported transaction amount is preserved (authoritative)
 - [ ] User can add splits to imported transactions (Beta-2: multi-split UI)
@@ -141,11 +156,13 @@ Personal finance tracking requires categorizing transactions across multiple cat
 > [!NOTE]: This story covers *readiness* for importing. User cannot actually import anything until that feature is complete.
 
 ### Story 6: User - Upload splits
+
 **As a** detail-oriented user
 **I want** to upload an Excel spreadsheet of split data
 **So that** I don't have to enter a very long list of splits by hand (e.g. for my paystub)
 
 **Acceptance Criteria**:
+
 - [ ] User can upload a spreadsheet (Excel .xlsx) containing split data, from the "transaction detail" page.
 - [ ] Required columns: Category, Amount (optional columns: Memo). Column headers are required.
 - [ ] Additional columns. If uploaded sheet has needless columns, they are ignored in this process.
@@ -187,6 +204,7 @@ Split transactions will be implemented with a new `Split` entity that has a many
 ### High-Level Entity Concepts
 
 **Split Entity** (new):
+
 - Amount (allocated to this category)
 - Category (empty string for uncategorized)
 - Memo (optional, split-specific notes)
@@ -194,6 +212,7 @@ Split transactions will be implemented with a new `Split` entity that has a many
 - TransactionId (foreign key)
 
 **Transaction Entity** (modified):
+
 - Add Splits navigation collection
 - Add Memo property (transaction-level notes)
 - Add Source property (import origin)
@@ -215,15 +234,18 @@ Throughout all of YoFi, categories are free text strings. User is not expected t
 If user includes a `:` character in them, this signifies a hierarchy of categories, e.g. "Home:Utilities" signifies that the categorized split concerns "Utilities", and in reports it should be grouped and subtotaled under "Home". See [`../reports/PRD-REPORTS.md`](../reports/PRD-REPORTS.md) for details.
 
 **Whitespace requirements:**
+
 - No whitespace to start or end the category
 - No whitespace surrounding a `:` separator
 - No more than one consecutive space inside a term
 
 **Capitalization requirements:**
+
 - All words in categories are capitalized, regardless of whether they are "small words". Just to keep it consistent.
 - Capitalization inside words is optional
 
 **Empty term requirements:**
+
 - After dividing a category up into delimited terms, and trimming/consolidating whitespace as described above, each term cannot be empty
 
 > [!IMPORTANT] Invalid categories are never rejected, nor are warnings generated. They are simply cleaned up to be valid before saving.
@@ -251,12 +273,14 @@ If user includes a `:` character in them, this signifies a hierarchy of categori
 Best place to handle this cleanup is within the application layer (Transactions Feature or Splits Feature).
 
 **Category Properties:**
+
 - Maximum length: 200 characters
 - No pre-seeded categories - User constructs category structure by assigning categories to splits on the fly
 - Categories are not "created" or "exist" - they are simply text values assigned to splits
 - No maximum distinct categories: If there are many categories, we'll have to handle it on the backend (e.g. most commonly used) later on as a post-implementation refinement.
 
 **Category Matching**
+
 - Categories match without regard for case, e.g. "FOOD" matches "Food"
 
 ### Security considerations
@@ -303,14 +327,17 @@ Best place to handle this cleanup is within the application layer (Transactions 
 ## Success Metrics
 
 **Feature Adoption**:
+
 - % of users creating multi-split transactions
 - Average splits per transaction (expect ~1.1x, with 90%+ having single split)
 
 **Data Quality**:
+
 - % of unbalanced transactions (target: <1% long-term)
 - Time to resolve unbalanced state after creation
 
 **Usage Patterns**:
+
 - Category report usage (primary value proposition)
 - Most common split categories
 - Distribution of split counts (1, 2, 3-5, 6+)
@@ -320,11 +347,13 @@ Best place to handle this cleanup is within the application layer (Transactions 
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Entity Framework Core migrations for schema changes
 - NSwag API client regeneration for frontend
 - Existing tenant isolation and authorization
 
 **Constraints**:
+
 - SQLite database (no check constraints across tables)
 - Single-currency assumption (no currency codes stored)
 - Must maintain backward compatibility with existing transaction data (migrate to single split per transaction)
@@ -334,6 +363,7 @@ Best place to handle this cleanup is within the application layer (Transactions 
 ## Notes & Context
 
 **Related Documents**:
+
 - **Design Document**: [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) - Complete implementation details (entity definitions, DTOs, API endpoints, query patterns)
 - **Original Requirements**: [`TRANSACTION-SPLIT-REQUIREMENTS.md`](TRANSACTION-SPLIT-REQUIREMENTS.md) - Initial requirements gathering
 
@@ -341,6 +371,7 @@ Best place to handle this cleanup is within the application layer (Transactions 
 This feature enables the primary use case for personal finance tracking: category-based reporting. Without splits, users are forced to choose a single category for mixed purchases, reducing report accuracy.
 
 **Key Design Decisions** (rationale for requirements):
+
 1. **Source property stays at Transaction level** - Entire transaction came from one import source, not per-split
 2. **Category is NOT NULL with empty string** - Better query performance than NULL, consistent with existing Payee pattern
 3. **Transaction.Amount is authoritative** - Imported value is source of truth; splits are user's categorization overlay
@@ -353,6 +384,7 @@ This feature enables the primary use case for personal finance tracking: categor
 ## Handoff Checklist (for AI implementation)
 
 Implementation completed - feature is working in code:
+
 - [x] All user stories have clear acceptance criteria
 - [x] Open questions are resolved or documented as design decisions
 - [x] Technical approach section indicates affected layers
@@ -366,6 +398,7 @@ Implementation completed - feature is working in code:
 I've reviewed the updated PRD for Story 6 "Upload splits". The updates comprehensively address all the questions I raised:
 
 **File Format & Validation** (Lines 98-110):
+
 - ✅ Format specified: Excel .xlsx only
 - ✅ Required columns: Category, Amount (optional: Memo)
 - ✅ Headers required, extra columns ignored
@@ -375,17 +408,20 @@ I've reviewed the updated PRD for Story 6 "Upload splits". The updates comprehen
 - ✅ Downloadable template provided
 
 **UX Flow** (Lines 98, 102, 108):
+
 - ✅ Upload from "transaction detail" page
 - ✅ Appends to existing splits (doesn't replace)
 - ✅ Results committed immediately (no preview)
 - ✅ Order auto-assigned from row sequence
 
 **Technical & Performance** (Lines 112-116, 156-157):
+
 - ✅ Performance limits deferred to testing (appropriate)
 - ✅ Security considerations documented (size/MIME validation)
 - ✅ Implementation details appropriately marked as out-of-scope
 
 **Business Logic** (Lines 46-50, 170-171):
+
 - ✅ Positive/negative split amounts supported (Story 1 updated)
 - ✅ Ad-hoc categories clarified (links to Transaction Record PRD)
 - ✅ Balance warning if sum doesn't match transaction amount

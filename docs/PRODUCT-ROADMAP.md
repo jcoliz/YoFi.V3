@@ -57,7 +57,7 @@ graph TB
 
 ## Strategic Themes
 
-### 🧮 Core Transaction Management
+### 🧮 Core Transaction Management (Epic 2195)
 
 **Goal**: Provide robust, flexible transaction tracking that handles real-world complexity
 
@@ -70,7 +70,7 @@ graph TB
 - Transaction record validation
 - Investment transactions management
 
-### 🤖 Data Intelligence & Automation
+### 🤖 Data Intelligence & Automation (Epic 2197)
 
 **Goal**: Reduce manual categorization work through intelligent pattern matching
 
@@ -83,7 +83,7 @@ graph TB
 - Split templates (future)
 - Bulk operations (future)
 
-### 📥 Import & Integration
+### 📥 Import & Integration (Epic 2198)
 
 **Goal**: Seamlessly bring in transaction data from external sources
 
@@ -95,7 +95,7 @@ graph TB
 - Tenant data administration (XLSX import/export) → [PRD: Tenant Data Admin](wip/import-export/PRD-TENANT-DATA-ADMIN.md)
 - API integrations (future - Plaid, etc.)
 
-### 👥 Multi-User & Collaboration
+### 👥 Multi-User & Collaboration (Epic 2199)
 
 **Goal**: Enable households and teams to manage finances together
 
@@ -108,7 +108,7 @@ graph TB
 - User management
 - Activity auditing (future)
 
-### 📊 Reports & Insights
+### 📊 Reports & Insights (Epic 2200)
 
 **Goal**: Transform transaction data into actionable insights
 
@@ -124,7 +124,7 @@ graph TB
 - Net worth tracking (balance sheet view)
 - Tax planning and historical tax analysis
 
-### 📎 Document Management
+### 📎 Document Management (Epic 2201)
 
 **Goal**: Connect supporting documents with transactions for complete records
 
@@ -161,11 +161,11 @@ Happy path works end to end. First version it would make sense to send out for e
 
 Just enough for me to use it personally for very limited scenarios with my personal data.
 
-#### Feature readiness
+#### Feature readiness Beta 1
 
 TBD. Enough that I can use it for my personal finances. Probably needs at least data import.
 
-#### System readiness
+#### System readiness Beta 1
 
 Actual financial data now here, so production security needs to be tighter.
 
@@ -180,7 +180,7 @@ Actual financial data now here, so production security needs to be tighter.
 
 Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
 
-#### System readiness
+#### System readiness Beta 2
 
 - Invitations MVP
 
@@ -217,41 +217,41 @@ My general practice is to break release miletones down into iterations as it app
 | Feature: Story                                  | Milestone | Iteration | Status               |
 |-------------------------------------------------|-----------|-----------|----------------------|
 | **Multi-Tenancy**: All stories complete         | ✅        | ✅        | ✅ Implemented       |
-| **Transaction Record**                          |           |           | ✅ Implemented       |
+| **Feature 2202: Transaction Records**           |           |           | ✅ Implemented       |
 | Story 1 - Represent Imported Data               | A1        | 1         | ✅ Implemented       |
 | Story 2 - Add Additional Information            | A1        | 2         | ✅ Implemented       |
 | Story 3 - Manage Transactions                   | A1        | 3         | ✅ Implemented       |
-| **Transaction Splits**                          |           |           | 🚧 In Progress       |
+| **Feature 1982: Transaction Splits**            |           |           | 🚧 In Progress       |
 | Story 1 - Split Single Transaction              | B2        |           | 🎨 Design Complete   |
 | Story 2 - View Category Reports                 | -         |           | 🚫 Superseded        |
 | Story 3 - Simple Single-Category Workflow       | A1        | 1         | ✅ Implemented       |
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
 | Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
 | Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
-| **Transaction Filtering**                       |           |           | 🎨 Design Complete   |
+| **Feature 1983: Transaction Filtering**         |           |           | 🎨 Design Complete   |
 | Story 1 - Quick Text Search                     | A1        | 2         | 🎨 Design Complete   |
 | Story 2 - Find Uncategorized                    | B1        |           | 🎨 Design Complete   |
 | Story 3 - Default Date Range                    | V3.0      |           | 🎨 Design Complete   |
 | Story 4 - Advanced Filtering                    | B1        |           | 🎨 Design Complete   |
 | Story 5 - Reports Integration                   | V3.1      |           | 💡 Future            |
-| **Bank Import**                                 |           |           | ✅ Implemented       |
+| **Feature 2204: Bank Import**                   |           |           | ✅ Implemented       |
 | Story 1 - Upload Bank File                      | A1        | 1         | ✅ Implemented       |
 | Story 2 - Review Imported Transactions          | B2        |           | ✅ Implemented       |
 | Story 3 - Manage Import State                   | B2        |           | ✅ Implemented       |
 | Story 4 - Handle Import Errors                  | B2        |           | ✅ Implemented       |
-| **Payee Rules**                                 |           |           | 🚧 In Progress       |
-| Story 1 - Establish Rules (CRUD)                | B2        |           | 🚧 In Progress       |
-| Story 2 - Auto-categorize on Import             | A1        | 3         | 🚧 In Progress       |
+| **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
+| Story 2211 - Establish Rules (CRUD)             | B2        |           | 🚧 In Progress       |
+| Story 2212 - Auto-categorize on Import          | A1        | 3         | 🚧 In Progress       |
 | Story 3 - Manual Trigger Matching               | B3        |           | ✔️ Approved          |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
-| **Tenant Data Admin**                           |           |           | ✔️ Approved          |
+| **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
 | Story 1 - Export with Selection                 | V3.0      |           | ✔️ Approved          |
 | Story 2 - Import with Detection                 | B1        |           | ✔️ Approved          |
 | Story 3 - Delete All Data                       | V3.0      |           | ✔️ Approved          |
 | Story 4 - Load Sample Data                      | A1        | 2         | ✔️ Approved          |
 | Story 5 - Handle Import Errors                  | V3.1      |           | ✔️ Approved          |
-| **Reports**                                     |           |           | ✔️ Approved          |
+| **Feature 2207: Reports**                       |           |           | ✔️ Approved          |
 | Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✔️ Approved          |
 | Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
@@ -260,17 +260,17 @@ My general practice is to break release miletones down into iterations as it app
 | Story 6 - View Complete History Over Time       | B3        |           | ✔️ Approved          |
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
-| **Reports Export API**                          |           |           | 🎨 Design Complete   |
+| **Feature 2208: Reports Export API**            |           |           | 🎨 Design Complete   |
 | Story 1 - Connect Excel to YoFi Reports         | B2        |           | 🎨 Design Complete   |
 | Story 2 - Access Multiple Workspaces from Excel | B2        |           | 🎨 Design Complete   |
 | Story 3 - Secure API Key Management             | B2        |           | 🎨 Design Complete   |
 | Story 4 - Discover Available Reports            | Post V3   |           | 🎨 Design Complete   |
-| **Transaction Receipts**                        |           |           | ✔️ Approved          |
+| **Feature 2209: Transaction Receipts**          |           |           | ✔️ Approved          |
 | Story 1 - Direct Receipt Upload                 | B2        |           | ✔️ Approved          |
 | Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
 | Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
 | Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
-| **Budgets**                                     |           |           | ✔️ Approved          |
+| **Feature 2210: Budgets**                       |           |           | ✔️ Approved          |
 | Story 1 - Create/Edit Budget                    | B3        |           | ✔️ Approved          |
 | Story 2 - View Budget Status                    | B3        |           | ✔️ Approved          |
 | Story 3 - Allocate Budget at Any Category Level | B3        |           | ✔️ Approved          |

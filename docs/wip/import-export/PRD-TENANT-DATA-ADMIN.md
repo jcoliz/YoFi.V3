@@ -1,8 +1,7 @@
 ---
 status: Approved
-owner: James Coliz
 target_release: V3.0
-ado: TBD
+ado: Feature 2206
 ---
 
 # Product Requirements Document: Tenant Data Administration

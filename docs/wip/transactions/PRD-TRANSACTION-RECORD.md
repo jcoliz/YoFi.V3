@@ -4,7 +4,7 @@ target_release: Alpha 1
 design_document: TRANSACTION-RECORD-DESIGN.md
 functional_test_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-PLAN.md
 functional_test_implementation_plan: TRANSACTION-RECORD-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
-ado: "[Link to ADO Item]"
+ado: Feature 2202
 implementation_notes: |
   All 8 functional test scenarios implemented and passing in both local and container environments.
   Backend API endpoints, Application Features, Entity models, and database schema all complete.
@@ -25,6 +25,7 @@ on their understanding of each transaction.
 ## Goals & Non-Goals
 
 ### Goals
+
 - Enable users to import bank transaction data and retain original information
 - Allow users to categorize transactions for reporting and analysis
 - Support adding contextual notes (memos) to transactions
@@ -48,11 +49,13 @@ All of these will be considered as separate features. The goal of this is to get
 ## User Stories
 
 ### Story 1: User - Represent imported data
+
 **As a** user
 **I want** retain a faithful copy of bank information locally
 **So that** I can later reason over all of my financial records in one place
 
 **Acceptance Criteria**:
+
 - [x] Bank date information retained (`Date` field - DateOnly)
 - [x] Bank transaction amount retained (`Amount` field - decimal)
 - [x] Bank account source information retained: what bank and account did this come from? Free text, typically populated with Bank Name, Account Type, and Account number, but can be any text. (`Source` field - string?, 200 chars)
@@ -60,20 +63,24 @@ All of these will be considered as separate features. The goal of this is to get
 - [x] Bank unique identifier (to protect against duplicates) (`ExternalId` field - string?, 100 chars)
 
 ### Story 2: User - Add additional information
+
 **As a** user
 **I want** add additional information on each transaction
 **So that** I can later group and sort, or search by that information, or so that I can later remember more details about it.
 
 **Acceptance Criteria**:
-- [ ] Can add free text categories, at unlimited depth, separated by `:` *** [Superseded] *** Categories are attached to the Splits (see [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md))
+
+- [ ] Can add free text categories, at unlimited depth, separated by `:` ***[Superseded]*** Categories are attached to the Splits (see [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md))
 - [x] Can add a memorandum (memo) field with additional text to provide additional context (`Memo` field - string?, 1000 chars, backend complete)
 
 ### Story 3: User - Manage transactions
+
 **As a** user
 **I want** to edit transaction details or delete them
 **So that** I can reconcile my system to my understanding of what actually happened
 
 **Acceptance Criteria**:
+
 - [x] Edit all fields (PUT endpoint implemented, all fields editable via API)
 - [x] Delete a transaction (DELETE endpoint implemented)
 
@@ -82,6 +89,7 @@ All of these will be considered as separate features. The goal of this is to get
 ## Technical Approach (Optional)
 
 **Layers Affected**:
+
 - [X] Frontend (Vue/Nuxt)
 - [X] Controllers (API endpoints)
 - [X] Application (Features/Business logic)
@@ -89,6 +97,7 @@ All of these will be considered as separate features. The goal of this is to get
 - [X] Database (Schema changes)
 
 **Key Components**:
+
 - This is largely to cover the rationale for the **schema** of a transaction, so it's the requirements for the Transaction entity.
 - Of course, the added fields will need to be plumbed up through the stack.
 
@@ -152,12 +161,14 @@ Categories are now attached to Splits, not Transactions. See the "Category Sanit
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Related to: Assigning multiple categories to a single transaction is covered separately in docs\wip\transactions\PRD-TRANSACTION-SPLITS.md.
 - How the importing mechanism works will be covered separately in design of importer feature.
 - Depends on: Multi-tenancy infrastructure (implemented)
 - Depends on: Transaction CRUD API endpoints (partially implemented)
 
 **Constraints**:
+
 - Constraint: NOT REQUIRED: Backward compatibility with existing Transaction data not important. No existing actual real data to be preserved.
 - Constraint: Schema migration required (will affect existing data)
 
@@ -192,6 +203,7 @@ Categories are now attached to Splits, not Transactions. See the "Category Sanit
 ### Summary
 
 **The PRD is complete and ready for implementation.** All handoff checklist items are satisfied. The document provides clear requirements for adding three new fields to the Transaction entity:
+
 - `Memo` (string?, 1000 chars) - Additional context
 - `Source` (string?, 200 chars) - Bank account source
 - `ExternalId` (string?, 100 chars) - Bank's unique ID

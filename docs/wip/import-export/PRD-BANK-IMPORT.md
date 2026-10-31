@@ -1,8 +1,7 @@
 ---
 status: Approved
-owner: James Coliz
 target_release: Beta 2
-ado: TBD
+ado: Feature 2204
 functional_test_implementation_plan: BANK-IMPORT-FUNCTIONAL-TEST-IMPLEMENTATION-PLAN.md
 references:
 - VISUAL-DESIGN-BANK-IMPORT.md
@@ -17,6 +16,7 @@ references:
 ## Problem Statement
 
 Users regularly download transaction data from their banks in OFX or QFX formats and need to import this data into YoFi. Without a proper import workflow, users face two major problems:
+
 1. **Manual data entry** - Tedious and error-prone to manually enter each transaction
 2. **Duplicate transactions** - Re-downloading and importing the same date range creates duplicates
 
@@ -27,6 +27,7 @@ Users need a streamlined import process with duplicate detection and review capa
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Enable import of **Transactions** from bank formats (OFX and QFX)
 - [ ] Provide **import review workflow** where users can inspect transactions before accepting
 - [ ] Detect and highlight **duplicate transactions** (exact matches and potential conflicts)
@@ -36,6 +37,7 @@ Users need a streamlined import process with duplicate detection and review capa
 - [ ] Support typical bank download sizes efficiently (hundreds to thousands of records)
 
 ### Non-Goals
+
 - Real-time bank integration via APIs (Plaid, etc.) - separate feature
 - Import from XLSX format - covered by Tenant Data Administration feature
 - Export to OFX/QFX formats (bank formats are import-only)
@@ -55,6 +57,7 @@ Users need a streamlined import process with duplicate detection and review capa
 **So that** I can import my transactions into YoFi without manual entry
 
 **Acceptance Criteria**:
+
 - [ ] User can navigate to Transactions Import page
 - [ ] User can select and upload bank format file (.ofx or .qfx extensions)
 - [ ] System validates file format and provides clear error messages for invalid files
@@ -72,6 +75,7 @@ Users need a streamlined import process with duplicate detection and review capa
 **So that** I can avoid adding duplicate transactions to my records
 
 **Acceptance Criteria**:
+
 - [ ] Import Review page displays all transactions from most recent import
 - [ ] Each transaction is handled based on its duplicate status:
   - **New transactions** - No conflicts, selected by default
@@ -88,6 +92,7 @@ Users need a streamlined import process with duplicate detection and review capa
 **So that** I can review transactions when convenient without time pressure
 
 **Acceptance Criteria**:
+
 - [ ] User can leave Import Review page at any time
 - [ ] Import review state persists across browser sessions
 - [ ] User can return to Import Review page to see pending transactions
@@ -107,6 +112,7 @@ Users need a streamlined import process with duplicate detection and review capa
 **So that** I can correct the issues and successfully import my data
 
 **Acceptance Criteria**:
+
 - [ ] System displays specific error messages for common issues:
   - "Unsupported file format - expected OFX or QFX"
   - "File appears corrupted - unable to parse transaction data"
@@ -125,11 +131,13 @@ Users need a streamlined import process with duplicate detection and review capa
 ### Duplicate Detection Strategy
 
 **Bank formats may or may not include unique transaction identifiers:**
+
 - **If bank provides unique transaction ID** (FITID in OFX/QFX): Use as Uniqueness Key for duplicate detection
 - **If no unique ID provided**: Generate hash from `(Date + Amount + Payee)` as duplicate detection key
 - **Hash algorithm**: Use consistent, deterministic hash (e.g., SHA256 of concatenated values)
 
 **Comparison logic for categorization:**
+
 1. **New transaction**: Key/hash not found in existing transactions or import review state
 2. **Exact duplicate**: Key/hash matches AND all transaction fields match (Date, Amount, Payee, Memo)
 3. **Potential duplicate**: Key/hash matches BUT one or more fields differ
@@ -140,6 +148,7 @@ Users need a streamlined import process with duplicate detection and review capa
 - QFX / OFX 1.x (SGML-like)
 
 **Category handling**:
+
 - Bank files typically don't include category data; field left blank initially
 
 ### Layers Affected
@@ -154,12 +163,14 @@ Users need a streamlined import process with duplicate detection and review capa
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Multi-tenancy framework must be fully functional (tenant isolation)
 - Transaction CRUD operations must be complete
 - Authentication/authorization must be working
 - Database schema must support import review state. During detailed design, we will decide whether a unique table is better, or adding a flag to all transactions.
 
 **Constraints**:
+
 - Must maintain tenant data isolation (users cannot see other users' pending imports)
 - Import/export operations should complete within reasonable time for typical file sizes (up to 10,000 transactions)
 - Must handle common file encoding variations (UTF-8, Windows-1252)
@@ -195,13 +206,15 @@ Users need a streamlined import process with duplicate detection and review capa
 ## Notes & Context
 
 **YoFi V1 Reference**:
-The original YoFi V1 application (https://github.com/jcoliz/yofi) implemented OFX/QFX import functionality. This V3 PRD modernizes that foundation with:
+The original YoFi V1 application (<https://github.com/jcoliz/yofi>) implemented OFX/QFX import functionality. This V3 PRD modernizes that foundation with:
+
 - Persistent import review workflow (V1 was immediate import)
 - Duplicate detection with categorization (New/ExactDuplicate/PotentialDuplicate)
 - GUID Keys throughout (no database IDs)
 - Improved error handling and user feedback
 
 **Related Features**:
+
 - [Tenant Data Administration](./PRD-TENANT-DATA-ADMIN.md) - Handles XLSX import/export for all entity types
 - [Transaction Record](../transactions/PRD-TRANSACTION-RECORD.md) - Defines transaction schema and validation rules
 - [Transaction Splits](../transactions/PRD-TRANSACTION-SPLITS.md) - Bank formats don't include split data; splits must be added after import
@@ -215,21 +228,25 @@ Reviewed [`docs/wip/import-export/PRD-BANK-IMPORT.md`](docs/wip/import-export/PR
 ### ✅ All Checklist Items Pass
 
 **✅ All user stories have clear acceptance criteria**
+
 - Story 1 (Upload Bank File): 8 testable criteria
 - Story 2 (Review Imported Transactions): 10 detailed criteria
 - Story 3 (Manage Import Review State): 9 criteria
 - Story 4 (Handle Import Errors): 7 criteria
 
 **✅ Open questions resolved or documented as design decisions**
+
 - 3 questions resolved with clear YES/NO decisions and rationale
 - 2 remaining questions appropriately deferred to implementation/testing
 
 **✅ Technical approach indicates affected layers**
+
 - All layers clearly identified: Frontend, API, Application, Database
 - Duplicate detection strategy specified (FITID or hash-based)
 - File format support detailed (OFX 2.x, QFX/OFX 1.x)
 
 **✅ Existing code patterns and files referenced**
+
 - YoFi V1 implementation referenced with GitHub link
 - Three related PRDs linked: Tenant Data Admin, Transaction Record, Transaction Splits
 - Clear notes on V3 improvements over V1

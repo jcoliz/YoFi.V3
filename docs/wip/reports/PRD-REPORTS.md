@@ -1,8 +1,7 @@
 ---
 status: Approved
-owner: James Coliz
 target_release: V3.0
-ado: "[Link to ADO Item]"
+ado: Feature 2207
 ---
 
 # Product Requirements Document: Reports
@@ -17,6 +16,7 @@ mechanism to deliver this insight and understanding
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Enable users to understand their spending patterns through category-based income/expense reports
 - [ ] Provide flexible report views (monthly detail vs. annual summary, configurable category depth)
 - [ ] Support data verification through drill-down from report values to underlying transactions
@@ -25,6 +25,7 @@ mechanism to deliver this insight and understanding
 - [ ] Show hierarchical category rollups (e.g., "Home:Utilities" rolls up to "Home")
 
 ### Non-Goals
+
 - Custom report creation by users (deferred to future - Story 8)
 - Budget variance reporting (deferred pending Budget PRD - Story 5)
 - Multi-currency support (out of scope for V3)
@@ -38,11 +39,13 @@ mechanism to deliver this insight and understanding
 ## User Stories
 
 ### Story 1: User - Views a built-in income/expense report
+
 **As a** user
 **I want** to review a summary of my income and/or expenses over a period of time
 **So that** I can understand where my money is going, and what changes I might want to make in my financial life
 
 **Acceptance Criteria**:
+
 - [ ] User can select from a set of pre-defined income and/or expense reports
 - [ ] User's choice of report filters which categories are included or excluded
 - [ ] A grand total is shown at the end of each row if there are month columns
@@ -81,6 +84,7 @@ Following are the standard income/expense reports
 | All Detail | * | 2 | Yes |
 
 **Notes:**
+
 - **Category Filtering**: "Expenses" and "Expenses Detail" include all categories EXCEPT Income, Taxes, Savings, and Transfer. They also include uncategorized splits.
 - **Category Depth Levels**: "Default Level: N" means show N levels below the report filter root. For example:
   - Income report at Level 1 shows categories like `Income:Salary`, `Income:Bonus` (one level below Income)
@@ -89,11 +93,13 @@ Following are the standard income/expense reports
   - Expenses report at Level 2 shows `Home:Utilities`, `Transportation:Fuel` (two levels of expense hierarchy)
 
 ### Story 2: User - Configures report display
+
 **As a** user
 **I want** customize how the report is shown to me
 **So that** I can drill into a certain area to understand more **or** zoom out to view the data at a higher conceptual level
 
 **Acceptance Criteria**:
+
 - [ ] User can choose which year to display. Unless otherwise described later, reports are always in the context of a single calendar year
 - [ ] User can choose whether to show independent month values with a row total, or show whole year only. The default is an aspect of report definition.
 - [ ] User can choose how many levels deep of categories to show. The default level is an aspect of the report definition.
@@ -102,11 +108,13 @@ Following are the standard income/expense reports
 - [ ] User can click "Reset" to clear localStorage for that specific report and restore definition defaults
 
 ### Story 3: User - Views a report in chart form
+
 **As a** user
 **I want** to visualize the report
 **So that** I can process the information better as a visual learner
 
 **Acceptance Criteria**:
+
 - [ ] For any report I can view the data in an easy-to-understand chart using Chart.js library
 - [ ] Month-by-month reports display as line charts showing top-level categories only
 - [ ] Category breakdown reports display as donut charts
@@ -115,6 +123,7 @@ Following are the standard income/expense reports
 - [ ] No accessibility requirements for charts
 
 ### Story 4: User - Views summary report
+
 **As a** user
 **I want** to view a top-level summary of my entire income/expense picture
 **So that** I can get a high-level sense of where we are
@@ -130,10 +139,12 @@ This is an "income statement" made easier to use for lay users. The sections are
   - **Note**: Total = Net Income - Expenses, representing actual savings rate (explicit savings in "Savings" section + implicit savings remaining in bank account)
 
 **Acceptance Criteria**:
+
 - [ ] Summary report includes a collection of high-level report sections
 - [ ] From each section which is backed by an underlying report, there is an affordance for me to drill into that and directly view a dedicated report at a lower level of detail.
 
 ### Story 5: User - Views budget reports
+
 **As a** user
 **I want** to see how I'm doing against my budget plan
 **So that** I can adjust my spending to stay on target
@@ -143,9 +154,11 @@ This is an "income statement" made easier to use for lay users. The sections are
 **Acceptance Criteria**:
 
 **Report Selection:**
+
 - [ ] User can select from pre-defined budget reports comparing actual spending against budgeted spending
 
 **Report Column Definitions:**
+
 - [ ] Budget column shows cumulative budget available from budget line item StartDate to report date (sum of all elapsed periods based on frequency)
 - [ ] Actual column shows cumulative spending from Jan 1 to report date (always full year regardless of budget StartDate)
 - [ ] %Spent column shows percentage of budget consumed (Actual / Budget × 100%)
@@ -153,37 +166,44 @@ This is an "income statement" made easier to use for lay users. The sections are
 - [ ] Mid-year budget example: Budget starting 7/1 with $2000 yearly shows $2000 budget on 12/31, but Actual shows all spending from 1/1 (may exceed 100%)
 
 **Report Header Information:**
+
 - [ ] Budget reports show % complete of the year so far in header
 - [ ] Users can compare spent% versus year% to assess pacing (e.g., 60% through year with 60% spent = on track)
 
 **Pre-defined Budget Reports:**
+
 - [ ] **"Full Budget"**: Shows hierarchy of categories with any budget applied within them, with rollup totals. Shows 2 columns: Category (with hierarchy), and Budget (total annual budget for entire year). No actuals comparison.
 - [ ] **"All vs Budget"**: Shows all categories (Income, Expenses, Taxes, Savings, etc.) which have a budget, and rollup totals. Columns: Budget (cumulative to date), Actual, %Spent. Budget column cannot have zero values (categories without budgets are excluded).
 - [ ] **"Expenses Budget"**: Like "Full Budget" but only shows expense categories (all categories except Income, Taxes, Savings, Transfer). Shows only budget column, no actuals comparison.
 - [ ] **"Expenses vs Budget"**: Like "All vs Budget", but only Expenses. Includes both table view and chart view. Chart is double bar chart: X axis shows top-level expense categories in descending total budget amount, Y axis is $ amount. Each X-axis category shows pair of bars for "Actual" and "Budget". Mixed-level budgets are additive (e.g., $10k Transportation + $3k Transportation:Repairs:Jeep = $13k total rolled up to Transportation bar).
 
 **Hierarchy and Rollup Behavior:**
+
 - [ ] Budget column rolls up all budget line items in category tree (additive model per [`PRD-BUDGETS.md`](../budgets/PRD-BUDGETS.md) Story 3)
 - [ ] Actual column rolls up ALL transactions in category tree (includes unbudgeted subcategories)
 - [ ] Parent categories without direct budgets automatically show rolled-up values from children
 - [ ] Users can adjust report hierarchy depth to drill into subcategories (follows existing report depth control from Story 2)
 
 ### Story 6: User - Views complete history of income/expenses over time
+
 **As a** user
 **I want** to see how my income/expenses compare over all known time
 **So that** I can detect larger-scale patterns, and plan for future spending
 
 **Acceptance Criteria**:
+
 - [ ] Report shows columns of total values for each year
 - [ ] User can choose year range (start, end). Defaults to "beginning of recorded history" as start, and current year as end
 - [ ] User cannot view a chart for this report
 
 ### Story 7: User - Investigates underlying transactions
+
 **As a** User
 **I want** discover which transactions exactly comprise one of the numbers shown
 **So that** I can understand what underlying actions caused the result I'm seeing
 
 **Acceptance Criteria**:
+
 - [ ] User can select any number on a report and drill in, opening the Transactions page in a new browser tab
 - [ ] Clicking a monthly cell (e.g., "Home:Utilities" for March) applies category AND month filters
 - [ ] Clicking a row total applies category filter for the entire year
@@ -194,17 +214,20 @@ This is an "income statement" made easier to use for lay users. The sections are
 #### Interaction with Transaction Filtering
 
 The requirements we will have on filtering:
+
 - [ ] Reports can specify a date range
 - [ ] Reports can specify categories with wildcard, e.g. "Income:*" matches "Income" and "Income:Salary"
 - [ ] Reports can use special "Expenses" moniker to mean "all transactions not in Income, Taxes, Savings, or Transfer" top level categories
 - [ ] Reports can (and almost always will) specify *both* a date range and a category with wildcard.
 
 ### Story 8: User - Defines a custom report [FUTURE]
+
 **As a** user
 **I want** define my own report
 **So that** I can examine some aspect of my financial picture in a specific way I'm interested in
 
 **Acceptance Criteria**:
+
 - [ ] User can customize any of the existing built-in report parameters
 - [ ] User has complete CRUD control of report defintions
 - [ ] Custom reports are available to anyone in the workspace (tenant)
@@ -216,6 +239,7 @@ The requirements we will have on filtering:
 ## Technical Approach
 
 **Layers Affected**:
+
 - [x] Frontend (Vue/Nuxt): reports display page(s)
 - [x] Controllers (API endpoints): Give API access to report generation logic for front end
 - [x] Application (Features/Business logic): Generate reports
@@ -239,6 +263,7 @@ The requirements we will have on filtering:
 7. **Performance Targets** - Single year reports must complete in <500ms. Multi-year aggregation (e.g., 15 years) must complete in <2s. Expected volume: 1,500 transactions per year per tenant (30,000 transactions over 20 years).
 
 **Code Patterns to Follow**:
+
 - Entity pattern: [`BaseTenantModel`](../../../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../../../src/Entities/Models/BaseModel.cs)
 - CRUD operations: [`TransactionsController.cs`](../../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
@@ -255,14 +280,17 @@ The requirements we will have on filtering:
 ## Success Metrics
 
 **Feature Adoption**:
+
 - **Report Usage Rate**: 70%+ of active users view at least one report per month (indicates reports deliver value worth returning to)
 - **Drill-Down Usage**: 40%+ of report viewers use drill-down to transactions at least once (validates the new capability addresses a real need)
 
 **User Engagement**:
+
 - **Report View Depth**: Average of 2+ different report types viewed per session (indicates users explore multiple perspectives on their data)
 - **Configuration Persistence**: 50%+ of users modify default report settings (depth level, month display) and those settings persist across sessions (indicates customization provides value)
 
 **Performance**:
+
 - **Query Performance**: 95%+ of single-year reports complete in <500ms, 95%+ of multi-year reports complete in <2s (meets user experience targets)
 - **Error Rate**: <1% of report requests result in errors or timeouts (indicates stable, reliable functionality)
 
@@ -271,10 +299,12 @@ The requirements we will have on filtering:
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Requires PRD-TRANSACTION-SPLITS to be complete, so Category field is available. We are actually summarizing the **SPLITS** in the system
 - Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accomodate needs of report-driven filters
 
 **Constraints**:
+
 - Database technology choice may need revisiting if performance targets aren't met with SQLite.
 - May need composite indexes on (TenantKey, Category, Year) for optimal split-based query performance
 
@@ -285,11 +315,13 @@ The requirements we will have on filtering:
 **Background**: This feature represents a core value proposition of the YoFi financial tracking application. While transaction entry and categorization are necessary data collection activities, reports transform that raw data into actionable insights that drive user decision-making about their financial lives.
 
 **Design Philosophy**:
+
 - **Progressive Disclosure**: Reports start at high-level summaries (Summary Report, Level 1 reports) and allow users to drill down progressively to more detail (Level 2+ reports, individual transactions). This prevents information overload while maintaining access to full detail when needed.
 - **Split-Centric Model**: Reports aggregate transaction splits rather than transactions themselves. This correctly handles multi-category transactions (e.g., a single grocery receipt split between "Food" and "Home" categories) and aligns with how users conceptualize their spending.
 - **Performance First**: Performance targets (<500ms single-year, <2s multi-year) define acceptable user experience. Implementation approach (real-time queries, pre-aggregation, indexes, caching) is flexible and should be chosen based on what achieves these targets most effectively.
 
 **Evolution from V1**: This PRD captures proven patterns from YoFi V1 that worked well for users:
+
 - The Income/Taxes/Expenses/Savings/All report structure maps to how users naturally think about their finances
 - Chart.js provided reliable visualization without excessive complexity
 - Category hierarchy with `:` delimiter proved intuitive and flexible
@@ -299,6 +331,7 @@ The requirements we will have on filtering:
 **Future Extensibility**: While custom reports (Story 8) are deferred, the hard-coded report definitions are designed to be easily refactored into database-backed configurations when that capability is added. The report definition model (category filters, depth levels, month display) captures the parameters users would want to customize.
 
 **Related Documents**:
+
 - [`PRD-TRANSACTION-SPLITS.md`](../transactions/PRD-TRANSACTION-SPLITS.md) - Defines split data model that reports aggregate
 - [`PRD-TRANSACTION-FILTERING.md`](../transactions/PRD-TRANSACTION-FILTERING.md) - Defines filtering UX that drill-down navigation depends on
 - [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) - General guidance on PRD scope and structure
@@ -310,6 +343,7 @@ The requirements we will have on filtering:
 **Review Result**: ✅ **APPROVED** - Ready for implementation
 
 **Checklist Status**:
+
 - ✅ All user stories have clear acceptance criteria (Stories 1-4, 6-7 complete; 5, 8 appropriately marked as future)
 - ✅ Open questions resolved and integrated into Technical Approach section
 - ✅ Technical approach clearly indicates affected layers (Frontend, Controllers, Application, Entities, Database)

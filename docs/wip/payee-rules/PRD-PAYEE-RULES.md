@@ -1,8 +1,7 @@
 ---
 status: Approved (Stories 1-5) Additional stories still in draft
-owner: James Coliz
 target_release: Beta 3
-ado: "[Link to ADO Item]"
+ado: Feature 2205
 references:
    - docs\wip\payee-rules\PRD-PAYEE-RULES-REVIEW.md
 ---
@@ -22,12 +21,14 @@ to what transactions.
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Automatically categorize transactions based on their payee
 - [ ] User controls the payee matching rules
 - [ ] It should be easy to add new rules
 - [ ] Ideally a very high percentage of transactions should match immediately on import
 
 ### Non-Goals
+
 - Initial implementation does not affect splits. Payee matching sets the whole transaction category. Future stories (6,7) expand beyond this
 - Tracking of payees is out of scope. Actual used payees are not collected, stored, or analyzed. "Payees" in our app are purely used as part of matching rules to assign categories.
 - Any modifications to transactions outside of category, e.g. memo, date
@@ -38,12 +39,14 @@ to what transactions.
 
 ## User Stories
 
-### Story 1: User - Establish payee matching rules
+### Story 2211: User - Establish payee matching rules
+
 **As a** user
 **I want** to set up payee matching rules
 **So that** my transactions are automatically categorized when I import them
 
 **Acceptance Criteria**:
+
 - [ ] Payee matching rule includes a category, which matching transactions will be assigned when matched
 - [ ] Rule includes a free-form payee name snippet (required)
 - [ ] User can alternately describe the rule with a regular expression
@@ -61,46 +64,54 @@ to what transactions.
 - [ ] User with editor role on containing tenant can take any actions listed here
 - [ ] User with viewer role on containing tenant can only view, list, or search. Cannot create, edit, or delete.
 
-### Story 2: User - Sees transactions automatically categorized on bank import
+### Story 2212: User - Have transactions automatically categorized on bank import
+
 **As a** User
 **I want** my transactions to be automatically categorized when I import a downloaded bank file
 **So that** I don't have to categorize them myself
 
 **Acceptance Criteria**:
+
 - [ ] Payee matching rules are applied when user imports a bank file
 - [ ] Matched category is shown to user on the import review page
 - [ ] User cannot change the category in import review screen. It is for information only.
 - [ ] User cannot interact with matching rules on the import review page
 
 **Matching Rules**:
+
 - [ ] If a transaction contains the payee name snippet from the rule within its payee field, that's a match
 - [ ] In case of conflict between two substring-only rules, the rule with the longer payee name snippet wins. In case where the rules have equal length, the most recently added or edited rule takes priority.
 - [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
 - [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 
 ### Story 3: User - Manually triggers rule matching
+
 **As a** User
 **I want** to trigger automatic categorization on a specific transaction
 **So that** I can apply recent rule changes to that transaction
 
 **Acceptance Criteria**:
+
 - [ ] On transactions display page, user can identify a specific transaction and apply rules to it
 - [ ] The updated category is immediately shown on transactions display page
 - [ ] If transaction already has a category, it is overwritten and a message shown to user
 - [ ] If transaction already has splits, no change is made to the transaction. Friendly error message is shown to the user explaining why we didn't do what they asked.
 
 **Limitations**:
+
 - [ ] Manual matching is for a specific transaction only. In future we can consider a bulk re-match, but I haven't found that super useful.
 
 Regarding splits, if user wants to remove splits and apply rule matching, this is something of a corner case. They can use existing tools
 for this. They can edit the transaction, remove the splits, and then trigger manual matching.
 
 ### Story 4: User - Advanced matching rules beyond payees
+
 **As a** user
 **I want** to describe matching rules with more dimensions than only payee
 **So that** I have more fine-grained control over which transactions are matched
 
 **Acceptance Criteria**:
+
 - [ ] User can modify more advanced matching rules in a context dedicated to editing a single payee rules
 - [ ] User can set a source rule, again as a substring or a regular expression, eg. "MegaBankCorp" matches all sources with "MegaBankCorp"
 - [ ] User can set an fixed amount value to match, in which case must match the amount directly.
@@ -112,50 +123,60 @@ for this. They can edit the transaction, remove the splits, and then trigger man
 - [ ] Help text explains sign treatment. "Absolute Value" or "Amount (regardless of direction)", "100 matches both +100 (income) and -100 (expense)"
 
 **Limitations**:
+
 - YoFi is single-currency, so currency is not considered.
 - Whether transaction is negative or positive is generally a technical concern not a user concern. In my experience, users think in absolute value. Sign of amount is mentally translated as "I got this money" or "I spent this money"
 
 ### Story 5: User - Rule cleanup
+
 **As a** user
 **I want** to remove unused rules from my rule set
 **So that** matching happens more quickly, and it's easier for me to manage the rules I do care about
 
 **Acceptance Criteria**:
+
 - [ ] User can view when rule was last used and how frequently its been used
 - [ ] User can filter and sort by these fields
 - [ ] User can bulk delete old rules. User can specify how old is "old", and 12 months will be the intelligent default.
 
 ### Story 6: User - Split based on amortization [NEW] [FUTURE]
+
 **As an** advanced user with loan payments
 **I want** to split my loan payments transactions into principal and interest according to their amortization rules
 **So that** I can precisely track how much of my money goes to principal or interest
 
 **Acceptance Criteria**:
+
 - [ ] User can assign loan details to a payee matching rule
 - [ ] When a transaction matches based on matching criteria, the resulting transaction is split based on loan details
 
 **Example**
 
 Rule
+
 - PayeePattern: "Mortgage"
 - Category: Mortgage Principal
 - Loan Rule: Category: Mortgage Interest, ...
 
 Imported Transaction
+
 - Payee: "Mega Bortgage Bank Inc"
 - Amount: $1500
 - Date: 1/1/2026
 
 Resulting Splits:
+
 - Mortgage Principal: xxx
 - Mortgage Interest: xxx
 
 ### Story 7: User - Split based on amounts [NEW] [FUTURE]
+
 **As an** advanced user with complex recurring transactions
 **I want** to split matched transactions into different categories by amount
 **So that** I can precisely track my money flows
 
 **Acceptance Criteria**:
+
 - [ ] User can assign multiple category splits to payee matching rules, containing category and amount
 - [ ] When a transaction matches based on matching criteria, the resulting transaction is split into those categories and amounts
 - [ ] The primary category on the matching rule recieves remaining amount, so it is entered as a balanced transaction
@@ -164,15 +185,18 @@ Resulting Splits:
 **Example**
 
 Rule
+
 - PayeePattern: "Landlord"
 - Category: Utilities
 - Split Rules: (Category: Rent, Amount $1000), (Category: Parking, Amount $100)
 
 Imported Transaction
+
 - Payee: "Mega Landlord LLC"
 - Amount: $1475
 
 Resulting splits:
+
 - Rent: $1000
 - Utilities: $375
 - Parking: $100
@@ -194,6 +218,7 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 ### High-Level Entity Concepts
 
 **PayeeMatchingRule Entity** (new):
+
 - PayeePattern (required - substring or regex pattern to match transaction payee)
 - PayeeIsRegex (flag indicating pattern type)
 - SourcePattern (optional - match transaction source/bank)
@@ -274,11 +299,13 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Bank Import feature (PRD-BANK-IMPORT.md) - Rules apply during import
 - Transaction Splits (PRD-TRANSACTION-SPLITS.md) - Rules should not override splits
 - NOT Category management - Note that YoFi does not requires established category taxonomy. **all categories are ad-hoc** in YoFi
 
 **Constraints**:
+
 - Rules must execute quickly (<100ms for typical rule set) to avoid import delays
 - Regex patterns must be validated when created to prevent regex denial-of-service (ReDoS)
 - Rule count per tenant may need practical limits subject to real-world performace testing. That said, hundreds of rules in YoFi is not uncommon.
@@ -291,6 +318,7 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 This feature existed in YoFi v1 and was heavily used. User feedback indicated it was one of the most valuable time-saving features.
 
 **Related Documents**:
+
 - [`PRD-BANK-IMPORT.md`](../import-export/PRD-BANK-IMPORT.md) - Import flow integration
 - [`PRD-TRANSACTION-SPLITS.md`](../transactions/PRD-TRANSACTION-SPLITS.md) - Interaction with splits
 - [`TRANSACTION-RECORD-DESIGN.md`](../transactions/TRANSACTION-RECORD-DESIGN.md) - Transaction data model
@@ -302,6 +330,7 @@ This feature existed in YoFi v1 and was heavily used. User feedback indicated it
 The [`PRD-PAYEE-RULES.md`](PRD-PAYEE-RULES.md) is **ready for AI implementation** with excellent requirements coverage and appropriate scope.
 
 **All four handoff checklist items are satisfied**:
+
 - ✅ User stories have clear acceptance criteria (5 stories, 50+ criteria)
 - ✅ Open questions are resolved (8 questions fully answered)
 - ✅ Technical approach indicates affected layers (all 5 layers identified with appropriate entity schema)
@@ -312,6 +341,7 @@ The [`PRD-PAYEE-RULES.md`](PRD-PAYEE-RULES.md) is **ready for AI implementation*
 **Recommendation**: Proceed to implementation with current PRD. Optionally add explicit code pattern references (5-minute enhancement). A companion Design Document is **optional** for this feature - the codebase patterns provide sufficient guidance.
 
 **Overall Grade**: A (95/100)
+
 - Deduction for minor opportunity to strengthen code pattern references
 - Exemplary requirements definition and scope discipline
 - Better scoped than the Transaction Splits PRD comparison

@@ -1,8 +1,7 @@
 ---
 status: Approved (Detailed Design Complete)
-owner: James Coliz
 target_release: Beta 2
-ado: TBD
+ado: Feature 2208
 ---
 
 # Product Requirements Document: Reports Export API
@@ -18,12 +17,14 @@ YoFi users who perform advanced financial analysis need their transaction data i
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Enable Excel users to connect directly to YoFi as a data source via API
 - [ ] Provide secure, read-only access to aggregated report data
 - [ ] Support multiple workspaces from a single Excel connection
 - [ ] Deliver data in Excel-optimized format (flat, tabular JSON)
 
 ### Non-Goals
+
 - Individual transaction CRUD operations via API (use web UI for editing)
 - Write access to data (read-only reports only)
 - Real-time data streaming or push notifications
@@ -41,6 +42,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 **So that** I can import my transaction data into custom financial models without manual data entry
 
 **Acceptance Criteria**:
+
 - [ ] User can generate an API key from YoFi's web interface
 - [ ] API key works with Excel Power Query's "From Web" data source
 - [ ] User can authenticate using Bearer token in HTTP header
@@ -50,6 +52,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 - [ ] API provides only the as-defined structure of the report (no customization of columns/layout)
 
 **Example Excel Workflow**:
+
 1. User navigates to Workspace Settings → API Keys in YoFi web UI
 2. Clicks "Generate New API Key" → Receives key like `yofi_user_abc123...`
 3. Opens Excel → Data tab → Get Data → From Web
@@ -66,6 +69,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 **So that** I can build consolidated reports without managing multiple credentials
 
 **Acceptance Criteria**:
+
 - [ ] Single API key works for all workspaces user has access to
 - [ ] User can query list of available workspaces via API
 - [ ] User can create separate Excel queries for each workspace by changing workspace ID in URL
@@ -73,6 +77,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 - [ ] User denied access to workspace returns clear 403 error
 
 **Example Workflow**:
+
 1. User has API key for personal account
 2. First query: `GET /api/user/tenants` → Returns list of workspaces with IDs
 3. Creates Excel query for Personal Finances: `/api/tenant/{personal-id}/reports/spending/by-category`
@@ -87,6 +92,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 **So that** I can control programmatic access and respond to security incidents
 
 **Acceptance Criteria**:
+
 - [ ] Only workspace Owners can generate API keys
 - [ ] API key shown in full only once at creation (user must copy immediately)
 - [ ] User can view list of active API keys with creation date, last used date, and name
@@ -95,6 +101,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 - [ ] User can name API keys (e.g., "Excel - Finance Laptop", "John's Analysis")
 
 **Example Workflow**:
+
 1. Owner navigates to Workspace Settings → API Keys
 2. Sees list: "Excel - Finance Laptop (created 2024-01-15, last used 2 hours ago)"
 3. Clicks "Generate New API Key"
@@ -110,12 +117,14 @@ YoFi users who perform advanced financial analysis need their transaction data i
 **So that** I know what data I can pull into Excel
 
 **Acceptance Criteria**:
+
 - [ ] API provides endpoint listing available report types
 - [ ] Each report includes name, description, and example URL
 - [ ] User can test API endpoints with sample date ranges
 - [ ] Error messages clearly explain what went wrong (invalid dates, unauthorized, etc.)
 
 **Example Workflow**:
+
 1. User queries: `GET /api/tenant/{id}/reports/available`
 2. Receives list of reports:
    - Spending by Category (aggregated spending grouped by category)
@@ -132,6 +141,7 @@ YoFi users who perform advanced financial analysis need their transaction data i
 All report endpoints MUST return **array of objects** format where each object represents one table row:
 
 **✅ REQUIRED Format:**
+
 ```json
 [
   {
@@ -156,6 +166,7 @@ All report endpoints MUST return **array of objects** format where each object r
 ```
 
 **Why This Format**:
+
 - Each JSON object becomes one Excel row automatically
 - Object keys become column headers
 - Numbers, dates, and strings are correctly typed
@@ -163,6 +174,7 @@ All report endpoints MUST return **array of objects** format where each object r
 - No complex Power Query transformations required
 
 **❌ PROHIBITED Formats:**
+
 - Nested objects (requires flattening)
 - Separate arrays for columns (requires complex transformations)
 - Object-of-objects with keys as data (cannot easily convert to rows)
@@ -171,16 +183,19 @@ All report endpoints MUST return **array of objects** format where each object r
 ### Data Type Requirements
 
 **Numeric Values:**
+
 - Use `decimal` for currency (amount, balance)
 - Use `int` for counts (transactionCount, categoryCount)
 - Never use strings for numeric values
 
 **Dates:**
+
 - Use ISO 8601 format: `"2024-01-15"` for dates
 - Use ISO 8601 with timezone: `"2024-01-15T10:30:00Z"` for timestamps
 - Excel auto-recognizes these formats
 
 **Column Naming:**
+
 - Use camelCase for JSON property names: `percentTotal`, `transactionCount`
 - Excel users can rename columns in Power Query if desired
 - Keep names concise and descriptive
@@ -188,12 +203,14 @@ All report endpoints MUST return **array of objects** format where each object r
 ### Example Report Response
 
 **Request:**
+
 ```
 GET /api/tenant/abc-123-def/reports/spending/by-category?fromDate=2024-01-01&toDate=2024-12-31
 Authorization: Bearer yofi_user_9f8e7d6c5b4a3210
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -226,35 +243,38 @@ Content-Type: application/json
 
 ### Data Access
 
-5. **Workspace Isolation** - Report data is strictly isolated by workspace. Users cannot access data from workspaces they don't belong to, even with valid API key. Returns 403 Forbidden.
+1. **Workspace Isolation** - Report data is strictly isolated by workspace. Users cannot access data from workspaces they don't belong to, even with valid API key. Returns 403 Forbidden.
 
-6. **Date Range Filtering** - Reports require date range parameters (fromDate, toDate). No default "all time" queries to prevent accidentally loading large datasets in Excel.
+2. **Date Range Filtering** - Reports require date range parameters (fromDate, toDate). No default "all time" queries to prevent accidentally loading large datasets in Excel.
 
-7. **No Personal Data in Reports** - Aggregated reports do not expose personally identifiable information (PII) like email addresses or usernames. Only financial data and category names.
+3. **No Personal Data in Reports** - Aggregated reports do not expose personally identifiable information (PII) like email addresses or usernames. Only financial data and category names.
 
 ### Excel Integration
 
-8. **Stable URLs** - Report endpoint URLs and parameters must remain stable. Breaking changes require deprecation period and API versioning.
+1. **Stable URLs** - Report endpoint URLs and parameters must remain stable. Breaking changes require deprecation period and API versioning.
 
-9. **Response Performance** - Report endpoints should respond within 5 seconds for typical date ranges (1 year of data). Larger ranges may require pagination in future.
+2. **Response Performance** - Report endpoints should respond within 5 seconds for typical date ranges (1 year of data). Larger ranges may require pagination in future.
 
-10. **Error Clarity** - All errors return standard ProblemDetails JSON with clear messages suitable for Excel users (not just developers).
+3. **Error Clarity** - All errors return standard ProblemDetails JSON with clear messages suitable for Excel users (not just developers).
 
 ---
 
 ## Success Metrics
 
 **Adoption Metrics:**
+
 - Number of users who generate API keys (target: 10% of active users within 3 months)
 - Number of users who make API requests per month (indicates active Excel usage): 10%
 - Number of workspaces accessed via API: 10%
 
 **Quality Metrics:**
+
 - API endpoint response time (target: < 2 seconds for P95)
 - API error rate (target: < 1% excluding user errors like 401/403)
 - No security incidents related to compromised API keys
 
 **User Satisfaction:**
+
 - Positive feedback on Excel integration from beta users
 - Support tickets related to API access (target: < 5% of total tickets)
 
@@ -273,6 +293,7 @@ Content-Type: application/json
 ## Dependencies & Constraints
 
 **Dependencies:**
+
 - **Reports Feature (PREREQUISITE)** - This Export API feature depends on the Reports feature being implemented FIRST
   - See [`PRD-REPORTS.md`](PRD-REPORTS.md) for the prerequisite Reports feature specification
   - Reports feature will provide the aggregation logic (spending by category, monthly spending, etc.)
@@ -282,12 +303,14 @@ Content-Type: application/json
 - Existing multi-tenant authorization system ([`TenantRoleHandler`](../../src/Controllers/Tenancy/Authorization/TenantRoleHandler.cs)) - Already implemented for tenant-scoped access control
 
 **Constraints:**
+
 - Excel Power Query limitations (only Bearer token auth, no complex OAuth flows)
 - Response size limits (Excel struggles with 100K+ rows, may need pagination)
 - No offline support (Excel requires internet connection to refresh data)
 - Performance impact: Report queries hit production database (consider caching or read replicas)
 
 **Technical Constraints:**
+
 - Must work with Excel 2016+ (desktop) and Microsoft 365 (desktop)
 - Excel desktop: No CORS issues (native HTTP client, not browser-based)
 - Excel Web (browser-based): **OUT OF SCOPE** - Power Query not fully supported in Excel Web, users must use desktop Excel
@@ -298,6 +321,7 @@ Content-Type: application/json
 ## Implementation Scope
 
 **Layers Affected**:
+
 - [x] Frontend (Vue/Nuxt) - API key management UI (create, list, revoke keys)
 - [x] Controllers (API endpoints) - ReportsController (report data), ApiKeysController (key management)
 - [x] Application (Features/Business logic) - ReportsFeature (report generation), ApiKeyFeature (key CRUD), ApiKeyService (validation/hashing)
@@ -310,18 +334,21 @@ Content-Type: application/json
 
 **Why Excel vs Other Export Formats:**
 Excel is the dominant tool for financial analysis among YoFi's target users (small business owners, household finance managers). While CSV export is simpler technically, it lacks:
+
 - Auto-refresh capabilities
 - Direct connection to live data
 - Type-safe data handling
 - Built-in analytics (pivots, charts)
 
 **Competitive Analysis:**
+
 - Mint: No API access (data locked in app)
 - YNAB: API available but requires OAuth, complex for Excel users
 - Personal Capital: Dashboard-only, no data export
 - Opportunity: YoFi can differentiate with easy Excel integration
 
 **Related Documents:**
+
 - [`PRD-REPORTS.md`](PRD-REPORTS.md) - **PREREQUISITE**: Reports feature that must be implemented first
 - [`EXCEL-INTEGRATION-ARCHITECTURE.md`](EXCEL-INTEGRATION-ARCHITECTURE.md) - Detailed technical design (API key format, authentication flow, implementation details)
 
@@ -342,6 +369,7 @@ Excel is the dominant tool for financial analysis among YoFi's target users (sma
 ## Document Status
 
 The PRD is **ready for approval** with:
+
 - ✅ Clear problem statement and user stories
 - ✅ Explicit data format requirements for Excel compatibility
 - ✅ All open questions resolved

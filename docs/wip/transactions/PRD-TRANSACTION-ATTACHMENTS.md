@@ -1,8 +1,7 @@
 ---
 status: Approved
-owner: James Coliz
 target_release: Beta 3
-ado: [Link to ADO Item]
+ado: Feature 2209
 ---
 
 # Product Requirements Document: Transaction Receipts
@@ -16,12 +15,14 @@ Users have receipts and invoices related to transactions that they need to retai
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Enable users to retain receipts and invoices with minimal friction
 - [ ] Automatically match receipts to transactions when possible (filename-based matching)
 - [ ] Support "inbox zero" workflow for unmatched receipts
 - [ ] Allow direct receipt upload when transaction is known
 
 ### Non-Goals
+
 - ❌ OCR/text extraction from receipts
 - ❌ In-app preview/viewing of receipts (download only)
 - ❌ Receipt editing/annotation
@@ -74,11 +75,13 @@ flowchart TD
 ## Functional Stories
 
 ### Story 1: Direct Receipt Upload
+
 **As a** User
 **I want** to directly attach a receipt to a transaction
 **So that** I can retain documentation immediately when I know which transaction it belongs to
 
 **Acceptance Criteria**:
+
 - [ ] From transaction details page "Receipt" subsection, user can upload a file
 - [ ] User can download the receipt from transaction details page
 - [ ] User can download the receipt from transactions list page (download icon is the only indicator of receipt existence)
@@ -86,11 +89,13 @@ flowchart TD
 - [ ] Upload control is hidden after a receipt is uploaded (only one receipt per transaction)
 
 ### Story 2: Receipts Inbox for Bulk Upload
+
 **As a** User
 **I want** to upload multiple receipts before knowing which transactions they belong to
 **So that** I don't lose receipts while waiting for bank imports or manual transaction entry
 
 **Acceptance Criteria - Upload**:
+
 - [ ] User can access a dedicated "Receipts Inbox" page
 - [ ] User can upload multiple files simultaneously
 - [ ] If one upload fails, the remaining files continue to process
@@ -98,6 +103,7 @@ flowchart TD
 - [ ] Failed uploads must be explicitly re-uploaded through normal flow
 
 **Acceptance Criteria - Inbox Management**:
+
 - [ ] User can view all **unmatched** receipts in the inbox (matched receipts are removed)
 - [ ] Inbox shows count of receipts needing attention
 - [ ] User can download any receipt from inbox
@@ -107,11 +113,13 @@ flowchart TD
 - [ ] When inbox is empty, user sees "Inbox Zero" empty state with encouragement
 
 ### Story 3: Automatic Matching Suggestions
+
 **As a** User
 **I want** the system to suggest which inbox receipts match which transactions
 **So that** I can quickly match receipts without manual searching
 
 **Acceptance Criteria - From Receipts Inbox**:
+
 - [ ] When viewing receipts inbox, matching state is computed and displayed for each receipt
 - [ ] If system finds a single high-confidence match, a "Match" button is shown with transaction preview (date, payee, amount)
 - [ ] Clicking "Match" button immediately attaches to the matched transaction, **removes receipt from inbox**, and shows toast notification with link to transaction
@@ -121,6 +129,7 @@ flowchart TD
 - [ ] If no matches found, no button is shown (user can manually attach via transaction details or delete)
 
 **Acceptance Criteria - From Transaction Details Page**:
+
 - [ ] In "Receipt" subsection, if potential inbox matches exist, additional text and "Match" or "Assign" button are shown
 - [ ] Uses same confidence logic as Receipts Inbox to determine which button to show
 - [ ] Shows preview of matched receipt filename
@@ -132,11 +141,13 @@ flowchart TD
 - [ ] After successful matching, the potential matches affordance is removed/hidden
 
 ### Story 4: Manual Match Review
+
 **As a** User
 **I want** to review and select from multiple potential transaction matches
 **So that** I can confidently assign the receipt to the correct transaction
 
 **Acceptance Criteria**:
+
 - [ ] Page displays the inbox receipt details (filename, size, file type, preview thumbnail if supported)
 - [ ] Page shows list of potential matching transactions, ordered by match confidence
 - [ ] Confidence score is not displayed to user (only affects ordering)
@@ -152,6 +163,7 @@ flowchart TD
 ## System Requirements
 
 ### File Handling
+
 - [ ] Supported file types: PDF, PNG, JPG (described to users as "receipts and invoices")
 - [ ] Maximum file size: 7MB
 - [ ] Upload progress indication (loading state shown during upload)
@@ -159,6 +171,7 @@ flowchart TD
 - [ ] Only one receipt allowed per transaction
 
 ### Receipt Lifecycle (Inbox Zero Model)
+
 - [ ] Receipts inbox shows only **unmatched** receipts
 - [ ] When a receipt is matched to a transaction, it is **immediately removed from the inbox**
 - [ ] Matched receipts live with their transactions (accessible from transaction details or transactions list)
@@ -166,16 +179,19 @@ flowchart TD
 - [ ] Future consideration: Add "Receipts Archive" page for browsing all matched receipts (V2)
 
 ### Tenant Scoping & Security
+
 - [ ] All receipts (inbox and matched) are tenant-scoped
 - [ ] All users in a tenant can view and manage all receipts in that tenant
 - [ ] All users in a tenant can view and manage all inbox receipts in that tenant
 
 ### Race Condition Handling
+
 - [ ] If two users attempt to match the same inbox receipt simultaneously, the second user receives a toast error notification
 - [ ] No data loss occurs in race condition scenarios
 - [ ] User can retry the operation after receiving race condition error
 
 ### Matching Algorithm
+
 - [ ] Matching state is computed when receipts inbox is fetched (if performance becomes an issue, will switch to stored state with periodic updates)
 - [ ] Algorithm determines "high confidence" vs "low confidence" matches to decide between "Match" and "Assign" buttons
 - [ ] Date is required in filename to enable matching
@@ -189,6 +205,7 @@ flowchart TD
 ## Technical Approach
 
 **Layers Affected**:
+
 - [x] **Frontend (Vue/Nuxt)** - New pages: Receipts Inbox, Match Review; Modified pages: Transaction Details, Transactions List
 - [x] **Controllers (API endpoints)** - New AttachmentsController for CRUD operations, matching, and file upload/download
 - [x] **Application (Features/Business logic)** - New AttachmentsFeature for matching algorithm, file storage, and receipt lifecycle management
@@ -204,7 +221,7 @@ flowchart TD
 The filename is parsed into **whitespace-separated terms**. Each term is evaluated for special patterns:
 
 | Pattern | Interpretation | Example |
-|---------|---------------|---------|
+| --------- | --------------- | --------- |
 | `$#` or `$#.##` | Amount | `$25.00`, `$49.99` |
 | `##-##` or `##-##-##` | Date (MM-DD or YYYY-MM-DD) | `01-15`, `2024-01-15` |
 | `(xxx)` | Memo | `(refund)`, `(weekly shopping)` |
@@ -212,11 +229,13 @@ The filename is parsed into **whitespace-separated terms**. Each term is evaluat
 | Second non-special term | Category (hyphens become colons) | `Groceries-Food` → `Groceries:Food` |
 
 **Date Inference**: For 2-digit dates (MM-DD), the year is inferred as the closest year to the current date.
+
 - Example: If current date is 2026-01-05:
   - `12-28` → 2025-12-28 (28 days prior is closer than 337 days future)
   - `1-10` → 2026-01-10 (5 days future is closer than 360 days prior)
 
 **Amount Handling**: Amounts are compared using **absolute values**. Negative amounts (refunds) are matched against their absolute transaction amount.
+
 - `$25.00` matches transaction amount `$25.00` or `-$25.00`
 
 #### Matching Criteria
@@ -224,7 +243,7 @@ The filename is parsed into **whitespace-separated terms**. Each term is evaluat
 Each receipt-transaction pair is evaluated on three criteria:
 
 | Criterion | High Match | Medium Match | No Match |
-|-----------|------------|--------------|----------|
+| ----------- | ------------ | -------------- | ---------- |
 | **Date** | Within ±7 days | Within ±21 days (but >7 days) | >21 days or missing |
 | **Amount** | Exact match (absolute value) | ±10% tolerance | >10% difference or missing |
 | **Payee** | Receipt term is case-insensitive substring of transaction payee | Same as High | Receipt term not in payee or missing |
@@ -234,7 +253,7 @@ Each receipt-transaction pair is evaluated on three criteria:
 #### Confidence Levels
 
 | Confidence | Definition | UI Button | Behavior |
-|------------|-----------|-----------|----------|
+| ------------ | ----------- | ----------- | ---------- |
 | **High** | All 3 criteria match HIGH | "Match" | One-click attach (only if single match) |
 | **Medium** | At least 2 criteria match MEDIUM or higher | "Assign" | Show review page |
 | **None** | Less than 2 criteria match | No button | User must manually attach |
@@ -244,7 +263,7 @@ Each receipt-transaction pair is evaluated on three criteria:
 #### Matching Comparison Table
 
 | Receipt Data | Transaction Data | Match Result | Reason |
-|--------------|------------------|--------------|--------|
+| -------------- | ------------------ | -------------- | -------- |
 | Date: 2024-01-15 | Date: 2024-01-15 | HIGH | Exact match (0 days) |
 | Date: 2024-01-14 | Date: 2024-01-15 | HIGH | 1 day (within ±7) |
 | Date: 2024-01-10 | Date: 2024-01-15 | HIGH | 5 days (within ±7) |
@@ -267,6 +286,7 @@ Category and memo extracted from the filename are **not used for matching**. Aft
 #### Examples
 
 **Example 1: Perfect High-Confidence Match**
+
 ```
 Filename: 2024-01-15 Costco $25.00.pdf
 Transaction: Date=2024-01-15, Payee="Costco", Amount=$25.00
@@ -280,6 +300,7 @@ Result: High confidence → "Match" button
 ```
 
 **Example 2: Medium Confidence (Date Outside ±7 Days)**
+
 ```
 Filename: 2024-01-01 Amazon $49.99.pdf
 Transaction: Date=2024-01-15, Payee="Amazon", Amount=$49.99
@@ -293,6 +314,7 @@ Result: Medium confidence (not all HIGH) → "Assign" button
 ```
 
 **Example 3: Medium Confidence (Missing Amount)**
+
 ```
 Filename: 2024-01-15 Costco.pdf
 Transaction: Date=2024-01-15, Payee="Costco", Amount=$25.00
@@ -307,6 +329,7 @@ Note: Cannot achieve high confidence without amount
 ```
 
 **Example 4: Partial Payee Match**
+
 ```
 Filename: 2024-01-15 Cost $25.00.pdf
 Transaction: Date=2024-01-15, Payee="Costco Wholesale #123", Amount=$25.00
@@ -320,6 +343,7 @@ Result: High confidence → "Match" button
 ```
 
 **Example 5: Category and Memo Application**
+
 ```
 Filename: 2024-01-15 Costco Groceries-Food (weekly shopping) $125.50.pdf
 Transaction: Date=2024-01-15, Payee="Costco", Amount=$125.50, Category=null, Memo=null
@@ -334,6 +358,7 @@ After match:
 ```
 
 **Example 6: Amount Tolerance (±10%)**
+
 ```
 Filename: 2024-01-15 Shell $45.00.pdf
 Transaction: Date=2024-01-15, Payee="Shell Gas Station", Amount=$48.00
@@ -348,6 +373,7 @@ Reason: Amount within tolerance but not exact (credit card fee, tip, or rounding
 ```
 
 **Example 7: Refund (Negative Amount)**
+
 ```
 Filename: 2024-01-15 Costco $25.00.pdf
 Transaction: Date=2024-01-15, Payee="Costco", Amount=-$25.00
@@ -362,6 +388,7 @@ Note: Amounts compared using absolute values
 ```
 
 **Example 8: Multiple Medium Matches**
+
 ```
 Filename: 2024-01-15 Costco.pdf
 
@@ -382,6 +409,7 @@ Review page shows all 3 transactions ordered by confidence
 ```
 
 **Example 9: Multiple High-Confidence Matches**
+
 ```
 Filename: 2024-01-15 Costco $25.00.pdf
 
@@ -399,6 +427,7 @@ Note: "Match" button only shown for single high-confidence match
 ```
 
 **Example 10: Year Inference**
+
 ```
 Current date: 2026-01-05
 Filename: 12-28 Amazon $49.99.pdf
@@ -409,17 +438,20 @@ Result: High confidence → "Match" button
 ```
 
 **Storage Strategy**:
+
 - **Production**: Receipt files stored in Azure Storage Account blob container
 - **Container**: Receipt files stored in container file system (mount local volume if needed for functional tests)
 - **Development**: Receipt files stored in local file system
 
 **API Design Considerations**:
+
 - API endpoints use "attachments" terminology for technical accuracy
 - Frontend UI uses "receipts" terminology for user clarity
 
 **High-Level Entity Concepts**:
 
 **Attachment Entity** (new):
+
 - Id (Guid - unique identifier)
 - TenantId (Guid - tenant scope)
 - TransactionId (Guid? - null when in inbox, set when matched)
@@ -433,15 +465,18 @@ Result: High confidence → "Match" button
 - MatchedByUserId (Guid? - null when in inbox)
 
 **Transaction Entity** (modified):
+
 - Add: AttachmentId (Guid? - foreign key to Attachment, null if no receipt)
 
 **Key Business Rules**:
+
 1. **Inbox Zero Principle**: Receipts inbox only shows unmatched receipts. Matched receipts are removed from inbox and live with transactions.
 2. **One Receipt Per Transaction**: Users can attach only one receipt to a transaction. To change receipts, delete existing then upload new.
 3. **Race Condition Handling**: If two users match the same inbox receipt simultaneously, one succeeds and one receives a toast error. Rare occurrence handled with minimal complexity.
 4. **Matching Confidence**: Algorithm favors precision over recall. Better to require user review ("Assign") than suggest wrong match ("Match").
 
 **Code Patterns to Follow**:
+
 - Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
 - CRUD operations: [`TransactionsController.cs`](../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
@@ -468,16 +503,19 @@ Result: High confidence → "Match" button
 ## Success Metrics
 
 **Adoption Metrics**:
+
 - % of transactions with receipts attached (target: 20% in first 3 months)
 - % of users who upload at least one receipt (target: 40% in first 3 months)
 - Average receipts inbox count per user (target: <5, indicating healthy "inbox zero" behavior)
 
 **Effectiveness Metrics**:
+
 - % of inbox receipts successfully matched (target: >70%)
 - % of "Match" suggestions accepted (target: >85%, validates confidence algorithm)
 - % of receipts deleted from inbox without matching (low is good - indicates receipts are valuable)
 
 **Efficiency Metrics**:
+
 - Average time from upload to match (target: <2 days for automatic, <7 days for manual)
 - % of matches requiring manual review page (target: <30%, indicates good confidence threshold)
 
@@ -486,12 +524,14 @@ Result: High confidence → "Match" button
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Azure Storage Account provisioning (production)
 - File upload library with multipart form data support
 - Blob storage client library (Azure SDK)
 - File system access (local dev and container)
 
 **Constraints**:
+
 - 7MB maximum file size (balances usability with storage costs)
 - PDF, PNG, JPG only (most common receipt formats)
 - Single receipt per transaction (simplifies UX and data model)
@@ -502,20 +542,23 @@ Result: High confidence → "Match" button
 ## Notes & Context
 
 **Design Rationale**:
+
 - **"Receipts" vs "Attachments"**: User-facing terminology uses "receipts" (clearer purpose) while technical/API uses "attachments" (accurate and flexible).
 - **Inbox Zero Model**: Receipts depart inbox when matched, creating clear to-do list and sense of accomplishment. Matched receipts live with transactions.
 - **No Archive in V1**: Defers complexity of browsing all receipts. Users can search transactions to find receipts. Archive page may be added in V2 if user feedback indicates need.
 - **Match vs Assign**: Two-button approach balances automation (one-click match) with user control (review multiple options). Confidence threshold heavily favors precision to avoid annoying users with wrong suggestions.
 
 **Related Documents**:
+
 - [Companion Design Document - TBD]
 - [Matching Algorithm Specification - TBD]
 
 **Future Considerations** (V2+):
+
 - Receipts Archive page for browsing all matched receipts
 - Multiple receipts per transaction
 - Receipt preview/viewing in-app
-- Email-to-inbox (receipts@yofi.app)
+- Email-to-inbox (<receipts@yofi.app>)
 - Mobile camera capture with enhanced UX
 - Auto-archive receipts >90 days in inbox
 
@@ -524,6 +567,7 @@ Result: High confidence → "Match" button
 ## Handoff Checklist (for AI implementation)
 
 When handing this off for detailed design/implementation:
+
 - [x] Document stays within PRD scope (WHAT/WHY). Technical details included but clearly marked in Technical Approach section.
 - [x] All user stories have clear acceptance criteria (4 stories with detailed criteria)
 - [x] Open questions are resolved or documented as design decisions (6 questions all marked [x] with answers)
@@ -533,6 +577,7 @@ When handing this off for detailed design/implementation:
 **PRD Readiness Assessment**: ✅ **READY FOR IMPLEMENTATION**
 
 **Key Strengths**:
+
 - Complete inbox zero model with clear lifecycle rules
 - Comprehensive matching algorithm with 10 examples
 - Well-defined confidence levels (High/Medium/None)
@@ -540,6 +585,7 @@ When handing this off for detailed design/implementation:
 - Success metrics defined with concrete targets
 
 **Implementation Priority**:
+
 1. Core entities and database schema (Attachment, Transaction FK)
 2. Storage infrastructure (Azure Blob, file system)
 3. Upload/download APIs (AttachmentsController)

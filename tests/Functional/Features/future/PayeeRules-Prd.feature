@@ -9,7 +9,7 @@ Feature: Payee Matching Rules
     And I have an active workspace "My Finances"
     And I am logged into my existing account
 
-  @story:1
+  @story:2211
   Rule: Users can establish and manage payee matching rules
 
     @pri:1
@@ -162,7 +162,7 @@ Feature: Payee Matching Rules
         | Coffee Shop | "  Coffee : Beverages  " |
       Then I should see the rule with category "Coffee:Beverages"
 
-  @story:1
+  @story:2211
   Rule: Users with different roles have different permissions for payee rules
 
     @pri:2
@@ -198,7 +198,7 @@ Feature: Payee Matching Rules
       Then I should see a permission error message
       And I should not be able to proceed
 
-  @story:1
+  @story:2211
   Rule: Payee rules are scoped to the tenant
 
     @pri:2
@@ -224,7 +224,7 @@ Feature: Payee Matching Rules
       And I view my payee rules
       Then I should see the rule for "Shared Rule"
 
-  @story:2
+  @story:2212
   Rule: Transactions are automatically categorized on bank import
 
     @pri:1
@@ -303,7 +303,7 @@ Feature: Payee Matching Rules
       And I view my transactions
       Then the transaction should have category "Gas & Fuel"
 
-  @story:2
+  @story:2212
   Rule: Matching rules handle conflicts with defined precedence
 
     @pri:2
@@ -357,7 +357,7 @@ Feature: Payee Matching Rules
         | SHELL #1234 | Gas      |
         | SHELL STORE |          |
 
-  @story:2
+  @story:2212
   Rule: Payee matching is case-insensitive
 
     @pri:2
@@ -386,7 +386,7 @@ Feature: Payee Matching Rules
         | 2024-01-17 | shell #1234   | -38.00 |
       Then all transactions should have category "Gas"
 
-  @story:2
+  @story:2212
   Rule: Transactions already imported are not affected by new rules
 
     @pri:4
@@ -402,7 +402,7 @@ Feature: Payee Matching Rules
       Then the existing transactions should still have no category
       And only newly imported transactions should be categorized
 
-  @story:2
+  @story:2212
   Rule: Import with payee rules respects tenant isolation
 
     @pri:3
