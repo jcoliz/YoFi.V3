@@ -104,6 +104,12 @@ Feature: Payee Matching Rules
         | Shell    |
         | Gas Mart |
 
+    # NOTE: "I have a transaction:" will need to expect an existing workspace, which I set up
+    # above in "I have an active workspace "My Finances""
+
+    # NOTE: I prefer this form of transaction construction where the columns are the fields of
+    # the object being created, so I can construct multiple of them, one per line.
+
     @pri:2
     @id:9
     Scenario: User creates rule from existing transaction
@@ -164,6 +170,9 @@ Feature: Payee Matching Rules
 
   @story:2211
   Rule: Users with different roles have different permissions for payee rules
+
+    # NOTE: "[Given] I switched to user {name}" will need to be added as a new form
+    # on "[When] I switch to user {name}"
 
     @pri:2
     @id:15
@@ -279,6 +288,10 @@ Feature: Payee Matching Rules
         | 2024-01-15 | Random Vendor | -25.00 |
       Then the imported transaction should not have a category
 
+
+    # NOTE: I like "I view the import review" as an alias for "I am on the Import Review page".
+    # It's more BDD like. Maybe even "I review my pending import"
+
     @pri:3
     @id:24
     Scenario: User cannot edit category in import review
@@ -289,6 +302,9 @@ Feature: Payee Matching Rules
       When I view the import review
       Then the category field should be read-only
       And I should not be able to change the category
+
+    # NOTE: I like "I view my transactions" as an alias for "I navigate to the Transactions page",
+    # because it's more BDD.
 
     @pri:1
     @id:25
