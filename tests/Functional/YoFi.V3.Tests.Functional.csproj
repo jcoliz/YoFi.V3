@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <AdditionalFiles Include="Features\*.feature" />
-    <AdditionalFiles Include="Features\Default.mustache" />
   </ItemGroup>
 
   <ItemGroup>
