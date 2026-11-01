@@ -21,9 +21,8 @@ Background:
 Rule: Editing a transaction
     Scenario: User updates a transaction memo
         Given I have a workspace with a transaction:
-            | Field | Value        |
-            | Payee | Coffee Shop  |
-            | Memo  | Morning brew |
+            | Payee       | Memo         |
+            | Coffee Shop | Morning brew |
         And I am on the transactions page
         When I quick edit the transaction
         And I change Memo to "Coffee with Alex"
@@ -39,8 +38,8 @@ assertions have begun; split distinct behaviors into separate scenarios.
 - Describe outcomes and user intent. Avoid exposing implementation details such as HTTP calls,
   database tables, or how the test creates its data.
 - Keep each scenario focused on one behavior and make important expected results explicit.
-- Use a Gherkin data table for structured test input. For transaction data, the existing steps take
-  `Field`/`Value` tables or a table with explicit external IDs; see [Test Control](TEST-CONTROLS.md).
+- Use a Gherkin data table for structured test input. Transaction setup steps use one transaction
+  per row; see [Test Control](TEST-CONTROLS.md).
 - Use scenario outlines only when the examples genuinely exercise the same behavior with different
   inputs.
 - Prefer existing step phrases. Search the step catalog generated into the test output directory

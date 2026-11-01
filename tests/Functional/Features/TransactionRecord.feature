@@ -12,11 +12,8 @@ Rule: Quick Edit Modal
 
     Scenario: Quick edit modal shows Payee, Category, and Memo fields
         Given I have a workspace with a transaction:
-            | Field    | Value           |
-            | Payee    | Coffee Shop     |
-            | Amount   | 5.50            |
-            | Category | Beverages       |
-            | Memo     | Morning coffee  |
+            | Payee       | Amount | Category  | Memo          |
+            | Coffee Shop | 5.50   | Beverages | Morning coffee |
         And I am on the transactions page
         When I click the "Edit" button on the transaction
         Then I should see a modal titled "Quick Edit Transaction"
@@ -26,12 +23,8 @@ Rule: Quick Edit Modal
 
     Scenario: User updates Memo via quick edit modal
         Given I have a workspace with a transaction:
-            | Field      | Value          |
-            | Payee      | Coffee Co      |
-            | Amount     | -5.50          |
-            | Memo       | Morning latte  |
-            | Source     | Chase Checking |
-            | ExternalId | CHK-001        |
+            | Payee     | Amount | Memo          | Source         | ExternalId |
+            | Coffee Co | -5.50  | Morning latte | Chase Checking | CHK-001    |
         And I am on the transactions page
         When I quick edit the transaction
         And I change Memo to "Large latte with extra shot"
@@ -41,10 +34,8 @@ Rule: Quick Edit Modal
 
     Scenario: User edits category via quick edit and sees it in list
         Given I have a workspace with a transaction:
-            | Field    | Value       |
-            | Payee    | Grocery Co  |
-            | Amount   | -45.67      |
-            | Category | Food        |
+            | Payee      | Amount | Category |
+            | Grocery Co | -45.67 | Food     |
         And I am on the transactions page
         When I quick edit the transaction
         And I change Category to "Groceries"
@@ -57,10 +48,8 @@ Rule: Transaction Details Page
 
     Scenario: Transaction details page displays category
         Given I have a workspace with a transaction:
-            | Field    | Value          |
-            | Payee    | Restaurant XYZ |
-            | Amount   | -32.50         |
-            | Category | Dining         |
+            | Payee          | Amount | Category |
+            | Restaurant XYZ | -32.50 | Dining   |
         And I am on the transactions page
         When I click on the transaction row
         Then I should navigate to the transaction details page
@@ -68,12 +57,8 @@ Rule: Transaction Details Page
 
     Scenario: User navigates from transaction list to details page
         Given I have a workspace with a transaction:
-            | Field      | Value          |
-            | Payee      | Gas Mart       |
-            | Amount     | -40.00         |
-            | Memo       | Fuel up        |
-            | Source     | Chase Checking |
-            | ExternalId | CHK-002        |
+            | Payee    | Amount | Memo    | Source         | ExternalId |
+            | Gas Mart | -40.00 | Fuel up | Chase Checking | CHK-002    |
         And I am on the transactions page
         When I click on the transaction row
         Then I should navigate to the transaction details page
@@ -83,12 +68,8 @@ Rule: Transaction Details Page
 
     Scenario: User edits all fields on transaction details page
         Given I am viewing the details page for a transaction with:
-            | Field      | Value          |
-            | Payee      | Gas Mart       |
-            | Amount     | -40.00         |
-            | Memo       | Fuel up        |
-            | Source     | Chase Checking |
-            | ExternalId | CHK-002        |
+            | Payee    | Amount | Memo    | Source         | ExternalId |
+            | Gas Mart | -40.00 | Fuel up | Chase Checking | CHK-002    |
         When I click the "Edit" button
         And I change Source to "Chase Visa"
         And I change ExternalId to "VISA-123"
@@ -99,10 +80,8 @@ Rule: Transaction Details Page
 
     Scenario: User edits category on transaction details page
         Given I am viewing the details page for a transaction with:
-            | Field    | Value      |
-            | Payee    | Hardware   |
-            | Amount   | -89.99     |
-            | Category | Tools      |
+            | Payee    | Amount | Category |
+            | Hardware | -89.99 | Tools    |
         When I click the "Edit" button
         And I change Category to "Home Improvement"
         And I click "Save"

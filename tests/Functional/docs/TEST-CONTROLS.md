@@ -37,22 +37,18 @@ The endpoint is:
 POST /testcontrol/users/{username}/workspaces/{tenantKey}/transactions/seed-precise
 ```
 
-### One transaction
+### Transactions
 
-`TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction` accepts a Gherkin `Field`/`Value` table
-and uses the precise seed endpoint. It stores the returned transaction values and key for later
-steps. `Payee` is required; the step defaults `Amount` to `100.00`, and sets `Date` to the current
-UTC time.
+`TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction` accepts one transaction per table row
+and uses the precise seed endpoint to seed them in one request. `Payee` is required; `Amount`
+defaults to `100.00`, and `Date` is set to the current UTC time. The step stores the first returned
+transaction's values and key for later steps that verify or navigate to one transaction.
 
 ```gherkin
 Given I have a workspace with a transaction:
-    | Field    | Value          |
-    | Payee    | Coffee Shop    |
-    | Amount   | -5.50          |
-    | Category | Beverages      |
-    | Memo     | Morning coffee |
-    | Source   | Checking       |
-    | ExternalId | TX-1001      |
+    | Payee       | Amount | Category  | Memo           | Source   | ExternalId |
+    | Coffee Shop | -5.50  | Beverages | Morning coffee | Checking | TX-1001    |
+    | Book Store  | -12.00 | Books     |                | Checking | TX-1002    |
 ```
 
 ### Multiple transactions with exact dates and external IDs

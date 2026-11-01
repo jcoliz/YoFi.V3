@@ -88,18 +88,16 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// <summary>
     /// Seeds a transaction with specified fields into the current workspace.
     /// </summary>
-    /// <param name="transactionTable">DataTable with Field/Value columns containing transaction properties.</param>
+    /// <param name="transactionTable">DataTable with transaction fields as columns and one transaction per row.</param>
     /// <remarks>
     /// Parses transaction data from table, seeds via Test Control API, and stores transaction
     /// details in object store for later verification. Does NOT navigate to transactions page -
     /// use separate navigation step. Default amount is 100.00 if not specified.
     ///
-    /// Table format (Field/Value):
-    /// | Field    | Value           |
-    /// | Payee    | Coffee Shop     |
-    /// | Amount   | 5.50            |
-    /// | Category | Beverages       |
-    /// | Memo     | Morning coffee  |
+    /// Table format:
+    /// | Payee       | Amount | Category  | Memo           |
+    /// | Coffee Shop | 5.50   | Beverages | Morning coffee |
+    /// | Book Store  | 12.00  | Books     |                |
     ///
     /// Requires Objects
     /// - CurrentWorkspace
@@ -124,17 +122,29 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         ObjectStoreKeys.TransactionKey)]
     public async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
     {
-        // Given: Parse transaction data from table (Field/Value format)
-        var payee = transactionTable.GetKeyValue("Payee");
+        // Given: Parse transaction data from the table (one transaction per row)
+        var transactions = transactionTable.Rows.Select(row =>
+        {
+            string? GetValue(string column) =>
+                row.TryGetValue(column, out var value) ? value : null;
 
-        // And: Parse optional fields with defaults
-        transactionTable.TryGetKeyValue("Amount", out var amountStr);
-        var amount = decimal.Parse(amountStr ?? "100.00");
+            var amountValue = GetValue("Amount");
+            return new TransactionEditDto
+            {
+                Payee = GetValue("Payee")
+                    ?? throw new InvalidOperationException("Each transaction row must include a Payee."),
+                Amount = string.IsNullOrWhiteSpace(amountValue)
+                    ? 100.00m
+                    : decimal.Parse(amountValue, CultureInfo.InvariantCulture),
+                Memo = GetValue("Memo"),
+                Source = GetValue("Source"),
+                ExternalId = GetValue("ExternalId"),
+                Category = GetValue("Category"),
+                Date = DateTimeOffset.UtcNow
+            };
+        }).ToArray();
 
-        transactionTable.TryGetKeyValue("Memo", out var memo);
-        transactionTable.TryGetKeyValue("Source", out var source);
-        transactionTable.TryGetKeyValue("ExternalId", out var externalId);
-        transactionTable.TryGetKeyValue("Category", out var category);
+        Assert.That(transactions, Is.Not.Empty, "At least one transaction row is required.");
 
         // And: Get workspace context
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
@@ -145,33 +155,25 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
             ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
 
-        // And: Seed transaction via test control API with specific payee
-        var seedRequest = new TransactionEditDto
-        {
-            Payee = payee,
-            Memo = memo,
-            Source = source,
-            ExternalId = externalId,
-            Category = category,
-            Date = DateTimeOffset.UtcNow,
-            Amount = amount
-        };
-
+        // And: Seed transactions via test control API in a single bulk operation
         ICollection<TransactionResultDto>? seededTransactions = null;
         try
         {
             seededTransactions = await _context.TestControlClient.TestControl_SeedTransactionsPreciseAsync(
-                            loggedInUser,
-                            workspaceKey,
-                            new CollectionRequestOfTransactionEditDto { Items = new[] { seedRequest } }
-                    );
+                loggedInUser,
+                workspaceKey,
+                new CollectionRequestOfTransactionEditDto { Items = transactions }
+            );
         }
         catch (ApiException<ProblemDetails> ex)
         {
             Assert.Fail("Failed to seed transaction via Test Control API: " + ex.Result.Detail);
         }
 
-        // And: Get the actual seeded transaction data from the response
+        Assert.That(seededTransactions, Has.Count.EqualTo(transactions.Length),
+            $"Expected to seed {transactions.Length} transactions but seeded {seededTransactions!.Count}");
+
+        // Keep the first row available to existing steps that verify or navigate to one transaction.
         var seededTransaction = seededTransactions!.First();
         var actualPayee = seededTransaction.Payee;
         var actualAmount = seededTransaction.Amount;
@@ -183,14 +185,14 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionAmount, actualAmount.ToString("F2"));
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, actualCategory);
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionMemo, actualMemo);
-        if (!string.IsNullOrEmpty(source))
-            _context.ObjectStore.Add(ObjectStoreKeys.TransactionSource, source);
-        if (!string.IsNullOrEmpty(externalId))
-            _context.ObjectStore.Add(ObjectStoreKeys.TransactionExternalId, externalId);
+        if (!string.IsNullOrEmpty(transactions[0].Source))
+            _context.ObjectStore.Add(ObjectStoreKeys.TransactionSource, transactions[0].Source);
+        if (!string.IsNullOrEmpty(transactions[0].ExternalId))
+            _context.ObjectStore.Add(ObjectStoreKeys.TransactionExternalId, transactions[0].ExternalId);
 
         // And: Store the transaction key for later reference
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, seededTransaction.Key.ToString());
-        }
+    }
 
     /// <summary>
     /// Sets up a logged-in user with Editor role, creates a transaction, and navigates to its details page.
@@ -265,9 +267,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     {
         // Given: Create a basic transaction DataTable
         var table = new DataTable(
-            ["Field", "Value"],
-            ["Payee", "Test Transaction"],
-            ["Amount", "100.00"]
+            ["Payee", "Amount"],
+            ["Test Transaction", "100.00"]
         );
 
         // When: Use existing step to seed transaction and navigate to details page
@@ -375,4 +376,3 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             $"All uploaded transactions should appear in the transaction list, but missing: {string.Join(", ", missingPayees)}");
     }
 }
-
