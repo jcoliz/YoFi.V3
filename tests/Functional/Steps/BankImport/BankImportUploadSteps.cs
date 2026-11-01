@@ -32,6 +32,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     [Given("I have uploaded an OFX file with {count} new transactions")]
     [Given("I have uploaded an OFX file with {count} transactions")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileWithNewTransactions(int count)
     {
@@ -97,6 +98,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     [Given("I have uploaded an OFX file containing all the same transactions")]
     [RequiresObjects(ObjectStoreKeys.ExistingTransactions)]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
     {
@@ -153,6 +155,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     [When("I upload the OFX file")]
     [When("I upload the same OFX file again")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.OfxFilePath)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IUploadTheOFXFile()
     {

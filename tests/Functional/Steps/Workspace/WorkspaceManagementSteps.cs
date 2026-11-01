@@ -45,6 +45,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     [When("I create a new workspace called {name} for {description}")]
     [When("I create a workspace called {name}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides("CurrentWorkspace")]
     public async Task WhenICreateANewWorkspaceCalled(string name, string? description = null)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
@@ -88,6 +89,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// </remarks>
     [When("I view the details of {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides("CurrentWorkspace")]
     public async Task WhenIViewTheDetailsOf(string workspaceName)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
@@ -118,6 +120,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// </remarks>
     [When("I rename it to {newName}")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.NewWorkspaceName, ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIRenameItTo(string newName)
     {

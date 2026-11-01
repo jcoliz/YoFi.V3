@@ -173,6 +173,7 @@ public class AuthSteps(ITestContext _context)
     /// </remarks>
     [When("a new user {username} registers and logs in")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
+    [Provides("CurrentWorkspace")]
     public async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
         // Compose: Perform complete registration (navigate, enter, submit, continue)

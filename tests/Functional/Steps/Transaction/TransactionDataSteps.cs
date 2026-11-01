@@ -38,6 +38,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     [Given("I have existing transactions with external IDs:")]
     [Given("I have these exact transactions already:")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [Requires("CurrentWorkspace")]
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
@@ -114,6 +115,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(
         ObjectStoreKeys.TransactionPayee,
         ObjectStoreKeys.TransactionAmount,
@@ -256,6 +258,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [Given("I am viewing the details page for a transaction")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(
         ObjectStoreKeys.TransactionPayee,
         ObjectStoreKeys.TransactionAmount,
@@ -282,6 +285,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </summary>
     [Given("I have {count} existing transactions in my workspace")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys, ObjectStoreKeys.ExistingTransactions)]
     public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
     {

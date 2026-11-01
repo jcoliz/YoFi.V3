@@ -33,6 +33,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [Given("I am on the transactions page")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task IAmOnTheTransactionsPage()
     {
         // Given: Navigate to transactions page first
@@ -108,6 +109,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [When("I view transactions in {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides("CurrentWorkspace")]
     public async Task WhenIViewTransactionsIn(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

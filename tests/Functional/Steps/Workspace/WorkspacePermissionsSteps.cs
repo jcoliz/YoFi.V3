@@ -38,6 +38,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [When("I try to change the workspace name or description")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     [ProvidesObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
@@ -158,6 +159,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [Then("I can add, edit, and delete transactions")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task ThenICanAddEditAndDeleteTransactions()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -206,6 +208,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [Then("I can change workspace settings")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task ThenICanChangeWorkspaceSettings()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -229,6 +232,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [Then("I can remove the workspace if needed")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task ThenICanRemoveTheWorkspaceIfNeeded()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();

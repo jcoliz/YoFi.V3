@@ -42,6 +42,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("I am logged in as a user with \"Editor\" role")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides("CurrentWorkspace")]
     public async Task GivenIAmLoggedInAsAUserWithEditorRole()
     {
         // Given: Clear existing test data
@@ -90,6 +91,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("I have an active workspace {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides("CurrentWorkspace")]
     public async Task GivenIHaveAnActiveWorkspace(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -137,6 +139,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     [Given("{username} owns a workspace called {workspaceName}")]
     [Given("{username} owns {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
+    [Provides("CurrentWorkspace")]
     public async Task GivenUserOwnsAWorkspaceCalled(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -270,6 +273,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("{username} can edit data in {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
+    [Provides("CurrentWorkspace")]
     public async Task GivenUserCanEditDataIn(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -353,6 +357,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("{username} can view data in {workspaceName}")]
     [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
+    [Provides("CurrentWorkspace")]
     public async Task GivenUserCanViewDataIn(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);

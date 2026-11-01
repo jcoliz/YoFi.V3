@@ -101,6 +101,8 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// </remarks>
     [Then("I should be able to manage that workspace")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
+
     public async Task ThenIShouldBeAbleToManageThatWorkspace()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -190,6 +192,8 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// </remarks>
     [Then("I should see the workspace information")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
+
     public async Task ThenIShouldSeeTheWorkspaceInformation()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -213,6 +217,8 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// </remarks>
     [Then("I should see when it was created")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
+
     public async Task ThenIShouldSeeWhenItWasCreated()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();

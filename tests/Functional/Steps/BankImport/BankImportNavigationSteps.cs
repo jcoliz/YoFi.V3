@@ -29,6 +29,7 @@ public class BankImportNavigationSteps(ITestContext context) : BankImportStepsBa
     [When("I am on the Import Review page")]
     [When("I navigate to the Import page")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task IAmOnTheImportReviewPage()
     {
         // Given: Get workspace name

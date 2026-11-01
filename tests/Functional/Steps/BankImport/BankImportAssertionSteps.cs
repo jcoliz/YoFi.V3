@@ -81,6 +81,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     [Then("import review queue should be completely cleared")]
     [Then("import review queue should be empty")]
     [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires("CurrentWorkspace")]
     public async Task ImportReviewQueueShouldBeCompletelyCleared()
     {
         // Then: Navigate back to import page
