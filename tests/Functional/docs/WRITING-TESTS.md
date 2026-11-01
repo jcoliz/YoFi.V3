@@ -1,55 +1,34 @@
-# Handbook for writing YoFi.V3 functional test
+# Writing Functional Tests
 
-## Write test-ready code
+Use this checklist to take a scenario from intent to a passing browser test. The focused guides
+linked below are the detailed references.
 
-When creating front-end code, be sure to:
-- [_] Add `data-test-id` annotations to controls user will interact with, or use to check status
-- [_] Ensure one control per page is disabled until the page is ready, see [NUXT-SSR-TESTING-PATTERN](NUXT-SSR-TESTING-PATTERN.md)
+## Workflow
 
-## Plan good tests
+1. **Choose the right test layer.** Functional tests are for workflows where browser behavior is part
+   of what must be verified. See the [testing strategy](../../../docs/TESTING-STRATEGY.md).
+2. **Check for existing scenarios and steps.** Reuse the wording and definitions that already cover
+   the behavior rather than adding near-duplicates.
+3. **Write or update one Gherkin scenario.** Keep it about user-visible behavior and use a data table
+   when the scenario needs explicit input values. See [writing features](writing-features.md).
+4. **Build the functional test project.** `Gherkin.Generator` generates NUnit tests from the feature
+   files during the build. Do not edit generated files under `obj/`.
+5. **Implement any missing step definitions.** Put them in a focused domain class and use the Test
+   Control client for setup that does not need the browser. See [writing steps](writing-steps.md).
+6. **Add or update page/component methods as needed.** Keep locators, UI actions, and waits in page
+   or component objects. See [writing pages](writing-pages.md).
+7. **Run the scenario by itself and iterate until it passes.** Then run the feature's scenarios and
+   the broader functional suite as appropriate.
+8. **Review isolation and cleanup.** Tests must not depend on state left by another test.
 
-- [_] Review the testing strategy to ensure we're creating the right kinds of tests (TODO: link)
-- [_] Review existing test steps in Steps directory. Try to use existing steps where possible
-- [_] Always limit to a single when/then group (no `when` following `then`)
-- [_] Always prioritize test scenarios precisely, so we can be sure to focus on the most important first
+## Useful References
 
-## Implement Incrementally
+- [Functional-test architecture](architecture.md)
+- [Environment setup and runsettings](environments.md)
+- [Debugging a failing test](debugging.md)
+- [Front-end testing contract](frontend-contract.md)
+- [Test Control APIs and precise transaction seeding](TEST-CONTROLS.md)
+- [Nuxt SSR/client hydration pattern](NUXT-SSR-TESTING-PATTERN.md)
 
-- [_] Always implement one scenario at a time. From writing the feature file, through implementing steps and page object models, to iterating the test to passing, through to checking in the code. One at a time!
-
-## Write tests
-
-- [_] Write a scenario into the appropriate Gherkin feature file in `Features` folder. Try to match the PRD for the name, e.g. `PRD-BANK-IMPORT` -> `BankImport.feature`
-
-## Generate implementations
-
-NOTE: The project uses [Gherkin.Generator](https://github.com/jcoliz/Gherkin.Generator) to generate C# test implementations, based on Gherkin feature files and C# step definitions.
-
-- [_] Build the project `dotnet build` to generate implementation files from the Gherkin features. You can find these in `obj\GeneratedFiles\Gherkin.Generator\Gherkin.Generator.GherkinSourceGenerator`.
-- [_] Notice that unimplemented steps will produce stubs in the {feature}.g.cs file
-
-## Create step definitions
-
-- [_] Copy over stubs from generated files into well-organized step definition classes
-- [_] Create new step definitions in either an existing or new class in `Steps`
-- [_] Be sure to add the correct and precise keyword attributes, e.g. `[Given("I am logged in")]`.
-
-## Implement the step definitions
-
-- [_] Create new page (or component) object models and/or methods on them as needed
-- [_] Ensure any page-specific locator details are hidden in the page object models
-- [_] Be sure to follow object store key patterns [OBJECTSTORE-DOCUMENTATION-PATTERN.md](OBJECTSTORE-DOCUMENTATION-PATTERN.md)
-- [_] Iterate as needed by building the project to ensure no stubs remain
-
-## Iterate tests to passing
-
-- [_] First, ensure the application is running in the background. If it's not, you can start it with `scripts\Start-LocalDev.ps1`
-- [_] Run the current test scenario individually using `dotnet test --filter {ScenarioMethod}`
-- [_] Make code or test fixes as needed until test passes
-- [_] Finally, run all the scenarios in the feature we're working on with `dotnet test --filter {FeatureClass}`
-
-## Clean-up
-
-- [_] Mark the test as complete in the test plan
-- [_] Create a commit message, under 50 words, for the new test
-- [_] Commit the scenario before moving to the next one
+The generated NUnit source is useful for understanding how a scenario is translated, but the
+`.feature` file and step definitions are the source files to change.

@@ -59,12 +59,14 @@ Page Object Models MUST use reliable, maintainable selectors that are resistant 
 When a Page Object Model needs to locate an element that doesn't have a `data-test-id`:
 
 1. **Add the attribute to the Vue component** - Modify the source component to include `data-test-id`
-2. **Use descriptive names** - Follow kebab-case: `data-test-id="submit-button"`
+2. **Use descriptive names** - Use kebab-case for new IDs: `data-test-id="submit-button"`. Existing
+   IDs are grandfathered; do not rename them unless the related page object is updated in the same change.
 3. **Document in page model** - XML comment should explain what the element does
 
 ### Example: Before and After
 
 **Before (BAD):**
+
 ```csharp
 // ❌ Text-based selector - fragile!
 public ILocator SubmitButton => Page!.GetByText("Submit");
@@ -73,6 +75,7 @@ public ILocator SubmitButton => Page!.GetByText("Submit");
 **After (GOOD):**
 
 *Vue component:*
+
 ```vue
 <button
   class="btn btn-primary"
@@ -84,6 +87,7 @@ public ILocator SubmitButton => Page!.GetByText("Submit");
 ```
 
 *Page Object Model:*
+
 ```csharp
 /// <summary>
 /// Submit button for the form
@@ -106,6 +110,7 @@ When a page contains a reusable component (like `ErrorDisplay` or `WorkspaceSele
 ### Example
 
 **Component Model (`Components/ErrorDisplay.cs`):**
+
 ```csharp
 public class ErrorDisplay(IPage page, ILocator parent)
 {
@@ -118,6 +123,7 @@ public class ErrorDisplay(IPage page, ILocator parent)
 ```
 
 **Page Model:**
+
 ```csharp
 public class TransactionsPage(IPage page) : BasePage(page)
 {
@@ -131,6 +137,7 @@ public class TransactionsPage(IPage page) : BasePage(page)
 ```
 
 **Usage in Test:**
+
 ```csharp
 var page = new TransactionsPage(_page);
 var errorTitle = await page.ErrorDisplay.GetTitleAsync();
@@ -218,9 +225,10 @@ public async Task CreateWorkspaceAsync(string name, string? description = null)
 ### data-test-id Attributes
 
 - Use kebab-case
-- Be descriptive and unique within the component
+- Be descriptive and resolvable within the page-object locator chain
 - Include context if needed for uniqueness
-- Examples: `submit-button`, `email-input`, `error-message`, `workspace-card-123`
+- Existing non-kebab-case IDs are grandfathered; do not opportunistically rename them.
+- Examples: `submit-button`, `email-input`, `error-message`, `workspace-card`
 
 ## Organization
 
@@ -303,6 +311,7 @@ public class MyPage(IPage page) : BasePage(page)
 ❌ **PROHIBITED**: `await Page.WaitForLoadStateAsync(LoadState.NetworkIdle)`
 
 **Why**: NetworkIdle waits are unreliable with modern reactive frameworks like Vue.js:
+
 - Network activity may complete before Vue finishes rendering DOM updates
 - Vue batches DOM updates asynchronously (nextTick)
 - NetworkIdle doesn't account for client-side state updates
@@ -323,6 +332,7 @@ public async Task WaitForPageReadyAsync(float timeout = 5000)
 ```
 
 **When to use:**
+
 - After navigation (in `NavigateAsync()` methods)
 - After clicking navigation links/buttons
 - In component methods that navigate to other pages
@@ -348,6 +358,7 @@ await transactionsPage.WaitForTransactionAsync(updatedPayeeName);
 ```
 
 **When to use:**
+
 - After creating a new entity (workspace, transaction, etc.)
 - After updating an existing entity
 - Before assertions that check for the entity's presence
@@ -371,6 +382,7 @@ protected async Task WhenITryToNavigateDirectlyToAProtectedPageLike(string page)
 ### Avoid Redundant Waits
 
 ❌ **BAD**: Waiting for the same element multiple times
+
 ```csharp
 var homePage = new HomePage(Page);
 await homePage.WaitForPageReadyAsync();  // Waits for BrochureSection
@@ -378,6 +390,7 @@ await homePage.BrochureSection.WaitForAsync(...);  // ❌ Redundant!
 ```
 
 ✅ **GOOD**: Wait once, then use
+
 ```csharp
 var homePage = new HomePage(Page);
 await homePage.WaitForPageReadyAsync();  // Waits for BrochureSection

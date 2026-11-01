@@ -16,7 +16,9 @@ This folder contains documentation for the YoFi.V3 personal finance application.
 
 ## Testing
 
-- **[API Contract Tests](API-CONTRACT-TESTS.md)** - Recommendations for future API contract testing (recommendations from GitHub Copilot)
+- **[Testing Strategy](TESTING-STRATEGY.md)** - How to choose among unit, integration, and functional tests
+- **[Functional Test Guide](../tests/Functional/README.md)** - Running and writing browser-based functional tests
+- **[API Contract Tests](wip/ideas/API-CONTRACT-TESTS.md)** - Recommendations for future API contract testing
 
 ## Getting Started
 

@@ -212,11 +212,11 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 ### Tagging Strategy
 
-Functional tests use priority-based tags for selective implementation:
-- `@pri:1` through `@pri:4` - Priority quartiles (1=highest, 4=lowest)
-- `@id:1` through `@id:N` - Sequential ordering within the file
-- Document ALL acceptance criteria as Gherkin scenarios
-- Implement based on priority (typically ~25-50% of scenarios: pri:1 and some pri:2)
+Some functional feature sets use tags for planning and traceability:
+- `@pri:<n>` - Priority level defined by the feature's test plan (1=highest; use that plan's range)
+- `@id:1` through `@id:N` - Sequential scenario identifiers when used by that feature set
+- Apply these tags consistently within the feature set; they are not required on every feature.
+- Document acceptance criteria as Gherkin scenarios and implement according to the agreed test plan.
 
 ### Speed
 
