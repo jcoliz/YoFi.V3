@@ -7,12 +7,14 @@ This document provides architectural recommendations for implementing transactio
 ## Current State Analysis
 
 ### Existing Implementation
+
 - **Basic date range filtering** - Two date inputs (From/To) visible at all times in a card (lines 305-351 in [`transactions.vue`](../../src/FrontEnd.Nuxt/app/pages/transactions.vue))
 - **Always visible** - Filter card takes up significant space even when not in use
 - **Limited functionality** - Only supports date range, no text search or advanced filters
 - **No default date filter** - Document specifies "default to prior 12 months" but not implemented
 
 ### Requirements from Document
+
 1. **Single text search** (most common) - Multi-field search across payee, split categories, split memos, transaction memo, amount
 2. **Category blank/whitespace filter** - Find transactions with any uncategorized splits
 3. **Balance status filter** - Find transactions where splits don't sum to transaction amount
@@ -22,18 +24,22 @@ This document provides architectural recommendations for implementing transactio
 7. **Date range filter** - Less common but needed
 
 ### Split-Aware Considerations (NEW)
+
 **Transactions now have splits** - Each transaction contains one or more splits, where each split has:
+
 - Amount (portion of transaction amount)
 - Category (categorization for that portion)
 - Memo (optional split-specific notes)
 
 **Transaction-level fields**:
+
 - Payee (transaction level)
 - Amount (transaction level - authoritative source of truth)
 - Memo (transaction level - optional notes about entire transaction)
 - Date (transaction level)
 
 **Filtering implications**:
+
 - Category searches must check ALL splits (match if ANY split matches)
 - Memo searches must check transaction memo AND all split memos
 - Uncategorized filter finds transactions where ANY split has empty category
@@ -42,6 +48,7 @@ This document provides architectural recommendations for implementing transactio
 ## Recommended UI Pattern: Collapsible Filter Bar
 
 ### Design Philosophy
+
 - **Progressive disclosure** - Start minimal, expand when needed
 - **Keyboard-first** - Power users can filter without mouse
 - **Mobile-responsive** - Gracefully degrade to mobile
@@ -49,7 +56,7 @@ This document provides architectural recommendations for implementing transactio
 
 ### Visual Design
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  [🔍 Search transactions...]                    [⚙️ Filters (2)] │  ← Collapsed State
 └─────────────────────────────────────────────────────────────────┘
@@ -106,6 +113,7 @@ graph TB
 **Purpose**: Handle the most common use case (80% of filtering) - Multi-field search
 
 **Features**:
+
 - Full-width text input with search icon
 - Placeholder: "Search all fields..." to indicate it searches everywhere
 - Real-time search (debounced 300ms) or search-on-blur/Enter
@@ -114,6 +122,7 @@ graph TB
 - Focus on mount if no transactions visible
 
 **Implementation**:
+
 ```vue
 <div class="search-bar">
   <input
@@ -131,6 +140,7 @@ graph TB
 ```
 
 **Search Behavior**: Backend performs substring search across transaction AND split data
+
 - Frontend sends search text as query parameter: `?search=starbucks`
 - Backend performs **case-insensitive substring search** (SQL `LIKE '%searchterm%'`)
 - Searches across:
@@ -150,11 +160,13 @@ graph TB
 **Purpose**: Advanced filtering for field-specific searches and date ranges
 
 **Trigger**:
+
 - "Filters" button with badge showing active filter count
 - Button shows `(0)` when no filters, `(2)` when 2 active, etc.
 - Badge uses primary color to indicate active state
 
 **Panel Content** (Priority Order):
+
 1. **Date Range Section** - Quick-select buttons (Last 30 days, Last 3 months, **Last 12 months**, This year, All time) + custom From/To date inputs
 2. **Field-Specific Search Section** - Four text inputs for **substring search**:
    - **Payee** text input - Searches only transaction payee field (substring match)
@@ -172,6 +184,7 @@ graph TB
 7. **Clear All Button** - Reset all advanced filters to "All time" (no date restriction)
 
 **Important Distinction**:
+
 - **Primary search bar** (always visible) - Multi-field OR search across ALL transaction and split fields (fast, finds anything)
 - **Field-specific inputs** (in panel) - Single-field AND search with split-awareness (precise, narrow results)
 - Example: Panel inputs `Payee: "starbucks"` AND `Category (splits): "dining"` finds Starbucks transactions that have at least one split categorized as dining
@@ -179,6 +192,7 @@ graph TB
 **Animation**: Smooth slide-down/slide-up with 200ms transition
 
 **Mobile Behavior**:
+
 - On mobile (< 768px), panel becomes a slide-up modal from bottom
 - Covers 60% of screen
 - Includes "Apply" button to close modal
@@ -188,13 +202,14 @@ graph TB
 
 **Display** active filters as dismissible chips below the search bar:
 
-```
+```text
 [🔍 Search...]  [⚙️ Filters (4)]
 
 [Year: 2024 ×]  [Split Category: Groceries ×]  [Unbalanced ×]  [Has Uncategorized ×]
 ```
 
 **Benefits**:
+
 - Immediate visual feedback of active filters
 - One-click removal of individual filters
 - Helps users understand why result set is filtered
@@ -206,13 +221,16 @@ graph TB
 Based on document requirements:
 
 **Initial Load Behavior**:
+
 - Default to **prior 12 months** automatically
 - Show chip: `[Last 12 months ×]` to indicate default filter
 - User can clear this default filter if they want all data
 - Store user preference in localStorage (e.g., "always show all" vs "default 12 months")
 
 **Restoring Default Filter**:
+
 If user clears the "Last 12 months" chip, provide easy ways to restore it:
+
 1. **"Reset to defaults" button** in the expanded filter panel (clears all filters AND restores 12-month default)
 2. **Date range quick-select buttons** in filter panel: `[Last 30 days] [Last 3 months] [Last 12 months] [This year] [All time]`
 3. **Filter panel includes "Date Range" section** with:
@@ -221,7 +239,8 @@ If user clears the "Last 12 months" chip, provide easy ways to restore it:
    - Selecting "Last 12 months" button creates the same chip as the default
 
 **Visual Design for Date Range Filter**:
-```
+
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  Date Range:                                                     │
 │  [Last 30 days] [Last 3 months] [Last 12 months] [This year]    │
@@ -233,6 +252,7 @@ If user clears the "Last 12 months" chip, provide easy ways to restore it:
 ```
 
 **Saved Filter Preferences**:
+
 - Remember last-used filters per workspace (localStorage)
 - "Reset to defaults" option in filter panel (restores 12-month default)
 - Show indicator when using saved filters vs defaults
@@ -244,12 +264,14 @@ If user clears the "Last 12 months" chip, provide easy ways to restore it:
 Pattern: `/transactions?search=starbucks&year=2024&category=dining`
 
 **Benefits**:
+
 - Share filtered views with teammates
 - Browser back/forward works correctly
 - Bookmark common filter combinations
 - Analytics/debugging (know what users search for)
 
 **Implementation**:
+
 - Use Vue Router's query params
 - Sync filter state ↔ URL bidirectionally
 - Parse URL params on mount
@@ -258,12 +280,14 @@ Pattern: `/transactions?search=starbucks&year=2024&category=dining`
 ### 6. **Keyboard Shortcuts** (Power User Feature)
 
 **Quick access**:
+
 - `Ctrl/Cmd + K` - Focus search bar
 - `Ctrl/Cmd + F` - Open advanced filters
 - `Escape` - Close filter panel
 - `Ctrl/Cmd + Backspace` - Clear all filters
 
 **Implementation**:
+
 ```vue
 onMounted(() => {
   window.addEventListener('keydown', handleKeyboardShortcuts)
@@ -289,10 +313,12 @@ function handleKeyboardShortcuts(e: KeyboardEvent) {
 **Example**: `c=auto parts,y=2024`
 
 **Pros**:
+
 - Single input, no additional UI
 - Power users can type quickly
 
 **Cons**:
+
 - Non-discoverable (users don't know syntax exists)
 - Error-prone (typos, wrong syntax)
 - Difficult to remember exact syntax
@@ -307,10 +333,12 @@ function handleKeyboardShortcuts(e: KeyboardEvent) {
 **Example**: Multiple dropdowns/inputs always visible above table
 
 **Pros**:
+
 - All options discoverable immediately
 - No clicking required
 
 **Cons**:
+
 - Takes up significant vertical space
 - Clutters UI when not needed (most common case)
 - Overwhelming for simple searches
@@ -323,11 +351,13 @@ function handleKeyboardShortcuts(e: KeyboardEvent) {
 **Example**: Persistent sidebar on left/right with filter options
 
 **Pros**:
+
 - Doesn't push content down
 - Can show many options
 - Familiar pattern (Gmail, Notion)
 
 **Cons**:
+
 - Reduces transaction table width
 - May not collapse well on mobile
 - Takes permanent screen real estate
@@ -343,12 +373,14 @@ See detailed design above.
 ## Implementation Strategy
 
 ### Phase 1: Foundation (MVP)
+
 1. Add search input above existing date filters
 2. Implement multi-field text search (payee, category, memo, amount)
 3. Add default 12-month filter with dismissible chip
 4. Move date filters into collapsible panel
 
 ### Phase 2: Enhanced Filters
+
 1. Add year dropdown to filter panel
 2. Add category dropdown (populated from existing transaction data)
 3. Add exact amount input
@@ -356,6 +388,7 @@ See detailed design above.
 5. Implement "Clear All" button
 
 ### Phase 3: UX Polish
+
 1. Add active filter chips below search bar
 2. Implement filter count badge
 3. Add smooth animations
@@ -363,6 +396,7 @@ See detailed design above.
 5. Persist filter preferences to localStorage
 
 ### Phase 4: Advanced Features
+
 1. URL query parameter sync
 2. Saved filter presets ("Show monthly expenses", "Find uncategorized", etc.)
 3. Mobile slide-up modal for filter panel
@@ -373,6 +407,7 @@ See detailed design above.
 ### Component Structure
 
 **New Component**: `TransactionFilterBar.vue`
+
 ```vue
 <script setup lang="ts">
 interface FilterOptions {
@@ -410,6 +445,7 @@ const emit = defineEmits<{
 **Current**: `getTransactions(from?: Date, to?: Date, tenantKey?: Guid)`
 
 **Recommended**: Add filter query parameters to controller endpoint:
+
 ```csharp
 [HttpGet()]
 public async Task<IActionResult> GetTransactions(
@@ -426,6 +462,7 @@ public async Task<IActionResult> GetTransactions(
 ```
 
 **Filter Logic**:
+
 - **`search`** parameter: Substring match on (payee OR split categories OR split memos OR transaction memo OR amount) - Fast, broad search using `.Any()` for splits
 - **`payee`**, **`transactionMemo`** parameters: Substring match on transaction-level fields with AND logic
 - **`splitCategory`**, **`splitMemo`** parameters: Substring match on split fields using `.Any()` (matches if ANY split matches)
@@ -435,6 +472,7 @@ public async Task<IActionResult> GetTransactions(
 - All filters combined with AND logic (narrow results progressively)
 
 **Date Range Calculation**: Frontend calculates actual dates and sends to backend
+
 - Quick-select buttons are **UI convenience only**
 - Clicking "Last 3 months" calculates `fromDate = today - 90 days` and `toDate = today`
 - Frontend sends calculated dates as ISO 8601 strings in query parameters
@@ -446,6 +484,7 @@ public async Task<IActionResult> GetTransactions(
   - Query results are deterministic and cacheable
 
 **Example**:
+
 ```typescript
 // Frontend logic when user clicks "Last 3 months"
 function applyLast3Months() {
@@ -461,6 +500,7 @@ function applyLast3Months() {
 ```
 
 **Backend Feature Layer**: Implement filtering logic using EF Core expressions:
+
 ```csharp
 public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsync(
     TransactionFilterDto filters)
@@ -571,6 +611,7 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
 ```
 
 **Key Implementation Notes**:
+
 - **`.Include(t => t.Splits)`** - Required to load split data for filtering
 - **`.Any()`** - EF Core generates efficient SQL with EXISTS clauses for split filtering
 - `.Contains()` performs case-insensitive substring search in SQL (maps to `LIKE '%term%'`)
@@ -608,16 +649,19 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
 ### Testing Strategy
 
 **Unit Tests** (Frontend):
+
 - Filter state management
 - Debounce logic
 - URL parameter parsing/serialization
 
 **Integration Tests** (Controller):
+
 - All filter combinations
 - Edge cases (empty strings, null values, invalid dates)
 - Default 12-month filter behavior
 
 **Functional Tests** (Playwright):
+
 - Search for transaction by payee
 - Apply multiple filters
 - Clear individual filters
@@ -628,49 +672,61 @@ public async Task<IReadOnlyCollection<TransactionResultDto>> GetTransactionsAsyn
 ## UI/UX Best Practices Applied
 
 ### 1. **Progressive Disclosure**
+
 Hide complexity until needed. 80% of users just need search, 20% need advanced filters.
 
 ### 2. **Recognition Over Recall**
+
 Filter options are visible and clickable, not hidden behind cryptic syntax users must memorize.
 
 ### 3. **Feedback and Visibility**
+
 Active filters shown as chips/badges. Result count updates in real-time.
 
 ### 4. **Consistency**
+
 Follows Bootstrap conventions used elsewhere in app ([`ModalDialog.vue`](../../src/FrontEnd.Nuxt/app/components/ModalDialog.vue) pattern).
 
 ### 5. **Error Prevention**
+
 Date range validation, amount number validation, prevent invalid filter combinations.
 
 ### 6. **Flexibility and Efficiency**
+
 Keyboard shortcuts for power users, but mouse-friendly for casual users.
 
 ### 7. **Aesthetic and Minimalist Design**
+
 Clean, uncluttered interface. No unnecessary decorations or information.
 
 ## Comparison: Modern Financial Applications
 
 ### Mint (Intuit)
+
 - **Pattern**: Always-visible filter bar with dropdowns
 - **Search**: Separate search input above filters
 - **Takeaway**: Works but feels cluttered. We can do better.
 
 ### YNAB (You Need A Budget)
+
 - **Pattern**: Minimal search bar + "Filter" button → modal
 - **Search**: Powerful single search across all fields
 - **Takeaway**: ✅ Close to our recommended approach
 
 ### Monarch Money
+
 - **Pattern**: Search bar + collapsible filter panel
 - **Search**: Search-as-you-type with instant results
 - **Takeaway**: ✅ Exactly our recommended pattern
 
 ### Lunch Money
+
 - **Pattern**: Tabs for common filters + search bar
 - **Search**: Basic search, limited filter options
 - **Takeaway**: Good for simple cases, less flexible
 
 ### QuickBooks Online
+
 - **Pattern**: Multiple dropdowns always visible
 - **Search**: No unified search, must pick field first
 - **Takeaway**: ❌ Traditional but cluttered
@@ -682,6 +738,7 @@ Clean, uncluttered interface. No unnecessary decorations or information.
 ### ✅ Implement: Collapsible Filter Bar Pattern
 
 **Reasoning**:
+
 1. ✅ Aligns with minimal/modern preference (Gmail/Notion-style)
 2. ✅ Handles most common case (text search) efficiently
 3. ✅ Provides power-user features without clutter
@@ -692,6 +749,7 @@ Clean, uncluttered interface. No unnecessary decorations or information.
 8. ✅ Shareable via URL parameters
 
 **Key Features**:
+
 - Always-visible search bar (80% use case)
 - Collapsible advanced filters (20% use case)
 - Active filter chips for visibility
@@ -700,6 +758,7 @@ Clean, uncluttered interface. No unnecessary decorations or information.
 - Keyboard shortcuts for power users
 
 **Development Effort**: Medium
+
 - Frontend: ~8 hours (search bar + filter panel component)
 - Backend: ~4 hours (filter parameter support + query building)
 - Testing: ~4 hours (unit + integration + functional tests)
@@ -727,5 +786,5 @@ Clean, uncluttered interface. No unnecessary decorations or information.
 - Current transactions page: [`src/FrontEnd.Nuxt/app/pages/transactions.vue`](../../src/FrontEnd.Nuxt/app/pages/transactions.vue)
 - Modal pattern reference: [`src/FrontEnd.Nuxt/app/components/ModalDialog.vue`](../../src/FrontEnd.Nuxt/app/components/ModalDialog.vue)
 - Filter requirements: [`docs/wip/transactions/TRANSACTION-FILTERING.md`](TRANSACTION-FILTERING.md)
-- Bootstrap documentation: https://getbootstrap.com/docs/5.3/components/collapse/
-- Vue transition documentation: https://vuejs.org/guide/built-ins/transition.html
+- Bootstrap documentation: <https://getbootstrap.com/docs/5.3/components/collapse/>
+- Vue transition documentation: <https://vuejs.org/guide/built-ins/transition.html>

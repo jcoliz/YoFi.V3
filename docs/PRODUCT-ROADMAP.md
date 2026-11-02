@@ -229,11 +229,12 @@ My general practice is to break release miletones down into iterations as it app
 | Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
 | Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
 | **Feature 1983: Transaction Filtering**         |           |           | 🎨 Design Complete   |
-| Story 1 - Quick Text Search                     | A1        | 2         | 🎨 Design Complete   |
-| Story 2 - Find Uncategorized                    | B1        |           | 🎨 Design Complete   |
-| Story 3 - Default Date Range                    | V3.0      |           | 🎨 Design Complete   |
-| Story 4 - Advanced Filtering                    | B1        |           | 🎨 Design Complete   |
-| Story 5 - Reports Integration                   | V3.1      |           | 💡 Future            |
+| Story 2213 - Quick Text Search                  | A1        | 2         | 🎨 Design Complete   |
+| Story 2214 - Find Uncategorized                 | B1        |           | 🎨 Design Complete   |
+| Story 2215 - Default Date Range                 | V3.0      |           | 🎨 Design Complete   |
+| Story 2216 - Advanced Filtering                 | B1        |           | 🎨 Design Complete   |
+| Story 2217 - Filter by Balance Status           | V3.1      |           | 💡 Future            |
+| Story 2218 - Reports Integration                | V3.1      |           | 💡 Future            |
 | **Feature 2204: Bank Import**                   |           |           | ✅ Implemented       |
 | Story 1 - Upload Bank File                      | A1        | 1         | ✅ Implemented       |
 | Story 2 - Review Imported Transactions          | B2        |           | ✅ Implemented       |
