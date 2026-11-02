@@ -126,7 +126,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("{username} owns a workspace called {workspaceName}")]
     [Given("{username} owns {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.PendingUserContext)]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserOwnsAWorkspaceCalled(string shortName, string workspaceName)
     {
@@ -183,7 +183,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// - PendingUserContext
     /// </remarks>
     [Given("{username} has access to these workspaces:")]
-    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.PendingUserContext)]
     public async Task GivenUserHasAccessToTheseWorkspaces(string shortName, DataTable workspacesTable)
     {
         var cred = _context.GetUserCredentials(shortName);
@@ -221,7 +221,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// - PendingUserContext
     /// </remarks>
     [Given("{username} has access to {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.PendingUserContext)]
     public async Task GivenUserHasAccessTo(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -256,7 +256,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// and sets pending user context.
     /// </remarks>
     [Given("{username} can edit data in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.PendingUserContext)]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserCanEditDataIn(string shortName, string workspaceName)
     {
@@ -340,7 +340,7 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// and sets pending user context.
     /// </remarks>
     [Given("{username} can view data in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.PendingUserContext)]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserCanViewDataIn(string shortName, string workspaceName)
     {

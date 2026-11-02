@@ -114,7 +114,8 @@ public class AuthSteps(ITestContext _context)
     [Given("I am logged into my existing account")]
     [Given("I had logged in as {username}")]
     [When("I log in as {username}")]
-    [ProvidesObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
+    [Provides(ObjectStoreKeys.LoggedInAs)]
+    [Provides(ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task GivenIAmLoggedInAs(string shortName = "I")
     {
         var cred = _context.GetUserCredentials(shortName);
@@ -172,8 +173,9 @@ public class AuthSteps(ITestContext _context)
     /// - LoggedInAs
     /// </remarks>
     [When("a new user {username} registers and logs in")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
-    [Provides("CurrentWorkspace")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.LoggedInAs)]
+    [Provides(ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task WhenANewUserRegistersAndLogsIn(string shortName)
     {
         // Compose: Perform complete registration (navigate, enter, submit, continue)
@@ -272,7 +274,8 @@ public class AuthSteps(ITestContext _context)
     /// </remarks>
     [Given("I signed out")]
     [When("I sign out")]
-    [ProvidesObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.LoggedInAsFriendlyName)]
+    [Provides(ObjectStoreKeys.LoggedInAs)]
+    [Provides(ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task ISignOut()
     {
         var basePage = _context.GetOrCreatePage<BasePage>();
@@ -297,8 +300,8 @@ public class AuthSteps(ITestContext _context)
     /// When I log out and log back in
     /// </summary>
     [When("I log out and log back in")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAsFriendlyName)]
-    [ProvidesObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAsFriendlyName)]
+    [Provides(ObjectStoreKeys.LoggedInAs)]
     public async Task ILogOutAndLogBackIn()
     {
         var friendlyName = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAsFriendlyName);

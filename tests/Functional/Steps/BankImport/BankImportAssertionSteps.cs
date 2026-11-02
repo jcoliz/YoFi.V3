@@ -98,7 +98,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     /// Then the review list contains the transactions uploaded earlier
     /// </summary>
     [Then("the review list contains the transactions uploaded earlier")]
-    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    [Requires(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task TheReviewListContainsTheTransactionsUploadedEarlier()
     {
         // Then: Get the import page
@@ -219,7 +219,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     /// - AffectedTransactions (List&lt;string&gt;) - Keys of the transactions that should be deselected
     /// </remarks>
     [Then("the transactions deselected earlier should remain deselected")]
-    [RequiresObjects(ObjectStoreKeys.AffectedTransactionKeys)]
+    [Requires(ObjectStoreKeys.AffectedTransactionKeys)]
     public async Task TheTransactionsDeselectedEarlierShouldRemainDeselected()
     {
         // And: Get the import page
@@ -242,7 +242,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     /// Then I should have seen a confirmation message indicating {count} transactions were accepted
     /// </summary>
     [Then("I should have seen a confirmation message indicating {count} transactions were accepted")]
-    [RequiresObjects(ObjectStoreKeys.ImportStatisticsDto)]
+    [Requires(ObjectStoreKeys.ImportStatisticsDto)]
     public async Task IShouldHaveSeenAConfirmationMessageIndicatingTransactionsWereAccepted(int count)
     {
         // Then: Get the actual statistics reported when we completed the import process from object store

@@ -68,7 +68,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// - TransactionPayee
     /// </remarks>
     [When("I click the \"Edit\" button on the transaction")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickTheEditButtonOnTheTransaction()
     {
         // When: Get the payee from object store
@@ -92,7 +92,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// </remarks>
     [When("I quick edit the transaction")]
     [When("I quick edit the {payee} transaction")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIQuickEditTheTransaction(string? payee = null)
     {
         var actualPayee = payee ?? _context.ObjectStore.Get<string>("TransactionPayee")
@@ -114,7 +114,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// - TransactionMemo
     /// </remarks>
     [When("I change Memo to {newMemo}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
     public async Task WhenIChangeMemoTo(string newMemo)
     {
         // When: Fill the memo field
@@ -136,7 +136,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// - TransactionCategory
     /// </remarks>
     [When("I change Category to {newCategory}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
     public async Task WhenIChangeCategoryTo(string newCategory)
     {
         // When: Fill the category field
@@ -177,7 +177,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// - ModalTitle
     /// </remarks>
     [Then("I should see a modal titled {expectedTitle}")]
-    [ProvidesObjects("ModalTitle")]
+    [Provides("ModalTitle")]
     public async Task ThenIShouldSeeAModalTitled(string expectedTitle)
     {
         // Then: Wait for the edit modal to be visible

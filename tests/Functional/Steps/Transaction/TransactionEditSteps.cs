@@ -32,7 +32,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionPayee
     /// </remarks>
     [When("I add a transaction to {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIAddATransactionTo(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -66,8 +66,9 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionPayee (updated)
     /// </remarks>
     [When("I update that transaction")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
-    [ProvidesObjects(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionKey)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIUpdateThatTransaction()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -101,7 +102,8 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionKey
     /// </remarks>
     [When("I delete that transaction")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionKey)]
     public async Task WhenIDeleteThatTransaction()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -129,7 +131,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionMemo
     /// </remarks>
     [When("I change Memo to {newMemo}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
     public async Task WhenIChangeMemoTo(string newMemo)
     {
         // When: Fill the memo field
@@ -152,7 +154,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionCategory
     /// </remarks>
     [When("I change Category to {newCategory}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
     public async Task WhenIChangeCategoryTo(string newCategory)
     {
         // When: Fill the category field
@@ -175,7 +177,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionSource
     /// </remarks>
     [When("I change Source to {newSource}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionSource)]
+    [Provides(ObjectStoreKeys.TransactionSource)]
     public async Task WhenIChangeSourceTo(string newSource)
     {
         // When: Fill the source field
@@ -198,7 +200,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionExternalId
     /// </remarks>
     [When("I change ExternalId to {newExternalId}")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionExternalId)]
+    [Provides(ObjectStoreKeys.TransactionExternalId)]
     public async Task WhenIChangeExternalIdTo(string newExternalId)
     {
         // When: Fill the external ID field
@@ -256,8 +258,8 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionKey
     /// </remarks>
     [Then("the transaction should be saved successfully")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
-    [ProvidesObjects(ObjectStoreKeys.TransactionKey)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
     public async Task ThenTheTransactionShouldBeSavedSuccessfully()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -290,7 +292,8 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionKey
     /// </remarks>
     [Then("my changes should be saved")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionKey)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionKey)]
     public async Task ThenMyChangesShouldBeSaved()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -320,7 +323,7 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionPayee
     /// </remarks>
     [Then("it should be removed")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task ThenItShouldBeRemoved()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

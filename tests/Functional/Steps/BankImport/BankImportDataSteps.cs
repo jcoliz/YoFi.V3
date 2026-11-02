@@ -29,7 +29,8 @@ public class BankImportDataSteps(ITestContext context) : BankImportStepsBase(con
     /// - CurrentWorkspace (workspace name)
     /// </remarks>
     [Given("There are {count} transactions ready for import review, with {selectedCount} selected")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs, ObjectStoreKeys.CurrentWorkspace)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThereAreTransactionsReadyForImportReview(int count, int selectedCount)
     {
         // Given: Get logged in username

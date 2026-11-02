@@ -73,7 +73,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionPayee
     /// </remarks>
     [When("I click on the transaction row")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickOnTheTransactionRow()
     {
         // When: Get the payee from object store
@@ -129,7 +129,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// - HasWorkspaceAccess
     /// </remarks>
     [When("I try to view transactions in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.HasWorkspaceAccess)]
+    [Provides(ObjectStoreKeys.HasWorkspaceAccess)]
     public async Task WhenITryToViewTransactionsIn(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -242,7 +242,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// - HasWorkspaceAccess
     /// </remarks>
     [Then("I should not be able to access that data")]
-    [RequiresObjects(ObjectStoreKeys.HasWorkspaceAccess)]
+    [Requires(ObjectStoreKeys.HasWorkspaceAccess)]
     public async Task ThenIShouldNotBeAbleToAccessThatData()
     {
         AssertCannotPerformAction(ObjectStoreKeys.HasWorkspaceAccess, "User should not have access to the workspace");
@@ -261,7 +261,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionMemo
     /// </remarks>
     [Then("I should see the updated memo in the transaction list")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionMemo)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionMemo)]
     public async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
     {
         // Then: Get the payee and new memo from object store
@@ -293,7 +294,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionCategory
     /// </remarks>
     [Then("I should see the updated category in the transaction list")]
-    [RequiresObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionCategory)]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.TransactionCategory)]
     public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
     {
         // Then: Get the payee and new category from object store

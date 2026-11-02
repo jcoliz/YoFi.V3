@@ -72,7 +72,8 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     /// - TransactionExternalId (optional)
     /// </remarks>
     [Then("I should see all the expected transaction fields displayed")]
-    [RequiresObjects(TransactionPayee, TransactionAmount)]
+    [Requires(TransactionPayee)]
+    [Requires(TransactionAmount)]
     public async Task ThenIShouldSeeAllTheExpectedTransactionFieldsDisplayed()
     {
         // Then: Get the TransactionDetailsPage
@@ -184,7 +185,7 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     /// - TransactionPayee
     /// </remarks>
     [Then("I should see all my transactions")]
-    [RequiresObjects(TransactionPayee)]
+    [Requires(TransactionPayee)]
     public async Task ThenIShouldSeeAllMyTransactions()
     {
         // Then: Get the expected payee from object store

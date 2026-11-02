@@ -30,7 +30,7 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// - EditMode
     /// </remarks>
     [When("I click the \"Add Transaction\" button")]
-    [ProvidesObjects(ObjectStoreKeys.EditMode)]
+    [Provides(ObjectStoreKeys.EditMode)]
     public async Task WhenIClickTheAddTransactionButton()
     {
         // When: Click the Add Transaction button to open create modal
@@ -59,9 +59,12 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// - TransactionExternalId (if External ID field provided)
     /// </remarks>
     [When("I fill in the following transaction fields:")]
-    [ProvidesObjects(ObjectStoreKeys.TransactionPayee, ObjectStoreKeys.TransactionAmount,
-        ObjectStoreKeys.TransactionCategory, ObjectStoreKeys.TransactionMemo,
-        ObjectStoreKeys.TransactionSource, ObjectStoreKeys.TransactionExternalId)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionSource)]
+    [Provides(ObjectStoreKeys.TransactionExternalId)]
     public async Task WhenIFillInTheFollowingTransactionFields(DataTable dataTable)
     {
         // When: Get the TransactionsPage
@@ -223,7 +226,7 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// - TransactionAmount (optional)
     /// </remarks>
     [Then("it contains the expected list fields")]
-    [RequiresObjects(nameof(TransactionsPage.TransactionRowData))]
+    [Requires(nameof(TransactionsPage.TransactionRowData))]
     public async Task ThenItContainsTheExpectedListFields()
     {
         // Then: Get actual values from object store (fetched from page in previous step)

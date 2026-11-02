@@ -28,7 +28,7 @@ public class BankImportReviewSteps(ITestContext context) : BankImportStepsBase(c
     /// </summary>
     [Given("I have deselected {count} transactions")]
     [When("I deselect {count} transactions")]
-    [ProvidesObjects(ObjectStoreKeys.AffectedTransactionKeys)]
+    [Provides(ObjectStoreKeys.AffectedTransactionKeys)]
     public async Task IHaveDeselectedTransactions(int count)
     {
         // Given: Get the import page
@@ -59,7 +59,7 @@ public class BankImportReviewSteps(ITestContext context) : BankImportStepsBase(c
     /// </remarks>
     [Given("I have imported these transactions")]
     [When("I import the selected transactions")]
-    [ProvidesObjects(ObjectStoreKeys.ImportStatisticsDto)]
+    [Provides(ObjectStoreKeys.ImportStatisticsDto)]
     public async Task IImportTheSelectedTransactions()
     {
         // When: Click the Import button to open confirmation modal

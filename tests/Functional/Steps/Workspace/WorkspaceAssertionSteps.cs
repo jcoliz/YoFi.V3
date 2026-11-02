@@ -232,7 +232,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// - NewWorkspaceName
     /// </remarks>
     [Then("the workspace should reflect the changes")]
-    [RequiresObjects(ObjectStoreKeys.NewWorkspaceName)]
+    [Requires(ObjectStoreKeys.NewWorkspaceName)]
     public async Task ThenTheWorkspaceShouldReflectTheChanges()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();

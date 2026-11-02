@@ -33,7 +33,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </remarks>
     [Given("I have existing transactions with external IDs:")]
     [Given("I have these exact transactions already:")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
@@ -110,14 +110,13 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionKey
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(
-        ObjectStoreKeys.TransactionPayee,
-        ObjectStoreKeys.TransactionAmount,
-        ObjectStoreKeys.TransactionCategory,
-        ObjectStoreKeys.TransactionMemo,
-        ObjectStoreKeys.TransactionKey)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
     public async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
     {
         // Given: Parse transaction data from the table (one transaction per row)
@@ -216,15 +215,14 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// - EditMode ("TransactionDetailsPage")
     /// </remarks>
     [Given("I am viewing the details page for a transaction with:")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(
-        ObjectStoreKeys.TransactionPayee,
-        ObjectStoreKeys.TransactionAmount,
-        ObjectStoreKeys.TransactionCategory,
-        ObjectStoreKeys.TransactionMemo,
-        ObjectStoreKeys.TransactionKey,
-        ObjectStoreKeys.EditMode)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
+    [Provides(ObjectStoreKeys.EditMode)]
     public async Task GivenIAmViewingTheDetailsPageForATransactionWith(DataTable transactionTable)
     {
         // Given: Seed the transaction using the existing step
@@ -254,15 +252,14 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Simplified version without DataTable parameter. Seeds a basic transaction and navigates to the details page.
     /// </remarks>
     [Given("I am viewing the details page for a transaction")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(
-        ObjectStoreKeys.TransactionPayee,
-        ObjectStoreKeys.TransactionAmount,
-        ObjectStoreKeys.TransactionCategory,
-        ObjectStoreKeys.TransactionMemo,
-        ObjectStoreKeys.TransactionKey,
-        ObjectStoreKeys.EditMode)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
+    [Provides(ObjectStoreKeys.EditMode)]
     public async Task GivenIAmViewingTheDetailsPageForATransaction()
     {
         // Given: Create a basic transaction DataTable
@@ -281,9 +278,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Given I have 5 existing transactions in my workspace
     /// </summary>
     [Given("I have {count} existing transactions in my workspace")]
-    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys, ObjectStoreKeys.ExistingTransactions)]
+    [Provides(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Provides(ObjectStoreKeys.ExistingTransactions)]
     public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
     {
         // Get current workspace and logged in user
@@ -317,7 +315,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </summary>
     // TODO: Move to transaction list steps
     [Then("I should see only the original transactions")]
-    [RequiresObjects(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Requires(ObjectStoreKeys.ExistingTransactionKeys)]
     public async Task IShouldSeeOnlyTheOriginalTransactions()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -337,7 +335,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Then the uploaded transactions should not appear
     /// </summary>
     [Then("the uploaded transactions should not appear")]
-    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    [Requires(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task TheUploadedTransactionsShouldNotAppear()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -360,7 +358,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// </summary>
     [Then("the uploaded transactions should appear")]
     [Then("they are the transactions uploaded earlier")]
-    [RequiresObjects(ObjectStoreKeys.UploadedTransactionPayees)]
+    [Requires(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task TheUploadedTransactionsShouldAppear()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

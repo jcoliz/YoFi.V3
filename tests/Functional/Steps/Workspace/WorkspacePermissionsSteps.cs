@@ -32,7 +32,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [When("I try to change the workspace name or description")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [ProvidesObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
+    [Provides(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
@@ -59,7 +59,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// - CurrentWorkspace
     /// </remarks>
     [When("I try to delete {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CanDeleteWorkspace)]
+    [Provides(ObjectStoreKeys.CanDeleteWorkspace)]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenITryToDelete(string workspaceName)
     {
@@ -86,7 +86,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// - CanMakeDesiredChanges
     /// </remarks>
     [When("I try to add or edit transactions")]
-    [ProvidesObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
+    [Provides(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToAddOrEditTransactions()
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -114,7 +114,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// - CanMakeDesiredChanges
     /// </remarks>
     [Then("I should not be able to make those changes")]
-    [RequiresObjects(ObjectStoreKeys.CanMakeDesiredChanges)]
+    [Requires(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task ThenIShouldNotBeAbleToMakeThoseChanges()
     {
         AssertCannotPerformAction(ObjectStoreKeys.CanMakeDesiredChanges, "User should not be able to make desired changes");
@@ -132,7 +132,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// - CanDeleteWorkspace
     /// </remarks>
     [Then("the workspace should remain intact")]
-    [RequiresObjects(ObjectStoreKeys.CanDeleteWorkspace)]
+    [Requires(ObjectStoreKeys.CanDeleteWorkspace)]
     public async Task ThenTheWorkspaceShouldRemainIntact()
     {
         AssertCannotPerformAction(ObjectStoreKeys.CanDeleteWorkspace, "User should not be able to delete the workspace");
