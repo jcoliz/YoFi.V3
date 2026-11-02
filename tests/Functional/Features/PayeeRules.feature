@@ -107,3 +107,60 @@ Feature: Payee Matching Rules
       When I import the selected transactions
       And I view my transactions
       Then the transaction should have category "Gas & Fuel"
+
+  @story:2212
+  Rule: Matching rules handle conflicts with defined precedence
+
+    @pri:2
+    @id:26
+    Scenario: Longer substring rule wins over shorter
+      Given I have the following payee rules:
+        | Payee             | Category       |
+        | Starbucks         | Coffee         |
+        | Starbucks Reserve | Premium Coffee |
+      When I upload an OFX file with transactions:
+        | Date       | Payee                       | Amount |
+        | 2024-01-15 | STARBUCKS RESERVE ROASTERY  | -8.50  |
+      Then the imported transaction should have category "Premium Coffee"
+
+    @pri:2
+    @id:27
+    @hidden
+    # Requires us to SET the Modified date for the payee rules explicitly
+    # which we don't have test control capability for.
+    Scenario: Most recently modified rule wins for equal length
+      Given I have the following payee rules created in this order:
+        | Payee  | Category  | Modified   |
+        | Coffee | Beverages | 2024-01-01 |
+        | Coffee | Cafe      | 2024-01-15 |
+      When I upload an OFX file with transactions:
+        | Date       | Payee            | Amount |
+        | 2024-01-20 | Coffee Bean Shop | -6.00  |
+      Then the imported transaction should have category "Cafe"
+
+    @pri:2
+    @id:28
+    Scenario: Regex rule wins over substring rule
+      Given I have the following payee rules:
+        | Payee   | Category        | IsRegex |
+        | Amazon  | Shopping        | false   |
+        | ^AMZN.* | Online Shopping | true    |
+      When I upload an OFX file with transactions:
+        | Date       | Payee            | Amount |
+        | 2024-01-15 | AMZN MKTP US*123 | -29.99 |
+      Then the imported transaction should have category "Online Shopping"
+
+    @pri:3
+    @id:29
+    Scenario: Regex rule matches exact pattern
+      Given I have a regex payee rule:
+        | Payee          | Category |
+        | ^SHELL #\\\\d{4}$ | Gas      |
+      When I upload an OFX file with transactions:
+        | Date       | Payee       | Amount |
+        | 2024-01-15 | SHELL #1234 | -40.00 |
+        | 2024-01-16 | SHELL STORE | -45.00 |
+      Then the categories should be:
+        | Payee       | Category |
+        | SHELL #1234 | Gas      |
+        | SHELL STORE |          |

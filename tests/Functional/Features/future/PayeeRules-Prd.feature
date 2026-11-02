@@ -3,6 +3,10 @@ Feature: Payee Matching Rules
   I want to set up payee matching rules
   So that my transactions are automatically categorized when I import them
 
+  This feature file contains scenarios derived from the PRD. There are way more
+  scenarios here than I want to spend functional testing resource on. They remain
+  here for reference.
+
   Background:
     Given the application is running
     And I have an existing account
