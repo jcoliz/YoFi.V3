@@ -22,7 +22,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:3
-    @explicit:wip
     Scenario: User edits an existing payee rule
       Given I have a payee rule:
         | Payee       | Category  |

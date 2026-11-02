@@ -3,7 +3,7 @@ using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 /// <summary>
-/// Page Object Model for creating and viewing payee matching rules.
+/// Page Object Model for creating, editing, and viewing payee matching rules.
 /// </summary>
 public class PayeeRulesPage(IPage page) : BasePage(page)
 {
@@ -16,6 +16,11 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator ValidationError => CreateDialog.GetByTestId("validation-error");
     private ILocator EmptyState => RulesCard.GetByTestId("empty-state");
     private ILocator RulesTable => Page.GetByTestId("payee-rules");
+    private ILocator EditButton => RulesTable.GetByTestId("edit-button");
+    private ILocator EditDialog => Page.GetByTestId("rule-edit-dialog");
+    private ILocator EditPayeePatternInput => EditDialog.GetByTestId("payee-pattern-input");
+    private ILocator EditCategoryInput => EditDialog.GetByTestId("category-input");
+    private ILocator EditSaveButton => EditDialog.GetByTestId("save-button");
 
     /// <summary>
     /// Navigates to the payee rules page and waits for the rules to finish loading.
@@ -45,6 +50,19 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
         await PayeePatternInput.FillAsync(payee);
         await CategoryInput.FillAsync(category);
         await SaveButton.ClickAsync();
+    }
+
+    /// <summary>
+    /// Edits the only rule in the list and waits for the refreshed list.
+    /// </summary>
+    public async Task EditRuleAsync(string payee, string category)
+    {
+        await EditButton.ClickAsync();
+        await EditPayeePatternInput.FillAsync(payee);
+        await EditCategoryInput.FillAsync(category);
+        await EditSaveButton.ClickAsync();
+        await EditDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+        await RulesCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
     /// <summary>
