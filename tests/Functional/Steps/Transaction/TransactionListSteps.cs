@@ -333,5 +333,32 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.WaitForPageReadyAsync();
     }
 
+    /// <summary>
+    /// Then the transaction should have category {string1}
+    /// </summary>
+    /// <remarks>
+    /// Will have to figure out how we locate which transaction we're looking for.
+    /// This is coming from bank import, with category set by payee rules.
+    /// </remarks>
+    [Then("the transaction should have category {string1}")]
+    public async Task TheTransactionShouldHaveCategory(string string1)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Then the categories should be as specified in the table, by payee
+    /// </summary>
+    /// <remarks>
+    /// The table should have columns "Payee" and "Category".
+    /// Each row specifies the expected category for the given payee.
+    /// </remarks>
+    [Then("the categories should be:")]
+    public async Task TheCategoriesShouldBe(DataTable table)
+    {
+        throw new NotImplementedException();
+    }
+
     #endregion
+
 }

@@ -251,4 +251,26 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     }
 
     #endregion
+
+    #region Payee Rules
+
+    /// <summary>
+    /// Then the category should be read-only in import review
+    /// </summary>
+    [Then("the category should be read-only in import review")]
+    public async Task TheCategoryShouldBeReadOnlyInImportReview()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Then the imported transaction should have category {string1} (in import review)
+    /// </summary>
+    [Then("the imported transaction should have category {string1}")]
+    public async Task TheImportedTransactionShouldHaveCategory(string string1)
+    {
+        throw new NotImplementedException();
+    }
+
+    #endregion
 }

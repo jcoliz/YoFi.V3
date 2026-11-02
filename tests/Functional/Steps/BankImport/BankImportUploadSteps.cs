@@ -110,6 +110,20 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
         await IUploadTheOFXFile();
     }
 
+    /// <summary>
+    /// Given I have uploaded an OFX file with transactions:
+    /// </summary>
+    /// <remarks>
+    /// The table should have columns "Date", "Payee", and "Amount".
+    /// Each row specifies a transaction to be included in the OFX file.
+    /// </remarks>
+    [Given("I have uploaded an OFX file with transactions:")]
+    [When("I upload an OFX file with transactions:")]
+    public async Task IHaveUploadedAnOFXFileWithTransactions(DataTable table)
+    {
+        throw new NotImplementedException();
+    }
+
     #endregion
 
     #region Steps: WHEN
