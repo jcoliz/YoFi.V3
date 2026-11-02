@@ -1,5 +1,4 @@
 using System.Globalization;
-using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Pages;

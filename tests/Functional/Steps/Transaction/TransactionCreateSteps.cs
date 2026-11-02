@@ -1,6 +1,5 @@
 using Microsoft.Playwright;
 using NUnit.Framework;
-using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 using static YoFi.V3.Tests.Functional.Pages.TransactionsPage;
@@ -187,6 +186,7 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
     /// Used after creating a new transaction to verify it was successfully added.
     /// </remarks>
     [Then("I should see a transaction with Payee {payee}")]
+    [Provides(nameof(TransactionsPage.TransactionRowData))]
     public async Task ThenIShouldSeeATransactionWithPayee(string payee)
     {
         // Then: Get the TransactionsPage

@@ -1,4 +1,3 @@
-using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
 namespace YoFi.V3.Tests.Functional.Steps.BankImport;

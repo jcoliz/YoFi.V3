@@ -1,6 +1,5 @@
 using Microsoft.Playwright;
 using NUnit.Framework;
-using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 

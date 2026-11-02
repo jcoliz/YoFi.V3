@@ -1,4 +1,3 @@
-using YoFi.V3.Tests.Functional.Attributes;
 using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Infrastructure;
 
@@ -39,6 +38,8 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// </remarks>
     [Given("I am logged in as a user with \"Editor\" role")]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.LoggedInAs)]
+    [Provides(ObjectStoreKeys.LoggedInAsFriendlyName)]
     public async Task GivenIAmLoggedInAsAUserWithEditorRole()
     {
         // Given: Clear existing test data
