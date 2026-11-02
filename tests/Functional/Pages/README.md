@@ -10,7 +10,8 @@ observable UI state instead of fixed delays.
 [`PayeeRulesPage`](PayeeRulesPage.cs) supports basic rule creation, editing the only rule in the
 list, and empty-category validation: navigation, submitting a substring rule, reading its category
 by exact payee pattern and regex status, reading validation errors, and checking the empty list.
-List assertions can also check the rule count and regex badges. Other rule operations are
+Rows are matched by the dedicated payee-pattern text span and presence or absence of the regex badge,
+not the combined cell text. List assertions can also check the rule count and regex badges. Other rule operations are
 intentionally not implemented yet.
 
 See [writing page objects](../docs/writing-pages.md) for the authoring guide and

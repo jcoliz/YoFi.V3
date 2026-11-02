@@ -17,6 +17,7 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator EmptyState => RulesCard.GetByTestId("empty-state");
     private ILocator RulesTable => Page.GetByTestId("payee-rules");
     private ILocator RuleRows => RulesTable.Locator("tbody tr");
+    private ILocator PayeePatternText => Page.GetByTestId("payee-pattern-text");
     private ILocator RegexBadges => Page.GetByTestId("regex-badge");
     private ILocator EditButton => RulesTable.GetByTestId("edit-button");
     private ILocator EditDialog => Page.GetByTestId("rule-edit-dialog");
@@ -109,13 +110,12 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
 
     private ILocator GetRuleRow(string payee, bool isRegex)
     {
-        return RuleRows.Filter(new()
+        var rows = RuleRows.Filter(new()
         {
-            Has = Page.GetByRole(AriaRole.Cell, new()
-            {
-                Name = isRegex ? $"{payee} Regex" : payee,
-                Exact = true
-            })
+            Has = PayeePatternText.And(Page.GetByText(payee, new() { Exact = true }))
         });
+        return isRegex
+            ? rows.Filter(new() { Has = RegexBadges })
+            : rows.Filter(new() { HasNot = RegexBadges });
     }
 }

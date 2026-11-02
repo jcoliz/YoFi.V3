@@ -560,7 +560,7 @@ function formatDate(date: Date | undefined): string {
                   :data-test-id="`row-${rule.key}`"
                 >
                   <td>
-                    {{ rule.payeePattern }}
+                    <span data-test-id="payee-pattern-text">{{ rule.payeePattern }}</span>
                     <span
                       v-if="rule.payeeIsRegex"
                       class="badge bg-secondary ms-2"
