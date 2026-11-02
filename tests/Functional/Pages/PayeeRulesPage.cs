@@ -3,7 +3,7 @@ using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 /// <summary>
-/// Page Object Model for creating, editing, and viewing payee matching rules.
+/// Page Object Model for creating, editing, deleting, and viewing payee matching rules.
 /// </summary>
 public class PayeeRulesPage(IPage page) : BasePage(page)
 {
@@ -24,6 +24,9 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator EditPayeePatternInput => EditDialog.GetByTestId("payee-pattern-input");
     private ILocator EditCategoryInput => EditDialog.GetByTestId("category-input");
     private ILocator EditSaveButton => EditDialog.GetByTestId("save-button");
+    private ILocator DeleteButtons => Page.GetByTestId("delete-button");
+    private ILocator DeleteDialog => Page.GetByTestId("delete-rule-modal");
+    private ILocator DeleteSubmitButton => DeleteDialog.GetByTestId("delete-submit-button");
 
     /// <summary>
     /// Navigates to the payee rules page and waits for the rules to finish loading.
@@ -69,6 +72,24 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Deletes the rule with the exact payee pattern and waits for the refreshed list.
+    /// </summary>
+    public async Task DeleteRuleAsync(string payee)
+    {
+        await GetRuleRow(payee).Locator(DeleteButtons).ClickAsync();
+        await DeleteDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await DeleteSubmitButton.ClickAsync();
+        await DeleteDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+        await RulesCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Waits until no rule with the exact payee pattern remains in the list.
+    /// </summary>
+    public Task ExpectNoRuleForAsync(string payee) =>
+        Assertions.Expect(GetRuleRow(payee)).ToHaveCountAsync(0);
+
+    /// <summary>
     /// Gets the visible validation error from the create dialog.
     /// </summary>
     public async Task<string> GetValidationErrorAsync()
@@ -108,14 +129,17 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
         return GetRuleRow(payee, isRegex).Locator(RegexBadges).IsVisibleAsync();
     }
 
-    private ILocator GetRuleRow(string payee, bool isRegex)
+    private ILocator GetRuleRow(string payee, bool? isRegex = null)
     {
         var rows = RuleRows.Filter(new()
         {
             Has = PayeePatternText.And(Page.GetByText(payee, new() { Exact = true }))
         });
-        return isRegex
-            ? rows.Filter(new() { Has = RegexBadges })
-            : rows.Filter(new() { HasNot = RegexBadges });
+        return isRegex switch
+        {
+            true => rows.Filter(new() { Has = RegexBadges }),
+            false => rows.Filter(new() { HasNot = RegexBadges }),
+            null => rows
+        };
     }
 }

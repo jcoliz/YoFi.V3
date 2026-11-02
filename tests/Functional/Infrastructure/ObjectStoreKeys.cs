@@ -155,6 +155,11 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string ExpectedPayeeRules = "ExpectedPayeeRules";
 
+    /// <summary>
+    /// The payee of the last deleted payee rule.
+    /// </summary>
+    public const string DeletedPayee = "DeletedPayee";
+
     #endregion
 
     public const string ModalTitle = "ModalTitle";

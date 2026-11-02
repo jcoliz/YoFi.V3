@@ -31,6 +31,15 @@ Feature: Payee Matching Rules
         | Coffee | Coffee & Tea  |
       Then I should see the rule for "Coffee" with category "Coffee & Tea"
 
+    @pri:2
+    @id:4
+    Scenario: User deletes a payee matching rule
+      Given I have a payee rule:
+        | Payee      | Category |
+        | Old Vendor | Misc     |
+      When I delete the rule for "Old Vendor"
+      Then the rule should no longer exist
+
     @pri:1
     @id:5
     Scenario: User views list of all payee matching rules

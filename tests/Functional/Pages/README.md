@@ -8,7 +8,8 @@ than construct locators. Prefer stable test IDs, scope locators to a parent when
 observable UI state instead of fixed delays.
 
 [`PayeeRulesPage`](PayeeRulesPage.cs) supports basic rule creation, editing the only rule in the
-list, and empty-category validation: navigation, submitting a substring rule, reading its category
+list, deleting a rule by exact payee pattern, and empty-category validation: navigation,
+submitting a substring rule, reading its category
 by exact payee pattern and regex status, reading validation errors, and checking the empty list.
 Rows are matched by the dedicated payee-pattern text span and presence or absence of the regex badge,
 not the combined cell text. List assertions can also check the rule count and regex badges. Other rule operations are

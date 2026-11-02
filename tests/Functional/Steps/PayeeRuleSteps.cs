@@ -167,6 +167,35 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
+    /// When I delete the rule for {string1}
+    /// </summary>
+    [When("I delete the rule for {payee}")]
+    [Provides(ObjectStoreKeys.DeletedPayee)]
+    public async Task IDeleteTheRuleFor(string payee)
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+        await page.DeleteRuleAsync(payee);
+        _context.ObjectStore.Add(ObjectStoreKeys.DeletedPayee, payee);
+    }
+
+    #endregion
+
+    #region THEN
+
+    /// <summary>
+    /// Then the rule should no longer exist
+    /// </summary>
+    [Then("the rule should no longer exist")]
+    [Requires(ObjectStoreKeys.DeletedPayee)]
+    public async Task TheRuleShouldNoLongerExist()
+    {
+        var deletedPayee = _context.ObjectStore.Get<string>(ObjectStoreKeys.DeletedPayee);
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.ExpectNoRuleForAsync(deletedPayee);
+    }
+
+    /// <summary>
     /// Then I should see the rule for {string1} with category {string2}
     /// </summary>
     [Then("I should see the rule for {payee} with category {category}")]
