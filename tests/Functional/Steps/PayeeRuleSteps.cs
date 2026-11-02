@@ -28,12 +28,25 @@ public class PayeeRuleSteps(ITestContext _context)
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
-    public async Task IHaveTheFollowingPayeeRules(DataTable table)
+    public Task IHaveTheFollowingPayeeRules(DataTable table) =>
+        SeedPayeeRulesAsync(table, forceRegex: false);
+
+    /// <summary>
+    /// Seeds rules with regex matching enabled for every supplied row.
+    /// </summary>
+    [Given("I have a regex payee rule:")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    public Task IHaveARegexPayeeRule(DataTable table) =>
+        SeedPayeeRulesAsync(table, forceRegex: true);
+
+    private async Task SeedPayeeRulesAsync(DataTable table, bool forceRegex)
     {
         var items = table.Rows.Select(row => new PayeeMatchingRuleEditDto()
         {
             PayeePattern = row.GetRequired("Payee"),
-            PayeeIsRegex = row.GetOptional<bool>("IsRegex") ?? false,
+            PayeeIsRegex = forceRegex || (row.GetOptional<bool>("IsRegex") ?? false),
             Category = row.GetRequired("Category")
         }).ToList();
 
@@ -68,17 +81,6 @@ public class PayeeRuleSteps(ITestContext _context)
 
         _context.ObjectStore.Add(ObjectStoreKeys.ExpectedPayeeRules, seeded);
     }
-
-    /// <summary>
-    /// Given I have a regex payee rule:
-    /// </summary>
-    [Given("I have a regex payee rule:")]
-    public async Task IHaveARegexPayeeRule(DataTable table)
-    {
-        // TODO: DRY with above. Only difference here is that "IsRegex" is set to true for all rows.
-        throw new NotImplementedException();
-    }
-
 
     #endregion
 

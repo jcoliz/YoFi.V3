@@ -68,7 +68,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:21
-    @explicit:wip
     Scenario: Transaction matches regex payee rule on import
       Given I have a regex payee rule:
         | Payee       | Category        |
