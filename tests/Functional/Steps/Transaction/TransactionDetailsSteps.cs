@@ -79,8 +79,8 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
 
         // And: Get expected values from object store (seeded transaction data)
-        var expectedPayee = GetRequiredFromStore(TransactionPayee);
-        var expectedAmount = GetRequiredFromStore(TransactionAmount);
+        var expectedPayee = _context.ObjectStore.Get<string>(TransactionPayee);
+        var expectedAmount = _context.ObjectStore.Get<string>(TransactionAmount);
 
         // And: Verify payee
         var payeeValue = await detailsPage.GetPayeeAsync();
@@ -188,7 +188,7 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     public async Task ThenIShouldSeeAllMyTransactions()
     {
         // Then: Get the expected payee from object store
-        var expectedPayee = GetRequiredFromStore(TransactionPayee);
+        var expectedPayee = _context.ObjectStore.Get<string>(TransactionPayee);
 
         // And: Get TransactionsPage
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

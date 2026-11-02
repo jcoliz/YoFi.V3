@@ -37,13 +37,11 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
-        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
         var workspaceKey = _context.GetWorkspaceKey(workspaceName);
 
         // And: Get logged in user
-        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs);
 
         // And: Convert datatable to TransactionEditDtos
         var transactions = table.Rows.Select(row => new TransactionEditDto
@@ -143,13 +141,11 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         Assert.That(transactions, Is.Not.Empty, "At least one transaction row is required.");
 
         // And: Get workspace context
-        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
         var workspaceKey = _context.GetWorkspaceKey(workspaceName);
 
         // And: Get logged in user
-        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs);
 
         // And: Seed transactions via test control API in a single bulk operation
         ICollection<TransactionResultDto>? seededTransactions = null;
@@ -284,12 +280,9 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
     {
         // Get current workspace and logged in user
-        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
         var workspaceKey = _context.GetWorkspaceKey(workspaceName);
-
-        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store. Ensure user is logged in before calling this step.");
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs);
 
         // Seed count transactions into the current workspace
         var transactions = await _context.TestControlClient.TestControl_SeedTransactionsAsync(

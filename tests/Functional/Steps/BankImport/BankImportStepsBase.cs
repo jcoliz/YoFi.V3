@@ -26,8 +26,7 @@ public abstract class BankImportStepsBase(ITestContext context)
     /// <exception cref="InvalidOperationException">If CurrentWorkspace is not found in object store</exception>
     protected string GetCurrentWorkspace()
     {
-        return _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store");
+        return _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
     }
 
     /// <summary>
@@ -36,8 +35,7 @@ public abstract class BankImportStepsBase(ITestContext context)
     /// <exception cref="InvalidOperationException">If LoggedInAs is not found in object store</exception>
     protected string GetLoggedInUsername()
     {
-        return _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.LoggedInAs} not found in object store");
+        return _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs);
     }
 
     /// <summary>

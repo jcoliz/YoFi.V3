@@ -42,24 +42,12 @@ public abstract class TransactionStepsBase(ITestContext context)
     protected static string AddTestPrefix(string name) => $"__TEST__{name}";
 
     /// <summary>
-    /// Gets a required value from the object store, throwing if not found.
-    /// </summary>
-    /// <param name="key">The object store key.</param>
-    /// <returns>The stored value.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the key is not found.</exception>
-    protected string GetRequiredFromStore(string key)
-    {
-        return _context.ObjectStore.Get<string>(key)
-            ?? throw new InvalidOperationException($"Required value '{key}' not found in object store");
-    }
-
-    /// <summary>
     /// Gets the last transaction payee from object store.
     /// </summary>
     /// <returns>The payee name of the last transaction.</returns>
     protected string GetLastTransactionPayee()
     {
-        return GetRequiredFromStore(ObjectStoreKeys.TransactionPayee);
+        return _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
     }
 
     /// <summary>
@@ -70,8 +58,7 @@ public abstract class TransactionStepsBase(ITestContext context)
     /// <exception cref="InvalidOperationException">Thrown when the permission check key is not found.</exception>
     protected void AssertCannotPerformAction(string actionKey, string message)
     {
-        var canPerform = _context.ObjectStore.Get<object>(actionKey) as bool?
-            ?? throw new InvalidOperationException($"Permission check '{actionKey}' not found");
+        var canPerform = _context.ObjectStore.Get<object>(actionKey) as bool?;
         Assert.That(canPerform, Is.False, message);
     }
 

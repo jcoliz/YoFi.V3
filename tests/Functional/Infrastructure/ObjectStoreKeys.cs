@@ -147,4 +147,6 @@ public static class ObjectStoreKeys
     public const string ImportStatisticsDto = "ImportStatisticsDto";
 
     #endregion
+
+    public const string ModalTitle = "ModalTitle";
 }

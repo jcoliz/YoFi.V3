@@ -237,7 +237,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var newName = GetRequiredFromStore(ObjectStoreKeys.NewWorkspaceName);
+        var newName = _context.ObjectStore.Get<string>(ObjectStoreKeys.NewWorkspaceName);
 
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(newName);
         Assert.That(hasWorkspace, Is.True, $"Updated workspace '{newName}' should be visible");

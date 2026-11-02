@@ -37,7 +37,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         // Check if edit button is available
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
@@ -154,7 +154,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
         await transactionsPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         // Select the workspace
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
@@ -199,7 +199,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
         Assert.That(canEdit, Is.True, "Owner should be able to edit workspace settings");
@@ -219,7 +219,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        var workspaceName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
         Assert.That(canDelete, Is.True, "Owner should be able to delete workspace");

@@ -97,8 +97,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
     {
         // Given: Retrieve existing transactions from object store
-        var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ExistingTransactions} not found in object store. Did you call 'I have N existing transactions in my workspace' first?");
+        var existingTransactions = _context.ObjectStore.Get<List<TransactionResultDto>>(ObjectStoreKeys.ExistingTransactions);
 
         // And: Generate OFX file content with the same transactions
         // TODO: This won't work, because the FITIDs will be different.
@@ -150,8 +149,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     public async Task IUploadTheOFXFile()
     {
         // Given: Retrieve the OFX file path from object store
-        var ofxFilePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.OfxFilePath)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.OfxFilePath} not found in object store. Did you call 'I have a valid OFX file with N transactions' first?");
+        var ofxFilePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.OfxFilePath);
 
         // And: Get workspace name
         var workspaceName = GetCurrentWorkspace();

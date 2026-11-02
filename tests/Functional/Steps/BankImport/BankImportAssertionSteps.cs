@@ -107,8 +107,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         var actualPayees = await importPage.GetAllTransactionPayeesAsync();
 
         // And: Get the expected payees from object store
-        var expectedPayees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.UploadedTransactionPayees} not found in object store");
+        var expectedPayees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees);
 
         // Verify that all of the uploaded transactions are visible in the review list
         var missingPayees = expectedPayees.Except(actualPayees).ToList();
@@ -225,8 +224,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         var importPage = _context.GetOrCreatePage<ImportPage>();
 
         // Then: Retrieve the deselected transaction keys from object store
-        var deselectedKeys = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.AffectedTransactionKeys)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.AffectedTransactionKeys} not found in object store");
+        var deselectedKeys = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.AffectedTransactionKeys);
 
         // And: Verify each transaction remains deselected
         foreach (var key in deselectedKeys)
@@ -245,8 +243,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     public async Task IShouldHaveSeenAConfirmationMessageIndicatingTransactionsWereAccepted(int count)
     {
         // Then: Get the actual statistics reported when we completed the import process from object store
-        var actualStatistics = _context.ObjectStore.Get<ImportStatisticsDto>(ObjectStoreKeys.ImportStatisticsDto)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.ImportStatisticsDto} not found in object store");
+        var actualStatistics = _context.ObjectStore.Get<ImportStatisticsDto>(ObjectStoreKeys.ImportStatisticsDto);
 
         // And: Verify that the actual statistics match the expected values
         Assert.That(actualStatistics.SelectedCount, Is.EqualTo(count),

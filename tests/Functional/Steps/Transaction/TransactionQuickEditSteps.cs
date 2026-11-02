@@ -62,17 +62,13 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <remarks>
     /// Retrieves transaction payee from object store (KEY_TRANSACTION_PAYEE) and
     /// opens the edit modal. Tests the quick edit workflow (PATCH endpoint).
-    ///
-    /// Requires Objects:
-    /// - TransactionPayee
     /// </remarks>
     [When("I click the \"Edit\" button on the transaction")]
     [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickTheEditButtonOnTheTransaction()
     {
         // When: Get the payee from object store
-        var payee = _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
 
         // And: Locate and click the edit button for the transaction
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -85,17 +81,13 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="payee">The payee name of the transaction to edit (optional, uses object store if null).</param>
     /// <remarks>
     /// Locates the transaction by payee and opens the edit modal.
-    ///
-    /// Requires Objects:
-    /// - TransactionPayee (if payee parameter is null)
     /// </remarks>
     [When("I quick edit the transaction")]
     [When("I quick edit the {payee} transaction")]
     [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIQuickEditTheTransaction(string? payee = null)
     {
-        var actualPayee = payee ?? _context.ObjectStore.Get<string>("TransactionPayee")
-            ?? throw new InvalidOperationException("TransactionPayee not found in object store");
+        var actualPayee = payee ?? _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
 
         // When: Locate and click the edit button for the transaction
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -108,9 +100,6 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="newMemo">The new memo value.</param>
     /// <remarks>
     /// Fills the memo field and stores the new value in object store for verification.
-    ///
-    /// Provides Objects:
-    /// - TransactionMemo
     /// </remarks>
     [When("I change Memo to {newMemo}")]
     [Provides(ObjectStoreKeys.TransactionMemo)]
@@ -121,7 +110,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         await transactionsPage.FillEditMemoAsync(newMemo);
 
         // And: Store the new memo for verification
-        _context.ObjectStore.Add("TransactionMemo", newMemo);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionMemo, newMemo);
     }
 
     /// <summary>
@@ -130,9 +119,6 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <param name="newCategory">The new category value.</param>
     /// <remarks>
     /// Fills the category field and stores the new value in object store for verification.
-    ///
-    /// Provides Objects:
-    /// - TransactionCategory
     /// </remarks>
     [When("I change Category to {newCategory}")]
     [Provides(ObjectStoreKeys.TransactionCategory)]
@@ -143,7 +129,7 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         await transactionsPage.FillEditCategoryAsync(newCategory);
 
         // And: Store the new category for verification
-        _context.ObjectStore.Add("TransactionCategory", newCategory);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, newCategory);
     }
 
     /// <summary>
@@ -171,12 +157,9 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// <remarks>
     /// Waits for edit modal to be visible, extracts the title from modal header,
     /// and stores it in object store for later verification.
-    ///
-    /// Provides Objects:
-    /// - ModalTitle
     /// </remarks>
     [Then("I should see a modal titled {expectedTitle}")]
-    [Provides("ModalTitle")]
+    [Provides(ObjectStoreKeys.ModalTitle)]
     public async Task ThenIShouldSeeAModalTitled(string expectedTitle)
     {
         // Then: Wait for the edit modal to be visible
@@ -184,13 +167,14 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         await transactionsPage.EditModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
 
         // And: Get the modal title from the modal header
+        // TODO: Steps should not be composing locators. This should be inside a page model.
         var modalTitle = await transactionsPage.EditModal.Locator("h5, .modal-title").First.TextContentAsync();
 
         Assert.That(modalTitle, Is.EqualTo(expectedTitle),
             $"Expected modal title to be '{expectedTitle}' but was '{modalTitle}'");
 
         // And: Store modal title for future verification
-        _context.ObjectStore.Add("ModalTitle", modalTitle ?? string.Empty);
+        _context.ObjectStore.Add(ObjectStoreKeys.ModalTitle, modalTitle ?? string.Empty);
     }
 
     /// <summary>
@@ -224,10 +208,8 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
     /// Checks Payee, Category, and Memo fields against values stored during transaction seeding.
     /// Only verifies fields that were populated during seeding (checks object store for presence).
     ///
-    /// Requires Objects:
-    /// - TransactionPayee (optional)
-    /// - TransactionCategory (optional)
-    /// - TransactionMemo (optional)
+    /// NOTE that the transaction fields are not strictly required. If they're not present,
+    /// we won't validate them.
     /// </remarks>
     [Then("the fields match the expected values")]
     public async Task ThenTheFieldsMatchTheExpectedValues()
@@ -236,27 +218,27 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
 
         // And: Verify Payee value if expected
-        if (_context.ObjectStore.Contains<string>("TransactionPayee"))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionPayee))
         {
-            var expectedPayee = _context.ObjectStore.Get<string>("TransactionPayee");
+            var expectedPayee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
             var actualPayee = await transactionsPage.EditPayeeInput.InputValueAsync();
             Assert.That(actualPayee, Is.EqualTo(expectedPayee),
                 $"Payee field should display '{expectedPayee}' but was '{actualPayee}'");
         }
 
         // And: Verify Category value if expected
-        if (_context.ObjectStore.Contains<string>("TransactionCategory"))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionCategory))
         {
-            var expectedCategory = _context.ObjectStore.Get<string>("TransactionCategory");
+            var expectedCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionCategory);
             var actualCategory = await transactionsPage.EditCategoryInput.InputValueAsync();
             Assert.That(actualCategory, Is.EqualTo(expectedCategory),
                 $"Category field should display '{expectedCategory}' but was '{actualCategory}'");
         }
 
         // And: Verify Memo value if expected
-        if (_context.ObjectStore.Contains<string>("TransactionMemo"))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.TransactionMemo))
         {
-            var expectedMemo = _context.ObjectStore.Get<string>("TransactionMemo");
+            var expectedMemo = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionMemo);
             var actualMemo = await transactionsPage.EditMemoInput.InputValueAsync();
             Assert.That(actualMemo, Is.EqualTo(expectedMemo),
                 $"Memo field should display '{expectedMemo}' but was '{actualMemo}'");

@@ -37,8 +37,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.WaitForLoadingCompleteAsync();
 
         // And: Get workspace name from object store
-        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.CurrentWorkspace} not found in object store. Ensure workspace is set up before calling this step.");
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         // And: Select the workspace
         await transactionsPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
@@ -76,8 +75,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task WhenIClickOnTheTransactionRow()
     {
         // When: Get the payee from object store
-        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
 
         // And: Click on the transaction row to navigate to details
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -265,10 +263,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task ThenIShouldSeeTheUpdatedMemoInTheTransactionList()
     {
         // Then: Get the payee and new memo from object store
-        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
-        var expectedMemo = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionMemo)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionMemo} not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        var expectedMemo = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionMemo);
 
         // And: Wait for page to update (loading spinner to hide)
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
@@ -298,10 +294,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()
     {
         // Then: Get the payee and new category from object store
-        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionPayee} not found in object store");
-        var expectedCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionCategory)
-            ?? throw new InvalidOperationException($"{ObjectStoreKeys.TransactionCategory} not found in object store");
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        var expectedCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionCategory);
 
         // And: Wait for page to update (loading spinner to hide)
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

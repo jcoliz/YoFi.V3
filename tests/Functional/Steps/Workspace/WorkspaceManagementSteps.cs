@@ -112,7 +112,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         await workspacesPage.NavigateAsync();
 
         // Get the current workspace name from object store
-        var oldName = GetRequiredFromStore(ObjectStoreKeys.CurrentWorkspace);
+        var oldName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
         // Store the new name for assertions
         var fullNewName = AddTestPrefix(newName);
