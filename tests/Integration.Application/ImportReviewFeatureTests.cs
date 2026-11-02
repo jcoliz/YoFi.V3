@@ -84,10 +84,10 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var result = await _feature.ImportFileAsync(emptyStream, "empty.ofx");
 
         // Then: Zero transactions should be imported
-        Assert.That(result.ImportedCount, Is.EqualTo(0));
-        Assert.That(result.NewCount, Is.EqualTo(0));
-        Assert.That(result.ExactDuplicateCount, Is.EqualTo(0));
-        Assert.That(result.PotentialDuplicateCount, Is.EqualTo(0));
+        Assert.That(result.ImportedCount, Is.Zero);
+        Assert.That(result.NewCount, Is.Zero);
+        Assert.That(result.ExactDuplicateCount, Is.Zero);
+        Assert.That(result.PotentialDuplicateCount, Is.Zero);
     }
 
     [Test]
@@ -101,7 +101,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var result = await _feature.ImportFileAsync(stream, "corrupted.ofx");
 
         // Then: Should handle gracefully with zero imported
-        Assert.That(result.ImportedCount, Is.EqualTo(0));
+        Assert.That(result.ImportedCount, Is.Zero);
 
         // And: Should report parsing errors
         Assert.That(result.Errors, Is.Not.Empty, "Corrupted OFX should generate parsing errors");
@@ -120,8 +120,8 @@ public class ImportReviewFeatureTests : FeatureTestBase
 
         // Then: All transactions should be marked as New
         Assert.That(result.NewCount, Is.EqualTo(result.ImportedCount));
-        Assert.That(result.ExactDuplicateCount, Is.EqualTo(0));
-        Assert.That(result.PotentialDuplicateCount, Is.EqualTo(0));
+        Assert.That(result.ExactDuplicateCount, Is.Zero);
+        Assert.That(result.PotentialDuplicateCount, Is.Zero);
 
         // And: All should be selected by default
         var importedTransactions = await _context.ImportReviewTransactions
@@ -253,7 +253,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
 
         // Then: Should return empty list
         Assert.That(result.Items, Is.Empty);
-        Assert.That(result.Metadata.TotalCount, Is.EqualTo(0));
+        Assert.That(result.Metadata.TotalCount, Is.Zero);
     }
 
     [Test]
@@ -418,7 +418,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var result = await _feature.CompleteReviewAsync();
 
         // Then: No transactions should be accepted
-        Assert.That(result.AcceptedCount, Is.EqualTo(0));
+        Assert.That(result.AcceptedCount, Is.Zero);
         Assert.That(result.RejectedCount, Is.EqualTo(10));
 
         // And: No transactions in Transactions table
@@ -519,7 +519,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var deletedCount = await _feature.DeleteAllAsync();
 
         // Then: Should return zero
-        Assert.That(deletedCount, Is.EqualTo(0));
+        Assert.That(deletedCount, Is.Zero);
     }
 
     [Test]
@@ -657,11 +657,11 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var summary = await _feature.GetSummaryAsync();
 
         // Then: All counts should be zero
-        Assert.That(summary.TotalCount, Is.EqualTo(0));
-        Assert.That(summary.SelectedCount, Is.EqualTo(0));
-        Assert.That(summary.NewCount, Is.EqualTo(0));
-        Assert.That(summary.ExactDuplicateCount, Is.EqualTo(0));
-        Assert.That(summary.PotentialDuplicateCount, Is.EqualTo(0));
+        Assert.That(summary.TotalCount, Is.Zero);
+        Assert.That(summary.SelectedCount, Is.Zero);
+        Assert.That(summary.NewCount, Is.Zero);
+        Assert.That(summary.ExactDuplicateCount, Is.Zero);
+        Assert.That(summary.PotentialDuplicateCount, Is.Zero);
     }
 
     [Test]

@@ -67,7 +67,7 @@ public class TenantTests
             Description = "A test tenant"
         };
 
-        Assert.That(tenant.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(tenant.Id, Is.Zero); // Initially zero
         var initialKey = tenant.Key;
         Assert.That(initialKey, Is.Not.EqualTo(Guid.Empty)); // Key is auto-generated on construction
 

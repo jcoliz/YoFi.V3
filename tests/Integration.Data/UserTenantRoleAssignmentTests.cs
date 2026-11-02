@@ -77,7 +77,7 @@ public class UserTenantRoleAssignmentTests
             Role = TenantRole.Editor
         };
 
-        Assert.That(assignment.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(assignment.Id, Is.Zero); // Initially zero
 
         // When: Adding and saving the assignment
         _context.UserTenantRoleAssignments.Add(assignment);

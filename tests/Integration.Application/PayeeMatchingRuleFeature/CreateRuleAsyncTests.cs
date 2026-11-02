@@ -27,7 +27,7 @@ public class PayeeMatchingRuleFeatureCreateRuleAsyncTests : PayeeMatchingRuleFea
         Assert.That(result.PayeePattern, Is.EqualTo("Amazon"));
         Assert.That(result.PayeeIsRegex, Is.False);
         Assert.That(result.Category, Is.EqualTo("Shopping"));
-        Assert.That(result.MatchCount, Is.EqualTo(0));
+        Assert.That(result.MatchCount, Is.Zero);
         Assert.That(result.LastUsedAt, Is.Null);
 
         // And: Rule should be in database

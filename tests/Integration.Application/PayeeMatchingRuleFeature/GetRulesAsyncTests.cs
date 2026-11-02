@@ -21,7 +21,7 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
 
         // Then: Should return empty list with pagination metadata
         Assert.That(result.Items, Is.Empty);
-        Assert.That(result.Metadata.TotalCount, Is.EqualTo(0));
+        Assert.That(result.Metadata.TotalCount, Is.Zero);
         Assert.That(result.Metadata.PageNumber, Is.EqualTo(1));
     }
 

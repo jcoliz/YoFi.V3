@@ -93,7 +93,7 @@ public class SplitTests
         Assert.That(retrieved!.TransactionId, Is.EqualTo(_transaction1.Id));
         Assert.That(retrieved.Amount, Is.EqualTo(50.00m));
         Assert.That(retrieved.Category, Is.EqualTo("Groceries"));
-        Assert.That(retrieved.Order, Is.EqualTo(0));
+        Assert.That(retrieved.Order, Is.Zero);
     }
 
     [Test]
@@ -519,7 +519,7 @@ public class SplitTests
         // Then: Should return splits in correct order
         Assert.That(splits, Has.Count.EqualTo(2));
         Assert.That(splits[0].Category, Is.EqualTo("Groceries"));
-        Assert.That(splits[0].Order, Is.EqualTo(0));
+        Assert.That(splits[0].Order, Is.Zero);
         Assert.That(splits[1].Category, Is.EqualTo("Household"));
         Assert.That(splits[1].Order, Is.EqualTo(1));
     }
@@ -728,7 +728,7 @@ public class SplitTests
 
         // Then: Order values should persist correctly
         Assert.That(splits, Has.Count.EqualTo(3));
-        Assert.That(splits[0].Order, Is.EqualTo(0));
+        Assert.That(splits[0].Order, Is.Zero);
         Assert.That(splits[1].Order, Is.EqualTo(1));
         Assert.That(splits[2].Order, Is.EqualTo(2));
     }
@@ -872,7 +872,7 @@ public class SplitTests
             Order = 0
         };
 
-        Assert.That(split.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(split.Id, Is.Zero); // Initially zero
         var initialKey = split.Key;
         Assert.That(initialKey, Is.Not.EqualTo(Guid.Empty)); // Key is auto-generated on construction
 

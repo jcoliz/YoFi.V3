@@ -230,7 +230,7 @@ public class SimpleTests
         var changeCount = await _context.SaveChangesAsync();
 
         // Then: Should complete without error and save no changes
-        Assert.That(changeCount, Is.EqualTo(0));
+        Assert.That(changeCount, Is.Zero);
     }
 
     [Test]
@@ -417,6 +417,6 @@ public class SimpleTests
         var deleted = await _context.WeatherForecasts.FindAsync(id);
         Assert.That(deleted, Is.Null);
         var count = await _context.WeatherForecasts.CountAsync();
-        Assert.That(count, Is.EqualTo(0));
+        Assert.That(count, Is.Zero);
     }
 }

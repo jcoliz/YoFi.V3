@@ -554,7 +554,7 @@ public class ImportReviewFeatureTests
         var result = await feature.SeedTestDataAsync(count);
 
         // Then: Should return 0
-        Assert.That(result, Is.EqualTo(0));
+        Assert.That(result, Is.Zero);
 
         // And: Should add empty collection
         dataProvider.Verify(dp => dp.AddRange(It.Is<IEnumerable<ImportReviewTransaction>>(

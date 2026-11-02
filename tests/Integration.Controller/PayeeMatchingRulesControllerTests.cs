@@ -669,9 +669,9 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
         Assert.That(created.PayeePattern, Is.EqualTo("Serialization Test"));
         Assert.That(created.Category, Is.EqualTo("Test Category"));
         Assert.That(created.PayeeIsRegex, Is.False);
-        Assert.That(created.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
-        Assert.That(created.ModifiedAt, Is.Not.EqualTo(default(DateTimeOffset)));
-        Assert.That(created.MatchCount, Is.EqualTo(0));
+        Assert.That(created.CreatedAt, Is.Not.Default);
+        Assert.That(created.ModifiedAt, Is.Not.Default);
+        Assert.That(created.MatchCount, Is.Zero);
     }
 
     #endregion

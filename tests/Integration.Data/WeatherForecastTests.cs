@@ -69,7 +69,7 @@ public class WeatherForecastTests
             Summary = "Sunny"
         };
 
-        Assert.That(forecast.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(forecast.Id, Is.Zero); // Initially zero
 
         // When: Adding and saving the forecast
         _context.WeatherForecasts.Add(forecast);

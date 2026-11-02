@@ -80,7 +80,7 @@ public class ImportReviewTransactionTests
             TenantId = _tenant1.Id
         };
 
-        Assert.That(transaction.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(transaction.Id, Is.Zero); // Initially zero
         var initialKey = transaction.Key;
         Assert.That(initialKey, Is.Not.EqualTo(Guid.Empty)); // Key is auto-generated on construction
 

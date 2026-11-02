@@ -587,7 +587,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         Assert.That(transaction.Splits, Has.Count.EqualTo(1));
         Assert.That(transaction.Splits.First().Category, Is.EqualTo("Food:Groceries"));
         Assert.That(transaction.Splits.First().Amount, Is.EqualTo(50.00m));
-        Assert.That(transaction.Splits.First().Order, Is.EqualTo(0));
+        Assert.That(transaction.Splits.First().Order, Is.Zero);
     }
 
     [Test]

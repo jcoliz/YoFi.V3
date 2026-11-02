@@ -79,7 +79,7 @@ public class PayeeMatchingRuleTests
             TenantId = _tenant1.Id
         };
 
-        Assert.That(rule.Id, Is.EqualTo(0)); // Initially zero
+        Assert.That(rule.Id, Is.Zero); // Initially zero
         var initialKey = rule.Key;
         Assert.That(initialKey, Is.Not.EqualTo(Guid.Empty)); // Key is auto-generated on construction
 
@@ -550,7 +550,7 @@ public class PayeeMatchingRuleTests
         // Then: MatchCount should default to 0
         var retrieved = await _context.PayeeMatchingRules.FindAsync(rule.Id);
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.MatchCount, Is.EqualTo(0));
+        Assert.That(retrieved!.MatchCount, Is.Zero);
     }
 
     [Test]

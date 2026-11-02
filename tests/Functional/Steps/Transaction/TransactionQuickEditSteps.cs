@@ -258,19 +258,19 @@ public class TransactionQuickEditSteps(ITestContext context) : TransactionStepsB
         // Then: Verify Date field is not visible (doesn't exist in quick edit modal)
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
         var dateCount = await transactionsPage.EditModal.GetByTestId("edit-transaction-date").CountAsync();
-        Assert.That(dateCount, Is.EqualTo(0), "Date field should not exist in quick edit modal");
+        Assert.That(dateCount, Is.Zero, "Date field should not exist in quick edit modal");
 
         // And: Verify Amount field is not visible (doesn't exist in quick edit modal)
         var amountCount = await transactionsPage.EditModal.GetByTestId("edit-transaction-amount").CountAsync();
-        Assert.That(amountCount, Is.EqualTo(0), "Amount field should not exist in quick edit modal");
+        Assert.That(amountCount, Is.Zero, "Amount field should not exist in quick edit modal");
 
         // And: Verify Source field is not visible (doesn't exist in quick edit modal)
         var sourceCount = await transactionsPage.EditModal.GetByTestId("edit-transaction-source").CountAsync();
-        Assert.That(sourceCount, Is.EqualTo(0), "Source field should not exist in quick edit modal");
+        Assert.That(sourceCount, Is.Zero, "Source field should not exist in quick edit modal");
 
         // And: Verify ExternalId field is not visible (doesn't exist in quick edit modal)
         var externalIdCount = await transactionsPage.EditModal.GetByTestId("edit-transaction-external-id").CountAsync();
-        Assert.That(externalIdCount, Is.EqualTo(0), "ExternalId field should not exist in quick edit modal");
+        Assert.That(externalIdCount, Is.Zero, "ExternalId field should not exist in quick edit modal");
     }
 
     #endregion
