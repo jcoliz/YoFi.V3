@@ -682,6 +682,117 @@
         }
       }
     },
+    "/TestControl/users/{username}/workspaces/{tenantKey}/payee-rules/seed": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Seed payee matching rules in a workspace for a user.",
+        "description": "Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.\nEach rule is automatically validated by FluentValidation before this method executes.\nUses the same tenant access policy as SeedTransactionsPrecise to establish tenant context\nbefore PayeeMatchingRuleFeature is injected via DI.\nReturns 403 if either username or workspace name lacks the prefix.\nReturns 400 if any rule fails validation, without creating any rules.",
+        "operationId": "TestControl_SeedPayeeRules",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tenantKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "description": "The collection of rules to create, wrapped for automatic validation.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionRequestOfPayeeMatchingRuleEditDto"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The collection of created payee matching rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PayeeMatchingRuleResultDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/TestControl/users/{username}/workspaces/{tenantKey}/import/seed": {
       "post": {
         "tags": [
@@ -1405,6 +1516,69 @@
           "category": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "PayeeMatchingRuleResultDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "guid"
+          },
+          "payeePattern": {
+            "type": "string"
+          },
+          "payeeIsRegex": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "matchCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CollectionRequestOfPayeeMatchingRuleEditDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayeeMatchingRuleEditDto"
+            }
+          }
+        }
+      },
+      "PayeeMatchingRuleEditDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "payeePattern": {
+            "type": "string"
+          },
+          "payeeIsRegex": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "string"
           }
         }
       },

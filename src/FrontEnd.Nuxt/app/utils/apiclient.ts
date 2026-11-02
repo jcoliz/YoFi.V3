@@ -121,9 +121,9 @@ export class AuthClient {
     }
 
     /**
-     * Registers a new user.
-     * @param request Signup credentials.
-     * @return JWT tokens and user information if successful; otherwise, bad request.
+     * Registers a new user. Dispatches to open or invitation-based registration
+    based on RegistrationOptions and the presence of an invitation code.
+     * @param request Signup credentials, optionally including an invitation code.
      */
     signUp(request: SignUpRequest): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/signup";
@@ -282,7 +282,6 @@ export class AuthClient {
     /**
      * Handles logout logic. Can be overridden for custom behavior.
      * @param request The logout request containing the refresh token to revoke.
-     * @return Success response.
      */
     logout(request: RefreshRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/logout";
@@ -318,6 +317,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Validates an invitation code and returns its current status.
+     * @param request The request containing the invitation code to validate.
+     */
     validateInvitation(request: InvitationValidateRequest): Promise<InvitationStatusResponse> {
         let url_ = this.baseUrl + "/api/auth/invitations/validate";
         url_ = url_.replace(/[?&]$/, "");
@@ -356,6 +359,10 @@ export class AuthClient {
         return Promise.resolve<InvitationStatusResponse>(null as any);
     }
 
+    /**
+     * Initiates a password reset flow by generating a reset code and notifying the user.
+     * @param request The forgot password request containing a username or email.
+     */
     forgotPassword(request: ForgotPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/forgot-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -390,6 +397,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Resets a user's password using a reset code from the forgot-password flow.
+     * @param request The reset password request containing user identifier, reset code, and new password.
+     */
     resetPassword(request: ResetPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/reset-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -431,6 +442,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Changes the authenticated user's password.
+     * @param request The change password request containing the current and new passwords.
+     */
     changePassword(request: ChangePasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/change-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -2936,6 +2951,99 @@ export class TestControlClient {
             });
         }
         return Promise.resolve<TransactionResultDto[]>(null as any);
+    }
+
+    /**
+     * Seed payee matching rules in a workspace for a user.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param tenantKey The unique key of the workspace.
+     * @param request The collection of rules to create, wrapped for automatic validation.
+     * @return The collection of created payee matching rules.
+     */
+    seedPayeeRules(username: string, tenantKey: string, request: CollectionRequestOfPayeeMatchingRuleEditDto): Promise<PayeeMatchingRuleResultDto[]> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{tenantKey}/payee-rules/seed";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSeedPayeeRules(_response);
+        });
+    }
+
+    protected processSeedPayeeRules(response: Response): Promise<PayeeMatchingRuleResultDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData201)) {
+                result201 = [] as any;
+                for (let item of resultData201)
+                    result201!.push(PayeeMatchingRuleResultDto.fromJS(item));
+            }
+            else {
+                result201 = null as any;
+            }
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PayeeMatchingRuleResultDto[]>(null as any);
     }
 
     /**
@@ -5558,6 +5666,50 @@ export class CollectionRequestOfTransactionEditDto implements ICollectionRequest
 
 export interface ICollectionRequestOfTransactionEditDto {
     items?: TransactionEditDto[];
+}
+
+export class CollectionRequestOfPayeeMatchingRuleEditDto implements ICollectionRequestOfPayeeMatchingRuleEditDto {
+    items?: PayeeMatchingRuleEditDto[];
+
+    constructor(data?: ICollectionRequestOfPayeeMatchingRuleEditDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(PayeeMatchingRuleEditDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CollectionRequestOfPayeeMatchingRuleEditDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CollectionRequestOfPayeeMatchingRuleEditDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ICollectionRequestOfPayeeMatchingRuleEditDto {
+    items?: PayeeMatchingRuleEditDto[];
 }
 
 /** Result of workspace setup including key, name, and assigned role. */

@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
@@ -98,6 +102,11 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
+            // AddDatabase captures its connection string before test configuration overrides apply.
+            services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlite($"Data Source={_dbPath}"));
+
             // Override the production authentication setup with test authentication
             // We need to set the test scheme as the default for all authentication types
             services.AddAuthentication(options =>

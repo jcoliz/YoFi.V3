@@ -109,6 +109,7 @@ public record ErrorCodeInfo(string Code, string Description);
 /// <item><description>Create workspaces for test users with specified roles</description></item>
 /// <item><description>Assign users to existing workspaces</description></item>
 /// <item><description>Seed transactions in workspaces</description></item>
+/// <item><description>Seed payee matching rules in workspaces</description></item>
 /// <item><description>Bulk workspace setup</description></item>
 /// </list>
 ///
@@ -707,6 +708,53 @@ public partial class TestControlController(
     }
 
     /// <summary>
+    /// Seed payee matching rules in a workspace for a user.
+    /// </summary>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+    /// <param name="tenantKey">The unique key of the workspace.</param>
+    /// <param name="request">The collection of rules to create, wrapped for automatic validation.</param>
+    /// <param name="payeeMatchingRuleFeature">Feature providing payee matching rule operations.</param>
+    /// <returns>The collection of created payee matching rules.</returns>
+    /// <remarks>
+    /// Validates that user has access to the workspace and both user and workspace have __TEST__ prefix.
+    /// Each rule is automatically validated by FluentValidation before this method executes.
+    /// Uses the same tenant access policy as SeedTransactionsPrecise to establish tenant context
+    /// before PayeeMatchingRuleFeature is injected via DI.
+    /// Returns 403 if either username or workspace name lacks the prefix.
+    /// Returns 400 if any rule fails validation, without creating any rules.
+    /// </remarks>
+    [HttpPost("users/{username}/workspaces/{tenantKey:guid}/payee-rules/seed")]
+    [Authorize("AllowAnonymousTenantAccess")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<PayeeMatchingRuleResultDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SeedPayeeRules(
+        string username,
+        Guid tenantKey,
+        [FromBody] CollectionRequest<PayeeMatchingRuleEditDto> request,
+        [FromServices] PayeeMatchingRuleFeature payeeMatchingRuleFeature)
+    {
+        LogStartingCount(request.Items.Count);
+
+        var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        var createdRules = new List<PayeeMatchingRuleResultDto>();
+        foreach (var rule in request.Items)
+        {
+            createdRules.Add(await payeeMatchingRuleFeature.CreateRuleAsync(rule));
+        }
+
+        LogOkCount(createdRules.Count);
+        return CreatedAtAction(nameof(SeedPayeeRules), new { username, tenantKey }, createdRules);
+    }
+
+    /// <summary>
     /// Seed test import review transactions in a workspace for a user.
     /// </summary>
     /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
@@ -1174,7 +1222,7 @@ public partial class TestControlController(
             return ProblemWithLog(
                 StatusCodes.Status403Forbidden,
                 "User does not have access to workspace",
-                $"User '{username}' must have a role in workspace '{tenant.Name}' to seed transactions"
+                $"User '{username}' must have a role in workspace '{tenant.Name}' to seed test data"
             );
         }
 

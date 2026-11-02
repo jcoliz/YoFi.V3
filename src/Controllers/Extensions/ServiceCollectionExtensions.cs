@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         // Explicitly register generic CollectionRequestValidator for commonly used types
         // (Generic validators may not be auto-discovered by AddValidatorsFromAssemblyContaining)
         services.AddTransient<IValidator<CollectionRequest<TransactionEditDto>>, CollectionRequestValidator<TransactionEditDto>>();
+        services.AddTransient<IValidator<CollectionRequest<PayeeMatchingRuleEditDto>>, CollectionRequestValidator<PayeeMatchingRuleEditDto>>();
 
         // Add FluentValidation to ASP.NET Core model binding pipeline.
         // This causes automatic validation at the controller boundary BEFORE controller actions execute.
