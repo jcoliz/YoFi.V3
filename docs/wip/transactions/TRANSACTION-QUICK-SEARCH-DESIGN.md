@@ -149,21 +149,38 @@ exponents. Examples:
 - `$42`, `1,234.56`, and `1e2` remain valid text searches but do not add an amount condition.
 - Unparseable or overflowing numbers are text-only searches, not request errors.
 
-### Case Handling
+### Database Target and Unicode Matching
 
 Do not copy the recommendations' assumption that plain `.Contains()` is
-automatically case-insensitive. The current database provider is SQLite.
+automatically case-insensitive. **PostgreSQL is the production target** and will
+replace SQLite before production usage. SQLite remains a local development/test
+convenience; its limitations do not define the production search contract.
 
-Use database-translatable lowercase normalization on each text column followed
-by literal `Contains`, with the normalized term computed before building the
-query. Null-check optional memos. For ASCII text this provides case-insensitive
-matching without SQL wildcard interpretation.
+Production search must support case-insensitive matching of accented letters,
+for example `CAFÉ` matching `café`. Accent-insensitive matching (`cafe` matching
+`café`) is not required. PostgreSQL's behavior depends on its configured
+locale/collation; select and verify that configuration during the database
+migration. Do not promise universal Unicode case equivalence (such as `ß` matching
+`ss`) or equivalence of different Unicode normalization forms.
 
-SQLite's built-in lowercase handling is not full Unicode case folding. Preserve
-non-ASCII text as literal searchable text, but do not claim accent-insensitive
-matching or case equivalence for all scripts. Adding Unicode-aware database
-collation/search infrastructure is outside this story. Verify these semantics
-against real SQLite rather than relying on in-memory LINQ behavior.
+For PostgreSQL, use database-side case-insensitive substring matching, typically
+Npgsql's translation of `ILIKE`. Escape the escape character, `%`, and `_` in the
+user term before adding the surrounding `%` wildcards, and specify the escape
+character explicitly. Parameterize the resulting pattern and null-check optional
+memos. Do not lowercase the term in .NET: let the configured database perform
+case matching consistently for both the stored text and the search pattern.
+
+For SQLite-only local runs, database-translatable lowercase normalization followed
+by literal `Contains` is an acceptable limited implementation. Normalize both
+operands consistently for ASCII; document that SQLite's built-in lowercase
+handling does not provide equivalent non-ASCII case matching. Do not add ICU
+extensions, custom collations, or a Unicode compatibility framework just to make
+SQLite imitate PostgreSQL.
+
+SQLite tests can verify search composition and application behavior, but cannot
+establish PostgreSQL matching semantics. PostgreSQL integration tests are a
+production-release gate. The database migration itself remains separate from
+Story 2213; an initial SQLite implementation does not prove production readiness.
 
 ### Composition and Pagination
 
@@ -204,7 +221,15 @@ do not materialize transactions to perform search. Retain the current base-query
 and DTO projection patterns. `Any` translates to a correlated existence check;
 it does not itself require adding an `Include` or flattening splits into rows.
 
-No schema migration, new index, or result DTO field is required. Ordinary B-tree
+Keep provider-specific matching in the data layer behind the application's data
+access boundary; do not introduce Npgsql/EF dependencies into the Application
+project. The PostgreSQL migration must wire and test its matching implementation
+without changing the public search API. Do not build a general-purpose query
+framework for this single search predicate.
+
+Search itself requires no schema migration, new index, or result DTO field.
+Provisioning PostgreSQL and selecting its locale/collation belong to the separate
+database migration. Ordinary B-tree
 indexes are not a general solution for leading-substring searches; measure
 before adding database structures.
 
@@ -241,8 +266,8 @@ tests. Add stable test IDs `transaction-search`, `clear-transaction-search`, and
 | Story 2213 acceptance criterion | Verification |
 |---|---|
 | Single search bar always visible at top | Browser test: present above dates/table with a selected workspace, including loading and zero results; usable at mobile width. |
-| Searches all five field groups | SQLite integration tests: independent fixtures for payee, transaction memo, split category, split memo, and transaction amount. |
-| ANY split can match | SQLite tests: only a non-first split matches; several splits match but return one transaction with total count one. |
+| Searches all five field groups | Database integration tests: independent fixtures for payee, transaction memo, split category, split memo, and transaction amount; verify against PostgreSQL before production release. |
+| ANY split can match | Database tests: only a non-first split matches; several splits match but return one transaction with total count one. Run against PostgreSQL as well as local SQLite. |
 | Results update while typing, debounced | Frontend test with controlled timers: no request before 300 ms; one request after the final keystroke. Browser test confirms results update without submission. |
 | Clear button appears when text exists | Frontend/browser tests: absent when empty, present with text, clears immediately, resets page, preserves dates, restores focus. |
 
@@ -253,6 +278,12 @@ Additional regression coverage:
   negative/zero amounts, non-matching split amounts, numeric overflow,
   other-tenant exclusion, inclusive date composition, ordering, and matches
   beyond the original first page with accurate filtered pagination metadata.
+- **Production-provider integration (PostgreSQL, required before release)**:
+  repeat the database search regressions against the production locale/collation.
+  Verify accented case pairs such as `CAFÉ`/`café`, accent-sensitive behavior,
+  and literal `%`, `_`, and escape-character searches. Confirm server-side
+  translation of split predicates, decimal equality, filtered counts, and paging.
+  Record the locale/collation used; SQLite-only results are not a substitute.
 - **Controller integration**: `search` binding, unchanged no-search response,
   date/search composition, and existing authentication/tenant-role behavior.
 - **Frontend**: Enter flush, immediate clear during a pending timer, normalized
@@ -264,12 +295,15 @@ Additional regression coverage:
   Use the existing page object and generated API client conventions.
 
 For the PRD's **under 200 ms search-response target at 10,000 transactions**,
-measure warm authenticated list requests against a representative tenant with
+measure warm authenticated list requests against PostgreSQL with the intended
+production locale/collation and a representative tenant with
 multiple splits, including count and page retrieval. Include text, amount, and
 no-match cases; record environment and latency distribution. Measure API time
 separately from the intentional 300 ms typing debounce. This is a target to
 verify, not a performance claim or a reason to introduce pagination (already present).
 
-Implementation is complete when the five acceptance criteria and relevant
-regressions pass, generated clients are synchronized, and existing date-only
-and no-search transaction workflows remain unchanged.
+Story implementation is complete for local development when the five acceptance
+criteria and relevant local regressions pass, generated clients are synchronized,
+and existing date-only and no-search transaction workflows remain unchanged.
+Production readiness additionally requires the PostgreSQL migration and the
+PostgreSQL matching, query, and performance verification described above.
