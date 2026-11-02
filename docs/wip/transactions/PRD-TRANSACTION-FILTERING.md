@@ -1,6 +1,5 @@
 ---
 status: Approved (Detailed Design Complete)
-owner: James Coliz
 target_release: Beta 1
 ado: "[Feature 1983](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1983): Transaction Filtering"
 ---
@@ -35,7 +34,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 ## User Stories
 
-### Story 1: User - Quick Text Search
+### Story 2213: User - Quick Text Search
 
 **As a** user
 **I want** to search all fields with a single text input
@@ -49,7 +48,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Results update as user types (debounced)
 - [ ] Clear button (×) appears when text is present
 
-### Story 2: User - Find Uncategorized Transactions
+### Story 2214: User - Find Uncategorized Transactions
 
 **As a** user
 **I want** to filter for uncategorized transactions
@@ -62,7 +61,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Transactions with mixed categorized/uncategorized splits ARE included (they need attention)
 - [ ] Works in combination with other filters (date range, text search)
 
-### Story 3: User - Default Date Range [V3.0]
+### Story 2215: User - Default Date Range [V3.0]
 
 **As a** user
 **I want** transactions filtered to last 12 months by default
@@ -75,7 +74,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] User can clear default filter to see all transactions
 - [ ] Preference persists in browser (localStorage)
 
-### Story 4: User - Advanced Filtering
+### Story 2216: User - Advanced Filtering
 
 **As a** power user
 **I want** to filter by specific fields and date ranges
