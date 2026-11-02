@@ -47,7 +47,7 @@ public class PayeeRuleSteps(ITestContext _context)
         {
             PayeePattern = row.GetRequired("Payee"),
             PayeeIsRegex = forceRegex || (row.GetOptional<bool>("IsRegex") ?? false),
-            Category = row.GetRequired("Category")
+            Category = WebUtility.HtmlDecode(row.GetRequired("Category"))
         }).ToList();
 
         Assert.That(items, Is.Not.Empty, "At least one payee rule row is required.");

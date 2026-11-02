@@ -97,7 +97,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:25
-    @explicit:wip
     Scenario: Matched category persists after import
       Given I have a payee rule:
         | Payee | Category    |

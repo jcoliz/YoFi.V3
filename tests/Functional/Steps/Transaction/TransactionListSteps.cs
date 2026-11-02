@@ -337,13 +337,22 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Then the transaction should have category {string1}
     /// </summary>
     /// <remarks>
-    /// Will have to figure out how we locate which transaction we're looking for.
-    /// This is coming from bank import, with category set by payee rules.
+    /// Verifies the category of the single transaction uploaded through bank import.
     /// </remarks>
     [Then("the transaction should have category {string1}")]
-    public async Task TheTransactionShouldHaveCategory(string string1)
+    [Requires(ObjectStoreKeys.UploadedTransactionPayees)]
+    public async Task TheTransactionShouldHaveCategory(string category)
     {
-        throw new NotImplementedException();
+        var payees = _context.ObjectStore.Get<List<string>>(ObjectStoreKeys.UploadedTransactionPayees);
+        Assert.That(payees, Has.Count.EqualTo(1),
+            "Expected exactly one uploaded transaction for this singular category assertion");
+
+        var payee = payees.Single();
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.WaitForTransactionAsync(payee);
+        var actualCategory = await transactionsPage.GetTransactionCategoryAsync(payee);
+        Assert.That(actualCategory?.Trim(), Is.EqualTo(category),
+            $"Imported transaction for '{payee}' should retain category '{category}'");
     }
 
     #endregion
