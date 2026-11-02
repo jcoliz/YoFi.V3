@@ -46,7 +46,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:11
-    @explicit:wip
     Scenario: Cannot create rule with empty category
       When I attempt to create a payee rule:
         | Payee      | Category |

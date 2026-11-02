@@ -378,15 +378,16 @@ public class AuthSteps(ITestContext _context)
     /// </summary>
     /// <param name="errorMessage">The expected error message text (or substring).</param>
     /// <remarks>
-    /// Works for both login and registration pages. Checks object store to determine
+    /// Works for login, registration, and payee rules pages. Checks object store to determine
     /// which page is active and validates the error message accordingly.
+    ///
+    /// TODO: This needs a refactor. Obviously payee rules is not part of auth steps.
+    /// This needs to go in some kind of base steps.
     /// </remarks>
     [Then("I should see an error message containing {errorMessage}")]
     [Then("I should see an error message {errorMessage}")]
     public async Task ThenIShouldSeeAnErrorMessage(string errorMessage)
     {
-        // This method works for both login and registration pages
-
         // The way to tell which page we're on is to ask the object store.
         if (_context.ObjectStore.Contains<RegisterPage>())
         {
@@ -410,7 +411,15 @@ public class AuthSteps(ITestContext _context)
             }
         }
 
-        throw new InvalidOperationException("No page object for login or registration found in object store");
+        if (_context.ObjectStore.Contains<PayeeRulesPage>())
+        {
+            var payeeRulesPage = _context.ObjectStore.Get<PayeeRulesPage>();
+            Assert.That(await payeeRulesPage.GetValidationErrorAsync(), Does.Contain(errorMessage),
+                $"Should display error message containing: {errorMessage}");
+            return;
+        }
+
+        throw new InvalidOperationException("No page object for login, registration, or payee rules found in object store");
     }
 
     /// <summary>

@@ -91,10 +91,22 @@ public class PayeeRuleSteps(ITestContext _context)
     /// <summary>
     /// When I attempt to create a payee rule:
     /// </summary>
+    /// <remarks>
+    /// The table must contain exactly one row with "Payee" and "Category" columns.
+    /// </remarks>
     [When("I attempt to create a payee rule:")]
     public async Task IAttemptToCreateAPayeeRule(DataTable table)
     {
-        throw new NotImplementedException();
+        if (table.Rows.Count != 1)
+        {
+            throw new ArgumentException("Expected exactly one payee rule row.", nameof(table));
+        }
+
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+
+        var row = table.Rows.Single();
+        await page.AttemptCreateRuleAsync(row["Payee"], row["Category"]);
     }
 
     /// <summary>
@@ -103,7 +115,10 @@ public class PayeeRuleSteps(ITestContext _context)
     [Then("the rule should not be created")]
     public async Task TheRuleShouldNotBeCreated()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+        Assert.That(await page.IsEmptyAsync(), Is.True,
+            "The workspace should still have no rules after the rejected creation");
     }
 
     /// <summary>
