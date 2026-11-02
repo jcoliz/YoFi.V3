@@ -1,5 +1,9 @@
 # Transaction Filtering UI Recommendations
 
+For implementation of **Story 2213 only**, use the proposed
+[Transaction Quick Text Search design](TRANSACTION-QUICK-SEARCH-DESIGN.md).
+This document covers the broader feature; its phases and examples combine multiple stories.
+
 ## Executive Summary
 
 This document provides architectural recommendations for implementing transaction filtering in YoFi.V3, balancing power-user needs with minimal/modern UX principles. The solution emphasizes progressive disclosure, keyboard accessibility, and mobile-first responsive design.

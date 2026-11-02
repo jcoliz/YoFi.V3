@@ -48,6 +48,9 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Results update as user types (debounced)
 - [ ] Clear button (×) appears when text is present
 
+**Focused design**: [Story 2213: Transaction Quick Text Search](TRANSACTION-QUICK-SEARCH-DESIGN.md).
+
+
 ### Story 2214: User - Find Uncategorized Transactions
 
 **As a** user
