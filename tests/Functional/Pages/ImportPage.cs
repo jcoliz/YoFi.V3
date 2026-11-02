@@ -97,6 +97,7 @@ public partial class ImportPage(IPage page) : BasePage(page)
     public ILocator TransactionRows => ImportReviewTable.Locator("tbody tr[data-test-id^='row-']");
 
     private ILocator TransactionCategoryCells => TransactionRows.Locator("td:nth-child(4)");
+    private ILocator UncategorizedMarker => Page.GetByTestId("uncategorized");
     private ILocator CategoryEditControls => TransactionCategoryCells.Locator("input, textarea, select, [contenteditable]:not([contenteditable='false'])");
 
     /// <summary>
@@ -593,7 +594,7 @@ public partial class ImportPage(IPage page) : BasePage(page)
         Assertions.Expect(TransactionCategoryCells).ToHaveTextAsync(category);
 
     /// <summary>
-    /// Waits for the transaction with the exact payee to display its category or the uncategorized placeholder.
+    /// Waits for the transaction with the exact payee to display its category or the uncategorized marker.
     /// </summary>
     internal Task ExpectCategoryAsync(string payee, string? category)
     {
@@ -601,8 +602,10 @@ public partial class ImportPage(IPage page) : BasePage(page)
         {
             Has = Page.GetByRole(AriaRole.Cell, new() { Name = payee, Exact = true })
         });
-        return Assertions.Expect(row.GetByRole(AriaRole.Cell).Nth(3))
-            .ToHaveTextAsync(string.IsNullOrEmpty(category) ? "\u2014" : category);
+        var categoryCell = row.GetByRole(AriaRole.Cell).Nth(3);
+        return string.IsNullOrEmpty(category)
+            ? Assertions.Expect(categoryCell.Locator(UncategorizedMarker)).ToBeVisibleAsync()
+            : Assertions.Expect(categoryCell).ToHaveTextAsync(category);
     }
 
     /// <summary>

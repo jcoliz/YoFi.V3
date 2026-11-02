@@ -159,7 +159,15 @@ const formatDate = (date: Date): string => {
             </td>
             <td>{{ transaction.payee }}</td>
             <td class="text-muted">
-              <small>{{ transaction.category || '—' }}</small>
+              <span v-if="transaction.category">
+                <small>{{ transaction.category }}</small>
+              </span>
+              <span
+                v-else
+                data-test-id="uncategorized"
+              >
+                <small>—</small>
+              </span>
             </td>
             <td class="text-end">
               {{ formatAmount(transaction.amount!) }}
