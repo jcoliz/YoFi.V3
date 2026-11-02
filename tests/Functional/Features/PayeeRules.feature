@@ -56,7 +56,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:20
-    @explicit:wip
     Scenario: Transaction matches substring payee rule on import
       Given I have a payee rule:
         | Payee     | Category |

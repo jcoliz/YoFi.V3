@@ -260,16 +260,24 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     [Then("the category should be read-only in import review")]
     public async Task TheCategoryShouldBeReadOnlyInImportReview()
     {
-        throw new NotImplementedException();
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.ExpectCountAsync(1);
+        await importPage.ExpectCategoryReadOnlyAsync();
     }
 
     /// <summary>
     /// Then the imported transaction should have category {string1} (in import review)
     /// </summary>
     [Then("the imported transaction should have category {string1}")]
-    public async Task TheImportedTransactionShouldHaveCategory(string string1)
+    public async Task TheImportedTransactionShouldHaveCategory(string category)
     {
-        throw new NotImplementedException();
+        // Expect only one transaction to be present in the import review.
+        // (The language of this step is singular, referring to a single imported transaction)
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+
+        await importPage.ExpectCountAsync(1);
+
+        await importPage.ExpectCategoryAsync(category);
     }
 
     #endregion

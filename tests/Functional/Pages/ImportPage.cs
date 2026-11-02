@@ -96,6 +96,9 @@ public partial class ImportPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator TransactionRows => ImportReviewTable.Locator("tbody tr[data-test-id^='row-']");
 
+    private ILocator TransactionCategoryCells => TransactionRows.Locator("td:nth-child(4)");
+    private ILocator CategoryEditControls => TransactionCategoryCells.Locator("input, textarea, select, [contenteditable]:not([contenteditable='false'])");
+
     /// <summary>
     /// Gets a transaction row by key
     /// </summary>
@@ -575,6 +578,28 @@ public partial class ImportPage(IPage page) : BasePage(page)
             return await badge.TextContentAsync();
         }
         return null;
+    }
+
+    /// <summary>
+    /// Waits until exactly the expected number of transactions is displayed.
+    /// </summary>
+    internal Task ExpectCountAsync(int expectedCount) =>
+        Assertions.Expect(TransactionRows).ToHaveCountAsync(expectedCount);
+
+    /// <summary>
+    /// Waits for the single imported transaction to display the expected category.
+    /// </summary>
+    internal Task ExpectCategoryAsync(string category) =>
+        Assertions.Expect(TransactionCategoryCells).ToHaveTextAsync(category);
+
+    /// <summary>
+    /// Verifies that the single transaction's category has no editable controls or content.
+    /// </summary>
+    internal async Task ExpectCategoryReadOnlyAsync()
+    {
+        await Assertions.Expect(TransactionCategoryCells).ToBeVisibleAsync();
+        await Assertions.Expect(TransactionCategoryCells).ToHaveJSPropertyAsync("isContentEditable", false);
+        await Assertions.Expect(CategoryEditControls).ToHaveCountAsync(0);
     }
 
     #endregion

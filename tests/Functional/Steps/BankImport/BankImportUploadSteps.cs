@@ -1,3 +1,4 @@
+using System.Globalization;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
@@ -119,9 +120,26 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     /// </remarks>
     [Given("I have uploaded an OFX file with transactions:")]
     [When("I upload an OFX file with transactions:")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileWithTransactions(DataTable table)
     {
-        throw new NotImplementedException();
+        var transactions = table.Rows.Select(row => new TransactionResultDto
+        {
+            Key = Guid.NewGuid(),
+            Date = DateTimeOffset.ParseExact(row.GetRequired("Date"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            Amount = decimal.Parse(row.GetRequired("Amount"), CultureInfo.InvariantCulture),
+            Payee = row.GetRequired("Payee"),
+            Memo = string.Empty,
+            Category = string.Empty
+        }).ToList();
+
+        Assert.That(transactions, Is.Not.Empty, "At least one transaction row is required.");
+
+        var ofxFilePath = OfxFileGenerator.GenerateOfxFileFromTransactions(transactions);
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, ofxFilePath);
+
+        await IUploadTheOFXFile();
     }
 
     #endregion
