@@ -95,13 +95,9 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// and verifies the user's role is "Owner".
-    ///
-    /// Requires Objects:
-    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should be able to manage that workspace")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
 
     public async Task ThenIShouldBeAbleToManageThatWorkspace()
     {
@@ -186,13 +182,9 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves expected workspace name from object store (KEY_CURRENT_WORKSPACE)
     /// and verifies the workspace selector displays it correctly.
-    ///
-    /// Requires Objects:
-    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should see the workspace information")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
 
     public async Task ThenIShouldSeeTheWorkspaceInformation()
     {
@@ -211,13 +203,9 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// <remarks>
     /// Retrieves current workspace from object store, navigates to workspaces page,
     /// gets the created date from workspace card, and verifies it's a valid DateTime.
-    ///
-    /// Requires Objects:
-    /// - CurrentWorkspace
     /// </remarks>
     [Then("I should see when it was created")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
 
     public async Task ThenIShouldSeeWhenItWasCreated()
     {

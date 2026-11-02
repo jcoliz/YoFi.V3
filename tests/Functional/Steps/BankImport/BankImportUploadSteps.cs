@@ -25,14 +25,10 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     /// Generates a temporary OFX file with unique transaction IDs to ensure all transactions are new.
     /// Navigates to the import page, uploads the file, and waits for processing to complete.
     /// The temporary file is cleaned up after upload.
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace (workspace name)
     /// </remarks>
     [Given("I have uploaded an OFX file with {count} new transactions")]
     [Given("I have uploaded an OFX file with {count} transactions")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileWithNewTransactions(int count)
     {
@@ -97,8 +93,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     /// </summary>
     [Given("I have uploaded an OFX file containing all the same transactions")]
     [RequiresObjects(ObjectStoreKeys.ExistingTransactions)]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IHaveUploadedAnOFXFileContainingAllTheSameTransactions()
     {
@@ -146,16 +141,12 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
     /// Retrieves the OFX file path from the object store (set by IHaveAValidOFXFileWith10Transactions),
     /// navigates to the import page, uploads the file, and waits for processing to complete.
     /// The temporary file is cleaned up after upload.
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace (workspace name)
-    /// - OfxFilePath (string) - Path to the OFX file to upload
     /// </remarks>
     [Given("I have uploaded the OFX file")]
     [When("I upload the OFX file")]
     [When("I upload the same OFX file again")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.OfxFilePath)]
-    [Requires("CurrentWorkspace")]
+    [RequiresObjects(ObjectStoreKeys.OfxFilePath)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(ObjectStoreKeys.UploadedTransactionPayees)]
     public async Task IUploadTheOFXFile()
     {

@@ -21,15 +21,11 @@ public class BankImportNavigationSteps(ITestContext context) : BankImportStepsBa
     /// <remarks>
     /// Sets up minimal state to be on the import review page: navigates to the page and
     /// selects the current workspace. Does not upload any files.
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace
     /// </remarks>
     [Given("I am on the import review page")]
     [When("I am on the Import Review page")]
     [When("I navigate to the Import page")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IAmOnTheImportReviewPage()
     {
         // Given: Get workspace name

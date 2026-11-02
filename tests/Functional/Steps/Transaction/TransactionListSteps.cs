@@ -27,13 +27,9 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Sets up minimal state to be on the transactions page: navigates to the page,
     /// then selects the current workspace from object store. Does not seed any transactions.
     /// Requires KEY_CURRENT_WORKSPACE to be set in object store.
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace
     /// </remarks>
     [Given("I am on the transactions page")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Requires("CurrentWorkspace")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IAmOnTheTransactionsPage()
     {
         // Given: Navigate to transactions page first
@@ -103,13 +99,9 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
     /// waits for loading to complete, and stores as current workspace.
-    ///
-    /// Provides Objects
-    /// - CurrentWorkspace
     /// </remarks>
     [When("I view transactions in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Provides("CurrentWorkspace")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIViewTransactionsIn(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();

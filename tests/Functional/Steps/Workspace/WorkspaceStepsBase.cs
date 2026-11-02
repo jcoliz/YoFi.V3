@@ -42,6 +42,8 @@ public abstract class WorkspaceStepsBase(ITestContext context)
     /// <summary>
     /// Gets a required value from the object store, throwing if not found.
     /// </summary>
+    /// <remarks>
+    /// TODO: This should be moved into the base class as `GetRequired()`
     /// <param name="key">The object store key.</param>
     /// <returns>The stored value.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the key is not found.</exception>

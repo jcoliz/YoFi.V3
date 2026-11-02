@@ -36,13 +36,9 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// Comprehensive setup step that: clears existing test data, creates an editor user,
     /// creates a test workspace with Editor role, stores credentials and workspace key,
     /// and performs login. Used as the standard starting point for transaction record tests.
-    ///
-    /// Provides Objects:
-    /// - CurrentWorkspace
     /// </remarks>
     [Given("I am logged in as a user with \"Editor\" role")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Provides("CurrentWorkspace")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIAmLoggedInAsAUserWithEditorRole()
     {
         // Given: Clear existing test data
@@ -85,13 +81,9 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// <remarks>
     /// Adds __TEST__ prefix to workspace name. Creates workspace via Test Control API
     /// with Editor role. Stores workspace key and sets current workspace context.
-    ///
-    /// Provides Objects:
-    /// - CurrentWorkspace
     /// </remarks>
     [Given("I have an active workspace {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace)]
-    [Provides("CurrentWorkspace")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIHaveAnActiveWorkspace(string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -131,15 +123,11 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// Adds __TEST__ prefix to both username and workspace name. Creates workspace
     /// via Test Control API with Owner role. Stores workspace key and sets current
     /// workspace context and pending user context in object store.
-    ///
-    /// Provides Objects:
-    /// - CurrentWorkspace
-    /// - PendingUserContext
     /// </remarks>
     [Given("{username} owns a workspace called {workspaceName}")]
     [Given("{username} owns {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
-    [Provides("CurrentWorkspace")]
+    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserOwnsAWorkspaceCalled(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -266,14 +254,10 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
     /// setup API with Editor role. Tracks workspace, sets current workspace,
     /// and sets pending user context.
-    ///
-    /// Provides Objects:
-    /// - CurrentWorkspace
-    /// - PendingUserContext
     /// </remarks>
     [Given("{username} can edit data in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
-    [Provides("CurrentWorkspace")]
+    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserCanEditDataIn(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
@@ -311,9 +295,13 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
         _context.ObjectStore.Add(ObjectStoreKeys.PendingUserContext, cred.Username);
     }
 
+    /// <summary>
+    /// Grants a user Editor role access to the current workspace.
+    /// </summary>
+    /// <param name="shortName">The user's short name, e.g. 'bob'</param>
     [Given("{username} can edit data in this workspace")]
     [Given("{username} can edit data in my workspace")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserCanEditDataInExistingWorkspace(string shortName)
     {
         var fullWorkspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
@@ -350,14 +338,10 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// Adds __TEST__ prefix to both parameters. Creates workspace access via bulk
     /// setup API with Viewer role. Tracks workspace, sets current workspace,
     /// and sets pending user context.
-    ///
-    /// Provides Objects:
-    /// - CurrentWorkspace
-    /// - PendingUserContext
     /// </remarks>
     [Given("{username} can view data in {workspaceName}")]
-    [ProvidesObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.PendingUserContext)]
-    [Provides("CurrentWorkspace")]
+    [ProvidesObjects(ObjectStoreKeys.PendingUserContext)]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenUserCanViewDataIn(string shortName, string workspaceName)
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);

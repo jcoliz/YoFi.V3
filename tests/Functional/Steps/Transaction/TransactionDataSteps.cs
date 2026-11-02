@@ -30,15 +30,11 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Table format:
     /// | ExternalId | Date       | Payee         | Amount  |
     /// | FITID-001  | 2024-01-05 | Coffee Shop   | -5.50   |
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace
-    /// - LoggedInAs
     /// </remarks>
     [Given("I have existing transactions with external IDs:")]
     [Given("I have these exact transactions already:")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
-    [Requires("CurrentWorkspace")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task GivenIHaveExistingTransactionsWithExternalIDs(DataTable table)
     {
         // Given: Get workspace context
@@ -114,8 +110,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// - TransactionKey
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
-    [Requires("CurrentWorkspace")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(
         ObjectStoreKeys.TransactionPayee,
         ObjectStoreKeys.TransactionAmount,
@@ -220,7 +216,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// - EditMode ("TransactionDetailsPage")
     /// </remarks>
     [Given("I am viewing the details page for a transaction with:")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(
         ObjectStoreKeys.TransactionPayee,
         ObjectStoreKeys.TransactionAmount,
@@ -257,8 +254,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Simplified version without DataTable parameter. Seeds a basic transaction and navigates to the details page.
     /// </remarks>
     [Given("I am viewing the details page for a transaction")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
-    [Requires("CurrentWorkspace")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(
         ObjectStoreKeys.TransactionPayee,
         ObjectStoreKeys.TransactionAmount,
@@ -284,8 +281,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// Given I have 5 existing transactions in my workspace
     /// </summary>
     [Given("I have {count} existing transactions in my workspace")]
-    [RequiresObjects(ObjectStoreKeys.CurrentWorkspace, ObjectStoreKeys.LoggedInAs)]
-    [Requires("CurrentWorkspace")]
+    [RequiresObjects(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [ProvidesObjects(ObjectStoreKeys.ExistingTransactionKeys, ObjectStoreKeys.ExistingTransactions)]
     public async Task IHaveSomeExistingTransactionsInMyWorkspace(int count)
     {
