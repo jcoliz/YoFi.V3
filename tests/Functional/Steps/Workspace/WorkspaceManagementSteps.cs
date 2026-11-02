@@ -105,7 +105,6 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     [When("I rename it to {newName}")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.NewWorkspaceName)]
-    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIRenameItTo(string newName)
     {
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();

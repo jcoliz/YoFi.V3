@@ -53,16 +53,16 @@ public class TransactionSharedSteps(ITestContext context)
     /// Submits the currently open form. Used with quick edit modal, create modal,
     /// and full details page. Uses object store to determine which mode we're in.
     ///
-    /// Requires Objects:
-    /// - EditMode (optional, defaults to edit form if not present)
+    /// NOTE: EditMode is optional and determines which form to submit.
+    /// If not present, defaults to edit form.
     /// </remarks>
     [When("I click \"Save\"")]
     public async Task WhenIClickSave()
     {
         // When: Check object store for edit mode
-        if (_context.ObjectStore.Contains<string>("EditMode"))
+        if (_context.ObjectStore.Contains<string>(ObjectStoreKeys.EditMode))
         {
-            var editMode = _context.ObjectStore.Get<string>("EditMode");
+            var editMode = _context.ObjectStore.Get<string>(ObjectStoreKeys.EditMode);
             if (editMode == "TransactionDetailsPage")
             {
                 var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
