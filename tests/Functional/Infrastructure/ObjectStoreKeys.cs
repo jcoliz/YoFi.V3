@@ -148,5 +148,14 @@ public static class ObjectStoreKeys
 
     #endregion
 
+    #region Payee Rule Keys
+
+    /// <summary>
+    /// Collection of expected payee rules after seeding or creation.
+    /// </summary>
+    public const string ExpectedPayeeRules = "ExpectedPayeeRules";
+
+    #endregion
+
     public const string ModalTitle = "ModalTitle";
 }

@@ -27,6 +27,7 @@ public class PayeeRuleSteps(ITestContext _context)
     [Given("I have the following payee rules:")]
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
     public async Task IHaveTheFollowingPayeeRules(DataTable table)
     {
         var items = table.Rows.Select(row => new PayeeMatchingRuleEditDto()
@@ -65,7 +66,7 @@ public class PayeeRuleSteps(ITestContext _context)
         Assert.That(seeded, Has.Count.EqualTo(items.Count),
             $"Expected to seed {items.Count} payee rules but seeded {seeded!.Count}");
 
-        // TODO: Consider how we should store the results for future steps
+        _context.ObjectStore.Add(ObjectStoreKeys.ExpectedPayeeRules, seeded);
     }
 
     /// <summary>
@@ -138,7 +139,8 @@ public class PayeeRuleSteps(ITestContext _context)
     [When("I view my payee rules")]
     public async Task IViewMyPayeeRules()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
     }
 
     /// <summary>
@@ -190,9 +192,23 @@ public class PayeeRuleSteps(ITestContext _context)
     /// Then I should see the expected rules
     /// </summary>
     [Then("I should see the expected rules")]
+    [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
     public async Task IShouldSeeTheExpectedRules()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        var expectedRules = _context.ObjectStore.Get<ICollection<PayeeMatchingRuleResultDto>>(ObjectStoreKeys.ExpectedPayeeRules);
+
+        await page.ExpectRuleCountAsync(expectedRules.Count);
+
+        foreach (var expectedRule in expectedRules)
+        {
+            var actualCategory = await page.GetRuleCategoryAsync(expectedRule.PayeePattern, expectedRule.PayeeIsRegex);
+            Assert.That(actualCategory, Is.EqualTo(expectedRule.Category),
+                $"Rule for '{expectedRule.PayeePattern}' should have category '{expectedRule.Category}'");
+            Assert.That(await page.IsRegexRuleAsync(expectedRule.PayeePattern, expectedRule.PayeeIsRegex),
+                Is.EqualTo(expectedRule.PayeeIsRegex),
+                $"Rule for '{expectedRule.PayeePattern}' should have regex status '{expectedRule.PayeeIsRegex}'");
+        }
     }
 
     #endregion

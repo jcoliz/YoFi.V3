@@ -33,7 +33,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:5
-    @explicit:wip
     Scenario: User views list of all payee matching rules
       Given I have the following payee rules:
         | Payee        | Category        | IsRegex |

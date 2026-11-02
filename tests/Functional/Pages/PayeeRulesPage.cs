@@ -16,6 +16,8 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator ValidationError => CreateDialog.GetByTestId("validation-error");
     private ILocator EmptyState => RulesCard.GetByTestId("empty-state");
     private ILocator RulesTable => Page.GetByTestId("payee-rules");
+    private ILocator RuleRows => RulesTable.Locator("tbody tr");
+    private ILocator RegexBadges => Page.GetByTestId("regex-badge");
     private ILocator EditButton => RulesTable.GetByTestId("edit-button");
     private ILocator EditDialog => Page.GetByTestId("rule-edit-dialog");
     private ILocator EditPayeePatternInput => EditDialog.GetByTestId("payee-pattern-input");
@@ -85,12 +87,35 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     /// <summary>
     /// Gets the displayed category for the rule with the exact payee pattern.
     /// </summary>
-    public async Task<string> GetRuleCategoryAsync(string payee)
+    public async Task<string> GetRuleCategoryAsync(string payee, bool isRegex = false)
     {
-        var row = RulesTable.GetByRole(AriaRole.Row).Filter(new()
-        {
-            Has = Page.GetByRole(AriaRole.Cell, new() { Name = payee, Exact = true })
-        });
+        var row = GetRuleRow(payee, isRegex);
         return (await row.GetByRole(AriaRole.Cell).Nth(1).InnerTextAsync()).Trim();
+    }
+
+    /// <summary>
+    /// Waits until exactly the expected number of rules is displayed.
+    /// </summary>
+    public Task ExpectRuleCountAsync(int expectedCount) =>
+        Assertions.Expect(RuleRows).ToHaveCountAsync(expectedCount);
+
+    /// <summary>
+    /// Checks whether the matching rule displays a regex badge.
+    /// </summary>
+    public Task<bool> IsRegexRuleAsync(string payee, bool isRegex)
+    {
+        return GetRuleRow(payee, isRegex).Locator(RegexBadges).IsVisibleAsync();
+    }
+
+    private ILocator GetRuleRow(string payee, bool isRegex)
+    {
+        return RuleRows.Filter(new()
+        {
+            Has = Page.GetByRole(AriaRole.Cell, new()
+            {
+                Name = isRegex ? $"{payee} Regex" : payee,
+                Exact = true
+            })
+        });
     }
 }
