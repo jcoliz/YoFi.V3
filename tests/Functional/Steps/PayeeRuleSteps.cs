@@ -11,6 +11,37 @@ namespace YoFi.V3.Tests.Functional.Steps;
 /// </remarks>
 public class PayeeRuleSteps(ITestContext _context)
 {
+    #region GIVEN
+
+    /// <summary>
+    /// Given I have the following payee rules:
+    /// </summary>
+    /// <remarks>
+    /// The table should have columns "Payee" and "Category", and optionally "IsRegex".
+    /// Each row specifies the payee and the category for the rule to be created.
+    /// This step will use the test control API to directly create the payee rules in the system.
+    /// </remarks>
+    [Given("I have a payee rule:")]
+    [Given("I have the following payee rules:")]
+    public async Task IHaveTheFollowingPayeeRules(DataTable table)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Given I have a regex payee rule:
+    /// </summary>
+    [Given("I have a regex payee rule:")]
+    public async Task IHaveARegexPayeeRule(DataTable table)
+    {
+        throw new NotImplementedException();
+    }
+
+
+    #endregion
+
+    #region WHEN
+
     /// <summary>
     /// When I create a payee rule:
     /// </summary>
@@ -31,18 +62,6 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
-    /// Then I should see the rule for {string1} with category {string2}
-    /// </summary>
-    [Then("I should see the rule for {payee} with category {category}")]
-    public async Task IShouldSeeTheRuleForWithCategory(string payee, string category)
-    {
-        var page = _context.GetOrCreatePage<PayeeRulesPage>();
-        var actualCategory = await page.GetRuleCategoryAsync(payee);
-        Assert.That(actualCategory, Is.EqualTo(category),
-            $"Rule for '{payee}' should have category '{category}'");
-    }
-
-    /// <summary>
     /// When I edit the rule to:
     /// </summary>
     /// <remarks>
@@ -56,34 +75,10 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
-    /// Given I have the following payee rules:
-    /// </summary>
-    /// <remarks>
-    /// The table should have columns "Payee" and "Category", and optionally "IsRegex".
-    /// Each row specifies the payee and the category for the rule to be created.
-    /// This step will use the test control API to directly create the payee rules in the system.
-    /// </remarks>
-    [Given("I have a payee rule:")]
-    [Given("I have the following payee rules:")]
-    public async Task IHaveTheFollowingPayeeRules(DataTable table)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
     /// When I view my payee rules
     /// </summary>
     [When("I view my payee rules")]
     public async Task IViewMyPayeeRules()
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Then I should see the expected rules
-    /// </summary>
-    [Then("I should see the expected rules")]
-    public async Task IShouldSeeTheExpectedRules()
     {
         throw new NotImplementedException();
     }
@@ -110,6 +105,18 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
+    /// Then I should see the rule for {string1} with category {string2}
+    /// </summary>
+    [Then("I should see the rule for {payee} with category {category}")]
+    public async Task IShouldSeeTheRuleForWithCategory(string payee, string category)
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        var actualCategory = await page.GetRuleCategoryAsync(payee);
+        Assert.That(actualCategory, Is.EqualTo(category),
+            $"Rule for '{payee}' should have category '{category}'");
+    }
+
+    /// <summary>
     /// Then the rule should not be created
     /// </summary>
     [Then("the rule should not be created")]
@@ -122,11 +129,13 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
-    /// Given I have a regex payee rule:
+    /// Then I should see the expected rules
     /// </summary>
-    [Given("I have a regex payee rule:")]
-    public async Task IHaveARegexPayeeRule(DataTable table)
+    [Then("I should see the expected rules")]
+    public async Task IShouldSeeTheExpectedRules()
     {
         throw new NotImplementedException();
     }
+
+    #endregion
 }
