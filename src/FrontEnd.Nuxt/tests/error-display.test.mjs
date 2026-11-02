@@ -383,23 +383,31 @@ test('quick edit ignores duplicate submissions while loading and preserves optio
   }
 })
 
-function mountImportModal(
+function mountImportModal(t, options = {}) {
+  return mountImportReviewModal(t, options)
+}
+
+function mountImportReviewModal(
   t,
   {
     completeReview = async () => {},
     workspaceKey = 'workspace-key',
     summary = { selectedCount: 2, totalCount: 3, potentialDuplicateCount: 1 },
+    componentName = 'ImportConfirmationModal',
+    apiMethod = 'completeReview',
+    transactionCount = 3,
   } = {},
 ) {
   const calls = []
   const events = []
   const failures = []
   const show = ref(true)
+  const busy = ref(false)
   const workspace = {
     getCurrentTenantKey: workspaceKey,
     getCurrentTenant: { name: 'My workspace' },
   }
-  const Modal = loadComponent('ImportConfirmationModal', undefined, {
+  const Modal = loadComponent(componentName, undefined, {
     imports: {
       '~/utils/apiclient': { ImportClient: class {} },
       '~/stores/userPreferences': { useUserPreferencesStore: () => workspace },
@@ -414,7 +422,7 @@ function mountImportModal(
       ref,
       computed,
       useApiClient: () => ({
-        async completeReview(...args) {
+        async [apiMethod](...args) {
           calls.push(args)
           await completeReview(...args)
         },
@@ -427,12 +435,19 @@ function mountImportModal(
       h(Modal, {
         show: show.value,
         summary,
+        transactionCount,
         'onUpdate:show': (value) => {
           show.value = value
           events.push(['show', value])
         },
         onImporting: () => events.push(['importing']),
         onImported: () => events.push(['imported']),
+        'onUpdate:loading': (value) => {
+          busy.value = value
+          events.push(['loading', value])
+        },
+        onDeleting: () => events.push(['deleting']),
+        onDeleted: () => events.push(['deleted']),
         onError: (problem) => events.push(['error', problem]),
       }),
     {
@@ -470,7 +485,7 @@ function mountImportModal(
       },
     },
   )
-  return { root, calls, events, failures, show }
+  return { root, calls, events, failures, show, busy }
 }
 
 test('import confirmation displays the summary and completes server-side selections', async (t) => {
@@ -566,4 +581,108 @@ test('import confirmation omits optional statistics and uses singular selected c
   assert.match(text(root), /transaction\s+will be imported/)
   assert.equal(find(root, 'import-discarded-count'), undefined)
   assert.equal(find(root, 'import-potential-duplicate-count'), undefined)
+})
+
+function mountDeleteAllModal(t, options = {}) {
+  return mountImportReviewModal(t, {
+    componentName: 'ImportDeleteAllModal',
+    apiMethod: 'deleteAllPendingReview',
+    ...options,
+  })
+}
+
+test('delete all confirmation displays the total count and deletes pending imports', async (t) => {
+  const { root, calls, events, busy } = mountDeleteAllModal(t, { transactionCount: 45 })
+  assert.match(text(find(root, 'delete-all-warning')), /45\s+transactions/)
+  assert.match(text(root), /cannot be undone/)
+  await click(root, 'delete-all-submit-button')
+  assert.deepEqual(calls, [['workspace-key']])
+  assert.deepEqual(events, [
+    ['loading', true],
+    ['deleting'],
+    ['show', false],
+    ['deleted'],
+    ['loading', false],
+  ])
+  assert.equal(busy.value, false)
+  assert.equal(find(root, 'delete-all-modal'), undefined)
+})
+
+test('delete all confirmation disables actions and prevents duplicate requests', async (t) => {
+  let finish
+  const pending = new Promise((resolve) => (finish = resolve))
+  const { root, calls, busy } = mountDeleteAllModal(t, { completeReview: () => pending })
+  const button = find(root, 'delete-all-submit-button')
+  const submission = button.props.onClick()
+  try {
+    await nextTick()
+    assert.equal(busy.value, true)
+    assert.equal(button.props.disabled, true)
+    assert.equal(find(root, 'delete-all-cancel-button').props.disabled, true)
+    assert.equal(text(button), 'Deleting...')
+    await button.props.onClick()
+    assert.deepEqual(calls, [['workspace-key']])
+  } finally {
+    finish()
+    await submission
+  }
+  assert.equal(busy.value, false)
+})
+
+test('delete all confirmation retains the dialog on failure and permits retry', async (t) => {
+  const failure = new Error('Backend failure')
+  let fail = true
+  const { root, calls, events, failures, busy } = mountDeleteAllModal(t, {
+    completeReview: async () => {
+      if (fail) throw failure
+    },
+  })
+  await click(root, 'delete-all-submit-button')
+  assert.deepEqual(failures, [[failure, 'Delete Failed', 'Failed to delete pending imports']])
+  assert.deepEqual(events, [
+    ['loading', true],
+    ['deleting'],
+    ['error', { title: 'Delete Failed', detail: 'Failed to delete pending imports' }],
+    ['loading', false],
+  ])
+  assert.ok(find(root, 'delete-all-modal'))
+  assert.equal(find(root, 'delete-all-submit-button').props.disabled, false)
+  assert.equal(busy.value, false)
+
+  fail = false
+  await click(root, 'delete-all-submit-button')
+  assert.equal(calls.length, 2)
+  assert.equal(events.filter(([event]) => event === 'deleted').length, 1)
+  assert.equal(find(root, 'delete-all-modal'), undefined)
+})
+
+test('cancelling delete all confirmation does not call the backend', async (t) => {
+  const { root, calls, events } = mountDeleteAllModal(t)
+  await click(root, 'delete-all-cancel-button')
+  assert.deepEqual(calls, [])
+  assert.deepEqual(events, [['show', false]])
+  assert.equal(find(root, 'delete-all-modal'), undefined)
+})
+
+test('delete all confirmation reports a missing workspace without deleting or closing', async (t) => {
+  const { root, calls, events } = mountDeleteAllModal(t, { workspaceKey: '' })
+  await click(root, 'delete-all-submit-button')
+  assert.deepEqual(calls, [])
+  assert.deepEqual(events, [
+    [
+      'error',
+      {
+        title: 'No workspace selected',
+        detail: 'Please select a workspace to delete pending imports',
+      },
+    ],
+  ])
+  assert.ok(find(root, 'delete-all-modal'))
+})
+
+test('delete all confirmation uses singular wording and hides an empty warning', (t) => {
+  const { root } = mountDeleteAllModal(t, { transactionCount: 1 })
+  assert.match(text(find(root, 'delete-all-warning')), /1\s+transaction\s+from/)
+  const empty = mountDeleteAllModal(t, { transactionCount: 0 })
+  assert.equal(find(empty.root, 'delete-all-warning'), undefined)
 })

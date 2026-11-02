@@ -45,7 +45,9 @@ const statusVariant = ref<'info' | 'warning' | 'success' | 'danger'>('info')
 const paginatedResult = ref<PaginatedResultDtoOfImportReviewTransactionDto | undefined>(undefined)
 const transactions = computed(() => paginatedResult.value?.items || [])
 const summary = ref<ImportReviewSummaryDto | undefined>(undefined)
-const loading = ref(false)
+const reviewLoading = ref(false)
+const deleting = ref(false)
+const loading = computed(() => reviewLoading.value || deleting.value)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 
@@ -116,7 +118,7 @@ async function loadPendingReview(pageNumber: number = 1) {
     return
   }
 
-  loading.value = true
+  reviewLoading.value = true
   error.value = undefined
   showError.value = false
 
@@ -127,7 +129,7 @@ async function loadPendingReview(pageNumber: number = 1) {
     error.value = handleApiError(err, 'Load Failed', 'Failed to load pending imports')
     showError.value = true
   } finally {
-    loading.value = false
+    reviewLoading.value = false
   }
 }
 
@@ -362,14 +364,14 @@ function handleImport() {
 }
 
 /**
- * Clear stale page errors when the confirmation modal starts importing
+ * Clear stale page errors when a confirmation modal starts an operation
  */
-function handleImporting() {
+function clearOperationError() {
   error.value = undefined
   showError.value = false
 }
 
-function handleImportError(problem: IProblemDetails) {
+function handleOperationError(problem: IProblemDetails) {
   error.value = problem
   showError.value = true
 }
@@ -382,30 +384,11 @@ function handleDeleteAll() {
 }
 
 /**
- * Confirm and execute delete all
+ * Refresh the review after the modal deletes all pending imports
  */
-async function confirmDeleteAll() {
-  if (!currentTenantKey.value) return
-
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
-  try {
-    await importClient.deleteAllPendingReview(currentTenantKey.value)
-
-    // Reload pending review (should be empty now) and summary
-    await loadPendingReview(1)
-    await loadSummary()
-
-    // Close modal
-    showDeleteModal.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Delete Failed', 'Failed to delete pending imports')
-    showError.value = true
-  } finally {
-    loading.value = false
-  }
+async function handleDeletedAll() {
+  await loadPendingReview(1)
+  await loadSummary()
 }
 </script>
 
@@ -628,37 +611,22 @@ async function confirmDeleteAll() {
     <ImportConfirmationModal
       v-model:show="showConfirmModal"
       :summary="summary"
-      @importing="handleImporting"
+      @importing="clearOperationError"
       @imported="navigateTo('/transactions')"
-      @error="handleImportError"
+      @error="handleOperationError"
     />
 
     <!-- Delete All Confirmation Modal -->
-    <ModalDialog
+    <ImportDeleteAllModal
       v-model:show="showDeleteModal"
-      title="Delete All Pending Imports"
-      :loading="loading"
-      primary-button-variant="danger"
-      :primary-button-text="loading ? 'Deleting...' : 'Delete All'"
-      primary-button-test-id="delete-all-submit-button"
-      secondary-button-test-id="delete-all-cancel-button"
-      test-id="delete-all-modal"
-      @primary="confirmDeleteAll"
-    >
-      <p>Are you sure you want to delete all pending import transactions?</p>
-      <div
-        v-if="hasTransactions"
-        class="alert alert-warning"
-        data-test-id="delete-all-warning"
-      >
-        <strong>Warning:</strong> This will delete
-        <strong>{{ paginatedResult?.metadata?.totalCount || transactions.length }}</strong>
-        transaction{{
-          (paginatedResult?.metadata?.totalCount || transactions.length) === 1 ? '' : 's'
-        }}
-        from the import queue. This action cannot be undone.
-      </div>
-    </ModalDialog>
+      :transaction-count="
+        hasTransactions ? paginatedResult?.metadata?.totalCount || transactions.length : 0
+      "
+      @deleting="clearOperationError"
+      @update:loading="deleting = $event"
+      @deleted="handleDeletedAll"
+      @error="handleOperationError"
+    />
   </div>
 </template>
 
