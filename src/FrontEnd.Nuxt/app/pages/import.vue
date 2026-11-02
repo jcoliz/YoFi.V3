@@ -52,14 +52,12 @@ const showError = ref(false)
 // State - Modals
 const showConfirmModal = ref(false)
 const showDeleteModal = ref(false)
-const importing = ref(false)
 
 // State - Pagination
 const currentPage = ref(1)
 
 // Computed - Workspace and Permissions
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
-const currentTenantName = computed(() => userPreferencesStore.getCurrentTenant?.name || '')
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
 const canImport = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
@@ -364,32 +362,16 @@ function handleImport() {
 }
 
 /**
- * Execute the actual import after user confirms
+ * Clear stale page errors when the confirmation modal starts importing
  */
-async function confirmImport() {
-  if (!currentTenantKey.value) return
-
-  importing.value = true
+function handleImporting() {
   error.value = undefined
   showError.value = false
+}
 
-  try {
-    // Call completeReview with NO parameters - server reads IsSelected from database
-    await importClient.completeReview(currentTenantKey.value)
-
-    // Close confirmation modal
-    showConfirmModal.value = false
-
-    // Navigate to transactions page
-    navigateTo('/transactions')
-  } catch (err) {
-    error.value = handleApiError(err, 'Import Failed', 'Failed to import transactions')
-    showError.value = true
-    // Close confirmation modal on error
-    showConfirmModal.value = false
-  } finally {
-    importing.value = false
-  }
+function handleImportError(problem: IProblemDetails) {
+  error.value = problem
+  showError.value = true
 }
 
 /**
@@ -643,57 +625,13 @@ async function confirmDeleteAll() {
     </div>
 
     <!-- Import Confirmation Modal -->
-    <ModalDialog
+    <ImportConfirmationModal
       v-model:show="showConfirmModal"
-      title="Confirm Import"
-      :loading="importing"
-      primary-button-variant="primary"
-      :primary-button-text="importing ? 'Importing...' : 'Import'"
-      secondary-button-text="Cancel"
-      primary-button-test-id="import-confirm-button"
-      secondary-button-test-id="import-cancel-button"
-      test-id="import-confirm-modal"
-      @primary="confirmImport"
-    >
-      <p>
-        You are about to import the selected transactions into your workspace:
-        <strong>{{ currentTenantName }}</strong>
-      </p>
-
-      <!-- Import Statistics -->
-      <div
-        v-if="summary"
-        class="alert alert-info mb-3"
-        data-test-id="import-statistics"
-      >
-        <h6 class="alert-heading mb-2">Import Summary:</h6>
-        <ul class="mb-0">
-          <li>
-            <strong data-test-id="import-selected-count">{{ summary.selectedCount || 0 }}</strong>
-            transaction{{ summary.selectedCount === 1 ? '' : 's' }}
-            will be imported
-          </li>
-          <li v-if="summary.totalCount && summary.totalCount > (summary.selectedCount || 0)">
-            <strong data-test-id="import-discarded-count">{{
-              summary.totalCount - (summary.selectedCount || 0)
-            }}</strong>
-            transaction{{ summary.totalCount - (summary.selectedCount || 0) === 1 ? '' : 's' }}
-            will be discarded
-          </li>
-          <li v-if="summary.potentialDuplicateCount && summary.potentialDuplicateCount > 0">
-            <strong data-test-id="import-potential-duplicate-count">{{
-              summary.potentialDuplicateCount
-            }}</strong>
-            potential duplicate{{ summary.potentialDuplicateCount === 1 ? '' : 's' }}
-            detected
-          </li>
-        </ul>
-      </div>
-
-      <p class="mb-0">
-        <strong>Do you want to proceed with this import?</strong>
-      </p>
-    </ModalDialog>
+      :summary="summary"
+      @importing="handleImporting"
+      @imported="navigateTo('/transactions')"
+      @error="handleImportError"
+    />
 
     <!-- Delete All Confirmation Modal -->
     <ModalDialog

@@ -382,3 +382,188 @@ test('quick edit ignores duplicate submissions while loading and preserves optio
     await submission
   }
 })
+
+function mountImportModal(
+  t,
+  {
+    completeReview = async () => {},
+    workspaceKey = 'workspace-key',
+    summary = { selectedCount: 2, totalCount: 3, potentialDuplicateCount: 1 },
+  } = {},
+) {
+  const calls = []
+  const events = []
+  const failures = []
+  const show = ref(true)
+  const workspace = {
+    getCurrentTenantKey: workspaceKey,
+    getCurrentTenant: { name: 'My workspace' },
+  }
+  const Modal = loadComponent('ImportConfirmationModal', undefined, {
+    imports: {
+      '~/utils/apiclient': { ImportClient: class {} },
+      '~/stores/userPreferences': { useUserPreferencesStore: () => workspace },
+      '~/utils/errorHandler': {
+        handleApiError(...args) {
+          failures.push(args)
+          return { title: args[1], detail: args[2] }
+        },
+      },
+    },
+    globals: {
+      ref,
+      computed,
+      useApiClient: () => ({
+        async completeReview(...args) {
+          calls.push(args)
+          await completeReview(...args)
+        },
+      }),
+    },
+  })
+  const root = mount(
+    t,
+    () =>
+      h(Modal, {
+        show: show.value,
+        summary,
+        'onUpdate:show': (value) => {
+          show.value = value
+          events.push(['show', value])
+        },
+        onImporting: () => events.push(['importing']),
+        onImported: () => events.push(['imported']),
+        onError: (problem) => events.push(['error', problem]),
+      }),
+    {
+      ModalDialog: {
+        props: [
+          'show',
+          'loading',
+          'testId',
+          'primaryButtonTestId',
+          'secondaryButtonTestId',
+          'primaryButtonText',
+        ],
+        setup(props, { attrs, slots }) {
+          return () =>
+            props.show
+              ? h('section', { 'data-test-id': props.testId }, [
+                  slots.default?.(),
+                  h(
+                    'button',
+                    {
+                      'data-test-id': props.primaryButtonTestId,
+                      disabled: props.loading,
+                      onClick: attrs.onPrimary,
+                    },
+                    props.primaryButtonText,
+                  ),
+                  h('button', {
+                    'data-test-id': props.secondaryButtonTestId,
+                    disabled: props.loading,
+                    onClick: () => attrs['onUpdate:show'](false),
+                  }),
+                ])
+              : null
+        },
+      },
+    },
+  )
+  return { root, calls, events, failures, show }
+}
+
+test('import confirmation displays the summary and completes server-side selections', async (t) => {
+  const { root, calls, events } = mountImportModal(t)
+  assert.match(text(root), /My workspace/)
+  assert.equal(text(find(root, 'import-selected-count')), '2')
+  assert.equal(text(find(root, 'import-discarded-count')), '1')
+  assert.equal(text(find(root, 'import-potential-duplicate-count')), '1')
+  assert.match(text(root), /transactions\s+will be imported/)
+  assert.match(text(root), /transaction\s+will be discarded/)
+  assert.match(text(root), /potential duplicate\s+detected/)
+
+  await click(root, 'import-confirm-button')
+  assert.deepEqual(calls, [['workspace-key']])
+  assert.deepEqual(events, [['importing'], ['show', false], ['imported']])
+  assert.equal(find(root, 'import-confirm-modal'), undefined)
+})
+
+test('import confirmation disables actions and ignores repeated submissions while importing', async (t) => {
+  let finish
+  const pending = new Promise((resolve) => (finish = resolve))
+  const { root, calls, events, show } = mountImportModal(t, { completeReview: () => pending })
+  const button = find(root, 'import-confirm-button')
+  const submission = button.props.onClick()
+  try {
+    await nextTick()
+    assert.equal(button.props.disabled, true)
+    assert.equal(find(root, 'import-cancel-button').props.disabled, true)
+    assert.match(text(button), /Importing\.\.\./)
+    await button.props.onClick()
+    assert.deepEqual(calls, [['workspace-key']])
+    assert.deepEqual(events, [['importing']])
+  } finally {
+    finish()
+    await submission
+  }
+
+  show.value = true
+  await nextTick()
+  assert.equal(find(root, 'import-confirm-button').props.disabled, false)
+  assert.equal(text(find(root, 'import-confirm-button')).trim(), 'Import')
+})
+
+test('import confirmation closes and forwards normalized API failures without emitting success', async (t) => {
+  const failure = new Error('Backend failure')
+  const { root, events, failures, show } = mountImportModal(t, {
+    completeReview: async () => {
+      throw failure
+    },
+  })
+  await click(root, 'import-confirm-button')
+  assert.deepEqual(failures, [[failure, 'Import Failed', 'Failed to import transactions']])
+  assert.deepEqual(events, [
+    ['importing'],
+    ['show', false],
+    ['error', { title: 'Import Failed', detail: 'Failed to import transactions' }],
+  ])
+  assert.equal(find(root, 'import-confirm-modal'), undefined)
+
+  show.value = true
+  await nextTick()
+  assert.equal(find(root, 'import-confirm-button').props.disabled, false)
+})
+
+test('cancelling import confirmation closes without calling the backend', async (t) => {
+  const { root, calls, events } = mountImportModal(t)
+  await click(root, 'import-cancel-button')
+  assert.deepEqual(calls, [])
+  assert.deepEqual(events, [['show', false]])
+  assert.equal(find(root, 'import-confirm-modal'), undefined)
+})
+
+test('import confirmation reports a missing workspace without calling the backend', async (t) => {
+  const { root, calls, events } = mountImportModal(t, { workspaceKey: '' })
+  await click(root, 'import-confirm-button')
+  assert.deepEqual(calls, [])
+  assert.deepEqual(events, [
+    ['show', false],
+    [
+      'error',
+      {
+        title: 'No workspace selected',
+        detail: 'Please select a workspace to import transactions',
+      },
+    ],
+  ])
+})
+
+test('import confirmation omits optional statistics and uses singular selected counts', (t) => {
+  const { root } = mountImportModal(t, {
+    summary: { selectedCount: 1, totalCount: 1, potentialDuplicateCount: 0 },
+  })
+  assert.match(text(root), /transaction\s+will be imported/)
+  assert.equal(find(root, 'import-discarded-count'), undefined)
+  assert.equal(find(root, 'import-potential-duplicate-count'), undefined)
+})
