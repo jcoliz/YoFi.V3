@@ -48,6 +48,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
 
     #region Steps: WHEN
 
+    [When("I view my transactions")]
     [When("I navigate to the Transactions page")]
     public async Task INavigateToTheTransactionsPage()
     {
@@ -56,7 +57,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.NavigateAsync();
         await transactionsPage.WaitForLoadingCompleteAsync();
 
-        // Don't need to select workspace becsause it's already selected
+        // Don't need to select workspace because it's already selected
     }
 
     /// <summary>

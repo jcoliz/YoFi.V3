@@ -24,6 +24,7 @@ public class BankImportNavigationSteps(ITestContext context) : BankImportStepsBa
     [Given("I am on the import review page")]
     [When("I am on the Import Review page")]
     [When("I navigate to the Import page")]
+    [When("I review my pending import")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IAmOnTheImportReviewPage()
     {

@@ -92,21 +92,9 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// | Payee       | Amount | Category  | Memo           |
     /// | Coffee Shop | 5.50   | Beverages | Morning coffee |
     /// | Book Store  | 12.00  | Books     |                |
-    ///
-    /// Requires Objects
-    /// - CurrentWorkspace
-    /// - LoggedInAs
-    ///
-    /// Provides Objects
-    /// - TransactionPayee
-    /// - TransactionAmount
-    /// - TransactionCategory
-    /// - TransactionMemo
-    /// - TransactionSource (if specified)
-    /// - TransactionExternalId (if specified)
-    /// - TransactionKey
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
+    [Given("I have a transaction:")]
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.TransactionPayee)]

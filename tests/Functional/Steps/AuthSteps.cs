@@ -288,6 +288,7 @@ public class AuthSteps(ITestContext _context)
     /// <summary>
     /// When I switch to user "bob"
     /// </summary>
+    [Given("I switched to user {username}")]
     [When("I switch to user {username}")]
     public async Task ISwitchToUser(string username)
     {
