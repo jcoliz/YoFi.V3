@@ -240,8 +240,8 @@ My general practice is to break release miletones down into iterations as it app
 | Story 3 - Manage Import State                   | B2        |           | ✅ Implemented       |
 | Story 4 - Handle Import Errors                  | B2        |           | ✅ Implemented       |
 | **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
-| Story 2211 - Establish Rules (CRUD)             | B2        |           | 🚧 In Progress       |
-| Story 2212 - Auto-categorize on Import          | A1        | 3         | 🚧 In Progress       |
+| Story 2211 - Establish Rules (CRUD)             | B2        |           | ✅ Implemented       |
+| Story 2212 - Auto-categorize on Import          | A1        | 3         | ✅ Implemented       |
 | Story 3 - Manual Trigger Matching               | B3        |           | ✔️ Approved          |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
