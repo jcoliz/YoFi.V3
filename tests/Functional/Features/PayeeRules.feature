@@ -79,7 +79,6 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:22
-    @explicit:wip
     Scenario: Multiple transactions match different rules
       Given I have the following payee rules:
         | Payee     | Category |

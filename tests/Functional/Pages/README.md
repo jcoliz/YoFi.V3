@@ -19,3 +19,5 @@ See [writing page objects](../docs/writing-pages.md) for the authoring guide and
 
 [`ImportPage`](ImportPage.cs) provides retrying assertions for a single imported transaction's
 category text and read-only state, including the absence of category editing controls.
+It also checks categories by exact payee, treating an empty expected category as the UI's
+uncategorized placeholder.

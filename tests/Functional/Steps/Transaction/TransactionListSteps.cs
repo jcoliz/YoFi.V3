@@ -346,19 +346,6 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Then the categories should be as specified in the table, by payee
-    /// </summary>
-    /// <remarks>
-    /// The table should have columns "Payee" and "Category".
-    /// Each row specifies the expected category for the given payee.
-    /// </remarks>
-    [Then("the categories should be:")]
-    public async Task TheCategoriesShouldBe(DataTable table)
-    {
-        throw new NotImplementedException();
-    }
-
     #endregion
 
 }

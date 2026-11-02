@@ -280,5 +280,24 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         await importPage.ExpectCategoryAsync(category);
     }
 
+    /// <summary>
+    /// Then the categories should be as specified in the table, by payee
+    /// </summary>
+    /// <remarks>
+    /// The table should have columns "Payee" and "Category".
+    /// Each row specifies the expected category for the given payee.
+    /// </remarks>
+    [Then("the categories should be:")]
+    public async Task TheCategoriesShouldBe(DataTable table)
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.ExpectCountAsync(table.Rows.Count);
+
+        foreach (var row in table.Rows)
+        {
+            await importPage.ExpectCategoryAsync(row.GetRequired("Payee"), row.GetOptional("Category"));
+        }
+    }
+
     #endregion
 }

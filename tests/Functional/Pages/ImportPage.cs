@@ -593,6 +593,19 @@ public partial class ImportPage(IPage page) : BasePage(page)
         Assertions.Expect(TransactionCategoryCells).ToHaveTextAsync(category);
 
     /// <summary>
+    /// Waits for the transaction with the exact payee to display its category or the uncategorized placeholder.
+    /// </summary>
+    internal Task ExpectCategoryAsync(string payee, string? category)
+    {
+        var row = TransactionRows.Filter(new()
+        {
+            Has = Page.GetByRole(AriaRole.Cell, new() { Name = payee, Exact = true })
+        });
+        return Assertions.Expect(row.GetByRole(AriaRole.Cell).Nth(3))
+            .ToHaveTextAsync(string.IsNullOrEmpty(category) ? "\u2014" : category);
+    }
+
+    /// <summary>
     /// Verifies that the single transaction's category has no editable controls or content.
     /// </summary>
     internal async Task ExpectCategoryReadOnlyAsync()
