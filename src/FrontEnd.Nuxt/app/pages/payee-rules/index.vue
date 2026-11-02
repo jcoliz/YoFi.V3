@@ -15,7 +15,6 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
-import PayeeRuleSortSelector from '~/components/payee-rules/PayeeRuleSortSelector.vue'
 
 definePageMeta({
   title: 'Rules',
@@ -449,7 +448,7 @@ function formatDate(date: Date | undefined): string {
               </button>
             </div>
             <!-- Sort Selector Component -->
-            <PayeeRuleSortSelector
+            <PayeeRulesSortSelector
               v-model="sortBy"
               :disabled="loading || !ready"
               @update:model-value="handleSortChange"
@@ -614,7 +613,7 @@ function formatDate(date: Date | undefined): string {
     </div>
 
     <!-- Create Dialog -->
-    <PayeeRuleDialog
+    <PayeeRulesDialog
       v-model:show="showCreateDialog"
       mode="create"
       :loading="loading"
@@ -622,7 +621,7 @@ function formatDate(date: Date | undefined): string {
     />
 
     <!-- Edit Dialog -->
-    <PayeeRuleDialog
+    <PayeeRulesDialog
       v-if="selectedRule"
       v-model:show="showEditDialog"
       mode="edit"
