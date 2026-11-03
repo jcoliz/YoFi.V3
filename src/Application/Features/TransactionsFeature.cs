@@ -19,16 +19,18 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
     /// <summary>
-    /// Gets paginated transactions for the current tenant, optionally filtered by date range.
+    /// Gets paginated transactions for the current tenant, optionally filtered by date range and search term.
     /// </summary>
     /// <param name="pageNumber">Page number to retrieve (1-based). If null, defaults to first page.</param>
     /// <param name="fromDate">Optional start date for filtering transactions (inclusive).</param>
     /// <param name="toDate">Optional end date for filtering transactions (inclusive).</param>
+    /// <param name="search">Optional search term for transaction payee, memos, split categories, and amount.</param>
     /// <returns>Paginated result containing transactions and pagination metadata.</returns>
     public async Task<PaginatedResultDto<TransactionResultDto>> GetTransactionsAsync(
         int? pageNumber = null,
         DateOnly? fromDate = null,
-        DateOnly? toDate = null)
+        DateOnly? toDate = null,
+        string? search = null)
     {
         // Apply defaults
         var actualPageNumber = pageNumber ?? 1;
@@ -43,6 +45,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         }
 
         var query = GetBaseTransactionQuery();
+        query = TransactionSearchHelper.Apply(query, search);
 
         if (fromDate.HasValue)
         {
