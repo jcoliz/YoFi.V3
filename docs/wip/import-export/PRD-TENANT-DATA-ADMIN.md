@@ -192,6 +192,13 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] User sees confirmation with record counts per entity type
 - [ ] User can immediately explore the application with realistic data
 - [ ] User can later delete sample data using "Delete All Data" if desired
+- [ ] User can control the timeframe of the sample data.
+  - Default will be from the first day of 12 months prior to the last day of 3 months prior.
+  - e.g. If today is 6/15/2026, the default range is to 6/1/2026 to 3/31/2026
+- [ ] User can download OFX files which match the schema of the sample data set
+  - These OFX files will match the payee rules included in the data set
+  - User can control the time range
+  - Default is first day of 2 months prior to today (e.g. 4/1/2026 to 6/15/2026 in the example above)
 
 ### Story 2224: User - Handle Import Errors Gracefully
 
