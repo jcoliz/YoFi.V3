@@ -95,7 +95,7 @@ Transactions have a special relationship with Splits (one-to-many):
 
 ## User Stories
 
-### Story 1: User - Export Data with Flexible Selection
+### Story 2220: User - Export Data with Flexible Selection
 
 **As a** YoFi user
 **I want** to export any combination of my entity types with flexible filtering
@@ -126,7 +126,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] User sees confirmation toast with record counts per entity type
 - [ ] System logs export operation (who, when, what types, date range, record counts)
 
-### Story 2: User - Import Data with Automatic Detection
+### Story 2221: User - Import Data with Automatic Detection
 
 **As a** YoFi user
 **I want** to import an XLSX file and have the system automatically detect what entity types it contains
@@ -157,7 +157,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] Import is transactional per worksheet (all or nothing per entity type)
 - [ ] System logs import operation (who, when, what types, success/failure counts)
 
-### Story 3: User - Delete All Tenant Data
+### Story 2222: User - Delete All Tenant Data
 
 **As a** YoFi user exercising GDPR rights
 **I want** to permanently delete all my data from the system
@@ -176,7 +176,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] User is redirected to empty workspace or onboarding flow
 - [ ] Tenant membership record is preserved (user remains member of tenant)
 
-### Story 4: User - Load Sample Data
+### Story 2223: User - Load Sample Data
 
 **As a** new YoFi user evaluating the application
 **I want** to load pre-built sample data
@@ -193,7 +193,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] User can immediately explore the application with realistic data
 - [ ] User can later delete sample data using "Delete All Data" if desired
 
-### Story 5: User - Handle Import Errors Gracefully
+### Story 2224: User - Handle Import Errors Gracefully
 
 **As a** YoFi user
 **I want** clear feedback when my import file has errors

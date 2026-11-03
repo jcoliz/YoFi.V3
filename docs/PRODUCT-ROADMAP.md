@@ -229,7 +229,7 @@ My general practice is to break release miletones down into iterations as it app
 | Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
 | Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
 | **Feature 1983: Transaction Filtering**         |           |           | 🎨 Design Complete   |
-| Story 2213 - Quick Text Search                  | A1        | 2         | 🎨 Design Complete   |
+| Story 2213 - Quick Text Search                  | A1        | 2         | ✅ Implemented       |
 | Story 2214 - Find Uncategorized                 | B1        |           | 🎨 Design Complete   |
 | Story 2215 - Default Date Range                 | V3.0      |           | 🎨 Design Complete   |
 | Story 2216 - Advanced Filtering                 | B1        |           | 🎨 Design Complete   |
@@ -247,11 +247,11 @@ My general practice is to break release miletones down into iterations as it app
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
-| Story 1 - Export with Selection                 | V3.0      |           | ✔️ Approved          |
-| Story 2 - Import with Detection                 | B1        |           | ✔️ Approved          |
-| Story 3 - Delete All Data                       | V3.0      |           | ✔️ Approved          |
-| Story 4 - Load Sample Data                      | A1        | 2         | ✔️ Approved          |
-| Story 5 - Handle Import Errors                  | V3.1      |           | ✔️ Approved          |
+| Story 2221 - Export with Selection              | V3.0      |           | ✔️ Approved          |
+| Story 2222 - Import with Detection              | B1        |           | ✔️ Approved          |
+| Story 2223 - Delete All Data                    | V3.0      |           | ✔️ Approved          |
+| Story 2224 - Load Sample Data                   | A1        | 2         | ✔️ Approved          |
+| Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | ✔️ Approved          |
 | Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✔️ Approved          |
 | Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
