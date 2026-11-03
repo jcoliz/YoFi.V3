@@ -286,6 +286,12 @@ tests. Add stable test IDs `transaction-search`, `clear-transaction-search`, and
 
 ## Verification and Acceptance
 
+Future BDD scenarios are collected in
+[`TransactionQuickSearch-Prd.feature`](../../../tests/Functional/Features/future/TransactionQuickSearch-Prd.feature).
+They cover only Story 2213, with unique scenario IDs and roughly equal numbers
+at four priority levels. Each scenario has one Given/When/Then flow, with no
+actions after assertions. They are specifications, not yet wired to executable steps.
+
 | Story 2213 acceptance criterion | Verification |
 |---|---|
 | Single search bar always visible at top | Browser test: present above dates/table with a selected workspace, including loading and zero results; usable at mobile width. |
