@@ -132,7 +132,7 @@ A transaction matches when **any one** of these conditions is true:
 | Transaction memo | Case-insensitive literal substring; null does not match |
 | Any split category | Case-insensitive literal substring |
 | Any split memo | Case-insensitive literal substring; null does not match |
-| Transaction amount | Exact decimal equality, only when the term parses as a decimal |
+| Transaction amount | Exact magnitude for unsigned numeric terms; exact signed equality when an explicit sign is supplied |
 
 Use the entire term, not word tokens. `coffee shop` searches that phrase.
 Characters such as `%`, `_`, `*`, quotes, and `c=food` are ordinary text, not
@@ -140,14 +140,37 @@ wildcards, SQL, or query syntax. Do not search date, source, external ID, or spl
 amounts.
 
 Numeric terms still search every text field; the amount comparison is an
-additional OR condition. Parse once with invariant culture, allowing a leading
-sign and decimal point, but not grouping separators, currency symbols, or
-exponents. Examples:
+additional OR condition. For amount parsing only, accept one optional `$` prefix
+alongside an optional explicit sign, then parse once with invariant culture.
+Allow a decimal point and comma thousands separators, but not other currency
+symbols or exponents. Examples:
 
 - `42`, `42.00`, `+42.00`, and `-42.00` are valid decimal searches.
+- Unsigned `42` or `42.00` matches both transaction amounts `42.00` and `-42.00`.
+- `$42` and `$42.00` behave like unsigned `42`, matching both signs.
+- An explicit sign restricts the amount match: `-42` matches only `-42.00`;
+  `+42` matches only `42.00`.
+- Accept the sign before or after `$`: `-$42` and `$-42` match only `-42.00`;
+  `+$42` and `$+42` match only `42.00`.
 - `42` does not match an amount of `142` or `42.50`.
-- `$42`, `1,234.56`, and `1e2` remain valid text searches but do not add an amount condition.
+- `1,234.56` and `$1,234.56` behave like `1234.56`, matching both
+  `1234.56` and `-1234.56`. Explicit signs still restrict the amount match.
+- `1e2` remains a valid text search but does not add an amount condition.
 - Unparseable or overflowing numbers are text-only searches, not request errors.
+
+Preserve any explicit sign while removing the optional dollar prefix for parsing.
+Accept commas only as thousands separators in the integer portion: an initial
+group of one to three digits followed by groups of exactly three digits.
+Ungrouped numbers remain valid. Validate grouping before removing commas;
+do not interpret a decimal comma such as `42,50` as `4250`, or accept malformed
+grouping such as `1,,234`.
+Reject repeated dollar symbols or signs for amount parsing rather than stripping
+arbitrary characters. Keep the original trimmed term, including `$` and commas,
+for text-field searches.
+For an unsigned parsed value, compare the transaction amount to that value OR
+its negation; for an explicitly signed value, compare to that value only.
+These sign rules apply only to the amount condition; text-field matches remain
+independent OR conditions.
 
 ### Database Target and Unicode Matching
 
@@ -190,7 +213,7 @@ The effective predicate is:
 current tenant
 AND existing inclusive date bounds, if supplied
 AND (payee OR transaction memo OR any split category OR any split memo
-     OR exact transaction amount when parseable)
+     OR numeric transaction amount match using the sign rules above)
 ```
 
 Apply the predicate **before** both the count and `Skip`/`Take`. Use navigation
@@ -275,14 +298,19 @@ Additional regression coverage:
 
 - **Application integration (SQLite)**: mixed-case ASCII, null memos, literal
   wildcard characters, whitespace normalization, numeric/text OR behavior,
-  negative/zero amounts, non-matching split amounts, numeric overflow,
+  unsigned amounts matching either sign, optional dollar prefixes with and without
+  explicit signs, comma-grouped amounts with and without dollar prefixes,
+  malformed grouping and decimal commas, malformed/repeated prefixes,
+  explicit signs restricting amount
+  matches, zero amounts, non-matching split amounts, numeric overflow,
   other-tenant exclusion, inclusive date composition, ordering, and matches
   beyond the original first page with accurate filtered pagination metadata.
 - **Production-provider integration (PostgreSQL, required before release)**:
   repeat the database search regressions against the production locale/collation.
   Verify accented case pairs such as `CAFÉ`/`café`, accent-sensitive behavior,
   and literal `%`, `_`, and escape-character searches. Confirm server-side
-  translation of split predicates, decimal equality, filtered counts, and paging.
+  translation of split predicates, unsigned/signed decimal comparisons,
+  filtered counts, and paging.
   Record the locale/collation used; SQLite-only results are not a substitute.
 - **Controller integration**: `search` binding, unchanged no-search response,
   date/search composition, and existing authentication/tenant-role behavior.
