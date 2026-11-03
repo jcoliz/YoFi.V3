@@ -121,9 +121,9 @@ export class AuthClient {
     }
 
     /**
-     * Registers a new user. Dispatches to open or invitation-based registration
-    based on RegistrationOptions and the presence of an invitation code.
-     * @param request Signup credentials, optionally including an invitation code.
+     * Registers a new user.
+     * @param request Signup credentials.
+     * @return JWT tokens and user information if successful; otherwise, bad request.
      */
     signUp(request: SignUpRequest): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/signup";
@@ -282,6 +282,7 @@ export class AuthClient {
     /**
      * Handles logout logic. Can be overridden for custom behavior.
      * @param request The logout request containing the refresh token to revoke.
+     * @return Success response.
      */
     logout(request: RefreshRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/logout";
@@ -317,10 +318,6 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
-    /**
-     * Validates an invitation code and returns its current status.
-     * @param request The request containing the invitation code to validate.
-     */
     validateInvitation(request: InvitationValidateRequest): Promise<InvitationStatusResponse> {
         let url_ = this.baseUrl + "/api/auth/invitations/validate";
         url_ = url_.replace(/[?&]$/, "");
@@ -359,10 +356,6 @@ export class AuthClient {
         return Promise.resolve<InvitationStatusResponse>(null as any);
     }
 
-    /**
-     * Initiates a password reset flow by generating a reset code and notifying the user.
-     * @param request The forgot password request containing a username or email.
-     */
     forgotPassword(request: ForgotPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/forgot-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -397,10 +390,6 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
-    /**
-     * Resets a user's password using a reset code from the forgot-password flow.
-     * @param request The reset password request containing user identifier, reset code, and new password.
-     */
     resetPassword(request: ResetPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/reset-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -442,10 +431,6 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
-    /**
-     * Changes the authenticated user's password.
-     * @param request The change password request containing the current and new passwords.
-     */
     changePassword(request: ChangePasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/change-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -1404,8 +1389,9 @@ export class TransactionsClient {
      * @param pageNumber (optional) Page number to retrieve (1-based). If not specified, defaults to first page.
      * @param fromDate (optional) The starting date for the date range filter (inclusive). If null, no lower bound is applied.
      * @param toDate (optional) The ending date for the date range filter (inclusive). If null, no upper bound is applied.
+     * @param search (optional) Optional search term to filter transactions by text or amount.
      */
-    getTransactions(pageNumber: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
+    getTransactions(pageNumber: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, search: string | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
@@ -1416,6 +1402,8 @@ export class TransactionsClient {
             url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
         if (toDate !== undefined && toDate !== null)
             url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
