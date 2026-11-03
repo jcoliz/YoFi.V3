@@ -9,6 +9,7 @@
 const { data, status, signOut } = useAuth()
 
 const { clearPreferences } = useUserPreferencesStore()
+const { reset: resetTransactionSearch } = useTransactionSearchStore()
 
 const ready = ref(false)
 onMounted(() => {
@@ -22,6 +23,7 @@ function systemLogin() {
 const systemLogout = async () => {
   try {
     clearPreferences()
+    resetTransactionSearch()
     await signOut({ redirect: true, callbackUrl: '/' })
   } catch (error) {
     console.error('Logout error:', error)

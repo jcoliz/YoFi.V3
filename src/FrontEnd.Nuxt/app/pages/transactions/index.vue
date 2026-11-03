@@ -18,6 +18,7 @@ import {
   type IProblemDetails,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { useTransactionSearchStore } from '~/stores/transactionSearch'
 import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
@@ -93,29 +94,16 @@ const showCreateRuleModal = ref(false)
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
 /**
- * Start date for filtering transactions (inclusive).
- */
-const fromDate = ref<string>('')
-
-/**
- * End date for filtering transactions (inclusive).
- */
-const toDate = ref<string>('')
-
-/**
  * Whether the date range filters pane is expanded.
  */
 const showFilters = ref(false)
 
 /**
- * Whether any date range filter is currently applied.
+ * Search term and filter criteria for transactions.
+ * Kept in a store so they survive navigating to transaction details and back.
  */
-const hasActiveFilters = computed(() => !!fromDate.value || !!toDate.value)
-
-/**
- * Search text filter for transactions.
- */
-const searchText = ref('')
+const transactionSearchStore = useTransactionSearchStore()
+const { searchText, fromDate, toDate, hasActiveFilters } = storeToRefs(transactionSearchStore)
 
 /**
  * Current page number for pagination.
@@ -224,7 +212,7 @@ function handlePageChange(pageNumber: number) {
  * Clears the search text and reloads transactions from page 1.
  */
 function clearSearch() {
-  searchText.value = ''
+  transactionSearchStore.clearSearch()
   loadTransactions(1)
 }
 
@@ -262,8 +250,7 @@ function navigateToDetails(key: string | undefined) {
  * Clears date range filters and reloads transactions from page 1.
  */
 function clearFilters() {
-  fromDate.value = ''
-  toDate.value = ''
+  transactionSearchStore.clearFilters()
   loadTransactions(1)
 }
 
