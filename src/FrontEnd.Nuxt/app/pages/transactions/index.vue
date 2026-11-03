@@ -3,7 +3,7 @@
  * Transactions Page
  *
  * Displays and manages transactions for the selected workspace.
- * Supports viewing, creating, quick editing, filtering by date range, and creating payee rules.
+ * Supports viewing, creating, quick editing, searching, filtering by date range, and creating payee rules.
  * Delete functionality is restricted to the transaction details page only.
  */
 
@@ -103,6 +103,11 @@ const fromDate = ref<string>('')
 const toDate = ref<string>('')
 
 /**
+ * Search text filter for transactions.
+ */
+const searchText = ref('')
+
+/**
  * Current page number for pagination.
  */
 const currentPage = ref(1)
@@ -157,7 +162,7 @@ async function afterMounted() {
 }
 
 /**
- * Loads transactions for the current workspace with optional date range filters.
+ * Loads transactions for the current workspace with optional search and date range filters.
  * Displays validation error if no workspace is selected.
  *
  * @param pageNumber - The page number to load (defaults to 1)
@@ -184,7 +189,7 @@ async function loadTransactions(pageNumber: number = 1) {
       pageNumber,
       from,
       to,
-      undefined, // TODO: Search term goes here
+      searchText.value || undefined,
       currentTenantKey.value,
     )
     currentPage.value = pageNumber
@@ -203,6 +208,14 @@ async function loadTransactions(pageNumber: number = 1) {
  */
 function handlePageChange(pageNumber: number) {
   loadTransactions(pageNumber)
+}
+
+/**
+ * Clears the search text and reloads transactions from page 1.
+ */
+function clearSearch() {
+  searchText.value = ''
+  loadTransactions(1)
 }
 
 /**
@@ -362,6 +375,16 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
         class="mb-4"
       />
 
+      <!-- Search Bar -->
+      <SearchFilterBar
+        v-if="hasWorkspace"
+        v-model="searchText"
+        placeholder="Search payee, memo, category, or amount..."
+        :disabled="loading || !ready"
+        @search="() => loadTransactions(1)"
+        @clear="() => loadTransactions(1)"
+      />
+
       <!-- Date Range Filters -->
       <div
         v-if="hasWorkspace"
@@ -443,7 +466,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
       >
         <div class="card-body">
           <div
-            v-if="transactions.length === 0"
+            v-if="transactions.length === 0 && !searchText"
             class="text-center py-5 text-muted"
             data-test-id="empty-state"
           >
@@ -460,6 +483,28 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
               @click="showCreateModal = true"
             >
               Create your first transaction
+            </button>
+          </div>
+
+          <!-- No Search Results -->
+          <div
+            v-else-if="transactions.length === 0 && searchText"
+            class="text-center py-5 text-muted"
+            data-test-id="no-results"
+          >
+            <FeatherIcon
+              icon="search"
+              size="48"
+              class="mb-3"
+            />
+            <p>No transactions match your search</p>
+            <p class="small">Search term: "{{ searchText }}"</p>
+            <button
+              class="btn btn-secondary btn-sm"
+              data-test-id="no-results-clear-search-button"
+              @click="clearSearch"
+            >
+              Clear search
             </button>
           </div>
 
