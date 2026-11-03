@@ -33,6 +33,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
     /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
     /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
+    /// <param name="search">Optional search term to filter transactions by text or amount.</param>
     [HttpGet()]
     [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(PaginatedResultDto<TransactionResultDto>), StatusCodes.Status200OK)]
@@ -40,11 +41,12 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     public async Task<IActionResult> GetTransactions(
         [FromQuery] int? pageNumber = null,
         [FromQuery] DateOnly? fromDate = null,
-        [FromQuery] DateOnly? toDate = null)
+        [FromQuery] DateOnly? toDate = null,
+        [FromQuery] string? search = null)
     {
         LogStarting();
 
-        var result = await transactionsFeature.GetTransactionsAsync(pageNumber, fromDate, toDate);
+        var result = await transactionsFeature.GetTransactionsAsync(pageNumber, fromDate, toDate, search);
 
         LogOkCount(result.Items.Count);
         return Ok(result);
