@@ -402,60 +402,20 @@ function formatDate(date: Date | undefined): string {
       />
 
       <!-- Search and Filter Bar -->
-      <div
+      <SearchFilterBar
         v-if="hasWorkspace"
-        class="card mb-4"
+        v-model="searchText"
+        placeholder="Search payee or category..."
+        :disabled="loading || !ready"
+        @search="handleSearch"
+        @clear="clearSearch"
       >
-        <div class="card-body">
-          <label
-            for="searchText"
-            class="form-label"
-            >Search</label
-          >
-          <div class="d-flex gap-2">
-            <div class="input-group flex-grow-1">
-              <input
-                id="searchText"
-                v-model="searchText"
-                type="text"
-                class="form-control"
-                placeholder="Search payee or category..."
-                data-test-id="search-input"
-                @keyup.enter="handleSearch"
-              />
-              <button
-                class="btn btn-outline-secondary"
-                data-test-id="search-button"
-                :disabled="loading || !ready"
-                @click="handleSearch"
-              >
-                <FeatherIcon
-                  icon="search"
-                  size="16"
-                />
-              </button>
-              <button
-                v-if="searchText"
-                class="btn btn-outline-secondary"
-                data-test-id="clear-search-button"
-                :disabled="loading || !ready"
-                @click="clearSearch"
-              >
-                <FeatherIcon
-                  icon="x"
-                  size="16"
-                />
-              </button>
-            </div>
-            <!-- Sort Selector Component -->
-            <PayeeRulesSortSelector
-              v-model="sortBy"
-              :disabled="loading || !ready"
-              @update:model-value="handleSortChange"
-            />
-          </div>
-        </div>
-      </div>
+        <PayeeRulesSortSelector
+          v-model="sortBy"
+          :disabled="loading || !ready"
+          @update:model-value="handleSortChange"
+        />
+      </SearchFilterBar>
 
       <!-- Loading State -->
       <div

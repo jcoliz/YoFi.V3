@@ -184,7 +184,7 @@ async function loadTransactions(pageNumber: number = 1) {
       pageNumber,
       from,
       to,
-      undefined,
+      undefined, // TODO: Search term goes here
       currentTenantKey.value,
     )
     currentPage.value = pageNumber
