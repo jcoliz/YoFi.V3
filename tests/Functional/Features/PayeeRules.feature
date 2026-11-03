@@ -51,6 +51,20 @@ Feature: Payee Matching Rules
       When I view my payee rules
       Then I should see the expected rules
 
+    @pri:3
+    @id:8
+    Scenario: User searches across both payee and category
+      Given I have the following payee rules:
+        | Payee     | Category |
+        | Shell     | Gas      |
+        | Gasoline Alley  | Dining Out   |
+        | BP        | Fuel     |
+      When I search for rules matching "Gas"
+      Then the following rules should be shown:
+        | Payee    |
+        | Shell    |
+        | Gasoline Alley |
+
     @pri:1
     @id:11
     Scenario: Cannot create rule with empty category

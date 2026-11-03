@@ -27,6 +27,9 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator DeleteButtons => Page.GetByTestId("delete-button");
     private ILocator DeleteDialog => Page.GetByTestId("delete-rule-modal");
     private ILocator DeleteSubmitButton => DeleteDialog.GetByTestId("delete-submit-button");
+    private ILocator SearchFilterBar => Page.GetByTestId("search-filter-bar");
+    private ILocator SearchInput => SearchFilterBar.GetByTestId("search-input");
+    private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
 
     /// <summary>
     /// Navigates to the payee rules page and waits for the rules to finish loading.
@@ -141,5 +144,17 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
             false => rows.Filter(new() { HasNot = RegexBadges }),
             null => rows
         };
+    }
+
+    /// <summary>
+    /// Waits until at least one rule with the exact payee pattern is displayed, regardless of regex flag.
+    /// </summary>
+    public Task ExpectRuleForAsync(string expectedPayee) =>
+        Assertions.Expect(GetRuleRow(expectedPayee).First).ToBeVisibleAsync();
+
+    public async Task SearchAsync(string string1)
+    {
+        await SearchInput.FillAsync(string1);
+        await SearchButton.ClickAsync();
     }
 }

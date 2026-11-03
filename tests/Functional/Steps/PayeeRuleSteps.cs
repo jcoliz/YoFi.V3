@@ -179,9 +179,42 @@ public class PayeeRuleSteps(ITestContext _context)
         _context.ObjectStore.Add(ObjectStoreKeys.DeletedPayee, payee);
     }
 
+    /// <summary>
+    /// When I search for rules matching {term}
+    /// </summary>
+    [When("I search for rules matching {term}")]
+    public async Task ISearchForRulesMatching(string term)
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+
+        await page.SearchAsync(term);
+    }
+
     #endregion
 
     #region THEN
+
+    /// <summary>
+    /// Then the following rules should be shown:
+    /// </summary>
+    /// <remarks>
+    /// The table should contain the expected rules with "Payee" column.
+    /// </remarks>
+    [Then("the following rules should be shown:")]
+    public async Task TheFollowingRulesShouldBeShown(DataTable table)
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+
+        var expectedRules = table.Rows.Select(r => r.GetRequired("Payee")).ToList();
+
+        await page.ExpectRuleCountAsync(expectedRules.Count);
+
+        foreach (var expectedPayee in expectedRules)
+        {
+            await page.ExpectRuleForAsync(expectedPayee);
+        }
+    }
 
     /// <summary>
     /// Then the rule should no longer exist
