@@ -7,14 +7,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// Step definitions for transaction list viewing and navigation operations.
 /// </summary>
 /// <param name="context">Test context providing access to test infrastructure.</param>
-/// <remarks>
-/// Handles transaction list operations:
-/// - Viewing transaction lists in a workspace
-/// - Navigating to transaction pages
-/// - Transaction count assertions
-/// - Verifying transaction visibility
-/// - Data isolation checks between workspaces
-/// </remarks>
 public class TransactionListSteps(ITestContext context) : TransactionStepsBase(context)
 {
     #region Steps: GIVEN
@@ -67,11 +59,9 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Retrieves transaction payee from object store (stored by data seeding steps),
     /// waits for the transaction row to appear, and clicks it to navigate to the
     /// full details page. Requires TransactionPayee in object store.
-    ///
-    /// Requires Objects
-    /// - TransactionPayee
     /// </remarks>
     [When("I click on the transaction row")]
+    [When("I click on the first seeded transaction")]
     [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIClickOnTheTransactionRow()
     {

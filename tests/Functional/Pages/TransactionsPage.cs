@@ -254,6 +254,77 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
+    #region Search Elements
+
+    private ILocator SearchFilterBar => Page.GetByTestId("search-filter-bar");
+    private ILocator SearchInput => SearchFilterBar.GetByTestId("search-input");
+    private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
+    private ILocator ClearSearchButton => SearchFilterBar.GetByTestId("clear-search-button");
+    private ILocator NoResults => Page.GetByTestId("no-results");
+
+    #endregion
+
+    #region Search Operations
+
+    /// <summary>
+    /// Enters the search term, applies it, and waits for the filtered list to load.
+    /// </summary>
+    public async Task SearchAsync(string term)
+    {
+        await SearchInput.FillAsync(term);
+        await WaitForApi(async () =>
+        {
+            await SearchButton.ClickAsync();
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
+    }
+
+    /// <summary>
+    /// Clears the search term and waits for the unfiltered list to load.
+    /// </summary>
+    public async Task ClearSearchAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await ClearSearchButton.ClickAsync();
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
+    }
+
+    /// <summary>
+    /// Waits until the search input contains exactly the expected term.
+    /// </summary>
+    public Task ExpectSearchTermAsync(string expectedTerm) =>
+        Assertions.Expect(SearchInput).ToHaveValueAsync(expectedTerm);
+
+    /// <summary>
+    /// Waits until the no-results message is displayed and no transaction rows remain.
+    /// </summary>
+    public async Task ExpectNoResultsAsync()
+    {
+        await Assertions.Expect(NoResults).ToBeVisibleAsync();
+        await Assertions.Expect(TransactionRows).ToHaveCountAsync(0);
+    }
+
+    /// <summary>
+    /// Waits until exactly the expected number of transactions is displayed.
+    /// </summary>
+    public Task ExpectTransactionCountAsync(int expectedCount) =>
+        Assertions.Expect(TransactionRows).ToHaveCountAsync(expectedCount);
+
+    /// <summary>
+    /// Waits until a transaction with the exact payee is displayed.
+    /// </summary>
+    public Task ExpectTransactionForAsync(string expectedPayee) =>
+        Assertions.Expect(TransactionRows.Filter(new()
+        {
+            Has = Page.Locator("td:nth-child(2)", new() { HasTextRegex = new Regex($"^\\s*{Regex.Escape(expectedPayee)}\\s*$") })
+        }).First).ToBeVisibleAsync();
+
+    #endregion
+
     #region Navigation
 
     /// <summary>
