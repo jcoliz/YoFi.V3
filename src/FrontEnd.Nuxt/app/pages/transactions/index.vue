@@ -566,7 +566,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
     />
 
     <!-- Create Rule from Transaction Dialog -->
-    <PayeeRuleDialog
+    <PayeeRulesDialog
       v-model:show="showCreateRuleModal"
       mode="create"
       :loading="loading"
