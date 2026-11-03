@@ -74,7 +74,10 @@ function handleClear() {
 </script>
 
 <template>
-  <div class="card mb-4">
+  <div
+    class="card mb-4"
+    data-test-id="search-filter-bar"
+  >
     <div class="card-body">
       <label
         :for="inputId"
