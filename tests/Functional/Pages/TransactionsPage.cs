@@ -77,7 +77,12 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     #region Date Range Filter Elements
 
     /// <summary>
-    /// Date range filters card
+    /// Filters toggle button (in the search bar) that expands/collapses the date range filters
+    /// </summary>
+    public ILocator FiltersToggleButton => Page!.GetByTestId("filters-toggle-button");
+
+    /// <summary>
+    /// Date range filters card (collapsed by default)
     /// </summary>
     public ILocator DateRangeFilters => Page!.GetByTestId("date-range-filters");
 
@@ -274,19 +279,19 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
     /// <remarks>
-    /// Waits for the Clear Filters button to become enabled, indicating client hydration is complete.
-    /// The Clear Filters button is always present regardless of user permissions, making it a reliable
+    /// Waits for the Filters toggle button to become enabled, indicating client hydration is complete.
+    /// The Filters toggle button is always present regardless of user permissions, making it a reliable
     /// ready indicator for all roles (Owner, Editor, Viewer). This ensures the Vue client has finished
     /// hydrating and the page is interactive.
     /// See: tests/Functional/NUXT-SSR-TESTING-PATTERN.md
     /// </remarks>
     public async Task WaitForPageReadyAsync(float timeout = 5000)
     {
-        await WaitForClearFiltersButtonEnabledAsync(timeout);
+        await WaitForFiltersToggleButtonEnabledAsync(timeout);
     }
 
     /// <summary>
-    /// Waits until the Clear Filters button becomes enabled
+    /// Waits until the Filters toggle button becomes enabled
     /// </summary>
     /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
     /// <remarks>
@@ -294,16 +299,16 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// This button is always present regardless of permissions, making it suitable as a ready indicator
     /// for all user roles. This ensures the Vue client has finished hydrating and the page is interactive.
     /// </remarks>
-    public async Task WaitForClearFiltersButtonEnabledAsync(float timeout = 5000)
+    public async Task WaitForFiltersToggleButtonEnabledAsync(float timeout = 5000)
     {
-        await ClearFiltersButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await ClearFiltersButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
+        await FiltersToggleButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
+        await FiltersToggleButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
 
         // Poll until the button is enabled
         var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
         while (DateTime.UtcNow < deadline)
         {
-            var isDisabled = await ClearFiltersButton.IsDisabledAsync();
+            var isDisabled = await FiltersToggleButton.IsDisabledAsync();
             if (!isDisabled)
             {
                 return; // Button is now enabled - page is ready
@@ -311,7 +316,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
             await Task.Delay(50);
         }
 
-        throw new TimeoutException($"Clear Filters button did not become enabled within {timeout}ms");
+        throw new TimeoutException($"Filters toggle button did not become enabled within {timeout}ms");
     }
 
     /// <summary>
@@ -964,11 +969,24 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     #region Filter Operations
 
     /// <summary>
+    /// Expands the date range filters pane if it is currently collapsed
+    /// </summary>
+    public async Task ExpandFiltersAsync()
+    {
+        if (await FiltersToggleButton.GetAttributeAsync("aria-expanded") != "true")
+        {
+            await FiltersToggleButton.ClickAsync();
+            await DateRangeFilters.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        }
+    }
+
+    /// <summary>
     /// Sets the from date filter
     /// </summary>
     /// <param name="date">Date in YYYY-MM-DD format</param>
     public async Task SetFromDateAsync(string date)
     {
+        await ExpandFiltersAsync();
         await FromDateInput.FillAsync(date);
         // Don't need to wait here. Nothing happens when we modify filters
     }
@@ -979,6 +997,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <param name="date">Date in YYYY-MM-DD format</param>
     public async Task SetToDateAsync(string date)
     {
+        await ExpandFiltersAsync();
         await ToDateInput.FillAsync(date);
         // Don't need to wait here. Nothing happens when we modify filters
     }
@@ -990,6 +1009,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <param name="toDate">To date in YYYY-MM-DD format</param>
     public async Task SetDateRangeAsync(string fromDate, string toDate)
     {
+        await ExpandFiltersAsync();
         await FromDateInput.FillAsync(fromDate);
         await ToDateInput.FillAsync(toDate);
         // Don't need to wait here. Nothing happens when we modify filters
@@ -1000,6 +1020,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public async Task ClearFiltersAsync()
     {
+        await ExpandFiltersAsync();
         await ClearFiltersButton.ClickAsync();
 
         // Don't need to wait here. Nothing happens when we modify filters

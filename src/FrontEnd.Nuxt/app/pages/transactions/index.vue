@@ -103,6 +103,16 @@ const fromDate = ref<string>('')
 const toDate = ref<string>('')
 
 /**
+ * Whether the date range filters pane is expanded.
+ */
+const showFilters = ref(false)
+
+/**
+ * Whether any date range filter is currently applied.
+ */
+const hasActiveFilters = computed(() => !!fromDate.value || !!toDate.value)
+
+/**
  * Search text filter for transactions.
  */
 const searchText = ref('')
@@ -383,11 +393,36 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
         :disabled="loading || !ready"
         @search="() => loadTransactions(1)"
         @clear="() => loadTransactions(1)"
-      />
+      >
+        <!--
+          IMPORTANT: Keep :disabled="loading || !ready" on this button.
+          This is the ready signal for functional tests to detect client hydration.
+          The filters toggle is always present regardless of user permissions,
+          making it a reliable indicator that the page is interactive.
+          See: tests/Functional/NUXT-SSR-TESTING-PATTERN.md
+        -->
+        <button
+          class="btn"
+          :class="hasActiveFilters ? 'btn-secondary' : 'btn-outline-secondary'"
+          type="button"
+          title="Filters"
+          data-test-id="filters-toggle-button"
+          aria-controls="date-range-filters"
+          :aria-expanded="showFilters"
+          :disabled="loading || !ready"
+          @click="showFilters = !showFilters"
+        >
+          <FeatherIcon
+            icon="filter"
+            size="16"
+          />
+        </button>
+      </SearchFilterBar>
 
       <!-- Date Range Filters -->
       <div
-        v-if="hasWorkspace"
+        v-if="hasWorkspace && showFilters"
+        id="date-range-filters"
         class="card mb-4"
         data-test-id="date-range-filters"
       >
@@ -428,13 +463,6 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
                 :disabled="loading || !ready"
                 @click="clearFilters"
               >
-                <!--
-                  IMPORTANT: Keep :disabled="loading || !ready" on this button.
-                  This is the ready signal for functional tests to detect client hydration.
-                  The Clear Filters button is always present regardless of user permissions,
-                  making it a reliable indicator that the page is interactive.
-                  See: tests/Functional/NUXT-SSR-TESTING-PATTERN.md
-                -->
                 Clear Filters
               </button>
             </div>

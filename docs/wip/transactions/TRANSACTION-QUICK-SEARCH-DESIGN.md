@@ -280,8 +280,9 @@ Keep the implementation in the existing transactions page:
   failures. Failures for the current request follow normal error handling.
 - Dispose the timer and invalidate generations on unmount.
 
-Retain the existing `clear-filters-button` readiness signal used by functional
-tests. Add stable test IDs `transaction-search`, `clear-transaction-search`, and
+Use the `filters-toggle-button` (in the search bar) as the readiness signal for
+functional tests; the date range filters pane, including `clear-filters-button`,
+is collapsed by default. Add stable test IDs `transaction-search`, `clear-transaction-search`, and
 `transaction-search-status` for the new controls and feedback.
 
 ## Verification and Acceptance
