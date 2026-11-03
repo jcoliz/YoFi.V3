@@ -419,56 +419,64 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
         </button>
       </SearchFilterBar>
 
-      <!-- Date Range Filters -->
-      <div
-        v-if="hasWorkspace && showFilters"
-        id="date-range-filters"
-        class="card mb-4"
-        data-test-id="date-range-filters"
-      >
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label
-                for="fromDate"
-                class="form-label"
-                >From Date</label
-              >
-              <input
-                id="fromDate"
-                v-model="fromDate"
-                type="date"
-                class="form-control"
-                @change="() => loadTransactions(1)"
-              />
-            </div>
-            <div class="col-md-4">
-              <label
-                for="toDate"
-                class="form-label"
-                >To Date</label
-              >
-              <input
-                id="toDate"
-                v-model="toDate"
-                type="date"
-                class="form-control"
-                @change="() => loadTransactions(1)"
-              />
-            </div>
-            <div class="col-md-4 d-flex align-items-end">
-              <button
-                class="btn btn-secondary"
-                data-test-id="clear-filters-button"
-                :disabled="loading || !ready"
-                @click="clearFilters"
-              >
-                Clear Filters
-              </button>
+      <!-- Date Range Filters (animated expand/collapse) -->
+      <Transition name="expand">
+        <div
+          v-if="hasWorkspace && showFilters"
+          class="expand-panel"
+        >
+          <div class="expand-panel-inner">
+            <div
+              id="date-range-filters"
+              class="card mb-4"
+              data-test-id="date-range-filters"
+            >
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label
+                      for="fromDate"
+                      class="form-label"
+                      >From Date</label
+                    >
+                    <input
+                      id="fromDate"
+                      v-model="fromDate"
+                      type="date"
+                      class="form-control"
+                      @change="() => loadTransactions(1)"
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label
+                      for="toDate"
+                      class="form-label"
+                      >To Date</label
+                    >
+                    <input
+                      id="toDate"
+                      v-model="toDate"
+                      type="date"
+                      class="form-control"
+                      @change="() => loadTransactions(1)"
+                    />
+                  </div>
+                  <div class="col-md-4 d-flex align-items-end">
+                    <button
+                      class="btn btn-secondary"
+                      data-test-id="clear-filters-button"
+                      :disabled="loading || !ready"
+                      @click="clearFilters"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
 
       <!-- Loading State -->
       <div
@@ -654,6 +662,37 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
 </template>
 
 <style scoped>
+/* Animates height via grid rows (0fr -> 1fr) so the panel's natural height needn't be known */
+.expand-panel {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.expand-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.expand-enter-active,
+.expand-leave-active {
+  transition:
+    grid-template-rows 250ms ease,
+    opacity 250ms ease;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expand-enter-active,
+  .expand-leave-active {
+    transition: none;
+  }
+}
+
 .workspace-selector-container {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
