@@ -184,6 +184,7 @@ async function loadTransactions(pageNumber: number = 1) {
       pageNumber,
       from,
       to,
+      undefined,
       currentTenantKey.value,
     )
     currentPage.value = pageNumber
