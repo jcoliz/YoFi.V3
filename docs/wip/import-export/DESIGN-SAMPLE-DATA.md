@@ -1,7 +1,6 @@
 ---
-status: Draft
-created: 2026-11-03
-target_release: V3.0
+status: In Review
+target_release: Alpha 1
 ado: Story 2223
 related_docs:
   - PRD-TENANT-DATA-ADMIN.md
@@ -18,13 +17,16 @@ using curated TOML scenario definitions and runtime generation. Users load a
 complete sample dataset into a workspace, then download matching OFX data to
 explore the existing bank import and categorization workflow.
 
-The original generator at `C:\Source\jcoliz\yofi\YoFi.SampleGen` is a reference
+The original generator at `yofi\YoFi.SampleGen` is a reference
 for financial patterns, not a component to copy unchanged. Preserve its realistic
 recurrence, merchant alternatives, and amount/date variability, without retaining
 its dependency on periodically regenerated, dated files.
 
-This document designs sample data and its entry into Data Administration. It
-does not implement or fully design Stories 2220-2222 and 2224.
+This document designs sample data and its entry into Data Administration,
+including a temporary development/testing workspace reset within the sample-loading workflow.
+It does not fully design the general administration surfaces for Stories
+2220-2222 and 2224. The temporary reset is not a production implementation of
+Story 2222 and will be removed from this flow when that story is implemented.
 
 ## Decisions
 
@@ -36,7 +38,8 @@ does not implement or fully design Stories 2220-2222 and 2224.
 | Authorization | Workspace Owner required for the entire Data Administration page and its sample endpoints |
 | Initial catalog | One Personal Finance scenario; retain a scenario selector for later additions |
 | Loading | Load the whole scenario at once; no entity-type selection |
-| Existing data | Preserve it; allow repeated loading with a warning that duplicates will be added |
+| Existing data | Preserve by default; after choosing sample import, users with existing transactions may separately confirm deletion of all workspace data |
+| Optional reset | Temporary development/testing convenience only, never production; separate committed deletion before sample loading, preserving the workspace and memberships |
 | Current entities | Transactions and payee matching rules |
 | Paychecks | One net-pay transaction per paycheck, not a breakdown of deductions |
 | Budgets | Deferred |
@@ -62,11 +65,10 @@ creates an internal Order=0 split for a transaction's amount and category.
 Sample loading must preserve this behavior. "No splits" in the initial scope
 means no user-visible, multi-component transactions, not bypassing this invariant.
 
-The V1 paycheck group must become net income after employee deductions.
-Do not treat gross salary as spendable income or emit separate deduction
-transactions that subtract those amounts again. Employer retirement matching and
-its offset are not checking-account cash movements. Preserve the source
-definition as migration reference rather than enabling unsupported group fields.
+The scenario author will supply net pay as a single ordinary income pattern.
+The current generator does not calculate net pay from gross income, migrate
+paycheck groups, or process deductions. Paycheck deductions will be added to the
+scenario only when multi-split support is implemented.
 
 Loan payments may be represented as ordinary cash-outflow patterns initially.
 Loan amortization, principal/interest breakdown, and loan-specific matching-rule
@@ -103,6 +105,32 @@ Viewers cannot use the page. If the shared selector selects a workspace where
 the user is not Owner, show an access-denied state with the selector still
 available; do not retain actions or results from the previous workspace.
 
+### Transactions empty-state entry
+
+On the [Transactions page](../../../src/FrontEnd.Nuxt/app/pages/transactions/index.vue),
+offer **Load Sample Data** when the current workspace has no transactions and
+the current user is its Owner. Match the
+[Payee Rules empty inbox](../../../src/FrontEnd.Nuxt/app/pages/payee-rules/index.vue):
+a centered, muted empty-state message, 48px inbox icon, and a small action button
+inside the existing card. Preserve the existing create-first-transaction action
+for users who can create transactions.
+In particular, non-Owner Editors retain **Create your first transaction** and
+its existing create-modal behavior; they do not receive the sample-data action.
+Owner-only sample administration must not narrow existing Editor permissions
+to create transactions.
+
+The sample action navigates to
+`/workspaces/{currentWorkspaceKey}/data-administration`. It does not import data,
+start the sample-import confirmation workflow, or offer the temporary reset.
+The user must still choose **Load Sample Data** on the destination page and
+confirm the import there.
+
+Determine eligibility from the workspace's actual transaction count, not just
+an empty visible page or filtered result. Do not show the prompt merely because
+search/date filters return no matches, pagination is empty, data is loading, or
+a request failed. Refresh eligibility when the workspace changes.
+Editors and Viewers do not see this sample-data prompt.
+
 ### Sample data section
 
 Show:
@@ -121,7 +149,51 @@ The preview displays an exact count for the selected generation inputs, meeting
 the PRD's approximate-count requirement. Internal single splits are not displayed
 as a separately selectable or counted sample entity type.
 
-Before loading, show the target workspace, dates, and counts, with this warning:
+After the user chooses **Load Sample Data**, check the current workspace's
+transaction count. In development/testing only, if it is greater than zero, offer:
+
+- **Keep existing data** (default): continue with append-only sample loading.
+- **Delete all existing workspace data first**: open a separate destructive
+  confirmation before proceeding.
+
+Do not expose this optional reset on initial page entry, scenario selection,
+preview generation, or OFX download. It is available only within the chosen
+sample-import workflow and only when existing transactions are present.
+The trigger is the transaction count, but deletion covers all workspace data,
+not just transactions or the two sample entity types.
+This is a temporary development/testing convenience until Story 2222 arrives,
+not part of the production sample-loading experience. In production, keep
+existing data and use the normal append-only flow without offering reset.
+Enforce this restriction on the backend as well as hiding the UI; production
+must reject direct calls to the temporary reset endpoint.
+
+The destructive confirmation must name the workspace, show current per-type
+deletion counts, and offer an explicit confirmation button; no typed phrase is
+required for this temporary flow. Explain that
+transactions (including internal splits), matching rules, pending bank-import
+reviews, and any other supported tenant data will be permanently removed.
+Preserve the workspace itself and all memberships.
+Advise exporting a backup first; link to complete export when that feature is
+available, without implying export exists in this story.
+
+Use an explicit **Delete All Workspace Data** confirmation button. Deletion
+commits as a separate operation before sample loading. On success, show deleted
+counts, refresh workspace counts, and present an explicit **Load Sample Data**
+confirmation. Do not silently chain a destructive reset and a load.
+
+Warn before deletion:
+
+> Deletion cannot be undone. Loading sample data is a separate operation.
+> If loading fails or you leave afterward, your previous data is still deleted.
+
+Canceling the destructive confirmation makes no changes. The user can return to
+the keep-existing-data path. A deletion failure blocks progression to loading
+through the reset path; do not report the workspace as cleared or automatically
+retry. On an uncertain deletion outcome, require checking current counts before
+another destructive request.
+
+For the keep-existing-data path, show the target workspace, dates, and counts,
+with this warning before loading:
 
 > This adds sample transactions and payee matching rules to {workspace name}.
 > Existing data will not be removed or updated. Loading sample data again adds
@@ -130,7 +202,9 @@ Before loading, show the target workspace, dates, and counts, with this warning:
 
 On success, show created counts by type and links to Transactions, Payee Rules,
 and Bank Import. Do not imply that individual sample records can later be
-removed as a batch: the PRD's Delete All Data removes real data too.
+removed as a batch: Delete All Data removes real data too. On the reset path,
+report deletion and loading as separate results, including the case where
+deletion succeeds but sample loading fails.
 
 OFX download does not modify workspace data. Explain that users should load the
 scenario first if they want its matching rules available. The file is then
@@ -139,8 +213,10 @@ uploaded through the existing Bank Import page and normal review workflow.
 ### Switching and asynchronous operations
 
 - Prompt before discarding a prepared preview or pending confirmation.
-- Clear workspace-specific previews, confirmations, counts, and results on switch.
-- Disable workspace switching and repeated submission during load/download.
+- Clear workspace-specific previews, reset eligibility/choice, confirmations,
+  counts, and results on switch. A new workspace requires a new sample-import
+  choice and destructive confirmation.
+- Disable workspace switching and repeated submission during delete/load/download.
 - Guard route navigation while a write is pending; capture the workspace key
   before sending the request.
 - Ignore stale responses after a route or generation-input change.
@@ -152,10 +228,24 @@ uploaded through the existing Bank Import page and normal review workflow.
 
 ## Dates and Defaults
 
-Resolve defaults per request using a testable clock, never a build-time year or
-global mutable year. Proposed initial convention: server UTC calendar date,
-returned to the client as an explicit date. Generation itself takes dates as
-inputs and never reads the clock.
+The frontend calculates initial defaults from the browser's local clock when
+initializing the sample-data form. Use the user's local calendar date, never a
+build-time year or server UTC date. The user can edit both ranges; do not
+overwrite edited values on preview refresh or catalog responses.
+
+The backend always receives explicit start/end dates for preview, load, and OFX
+requests. It validates those inputs but does not calculate or substitute default
+ranges. Generation itself takes dates as inputs and never reads the clock.
+
+These are calendar dates, not instants: send `YYYY-MM-DD` values and bind them
+to date-only backend fields. Do not convert local midnight to UTC or derive a
+date by truncating a UTC ISO timestamp, since that can shift the selected day.
+Frontend date calculations must be testable with a controlled local clock.
+
+The current model has no dedicated user/workspace timezone setting. Transaction
+dates use `DateOnly`; audit timestamps use `DateTimeOffset`, which carries an
+offset, not a named timezone or its daylight-saving rules. This feature requires
+neither a timezone database column nor a timezone identifier in date-range requests.
 
 For today = **2026-06-15**:
 
@@ -183,7 +273,7 @@ Controllers project
 
 Application project
     Features/SampleDataFeature
-        Catalog, defaults, preview, loading, OFX coordination
+        Catalog, preview, loading, OFX coordination
     Services/SampleDataGenerator
         Definitions + range + seed -> generated records
     Services/SampleScenarioLoader
@@ -211,7 +301,7 @@ transactions have the expected category directly.
 
 ### SampleDataFeature
 
-Orchestrate the use cases, resolve defaults, validate requests and generated DTOs,
+Orchestrate the use cases, validate requests and generated DTOs,
 and delegate persistence to shared Application import/create behavior.
 Attach the current authorized tenant only at the persistence boundary.
 
@@ -279,8 +369,8 @@ amount_jitter = "none"
 date_jitter = "none"
 ```
 
-The paycheck number is illustrative and must be reconciled against the original
-definition before shipping. Quoted annual amounts are intentional: parse them
+The paycheck number is illustrative; the scenario author supplies the intended
+net-pay amount. Quoted annual amounts are intentional: parse them
 directly as invariant-culture `decimal`, avoiding a binary floating-point
 intermediate. Use decimal arithmetic for financial amounts throughout.
 
@@ -375,7 +465,24 @@ without their historical data, or historical data without its rules.
 Coordinate through one unit of work; do not call independently committing
 per-item feature methods and claim the operation is atomic.
 
-Do not clear existing transactions, rules, or pending bank-import reviews.
+The sample-load operation itself never clears existing transactions, rules, or
+pending bank-import reviews. Optional reset is a separate operation:
+
+1. Authorize the Owner and refresh current deletion counts.
+2. Require the explicit destructive confirmation for the selected workspace.
+3. Delete all tenant data in dependency order within one database transaction,
+   preserving the workspace and memberships.
+4. Commit and return per-type deleted counts before offering sample loading.
+
+Keep workspace-data deletion separate from the generator and do not duplicate
+per-type deletion in the UI. Story 2222 may reuse the internal deletion operation,
+but will define its own production entry point and safeguards.
+Cover all tenant data currently supported, including pending import-review
+transactions; extend that inventory as new entity types are introduced.
+The reset must be all-or-nothing internally, but is deliberately not in the same
+transaction as sample loading. A later load failure rolls back only the attempted
+sample inserts, never restores the earlier deleted data.
+
 No new tables, migrations, sample-load history, or sample-only deletion mechanism
 are required initially.
 
@@ -416,7 +523,7 @@ middleware. The scenario catalog is exposed through this same authorized boundar
 
 | Method | Suffix | Purpose |
 |--------|--------|---------|
-| GET | `/scenarios` | Catalog, supported entity types, revisions, and resolved default ranges |
+| GET | `/scenarios` | Catalog, supported entity types, and revisions; date defaults are frontend-owned |
 | POST | `/preview` | Exact counts for scenario/revision and historical date range |
 | POST | `/load` | Create the complete dataset for the selected range |
 | GET | `/ofx` | Download OFX for scenario/revision and requested OFX range |
@@ -425,6 +532,24 @@ Use generated API client contracts and explicit request/response DTOs. Preview
 returns the resolved inputs plus per-type and total counts; load returns the
 resolved inputs and committed per-type created counts. Do not expose entity IDs
 or accept a caller-supplied tenant ID in dataset payloads.
+Require explicit start/end dates on preview, load, and OFX requests; reject
+missing dates instead of inferring them from the server clock.
+
+Preview also returns the current workspace transaction count for the reset offer.
+Obtain refreshed deletion counts when opening destructive confirmation through
+the shared administration counts operation.
+Use a separate Owner-only `DELETE /api/tenant/{tenantKey:guid}/admin/data`
+endpoint for the temporary reset.
+This temporary endpoint is available only in development/testing and must reject
+production requests regardless of caller role. Story 2222 will define the
+production endpoint contract; do not assume the temporary contract is sufficient.
+Require explicit confirmation (not a typed phrase) in its request contract and return committed
+per-type deletion counts. Never interpret a sample-load request as permission to
+delete, and do not add a combined delete-and-load endpoint.
+
+The "after choosing sample import" restriction is a UI workflow gate, not a
+replacement for authorization or destructive confirmation on the deletion API.
+Direct API calls still require Owner access and the explicit confirmation.
 
 Return standard ProblemDetails for invalid requests, unavailable scenarios,
 stale revisions, and failures. Follow repository status/exception conventions.
@@ -432,7 +557,8 @@ Do not return success-shaped results for failed loads. A file response returns
 the appropriate OFX content type and attachment filename.
 
 Log actor/workspace, scenario/revision, date range, operation, counts, and
-success/failure using existing controller logging conventions. Do not log full
+success/failure using existing controller logging conventions. Log deletion
+separately, with per-type deleted counts and failure outcomes. Do not log full
 generated financial records.
 
 ## Testing and Acceptance
@@ -441,49 +567,164 @@ generated financial records.
 
 - TOML binding, quoted decimal precision, unknown-field rejection, and diagnostics.
 - Catalog uniqueness and semantic validation for every bundled scenario.
-- June example defaults, January rollover, leap years, and inclusive range edges.
+- Inclusive range edges and rejection of missing dates without server-clock defaults.
 - Recurrence counts and repeats; annual amounts are not multiplied accidentally.
 - Jitter bounds, sign preservation, rounding, and no zero-valued output.
 - Overlapping-range equality, pattern-reorder stability, and parallel generation.
 - Stable IDs across preview/load/OFX for the same scenario revision.
-- Net-pay migration arithmetic and absence of separate paycheck deductions.
 - Matching-rule coverage of all merchant alternatives.
 
 ### Application/data integration
 
 - Whole-set creation with fresh Keys and correct tenant assignment.
-- Existing records unchanged; repeated load adds another complete copy.
+- Existing records unchanged without reset; repeated load adds another complete copy.
 - Internal single splits and category sanitization preserved.
 - Matching-rule audit/usage initialization and invalid generated DTO rejection.
 - Rollback both types on a persistence failure.
-- No effects on another tenant or pending bank-import reviews.
+- No effects on another tenant; sample loading alone preserves pending bank-import reviews.
+- Optional reset removes all tenant data, including pending reviews and internal
+  splits, while preserving the workspace and memberships.
+- Reset rolls back completely on deletion failure.
+- Successful reset remains committed if subsequent sample loading fails; failed
+  loading leaves no partially inserted sample dataset.
 
-### Controller and functional
+### Controller integration and frontend component tests
 
+Cover the detailed cases below at the controller integration or frontend
+unit/component level as appropriate. These are not additional functional
+scenarios.
+
+- Frontend local-clock defaults match the June example, January rollover, and
+  leap years, including timezones where the local date differs from UTC.
+- Date-only requests preserve the selected day across positive/negative UTC
+  offsets and daylight-saving transitions; edited dates survive preview refresh.
 - Owner succeeds; Editor, Viewer, nonmember, and unauthenticated access fail.
+- Production never offers the temporary reset and rejects direct reset requests,
+  including requests from an Owner; normal sample loading remains available.
 - Card B opens workspace B even when A was previously current.
 - Selector, refresh, and Back/Forward keep route/store/operation targets aligned.
 - Unauthorized workspace selection and invalid keys do not fall back silently.
 - Switching clears state; pending writes cannot be retargeted.
 - Full-set preview, duplicate warning, confirmation, and created counts.
+- Transactions empty-state sample prompt matches the Payee Rules inbox pattern
+  and is visible only to Owners of genuinely empty workspaces.
+- Empty filtered results, loading/errors, and Editor/Viewer access do not show
+  the sample prompt.
+- Non-Owner Editors retain the existing Create your first transaction action
+  and can open the transaction creation modal from the empty state.
+- Clicking the prompt navigates to the current workspace's administration page
+  without loading data or entering the sample-import/reset confirmation flow.
+- Reset is hidden until Load Sample Data is chosen and only offered when the
+  workspace has transactions; rules-only workspaces do not trigger the offer.
+- Keeping existing data remains the default; canceling deletion changes nothing.
+- Workspace-named destructive confirmation without a typed phrase, separate deletion
+  result, refreshed counts, and explicit subsequent load confirmation.
+- Deletion failure prevents the reset path from proceeding to sample loading;
+  deletion success followed by load failure explains that deletion is irreversible.
+- Changing workspaces invalidates reset eligibility and pending confirmations.
 - OFX parses with matching dates, amounts, merchants, and IDs.
 - OFX import applies expected scenario rules in a clean workspace.
 - Importing overlapping OFX ranges detects existing occurrences.
 - Empty historical ranges, stale previews, API errors, and uncertain write outcomes
   produce explicit feedback.
 
+### Functional tests: five priority BDD scenarios
+
+Limit this feature to exactly five functional scenarios. Express them in pure
+business-facing Given/When/Then language, using visible user actions and outcomes,
+not routes, API calls, database assertions, selectors, or component state.
+Technical setup belongs in test infrastructure, not the scenario wording.
+Do not use scenario outlines to expand this into additional functional cases.
+Each scenario has one responsibility and one Given/When/Then progression.
+Once outcome assertions begin, do not introduce further actions. Establish
+prerequisite workflow state in Given steps instead of testing every intermediate
+screen within the same scenario.
+
+#### 1. Load a complete scenario into an empty workspace
+
+```gherkin
+Scenario: Explore a workspace with realistic sample data
+  Given I own an empty workspace
+  And I have previewed Personal Finance sample data for my chosen historical dates
+  When I confirm loading the sample data
+  Then I see confirmation of the transactions and rules added
+  And I can explore categorized sample transactions within my chosen dates
+  And I can view the sample payee matching rules
+```
+
+#### 2. Change the target workspace before loading
+
+```gherkin
+Scenario: Load sample data into the workspace I select
+  Given I own workspaces named Home and Practice
+  And I am administering Practice after opening Manage Data from its workspace card
+  When I select Home in the workspace selector
+  And I choose and confirm loading Personal Finance sample data
+  Then I see the sample data in Home
+  And the contents of Practice are unchanged
+```
+
+#### 3. Preserve existing data when adding samples
+
+```gherkin
+Scenario: Keep my existing data while trying sample data
+  Given I own a workspace with existing transactions and payee matching rules
+  And I have chosen to load Personal Finance sample data
+  When I keep my existing data and confirm loading
+  Then my existing transactions and rules remain unchanged
+  And the sample transactions and rules are available alongside them
+```
+
+#### 4. Explicitly reset a workspace in preparation for sample loading
+
+```gherkin
+Scenario: Clear existing data after choosing sample import
+  Given I am using a development or testing environment
+  And I own a workspace with transactions, payee matching rules, and pending bank imports
+  And I have chosen to load Personal Finance sample data
+  And I have chosen to delete all existing workspace data first
+  And I have been warned that deletion is irreversible even if sample loading fails
+  When I confirm deleting all existing workspace data
+  Then I see confirmation of the data deleted
+  And my previous transactions, rules, and pending imports are gone
+  And the workspace and its memberships remain
+  And sample loading awaits my separate confirmation
+```
+
+#### 5. Use matching OFX data through bank import
+
+```gherkin
+Scenario: Categorize new sample bank transactions automatically
+  Given I own a workspace containing the Personal Finance sample dataset
+  When I download sample OFX data for a later non-overlapping date range
+  And I upload that file through Bank Import
+  Then I see transactions within the requested dates ready for review
+  And the sample payee matching rules have assigned the expected categories
+```
+
+These scenarios prioritize complete loading, correct workspace targeting,
+preservation of real data, explicit destructive consent, and sample OFX
+categorization. Completing bank-import review is covered by the existing bank
+import feature rather than adding a second responsibility here.
+Authorization permutations, local-clock boundaries, duplicate
+OFX detection, failure injection, and navigation races remain covered by the
+lower-level tests above rather than expanding the functional suite.
+
 Measure representative default and maximum-size scenarios for latency, memory,
 and concurrent requests. Set generation limits from those results before release.
 
 ## Delivery Sequence
 
-1. Reconcile the original Personal Finance definitions and net paycheck.
+1. Prepare the Personal Finance definitions with author-supplied net pay as one
+   ordinary income pattern and no paycheck deductions.
 2. Select/verify a direct TOML parser; implement typed schema and validation.
 3. Implement deterministic generation and its focused tests.
-4. Establish/reuse shared persistence with all-or-nothing sample loading.
+4. Establish/reuse shared persistence with all-or-nothing sample loading and a
+   separate atomic workspace-data deletion operation.
 5. Implement OFX output and round-trip tests through the current bank importer.
 6. Add Owner-only endpoints and generated client contracts.
-7. Add card entry, route/selector synchronization, and sample section.
+7. Add card and Transactions empty-state entries, route/selector synchronization,
+   and sample section.
 8. Validate authorization, workspace transitions, repeats, and resource limits.
 
 No sample-related XLSX dependency is required for these steps.
@@ -492,8 +733,10 @@ No sample-related XLSX dependency is required for these steps.
 
 ### Multi-split transactions
 
-Restore paycheck groups with gross income, taxes, insurance, retirement
+Add paycheck groups with gross income, taxes, insurance, retirement
 contributions, and other deductions when supported by the user-facing app.
+At that time, the scenario author will add deduction definitions and the
+implementation will add the associated split arithmetic and tests.
 Add other grouped transactions and loan principal/interest breakdowns as needed.
 Ensure splits reconcile to the net bank transaction.
 
@@ -517,8 +760,16 @@ must never depend on someone rerunning it to refresh calendar dates.
 
 ### Other administration capabilities
 
-The page can acquire general XLSX import/export and Delete All Data through
-their own story designs. ClosedXML is the preferred XLSX choice discussed so
+When Story 2222 introduces workspace data deletion, remove the temporary delete
+option from sample loading and retire its temporary endpoint/confirmation
+contract. Users will delete data through the dedicated administration flow,
+with Story 2222's production safeguards, then load sample data separately.
+The temporary sample-flow reset must never ship to production.
+Internal deletion logic may be reused where appropriate.
+
+The page can acquire general XLSX import/export through their own story designs.
+This story does not expose a standalone delete action outside the temporary
+development/testing workflow. ClosedXML is the preferred XLSX choice discussed so
 far; isolate it at file-processing boundaries and explicitly avoid formula
 evaluation. It is unrelated to TOML scenario loading.
 
@@ -529,8 +780,6 @@ evaluation. It is unrelated to TOML scenario loading.
   and UI guidance rather than truncation.
 - Exact recurrence date-window mapping for low/moderate/high date jitter and
   rounding rule, pinned by tests before scenario migration is accepted.
-- Confirm server-UTC defaults are appropriate until a user timezone preference
-  exists; display the resolved dates so they are never implicit.
 - Final synthetic account metadata and OFX statement balance convention.
 
 These items do not change the agreed architecture or user-facing scope.

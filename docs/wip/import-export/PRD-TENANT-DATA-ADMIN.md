@@ -199,6 +199,7 @@ Transactions have a special relationship with Splits (one-to-many):
   - These OFX files will match the payee rules included in the data set
   - User can control the time range
   - Default is first day of 2 months prior to today (e.g. 4/1/2026 to 6/15/2026 in the example above)
+- [ ] User is prompted to load sample data from the transactions page if there are no transactions and the user is an owner of the current workspace.
 
 ### Story 2224: User - Handle Import Errors Gracefully
 
