@@ -31,8 +31,9 @@ export default defineNuxtConfig({
   },
   auth: {
     originEnvKey: 'NUXT_PUBLIC_API_BASE_URL',
-    // `originEnvKey` is only applied during SSR. The SPA fallback (200.html) isn't
-    // server-rendered, so without this it keeps the module default `/api/auth`
+    // `originEnvKey` is only applied when a page is rendered server-side: in dev, or
+    // when prerendering routes during `nuxi generate`. The SPA fallback (200.html) is
+    // never server-rendered, so without this it keeps the module default `/api/auth`
     // and auth calls go to `/api/auth/api/auth/...` on the frontend origin.
     ...(process.env.NUXT_PUBLIC_API_BASE_URL && { baseURL: process.env.NUXT_PUBLIC_API_BASE_URL }),
     disableServerSideAuth: true, // TODO: Review UserViewsTheirAccountDetails test
