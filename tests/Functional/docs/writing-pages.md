@@ -31,6 +31,14 @@ wait for the resulting dialog, navigation, or updated data—not only for the in
 Prefer Playwright's locator/action waits and existing helpers from the shared functional-test
 library over fixed delays.
 
+Workspace tests use `WorkspacesPage` for the list, creation, and the card's Manage
+link. Editing and deletion belong to `WorkspaceManagementPage` at
+`/workspaces/{key}`. Wait for the route-targeted name and settings after loading
+or saving, and wait for the list after successful deletion. Non-owner tests assert
+the frontend's `access-denied` alert, its `title`, and hidden settings and deletion
+controls. Cover Manage navigation, direct URLs, and refresh without submitting
+unauthorized writes or inspecting backend errors.
+
 ## Example
 
 ```csharp

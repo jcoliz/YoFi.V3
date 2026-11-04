@@ -72,17 +72,17 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
-    /// Adds __TEST__ prefix. Checks workspaces page for presence of workspace.
-    /// Note: May occasionally fail if list hasn't fully updated after spinner hides.
+    /// Adds __TEST__ prefix and waits for the workspace card on the list page.
     /// </remarks>
     [Then("I should see {workspaceName} in my workspace list")]
     public async Task ThenIShouldSeeInMyWorkspaceList(string workspaceName)
     {
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
 
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        // FAILS here (sometimes). We await the spinner being hidden, but maybe the list isn't updated yet.
+        await workspacesPage.WaitForWorkspaceAsync(fullWorkspaceName);
         var hasWorkspace = await workspacesPage.HasWorkspaceAsync(fullWorkspaceName);
         Assert.That(hasWorkspace, Is.True,
             $"Workspace '{fullWorkspaceName}' should be visible in the list");
@@ -110,6 +110,8 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         {
             var role = await workspacesPage.GetWorkspaceRoleAsync(workspaceName);
             Assert.That(role, Is.EqualTo("Owner"), "User should be Owner of the workspace");
+            Assert.That(await workspacesPage.IsManageAvailableAsync(workspaceName), Is.True);
+            await workspacesPage.OpenManagementAsync(workspaceName);
         }
     }
 
@@ -165,35 +167,26 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
         var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        // Get all workspace names from the page
-        var workspaceCount = await workspacesPage.GetWorkspaceCountAsync();
-        Assert.That(workspaceCount, Is.GreaterThan(0), "Should have at least one workspace");
-
-        // For each visible workspace, verify it has a role badge
-        // Note: We can't easily iterate over all workspaces without knowing their names,
-        // so we'll just verify the count is reasonable
-        Assert.That(workspaceCount, Is.GreaterThan(0), "Should have at least one workspace with a role");
+        await workspacesPage.AssertCardActionsAsync();
     }
 
     /// <summary>
-    /// Verifies that the workspace selector shows the expected workspace.
+    /// Verifies the route-targeted workspace information and management cards.
     /// </summary>
     /// <remarks>
     /// Retrieves expected workspace name from object store (KEY_CURRENT_WORKSPACE)
-    /// and verifies the workspace selector displays it correctly.
+    /// and verifies the management page's route, heading, and settings.
     /// </remarks>
     [Then("I should see the workspace information")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
 
     public async Task ThenIShouldSeeTheWorkspaceInformation()
     {
-        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
 
         var expected = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
-        // Verify workspace selector shows expected information
-        var workspaceName = await workspacesPage.WorkspaceSelector.GetCurrentWorkspaceNameAsync();
-        Assert.That(workspaceName, Is.EqualTo(expected), "Workspace information should be visible");
+        await managementPage.AssertWorkspaceInformationAsync(expected, _context.GetWorkspaceKey(expected));
     }
 
     /// <summary>
@@ -225,7 +218,7 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     /// </summary>
     /// <remarks>
     /// Retrieves new workspace name from object store (KEY_NEW_WORKSPACE_NAME),
-    /// navigates to workspaces page, and verifies the updated workspace is visible.
+    /// and verifies the management page displays the updated workspace.
     ///
     /// Requires Objects:
     /// - NewWorkspaceName
@@ -234,13 +227,9 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     [Requires(ObjectStoreKeys.NewWorkspaceName)]
     public async Task ThenTheWorkspaceShouldReflectTheChanges()
     {
-        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
-        await workspacesPage.NavigateAsync();
-
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
         var newName = _context.ObjectStore.Get<string>(ObjectStoreKeys.NewWorkspaceName);
-
-        var hasWorkspace = await workspacesPage.HasWorkspaceAsync(newName);
-        Assert.That(hasWorkspace, Is.True, $"Updated workspace '{newName}' should be visible");
+        await managementPage.WaitForWorkspaceAsync(newName);
     }
 
     /// <summary>

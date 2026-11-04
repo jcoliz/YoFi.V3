@@ -57,6 +57,17 @@ Rule: Viewing Workspaces
         Then I should see the workspace information
         And I should see when it was created
 
+    Scenario: Manage opens the chosen workspace rather than the current workspace
+        Given "alice" has access to these workspaces:
+            | Workspace Name | My Role |
+            | Personal       | Owner   |
+            | Business       | Owner   |
+        And I am logged in as "alice"
+        When I view transactions in "Personal"
+        And I view the details of "Business"
+        And I refresh the workspace management page
+        Then I should see the workspace information
+
 Rule: Managing Workspace Settings
     Workspace owners can customize their workspace settings
 
@@ -68,11 +79,12 @@ Rule: Managing Workspace Settings
         Then the workspace should reflect the changes
         And I should see "New Name" in my workspace list
 
-    Scenario: Non-owner cannot change workspace settings
+    Scenario: Editor sees access denied instead of workspace settings
         Given "bob" can edit data in "Family Budget"
         And I am logged in as "bob"
         When I try to change the workspace name or description
         Then I should not be able to make those changes
+        And I should see workspace management access denied
 
 Rule: Removing Workspaces
     Workspace owners can permanently delete workspaces they no longer need
@@ -83,11 +95,19 @@ Rule: Removing Workspaces
         When I delete "Test Workspace"
         Then "Test Workspace" should no longer appear in my list
 
-    Scenario: Non-owner cannot delete a workspace
+    Scenario: Owner cancels workspace deletion
+        Given "alice" owns a workspace called "Keep Workspace"
+        And I am logged in as "alice"
+        When I cancel deleting "Keep Workspace"
+        Then I should see the workspace information
+        And I should see "Keep Workspace" in my workspace list
+
+    Scenario: Viewer sees access denied when opening workspace management directly
         Given "charlie" can view data in "Shared Workspace"
         And I am logged in as "charlie"
         When I try to delete "Shared Workspace"
-        Then the workspace should remain intact
+        Then I should see workspace management access denied
+        And the workspace should remain intact
 
 Rule: Data Isolation Between Workspaces
     Each workspace maintains its own separate financial data

@@ -380,7 +380,7 @@ test('management waits for authentication before checking claims or fetching wor
   })
   assert.deepEqual(requests, [])
   assert.ok(find(root, 'loading-state'))
-  assert.equal(find(root, 'AccessDenied'), undefined)
+  assert.equal(find(root, 'access-denied'), undefined)
   assert.equal(find(root, 'edit-workspace-button'), undefined)
   assert.equal(store.getCurrentTenantKey, 'first')
   auth.status.value = 'authenticated'
@@ -401,7 +401,7 @@ for (const claims of [
   test(`management denies nonmatching claims ${JSON.stringify(claims)} without fetching`, async (t) => {
     const { root, requests, store } = await mount(t, { manage: true, claims })
     assert.deepEqual(requests, [])
-    assert.ok(find(root, 'AccessDenied'))
+    assert.ok(find(root, 'access-denied'))
     assert.equal(find(root, 'loading-state'), undefined)
     assert.equal(find(root, 'page-heading'), undefined)
     assert.equal(find(root, 'edit-workspace-button'), undefined)
@@ -418,7 +418,7 @@ test('route and claim changes revoke access and invalidate outstanding workspace
   })
   route.params.key = 'first'
   await nextTick()
-  assert.ok(find(root, 'AccessDenied'))
+  assert.ok(find(root, 'access-denied'))
   assert.deepEqual(requests, ['second'])
   finishLoad({ key: 'second', name: 'Late workspace' })
   await nextTick()
@@ -434,7 +434,7 @@ test('route and claim changes revoke access and invalidate outstanding workspace
   assert.ok(find(root, 'edit-workspace-button'))
   auth.data.value.claims = []
   await nextTick()
-  assert.ok(find(root, 'AccessDenied'))
+  assert.ok(find(root, 'access-denied'))
   assert.equal(find(root, 'edit-workspace-button'), undefined)
   assert.equal(find(root, 'page-heading'), undefined)
 })
@@ -444,7 +444,7 @@ test('authentication revalidation hides loaded workspace controls until authenti
   auth.status.value = 'loading'
   await nextTick()
   assert.ok(find(root, 'loading-state'))
-  assert.equal(find(root, 'AccessDenied'), undefined)
+  assert.equal(find(root, 'access-denied'), undefined)
   assert.equal(find(root, 'edit-workspace-button'), undefined)
   auth.status.value = 'authenticated'
   await nextTick()

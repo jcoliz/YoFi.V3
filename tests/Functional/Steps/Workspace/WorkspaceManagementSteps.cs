@@ -76,8 +76,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
-    /// Adds __TEST__ prefix. Navigates to workspaces page, selects the workspace
-    /// in the workspace selector, and stores it as current workspace.
+    /// Opens Manage from the workspace card and stores it as current workspace.
     /// </remarks>
     [When("I view the details of {workspaceName}")]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
@@ -86,11 +85,31 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
         await workspacesPage.NavigateAsync();
 
-        // Open workspace selector dropdown to view details
         var fullWorkspaceName = AddTestPrefix(workspaceName);
-        await workspacesPage.WorkspaceSelector.SelectWorkspaceAsync(fullWorkspaceName);
+        await workspacesPage.OpenManagementAsync(fullWorkspaceName);
 
         _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
+    }
+
+    [When("I refresh the workspace management page")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task WhenIRefreshTheWorkspaceManagementPage()
+    {
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.ReloadAsync();
+        await managementPage.WaitForWorkspaceAsync(GetCurrentOrNewWorkspaceName());
+    }
+
+    [When("I cancel deleting {workspaceName}")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task WhenICancelDeleting(string workspaceName)
+    {
+        await WhenIViewTheDetailsOf(workspaceName);
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.OpenDeleteModalAsync();
+        await Microsoft.Playwright.Assertions.Expect(managementPage.DeletingWorkspaceName)
+            .ToHaveTextAsync(AddTestPrefix(workspaceName));
+        await managementPage.CancelDeleteAsync();
     }
 
     /// <summary>
@@ -99,7 +118,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// <param name="newName">The new workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Adds __TEST__ prefix to new name. Gets current workspace from object store,
-    /// performs rename via workspaces page, waits for updated name to appear, and
+    /// performs rename via the management page, waits for updated name to appear, and
     /// updates current workspace context.
     /// </remarks>
     [When("I rename it to {newName}")]
@@ -117,11 +136,9 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         var fullNewName = AddTestPrefix(newName);
         _context.ObjectStore.Add(ObjectStoreKeys.NewWorkspaceName, fullNewName);
 
-        await workspacesPage.UpdateWorkspaceAsync(oldName, fullNewName);
-
-        // Wait for the renamed workspace card to appear in the list
-        // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        await workspacesPage.WaitForWorkspaceAsync(fullNewName);
+        await workspacesPage.OpenManagementAsync(oldName);
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.UpdateWorkspaceAsync(fullNewName);
 
         _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullNewName);
     }
@@ -137,16 +154,9 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     [When("I update the description to {newDescription}")]
     public async Task WhenIUpdateTheDescriptionTo(string newDescription)
     {
-        var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
-        await workspacesPage.NavigateAsync();
-
-        // Update with same name but new description
         var workspaceName = GetCurrentOrNewWorkspaceName();
-        await workspacesPage.UpdateWorkspaceAsync(workspaceName, workspaceName, newDescription);
-
-        // Wait for the workspace card to be updated in the list
-        // The loading spinner being hidden doesn't guarantee the list is fully rendered
-        await workspacesPage.WaitForWorkspaceAsync(workspaceName);
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.UpdateWorkspaceAsync(workspaceName, newDescription);
     }
 
     /// <summary>
@@ -154,8 +164,8 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
-    /// Adds __TEST__ prefix. Navigates to workspaces page and performs delete
-    /// operation. Used for positive test cases where deletion is expected to succeed.
+    /// Adds __TEST__ prefix, opens Manage from the list, and deletes the workspace.
+    /// Used for positive test cases where deletion is expected to succeed.
     /// Also removes workspace from tracking to prevent cleanup attempts.
     /// </remarks>
     [When("I delete {workspaceName}")]
@@ -165,7 +175,8 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         await workspacesPage.NavigateAsync();
 
         var fullWorkspaceName = AddTestPrefix(workspaceName);
-        await workspacesPage.DeleteWorkspaceAsync(fullWorkspaceName);
+        await workspacesPage.OpenManagementAsync(fullWorkspaceName);
+        await _context.GetOrCreatePage<Pages.WorkspaceManagementPage>().DeleteWorkspaceAsync();
 
         // Also remove this from workspace tracking, so we don't try to clean it up later
         _context.UntrackWorkspace(fullWorkspaceName);

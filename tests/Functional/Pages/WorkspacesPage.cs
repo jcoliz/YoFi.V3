@@ -5,20 +5,16 @@ using YoFi.V3.Tests.Functional.Components;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 /// <summary>
-/// Page Object Model for the Workspaces management page
+/// Page Object Model for the workspace list and creation page
 /// </summary>
 /// <param name="page">The Playwright page instance</param>
 /// <remarks>
-/// Represents the workspaces management page that provides complete CRUD functionality
-/// for managing workspace (tenant) entities.
+/// Lists accessible workspaces and opens their dedicated management pages.
 /// </remarks>
 public partial class WorkspacesPage(IPage page) : BasePage(page)
 {
     [GeneratedRegex("/api/Tenant")]
     private static partial Regex TenantsApiRegex();
-
-    [GeneratedRegex(@"/api/Tenant/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
-    private static partial Regex SingleTenantApiRegex();
 
     #region Components
 
@@ -108,27 +104,6 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     /// Empty state create button
     /// </summary>
     public ILocator EmptyStateCreateButton => EmptyState.GetByTestId("create-workspace-button");
-
-    public ILocator EditForm => WorkspacesList.GetByTestId("edit-form");
-
-    #endregion
-
-    #region Delete Modal Elements
-
-    /// <summary>
-    /// Delete confirmation modal
-    /// </summary>
-    public ILocator DeleteModal => Page!.GetByTestId("delete-modal");
-
-    /// <summary>
-    /// Delete button in modal
-    /// </summary>
-    public ILocator DeleteModalButton => DeleteModal.GetByTestId("delete-submit-button");
-
-    /// <summary>
-    /// Cancel button in delete modal
-    /// </summary>
-    public ILocator DeleteModalCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
 
     #endregion
 
@@ -285,30 +260,20 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Gets the Edit button for a specific workspace by name
+    /// Gets the Manage link for a specific workspace by name
     /// </summary>
     /// <param name="workspaceName">The name of the workspace</param>
-    /// <returns>Locator for the Edit button</returns>
-    public ILocator GetEditButton(string workspaceName)
+    /// <returns>Locator for the Manage link</returns>
+    public ILocator GetManageLink(string workspaceName)
     {
-        return GetWorkspaceCardByName(workspaceName).GetByTestId("edit-workspace-button");
+        return GetWorkspaceCardByName(workspaceName).GetByTestId("manage-workspace-button");
     }
 
     /// <summary>
-    /// Gets the Delete button for a specific workspace by name
+    /// Gets the creation date for a specific workspace by name
     /// </summary>
     /// <param name="workspaceName">The name of the workspace</param>
-    /// <returns>Locator for the Delete button</returns>
-    public ILocator GetDeleteButton(string workspaceName)
-    {
-        return GetWorkspaceCardByName(workspaceName).GetByTestId("delete-workspace-button");
-    }
-
-    /// <summary>
-    /// Gets the Delete button for a specific workspace by name
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace</param>
-    /// <returns>Locator for the Delete button</returns>
+    /// <returns>The displayed creation date</returns>
     public Task<string> GetWorkspaceCardCreatedDate(string workspaceName)
     {
         return GetWorkspaceCardByName(workspaceName).GetByTestId("created-date").InnerTextAsync();
@@ -317,193 +282,34 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Edit Operations - Single Actions
-
-    /// <summary>
-    /// Opens the edit form for a workspace
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace to edit</param>
-    /// <remarks>
-    /// Single action method. Use this when you need fine-grained control over the edit workflow,
-    /// such as testing form validation, checking intermediate states, or cancellation flows.
-    /// </remarks>
-    public async Task StartEditAsync(string workspaceName)
+    public async Task OpenManagementAsync(string workspaceName)
     {
-        await GetEditButton(workspaceName).ClickAsync();
-        // Wait for edit form to appear in the card
-        await EditForm.WaitForAsync();
+        await FollowManageLinkAsync(workspaceName);
+        await new WorkspaceManagementPage(Page).WaitForWorkspaceAsync(workspaceName);
     }
 
-    /// <summary>
-    /// Fills the workspace name field in the edit form
-    /// </summary>
-    /// <param name="newName">The new workspace name</param>
-    /// <remarks>
-    /// Single action method. Use this when you need to test partial form updates or validation.
-    /// Must be called after StartEditAsync.
-    /// </remarks>
-    public async Task FillEditNameAsync(string newName)
+    public async Task FollowManageLinkAsync(string workspaceName)
     {
-        var nameInput = EditForm.GetByTestId("edit-workspace-name");
-        await nameInput.FillAsync(newName);
+        var link = GetManageLink(workspaceName);
+        var destination = await link.GetAttributeAsync("href")
+            ?? throw new InvalidOperationException("The Manage link has no destination");
+        await link.ClickAsync();
+        await Page.WaitForURLAsync($"**{destination}");
     }
 
-    /// <summary>
-    /// Fills the workspace description field in the edit form
-    /// </summary>
-    /// <param name="newDescription">The new workspace description</param>
-    /// <remarks>
-    /// Single action method. Use this when you need to test partial form updates or validation.
-    /// Must be called after StartEditAsync.
-    /// </remarks>
-    public async Task FillEditDescriptionAsync(string newDescription)
+    public async Task AssertCardActionsAsync()
     {
-        var descriptionInput = EditForm.GetByTestId("edit-workspace-description");
-        await descriptionInput.FillAsync(newDescription);
-    }
-
-    /// <summary>
-    /// Clicks the update button and waits for the update workspace API call
-    /// </summary>
-    /// <remarks>
-    /// Single action method. Use this when you need to control when the form is submitted,
-    /// such as after taking a screenshot or simulating network conditions.
-    /// Must be called after StartEditAsync.
-    /// </remarks>
-    public async Task SubmitEditFormAsync()
-    {
-        await WaitForApi(async () =>
+        var cards = WorkspacesList.Locator("[data-test-id^='workspace-card-']");
+        Assert.That(await cards.CountAsync(), Is.GreaterThan(0), "Should have at least one workspace");
+        foreach (var card in await cards.AllAsync())
         {
-            await EditForm.GetByTestId("edit-workspace-submit").ClickAsync();
-        }, TenantsApiRegex());
-
-        // Wait for the loading spinner to disappear, indicating UI has updated
-        await WaitForLoadingCompleteAsync();
-    }
-
-    /// <summary>
-    /// Cancels editing a workspace
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace being edited</param>
-    /// <remarks>
-    /// Single action method. Use this when testing cancel workflows.
-    /// </remarks>
-    public async Task CancelEditAsync(string workspaceName)
-    {
-        var card = GetWorkspaceCardByName(workspaceName);
-        await card.GetByTestId("edit-workspace-cancel").ClickAsync();
-    }
-
-    #endregion
-
-    #region Edit Operations - Common Workflows
-
-    /// <summary>
-    /// Updates a workspace with new values
-    /// </summary>
-    /// <param name="originalName">The original workspace name</param>
-    /// <param name="newName">The new workspace name</param>
-    /// <param name="newDescription">The new workspace description</param>
-    /// <remarks>
-    /// High-level workflow method for the common "happy path" update scenario.
-    /// For fine-grained control (e.g., testing validation, cancellation, network errors, or taking screenshots mid-flow),
-    /// use the individual action methods: StartEditAsync, FillEditNameAsync,
-    /// FillEditDescriptionAsync, and SubmitEditFormAsync.
-    /// </remarks>
-    public async Task UpdateWorkspaceAsync(string originalName, string newName, string? newDescription = null)
-    {
-        await StartEditAsync(originalName);
-        await FillEditNameAsync(newName);
-        if (newDescription != null)
-        {
-            await FillEditDescriptionAsync(newDescription);
+            await Assertions.Expect(card.GetByTestId("workspace-role-badge"))
+                .ToHaveTextAsync(new Regex("^(Owner|Editor|Viewer)$"));
+            await Assertions.Expect(card.GetByTestId("manage-workspace-button")).ToBeVisibleAsync();
+            await Assertions.Expect(card.GetByTestId("edit-workspace-button")).ToHaveCountAsync(0);
+            await Assertions.Expect(card.GetByTestId("delete-workspace-button")).ToHaveCountAsync(0);
         }
-        await SubmitEditFormAsync();
     }
-
-    #endregion
-
-    #region Delete Operations - Single Actions
-
-    /// <summary>
-    /// Opens the delete confirmation modal for a workspace
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace to delete</param>
-    /// <remarks>
-    /// Single action method. Use this when you need fine-grained control over the delete workflow,
-    /// such as testing modal display, reading deletion warnings, or cancellation flows.
-    /// </remarks>
-    public async Task OpenDeleteModalAsync(string workspaceName)
-    {
-        await GetDeleteButton(workspaceName).ClickAsync();
-        await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Clicks the delete button in the modal and waits for the delete workspace API call
-    /// </summary>
-    /// <remarks>
-    /// Single action method. Use this when you need to control when the deletion is confirmed,
-    /// such as after taking a screenshot or checking modal content.
-    /// Must be called after OpenDeleteModalAsync.
-    /// </remarks>
-    public async Task ConfirmDeleteAsync()
-    {
-        await WaitForApi(async () =>
-        {
-            await DeleteModalButton.ClickAsync();
-        }, SingleTenantApiRegex());
-
-        // Wait for the loading spinner to disappear, indicating UI has updated
-        await WaitForLoadingCompleteAsync();
-    }
-
-    /// <summary>
-    /// Cancels the delete operation by closing the modal
-    /// </summary>
-    /// <remarks>
-    /// Single action method. Use this when testing cancel workflows.
-    /// </remarks>
-    public async Task CancelDeleteAsync()
-    {
-        await DeleteModalCancelButton.ClickAsync();
-        await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
-    }
-
-    #endregion
-
-    #region Delete Operations - Common Workflows
-
-    /// <summary>
-    /// Deletes a workspace
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace to delete</param>
-    /// <remarks>
-    /// High-level workflow method for the common "happy path" delete scenario.
-    /// For fine-grained control (e.g., testing confirmation modal, cancellation, or taking screenshots),
-    /// use the individual action methods: OpenDeleteModalAsync, ConfirmDeleteAsync, and CancelDeleteAsync.
-    /// </remarks>
-    public async Task DeleteWorkspaceAsync(string workspaceName)
-    {
-        // AB#1976 Call Stack Here
-        await OpenDeleteModalAsync(workspaceName);
-        await ConfirmDeleteAsync();
-    }
-
-    /// <summary>
-    /// Opens the delete modal but doesn't confirm the deletion
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace to delete</param>
-    /// <remarks>
-    /// Convenience method for testing scenarios where the modal is opened but not confirmed.
-    /// Equivalent to OpenDeleteModalAsync.
-    /// </remarks>
-    public async Task StartDeleteAsync(string workspaceName)
-    {
-        await OpenDeleteModalAsync(workspaceName);
-    }
-
-    #endregion
 
     #region Query Methods
 
@@ -608,26 +414,11 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     public Task<bool> IsCreateWorkspaceAvailableAsync() => IsAvailableAsync(CreateWorkspaceButton);
 
     /// <summary>
-    /// Checks if the Edit button for a specific workspace is available for interaction.
+    /// Checks if the Manage link for a specific workspace is available for interaction.
     /// </summary>
     /// <param name="workspaceName">The name of the workspace</param>
     /// <returns>True if the button is visible and enabled, false otherwise</returns>
-    /// <remarks>
-    /// This button should only be available to users with Editor or Owner roles.
-    /// Viewers should not have access to edit workspace details.
-    /// </remarks>
-    public Task<bool> IsEditAvailableAsync(string workspaceName) => IsAvailableAsync(GetEditButton(workspaceName));
-
-    /// <summary>
-    /// Checks if the Delete button for a specific workspace is available for interaction.
-    /// </summary>
-    /// <param name="workspaceName">The name of the workspace</param>
-    /// <returns>True if the button is visible and enabled, false otherwise</returns>
-    /// <remarks>
-    /// This button should only be available to users with Owner role.
-    /// Editors and Viewers should not have access to delete workspaces.
-    /// </remarks>
-    public Task<bool> IsDeleteAvailableAsync(string workspaceName) => IsAvailableAsync(GetDeleteButton(workspaceName));
+    public Task<bool> IsManageAvailableAsync(string workspaceName) => IsAvailableAsync(GetManageLink(workspaceName));
 
     #endregion
 }

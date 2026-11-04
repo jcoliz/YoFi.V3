@@ -11,11 +11,10 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// <remarks>
 /// Handles permission verification for workspace operations:
 /// - Checking if user can perform actions (edit, delete, etc.)
-/// - Verifying permission-based UI element visibility
+/// - Verifying frontend access-denied messaging and hidden management controls
 /// - Role-based access control assertions (Owner/Editor/Viewer)
 ///
-/// These steps perform UI checks to verify that buttons/actions are available
-/// or unavailable based on the user's role in the workspace.
+/// Negative workspace tests verify access denial without submitting backend writes.
 /// </remarks>
 public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBase(context)
 {
@@ -25,9 +24,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Attempts to change workspace name or description (permission check).
     /// </summary>
     /// <remarks>
-    /// Navigates to workspaces page and checks if edit button is available for
-    /// current workspace. Stores permission check result in object store for
-    /// later assertion.
+    /// Opens management and verifies access denial before any edit controls appear.
     /// </remarks>
     [When("I try to change the workspace name or description")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
@@ -39,9 +36,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
-        // Check if edit button is available
-        var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
-        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)canEdit);
+        await workspacesPage.FollowManageLinkAsync(workspaceName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.AssertAccessDeniedAsync();
+        await managementPage.ReloadAsync();
+        await managementPage.AssertAccessDeniedAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)false);
     }
 
     /// <summary>
@@ -49,8 +49,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
-    /// Adds __TEST__ prefix. Navigates to workspaces page and checks if delete
-    /// button is available. Stores permission check result for later assertion.
+    /// Navigates directly to management and verifies frontend access denial.
     /// Used for negative test cases where deletion should be blocked.
     ///
     /// Provides Objects:
@@ -64,12 +63,10 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     {
         var fullWorkspaceName = AddTestPrefix(workspaceName);
 
-        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
-        await workspacesPage.NavigateAsync();
-
-        // Check if delete button is available
-        var canDelete = await workspacesPage.IsDeleteAvailableAsync(fullWorkspaceName);
-        _context.ObjectStore.Add(ObjectStoreKeys.CanDeleteWorkspace, (object)canDelete);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.NavigateAsync(_context.GetWorkspaceKey(fullWorkspaceName));
+        await managementPage.AssertAccessDeniedAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.CanDeleteWorkspace, (object)false);
         _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 
@@ -102,6 +99,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
     #region Steps: THEN
 
+    [Then("I should see workspace management access denied")]
+    public async Task ThenIShouldSeeWorkspaceManagementAccessDenied()
+    {
+        await _context.GetOrCreatePage<WorkspaceManagementPage>().AssertAccessDeniedAsync();
+    }
+
     /// <summary>
     /// Verifies that the user cannot make desired changes (negative permission check).
     /// </summary>
@@ -132,10 +135,14 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </remarks>
     [Then("the workspace should remain intact")]
     [Requires(ObjectStoreKeys.CanDeleteWorkspace)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ThenTheWorkspaceShouldRemainIntact()
     {
         AssertCannotPerformAction(ObjectStoreKeys.CanDeleteWorkspace, "User should not be able to delete the workspace");
-        await Task.CompletedTask;
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        await workspacesPage.WaitForWorkspaceAsync(workspaceName);
     }
 
     /// <summary>
@@ -189,8 +196,7 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Verifies that Owner role can change workspace settings.
     /// </summary>
     /// <remarks>
-    /// Retrieves current workspace from object store, navigates to workspaces page,
-    /// and verifies Edit button is available.
+    /// Opens management for the current workspace and verifies its edit form.
     /// </remarks>
     [Then("I can change workspace settings")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
@@ -201,16 +207,18 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
-        var canEdit = await workspacesPage.IsEditAvailableAsync(workspaceName);
-        Assert.That(canEdit, Is.True, "Owner should be able to edit workspace settings");
+        await workspacesPage.OpenManagementAsync(workspaceName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await Assertions.Expect(managementPage.EditButton).ToBeEnabledAsync();
+        await managementPage.StartEditAsync();
+        await Assertions.Expect(managementPage.EditName).ToHaveValueAsync(workspaceName);
     }
 
     /// <summary>
     /// Verifies that Owner role can delete the workspace.
     /// </summary>
     /// <remarks>
-    /// Retrieves current workspace from object store, navigates to workspaces page,
-    /// and verifies Delete button is available.
+    /// Opens management, verifies the deletion target, and cancels the dialog.
     /// </remarks>
     [Then("I can remove the workspace if needed")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
@@ -221,8 +229,12 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
-        var canDelete = await workspacesPage.IsDeleteAvailableAsync(workspaceName);
-        Assert.That(canDelete, Is.True, "Owner should be able to delete workspace");
+        await workspacesPage.OpenManagementAsync(workspaceName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.OpenDeleteModalAsync();
+        await Assertions.Expect(managementPage.DeletingWorkspaceName)
+            .ToHaveTextAsync(workspaceName);
+        await managementPage.CancelDeleteAsync();
     }
 
     #endregion
