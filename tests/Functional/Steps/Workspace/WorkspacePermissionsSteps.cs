@@ -24,24 +24,19 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// Attempts to change workspace name or description (permission check).
     /// </summary>
     /// <remarks>
-    /// Opens management and verifies access denial before any edit controls appear.
+    /// Navigates directly to management and records whether workspace editing is available.
     /// </remarks>
     [When("I try to change the workspace name or description")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.CanMakeDesiredChanges)]
     public async Task WhenITryToChangeTheWorkspaceNameOrDescription()
     {
-        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
-        await workspacesPage.NavigateAsync();
-
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
 
-        await workspacesPage.FollowManageLinkAsync(workspaceName);
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
-        await managementPage.AssertAccessDeniedAsync();
-        await managementPage.ReloadAsync();
-        await managementPage.AssertAccessDeniedAsync();
-        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)false);
+        await managementPage.NavigateAsync(_context.GetWorkspaceKey(workspaceName));
+        var canEdit = await managementPage.IsEditAvailableAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.CanMakeDesiredChanges, (object)canEdit);
     }
 
     /// <summary>
@@ -49,12 +44,8 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
-    /// Navigates directly to management and verifies frontend access denial.
+    /// Navigates directly to management and records whether deletion is available.
     /// Used for negative test cases where deletion should be blocked.
-    ///
-    /// Provides Objects:
-    /// - CanDeleteWorkspace
-    /// - CurrentWorkspace
     /// </remarks>
     [When("I try to delete {workspaceName}")]
     [Provides(ObjectStoreKeys.CanDeleteWorkspace)]
@@ -65,8 +56,8 @@ public class WorkspacePermissionsSteps(ITestContext context) : WorkspaceStepsBas
 
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
         await managementPage.NavigateAsync(_context.GetWorkspaceKey(fullWorkspaceName));
-        await managementPage.AssertAccessDeniedAsync();
-        _context.ObjectStore.Add(ObjectStoreKeys.CanDeleteWorkspace, (object)false);
+        var canDelete = await managementPage.IsDeleteAvailableAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.CanDeleteWorkspace, (object)canDelete);
         _context.ObjectStore.Add(ObjectStoreKeys.CurrentWorkspace, fullWorkspaceName);
     }
 

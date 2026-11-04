@@ -38,6 +38,9 @@ or saving, and wait for the list after successful deletion. Non-owner tests asse
 the frontend's `access-denied` alert, its `title`, and hidden settings and deletion
 controls. Cover Manage navigation, direct URLs, and refresh without submitting
 unauthorized writes or inspecting backend errors.
+Identify management cards and titles by `data-test-id` and assert visibility
+rather than fixed UI wording. Compare text only when verifying scenario data,
+such as the workspace name, description, or key.
 
 ## Example
 

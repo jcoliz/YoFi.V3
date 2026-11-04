@@ -158,10 +158,12 @@ async function handleWorkspaceDeleted() {
           <section
             class="card h-100"
             aria-labelledby="workspace-settings-heading"
+            data-test-id="workspace-settings-card"
           >
             <div class="card-body">
               <CardTitle
                 id="workspace-settings-heading"
+                data-test-id="workspace-settings-title"
                 class="mb-3"
                 title="Workspace Settings"
                 subtitle="View and edit your workspace's properties."
@@ -211,10 +213,12 @@ async function handleWorkspaceDeleted() {
           <section
             class="card h-100"
             aria-labelledby="delete-workspace-heading"
+            data-test-id="delete-workspace-card"
           >
             <div class="card-body">
               <CardTitle
                 id="delete-workspace-heading"
+                data-test-id="delete-workspace-title"
                 class="mb-3"
                 title="Delete Workspace"
                 subtitle="Delete the workspace itself. This action cannot be undone."

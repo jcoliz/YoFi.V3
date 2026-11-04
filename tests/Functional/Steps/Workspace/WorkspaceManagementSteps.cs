@@ -72,13 +72,15 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     }
 
     /// <summary>
-    /// Views the details of a specific workspace.
+    /// Open the management page for a specific workspace.
     /// </summary>
     /// <param name="workspaceName">The workspace name (without __TEST__ prefix).</param>
     /// <remarks>
     /// Opens Manage from the workspace card and stores it as current workspace.
     /// </remarks>
     [When("I view the details of {workspaceName}")]
+    [When("I manage the details of {workspaceName}")]
+    [When("I open the manage page for {workspaceName}")]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIViewTheDetailsOf(string workspaceName)
     {

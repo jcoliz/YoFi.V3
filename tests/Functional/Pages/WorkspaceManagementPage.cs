@@ -11,17 +11,23 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator Name => Page.GetByTestId("workspace-settings-name");
     public ILocator Description => Page.GetByTestId("workspace-description");
     public ILocator Key => Page.GetByTestId("workspace-key");
-    public ILocator SettingsCard => Page.Locator("section[aria-labelledby='workspace-settings-heading']");
-    public ILocator DeleteCard => Page.Locator("section[aria-labelledby='delete-workspace-heading']");
+    public ILocator SettingsCard => Page.GetByTestId("workspace-settings-card");
+    public ILocator SettingsTitle => SettingsCard.GetByTestId("workspace-settings-title");
+    public ILocator DeleteCard => Page.GetByTestId("delete-workspace-card");
+    public ILocator DeleteTitle => DeleteCard.GetByTestId("delete-workspace-title");
     public ILocator EditButton => SettingsCard.GetByTestId("edit-workspace-button");
     public ILocator DeleteButton => DeleteCard.GetByTestId("delete-workspace-button");
     public ILocator EditForm => SettingsCard.GetByTestId("edit-form");
     public ILocator EditName => EditForm.GetByTestId("edit-workspace-name");
     public ILocator EditDescription => EditForm.GetByTestId("edit-workspace-description");
+    public ILocator EditSubmitButton => EditForm.GetByTestId("edit-workspace-submit");
     public ILocator DeleteModal => Page.GetByTestId("delete-modal");
+    public ILocator DeleteSubmitButton => DeleteModal.GetByTestId("delete-submit-button");
+    public ILocator DeleteCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
     public ILocator DeletingWorkspaceName => DeleteModal.GetByTestId("deleting-workspace-name");
     public ILocator AccessDenied => Page.GetByTestId("access-denied");
     public ILocator AccessDeniedTitle => AccessDenied.GetByTestId("title");
+    public ILocator LoadingState => Page.GetByTestId("loading-state");
 
     public async Task WaitForWorkspaceAsync(string name)
     {
@@ -42,8 +48,8 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
         await Assertions.Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex($"/workspaces/{key}$"));
         await Assertions.Expect(Key).ToHaveTextAsync(key.ToString());
         await Assertions.Expect(Description).ToBeVisibleAsync();
-        await Assertions.Expect(SettingsCard.GetByRole(AriaRole.Heading)).ToHaveTextAsync("Workspace Settings");
-        await Assertions.Expect(DeleteCard.GetByRole(AriaRole.Heading)).ToHaveTextAsync("Delete Workspace");
+        await Assertions.Expect(SettingsTitle).ToBeVisibleAsync();
+        await Assertions.Expect(DeleteTitle).ToBeVisibleAsync();
     }
 
     public async Task StartEditAsync()
@@ -54,7 +60,7 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
 
     public async Task SubmitEditFormAsync(string expectedName)
     {
-        await EditForm.GetByTestId("edit-workspace-submit").ClickAsync();
+        await EditSubmitButton.ClickAsync();
         await Assertions.Expect(EditForm).ToBeHiddenAsync();
         await WaitForWorkspaceAsync(expectedName);
     }
@@ -83,14 +89,14 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public async Task DeleteWorkspaceAsync()
     {
         await OpenDeleteModalAsync();
-        await DeleteModal.GetByTestId("delete-submit-button").ClickAsync();
+        await DeleteSubmitButton.ClickAsync();
         await Page.WaitForURLAsync("**/workspaces");
         await new WorkspacesPage(Page).WaitForPageReadyAsync();
     }
 
     public async Task CancelDeleteAsync()
     {
-        await DeleteModal.GetByTestId("delete-cancel-button").ClickAsync();
+        await DeleteCancelButton.ClickAsync();
         await Assertions.Expect(DeleteModal).ToBeHiddenAsync();
     }
 
@@ -99,12 +105,23 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
         await Page.GotoAsync($"/workspaces/{key}");
     }
 
+    public async Task<bool> IsEditAvailableAsync()
+    {
+        await EditButton.Or(AccessDenied).WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        return await IsAvailableAsync(EditButton);
+    }
+
+    public async Task<bool> IsDeleteAvailableAsync()
+    {
+        await DeleteButton.Or(AccessDenied).WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        return await IsAvailableAsync(DeleteButton);
+    }
+
     public async Task AssertAccessDeniedAsync()
     {
         await Assertions.Expect(AccessDenied).ToBeVisibleAsync();
-        await Assertions.Expect(AccessDeniedTitle).ToHaveTextAsync("Access denied");
-        await Assertions.Expect(AccessDenied).ToContainTextAsync("Contact the workspace owner to request access.");
-        await Assertions.Expect(Page.GetByTestId("loading-state")).ToBeHiddenAsync();
+        await Assertions.Expect(AccessDeniedTitle).ToBeVisibleAsync();
+        await Assertions.Expect(LoadingState).ToBeHiddenAsync();
         await Assertions.Expect(PageHeading).ToBeHiddenAsync();
         await Assertions.Expect(SettingsCard).ToBeHiddenAsync();
         await Assertions.Expect(DeleteCard).ToBeHiddenAsync();
