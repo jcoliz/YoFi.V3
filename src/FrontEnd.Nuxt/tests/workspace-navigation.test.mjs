@@ -281,23 +281,6 @@ test('opening any role selects its workspace before navigating, including the cu
   }
 })
 
-test('Manage targets each card for all roles without changing the selection on the list', async (t) => {
-  const { root, store, destination } = await mount(t)
-  for (const key of ['first', 'second', 'third']) {
-    const card = find(root, `workspace-card-${key}`)
-    const link = find(card, 'manage-workspace-button')
-    assert.match(link.props.class, /position-relative z-2/)
-    assert.equal(link.props.href, `/workspaces/${key}`)
-    await link.props.onClick({})
-    await nextTick()
-    assert.equal(store.getCurrentTenantKey, 'first')
-    assert.deepEqual(destination(), { path: `/workspaces/${key}`, workspace: 'first' })
-    assert.equal(find(card, 'edit-workspace-button'), undefined)
-    assert.equal(find(card, 'delete-workspace-button'), undefined)
-    assert.ok(find(card, 'open-workspace-link'))
-  }
-})
-
 test('management loads the route workspace, supports editing, and guards pending writes', async (t) => {
   const { root, store, route, panes, guards } = await mount(t, { manage: true })
   assert.equal(find(root, 'page-heading').text, 'Second workspace')

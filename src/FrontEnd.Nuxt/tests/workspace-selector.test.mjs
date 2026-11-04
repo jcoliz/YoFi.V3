@@ -167,7 +167,7 @@ test('selector panel matches the menu layout and lists every other workspace', a
   assert.match(divider.props.class, /dropdown-divider/)
   const [manage] = byTestId(root, 'manage-workspaces-button')
   assert.equal(manage.props.href, '/workspaces')
-  assert.equal(text(manage), 'Manage Workspaces')
+  assert.equal(text(manage), 'All Workspaces')
   const children = panel.children.filter((n) => n.type !== '#comment' && n.type !== '#text')
   assert.equal(children.at(-2), divider)
   assert.ok(findAll(children.at(-1), (n) => n === manage).length === 1)
