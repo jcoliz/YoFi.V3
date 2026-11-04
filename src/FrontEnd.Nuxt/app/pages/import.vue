@@ -18,6 +18,7 @@ import {
   type FileParameter,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { useToastStore } from '~/stores/toast'
 import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
@@ -27,6 +28,7 @@ definePageMeta({
 })
 
 const userPreferencesStore = useUserPreferencesStore()
+const toastStore = useToastStore()
 
 // API Client
 const importClient = useApiClient(ImportClient)
@@ -173,19 +175,19 @@ async function uploadFiles() {
 
   uploadInProgress.value = true
   statusMessages.value = []
-  showStatusPane.value = true
+  showStatusPane.value = false
   statusVariant.value = 'info'
   error.value = undefined
   showError.value = false
 
   let uploadError: IProblemDetails | undefined = undefined
   let hasUploadError = false
+  let uploadedFileCount = 0
+  let importedTransactionCount = 0
 
   try {
     // Process each file sequentially
     for (const file of selectedFiles.value) {
-      statusMessages.value.push(`${file.name}: Importing...`)
-
       try {
         const fileParameter: FileParameter = {
           data: file,
@@ -197,27 +199,19 @@ async function uploadFiles() {
           fileParameter,
         )
 
-        // Remove "Importing..." message
-        statusMessages.value = statusMessages.value.filter((msg) => !msg.includes('Importing...'))
+        uploadedFileCount++
+        importedTransactionCount += result.importedCount ?? 0
 
-        // Check for errors
+        // Keep per-file details for failures; clean successes are summarized in a toast.
         if (result.errors && result.errors.length > 0) {
           statusMessages.value.push(
-            `${file.name}: ${result.importedCount} transactions added, ${result.errors.length} errors detected`,
+            `${file.name}: ${result.importedCount ?? 0} transactions added, ${result.errors.length} errors detected`,
           )
           if (statusVariant.value !== 'danger') {
             statusVariant.value = 'warning'
           }
-        } else {
-          statusMessages.value.push(`${file.name}: ${result.importedCount} transactions added`)
-          if (statusVariant.value !== 'danger' && statusVariant.value !== 'warning') {
-            statusVariant.value = 'success'
-          }
         }
       } catch (err) {
-        // Remove "Importing..." message
-        statusMessages.value = statusMessages.value.filter((msg) => !msg.includes('Importing...'))
-
         // Extract error details from API response and save for display after reload
         uploadError = handleApiError(err, 'Upload Failed', 'Failed to upload file')
         hasUploadError = true
@@ -226,6 +220,17 @@ async function uploadFiles() {
         statusMessages.value.push(`${file.name}: ${errorMessage}`)
         statusVariant.value = 'danger'
       }
+    }
+
+    showStatusPane.value = statusMessages.value.length > 0
+
+    if (uploadedFileCount > 0) {
+      const fileLabel = uploadedFileCount === 1 ? 'file' : 'files'
+      const transactionLabel = importedTransactionCount === 1 ? 'transaction' : 'transactions'
+      toastStore.success(
+        `Uploaded ${uploadedFileCount} ${fileLabel} with ${importedTransactionCount} ${transactionLabel}`,
+        'Upload complete',
+      )
     }
 
     // Reload pending review to show newly imported transactions
