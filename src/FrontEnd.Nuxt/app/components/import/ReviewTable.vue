@@ -55,10 +55,15 @@ const formatAmount = (amount: number): string => {
 }
 
 /**
- * Formats date for display
+ * Displays date-only API values without converting UTC midnight to the viewer's time zone.
  */
 const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
 }
 </script>
 

@@ -227,20 +227,26 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     [TestCase("LogStarting")]
     [TestCase("LogOk")]
     [TestCase("LogFailed")]
+    [TestCase("LogOkDownload")]
     public void LogMethods_CaptureCallerMemberNameAsLocation(string methodName)
     {
-        var method = typeof(Controllers.SampleDataController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)!;
-        var location = method.GetParameters().Single(p => p.Name == "location");
-        using (Assert.EnterMultipleScope())
+        var methods = typeof(Controllers.SampleDataController).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(m => m.Name == methodName).ToArray();
+        Assert.That(methods, Is.Not.Empty);
+        foreach (var method in methods)
         {
-            Assert.That(location.GetCustomAttribute<CallerMemberNameAttribute>(), Is.Not.Null);
-            Assert.That(location.HasDefaultValue, Is.True);
-            Assert.That(method.GetCustomAttribute<LoggerMessageAttribute>()!.Message, Does.StartWith("{Location}:"));
+            var location = method.GetParameters().Single(p => p.Name == "location");
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(location.GetCustomAttribute<CallerMemberNameAttribute>(), Is.Not.Null);
+                Assert.That(location.HasDefaultValue, Is.True);
+                Assert.That(method.GetCustomAttribute<LoggerMessageAttribute>()!.Message, Does.StartWith("{Location}:"));
+            }
         }
     }
 
     [Test]
-    public async Task OperationLogs_IncludeActorInputsCountsAndFailureOutcomeButNoFinancialRecordsOrTenantKey()
+    public async Task OperationLogs_IncludeInputsCountsAndFailureOutcomeButNoFinancialRecordsOrIdentity()
     {
         using var logs = new CapturingLoggerProvider();
         _factory.Services.GetRequiredService<ILoggerFactory>().AddProvider(logs);
@@ -254,7 +260,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         var failed = entries.Single(e => e.EventId.Id == 3);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(success.Message, Does.Contain("Load: OK").And.Contain("Actor=test-user-id")
+            Assert.That(success.Message, Does.Contain("Load: OK")
                 .And.Contain("Scenario=personal-finance")
                 .And.Contain("Revision=1").And.Contain($"Transactions={loaded!.Created.Transactions}")
                 .And.Contain($"Rules={loaded.Created.PayeeMatchingRules}"));
@@ -262,6 +268,8 @@ public class SampleDataControllerTests : AuthenticatedTestBase
             Assert.That(failed.Message, Does.Contain("Preview: Failed").And.Contain("Revision=999"));
             Assert.That(entries.Any(e => e.Message.Contains("Megacorp", StringComparison.Ordinal)), Is.False);
             Assert.That(entries.Any(e => e.Message.Contains(_testTenantKey.ToString(), StringComparison.Ordinal)), Is.False);
+            Assert.That(entries.Any(e => e.Message.Contains("Actor=", StringComparison.Ordinal)
+                || e.Message.Contains("test-user-id", StringComparison.Ordinal)), Is.False);
         }
     }
 
