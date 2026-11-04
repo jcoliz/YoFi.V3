@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   cancel: []
   updated: []
+  'update:busy': [value: boolean]
 }>()
 
 const tenantClient = useApiClient(TenantClient)
@@ -61,6 +62,7 @@ async function updateWorkspace() {
   }
 
   updating.value = true
+  emit('update:busy', true)
   error.value = undefined
   showError.value = false
 
@@ -77,6 +79,7 @@ async function updateWorkspace() {
     showError.value = true
   } finally {
     updating.value = false
+    emit('update:busy', false)
   }
 }
 </script>

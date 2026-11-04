@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
- * Workspaces Management Page
+ * Workspaces Page
  *
- * Provides complete CRUD (Create, Read, Update, Delete) support for managing
- * workspace (tenant) entities. Opening a workspace card selects it and navigates
- * to its transactions; management actions remain independent.
+ * Lists accessible workspaces and supports workspace creation. Opening a card
+ * selects its workspace; Manage opens the route-targeted settings page.
  */
 
 import {
@@ -28,13 +27,6 @@ const showError = ref(false)
 // Create state
 const showCreateForm = ref(false)
 
-// Edit state
-const editingTenant = ref<TenantRoleResultDto | undefined>(undefined)
-
-// Delete state
-const deletingTenant = ref<TenantRoleResultDto | undefined>(undefined)
-const showDeleteModal = ref(false)
-
 // API Client
 const tenantClient = useApiClient(TenantClient)
 
@@ -51,11 +43,6 @@ function getRoleName(role: TenantRole | undefined): string {
     default:
       return 'Unknown'
   }
-}
-
-// Check if user can edit/delete a tenant
-function canManageTenant(tenant: TenantRoleResultDto): boolean {
-  return tenant.role === TenantRole.Owner
 }
 
 // Load tenants on mount
@@ -101,22 +88,6 @@ function handleWorkspaceChange() {
   loadTenants()
 }
 
-async function handleWorkspaceUpdated() {
-  editingTenant.value = undefined
-  await loadTenants()
-}
-
-// Delete operations
-function startDelete(tenant: TenantRoleResultDto) {
-  deletingTenant.value = tenant
-  showDeleteModal.value = true
-}
-
-async function handleWorkspaceDeleted() {
-  deletingTenant.value = undefined
-  await loadTenants()
-}
-
 definePageMeta({
   title: 'Workspaces',
   layout: 'chrome',
@@ -136,7 +107,7 @@ definePageMeta({
         class="d-flex justify-content-between align-items-center mb-4"
         data-test-id="page-heading"
       >
-        <h1>Workspace Management</h1>
+        <h1>Workspaces</h1>
         <button
           class="btn btn-primary"
           :disabled="showCreateForm"
@@ -191,23 +162,14 @@ definePageMeta({
           class="col-md-6 col-lg-4 mb-4"
         >
           <div
-            class="card h-100 workspace-card"
+            class="card h-100 workspace-card workspace-card-navigable"
             :class="{
               'border-primary': tenant.key === userPreferencesStore.getCurrentTenantKey,
-              'workspace-card-navigable': editingTenant?.key !== tenant.key,
             }"
             :data-test-id="`workspace-card-${tenant.key}`"
           >
             <div class="card-body">
-              <WorkspaceEditPane
-                v-if="editingTenant?.key === tenant.key"
-                :workspace="tenant"
-                @cancel="editingTenant = undefined"
-                @updated="handleWorkspaceUpdated"
-              />
-
-              <!-- View Mode -->
-              <div v-else>
+              <div>
                 <div class="d-flex justify-content-between align-items-start mb-3">
                   <CardTitle
                     class="mb-0"
@@ -274,32 +236,19 @@ definePageMeta({
                     />
                     Open
                   </NuxtLink>
-                  <button
-                    v-if="canManageTenant(tenant)"
+                  <NuxtLink
+                    :to="`/workspaces/${tenant.key}`"
                     class="btn btn-sm btn-outline-primary position-relative z-2"
-                    data-test-id="edit-workspace-button"
-                    @click="editingTenant = tenant"
+                    :aria-label="`Manage workspace ${tenant.name}`"
+                    data-test-id="manage-workspace-button"
                   >
                     <FeatherIcon
-                      icon="edit"
+                      icon="settings"
                       size="14"
                       class="me-1"
                     />
-                    Edit
-                  </button>
-                  <button
-                    v-if="canManageTenant(tenant)"
-                    class="btn btn-sm btn-outline-danger position-relative z-2"
-                    data-test-id="delete-workspace-button"
-                    @click="startDelete(tenant)"
-                  >
-                    <FeatherIcon
-                      icon="trash-2"
-                      size="14"
-                      class="me-1"
-                    />
-                    Delete
-                  </button>
+                    Manage
+                  </NuxtLink>
                 </div>
               </div>
             </div>
@@ -335,12 +284,6 @@ definePageMeta({
         </button>
       </div>
     </div>
-
-    <WorkspaceDeleteModal
-      v-model:show="showDeleteModal"
-      :workspace="deletingTenant"
-      @deleted="handleWorkspaceDeleted"
-    />
   </div>
 </template>
 
@@ -363,14 +306,5 @@ definePageMeta({
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   padding: 0.75rem 1rem;
-}
-
-.alert-sm {
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.modal.show {
-  display: block;
 }
 </style>

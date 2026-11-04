@@ -14,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:show': [value: boolean]
   deleted: []
+  'update:busy': [value: boolean]
 }>()
 
 const userPreferencesStore = useUserPreferencesStore()
@@ -48,6 +49,7 @@ async function deleteWorkspace() {
   }
 
   loading.value = true
+  emit('update:busy', true)
   error.value = undefined
   showError.value = false
 
@@ -65,6 +67,7 @@ async function deleteWorkspace() {
     showError.value = true
   } finally {
     loading.value = false
+    emit('update:busy', false)
   }
 }
 </script>

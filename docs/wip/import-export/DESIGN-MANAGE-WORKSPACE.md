@@ -25,7 +25,7 @@ tenant data while preserving the workspace and its memberships.
 
 | Area | Decision |
 |------|----------|
-| Route | `/workspaces/{workspaceKey}`, implemented as `app/pages/workspaces/[workspaceKey].vue` |
+| Route | `/workspaces/{workspaceKey}`, implemented as `app/pages/workspaces/[key].vue` |
 | Access | Workspace Owners only |
 | Entry | Replace workspace-card Edit and Delete actions with a Manage action |
 | Workspace settings | Provide workspace editing and workspace deletion on this page |
@@ -35,13 +35,23 @@ tenant data while preserving the workspace and its memberships.
 
 ## Entry from the Workspace List
 
-On [workspaces.vue](../../../src/FrontEnd.Nuxt/app/pages/workspaces.vue),
+On [workspaces/index.vue](../../../src/FrontEnd.Nuxt/app/pages/workspaces/index.vue),
 replace the workspace-card **Edit** and **Delete** actions with **Manage**.
 Manage opens `/workspaces/{workspaceKey}` for that card's workspace, regardless
 of which workspace is currently selected elsewhere in the application.
 
 Only Owners see the Manage action. Keep workspace creation and other
 non-management workspace-list behavior unchanged.
+
+### Initial Refactor Scope
+
+The initial implementation relocates existing workspace editing and deletion
+to the management route and leaves workspace creation on the list page.
+Manage is initially available for every listed workspace; Owner-only UI and
+page authorization will be added separately. Existing server authorization
+remains unchanged. The stronger name-based deletion confirmation and data
+administration features below are deferred. Functional tests are unchanged
+in this step.
 
 ## Page Structure
 

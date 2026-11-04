@@ -25,7 +25,8 @@ function compileFile(path) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
 }
-const pageScript = compileFile('pages/workspaces.vue')
+const pageScript = compileFile('pages/workspaces/index.vue')
+const manageScript = compileFile('pages/workspaces/[key].vue')
 const selectorScript = compileFile('components/workspace/Selector.vue')
 const copyScript = compileFile('components/workspace/CopyKeyButton.vue')
 const roles = { Owner: 1, Editor: 2, Viewer: 3 }
@@ -68,7 +69,10 @@ function find(root, testId) {
   return root.children.map((child) => find(child, testId)).find(Boolean)
 }
 
-async function mount(t, { selector = false, clipboard = { writeText: async () => {} } } = {}) {
+async function mount(
+  t,
+  { selector = false, manage = false, getTenant, clipboard = { writeText: async () => {} } } = {},
+) {
   const tenants = [
     { key: 'first', name: 'First workspace', role: roles.Owner },
     { key: 'second', name: 'Second workspace', role: roles.Editor },
@@ -91,18 +95,35 @@ async function mount(t, { selector = false, clipboard = { writeText: async () =>
     },
   })
   const exports = {}
+  const route = reactive({ params: { key: 'second' } })
+  const guards = {}
+  const panes = {}
+  let destination
   const globals = {
     ref,
     computed,
+    watch,
     onMounted,
+    onBeforeUnmount,
+    onBeforeRouteLeave: (guard) => (guards.leave = guard),
+    onBeforeRouteUpdate: (guard) => (guards.update = guard),
+    useRoute: () => route,
+    useRouter: () => ({
+      push: async (path) => {
+        if (guards.leave?.() !== false) destination = { path }
+      },
+    }),
     definePageMeta() {},
-    useApiClient: () => ({ getTenants: async () => tenants }),
+    useApiClient: () => ({
+      getTenants: async () => tenants,
+      getTenant: getTenant ?? (async (key) => tenants.find((tenant) => tenant.key === key)),
+    }),
   }
   new Function(
     'require',
     'exports',
     ...Object.keys(globals),
-    selector ? selectorScript : pageScript,
+    selector ? selectorScript : manage ? manageScript : pageScript,
   )(
     (id) => {
       if (id === '~/stores/userPreferences') return { useUserPreferencesStore: () => store }
@@ -129,7 +150,6 @@ async function mount(t, { selector = false, clipboard = { writeText: async () =>
       return () => h('div', [slots.trigger(), slots.default()])
     },
   })
-  let destination
   app.component('NuxtLink', {
     props: ['to'],
     emits: ['click'],
@@ -150,17 +170,36 @@ async function mount(t, { selector = false, clipboard = { writeText: async () =>
     },
   })
   app.component('WorkspaceEditPane', {
-    emits: ['cancel', 'updated'],
-    setup(_props, { emit }) {
+    props: ['workspace'],
+    emits: ['cancel', 'updated', 'update:busy'],
+    setup(props, { emit }) {
+      panes.edit = { props, emit }
       return () =>
         h('button', { 'data-test-id': 'cancel-edit', onClick: () => emit('cancel') }, 'Cancel')
     },
   })
+  app.component('WorkspaceDeleteModal', {
+    props: ['workspace', 'show'],
+    emits: ['deleted', 'update:show', 'update:busy'],
+    setup(props, { emit }) {
+      panes.delete = { props, emit }
+      return () => null
+    },
+  })
+  let problem
+  app.component('ErrorDisplay', {
+    props: ['problem', 'show'],
+    setup(props) {
+      return () => {
+        problem = props.show ? props.problem : undefined
+        return null
+      }
+    },
+  })
   for (const name of [
+    'PageBreadcrumb',
     'WorkspaceSelector',
     'WorkspaceCreatePane',
-    'WorkspaceDeleteModal',
-    'ErrorDisplay',
     'BaseSpinner',
     'FeatherIcon',
   ]) {
@@ -170,7 +209,15 @@ async function mount(t, { selector = false, clipboard = { writeText: async () =>
   t.after(() => app.unmount())
   await nextTick()
   await nextTick()
-  return { root, store, destination: () => destination }
+  return {
+    root,
+    store,
+    route,
+    guards,
+    panes,
+    problem: () => problem,
+    destination: () => destination,
+  }
 }
 
 test('opening any role selects its workspace before navigating, including the current workspace', async (t) => {
@@ -197,26 +244,96 @@ test('opening any role selects its workspace before navigating, including the cu
   }
 })
 
-test('editing removes card navigation until cancelled and management actions do not select a workspace', async (t) => {
+test('Manage targets each card for all roles without changing the selection on the list', async (t) => {
   const { root, store, destination } = await mount(t)
-  await find(find(root, 'workspace-card-second'), 'open-workspace-link').props.onClick({})
-  await nextTick()
-  const previousDestination = destination()
-  const card = find(root, 'workspace-card-first')
-  for (const action of ['delete-workspace-button', 'edit-workspace-button']) {
-    const button = find(card, action)
-    assert.match(button.props.class, /position-relative z-2/)
-    await button.props.onClick({})
+  for (const key of ['first', 'second', 'third']) {
+    const card = find(root, `workspace-card-${key}`)
+    const link = find(card, 'manage-workspace-button')
+    assert.match(link.props.class, /position-relative z-2/)
+    assert.equal(link.props.href, `/workspaces/${key}`)
+    await link.props.onClick({})
     await nextTick()
-    assert.equal(store.getCurrentTenantKey, 'second')
-    assert.deepEqual(destination(), previousDestination)
+    assert.equal(store.getCurrentTenantKey, 'first')
+    assert.deepEqual(destination(), { path: `/workspaces/${key}`, workspace: 'first' })
+    assert.equal(find(card, 'edit-workspace-button'), undefined)
+    assert.equal(find(card, 'delete-workspace-button'), undefined)
+    assert.ok(find(card, 'open-workspace-link'))
   }
-  assert.equal(find(card, 'open-workspace-link'), undefined)
-  assert.doesNotMatch(card.props.class, /workspace-card-navigable/)
-  await find(card, 'cancel-edit').props.onClick({})
+})
+
+test('management loads the route workspace, supports editing, and guards pending writes', async (t) => {
+  const { root, store, route, panes, guards } = await mount(t, { manage: true })
+  assert.equal(find(root, 'workspace-name').text, 'Second workspace')
+  assert.equal(store.getCurrentTenantKey, 'second')
+  await find(root, 'edit-workspace-button').props.onClick()
   await nextTick()
-  assert.ok(find(card, 'open-workspace-link'))
-  assert.match(card.props.class, /workspace-card-navigable/)
+  assert.equal(panes.edit.props.workspace.key, 'second')
+  panes.edit.emit('update:busy', true)
+  await nextTick()
+  assert.equal(guards.leave(), false)
+  assert.equal(guards.update(), false)
+  assert.equal(find(root, 'delete-workspace-button').props.disabled, true)
+  panes.edit.emit('update:busy', false)
+  panes.edit.emit('updated')
+  await nextTick()
+  await nextTick()
+  assert.equal(find(root, 'cancel-edit'), undefined)
+  assert.equal(guards.leave(), true)
+  route.params.key = 'third'
+  await nextTick()
+  await nextTick()
+  assert.equal(find(root, 'workspace-name').text, 'Third workspace')
+  assert.equal(store.getCurrentTenantKey, 'third')
+})
+
+test('deletion targets the route workspace and returns to the list after completion', async (t) => {
+  const { root, panes, destination, guards } = await mount(t, { manage: true })
+  await find(root, 'delete-workspace-button').props.onClick()
+  await nextTick()
+  assert.equal(panes.delete.props.show, true)
+  assert.equal(panes.delete.props.workspace.key, 'second')
+  panes.delete.emit('update:busy', true)
+  assert.equal(guards.leave(), false)
+  panes.delete.emit('deleted')
+  await nextTick()
+  assert.deepEqual(destination(), { path: '/workspaces' })
+})
+
+test('an unavailable route clears previous settings and reports the error without fallback', async (t) => {
+  const { root, route, store, problem } = await mount(t, {
+    manage: true,
+    getTenant: async (key) => {
+      if (key === 'missing') throw new Error('Workspace unavailable')
+      return { key, name: 'Route workspace' }
+    },
+  })
+  route.params.key = 'missing'
+  await nextTick()
+  await nextTick()
+  assert.equal(find(root, 'workspace-name'), undefined)
+  assert.equal(find(root, 'edit-workspace-button'), undefined)
+  assert.equal(find(root, 'delete-workspace-button'), undefined)
+  assert.match(problem().message, /Workspace unavailable/)
+  assert.equal(store.getCurrentTenantKey, 'second')
+})
+
+test('late responses cannot replace a newer route workspace', async (t) => {
+  let finishFirstLoad
+  const { root, route, store } = await mount(t, {
+    manage: true,
+    getTenant: (key) =>
+      key === 'second'
+        ? new Promise((resolve) => (finishFirstLoad = resolve))
+        : Promise.resolve({ key, name: 'New route workspace' }),
+  })
+  route.params.key = 'third'
+  await nextTick()
+  await nextTick()
+  finishFirstLoad({ key: 'second', name: 'Old route workspace' })
+  await nextTick()
+  await nextTick()
+  assert.equal(find(root, 'workspace-name').text, 'New route workspace')
+  assert.equal(store.getCurrentTenantKey, 'third')
 })
 
 async function copy(root) {
