@@ -1,35 +1,35 @@
 <#
 .SYNOPSIS
-Generates API clients for the frontend (TypeScript) and functional tests (C#) from the backend API specification.
+Generates the frontend API client and test control OpenAPI specification.
 
 .DESCRIPTION
-This script builds the WireApiHost project and runs NSwag to generate:
+This script builds the WireApiHost project, whose build targets generate:
 1. TypeScript API client (apiclient.ts) for the Nuxt frontend
-2. C# API client (ApiClient.cs) for functional tests
+2. Test control OpenAPI specification (openapi-test-control.json) for functional tests
 
-The script ensures API clients stay synchronized with backend API changes.
+The test control C# client is generated separately by the functional test build.
 
 .PARAMETER Configuration
 The build configuration to use. Valid values: Debug, Release. Default is Debug.
 
 .EXAMPLE
 .\Generate-ApiClient.ps1
-Generates both API clients using Debug configuration.
+Generates the frontend client and test control specification using Debug configuration.
 
 .EXAMPLE
 .\Generate-ApiClient.ps1 -Configuration Release
-Generates both API clients using Release configuration.
+Generates the frontend client and test control specification using Release configuration.
 
 .NOTES
 Generated files:
 - src/FrontEnd.Nuxt/app/utils/apiclient.ts (TypeScript for frontend)
-- tests/Functional/Api/Generated/ApiClient.cs (C# for tests)
+- tests/Functional/Infrastructure/TestControl/openapi-test-control.json (OpenAPI for tests)
 
 NEVER edit these files manually - they will be overwritten on regeneration.
 
 NSwag configurations:
 - tools/WireApiHost/nswag.json (TypeScript client)
-- tests/Functional/Api/nswag.json (C# client)
+- tools/WireApiHost/nswag-test-control.json (test control specification)
 
 .LINK
 https://github.com/RicoSuter/NSwag
@@ -47,66 +47,20 @@ $ErrorActionPreference = "Stop"
 
 try {
     $repoRoot = Split-Path $PSScriptRoot -Parent
-    $wireApiHostPath = "$repoRoot/tools/WireApiHost"
-    $functionalTestsPath = "$repoRoot/tests/Functional"
-    $typeScriptClient = "$repoRoot/src/FrontEnd.Nuxt/app/utils/apiclient.ts"
-    $csharpClient = "$functionalTestsPath/Api/Generated/ApiClient.cs"
+    $wireApiHostPath = Join-Path $repoRoot "tools\WireApiHost"
+    $typeScriptClient = Join-Path $repoRoot "src\FrontEnd.Nuxt\app\utils\apiclient.ts"
+    $testControlSpec = Join-Path $repoRoot "tests\Functional\Infrastructure\TestControl\openapi-test-control.json"
 
-    Write-Host "Generating API clients from backend specification..." -ForegroundColor Cyan
+    Write-Host "Generating frontend API client and test control specification..." -ForegroundColor Cyan
     Write-Host "  Configuration: $Configuration" -ForegroundColor Cyan
     Write-Host ""
 
-    # Build the WireApiHost project first
     Write-Host "Building WireApiHost..." -ForegroundColor Cyan
     Push-Location $wireApiHostPath
     try {
         dotnet build --configuration $Configuration
         if ($LASTEXITCODE -ne 0) {
             throw "WireApiHost build failed with exit code $LASTEXITCODE"
-        }
-    }
-    finally {
-        Pop-Location
-    }
-
-    # Generate TypeScript client for frontend
-    Write-Host ""
-    Write-Host "Generating TypeScript client..." -ForegroundColor Cyan
-    Push-Location $wireApiHostPath
-    try {
-        $nswagExe = (Get-ChildItem "$env:USERPROFILE/.nuget/packages/nswag.msbuild/*/tools/Net100/dotnet-nswag.dll" | Select-Object -First 1).FullName
-        if (-not $nswagExe) {
-            throw "NSwag executable not found in NuGet packages"
-        }
-
-        $msbuildOutput = "bin/$Configuration/net10.0/"
-        $variables = "Configuration=$Configuration,MSBuildOutputPath=$msbuildOutput,MSBuildProjectFile=YoFi.V3.WireApiHost.csproj,OutputFile=../../src/FrontEnd.Nuxt/app/utils/apiclient.ts"
-        dotnet $nswagExe run nswag.json /variables:$variables
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "TypeScript client generation failed with exit code $LASTEXITCODE"
-        }
-    }
-    finally {
-        Pop-Location
-    }
-
-    # Generate C# client for functional tests
-    Write-Host ""
-    Write-Host "Generating C# client for tests..." -ForegroundColor Cyan
-    Push-Location $functionalTestsPath
-    try {
-        # Ensure output directory exists
-        $outputDir = Split-Path $csharpClient -Parent
-        if (-not (Test-Path $outputDir)) {
-            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-        }
-
-        $variables = "OutputFile=$csharpClient,Configuration=$Configuration"
-        dotnet $nswagExe run Api/nswag.json /variables:$variables
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "C# client generation failed with exit code $LASTEXITCODE"
         }
     }
     finally {
@@ -129,25 +83,26 @@ try {
         $allGood = $false
     }
 
-    if (Test-Path $csharpClient) {
-        $csSize = (Get-Item $csharpClient).Length
-        Write-Host "  ✓ C# client: $([math]::Round($csSize / 1KB, 2)) KB" -ForegroundColor Green
-        Write-Host "    $csharpClient" -ForegroundColor Gray
+    if (Test-Path $testControlSpec) {
+        $specSize = (Get-Item $testControlSpec).Length
+        Write-Host "  ✓ Test control OpenAPI specification: $([math]::Round($specSize / 1KB, 2)) KB" -ForegroundColor Green
+        Write-Host "    $testControlSpec" -ForegroundColor Gray
     }
     else {
-        Write-Host "  ✗ C# client not found at: $csharpClient" -ForegroundColor Red
+        Write-Host "  ✗ Test control OpenAPI specification not found at: $testControlSpec" -ForegroundColor Red
         $allGood = $false
     }
 
     if (-not $allGood) {
-        throw "One or more API client files were not generated"
+        throw "One or more generated files were not found"
     }
 
     Write-Host ""
-    Write-Host "OK API clients generated successfully" -ForegroundColor Green
+    Write-Host "OK Frontend API client and test control specification generated successfully" -ForegroundColor Green
+    Write-Host "The functional test build generates the test control C# client." -ForegroundColor Gray
 }
 catch {
-    Write-Error "Failed to generate API clients: $_"
+    Write-Error "Failed to generate frontend API client and test control specification: $_"
     Write-Error $_.ScriptStackTrace
     exit 1
 }
