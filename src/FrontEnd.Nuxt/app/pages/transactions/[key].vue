@@ -18,6 +18,7 @@ import { formatDateOnly } from '~/utils/dateOnly'
 definePageMeta({
   title: 'Transaction Details',
   layout: 'chrome',
+  breadcrumbs: [{ title: 'Transactions', to: '/transactions' }],
 })
 
 const route = useRoute()
@@ -126,10 +127,6 @@ async function deleteTransaction() {
   }
 }
 
-function goBack() {
-  router.push('/transactions')
-}
-
 function formatCurrency(amount: number | undefined): string {
   if (amount === undefined) return '$0.00'
   return new Intl.NumberFormat('en-US', {
@@ -148,20 +145,9 @@ function formatCurrency(amount: number | undefined): string {
 
     <!-- Main Content -->
     <div class="container py-4">
-      <!-- Back Button and Actions -->
+      <!-- Breadcrumbs and Actions -->
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <button
-          class="btn btn-outline-secondary"
-          data-test-id="back-button"
-          @click="goBack"
-        >
-          <FeatherIcon
-            icon="arrow-left"
-            size="16"
-            class="me-1"
-          />
-          Back to Transactions
-        </button>
+        <PageBreadcrumb />
 
         <div v-if="!isEditing && canEditTransactions && transaction">
           <button
