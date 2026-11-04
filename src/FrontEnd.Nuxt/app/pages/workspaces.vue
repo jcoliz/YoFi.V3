@@ -3,8 +3,8 @@
  * Workspaces Management Page
  *
  * Provides complete CRUD (Create, Read, Update, Delete) support for managing
- * workspace (tenant) entities. Shows workspace selector for consistency while
- * providing expanded management functionality.
+ * workspace (tenant) entities. Opening a workspace card selects it and navigates
+ * to its transactions; management actions remain independent.
  */
 
 import {
@@ -206,8 +206,11 @@ definePageMeta({
           class="col-md-6 col-lg-4 mb-4"
         >
           <div
-            class="card h-100"
-            :class="{ 'border-primary': tenant.key === userPreferencesStore.getCurrentTenantKey }"
+            class="card h-100 workspace-card"
+            :class="{
+              'border-primary': tenant.key === userPreferencesStore.getCurrentTenantKey,
+              'workspace-card-navigable': editingTenant?.key !== tenant.key,
+            }"
             :data-test-id="`workspace-card-${tenant.key}`"
           >
             <div class="card-body">
@@ -275,10 +278,25 @@ definePageMeta({
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                  <NuxtLink
+                    to="/transactions"
+                    class="btn btn-sm btn-outline-primary stretched-link workspace-open-link me-auto"
+                    :aria-label="`Open workspace ${tenant.name}`"
+                    data-test-id="open-workspace-link"
+                    @click="userPreferencesStore.setCurrentTenant(tenant)"
+                  >
+                    <FeatherIcon
+                      icon="folder"
+                      size="14"
+                      class="me-1"
+                      aria-hidden="true"
+                    />
+                    Open
+                  </NuxtLink>
                   <button
                     v-if="canManageTenant(tenant)"
-                    class="btn btn-sm btn-outline-primary"
+                    class="btn btn-sm btn-outline-primary position-relative z-2"
                     data-test-id="edit-workspace-button"
                     @click="editingTenant = tenant"
                   >
@@ -291,7 +309,7 @@ definePageMeta({
                   </button>
                   <button
                     v-if="canManageTenant(tenant)"
-                    class="btn btn-sm btn-outline-danger"
+                    class="btn btn-sm btn-outline-danger position-relative z-2"
                     data-test-id="delete-workspace-button"
                     @click="startDelete(tenant)"
                   >
@@ -347,6 +365,20 @@ definePageMeta({
 </template>
 
 <style scoped>
+.workspace-card-navigable {
+  cursor: pointer;
+}
+
+.workspace-card-navigable:hover,
+.workspace-card-navigable:focus-within {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.workspace-card:has(.workspace-open-link:focus-visible) {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
 .workspace-selector-container {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
