@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Run selected unit, integration, and functional tests.
+    Run selected unit, integration, functional, and frontend component tests.
 
 .DESCRIPTION
-    Runs unit tests by default. Use -Unit, -Integration, and -Functional in any
-    combination to select test suites. Each selected test project is built by
+    Runs unit and frontend component tests by default. Use -Unit, -Integration, -Functional, and -FrontEnd in any
+    combination to select test suites. Each selected .NET test project is built by
     dotnet test; the solution is not built.
 
     Test projects included:
@@ -13,6 +13,7 @@
     - tests/Integration.Data - Integration tests for Data layer
     - tests/Integration.Controller - Integration tests for Controller layer
     - tests/Functional - Functional tests against running containers
+    - src/FrontEnd.Nuxt/tests - Frontend component tests via npm run test:components
 
     Functional tests require Docker and the application containers to be running.
     Use Run-FunctionalTestsVsContainer.ps1 to manage containers automatically.
@@ -27,12 +28,21 @@
     Check Docker availability and run functional tests.
 
 .PARAMETER Filter
-    Pass a dotnet test filter expression to every selected test project.
+    Pass a dotnet test filter expression to every selected .NET test project.
+    Frontend component tests always run in full.
+
+.PARAMETER FrontEnd
+    Run frontend component tests. Requires Node and installed frontend dependencies.
+
+.EXAMPLE
+    .\Run-Tests.ps1 -FrontEnd
+
+    Runs frontend component tests without running .NET tests.
 
 .EXAMPLE
     .\Run-Tests.ps1
 
-    Runs unit tests.
+    Runs unit and frontend component tests.
 
 .EXAMPLE
     .\Run-Tests.ps1 -Unit -Integration -Filter "FullyQualifiedName~Transaction"
@@ -50,13 +60,15 @@ param(
     [switch]$Unit,
     [switch]$Integration,
     [switch]$Functional,
+    [switch]$FrontEnd,
     [string]$Filter
 )
 
 $ErrorActionPreference = "Stop"
 
-if (-not $Unit -and -not $Integration -and -not $Functional) {
+if (-not $Unit -and -not $Integration -and -not $Functional -and -not $FrontEnd) {
     $Unit = $true
+    $FrontEnd = $true
 }
 
 if ($Functional) {
@@ -82,6 +94,9 @@ try {
     if ($Functional) {
         $selectedSuites += @{ Name = "Functional"; Path = "tests\Functional" }
     }
+    if ($FrontEnd) {
+        $selectedSuites += @{ Name = "FrontEnd"; Path = "src\FrontEnd.Nuxt" }
+    }
 
     # Parse test counts and durations from output
     function Parse-TestResults {
@@ -93,6 +108,14 @@ try {
                 Count = [int]$Matches[1]
                 Duration = $Matches[2].Trim()
             }
+        }
+        if ($Output -match '(?m)^[^\r\n]*?\bpass\s+(\d+)\s*$') {
+            $count = [int]$Matches[1]
+            $duration = "N/A"
+            if ($Output -match '(?m)^[^\r\n]*?\bduration_ms\s+([\d.]+)\s*$') {
+                $duration = "$($Matches[1]) ms"
+            }
+            return @{ Count = $count; Duration = $duration }
         }
         return @{ Count = 0; Duration = "N/A" }
     }
@@ -108,6 +131,18 @@ try {
         }
 
         Write-Host "`nRunning $($suite.Name) tests..." -ForegroundColor Cyan
+        if ($suite.Name -eq "FrontEnd") {
+            Push-Location $suite.Path
+            try {
+                & npm run test:components 2>&1 | Tee-Object -Variable capturedOutput | ForEach-Object { Write-Host $_ }
+                $suite.ExitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+            $suite.Stats = Parse-TestResults -Output ($capturedOutput -join "`n")
+            continue
+        }
+
         $testArgs = @('test', $suite.Path)
         if (-not [string]::IsNullOrWhiteSpace($Filter)) {
             $testArgs += @('--filter', $Filter)
