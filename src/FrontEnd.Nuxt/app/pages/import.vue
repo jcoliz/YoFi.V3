@@ -456,10 +456,11 @@ async function handleDeletedAll() {
         <!-- File Upload Section -->
         <div class="card mb-4">
           <div class="card-body">
-            <h5 class="card-title">Upload Files</h5>
-            <p class="text-muted mb-3">
-              Select OFX or QFX files from your bank to import transactions.
-            </p>
+            <CardTitle
+              title="Upload Files"
+              subtitle="Select OFX or QFX files from your bank to import transactions."
+              class="mb-3"
+            />
 
             <div class="row g-2">
               <div class="col">
@@ -499,11 +500,11 @@ async function handleDeletedAll() {
           class="card"
         >
           <div class="card-body">
-            <h5 class="card-title">Review Transactions</h5>
-            <p class="text-muted mb-4">
-              Review and select transactions to import. Transactions marked as duplicates are
-              deselected by default.
-            </p>
+            <CardTitle
+              title="Review Transactions"
+              subtitle="Review and select transactions to import. Transactions marked as duplicates are deselected by default."
+              class="mb-4"
+            />
 
             <!-- Duplicates Alert -->
             <ImportDuplicatesAlert :show="hasPotentialDuplicates" />
