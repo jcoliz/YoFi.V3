@@ -132,6 +132,16 @@ const canEditTransactions = computed(() => {
 })
 
 /**
+ * Whether the current user has permission to manage the workspace.
+ * Requires Owner role in the current workspace.
+ */
+const canManageWorkspace = computed(() => {
+  const currentTenant = userPreferencesStore.getCurrentTenant
+  if (!currentTenant?.role) return false
+  return currentTenant.role === TenantRole.Owner
+})
+
+/**
  * Watch for workspace changes and reload transactions.
  * Clears transaction list when no workspace is selected.
  */
@@ -145,7 +155,7 @@ watch(currentTenantKey, async (newKey) => {
 
 /**
  * This page requires an authenticated user. If not authenticated, redirect to login page.
- * Only after we've confirmed authentication, do we call getData() to load the data for this page.
+ * Only after we've confirmed authentication, do we load transactions for this page.
  */
 useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
 
@@ -489,8 +499,18 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
               class="mb-3"
             />
             <p>No transactions found</p>
+            <div v-if="canManageWorkspace">
+              <p>You can add sample data to get started</p>
+              <button
+                class="btn btn-primary btn-sm mb-3"
+                data-test-id="empty-state-manage-workspace"
+                @click="navigateTo(`/workspaces/${currentTenantKey}`)"
+              >
+                Manage your workspace
+              </button>
+              <p>Or you can create a new transaction</p>
+            </div>
             <button
-              v-if="canEditTransactions"
               class="btn btn-primary btn-sm"
               data-test-id="empty-state-create-button"
               @click="showCreateModal = true"
