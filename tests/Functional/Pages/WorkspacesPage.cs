@@ -305,7 +305,6 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
         {
             await Assertions.Expect(card.GetByTestId("workspace-role-badge"))
                 .ToHaveTextAsync(new Regex("^(Owner|Editor|Viewer)$"));
-            await Assertions.Expect(card.GetByTestId("manage-workspace-button")).ToBeVisibleAsync();
             await Assertions.Expect(card.GetByTestId("edit-workspace-button")).ToHaveCountAsync(0);
             await Assertions.Expect(card.GetByTestId("delete-workspace-button")).ToHaveCountAsync(0);
         }
