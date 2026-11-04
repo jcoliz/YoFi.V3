@@ -1,18 +1,17 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
-using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Components;
 
 /// <summary>
 /// Page Object Model for the WorkspaceSelector component
 /// </summary>
-/// <param name="page">The Playwright page instance</param>
 /// <param name="parent">The parent locator containing this component</param>
 /// <remarks>
 /// Represents the workspace/tenant selector component that displays the current workspace
 /// and provides functionality to switch between workspaces and manage them.
 /// </remarks>
-public class WorkspaceSelector(BasePage page, ILocator parent)
+public class WorkspaceSelector(ILocator parent)
 {
     #region Component Elements
 
@@ -62,29 +61,9 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     public ILocator LoadingText => MenuPanel.GetByTestId("loading-workspaces-text");
 
     /// <summary>
-    /// Current workspace details section in the dropdown
+    /// Highlighted current workspace entry in the dropdown
     /// </summary>
-    public ILocator CurrentWorkspaceDetails => MenuPanel.Locator(".workspace-details");
-
-    /// <summary>
-    /// Current workspace name in the details section
-    /// </summary>
-    public ILocator DetailsName => CurrentWorkspaceDetails.Locator("div", new() { HasText = "Name:" }).Locator("div").Nth(1);
-
-    /// <summary>
-    /// Current workspace description in the details section
-    /// </summary>
-    public ILocator DetailsDescription => CurrentWorkspaceDetails.Locator("div", new() { HasText = "Description:" }).Locator("div").Nth(1);
-
-    /// <summary>
-    /// Current workspace role badge in the details section
-    /// </summary>
-    public ILocator DetailsRole => CurrentWorkspaceDetails.Locator(".badge");
-
-    /// <summary>
-    /// Current workspace created date in the details section
-    /// </summary>
-    public ILocator DetailsCreatedDate => CurrentWorkspaceDetails.Locator("div", new() { HasText = "Created:" }).Locator("div").Nth(1);
+    public ILocator CurrentWorkspaceOption => MenuPanel.GetByTestId("selector-current-workspace");
 
     /// <summary>
     /// No workspace selected message
@@ -92,9 +71,9 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     public ILocator NoWorkspaceMessage => MenuPanel.GetByTestId("no-workspace-message");
 
     /// <summary>
-    /// The workspace selection dropdown
+    /// Buttons for switching to each non-current workspace
     /// </summary>
-    public ILocator WorkspaceSelect => MenuPanel.Locator("#workspace-select");
+    public ILocator WorkspaceOptions => MenuPanel.GetByTestId("workspace-option");
 
     /// <summary>
     /// Manage Workspaces button/link
@@ -132,25 +111,26 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     /// Selects a workspace from the dropdown by name
     /// </summary>
     /// <param name="workspaceName">The name of the workspace to select</param>
+    /// <remarks>
+    /// Clicking a workspace option closes the dropdown. If the workspace is already
+    /// current, the menu is closed without changing the selection.
+    /// </remarks>
     public async Task SelectWorkspaceAsync(string workspaceName)
     {
         // Bug AV#1979 call stack here
         await OpenMenuAsync();
-        await WorkspaceSelect.SelectOptionAsync(new[] { new SelectOptionValue { Label = workspaceName } });
 
-        // Wait for the CurrentWorkspaceName to update to the selected workspace
-        // This is more reliable than waiting for NetworkIdle
-        await CurrentWorkspaceName.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5000 });
-
-        // Also verify the text matches what we selected (with a reasonable timeout for text content)
-        var currentName = await CurrentWorkspaceName.TextContentAsync();
-        if (currentName != workspaceName)
+        var option = WorkspaceOptions.Filter(new() { HasTextRegex = ExactText(workspaceName) });
+        if (await option.CountAsync() == 0
+            && await CurrentWorkspaceOption.Filter(new() { HasTextRegex = ExactText(workspaceName) }).IsVisibleAsync())
         {
-            // Give it a bit more time if names don't match yet
-            await page.Page!.WaitForTimeoutAsync(500);
+            await CloseMenuAsync();
+            return;
         }
 
-        await CloseMenuAsync();
+        await option.ClickAsync();
+        await MenuPanel.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+        await Assertions.Expect(CurrentWorkspaceName).ToHaveTextAsync(ExactText(workspaceName));
     }
 
     /// <summary>
@@ -235,64 +215,30 @@ public class WorkspaceSelector(BasePage page, ILocator parent)
     }
 
     /// <summary>
-    /// Gets the workspace role from the details section
-    /// </summary>
-    /// <returns>The role text (e.g., "Owner", "Editor", "Viewer"), or null if not visible</returns>
-    public async Task<string?> GetWorkspaceRoleAsync()
-    {
-        await OpenMenuAsync();
-        if (await DetailsRole.IsVisibleAsync())
-        {
-            var role = await DetailsRole.TextContentAsync();
-            // Close menu after getting role
-            await MenuTrigger.ClickAsync();
-            return role;
-        }
-        // Close menu if no role
-        await MenuTrigger.ClickAsync();
-        return null;
-    }
-
-    /// <summary>
-    /// Gets the list of available workspace options from the select dropdown
+    /// Gets the names of all workspaces listed in the dropdown, including the current one
     /// </summary>
     /// <returns>Array of workspace names available for selection</returns>
-    /// <remarks>
-    /// Only returns enabled options, filtering out disabled placeholder options
-    /// </remarks>
     public async Task<string[]> GetAvailableWorkspacesAsync()
     {
         await OpenMenuAsync();
 
-        // Get all enabled option elements using locator filtering
-        var enabledOptions = WorkspaceSelect.Locator("option:not([disabled])");
-        var workspaces = await enabledOptions.AllTextContentsAsync();
+        var names = (await CurrentWorkspaceOption.AllTextContentsAsync())
+            .Concat(await WorkspaceOptions.AllTextContentsAsync())
+            .Select(name => name.Trim())
+            .Where(name => !string.IsNullOrEmpty(name))
+            .ToArray();
 
         // Close menu after getting workspaces
         await MenuTrigger.ClickAsync();
 
-        // Filter out any empty strings
-        return workspaces.Where(w => !string.IsNullOrEmpty(w)).ToArray();
+        return names;
     }
 
-    /// <summary>
-    /// Gets the workspace description from the details section
-    /// </summary>
-    /// <returns>The workspace description, or null if not visible</returns>
-    public async Task<string?> GetWorkspaceDescriptionAsync()
-    {
-        await OpenMenuAsync();
-        if (await DetailsDescription.IsVisibleAsync())
-        {
-            var description = await DetailsDescription.TextContentAsync();
-            // Close menu after getting description
-            await MenuTrigger.ClickAsync();
-            return description;
-        }
-        // Close menu if no description
-        await MenuTrigger.ClickAsync();
-        return null;
-    }
+    #endregion
+
+    #region Helpers
+
+    private static Regex ExactText(string text) => new($"^\\s*{Regex.Escape(text)}\\s*$");
 
     #endregion
 

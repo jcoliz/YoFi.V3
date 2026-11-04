@@ -28,7 +28,7 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Workspace selector component at the top of the page
     /// </summary>
-    public WorkspaceSelector WorkspaceSelector => new WorkspaceSelector(this, Page!.Locator("body"));
+    public WorkspaceSelector WorkspaceSelector => new WorkspaceSelector(Page!.Locator("body"));
 
     /// <summary>
     /// Error display component for page-level errors

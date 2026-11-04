@@ -3,11 +3,12 @@
  * Workspace (Tenant) Selector Component
  *
  * Displays the current workspace and allows users to switch between
- * their available workspaces. Uses the TenantClient API to fetch
- * and manage workspace data.
+ * their available workspaces. The options panel mirrors the workspace
+ * section of the account menu (WorkspaceMenuSection), listing every
+ * workspace and adding a Manage Workspaces link.
  */
 
-import { TenantClient, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
+import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 /**
@@ -58,24 +59,12 @@ const currentTenant = computed(() => {
 })
 
 /**
- * Converts a TenantRole enum value to a human-readable string.
- *
- * @param role - The tenant role enum value
- * @returns Human-readable role name (Owner, Editor, Viewer, or Unknown)
+ * Workspaces available to switch to, excluding the current one.
  */
-function getRoleName(role: TenantRole | undefined): string {
-  if (!role) return 'Unknown'
-  switch (role) {
-    case TenantRole.Owner:
-      return 'Owner'
-    case TenantRole.Editor:
-      return 'Editor'
-    case TenantRole.Viewer:
-      return 'Viewer'
-    default:
-      return 'Unknown'
-  }
-}
+const otherTenants = computed(() => {
+  const currentKey = currentTenant.value?.key
+  return tenants.value.filter((t) => t.key !== currentKey)
+})
 
 /**
  * API client for tenant operations.
@@ -148,23 +137,6 @@ function selectTenant(tenant: TenantRoleResultDto) {
 }
 
 /**
- * Handles workspace selection change from the dropdown.
- *
- * @param event - The change event from the select element
- */
-function onWorkspaceChange(event: Event) {
-  const select = event.target as HTMLSelectElement
-  const selectedKey = select.value
-
-  if (selectedKey) {
-    const tenant = tenants.value.find((t) => t.key === selectedKey)
-    if (tenant) {
-      selectTenant(tenant)
-    }
-  }
-}
-
-/**
  * Expose methods and computed properties for parent component access.
  */
 defineExpose({
@@ -214,128 +186,96 @@ defineExpose({
       </template>
       <template #default>
         <div class="dropdown-menu dropdown-menu-end shadow workspace-panel">
-          <!-- Error State -->
-          <div
-            v-if="error"
-            class="p-3 text-danger"
-          >
-            <small>{{ error }}</small>
-          </div>
-
-          <!-- Loading State -->
-          <div
-            v-else-if="loading"
-            class="p-3 text-center"
-          >
-            <BaseSpinner size="sm" />
-            <div class="mt-2">
-              <small
-                class="text-muted"
-                data-test-id="loading-workspaces-text"
-                >Loading workspaces...</small
-              >
+          <div class="px-3 py-2">
+            <div class="mb-2">
+              <small class="text-muted text-uppercase fw-bold">Workspace</small>
             </div>
-          </div>
 
-          <!-- Main Content -->
-          <div
-            v-else
-            class="p-3"
-          >
-            <!-- Current Workspace Details -->
+            <!-- Error State -->
             <div
-              v-if="currentTenant"
-              class="mb-3"
+              v-if="error"
+              class="text-danger"
             >
-              <label class="form-label mb-2">
-                <strong>Current Workspace</strong>
-              </label>
-              <div class="workspace-details">
-                <div class="mb-2">
-                  <small class="text-muted d-block">Name:</small>
-                  <div>{{ currentTenant.name }}</div>
-                </div>
-                <div
-                  v-if="currentTenant.description"
-                  class="mb-2"
+              <small>{{ error }}</small>
+            </div>
+
+            <!-- Loading State -->
+            <div
+              v-else-if="loading"
+              class="text-center py-2"
+            >
+              <BaseSpinner size="sm" />
+              <div class="mt-2">
+                <small
+                  class="text-muted"
+                  data-test-id="loading-workspaces-text"
+                  >Loading workspaces...</small
                 >
-                  <small class="text-muted d-block">Description:</small>
-                  <div>{{ currentTenant.description }}</div>
-                </div>
-                <div
-                  v-if="currentTenant.role"
-                  class="mb-2"
-                >
-                  <small class="text-muted d-block">Role:</small>
-                  <div>
-                    <span class="badge bg-secondary">{{ getRoleName(currentTenant.role) }}</span>
-                  </div>
-                </div>
-                <div v-if="currentTenant.createdAt">
-                  <small class="text-muted d-block">Created:</small>
-                  <div>{{ new Date(currentTenant.createdAt).toLocaleDateString() }}</div>
-                </div>
               </div>
             </div>
 
-            <div
-              v-else
-              class="mb-3 text-muted text-center py-2"
-              data-test-id="no-workspace-message"
-            >
-              <small>No workspace selected</small>
-            </div>
-
-            <hr class="my-3" />
-
-            <!-- Change Workspace Dropdown -->
-            <div class="mb-3">
-              <label
-                for="workspace-select"
-                class="form-label mb-2"
+            <template v-else>
+              <!-- Current Workspace -->
+              <div
+                v-if="currentTenant"
+                class="workspace-active mb-2 p-2 bg-light rounded"
+                data-test-id="selector-current-workspace"
               >
-                <strong>Change Workspace</strong>
-              </label>
-              <select
-                id="workspace-select"
-                class="form-select form-select-sm"
-                :value="userPreferencesStore.getCurrentTenantKey || ''"
-                :disabled="tenants.length === 0"
-                @change="onWorkspaceChange"
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="fw-semibold">{{ currentTenant.name }}</div>
+                  <FeatherIcon
+                    icon="check"
+                    size="16"
+                    class="text-success"
+                  />
+                </div>
+              </div>
+              <div
+                v-else
+                class="mb-2 text-muted"
+                data-test-id="no-workspace-message"
               >
-                <option
-                  value=""
-                  disabled
-                >
-                  {{ tenants.length === 0 ? 'No workspaces available' : 'Select a workspace' }}
-                </option>
-                <option
-                  v-for="tenant in tenants"
+                <small>No workspace selected</small>
+              </div>
+
+              <!-- Switch List -->
+              <div class="workspace-list">
+                <button
+                  v-for="tenant in otherTenants"
                   :key="tenant.key"
-                  :value="tenant.key"
+                  type="button"
+                  class="dropdown-item dropdown-item-sm py-1"
+                  data-test-id="workspace-option"
+                  @click="selectTenant(tenant)"
                 >
                   {{ tenant.name }}
-                </option>
-              </select>
-            </div>
-
-            <hr class="my-3" />
-
-            <!-- Manage Workspaces Link -->
-            <div class="text-center">
-              <NuxtLink
-                to="/workspaces"
-                class="btn btn-outline-primary btn-sm w-100"
-                data-test-id="manage-workspaces-button"
+                </button>
+              </div>
+              <div
+                v-if="tenants.length === 0"
+                class="text-muted"
               >
-                <FeatherIcon
-                  icon="settings"
-                  size="14"
-                  class="me-1"
-                />
-                Manage Workspaces
-              </NuxtLink>
-            </div>
+                <small>No workspaces available</small>
+              </div>
+            </template>
+          </div>
+
+          <hr class="dropdown-divider" />
+
+          <!-- Manage Workspaces Link -->
+          <div class="px-3 py-2">
+            <NuxtLink
+              to="/workspaces"
+              class="btn btn-outline-primary btn-sm w-100"
+              data-test-id="manage-workspaces-button"
+            >
+              <FeatherIcon
+                icon="settings"
+                size="14"
+                class="me-1"
+              />
+              Manage Workspaces
+            </NuxtLink>
           </div>
         </div>
       </template>
@@ -362,11 +302,21 @@ defineExpose({
 }
 
 .workspace-panel {
-  min-width: 320px;
+  min-width: 260px;
   max-width: 400px;
 }
 
-.alert-sm {
+.workspace-active {
+  border-left: 3px solid var(--bs-success);
+}
+
+.workspace-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.dropdown-item-sm {
   font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
 }
 </style>
