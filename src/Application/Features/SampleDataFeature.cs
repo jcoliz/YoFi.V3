@@ -33,6 +33,12 @@ namespace YoFi.V3.Application.Features;
 /// a release check.
 /// </para>
 /// </remarks>
+/// <param name="loader">Validated immutable bundled scenario catalog.</param>
+/// <param name="generator">Deterministic, tenant-free dataset generator.</param>
+/// <param name="importer">Shared create-only persistence operation.</param>
+/// <param name="tenantProvider">Provider of the already authorized current tenant.</param>
+/// <param name="dataProvider">Data access used to count existing tenant transactions.</param>
+/// <param name="regexValidationService">Rule validation dependency used when validating generated DTOs.</param>
 public sealed class SampleDataFeature(
     SampleScenarioLoader loader,
     SampleDataGenerator generator,
@@ -41,10 +47,16 @@ public sealed class SampleDataFeature(
     IDataProvider dataProvider,
     IRegexValidationService regexValidationService)
 {
+    /// <summary>Returns display metadata, current revisions, and supported entity types for bundled scenarios.</summary>
+    /// <returns>An immutable catalog without generation defaults or workspace-specific data.</returns>
     public ImmutableArray<SampleScenarioDto> GetScenarios()
         => loader.Scenarios.Select(s => new SampleScenarioDto(s.Id, s.Revision, s.Name, s.Description,
             ["Transactions", "PayeeMatchingRules"])).ToImmutableArray();
 
+    /// <summary>Generates and validates a dataset to preview exact counts without persisting it.</summary>
+    /// <param name="request">Explicit scenario ID, current revision, and inclusive date range.</param>
+    /// <returns>Resolved inputs, dataset counts, and the current tenant's unfiltered transaction count.</returns>
+    /// <exception cref="ValidationException">The scenario, revision, dates, size, or generated DTOs are invalid.</exception>
     public async Task<SampleDataPreviewDto> PreviewAsync(SampleDataRequest request)
     {
         var dataset = Generate(request);
@@ -53,6 +65,17 @@ public sealed class SampleDataFeature(
         return new SampleDataPreviewDto(request, new(dataset.Transactions.Length, dataset.Rules.Length), existing);
     }
 
+    /// <summary>Regenerates, validates, and commits the complete dataset for the current tenant.</summary>
+    /// <param name="request">Explicit scenario ID, current revision, and inclusive date range.</param>
+    /// <param name="cancellationToken">Token checked before staging and passed to the persistence save.</param>
+    /// <returns>Resolved inputs and committed created counts; updated counts are always zero.</returns>
+    /// <remarks>
+    /// Existing data and pending import reviews are preserved. Repeated calls intentionally
+    /// add complete copies with fresh Keys, even when synthetic ExternalIds match.
+    /// Persistence failures propagate without returning a successful result.
+    /// </remarks>
+    /// <exception cref="ValidationException">The request or generated dataset is invalid.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation is observed before staging or during persistence.</exception>
     public async Task<SampleDataLoadResultDto> LoadAsync(SampleDataRequest request, CancellationToken cancellationToken = default)
     {
         var dataset = Generate(request);
@@ -60,6 +83,11 @@ public sealed class SampleDataFeature(
         return new SampleDataLoadResultDto(request, created, new(0, 0));
     }
 
+    /// <summary>Generates an OFX attachment using the same occurrences and identities as direct loading.</summary>
+    /// <param name="request">Explicit scenario ID, current revision, and inclusive statement date range.</param>
+    /// <returns>A named OFX attachment whose stream starts at position zero; the consumer must dispose it.</returns>
+    /// <remarks>Does not persist data or encode categories; the existing bank importer applies matching rules.</remarks>
+    /// <exception cref="ValidationException">The request or generated dataset is invalid.</exception>
     public SampleOfxDownload DownloadOfx(SampleDataRequest request)
     {
         var dataset = Generate(request);

@@ -18,6 +18,17 @@ namespace YoFi.V3.Application.Helpers;
 /// </remarks>
 public static class SampleOfxWriter
 {
+    /// <summary>Serializes supplied sample transactions into a synthetic checking statement.</summary>
+    /// <param name="transactions">Previously validated, in-range records with stable non-null ExternalIds.</param>
+    /// <param name="start">Inclusive statement start date, already validated by the caller.</param>
+    /// <param name="end">Inclusive statement end date, already validated by the caller.</param>
+    /// <returns>A readable, seekable, BOM-free UTF-8 stream positioned at zero. The consumer owns disposal.</returns>
+    /// <remarks>
+    /// Does not filter records or validate the date range. Empty collections produce an
+    /// empty statement with zero closing balance. Categories and transaction memos are
+    /// not serialized; OFX MEMO is reserved for preserving merchant names longer than NAME.
+    /// </remarks>
+    /// <exception cref="ArgumentException">A transaction has a null ExternalId.</exception>
     public static Stream Write(IReadOnlyCollection<TransactionEditDto> transactions, DateOnly start, DateOnly end)
     {
         static XElement Element(string name, object value) => new(name, value);

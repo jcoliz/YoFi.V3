@@ -43,9 +43,24 @@ namespace YoFi.V3.Application.Services;
 /// </remarks>
 public sealed class SampleDataGenerator
 {
+    /// <summary>Maximum number of in-range transactions allowed in one generation request.</summary>
     public const int MaxTransactions = 10_000;
+    /// <summary>Synthetic institution/account source shared by direct loading and parsed sample OFX.</summary>
     public const string Source = "YoFi Sample Bank - Checking (SAMPLE0001)";
 
+    /// <summary>Generates deterministic transaction inputs and the scenario's complete merchant rule set.</summary>
+    /// <param name="scenario">Immutable scenario already validated by <see cref="SampleScenarioLoader"/>.</param>
+    /// <param name="start">Inclusive calendar start date.</param>
+    /// <param name="end">Inclusive calendar end date, strictly before the start anniversary.</param>
+    /// <returns>
+    /// Tenant-free inputs with transactions ordered by date then ExternalId, and rules by payee.
+    /// Transactions may be empty; rules still cover every distinct merchant/category pair.
+    /// </returns>
+    /// <remarks>
+    /// Applies canonical-period jitter before filtering. Validates generation limits and
+    /// nonzero rounded amounts, but leaves full DTO and business date validation to the feature.
+    /// </remarks>
+    /// <exception cref="ValidationException">The range is invalid, the count exceeds the limit, or a rounded amount is zero.</exception>
     public SampleDataSet Generate(SampleScenario scenario, DateOnly start, DateOnly end)
     {
         ValidateRange(start, end);
@@ -90,6 +105,11 @@ public sealed class SampleDataGenerator
         return new SampleDataSet(transactions.OrderBy(t => t.Date).ThenBy(t => t.ExternalId, StringComparer.Ordinal).ToImmutableArray(), rules);
     }
 
+    /// <summary>Checks explicit ordered dates and the one-rolling-calendar-year generation limit.</summary>
+    /// <param name="start">Inclusive start; DateOnly.MinValue and year 9999 are unsupported.</param>
+    /// <param name="end">Inclusive end, on or after start and strictly before its first anniversary.</param>
+    /// <remarks>Does not apply the transaction validator's clock-relative business date limits.</remarks>
+    /// <exception cref="ValidationException">Dates are missing, reversed, unsupported, or span too long.</exception>
     public static void ValidateRange(DateOnly start, DateOnly end)
     {
         if (start == DateOnly.MinValue || end == DateOnly.MinValue || start > end)
@@ -102,6 +122,10 @@ public sealed class SampleDataGenerator
         }
     }
 
+    /// <summary>Maps a validated jitter level to its decimal variability proportion.</summary>
+    /// <param name="jitter">One of none, low, moderate, or high.</param>
+    /// <returns>Zero, 0.1, 0.4, or 0.9, respectively.</returns>
+    /// <exception cref="InvalidOperationException">The level is unsupported.</exception>
     internal static decimal JitterProportion(string jitter) => jitter switch
     {
         "none" => 0m,
@@ -111,6 +135,9 @@ public sealed class SampleDataGenerator
         _ => throw new InvalidOperationException($"Unsupported jitter '{jitter}'.")
     };
 
+    /// <summary>Hashes the canonical generation-relevant pattern values independently of TOML formatting.</summary>
+    /// <param name="pattern">Validated pattern whose merchant ordering is preserved.</param>
+    /// <returns>A lowercase SHA-256 hexadecimal fingerprint, excluding scenario metadata and revision.</returns>
     internal static string Fingerprint(SamplePattern pattern)
         => Hash(Canonical(
             [pattern.Id, pattern.Category, pattern.Payees.Length.ToString(CultureInfo.InvariantCulture),

@@ -19,12 +19,28 @@ namespace YoFi.V3.Application.Services;
 /// fresh Keys with the same ExternalIds; existing workspace records are never updated,
 /// deleted, or deduplicated.
 /// </remarks>
+/// <param name="tenantProvider">Provider of the authorized tenant attached at the persistence boundary.</param>
+/// <param name="dataProvider">Unit of work that stages records and atomically saves the complete graph.</param>
+/// <param name="memoryCache">Shared rule cache invalidated for the target tenant after a successful save.</param>
+/// <param name="regexValidationService">Service used by matching-rule DTO validation.</param>
 public sealed class DataImportService(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
     IMemoryCache memoryCache,
     IRegexValidationService regexValidationService)
 {
+    /// <summary>Validates and creates all supplied transactions and rules in one persistence save.</summary>
+    /// <param name="dataset">Key-free, tenant-free inputs with initialized immutable collections.</param>
+    /// <param name="cancellationToken">Token checked before staging and passed to the save operation.</param>
+    /// <returns>Created counts only after the entire save succeeds.</returns>
+    /// <remarks>
+    /// Assigns fresh Keys, the current tenant, sanitized categories, default splits, and
+    /// initial rule audit/usage values. This shared import path does not enforce sample
+    /// generation limits. Persistence errors propagate; the caller must not reuse a failed
+    /// unit of work with its still-tracked inserts.
+    /// </remarks>
+    /// <exception cref="ValidationException">Any transaction or rule fails DTO validation; nothing is staged.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation is observed before staging or during persistence.</exception>
     public async Task<SampleDataCounts> CreateAsync(SampleDataSet dataset, CancellationToken cancellationToken = default)
     {
         Validate(dataset, regexValidationService);
@@ -41,6 +57,10 @@ public sealed class DataImportService(
         return new SampleDataCounts(dataset.Transactions.Length, dataset.Rules.Length);
     }
 
+    /// <summary>Validates every transaction and rule without staging or persisting records.</summary>
+    /// <param name="dataset">Dataset with initialized immutable collections to validate.</param>
+    /// <param name="regexValidationService">Service used by the rule DTO validator.</param>
+    /// <exception cref="ValidationException">A record fails validation; the message identifies its entity type.</exception>
     internal static void Validate(SampleDataSet dataset, IRegexValidationService regexValidationService)
     {
         var transactionValidator = new TransactionEditDtoValidator();

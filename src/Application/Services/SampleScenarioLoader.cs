@@ -19,8 +19,13 @@ namespace YoFi.V3.Application.Services;
 /// </remarks>
 public sealed partial class SampleScenarioLoader
 {
+    /// <summary>Loads and validates every embedded scenario in the Application assembly.</summary>
+    /// <exception cref="InvalidOperationException">Assets are missing, invalid, empty, or contain duplicate scenario IDs.</exception>
     public SampleScenarioLoader() : this(LoadResources()) { }
 
+    /// <summary>Loads an explicit collection of scenario documents for catalog validation tests.</summary>
+    /// <param name="documents">TOML text paired with source labels used only in diagnostics, not opened as paths.</param>
+    /// <exception cref="InvalidOperationException">The catalog is empty or contains invalid documents or duplicate IDs.</exception>
     internal SampleScenarioLoader(IEnumerable<(string Source, string Text)> documents)
     {
         var scenarios = documents.Select(d => Parse(d.Text, d.Source)).ToImmutableArray();
@@ -38,8 +43,17 @@ public sealed partial class SampleScenarioLoader
         Scenarios = scenarios;
     }
 
+    /// <summary>Gets the immutable, nonempty catalog with unique scenario IDs and validated patterns.</summary>
     public ImmutableArray<SampleScenario> Scenarios { get; }
 
+    /// <summary>Parses and semantically validates one scenario without accessing the filesystem.</summary>
+    /// <param name="text">Complete TOML scenario text with quoted invariant decimal annual amounts.</param>
+    /// <param name="source">Diagnostic label for the asset; never interpreted as an input path.</param>
+    /// <returns>An immutable typed scenario ready for deterministic generation.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// TOML syntax, required fields, supported values, identifiers, merchant/category consistency,
+    /// DTO length constraints, or safe nonzero amount bounds are invalid.
+    /// </exception>
     internal static SampleScenario Parse(string text, string source)
     {
         TomlTable table;
