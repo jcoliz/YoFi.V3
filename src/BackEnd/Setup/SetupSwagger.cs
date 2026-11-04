@@ -33,6 +33,20 @@ public static class __SetupSwagger
 
             options.OperationProcessors.Add(new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("Bearer"));
 
+            // NSwag defaults binary response schemas to octet-stream, ignoring the OFX media type.
+            options.OperationProcessors.Add(new NSwag.Generation.Processors.OperationProcessor(context =>
+            {
+                if (context.ControllerType == typeof(Controllers.SampleDataController) &&
+                    context.MethodInfo.Name == nameof(Controllers.SampleDataController.DownloadOfx))
+                {
+                    var content = context.OperationDescription.Operation.Responses["200"].Content;
+                    var binary = content["application/octet-stream"];
+                    content.Remove("application/octet-stream");
+                    content["application/x-ofx"] = binary;
+                }
+                return true;
+            }));
+
         });
         return services;
     }
