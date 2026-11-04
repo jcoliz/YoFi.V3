@@ -1,5 +1,5 @@
 id = "personal-finance"
-revision = 1
+revision = 2
 name = "Personal Finance"
 description = "Synthetic household income and spending, with net salary and ordinary loan payments. No real bank or account data."
 
@@ -114,6 +114,26 @@ amount_jitter = "none"
 date_jitter = "none"
 
 [[patterns]]
+id = "car-maintenance"
+category = "Transportation:Maintenance"
+payees = ["Neighborhood Auto Service"]
+annual_amount = "-600.00"
+frequency = "quarterly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "low"
+
+[[patterns]]
+id = "vehicle-registration"
+category = "Transportation:Registration"
+payees = ["County Motor Vehicle Office"]
+annual_amount = "-240.00"
+frequency = "yearly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "low"
+
+[[patterns]]
 id = "pharmacy"
 category = "Healthcare:Pharmacy"
 payees = ["Community Pharmacy", "Wellness Drugstore"]
@@ -132,6 +152,16 @@ frequency = "quarterly"
 repeats = 1
 amount_jitter = "low"
 date_jitter = "high"
+
+[[patterns]]
+id = "dental"
+category = "Healthcare:Medical"
+payees = ["Oak Street Dental"]
+annual_amount = "-480.00"
+frequency = "quarterly"
+repeats = 1
+amount_jitter = "low"
+date_jitter = "moderate"
 
 [[patterns]]
 id = "clothing"
@@ -159,6 +189,16 @@ category = "Entertainment:Streaming"
 payees = ["Sample Streaming"]
 annual_amount = "-180.00"
 frequency = "monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "museum-membership"
+category = "Entertainment:Membership"
+payees = ["City Art Museum"]
+annual_amount = "-120.00"
+frequency = "yearly"
 repeats = 1
 amount_jitter = "none"
 date_jitter = "none"

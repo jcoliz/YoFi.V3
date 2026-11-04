@@ -23,7 +23,7 @@ public class SampleDataFeatureTests
     private SampleDataFeature _feature = null!;
     private DataImportService _importer = null!;
     private readonly List<IModel> _staged = [];
-    private static SampleDataRequest Request => new("personal-finance", 1, new(2024, 1, 1), new(2024, 3, 31));
+    private static SampleDataRequest Request => new("personal-finance", 2, new(2024, 1, 1), new(2024, 3, 31));
 
     [SetUp]
     public void SetUp()

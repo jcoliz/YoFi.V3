@@ -22,8 +22,8 @@ public class SampleDataControllerTests : AuthenticatedTestBase
 {
     protected override TenantRole DefaultRole => TenantRole.Owner;
     private string BaseUrl => $"/api/tenant/{_testTenantKey}/admin/sample-data";
-    private static SampleDataRequest Request => new("personal-finance", 1, new(2026, 1, 1), new(2026, 1, 31));
-    private const string Query = "?scenarioId=personal-finance&revision=1&startDate=2026-01-01&endDate=2026-01-31";
+    private static SampleDataRequest Request => new("personal-finance", 2, new(2026, 1, 1), new(2026, 1, 31));
+    private const string Query = "?scenarioId=personal-finance&revision=2&startDate=2026-01-01&endDate=2026-01-31";
 
     [SetUp]
     public void SetUp() => SwitchToOwner();
@@ -37,7 +37,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         var scenario = catalog!.Single(s => s.Id == "personal-finance");
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(scenario.Revision, Is.EqualTo(1));
+            Assert.That(scenario.Revision, Is.EqualTo(2));
             Assert.That(scenario.Name, Is.EqualTo("Personal Finance"));
             Assert.That(scenario.EntityTypes, Is.EqualTo(new[] { "Transactions", "PayeeMatchingRules" }));
         }
@@ -121,7 +121,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     [TestCase("load")]
     public async Task MissingDates_Return400ProblemDetailsWithoutDefaults(string endpoint)
     {
-        var response = await _client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", new { scenarioId = "personal-finance", revision = 1 });
+        var response = await _client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", new { scenarioId = "personal-finance", revision = 2 });
         await AssertBadRequest(response);
     }
 
@@ -262,7 +262,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         {
             Assert.That(success.Message, Does.Contain("Load: OK")
                 .And.Contain("Scenario=personal-finance")
-                .And.Contain("Revision=1").And.Contain($"Transactions={loaded!.Created.Transactions}")
+                .And.Contain("Revision=2").And.Contain($"Transactions={loaded!.Created.Transactions}")
                 .And.Contain($"Rules={loaded.Created.PayeeMatchingRules}"));
             Assert.That(failed.Level, Is.EqualTo(LogLevel.Warning));
             Assert.That(failed.Message, Does.Contain("Preview: Failed").And.Contain("Revision=999"));
