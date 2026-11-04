@@ -45,11 +45,17 @@ function getRoleName(role: TenantRole | undefined): string {
   }
 }
 
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after we've confirmed authentication, do we call loadTenants() to load the data for this page.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
 // Load tenants on mount
-onMounted(async () => {
+async function afterMounted() {
   userPreferencesStore.loadFromStorage()
   await loadTenants()
-})
+}
 
 // Methods
 async function loadTenants() {

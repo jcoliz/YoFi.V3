@@ -72,7 +72,17 @@ function find(root, testId) {
 
 async function mount(
   t,
-  { selector = false, manage = false, getTenant, clipboard = { writeText: async () => {} } } = {},
+  {
+    selector = false,
+    manage = false,
+    getTenant,
+    authStatus = 'authenticated',
+    claims = ['second:Owner', 'third:Owner', 'missing:Owner'].map((value) => ({
+      type: 'tenant_role',
+      value,
+    })),
+    clipboard = { writeText: async () => {} },
+  } = {},
 ) {
   const tenants = [
     { key: 'first', name: 'First workspace', role: roles.Owner },
@@ -99,6 +109,8 @@ async function mount(
   const route = reactive({ params: { key: 'second' } })
   const guards = {}
   const panes = {}
+  const auth = { status: ref(authStatus), data: ref({ claims }) }
+  const requests = []
   let destination
   const globals = {
     ref,
@@ -109,6 +121,17 @@ async function mount(
     onBeforeRouteLeave: (guard) => (guards.leave = guard),
     onBeforeRouteUpdate: (guard) => (guards.update = guard),
     useRoute: () => route,
+    useAuth: () => auth,
+    useAuthenticationGuard: () => ({
+      requireAuthenticatedUser(action) {
+        onMounted(() => {
+          if (auth.status.value === 'authenticated') action()
+        })
+        watch(auth.status, (status) => {
+          if (status === 'authenticated') action()
+        })
+      },
+    }),
     useRouter: () => ({
       push: async (path) => {
         if (guards.leave?.() !== false) destination = { path }
@@ -117,7 +140,10 @@ async function mount(
     definePageMeta() {},
     useApiClient: () => ({
       getTenants: async () => tenants,
-      getTenant: getTenant ?? (async (key) => tenants.find((tenant) => tenant.key === key)),
+      getTenant: (key) => {
+        requests.push(key)
+        return getTenant ? getTenant(key) : Promise.resolve(tenants.find((tenant) => tenant.key === key))
+      },
     }),
   }
   new Function(
@@ -141,6 +167,11 @@ async function mount(
   const cardTitleExports = {}
   new Function('require', 'exports', cardTitleScript)(require, cardTitleExports)
   app.component('CardTitle', cardTitleExports.default)
+  app.component('BaseAlert', {
+    setup(_props, { attrs, slots }) {
+      return () => h('div', attrs, [slots.default?.(), slots.detail?.()])
+    },
+  })
   const copyExports = {}
   const copyGlobals = { ref, watch, onBeforeUnmount, navigator: { clipboard } }
   new Function('require', 'exports', ...Object.keys(copyGlobals), copyScript)(
@@ -215,6 +246,8 @@ async function mount(
   await nextTick()
   return {
     root,
+    auth,
+    requests,
     store,
     route,
     guards,
@@ -267,7 +300,7 @@ test('Manage targets each card for all roles without changing the selection on t
 
 test('management loads the route workspace, supports editing, and guards pending writes', async (t) => {
   const { root, store, route, panes, guards } = await mount(t, { manage: true })
-  assert.equal(find(root, 'workspace-name').text, 'Second workspace')
+  assert.equal(find(root, 'page-heading').text, 'Second workspace')
   assert.equal(store.getCurrentTenantKey, 'second')
   await find(root, 'edit-workspace-button').props.onClick()
   await nextTick()
@@ -286,7 +319,7 @@ test('management loads the route workspace, supports editing, and guards pending
   route.params.key = 'third'
   await nextTick()
   await nextTick()
-  assert.equal(find(root, 'workspace-name').text, 'Third workspace')
+  assert.equal(find(root, 'page-heading').text, 'Third workspace')
   assert.equal(store.getCurrentTenantKey, 'third')
 })
 
@@ -314,7 +347,7 @@ test('an unavailable route clears previous settings and reports the error withou
   route.params.key = 'missing'
   await nextTick()
   await nextTick()
-  assert.equal(find(root, 'workspace-name'), undefined)
+  assert.equal(find(root, 'page-heading'), undefined)
   assert.equal(find(root, 'edit-workspace-button'), undefined)
   assert.equal(find(root, 'delete-workspace-button'), undefined)
   assert.match(problem().message, /Workspace unavailable/)
@@ -336,8 +369,87 @@ test('late responses cannot replace a newer route workspace', async (t) => {
   finishFirstLoad({ key: 'second', name: 'Old route workspace' })
   await nextTick()
   await nextTick()
-  assert.equal(find(root, 'workspace-name').text, 'New route workspace')
+  assert.equal(find(root, 'page-heading').text, 'New route workspace')
   assert.equal(store.getCurrentTenantKey, 'third')
+})
+
+test('management waits for authentication before checking claims or fetching workspace details', async (t) => {
+  const { root, auth, requests, store } = await mount(t, {
+    manage: true,
+    authStatus: 'loading',
+  })
+  assert.deepEqual(requests, [])
+  assert.ok(find(root, 'loading-state'))
+  assert.equal(find(root, 'AccessDenied'), undefined)
+  assert.equal(find(root, 'edit-workspace-button'), undefined)
+  assert.equal(store.getCurrentTenantKey, 'first')
+  auth.status.value = 'authenticated'
+  await nextTick()
+  await nextTick()
+  assert.deepEqual(requests, ['second'])
+  assert.equal(find(root, 'page-heading').text, 'Second workspace')
+})
+
+for (const claims of [
+  [],
+  [{ type: 'tenant_role', value: 'second:Editor' }],
+  [{ type: 'tenant_role', value: 'second:Viewer' }],
+  [{ type: 'tenant_role', value: 'first:Owner' }],
+  [{ type: 'other', value: 'second:Owner' }],
+  [{ type: 'tenant_role', value: 'second:Owner:extra' }],
+]) {
+  test(`management denies nonmatching claims ${JSON.stringify(claims)} without fetching`, async (t) => {
+    const { root, requests, store } = await mount(t, { manage: true, claims })
+    assert.deepEqual(requests, [])
+    assert.ok(find(root, 'AccessDenied'))
+    assert.equal(find(root, 'loading-state'), undefined)
+    assert.equal(find(root, 'page-heading'), undefined)
+    assert.equal(find(root, 'edit-workspace-button'), undefined)
+    assert.equal(find(root, 'delete-workspace-button'), undefined)
+    assert.equal(store.getCurrentTenantKey, 'first')
+  })
+}
+
+test('route and claim changes revoke access and invalidate outstanding workspace loads', async (t) => {
+  let finishLoad
+  const { root, auth, route, requests, store } = await mount(t, {
+    manage: true,
+    getTenant: () => new Promise((resolve) => (finishLoad = resolve)),
+  })
+  route.params.key = 'first'
+  await nextTick()
+  assert.ok(find(root, 'AccessDenied'))
+  assert.deepEqual(requests, ['second'])
+  finishLoad({ key: 'second', name: 'Late workspace' })
+  await nextTick()
+  await nextTick()
+  assert.equal(find(root, 'page-heading'), undefined)
+  assert.equal(store.getCurrentTenantKey, 'first')
+  auth.data.value.claims = [{ type: 'tenant_role', value: 'first:Owner' }]
+  await nextTick()
+  assert.deepEqual(requests, ['second', 'first'])
+  finishLoad({ key: 'first', name: 'Allowed workspace' })
+  await nextTick()
+  await nextTick()
+  assert.ok(find(root, 'edit-workspace-button'))
+  auth.data.value.claims = []
+  await nextTick()
+  assert.ok(find(root, 'AccessDenied'))
+  assert.equal(find(root, 'edit-workspace-button'), undefined)
+  assert.equal(find(root, 'page-heading'), undefined)
+})
+
+test('authentication revalidation hides loaded workspace controls until authentication resolves', async (t) => {
+  const { root, auth } = await mount(t, { manage: true })
+  auth.status.value = 'loading'
+  await nextTick()
+  assert.ok(find(root, 'loading-state'))
+  assert.equal(find(root, 'AccessDenied'), undefined)
+  assert.equal(find(root, 'edit-workspace-button'), undefined)
+  auth.status.value = 'authenticated'
+  await nextTick()
+  await nextTick()
+  assert.ok(find(root, 'edit-workspace-button'))
 })
 
 async function copy(root) {

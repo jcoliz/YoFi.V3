@@ -5,6 +5,7 @@ import { handleApiError } from '~/utils/errorHandler'
 
 definePageMeta({
   title: 'Manage Workspace',
+  auth: false,
   layout: 'chrome',
   breadcrumbs: [{ title: 'Workspaces', to: '/workspaces' }],
 })
@@ -13,6 +14,8 @@ const route = useRoute()
 const router = useRouter()
 const tenantClient = useApiClient(TenantClient)
 const userPreferencesStore = useUserPreferencesStore()
+const { data, status } = useAuth()
+const authenticated = ref(false)
 
 const workspace = ref<TenantRoleResultDto>()
 const loading = ref(true)
@@ -23,9 +26,29 @@ const error = ref<IProblemDetails>()
 const showError = ref(false)
 let loadVersion = 0
 
-onMounted(() => {
+/**
+ * Whether the current user has Manage rights on the route-targeted workspace.
+ *
+ * Three states:
+ * - `undefined` — permission check has not run yet; show neither the banner nor the controls.
+ * - `true`      — user has Owner rights; show the controls normally.
+ * - `false`     — user lacks Owner rights; show the access-denied banner and hide controls.
+ */
+const canManage = ref<boolean | undefined>(undefined)
+
+/**
+ * This page requires an authenticated user. If not authenticated, redirect to login page.
+ * Only after authentication resolves do we check the JWT-derived tenant role claims.
+ */
+useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
+
+async function afterMounted() {
   userPreferencesStore.loadFromStorage()
-  watch(() => route.params.key, loadWorkspace, { immediate: true })
+  authenticated.value = true
+}
+
+watch([authenticated, status, () => route.params.key, () => data.value?.claims], loadWorkspace, {
+  deep: true,
 })
 
 onBeforeUnmount(() => {
@@ -44,6 +67,9 @@ async function loadWorkspace() {
   error.value = undefined
   showError.value = false
   loading.value = true
+  canManage.value = undefined
+
+  if (!authenticated.value || status.value !== 'authenticated') return
 
   if (typeof key !== 'string' || !key) {
     error.value = {
@@ -51,6 +77,16 @@ async function loadWorkspace() {
       detail: 'A workspace key is required.',
     }
     showError.value = true
+    loading.value = false
+    return
+  }
+
+  canManage.value =
+    data.value?.claims?.some(
+      (claim) => claim.type === 'tenant_role' && claim.value === `${key}:Owner`,
+    ) ?? false
+
+  if (!canManage.value) {
     loading.value = false
     return
   }
@@ -103,7 +139,20 @@ async function handleWorkspaceDeleted() {
       <p class="mt-3 text-muted">Loading workspace...</p>
     </div>
 
-    <template v-else-if="workspace">
+    <!-- Access denied banner — shown only when permission is definitively false AND no problem details are set -->
+    <BaseAlert
+      v-else-if="canManage === false && !error"
+      variant="warning"
+      data-test-id="access-denied"
+    >
+      Access denied
+      <template #detail>
+        You do not have Manage rights on this workspace. Contact the workspace owner to request
+        access.
+      </template>
+    </BaseAlert>
+
+    <template v-else-if="canManage && workspace">
       <div class="row g-4">
         <div class="col-md-6">
           <section

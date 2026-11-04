@@ -100,6 +100,14 @@ committed deletion results, and the sample-data action.
 
 ## Route, Workspace Context, and Authorization
 
+The frontend waits for `useAuthenticationGuard` to confirm authentication before
+checking the JWT-derived `useAuth().data.claims`. A `tenant_role` claim whose
+value is exactly `{workspaceKey}:Owner` permits management of that route's
+workspace without a separate permission request. Route, authentication-status,
+and claim changes clear the prior page state and reevaluate access before
+fetching workspace details. While authentication is loading, show loading rather
+than access denied. Server operations continue to authorize using the JWT.
+
 The workspace key in the URL determines the workspace displayed and targeted by
 every action. Resolve the route key and verify the user's membership and Owner
 role before synchronizing the shared current-workspace preference or loading
