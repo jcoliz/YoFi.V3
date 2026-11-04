@@ -6,7 +6,7 @@
  * Designed to be used within the LoginState dropdown menu.
  */
 
-import { TenantClient, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
+import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 const userPreferencesStore = useUserPreferencesStore()
@@ -47,20 +47,6 @@ const otherWorkspaces = computed(() => {
   return workspaces.value.filter((w) => w.key !== currentKey)
 })
 
-function getRoleName(role: TenantRole | undefined): string {
-  if (!role) return 'Unknown'
-  switch (role) {
-    case TenantRole.Owner:
-      return 'Owner'
-    case TenantRole.Editor:
-      return 'Editor'
-    case TenantRole.Viewer:
-      return 'Viewer'
-    default:
-      return 'Unknown'
-  }
-}
-
 async function switchWorkspace(workspace: TenantRoleResultDto) {
   userPreferencesStore.setCurrentTenant(workspace)
   await navigateTo(window.location.pathname)
@@ -79,10 +65,7 @@ async function switchWorkspace(workspace: TenantRoleResultDto) {
       class="workspace-current mb-2 p-2 bg-light rounded"
     >
       <div class="d-flex align-items-center justify-content-between">
-        <div>
-          <div class="fw-semibold">{{ currentWorkspace.name }}</div>
-          <small class="text-muted">{{ getRoleName(currentWorkspace.role) }}</small>
-        </div>
+        <div class="fw-semibold">{{ currentWorkspace.name }}</div>
         <FeatherIcon
           icon="check"
           size="16"
