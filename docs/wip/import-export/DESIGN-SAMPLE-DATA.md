@@ -4,7 +4,7 @@ target_release: Alpha 1
 ado: Story 2223
 related_docs:
   - PRD-TENANT-DATA-ADMIN.md
-  - PRD-SIMPLE-DATA-ADMIN.md
+  - DESIGN-TENANT-DATA-ADMIN.md
   - DESIGN-BANK-IMPORT.md
   - DESIGN-MANAGE-WORKSPACE.md
 ---

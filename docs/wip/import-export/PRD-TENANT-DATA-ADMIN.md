@@ -17,6 +17,10 @@ Users need comprehensive capabilities to manage their complete tenant dataset th
 
 Users need a unified data administration feature supporting the complete lifecycle: import, export, bulk update, sample data loading, and complete deletion.
 
+This PRD supersedes [Simple Data Administration](PRD-SIMPLE-DATA-ADMIN.md).
+Implement needed capabilities directly in their intended final form; there is
+no intermediate developer-only YAML import/export phase.
+
 ---
 
 ## Goals & Non-Goals
@@ -35,6 +39,16 @@ Users need a unified data administration feature supporting the complete lifecyc
 - [ ] Maintain data integrity and referential integrity during all operations
 - [ ] Support bulk operations efficiently (hundreds to thousands of records)
 - [ ] Maintain tenant isolation during all operations
+
+### Administration Access and Counts
+
+- All data administration operations require the current workspace's Owner role,
+  enforced on the backend as well as in the UI.
+- Provide one shared operation returning supported entity types and their current,
+  unfiltered record counts. Query on page load and refresh after imports and
+  deletions, and when the current workspace changes.
+- Reuse these counts for destructive confirmation, including the sample-data
+  workflow; displayed counts do not guarantee the eventual deletion count.
 
 ### Non-Goals
 
@@ -267,11 +281,21 @@ Transactions have a special relationship with Splits (one-to-many):
 
 ### Key Components
 
-- New: `TenantDataAdminController` - API endpoints for import/export/delete
+- New: `TenantDataAdminController` - General administration endpoints for counts, import, export, and deletion under `/api/tenant/{tenantKey:guid}/admin`
+- Existing: `SampleDataController` - Retains scenario discovery, preview, append-only sample loading, and sample OFX download under `/api/tenant/{tenantKey:guid}/admin/sample-data`; do not expand it into general administration
 - New: `ImportExportFeature` - Business logic for XLSX processing
+- New: `TenantDataAdminFeature` - General administration orchestration for counts and deletion, separate from sample generation
 - New: Frontend page: `app/pages/data-administration.vue`
 - Library: XLSX processing (consider ClosedXML or EPPlus)
-- Sample data storage: `wwwroot/sample-data/`
+- Sample generation: Bundled scenario definitions and `SampleDataFeature`, as specified in [Design: Workspace Sample Data](DESIGN-SAMPLE-DATA.md)
+
+The unified administration UI composes these controllers; it does not require a
+single controller. General counts and deletion remain administration operations,
+including when used by the sample-data workflow. Application features may share
+tenant-scoped persistence helpers without depending on sample generation.
+
+See [Design: Tenant Data Administration](DESIGN-TENANT-DATA-ADMIN.md) for the
+endpoint sketch for final-form counts, XLSX import/export, and deletion.
 
 ### Entity Discovery Mechanism
 

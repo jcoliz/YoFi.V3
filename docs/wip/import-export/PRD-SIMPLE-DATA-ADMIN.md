@@ -1,5 +1,5 @@
 ---
-status: In Review # Draft | In Review | Approved | Implemented
+status: Superseded
 target_release: Alpha 1
 references:
     - PRD-TENANT-DATA-ADMIN.md
@@ -9,6 +9,8 @@ ado: [Link to ADO Item]
 ---
 
 # Product Requirements Document: Simple Data Administration
+
+> This PRD is superseded. We are moving straight to implementing the needed pieces in their final state.
 
 ## Problem Statement
 
