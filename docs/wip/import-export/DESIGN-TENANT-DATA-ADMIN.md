@@ -118,10 +118,11 @@ deletion. Final matching rules and the error contract remain technical design
 work. This name is a confirmation safeguard, not an authorization credential.
 
 The backend compares the supplied name exactly, including case and whitespace,
-against the current database value in the deletion transaction. A mismatch returns
-validation ProblemDetails (HTTP 400) without deleting data. Success returns
-committed counts for transactions, splits, payee matching rules, and pending
-import-review transactions.
+against the workspace name established in the current tenant context before
+starting the deletion transaction. A mismatch returns validation ProblemDetails
+(HTTP 400) without deleting data. A rename racing after this check does not cancel
+deletion. Success returns committed counts for transactions, splits, payee matching
+rules, and pending import-review transactions.
 
 Advise exporting a backup before deletion. Until complete export exists, do not
 show a dead button or imply a backup was created; explain that deletion cannot

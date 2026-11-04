@@ -9,6 +9,17 @@ namespace YoFi.V3.Entities.Tenancy.Providers;
 public interface ITenantRepository
 {
     /// <summary>
+    /// Runs a tenant-scoped persistence operation atomically, committing its result or rolling back on failure.
+    /// </summary>
+    /// <typeparam name="TResult">The operation result.</typeparam>
+    /// <param name="operation">Operation to execute within the transaction.</param>
+    /// <param name="cancellationToken">Token checked when starting and committing the transaction.</param>
+    /// <returns>The operation result after its transaction commits.</returns>
+    Task<TResult> ExecuteTenantTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new tenant to the repository.
     /// </summary>
     /// <param name="tenant">The tenant entity to add.</param>

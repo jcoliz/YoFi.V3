@@ -360,6 +360,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     #region ITenantRepository Implementation
 
     /// <inheritdoc />
+    async Task<TResult> ITenantRepository.ExecuteTenantTransactionAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> operation,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+        var result = await operation(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
+
+    /// <inheritdoc />
     async Task<Tenant> ITenantRepository.AddTenantAsync(Tenant tenant)
     {
         Tenants.Add(tenant);

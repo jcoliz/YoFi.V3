@@ -28,9 +28,10 @@ public static partial class ServiceCollectionExtensions
             options.EnableSensitiveDataLogging(false);
         });
 
-        services.AddScoped<IDataProvider, ApplicationDbContext>();
-        services.AddScoped<ITenantRepository, ApplicationDbContext>();
-        services.AddScoped<ITenantDataDeletionRepository, TenantDataDeletionRepository>();
+        services.AddScoped<IDataProvider>(serviceProvider =>
+            serviceProvider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<ITenantRepository>(serviceProvider =>
+            serviceProvider.GetRequiredService<ApplicationDbContext>());
 
         return services;
     }
