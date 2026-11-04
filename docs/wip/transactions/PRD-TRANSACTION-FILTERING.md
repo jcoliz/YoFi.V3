@@ -42,14 +42,13 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 **Acceptance Criteria**:
 
-- [ ] Single search bar always visible at top of transactions page
-- [ ] Searches across payee, split categories, split memos, transaction memo, and amount fields
-- [ ] When a transaction has multiple splits, match if ANY split matches the search criteria
-- [ ] Results update as user types (debounced)
-- [ ] Clear button (×) appears when text is present
+- [X] Single search bar always visible at top of transactions page
+- [X] Searches across payee, split categories, split memos, transaction memo, and amount fields
+- [ ] **DEFERRED** When a transaction has multiple splits, match if ANY split matches the search criteria -- Will defer until splits are implemented (See Scenario #2226)
+- [ ] **POSTPONED** Results update as user types (debounced) -- Will re-evaluate if this is needed after initial availability.
+- [X] Clear button (×) appears when text is present
 
 **Focused design**: [Story 2213: Transaction Quick Text Search](TRANSACTION-QUICK-SEARCH-DESIGN.md).
-
 
 ### Story 2214: User - Find Uncategorized Transactions
 

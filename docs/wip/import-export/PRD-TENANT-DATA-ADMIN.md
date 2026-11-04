@@ -22,6 +22,7 @@ Users need a unified data administration feature supporting the complete lifecyc
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] Provide **single unified Data Administration page** for all import/export operations
 - [ ] Enable **flexible export selection** - any combination of entity types with year/date filtering
 - [ ] Enable **automatic import detection** - system detects entity types in uploaded XLSX
@@ -36,6 +37,7 @@ Users need a unified data administration feature supporting the complete lifecyc
 - [ ] Maintain tenant isolation during all operations
 
 ### Non-Goals
+
 - Real-time sync with external systems (separate feature)
 - Import/export of attachments/files (require different handling)
 - Scheduled/automated exports
@@ -52,6 +54,7 @@ Users need a unified data administration feature supporting the complete lifecyc
 ### Single Unified Page Approach
 
 All data administration operations happen on one page:
+
 - **No separate pages per entity type** - User doesn't navigate to "Transactions Export" or "Payees Import"
 - **Flexible selection model** - User picks what they want (any combination)
 - **Intelligent defaults** - Typical use case is to export only transactions for current year, so that's the default.
@@ -60,6 +63,7 @@ All data administration operations happen on one page:
 ### Data-Agnostic Design
 
 The system works generically with any tenant entity types:
+
 - **Dynamic entity discovery** - System queries available entity types at runtime
 - **No hardcoded field lists** - Export includes all fields from entity schema
 - **Generic XLSX mapping** - Column headers match entity property names
@@ -68,6 +72,7 @@ The system works generically with any tenant entity types:
 ### Key-Based Create/Update Logic
 
 All XLSX imports use GUID Key matching to determine create vs. update:
+
 - **Key field is always included** in exports
 - **If imported record has a Key that matches existing record**: Update operation (edit existing)
 - **If imported record has no Key or Key doesn't match**: Insert operation (create new with new GUID)
@@ -77,6 +82,7 @@ All XLSX imports use GUID Key matching to determine create vs. update:
 ### XLSX Format Standard
 
 All imports and exports use XLSX format exclusively:
+
 - **Multi-worksheet support** - Single file can contain multiple entity types
 - **One worksheet per entity type** - Worksheet name matches entity type name
 - **Schema validation** - Column headers define expected fields
@@ -86,6 +92,7 @@ All imports and exports use XLSX format exclusively:
 ### Special Case: Transactions and Splits
 
 Transactions have a special relationship with Splits (one-to-many):
+
 - **Splits always exported with Transactions** - User doesn't select them separately
 - **Two worksheets in XLSX** - "Transactions" and "Splits" worksheets
 - **TransactionKey foreign key** - Splits reference parent transaction via Key
@@ -102,6 +109,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **So that** I can get exactly the data I need without downloading everything
 
 **Acceptance Criteria**:
+
 - [ ] User can navigate to Data Administration page (Settings or Workspace menu)
 - [ ] Export section displays checkboxes for each available entity type
 - [ ] System dynamically discovers entity types (not hardcoded list)
@@ -133,6 +141,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **So that** I don't have to specify what I'm importing
 
 **Acceptance Criteria**:
+
 - [ ] User can navigate to Data Administration page
 - [ ] Import section has file upload area (drag-and-drop or browse button)
 - [ ] User uploads XLSX file
@@ -164,6 +173,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **So that** I can exercise my "right to be forgotten" or reset my workspace
 
 **Acceptance Criteria**:
+
 - [ ] Data Administration page has "Delete All Data" button in danger zone section
 - [ ] System displays strong warning with confirmation dialog:
   - "⚠️ WARNING: This will permanently delete ALL your data"
@@ -183,6 +193,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **So that** I can explore features without manually entering data
 
 **Acceptance Criteria**:
+
 - [ ] Data Administration page (or "Getting Started" page) has "Load Sample Data" section
 - [ ] User can choose from pre-built sample datasets (e.g., "Personal Finance", "Family Budget", "Small Business")
 - [ ] System displays preview: "This will add approximately X records across Y entity types"
@@ -208,6 +219,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **So that** I can correct the issues and successfully import my data
 
 **Acceptance Criteria**:
+
 - [ ] System displays specific error messages during validation (worksheet name, row number, field name, error reason)
 - [ ] System continues processing valid rows when possible (partial success allowed)
 - [ ] User sees summary: "X records imported successfully, Y records failed"
@@ -222,12 +234,14 @@ Transactions have a special relationship with Splits (one-to-many):
 ## Dependencies & Constraints
 
 **Dependencies**:
+
 - Multi-tenancy framework must be fully functional (tenant isolation)
 - All entity types must implement `ITenantModel` interface for discovery
 - All entity types must have GUID Key property
 - Authentication/authorization must be working
 
 **Constraints**:
+
 - Must maintain tenant data isolation (users cannot import into other tenants)
 - Import/export operations should complete within reasonable time for typical file sizes (up to 10,000 records per entity)
 - Must handle UTF-8 encoding consistently
@@ -244,6 +258,7 @@ Transactions have a special relationship with Splits (one-to-many):
 ## Technical Approach
 
 ### Layers Affected
+
 - [x] Frontend (Vue/Nuxt) - Data Administration page
 - [x] Controllers (API endpoints) - Import/export/delete endpoints
 - [x] Application (Features/Business logic) - XLSX processing, entity discovery
@@ -251,6 +266,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - [x] Database (Queries) - Bulk operations, dependency ordering
 
 ### Key Components
+
 - New: `TenantDataAdminController` - API endpoints for import/export/delete
 - New: `ImportExportFeature` - Business logic for XLSX processing
 - New: Frontend page: `app/pages/data-administration.vue`
@@ -258,6 +274,7 @@ Transactions have a special relationship with Splits (one-to-many):
 - Sample data storage: `wwwroot/sample-data/`
 
 ### Entity Discovery Mechanism
+
 - Implementation will use the particular entity types available in the app.
 - For the future we could consider a dynamic approach, however adding new entities will be rare.
 
@@ -297,7 +314,8 @@ Transactions have a special relationship with Splits (one-to-many):
 This PRD intentionally avoids specifying exact entity types or field lists. The system discovers available entities at runtime and works generically with any tenant entity type. This makes the feature future-proof as new entities are added to the application.
 
 **YoFi V1 Reference**:
-The original YoFi V1 application (https://github.com/jcoliz/yofi) implemented import/export with hardcoded entity types. This V3 PRD modernizes with:
+The original YoFi V1 application (<https://github.com/jcoliz/yofi>) implemented import/export with hardcoded entity types. This V3 PRD modernizes with:
+
 - **Data-agnostic design** - Works with any entity type
 - **Single unified page** - One place for all operations
 - **Flexible selection model** - Any combination of entities
@@ -308,10 +326,12 @@ The original YoFi V1 application (https://github.com/jcoliz/yofi) implemented im
 
 **GDPR Compliance**:
 This feature addresses two key GDPR requirements:
+
 - **Right to Data Portability** (Article 20) - Complete data export in structured format
 - **Right to Erasure** (Article 17) - Complete data deletion on user request
 
 **Related Features**:
+
 - **Bank Import** (separate PRD) - Handles OFX/QFX import with review workflow
 - Entity type schemas are defined in their respective PRDs/design docs
 
@@ -328,6 +348,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 #### ✅ All user stories have clear acceptance criteria
 
 **All 5 stories have comprehensive, testable acceptance criteria:**
+
 - Story 1 (Export): 15 detailed criteria covering UI, file format, logging
 - Story 2 (Import): 17 criteria including validation, preview, error handling
 - Story 3 (Delete): 8 criteria with strong confirmation and logging requirements
@@ -337,6 +358,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 #### ✅ Open questions resolved or documented as design decisions
 
 **9 questions total:**
+
 - **5 resolved** with clear YES/NO decisions and rationale
 - **4 deferred** appropriately as implementation details or future considerations
 - All resolved questions include justification
@@ -344,6 +366,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 #### ✅ Technical approach indicates affected layers
 
 **Section added (lines 239-259):**
+
 - All 5 layers explicitly identified with checkboxes
 - Key components listed (controller, feature, service, frontend page)
 - XLSX library recommendations provided
@@ -353,6 +376,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 #### ✅ Existing code patterns and files referenced
 
 **Comprehensive references:**
+
 - YoFi V1 GitHub link with comparison of V3 improvements
 - Related PRD links (Bank Import, entity schemas)
 - GDPR article citations (Articles 17 and 20)
@@ -368,6 +392,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 **Implementation Flexibility**: The implementation is **NOT required** to use runtime entity discovery. Using a concrete list of known entity types (Transactions, Splits, Payees, Categories, BudgetTransactions, etc.) is perfectly reasonable and acceptable.
 
 **Rationale for Implementation Choice**:
+
 - **Simpler implementation** - Explicit entity handling is more straightforward
 - **Better type safety** - Compile-time checking of entity types
 - **Easier testing** - Known entity set is easier to test comprehensively
@@ -389,6 +414,7 @@ Reviewed [`docs/wip/import-export/PRD-TENANT-DATA-ADMIN.md`](docs/wip/import-exp
 4. ✅ **Code patterns referenced** - V1 implementation, related PRDs, and interface requirements noted
 
 **The PRD provides excellent balance**:
+
 - **Requirements are entity-agnostic** (no hardcoded entity names in acceptance criteria)
 - **Implementation is flexible** (can use concrete types without violating requirements)
 - **Documentation is clear** (Technical Approach section guides implementation choices)
