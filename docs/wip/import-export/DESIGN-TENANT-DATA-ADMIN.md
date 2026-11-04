@@ -117,6 +117,12 @@ to enforcing Owner authorization. A stale or incorrect name must not authorize
 deletion. Final matching rules and the error contract remain technical design
 work. This name is a confirmation safeguard, not an authorization credential.
 
+The backend compares the supplied name exactly, including case and whitespace,
+against the current database value in the deletion transaction. A mismatch returns
+validation ProblemDetails (HTTP 400) without deleting data. Success returns
+committed counts for transactions, splits, payee matching rules, and pending
+import-review transactions.
+
 Advise exporting a backup before deletion. Until complete export exists, do not
 show a dead button or imply a backup was created; explain that deletion cannot
 be undone. Export is optional, not a prerequisite or an automatic side effect.
