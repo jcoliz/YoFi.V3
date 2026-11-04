@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -220,6 +222,21 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         var content = paths.GetProperty($"{prefix}/ofx").GetProperty("get").GetProperty("responses").GetProperty("200").GetProperty("content");
         Assert.That(content.TryGetProperty("application/x-ofx", out _), Is.True, content.GetRawText());
         Assert.That(content.GetProperty("application/x-ofx").GetProperty("schema").GetProperty("format").GetString(), Is.EqualTo("binary"));
+    }
+
+    [TestCase("LogStarting")]
+    [TestCase("LogOk")]
+    [TestCase("LogFailed")]
+    public void LogMethods_CaptureCallerMemberNameAsLocation(string methodName)
+    {
+        var method = typeof(Controllers.SampleDataController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var location = method.GetParameters().Single(p => p.Name == "location");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(location.GetCustomAttribute<CallerMemberNameAttribute>(), Is.Not.Null);
+            Assert.That(location.HasDefaultValue, Is.True);
+            Assert.That(method.GetCustomAttribute<LoggerMessageAttribute>()!.Message, Does.StartWith("{Location}:"));
+        }
     }
 
     [Test]

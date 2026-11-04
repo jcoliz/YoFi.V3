@@ -38,8 +38,26 @@ public partial class SampleDataController(
     [HttpGet("scenarios")]
     [ProducesResponseType(typeof(IReadOnlyCollection<SampleScenarioDto>), StatusCodes.Status200OK)]
     public Task<IActionResult> GetScenarios(CancellationToken cancellationToken)
-        => ExecuteAsync(null, cancellationToken,
-            () => Task.FromResult<IActionResult>(Ok(sampleDataFeature.GetScenarios())));
+    {
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        LogStarting(actor, null, null, null, null);
+        var succeeded = false;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = sampleDataFeature.GetScenarios();
+            LogOk(actor, null, null, null, null, null, null);
+            succeeded = true;
+            return Task.FromResult<IActionResult>(Ok(result));
+        }
+        finally
+        {
+            if (!succeeded)
+            {
+                LogFailed(actor, null, null, null, null);
+            }
+        }
+    }
 
     /// <summary>Previews exact sample counts and the workspace's current transaction count without writing.</summary>
     /// <param name="request">Scenario ID, current revision, and explicit inclusive calendar dates.</param>
@@ -48,11 +66,30 @@ public partial class SampleDataController(
     [HttpPost("preview")]
     [ProducesResponseType(typeof(SampleDataPreviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> Preview(
+    public async Task<IActionResult> Preview(
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(request, cancellationToken,
-            async () => Ok(await sampleDataFeature.PreviewAsync(request)));
+    {
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        var succeeded = false;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await sampleDataFeature.PreviewAsync(request);
+            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
+                result.Counts.Transactions, result.Counts.PayeeMatchingRules);
+            succeeded = true;
+            return Ok(result);
+        }
+        finally
+        {
+            if (!succeeded)
+            {
+                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+            }
+        }
+    }
 
     /// <summary>Adds the whole sample dataset without clearing or updating existing workspace data.</summary>
     /// <param name="request">Scenario ID, current revision, and explicit inclusive calendar dates.</param>
@@ -66,11 +103,30 @@ public partial class SampleDataController(
     [HttpPost("load")]
     [ProducesResponseType(typeof(SampleDataLoadResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> Load(
+    public async Task<IActionResult> Load(
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(request, cancellationToken,
-            async () => Ok(await sampleDataFeature.LoadAsync(request, cancellationToken)));
+    {
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        var succeeded = false;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await sampleDataFeature.LoadAsync(request, cancellationToken);
+            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
+                result.Created.Transactions, result.Created.PayeeMatchingRules);
+            succeeded = true;
+            return Ok(result);
+        }
+        finally
+        {
+            if (!succeeded)
+            {
+                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+            }
+        }
+    }
 
     /// <summary>Downloads matching sample OFX for upload through the normal bank-import workflow.</summary>
     /// <param name="request">Query-bound scenario ID, current revision, and explicit inclusive YYYY-MM-DD dates.</param>
@@ -83,49 +139,36 @@ public partial class SampleDataController(
     public Task<IActionResult> DownloadOfx(
         [FromQuery] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(request, cancellationToken, () =>
-        {
-            var download = sampleDataFeature.DownloadOfx(request);
-            return Task.FromResult<IActionResult>(File(download.Stream, download.ContentType, download.FileName));
-        });
-
-    private async Task<IActionResult> ExecuteAsync(
-        SampleDataRequest? request,
-        CancellationToken cancellationToken,
-        Func<Task<IActionResult>> action,
-        [CallerMemberName] string operation = "")
     {
         var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
-        IActionResult? result = null;
+        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        var succeeded = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            result = await action();
-            return result;
+            var download = sampleDataFeature.DownloadOfx(request);
+            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate, null, null);
+            succeeded = true;
+            return Task.FromResult<IActionResult>(File(download.Stream, download.ContentType, download.FileName));
         }
         finally
         {
-            if (result == null)
+            if (!succeeded)
             {
-                LogFailed(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
-            }
-            else
-            {
-                var counts = result is ObjectResult { Value: SampleDataPreviewDto preview } ? preview.Counts
-                    : result is ObjectResult { Value: SampleDataLoadResultDto loaded } ? loaded.Created : null;
-                LogOk(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate,
-                    counts?.Transactions, counts?.PayeeMatchingRules);
+                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
             }
         }
     }
 
-    [LoggerMessage(1, LogLevel.Debug, "{Operation}: Starting Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogStarting(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogStarting(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate,
+        [CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Information, "{Operation}: OK Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
-    private partial void LogOk(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate, int? transactions, int? rules);
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
+    private partial void LogOk(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate, int? transactions, int? rules,
+        [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Warning, "{Operation}: Failed Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogFailed(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
+    [LoggerMessage(3, LogLevel.Warning, "{Location}: Failed Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogFailed(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate,
+        [CallerMemberName] string? location = null);
 }
