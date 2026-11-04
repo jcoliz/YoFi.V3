@@ -275,7 +275,7 @@ Application project
     Features/SampleDataFeature
         Catalog, preview, loading, OFX coordination
     Services/SampleDataGenerator
-        Definitions + range + seed -> generated records
+        Definitions + range -> generated records
     Services/SampleScenarioLoader
         Bundled TOML -> typed, validated scenario catalog
     Helpers/SampleOfxWriter
@@ -291,7 +291,7 @@ for every class.
 
 ### SampleDataGenerator
 
-Accept a validated scenario, explicit range, and scenario seed. Return an
+Accept a validated scenario and explicit range. Return an
 in-memory dataset containing transaction inputs and matching-rule inputs.
 No tenant context, database operations, HTTP dependencies, TOML parsing, or OFX
 serialization belong in the algorithm.
@@ -346,7 +346,6 @@ id = "personal-finance"
 revision = 1
 name = "Personal Finance"
 description = "Realistic household income and spending."
-seed = 42
 
 [[patterns]]
 id = "coffee"
@@ -418,22 +417,38 @@ Generation must be stable across overlapping ranges and independent of pattern
 ordering, request concurrency, or unrelated patterns. A single mutable random
 sequence seeded once per request is insufficient.
 
-Derive per-occurrence randomness from stable inputs: scenario ID/revision, seed,
-pattern ID, calendar year, period index, repeat index, and the random purpose
-(date, amount, or payee). Use a specified stable algorithm, not a process-randomized
-runtime hash. Persist no shared mutable year or random generator.
+No explicit seed is needed in scenario definitions, generator inputs, or API
+requests. Derive a pattern fingerprint by hashing a canonical representation of
+the parsed, generation-relevant properties: stable pattern ID, category, merchant
+alternatives, annual amount, frequency, repeats, and jitter settings. Specify
+property order, invariant decimal formatting, and unambiguous value boundaries.
+Preserve merchant-array order as part of the definition.
 
-Derive a stable synthetic ExternalId/FITID from the same occurrence identity.
-Include a sample namespace and stay within the existing 100-character limit.
+Hash parsed values, not the raw TOML text. Comments, whitespace, TOML property
+ordering, and scenario display metadata must not change the fingerprint.
+Scenario revision is not a randomness input: revising an unrelated pattern must
+not reshuffle this pattern's output.
+
+Derive each random choice from the pattern fingerprint, calendar year, period
+index, repeat index, and purpose (date, amount, or payee). Use a specified stable
+hash and deterministic mapping, not runtime `GetHashCode()` or a shared random
+sequence. Persist no shared mutable year or random generator.
+
+Derive a stable synthetic ExternalId/FITID from the scenario ID, pattern
+fingerprint, calendar year, period index, and repeat index, excluding random
+purpose. Include a sample namespace and stay within the existing 100-character limit.
 Direct load and OFX must use the same identity for the same occurrence.
 Overlapping OFX downloads therefore exercise existing duplicate detection.
+Changing generation-relevant pattern properties changes its fingerprint,
+generated history, and FITIDs. Files generated before and after that change
+represent distinct sample transactions rather than duplicates.
 
 Stable ExternalIds do not make direct sample loads idempotent: Keys are new on
 every load, and duplicate sample ExternalIds may intentionally exist after
 repeated loading. Explain this distinction in tests and UI messaging.
 
-Use a fixed scenario seed in the initial release; do not expose a randomization
-control. Carry scenario revision with preview/load/download inputs and reject
+Do not expose a randomization control. Carry scenario revision with
+preview/load/download inputs and reject
 stale revisions after deployment, asking the user to refresh the preview.
 Revision is internal scenario identity, not XLSX schema versioning.
 
@@ -489,7 +504,7 @@ are required initially.
 ## OFX Output
 
 Generate an OFX bank statement for one synthetic checking account using the same
-scenario, seed, revision, recurrence, merchant text, amounts, and occurrence IDs.
+scenario definitions, recurrence, merchant text, amounts, and occurrence IDs.
 Use synthetic institution/account metadata only.
 
 Keep the writer separate from the generator. Inspect existing library writing
@@ -571,6 +586,10 @@ generated financial records.
 - Recurrence counts and repeats; annual amounts are not multiplied accidentally.
 - Jitter bounds, sign preservation, rounding, and no zero-valued output.
 - Overlapping-range equality, pattern-reorder stability, and parallel generation.
+- Fingerprints remain unchanged by TOML formatting, comments, property ordering,
+  display metadata, or unrelated pattern/revision changes.
+- Generation-relevant pattern edits change its fingerprint and FITIDs without
+  affecting unrelated patterns.
 - Stable IDs across preview/load/OFX for the same scenario revision.
 - Matching-rule coverage of all merchant alternatives.
 
