@@ -29,6 +29,7 @@ const pageScript = compileFile('pages/workspaces/index.vue')
 const manageScript = compileFile('pages/workspaces/[key].vue')
 const selectorScript = compileFile('components/workspace/Selector.vue')
 const copyScript = compileFile('components/workspace/CopyKeyButton.vue')
+const cardTitleScript = compileFile('components/CardTitle.vue')
 const roles = { Owner: 1, Editor: 2, Viewer: 3 }
 
 function node(type, text = '') {
@@ -137,6 +138,9 @@ async function mount(
 
   const root = node('root')
   const app = renderer.createApp(exports.default)
+  const cardTitleExports = {}
+  new Function('require', 'exports', cardTitleScript)(require, cardTitleExports)
+  app.component('CardTitle', cardTitleExports.default)
   const copyExports = {}
   const copyGlobals = { ref, watch, onBeforeUnmount, navigator: { clipboard } }
   new Function('require', 'exports', ...Object.keys(copyGlobals), copyScript)(

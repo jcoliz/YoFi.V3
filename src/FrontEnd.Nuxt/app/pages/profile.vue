@@ -297,7 +297,7 @@ useAuthenticationGuard().requireAuthenticatedUser()
             data-test-id="ManageWorkspaces"
           >
             <i class="bi bi-building me-1" />
-            Manage Workspaces
+            View Workspaces
           </NuxtLink>
           <hr />
           <button

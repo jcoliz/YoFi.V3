@@ -80,7 +80,13 @@ async function handleWorkspaceDeleted() {
 <template>
   <div class="container py-4">
     <PageBreadcrumb />
-    <h1 data-test-id="page-heading">Manage Workspace</h1>
+    <h1
+      v-if="workspace?.name !== undefined"
+      data-test-id="page-heading"
+      class="mb-3"
+    >
+      {{ workspace.name }}
+    </h1>
 
     <ErrorDisplay
       v-model:show="showError"
@@ -98,66 +104,84 @@ async function handleWorkspaceDeleted() {
     </div>
 
     <template v-else-if="workspace">
-      <h2
-        class="h4 mb-4"
-        data-test-id="workspace-name"
-      >
-        {{ workspace.name }}
-      </h2>
-      <section
-        class="card"
-        aria-labelledby="workspace-settings-heading"
-      >
-        <div class="card-body">
-          <h2
-            id="workspace-settings-heading"
-            class="h5 mb-3"
+      <div class="row g-4">
+        <div class="col-md-6">
+          <section
+            class="card h-100"
+            aria-labelledby="workspace-settings-heading"
           >
-            Workspace settings
-          </h2>
-          <WorkspaceEditPane
-            v-if="editing"
-            :workspace="workspace"
-            @cancel="editing = false"
-            @updated="loadWorkspace"
-            @update:busy="busy = $event"
-          />
-          <template v-else>
-            <p data-test-id="workspace-description">
-              {{ workspace.description || 'No description' }}
-            </p>
-            <p>
-              <strong>Key:</strong>
-              <code data-test-id="workspace-key">{{ workspace.key }}</code>
-              <WorkspaceCopyKeyButton
-                v-if="workspace.key"
-                :workspace-key="workspace.key"
-                compact
-                class="ms-2"
+            <div class="card-body">
+              <CardTitle
+                id="workspace-settings-heading"
+                class="mb-3"
+                title="Workspace Settings"
+                subtitle="View and edit your workspace's properties."
               />
-            </p>
-            <button
-              class="btn btn-outline-primary"
-              :disabled="busy"
-              data-test-id="edit-workspace-button"
-              @click="editing = true"
-            >
-              Edit Workspace
-            </button>
-          </template>
-          <hr />
-          <h3 class="h6">Delete Workspace</h3>
-          <p>Delete the workspace itself. This action cannot be undone.</p>
-          <button
-            class="btn btn-outline-danger"
-            :disabled="busy"
-            data-test-id="delete-workspace-button"
-            @click="showDeleteModal = true"
-          >
-            Delete Workspace
-          </button>
+              <WorkspaceEditPane
+                v-if="editing"
+                :workspace="workspace"
+                @cancel="editing = false"
+                @updated="loadWorkspace"
+                @update:busy="busy = $event"
+              />
+              <template v-else>
+                <p>
+                  <strong>Name:</strong>&nbsp;
+                  <span data-test-id="workspace-settings-name">{{ workspace.name }}</span>
+                </p>
+                <p>
+                  <strong>Description:</strong>&nbsp;
+                  <span data-test-id="workspace-description">
+                    {{ workspace.description || 'No description' }}
+                  </span>
+                </p>
+                <p>
+                  <strong>Key:</strong>&nbsp;
+                  <code data-test-id="workspace-key">{{ workspace.key }}</code>
+                  <WorkspaceCopyKeyButton
+                    v-if="workspace.key"
+                    :workspace-key="workspace.key"
+                    compact
+                    class="ms-2"
+                  />
+                </p>
+                <button
+                  class="btn btn-outline-primary"
+                  :disabled="busy"
+                  data-test-id="edit-workspace-button"
+                  @click="editing = true"
+                >
+                  Edit Workspace
+                </button>
+              </template>
+            </div>
+          </section>
         </div>
-      </section>
+
+        <div class="col-md-6">
+          <section
+            class="card h-100"
+            aria-labelledby="delete-workspace-heading"
+          >
+            <div class="card-body">
+              <CardTitle
+                id="delete-workspace-heading"
+                class="mb-3"
+                title="Delete Workspace"
+                subtitle="Delete the workspace itself. This action cannot be undone."
+              />
+              <button
+                class="btn btn-outline-danger"
+                :disabled="busy"
+                data-test-id="delete-workspace-button"
+                @click="showDeleteModal = true"
+              >
+                Delete Workspace
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
 
       <WorkspaceDeleteModal
         v-model:show="showDeleteModal"

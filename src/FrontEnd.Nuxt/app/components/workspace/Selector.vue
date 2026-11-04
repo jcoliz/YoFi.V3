@@ -273,7 +273,7 @@ defineExpose({
                 size="14"
                 class="me-1"
               />
-              Manage Workspaces
+              All Workspaces
             </NuxtLink>
           </div>
         </div>
