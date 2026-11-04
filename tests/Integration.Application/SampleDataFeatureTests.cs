@@ -20,7 +20,11 @@ public class SampleDataFeatureTests : FeatureTestBase
     private SampleDataFeature _feature = null!;
     private DataImportService _importer = null!;
     private TestTenantProvider _tenantProvider = null!;
-    private static SampleDataRequest Request => new("personal-finance", 1, new(2024, 1, 1), new(2024, 1, 31));
+    private SampleDataRequest Request => new(
+        "personal-finance",
+        _feature.GetScenarios().Single(s => s.Id == "personal-finance").Revision,
+        new(2024, 1, 1),
+        new(2024, 1, 31));
 
     [SetUp]
     public new async Task SetUp()
