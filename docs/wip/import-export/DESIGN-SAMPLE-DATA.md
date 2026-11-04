@@ -6,6 +6,7 @@ related_docs:
   - PRD-TENANT-DATA-ADMIN.md
   - PRD-SIMPLE-DATA-ADMIN.md
   - DESIGN-BANK-IMPORT.md
+  - DESIGN-MANAGE-WORKSPACE.md
 ---
 
 # Design: Workspace Sample Data
@@ -23,10 +24,13 @@ recurrence, merchant alternatives, and amount/date variability, without retainin
 its dependency on periodically regenerated, dated files.
 
 This document designs sample data and its entry into Data Administration,
-including a temporary development/testing workspace reset within the sample-loading workflow.
-It does not fully design the general administration surfaces for Stories
-2220-2222 and 2224. The temporary reset is not a production implementation of
-Story 2222 and will be removed from this flow when that story is implemented.
+including a temporary development/testing workspace reset within the
+sample-loading workflow. The sample-data experience is hosted by the
+[Manage Workspace page](./DESIGN-MANAGE-WORKSPACE.md) at
+`/workspaces/{workspaceKey}`. That design covers page navigation, workspace
+settings, and Owner-only access; this document covers the sample-data feature.
+The temporary reset is not a production implementation of Story 2222 and will
+be removed from this flow when that story is implemented.
 
 ## Decisions
 
@@ -35,7 +39,7 @@ Story 2222 and will be removed from this flow when that story is implemented.
 | Generation | Generate records in the running app from bundled, curated definitions |
 | Definitions | TOML, not XLSX and not application configuration |
 | Location | Application service for generation; Application feature for orchestration |
-| Authorization | Workspace Owner required for the entire Data Administration page and its sample endpoints |
+| Authorization | Workspace Owner required for sample-data actions and endpoints; the Manage Workspace page is Owner-only |
 | Initial catalog | One Personal Finance scenario; retain a scenario selector for later additions |
 | Loading | Load the whole scenario at once; no entity-type selection |
 | Existing data | Preserve by default; after choosing sample import, users with existing transactions may separately confirm deletion of all workspace data |
@@ -43,8 +47,8 @@ Story 2222 and will be removed from this flow when that story is implemented.
 | Current entities | Transactions and payee matching rules |
 | Paychecks | One net-pay transaction per paycheck, not a breakdown of deductions |
 | Budgets | Deferred |
-| Navigation | Manage Data action on workspace cards; workspace selector on destination page |
-| Route identity | Workspace key in the URL, synchronized with the current-workspace preference |
+| Navigation | Sample data is available on the Manage Workspace page |
+| Route identity | See [DESIGN-MANAGE-WORKSPACE.md](./DESIGN-MANAGE-WORKSPACE.md) |
 | XLSX | ClosedXML preferred for the separate general import/export work; not needed by sample generation |
 | Offline tooling | Optional future consumer of the same generator, not a production refresh dependency |
 
@@ -76,34 +80,14 @@ behavior are not part of this implementation.
 
 ## User Experience
 
-### Entry and workspace identity
+### Manage Workspace page
 
-Add an Owner-only **Manage Data** action to each workspace card on
-[workspaces.vue](../../../src/FrontEnd.Nuxt/app/pages/workspaces.vue).
-It navigates to the proposed route:
-
-`/workspaces/{workspaceKey}/data-administration`
-
-The corresponding Nuxt page is proposed as
-`app/pages/workspaces/[workspaceKey]/data-administration.vue`. Verify coexistence
-with the existing workspaces page during implementation.
-
-The clicked card determines the workspace even when a different workspace was
-previously selected. Validate membership before synchronizing the shared
-current-workspace preference. Do not silently substitute another workspace when
-the route key is invalid, unavailable, or unauthorized.
-
-Reuse [WorkspaceSelector](../../../src/FrontEnd.Nuxt/app/components/workspace/Selector.vue),
-extending it only as necessary to coordinate route changes and block selection
-before its global-store mutation when an operation is pending.
-Changing this selector also changes the application-wide workspace, as it does
-elsewhere. The URL is authoritative for operations on this page; browser
-Back/Forward must synchronize the selector and page context.
-
-Display **Data Administration - {workspace name}** prominently. Editors and
-Viewers cannot use the page. If the shared selector selects a workspace where
-the user is not Owner, show an access-denied state with the selector still
-available; do not retain actions or results from the previous workspace.
+The sample-data section is part of the Owner-only
+[Manage Workspace page](./DESIGN-MANAGE-WORKSPACE.md), at
+`/workspaces/{workspaceKey}`. Workspace-card navigation, workspace settings,
+workspace switching, and page-level authorization are specified in that
+design. The sample-data-specific empty-state entry and workflow are described
+below.
 
 ### Transactions empty-state entry
 
@@ -120,10 +104,10 @@ Owner-only sample administration must not narrow existing Editor permissions
 to create transactions.
 
 The sample action navigates to
-`/workspaces/{currentWorkspaceKey}/data-administration`. It does not import data,
-start the sample-import confirmation workflow, or offer the temporary reset.
-The user must still choose **Load Sample Data** on the destination page and
-confirm the import there.
+`/workspaces/{currentWorkspaceKey}` and opens the sample-data section of Manage
+Workspace. It does not import data, start the sample-import confirmation
+workflow, or offer the temporary reset. The user must still choose **Load
+Sample Data** and confirm the import there.
 
 Determine eligibility from the workspace's actual transaction count, not just
 an empty visible page or filtered result. Do not show the prompt merely because
@@ -623,10 +607,11 @@ scenarios.
 - Owner succeeds; Editor, Viewer, nonmember, and unauthenticated access fail.
 - Production never offers the temporary reset and rejects direct reset requests,
   including requests from an Owner; normal sample loading remains available.
-- Card B opens workspace B even when A was previously current.
-- Selector, refresh, and Back/Forward keep route/store/operation targets aligned.
-- Unauthorized workspace selection and invalid keys do not fall back silently.
-- Switching clears state; pending writes cannot be retargeted.
+- Manage Workspace navigation and workspace context follow
+  [DESIGN-MANAGE-WORKSPACE.md](./DESIGN-MANAGE-WORKSPACE.md).
+- Clicking the empty-state prompt opens the current workspace's sample-data
+  section without loading data or entering the sample-import/reset confirmation
+  flow.
 - Full-set preview, duplicate warning, confirmation, and created counts.
 - Transactions empty-state sample prompt matches the Payee Rules inbox pattern
   and is visible only to Owners of genuinely empty workspaces.
@@ -679,8 +664,8 @@ Scenario: Explore a workspace with realistic sample data
 ```gherkin
 Scenario: Load sample data into the workspace I select
   Given I own workspaces named Home and Practice
-  And I am administering Practice after opening Manage Data from its workspace card
-  When I select Home in the workspace selector
+  And I am managing Practice from its Manage Workspace page
+  When I switch to Home
   And I choose and confirm loading Personal Finance sample data
   Then I see the sample data in Home
   And the contents of Practice are unchanged
@@ -745,8 +730,9 @@ and concurrent requests. Set generation limits from those results before release
    separate atomic workspace-data deletion operation.
 5. Implement OFX output and round-trip tests through the current bank importer.
 6. Add Owner-only endpoints and generated client contracts.
-7. Add card and Transactions empty-state entries, route/selector synchronization,
-   and sample section.
+7. Add the sample-data section to Manage Workspace and the Transactions
+   empty-state entry. Follow DESIGN-MANAGE-WORKSPACE.md for page navigation and
+   workspace-context behavior.
 8. Validate authorization, workspace transitions, repeats, and resource limits.
 
 No sample-related XLSX dependency is required for these steps.
@@ -784,15 +770,15 @@ must never depend on someone rerunning it to refresh calendar dates.
 
 When Story 2222 introduces workspace data deletion, remove the temporary delete
 option from sample loading and retire its temporary endpoint/confirmation
-contract. Users will delete data through the dedicated administration flow,
-with Story 2222's production safeguards, then load sample data separately.
-The temporary sample-flow reset must never ship to production.
-Internal deletion logic may be reused where appropriate.
+contract. Users will delete data through the tenant-data administration
+capability on the Manage Workspace page, with Story 2222's production
+safeguards, then load sample data separately. The temporary sample-flow reset
+must never ship to production. Internal deletion logic may be reused where
+appropriate.
 
-The page can acquire general XLSX import/export through their own story designs.
-This story does not expose a standalone delete action outside the temporary
-development/testing workflow. ClosedXML is the preferred XLSX choice discussed so
-far; isolate it at file-processing boundaries and explicitly avoid formula
+The Manage Workspace page can acquire general XLSX import/export through their
+own story designs. ClosedXML is the preferred XLSX choice discussed so far;
+isolate it at file-processing boundaries and explicitly avoid formula
 evaluation. It is unrelated to TOML scenario loading.
 
 ## Open Implementation Decisions
