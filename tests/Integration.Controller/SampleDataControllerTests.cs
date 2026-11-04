@@ -23,7 +23,6 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     protected override TenantRole DefaultRole => TenantRole.Owner;
     private string BaseUrl => $"/api/tenant/{_testTenantKey}/admin/sample-data";
     private static SampleDataRequest Request => new("personal-finance", 2, new(2026, 1, 1), new(2026, 1, 31));
-    private const string Query = "?scenarioId=personal-finance&revision=2&startDate=2026-01-01&endDate=2026-01-31";
 
     [SetUp]
     public void SetUp() => SwitchToOwner();
@@ -70,7 +69,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     [Test]
     public async Task Ofx_AsOwner_ReturnsNamedParseableAttachmentAndPreservesDateOnlyInputs()
     {
-        var response = await _client.GetAsync($"{BaseUrl}/ofx{Query}");
+        var response = await _client.PostAsJsonAsync($"{BaseUrl}/ofx", Request);
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(response.Content.Headers.ContentType!.MediaType, Is.EqualTo("application/x-ofx"));
         Assert.That(response.Content.Headers.ContentDisposition!.DispositionType, Is.EqualTo("attachment"));
@@ -109,9 +108,9 @@ public class SampleDataControllerTests : AuthenticatedTestBase
             "nonmember" => _factory.CreateAuthenticatedClient(Guid.NewGuid(), TenantRole.Owner),
             _ => _factory.CreateClient()
         };
-        var response = endpoint is "preview" or "load"
+        var response = endpoint is "preview" or "load" or "ofx"
             ? await client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", Request)
-            : await client.GetAsync($"{BaseUrl}/{endpoint}{(endpoint == "ofx" ? Query : "")}");
+            : await client.GetAsync($"{BaseUrl}/{endpoint}");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
         var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.That(problem!.Status, Is.EqualTo(403));
@@ -119,19 +118,22 @@ public class SampleDataControllerTests : AuthenticatedTestBase
 
     [TestCase("preview")]
     [TestCase("load")]
+    [TestCase("ofx")]
     public async Task MissingDates_Return400ProblemDetailsWithoutDefaults(string endpoint)
     {
         var response = await _client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", new { scenarioId = "personal-finance", revision = 2 });
         await AssertBadRequest(response);
     }
 
-    [TestCase("")]
-    [TestCase("?scenarioId=personal-finance&revision=1")]
-    [TestCase("?scenarioId=personal-finance&revision=1&startDate=2026-01-01")]
-    [TestCase("?scenarioId=personal-finance&revision=1&startDate=2026-01-01&endDate=not-a-date")]
-    public async Task MissingOrMalformedOfxDates_Return400ProblemDetails(string query)
+    [TestCase("{}")]
+    [TestCase("{\"scenarioId\":\"personal-finance\",\"revision\":1}")]
+    [TestCase("{\"scenarioId\":\"personal-finance\",\"revision\":1,\"startDate\":\"2026-01-01\"}")]
+    [TestCase("{\"scenarioId\":\"personal-finance\",\"revision\":1,\"startDate\":\"2026-01-01\",\"endDate\":\"not-a-date\"}")]
+    [TestCase("{\"scenarioId\":\"personal-finance\",\"revision\":1,\"startDate\":\"2026-01-01T08:00:00.000Z\",\"endDate\":\"2026-01-31\"}")]
+    public async Task MissingOrMalformedOfxDates_Return400ProblemDetails(string json)
     {
-        var response = await _client.GetAsync($"{BaseUrl}/ofx{query}");
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _client.PostAsync($"{BaseUrl}/ofx", content);
         await AssertBadRequest(response);
     }
 
@@ -150,14 +152,13 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     public async Task InvalidGenerationInputs_Return400ProblemDetails(string endpoint, string scenario, int revision, string start, string end)
     {
         var request = new SampleDataRequest(scenario, revision, DateOnly.Parse(start), DateOnly.Parse(end));
-        var response = endpoint == "ofx"
-            ? await _client.GetAsync($"{BaseUrl}/ofx?scenarioId={scenario}&revision={revision}&startDate={start}&endDate={end}")
-            : await _client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", request);
+        var response = await _client.PostAsJsonAsync($"{BaseUrl}/{endpoint}", request);
         await AssertBadRequest(response);
     }
 
     [TestCase("preview", "null")]
     [TestCase("load", "null")]
+    [TestCase("ofx", "null")]
     [TestCase("preview", "{\"scenarioId\":\"personal-finance\",\"revision\":1,\"startDate\":\"invalid\",\"endDate\":\"2026-01-31\"}")]
     [TestCase("load", "{\"scenarioId\":\"personal-finance\",\"revision\":1,\"startDate\":\"invalid\",\"endDate\":\"2026-01-31\"}")]
     public async Task MalformedBody_Returns400ProblemDetails(string endpoint, string json)
@@ -213,13 +214,13 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var paths = document.RootElement.GetProperty("paths");
         const string prefix = "/api/tenant/{tenantKey}/admin/sample-data";
-        foreach (var (suffix, method) in new[] { ("scenarios", "get"), ("preview", "post"), ("load", "post"), ("ofx", "get") })
+        foreach (var (suffix, method) in new[] { ("scenarios", "get"), ("preview", "post"), ("load", "post"), ("ofx", "post") })
         {
             var operation = paths.GetProperty($"{prefix}/{suffix}").GetProperty(method);
             Assert.That(operation.GetProperty("responses").TryGetProperty("200", out _), Is.True);
             Assert.That(operation.TryGetProperty("security", out _), Is.True);
         }
-        var content = paths.GetProperty($"{prefix}/ofx").GetProperty("get").GetProperty("responses").GetProperty("200").GetProperty("content");
+        var content = paths.GetProperty($"{prefix}/ofx").GetProperty("post").GetProperty("responses").GetProperty("200").GetProperty("content");
         Assert.That(content.TryGetProperty("application/x-ofx", out _), Is.True, content.GetRawText());
         Assert.That(content.GetProperty("application/x-ofx").GetProperty("schema").GetProperty("format").GetString(), Is.EqualTo("binary"));
     }

@@ -7,7 +7,6 @@
  * re-key this component when the target workspace changes.
  */
 import {
-  ApiException,
   SampleDataClient,
   SampleDataRequest,
   type SampleDataLoadResultDto,
@@ -35,8 +34,6 @@ const emit = defineEmits<{
 }>()
 
 const sampleDataClient = useApiClient(SampleDataClient)
-const { baseUrl } = useApiBaseUrl()
-const authFetch = useAuthFetch()
 
 const defaults = defaultSampleDataDateRanges()
 const historicalStart = ref(defaults.historicalStart)
@@ -213,60 +210,21 @@ async function loadSampleData() {
   }
 }
 
-function fileNameFrom(contentDisposition: string | null): string | undefined {
-  if (!contentDisposition) return undefined
-  const encoded = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(contentDisposition)
-  if (encoded?.[1]) return decodeURIComponent(encoded[1].replace(/"/g, ''))
-  const plain = /filename="?([^";]+)"?/i.exec(contentDisposition)
-  return plain?.[1]
-}
-
-/**
- * Downloads sample OFX data.
- *
- * Calls the endpoint directly rather than through the generated client, which
- * serializes date-only query parameters as UTC timestamps instead of "yyyy-MM-dd".
- */
 async function downloadOfx() {
   if (downloading.value || ofxRangeError.value) return
 
   const workspaceKey = props.workspace.key
-  const scenario = selectedScenario.value
-  if (!workspaceKey || !scenario?.id || scenario.revision === undefined) return
-
-  const query = new URLSearchParams({
-    ScenarioId: scenario.id,
-    Revision: String(scenario.revision),
-    StartDate: ofxStart.value,
-    EndDate: ofxEnd.value,
-  })
-  const url = `${baseUrl}/api/tenant/${encodeURIComponent(workspaceKey)}/admin/sample-data/ofx?${query}`
+  const request = buildRequest(ofxStart.value, ofxEnd.value)
+  if (!workspaceKey || !request) return
 
   downloading.value = true
   emit('update:busy', true)
 
   try {
-    const response = await authFetch.fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/octet-stream' },
-    })
-    if (!response.ok) {
-      const headers: Record<string, string> = {}
-      response.headers.forEach((value, key) => (headers[key] = value))
-      throw new ApiException(
-        'A server side error occurred.',
-        response.status,
-        await response.text(),
-        headers,
-        null,
-      )
-    }
-
-    const blob = await response.blob()
+    const response = await sampleDataClient.downloadOfx(workspaceKey, request)
     const fileName =
-      fileNameFrom(response.headers.get('content-disposition')) ??
-      `sample-${scenario.id}-${ofxStart.value}-${ofxEnd.value}.ofx`
-    const objectUrl = URL.createObjectURL(blob)
+      response.fileName ?? `sample-${request.scenarioId}-${ofxStart.value}-${ofxEnd.value}.ofx`
+    const objectUrl = URL.createObjectURL(response.data)
     const link = document.createElement('a')
     link.href = objectUrl
     link.download = fileName

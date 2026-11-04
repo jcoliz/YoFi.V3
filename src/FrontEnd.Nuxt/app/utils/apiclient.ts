@@ -1624,34 +1624,23 @@ export class SampleDataClient {
 
     /**
      * Downloads matching sample OFX for upload through the normal bank-import workflow.
-     * @param scenarioId (optional) 
-     * @param revision (optional) 
-     * @param startDate (optional) 
-     * @param endDate (optional) 
+     * @param request Scenario ID, current revision, and explicit inclusive calendar dates.
      * @return An OFX attachment named for the scenario and requested dates, without category assignments.
      */
-    downloadOfx(scenarioId: string | undefined, revision: number | undefined, startDate: Date | null | undefined, endDate: Date | null | undefined, tenantKey: string): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/ofx?";
+    downloadOfx(tenantKey: string, request: SampleDataRequest): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/ofx";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
-        if (scenarioId === null)
-            throw new globalThis.Error("The parameter 'scenarioId' cannot be null.");
-        else if (scenarioId !== undefined)
-            url_ += "ScenarioId=" + encodeURIComponent("" + scenarioId) + "&";
-        if (revision === null)
-            throw new globalThis.Error("The parameter 'revision' cannot be null.");
-        else if (revision !== undefined)
-            url_ += "Revision=" + encodeURIComponent("" + revision) + "&";
-        if (startDate !== undefined && startDate !== null)
-            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
-        if (endDate !== undefined && endDate !== null)
-            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(request);
+
         let options_: RequestInit = {
-            method: "GET",
+            body: content_,
+            method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Accept": "application/octet-stream"
             }
         };

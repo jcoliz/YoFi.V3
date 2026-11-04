@@ -541,7 +541,12 @@ middleware. The scenario catalog is exposed through this same authorized boundar
 | GET | `/scenarios` | Catalog, supported entity types, and revisions; date defaults are frontend-owned |
 | POST | `/preview` | Exact counts for scenario/revision and historical date range |
 | POST | `/load` | Create the complete dataset for the selected range |
-| GET | `/ofx` | Download OFX for scenario/revision and requested OFX range |
+| POST | `/ofx` | Download OFX for scenario/revision and requested OFX range |
+
+OFX download is a POST with the same JSON request body as preview and load,
+even though it does not change data. The generated TypeScript client serializes
+date-only query parameters as UTC timestamps, but serializes date-only body
+fields as `YYYY-MM-DD`.
 
 Use generated API client contracts and explicit request/response DTOs. Preview
 returns the resolved inputs plus per-type and total counts; load returns the

@@ -125,15 +125,20 @@ public partial class SampleDataController(
     }
 
     /// <summary>Downloads matching sample OFX for upload through the normal bank-import workflow.</summary>
-    /// <param name="request">Query-bound scenario ID, current revision, and explicit inclusive YYYY-MM-DD dates.</param>
+    /// <param name="request">Scenario ID, current revision, and explicit inclusive calendar dates.</param>
     /// <param name="cancellationToken">Request cancellation token checked before generation starts.</param>
     /// <returns>An OFX attachment named for the scenario and requested dates, without category assignments.</returns>
-    [HttpGet("ofx")]
+    /// <remarks>
+    /// This is a POST, although it does not write, so the dates travel as JSON date-only
+    /// values. Generated clients serialize date query parameters as UTC instants, which
+    /// can shift the calendar day.
+    /// </remarks>
+    [HttpPost("ofx")]
     [Produces("application/x-ofx")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, "application/x-ofx")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> DownloadOfx(
-        [FromQuery] SampleDataRequest request,
+        [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
     {
         LogStarting(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
