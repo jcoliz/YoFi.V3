@@ -12,7 +12,7 @@
     ".json": "application/json"
   },
   "navigationFallback": {
-    "rewrite": "/index.html",
+    "rewrite": "/200.html",
     "exclude": ["/health"]
   }
 }

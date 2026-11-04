@@ -247,8 +247,10 @@ docker compose -f docker/docker-compose-ci.yml up
 **Solution:** This is handled by the Nginx configuration. Verify [`nginx.conf`](nginx.conf) includes:
 
 ```nginx
-try_files $uri $uri/ /index.html;
+try_files $uri $uri/index.html /200.html;
 ```
+
+The fallback must be `/200.html` (Nuxt's SPA shell), not `/index.html`. `index.html` is the prerendered home page, so dynamic routes like `/workspaces/<key>` would be redirected to `/`.
 
 ### Authentication Not Working
 

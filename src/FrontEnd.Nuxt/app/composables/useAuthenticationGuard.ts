@@ -74,7 +74,7 @@ export function useAuthenticationGuard() {
 
   // Set minimumLevel: 'debug' to re-enable extensive debug logging here if needed
   // for some future problem.
-  const { logger } = useDebugLog('AuthenticationGuard', { minimumLevel: 'info' })
+  const { logger } = useDebugLog('AuthenticationGuard', { minimumLevel: 'debug' })
 
   const redirectToLogin = (redirect?: string) => {
     if (redirect) {

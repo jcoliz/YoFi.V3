@@ -12,6 +12,7 @@ import type { IProblemDetails } from '~/utils/apiclient'
 definePageMeta({
   title: 'Login',
   layout: 'blank',
+  name: 'login',
   auth: false, // Using login-redirect middleware instead
 })
 
