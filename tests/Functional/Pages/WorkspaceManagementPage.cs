@@ -25,6 +25,8 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator DeleteSubmitButton => DeleteModal.GetByTestId("delete-submit-button");
     public ILocator DeleteCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
     public ILocator DeletingWorkspaceName => DeleteModal.GetByTestId("deleting-workspace-name");
+    public ILocator DeleteConfirmationName => DeleteModal.GetByTestId("confirmation-workspace-name");
+    public ILocator DeleteConfirmationInput => DeleteModal.GetByTestId("confirmation-name-input");
     public ILocator AccessDenied => Page.GetByTestId("access-denied");
     public ILocator AccessDeniedTitle => AccessDenied.GetByTestId("title");
     public ILocator LoadingState => Page.GetByTestId("loading-state");
@@ -89,6 +91,13 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public async Task DeleteWorkspaceAsync()
     {
         await OpenDeleteModalAsync();
+
+        // Deletion stays disabled until the exact workspace name is typed
+        await Assertions.Expect(DeleteSubmitButton).ToBeDisabledAsync();
+        var workspaceName = await DeleteConfirmationName.TextContentAsync() ?? string.Empty;
+        await DeleteConfirmationInput.FillAsync(workspaceName);
+        await Assertions.Expect(DeleteSubmitButton).ToBeEnabledAsync();
+
         await DeleteSubmitButton.ClickAsync();
         await Page.WaitForURLAsync("**/workspaces");
         await new WorkspacesPage(Page).WaitForPageReadyAsync();
