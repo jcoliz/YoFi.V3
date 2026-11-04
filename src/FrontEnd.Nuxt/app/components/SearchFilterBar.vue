@@ -14,7 +14,7 @@
  */
 interface Props {
   /**
-   * Label displayed above the search input
+   * Card title and accessible name for the search input
    */
   label?: string
   /**
@@ -22,7 +22,7 @@ interface Props {
    */
   placeholder?: string
   /**
-   * DOM id for the search input (associates the label with the input)
+   * DOM id for the search input
    */
   inputId?: string
   /**
@@ -79,11 +79,10 @@ function handleClear() {
     data-test-id="search-filter-bar"
   >
     <div class="card-body">
-      <label
-        :for="inputId"
-        class="form-label"
-        >{{ label }}</label
-      >
+      <CardTitle
+        :title="label"
+        class="mb-3"
+      />
       <div class="d-flex gap-2">
         <div class="input-group flex-grow-1">
           <input
@@ -92,6 +91,7 @@ function handleClear() {
             type="text"
             class="form-control"
             :placeholder="placeholder"
+            :aria-label="label"
             data-test-id="search-input"
             @keyup.enter="handleSearch"
           />
