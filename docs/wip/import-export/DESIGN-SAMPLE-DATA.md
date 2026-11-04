@@ -32,6 +32,19 @@ settings, and Owner-only access; this document covers the sample-data feature.
 The temporary reset is not a production implementation of Story 2222 and will
 be removed from this flow when that story is implemented.
 
+### Story 2222 Transition
+
+The production replacement is specified in
+[Design: Tenant Data Administration](DESIGN-TENANT-DATA-ADMIN.md#story-2222-delete-all-workspace-data).
+When Story 2222 ships, remove the temporary reset choice and deletion confirmation
+from sample loading in all environments. Users clear data through the standalone
+Manage Workspace danger zone, using workspace-name confirmation, and then may
+separately choose to load samples. Stay on Manage Workspace after deletion.
+
+The temporary reset details below apply only before that transition; they are
+not an alternative production confirmation contract. Sample loading remains
+append-only, with no automatic deletion or delete-and-load operation.
+
 ## Decisions
 
 | Area | Decision |

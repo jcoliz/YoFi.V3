@@ -192,13 +192,14 @@ Transactions have a special relationship with Splits (one-to-many):
 - [ ] System displays strong warning with confirmation dialog:
   - "⚠️ WARNING: This will permanently delete ALL your data"
   - "This action cannot be undone"
-  - "You may want to export your data first" (with quick export button)
-- [ ] User must type confirmation phrase (e.g., "DELETE ALL DATA") to proceed
+  - "You may want to export your data first" (with quick export button when complete export is available; deletion may ship before export)
+- [ ] User must enter the target workspace's name to proceed; show the name with a copy button so copying and pasting is supported
 - [ ] System deletes all tenant data in correct dependency order (reverse of import order)
 - [ ] System logs the deletion operation (who, when, record counts per entity)
 - [ ] User sees confirmation with record counts per entity type deleted
-- [ ] User is redirected to empty workspace or onboarding flow
+- [ ] User remains on Manage Workspace with refreshed counts, deletion results, and the sample-data action; keep the same workspace selected
 - [ ] Tenant membership record is preserved (user remains member of tenant)
+- [ ] Replace the temporary reset within sample loading with this standalone danger-zone action; loading samples remains a separate explicit operation
 
 ### Story 2223: User - Load Sample Data
 

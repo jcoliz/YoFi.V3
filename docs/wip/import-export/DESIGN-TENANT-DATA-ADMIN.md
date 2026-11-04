@@ -72,22 +72,84 @@ refreshed deletion confirmation counts in the sample-data workflow.
 |--------|--------|---------|---------------|
 | DELETE | `/data` | Delete all workspace data, preserving the workspace and memberships | Committed per-type deletion counts |
 
-This route is already reserved by the
-[sample-data design](DESIGN-SAMPLE-DATA.md#proposed-api) for its temporary
-development/testing reset. That temporary contract requires explicit confirmation
-and must reject production requests on the backend, regardless of caller role.
-Its presence here does not imply that it is implemented or production-ready.
-
-Story 2222 will define the production deletion contract, including typed
-confirmation and export-before-deletion guidance. Do not enable the temporary
-reset in production merely by moving it into this controller. Decide how to
-transition the contract before implementing production deletion.
+This route replaces the temporary development/testing reset described in the
+[sample-data design](DESIGN-SAMPLE-DATA.md#proposed-api). Ship the production
+contract and safeguards below together; do not simply remove an environment
+check from the temporary contract.
 
 Delete in dependency-safe order and atomically within the deletion operation.
 Never delete just the sample entity types when the request is to clear all
 workspace data. Sample loading remains a separate operation and commit.
 
-### XLSX Import and Export
+## Story 2222: Delete All Workspace Data
+
+### Confirmed Product Decisions
+
+| Area | Decision |
+|------|----------|
+| Entry | Standalone danger zone on Manage Workspace |
+| Access | Workspace Owner, in all environments |
+| Scope | All workspace data, including transactions, splits, payee matching rules, and pending bank-import reviews |
+| Preserved | Workspace identity/settings, all memberships, and user accounts |
+| Confirmation | Enter the target workspace's name; display it with a copy button and permit paste |
+| Export dependency | Deletion may ship before complete export; add the export action when available |
+| Success | Stay on Manage Workspace; retain the selected workspace, show committed deleted counts, refresh counts, and expose the sample-data action |
+| Sample loading | Remove the temporary reset choice; deletion and sample loading are independent actions |
+
+This operation clears workspace data. It does not delete the user's account or
+promise erasure from backups, operational logs, or other retention systems.
+Do not present it as complete account-level GDPR erasure.
+
+### Confirmation and Request Contract
+
+Show the target workspace name, refreshed per-type counts, and an irreversible
+deletion warning. Explicitly state that the workspace and memberships remain.
+Provide **Cancel** and **Delete All Workspace Data** actions.
+
+Place an accessible copy button next to the displayed workspace name. Copying
+must not populate the input or submit the dialog automatically; the user may
+paste the copied name. Report clipboard failure visibly and allow manual entry.
+Enable submission only when the entered name matches the displayed name.
+
+The proposed request includes `confirmationWorkspaceName`; the server must
+validate it against the current name of the route-targeted workspace, in addition
+to enforcing Owner authorization. A stale or incorrect name must not authorize
+deletion. Final matching rules and the error contract remain technical design
+work. This name is a confirmation safeguard, not an authorization credential.
+
+Advise exporting a backup before deletion. Until complete export exists, do not
+show a dead button or imply a backup was created; explain that deletion cannot
+be undone. Export is optional, not a prerequisite or an automatic side effect.
+
+### Execution and Outcome
+
+Disable repeated submission and prevent workspace switching from retargeting a
+pending deletion. Delete all supported workspace data in one database transaction
+and return actual committed per-type deletion counts, not the preflight counts.
+Log the operation and its outcome without logging financial records.
+
+On success, close the dialog, show the deleted counts, refresh administration
+counts, and invalidate stale workspace-data views. Stay on Manage Workspace with
+the same workspace selected and sample loading available. Do not automatically
+load sample data or navigate to Transactions.
+
+On failure, show an explicit error and do not claim the workspace is cleared.
+If the outcome is uncertain because the connection was lost, refresh counts
+before allowing another destructive attempt; do not automatically retry.
+
+### Temporary Reset Transition
+
+When Story 2222 ships, remove the reset choice and destructive confirmation from
+the sample-loading wizard in every environment. Use the standalone production
+danger-zone action instead. Sample loading remains append-only and never grants
+permission to delete. Remove the temporary confirmation contract rather than
+retaining a development-only bypass of the production safeguards.
+
+The equally destructive or more destructive workspace deletion action uses the
+same workspace-name entry and copy-button UX, with its own distinct warning and
+outcome; see [Manage Workspace](DESIGN-MANAGE-WORKSPACE.md).
+
+## XLSX Import and Export
 
 These are proposed final-form endpoints; implementation may be staged by story.
 
@@ -124,12 +186,14 @@ database IDs or evaluate spreadsheet formulas.
 ## Design Work Remaining
 
 - Finalize DTOs, confirmation payloads, and response/error status contracts.
+- Finalize workspace-name matching and concurrent rename/write behavior for deletion.
 - Define safe export/import fields and dependency ordering for each supported type.
 - Specify upload validation, persistence boundaries, and duplicate-Key behavior.
 - Define XLSX selection/filter parameters and how preview relates to confirmed
   import without trusting client-supplied preview results.
 - Define year/filter metadata and downloadable import-error report contracts.
 - Resolve production file limits and large-operation behavior.
-- Specify the temporary-reset-to-Story-2222 transition.
 - Detail controller/application tests for Owner-only access, tenant isolation,
   partial imports, dependency-safe deletion, and unchanged sample routes.
+- Cover deletion confirmation mismatch, clipboard failure, preserved memberships,
+  staying on Manage Workspace, and removal of the temporary sample-reset flow.

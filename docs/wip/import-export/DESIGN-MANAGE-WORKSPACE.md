@@ -4,6 +4,7 @@ target_release: Alpha 1
 related_docs:
   - PRD-TENANT-DATA-ADMIN.md
   - DESIGN-SAMPLE-DATA.md
+  - DESIGN-TENANT-DATA-ADMIN.md
 ---
 
 # Design: Manage Workspace
@@ -63,9 +64,29 @@ for clearing its data. Tenant-data deletion follows the safeguards in the
 tenant-data administration design and preserves the workspace and memberships.
 Do not silently perform one operation as part of the other.
 
-Keep the existing edit and delete behavior when relocating those actions from
-the workspace cards. Do not broaden workspace deletion semantics as part of this
-page move.
+Keep existing edit behavior and workspace deletion scope when relocating those
+actions from the workspace cards. Strengthen workspace deletion confirmation as
+described below; do not broaden what workspace deletion removes.
+
+### Destructive Confirmation
+
+Both **Delete Workspace** and **Delete All Workspace Data** require entry of the
+target workspace's name. Display the name with an accessible copy button so the
+Owner can copy and paste it into the confirmation field. Copying alone must not
+populate the field or submit the action. Report clipboard failures visibly and
+allow manual entry.
+
+Keep the final action disabled until the input matches the displayed name, and
+validate the submitted name against the current route-targeted workspace name on
+the backend. Workspace deletion is more destructive and must not retain a weaker
+confirmation than data deletion.
+
+Use separate dialogs and explicit action labels. **Delete Workspace** warns that
+the workspace itself is removed and retains its existing deletion outcome.
+**Delete All Workspace Data** explains that the workspace and memberships remain
+and follows [Story 2222](DESIGN-TENANT-DATA-ADMIN.md#story-2222-delete-all-workspace-data).
+Successful data deletion stays on Manage Workspace with refreshed counts,
+committed deletion results, and the sample-data action.
 
 ## Route, Workspace Context, and Authorization
 
@@ -105,6 +126,10 @@ for uncertain outcomes.
 - Owners can edit and delete their workspace from its Manage Workspace page.
 - Workspace deletion and tenant-data deletion are distinct actions with
   separate confirmation and outcomes.
+- Both deletion dialogs require the workspace name, support copying and pasting
+  it, and reject mismatched confirmation on the backend.
+- Successful data deletion retains the workspace and memberships and stays on
+  Manage Workspace; it does not automatically load samples.
 - Tenant-data administration, including sample data, is available in the
   Manage Workspace page.
 - Editors, Viewers, nonmembers, and unauthenticated users cannot access the
