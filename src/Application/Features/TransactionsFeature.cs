@@ -108,28 +108,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <returns>The created transaction with all fields.</returns>
     public async Task<TransactionDetailDto> AddTransactionAsync(TransactionEditDto transaction)
     {
-        // Alpha-1: Sanitize category
-        var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
-
-        var newTransaction = new Transaction
-        {
-            Date = transaction.Date,
-            Amount = transaction.Amount,
-            Payee = transaction.Payee,
-            Memo = transaction.Memo,
-            Source = transaction.Source,
-            ExternalId = transaction.ExternalId,
-            TenantId = _currentTenant.Id
-        };
-
-        // Alpha-1: Auto-create single split (Order = 0, Amount = transaction.Amount)
-        newTransaction.Splits.Add(new Split
-        {
-            Amount = transaction.Amount,
-            Category = sanitizedCategory,
-            Memo = null,
-            Order = 0
-        });
+        var newTransaction = ImportModelFactory.Transaction(transaction, _currentTenant.Id);
 
         dataProvider.Add(newTransaction);
         await dataProvider.SaveChangesAsync();
@@ -142,7 +121,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             newTransaction.Memo,
             newTransaction.Source,
             newTransaction.ExternalId,
-            sanitizedCategory
+            newTransaction.Splits.Single().Category
         );
     }
 
@@ -158,30 +137,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         foreach (var transaction in transactions)
         {
-            // Alpha-1: Sanitize category
-            var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
-
-            var newTransaction = new Transaction
-            {
-                Date = transaction.Date,
-                Amount = transaction.Amount,
-                Payee = transaction.Payee,
-                Memo = transaction.Memo,
-                Source = transaction.Source,
-                ExternalId = transaction.ExternalId,
-                TenantId = _currentTenant.Id
-            };
-
-            // Alpha-1: Auto-create single split (Order = 0, Amount = transaction.Amount)
-            newTransaction.Splits.Add(new Split
-            {
-                Amount = transaction.Amount,
-                Category = sanitizedCategory,
-                Memo = null,
-                Order = 0
-            });
-
-            newTransactions.Add(newTransaction);
+            newTransactions.Add(ImportModelFactory.Transaction(transaction, _currentTenant.Id));
         }
 
         // Save to database to generate Keys and IDs

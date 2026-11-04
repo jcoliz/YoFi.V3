@@ -1,0 +1,184 @@
+id = "personal-finance"
+revision = 1
+name = "Personal Finance"
+description = "Synthetic household income and spending, with net salary and ordinary loan payments. No real bank or account data."
+
+[[patterns]]
+id = "net-paycheck"
+category = "Income:Salary"
+payees = ["Megacorp Inc"]
+annual_amount = "61678.00"
+frequency = "semi-monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "rent"
+category = "Housing:Rent"
+payees = ["Maple Grove Apartments"]
+annual_amount = "-18000.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "electricity"
+category = "Housing:Utilities:Electricity"
+payees = ["Metro Electric"]
+annual_amount = "-1440.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "low"
+
+[[patterns]]
+id = "water"
+category = "Housing:Utilities:Water"
+payees = ["City Water Services"]
+annual_amount = "-480.00"
+frequency = "quarterly"
+repeats = 1
+amount_jitter = "low"
+date_jitter = "low"
+
+[[patterns]]
+id = "internet"
+category = "Housing:Utilities:Internet"
+payees = ["Neighborhood Fiber"]
+annual_amount = "-840.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "low"
+
+[[patterns]]
+id = "groceries"
+category = "Food:Groceries"
+payees = ["Safeway", "Trader Joe's", "Farmers Market"]
+annual_amount = "-6240.00"
+frequency = "weekly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"
+
+[[patterns]]
+id = "coffee"
+category = "Food:Away:Coffee"
+payees = ["Starbucks", "Uptown Espresso", "Tim Hortons"]
+annual_amount = "-1170.00"
+frequency = "weekly"
+repeats = 3
+amount_jitter = "high"
+date_jitter = "high"
+
+[[patterns]]
+id = "restaurants"
+category = "Food:Away:Restaurants"
+payees = ["Harbor Grill", "Noodle & Rice", "Corner Pizzeria"]
+annual_amount = "-3120.00"
+frequency = "weekly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"
+
+[[patterns]]
+id = "fuel"
+category = "Transportation:Fuel"
+payees = ["Shell", "Chevron"]
+annual_amount = "-1560.00"
+frequency = "weekly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"
+
+[[patterns]]
+id = "car-payment"
+category = "Transportation:Loan"
+payees = ["Sample Auto Finance"]
+annual_amount = "-3600.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "car-insurance"
+category = "Transportation:Insurance"
+payees = ["Sample Mutual Insurance"]
+annual_amount = "-1200.00"
+frequency = "quarterly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "pharmacy"
+category = "Healthcare:Pharmacy"
+payees = ["Community Pharmacy", "Wellness Drugstore"]
+annual_amount = "-360.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"
+
+[[patterns]]
+id = "doctor"
+category = "Healthcare:Medical"
+payees = ["Neighborhood Medical Clinic"]
+annual_amount = "-240.00"
+frequency = "quarterly"
+repeats = 1
+amount_jitter = "low"
+date_jitter = "high"
+
+[[patterns]]
+id = "clothing"
+category = "Personal:Clothing"
+payees = ["Everyday Outfitters", "Main Street Shoes"]
+annual_amount = "-720.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "high"
+date_jitter = "high"
+
+[[patterns]]
+id = "haircut"
+category = "Personal:Care"
+payees = ["The Neighborhood Barber"]
+annual_amount = "-360.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "low"
+date_jitter = "moderate"
+
+[[patterns]]
+id = "streaming"
+category = "Entertainment:Streaming"
+payees = ["Sample Streaming"]
+annual_amount = "-180.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "none"
+date_jitter = "none"
+
+[[patterns]]
+id = "movies"
+category = "Entertainment:Movies"
+payees = ["Downtown Cinema", "Starlight Theater"]
+annual_amount = "-360.00"
+frequency = "monthly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"
+
+[[patterns]]
+id = "holiday-gifts"
+category = "Personal:Gifts"
+payees = ["Handmade Gifts Co"]
+annual_amount = "-600.00"
+frequency = "yearly"
+repeats = 1
+amount_jitter = "moderate"
+date_jitter = "high"

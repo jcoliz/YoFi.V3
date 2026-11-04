@@ -20,6 +20,9 @@ public static class ServiceCollectionExtensions
 
         // Register application services
         services.AddSingleton<IRegexValidationService, RegexValidationService>();
+        services.AddSingleton(new SampleScenarioLoader());
+        services.AddSingleton<SampleDataGenerator>();
+        services.AddScoped<DataImportService>();
 
         // Register memory cache for features that need caching (e.g., PayeeMatchingRuleFeature)
         services.AddMemoryCache();

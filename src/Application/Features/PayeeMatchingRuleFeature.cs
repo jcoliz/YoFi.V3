@@ -90,21 +90,7 @@ public class PayeeMatchingRuleFeature(
     /// <returns>The created rule with generated Key.</returns>
     public async Task<PayeeMatchingRuleResultDto> CreateRuleAsync(PayeeMatchingRuleEditDto ruleDto)
     {
-        // Sanitize category before storing
-        var sanitizedCategory = CategoryHelper.SanitizeCategory(ruleDto.Category);
-
-        var now = DateTimeOffset.UtcNow;
-        var newRule = new PayeeMatchingRule
-        {
-            PayeePattern = ruleDto.PayeePattern,
-            PayeeIsRegex = ruleDto.PayeeIsRegex,
-            Category = sanitizedCategory,
-            TenantId = _currentTenant.Id,
-            CreatedAt = now,
-            ModifiedAt = now,
-            MatchCount = 0,
-            LastUsedAt = null
-        };
+        var newRule = ImportModelFactory.Rule(ruleDto, _currentTenant.Id, DateTimeOffset.UtcNow);
 
         dataProvider.Add(newRule);
         await dataProvider.SaveChangesAsync();
@@ -264,7 +250,7 @@ public class PayeeMatchingRuleFeature(
     /// <returns>Unsorted list of rules for the current tenant.</returns>
     private async Task<List<PayeeMatchingRule>> GetRulesForTenantAsync()
     {
-        var cacheKey = $"payee-rules:{_currentTenant.Id}";
+        var cacheKey = CacheKey(_currentTenant.Id);
 
         if (memoryCache.TryGetValue(cacheKey, out List<PayeeMatchingRule>? cachedRules) && cachedRules != null)
         {
@@ -288,9 +274,11 @@ public class PayeeMatchingRuleFeature(
     /// </summary>
     private void InvalidateCache()
     {
-        var cacheKey = $"payee-rules:{_currentTenant.Id}";
+        var cacheKey = CacheKey(_currentTenant.Id);
         memoryCache.Remove(cacheKey);
     }
+
+    internal static string CacheKey(long tenantId) => $"payee-rules:{tenantId}";
 
     /// <summary>
     /// Internal method to retrieve a rule entity by its key.

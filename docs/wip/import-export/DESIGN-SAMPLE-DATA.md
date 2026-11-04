@@ -261,8 +261,11 @@ Both ranges are inclusive and independently editable.
 
 Validate start <= end and compatibility with current transaction date validation.
 Reject excessive generation requests before allocating the full result.
-The numerical limits remain an implementation decision to resolve before coding;
-do not silently truncate dates or generated records.
+The Application implementation limits each request to one rolling calendar year
+(inclusive end strictly before the start anniversary) and 10,000 generated
+transactions. Ranges may cross December and include leap days. Count deterministic
+in-range occurrences before allocating the dataset; reject oversized requests,
+never silently truncate dates or generated records.
 
 ## Application Architecture
 

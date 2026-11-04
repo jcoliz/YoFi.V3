@@ -18,6 +18,13 @@ Provides transaction management functionality including create, read, update, de
 - Category is sanitized before saving using [`CategoryHelper.SanitizeCategory()`](Helpers/CategoryHelper.cs)
 - See [`docs/wip/transactions/PRD-TRANSACTION-SPLITS.md`](../../docs/wip/transactions/PRD-TRANSACTION-SPLITS.md) for Alpha-1 design details
 
+## Sample data
+
+[`SampleDataFeature`](Features/SampleDataFeature.cs) coordinates catalog, preview, loading, and OFX downloads.
+[`SampleScenarioLoader`](Services/SampleScenarioLoader.cs) validates bundled TOML; [`SampleDataGenerator`](Services/SampleDataGenerator.cs) generates deterministic records.
+[`DataImportService`](Services/DataImportService.cs) persists whole datasets; [`SampleOfxWriter`](Helpers/SampleOfxWriter.cs) produces matching OFX.
+See class XML comments for details, [unit tests](../../tests/Unit/Application/SampleData), and [SQLite tests](../../tests/Integration.Application/SampleDataFeatureTests.cs).
+
 ## Helpers
 
 ### CategoryHelper
