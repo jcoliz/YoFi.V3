@@ -15,6 +15,7 @@ namespace YoFi.V3.Controllers;
 /// <param name="logger">Logger for operation inputs, outcomes, and counts, never financial records.</param>
 /// <remarks>
 /// Every endpoint requires Owner access to the tenant identified by the route.
+/// Tenant middleware establishes the context; application features resolve the current tenant.
 /// Generation uses explicit date-only inputs and the current scenario revision.
 /// Loading preserves existing data and intentionally adds another complete copy on repeat.
 /// Workspace reset is a separate operation and is not exposed here.
@@ -32,17 +33,15 @@ public partial class SampleDataController(
     ILogger<SampleDataController> logger) : ControllerBase
 {
     /// <summary>Lists bundled scenarios, their revisions, and supported entity types.</summary>
-    /// <param name="tenantKey">Workspace key authorized by the tenant Owner policy.</param>
     /// <param name="cancellationToken">Request cancellation token checked before the operation starts.</param>
     /// <returns>Scenario display metadata without server-calculated date defaults.</returns>
     [HttpGet("scenarios")]
     [ProducesResponseType(typeof(IReadOnlyCollection<SampleScenarioDto>), StatusCodes.Status200OK)]
-    public Task<IActionResult> GetScenarios([FromRoute] Guid tenantKey, CancellationToken cancellationToken)
-        => ExecuteAsync(tenantKey, null, cancellationToken,
+    public Task<IActionResult> GetScenarios(CancellationToken cancellationToken)
+        => ExecuteAsync(null, cancellationToken,
             () => Task.FromResult<IActionResult>(Ok(sampleDataFeature.GetScenarios())));
 
     /// <summary>Previews exact sample counts and the workspace's current transaction count without writing.</summary>
-    /// <param name="tenantKey">Workspace key authorized by the tenant Owner policy.</param>
     /// <param name="request">Scenario ID, current revision, and explicit inclusive calendar dates.</param>
     /// <param name="cancellationToken">Request cancellation token checked before the operation starts.</param>
     /// <returns>Validated inputs, exact dataset counts, and the workspace's unfiltered transaction count.</returns>
@@ -50,14 +49,12 @@ public partial class SampleDataController(
     [ProducesResponseType(typeof(SampleDataPreviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> Preview(
-        [FromRoute] Guid tenantKey,
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(tenantKey, request, cancellationToken,
+        => ExecuteAsync(request, cancellationToken,
             async () => Ok(await sampleDataFeature.PreviewAsync(request)));
 
     /// <summary>Adds the whole sample dataset without clearing or updating existing workspace data.</summary>
-    /// <param name="tenantKey">Workspace key authorized by the tenant Owner policy.</param>
     /// <param name="request">Scenario ID, current revision, and explicit inclusive calendar dates.</param>
     /// <param name="cancellationToken">Request cancellation token forwarded to the atomic persistence operation.</param>
     /// <returns>Validated inputs and committed per-type created counts; updated counts are always zero.</returns>
@@ -70,14 +67,12 @@ public partial class SampleDataController(
     [ProducesResponseType(typeof(SampleDataLoadResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> Load(
-        [FromRoute] Guid tenantKey,
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(tenantKey, request, cancellationToken,
+        => ExecuteAsync(request, cancellationToken,
             async () => Ok(await sampleDataFeature.LoadAsync(request, cancellationToken)));
 
     /// <summary>Downloads matching sample OFX for upload through the normal bank-import workflow.</summary>
-    /// <param name="tenantKey">Workspace key authorized by the tenant Owner policy.</param>
     /// <param name="request">Query-bound scenario ID, current revision, and explicit inclusive YYYY-MM-DD dates.</param>
     /// <param name="cancellationToken">Request cancellation token checked before generation starts.</param>
     /// <returns>An OFX attachment named for the scenario and requested dates, without category assignments.</returns>
@@ -86,24 +81,22 @@ public partial class SampleDataController(
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, "application/x-ofx")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> DownloadOfx(
-        [FromRoute] Guid tenantKey,
         [FromQuery] SampleDataRequest request,
         CancellationToken cancellationToken)
-        => ExecuteAsync(tenantKey, request, cancellationToken, () =>
+        => ExecuteAsync(request, cancellationToken, () =>
         {
             var download = sampleDataFeature.DownloadOfx(request);
             return Task.FromResult<IActionResult>(File(download.Stream, download.ContentType, download.FileName));
         });
 
     private async Task<IActionResult> ExecuteAsync(
-        Guid tenantKey,
         SampleDataRequest? request,
         CancellationToken cancellationToken,
         Func<Task<IActionResult>> action,
         [CallerMemberName] string operation = "")
     {
         var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(operation, actor, tenantKey, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
+        LogStarting(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
         IActionResult? result = null;
         try
         {
@@ -115,24 +108,24 @@ public partial class SampleDataController(
         {
             if (result == null)
             {
-                LogFailed(operation, actor, tenantKey, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
+                LogFailed(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate);
             }
             else
             {
                 var counts = result is ObjectResult { Value: SampleDataPreviewDto preview } ? preview.Counts
                     : result is ObjectResult { Value: SampleDataLoadResultDto loaded } ? loaded.Created : null;
-                LogOk(operation, actor, tenantKey, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate,
+                LogOk(operation, actor, request?.ScenarioId, request?.Revision, request?.StartDate, request?.EndDate,
                     counts?.Transactions, counts?.PayeeMatchingRules);
             }
         }
     }
 
-    [LoggerMessage(1, LogLevel.Debug, "{Operation}: Starting Actor={Actor} Tenant={TenantKey} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogStarting(string operation, string? actor, Guid tenantKey, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
+    [LoggerMessage(1, LogLevel.Debug, "{Operation}: Starting Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogStarting(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
 
-    [LoggerMessage(2, LogLevel.Information, "{Operation}: OK Actor={Actor} Tenant={TenantKey} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
-    private partial void LogOk(string operation, string? actor, Guid tenantKey, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate, int? transactions, int? rules);
+    [LoggerMessage(2, LogLevel.Information, "{Operation}: OK Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
+    private partial void LogOk(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate, int? transactions, int? rules);
 
-    [LoggerMessage(3, LogLevel.Warning, "{Operation}: Failed Actor={Actor} Tenant={TenantKey} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogFailed(string operation, string? actor, Guid tenantKey, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
+    [LoggerMessage(3, LogLevel.Warning, "{Operation}: Failed Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogFailed(string operation, string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate);
 }

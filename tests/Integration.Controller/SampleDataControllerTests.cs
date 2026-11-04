@@ -223,7 +223,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     }
 
     [Test]
-    public async Task OperationLogs_IncludeActorWorkspaceInputsCountsAndFailureOutcomeButNoFinancialRecords()
+    public async Task OperationLogs_IncludeActorInputsCountsAndFailureOutcomeButNoFinancialRecordsOrTenantKey()
     {
         using var logs = new CapturingLoggerProvider();
         _factory.Services.GetRequiredService<ILoggerFactory>().AddProvider(logs);
@@ -238,12 +238,13 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         using (Assert.EnterMultipleScope())
         {
             Assert.That(success.Message, Does.Contain("Load: OK").And.Contain("Actor=test-user-id")
-                .And.Contain($"Tenant={_testTenantKey}").And.Contain("Scenario=personal-finance")
+                .And.Contain("Scenario=personal-finance")
                 .And.Contain("Revision=1").And.Contain($"Transactions={loaded!.Created.Transactions}")
                 .And.Contain($"Rules={loaded.Created.PayeeMatchingRules}"));
             Assert.That(failed.Level, Is.EqualTo(LogLevel.Warning));
             Assert.That(failed.Message, Does.Contain("Preview: Failed").And.Contain("Revision=999"));
             Assert.That(entries.Any(e => e.Message.Contains("Megacorp", StringComparison.Ordinal)), Is.False);
+            Assert.That(entries.Any(e => e.Message.Contains(_testTenantKey.ToString(), StringComparison.Ordinal)), Is.False);
         }
     }
 
