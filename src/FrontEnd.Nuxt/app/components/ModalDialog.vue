@@ -12,6 +12,7 @@ interface Props {
   loading?: boolean
   primaryButtonText?: string
   primaryButtonVariant?: 'primary' | 'danger' | 'success' | 'warning'
+  primaryButtonDisabled?: boolean
   secondaryButtonText?: string
   hideFooter?: boolean
   hidePrimaryButton?: boolean
@@ -26,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   primaryButtonText: 'Save',
   primaryButtonVariant: 'primary',
+  primaryButtonDisabled: false,
   secondaryButtonText: 'Cancel',
   hideFooter: false,
   hidePrimaryButton: false,
@@ -117,7 +119,7 @@ const modalDialogClass = computed(() => {
                 class="btn"
                 :class="`btn-${primaryButtonVariant}`"
                 :data-test-id="primaryButtonTestId"
-                :disabled="loading"
+                :disabled="loading || primaryButtonDisabled"
                 @click="handlePrimary"
               >
                 <BaseSpinner

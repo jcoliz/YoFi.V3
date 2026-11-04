@@ -1374,6 +1374,444 @@ export class PayeeMatchingRulesClient {
     }
 }
 
+export class SampleDataClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    /**
+     * Lists bundled scenarios, their revisions, and supported entity types.
+     * @return Scenario display metadata without server-calculated date defaults.
+     */
+    getScenarios(tenantKey: string): Promise<SampleScenarioDto[]> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/scenarios";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetScenarios(_response);
+        });
+    }
+
+    protected processGetScenarios(response: Response): Promise<SampleScenarioDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(SampleScenarioDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SampleScenarioDto[]>(null as any);
+    }
+
+    /**
+     * Previews exact sample counts and the workspace's current transaction count without writing.
+     * @param request Scenario ID, current revision, and explicit inclusive calendar dates.
+     * @return Validated inputs, exact dataset counts, and the workspace's unfiltered transaction count.
+     */
+    preview(tenantKey: string, request: SampleDataRequest): Promise<SampleDataPreviewDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/preview";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPreview(_response);
+        });
+    }
+
+    protected processPreview(response: Response): Promise<SampleDataPreviewDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SampleDataPreviewDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SampleDataPreviewDto>(null as any);
+    }
+
+    /**
+     * Adds the whole sample dataset without clearing or updating existing workspace data.
+     * @param request Scenario ID, current revision, and explicit inclusive calendar dates.
+     * @return Validated inputs and committed per-type created counts; updated counts are always zero.
+     */
+    load(tenantKey: string, request: SampleDataRequest): Promise<SampleDataLoadResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/load";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLoad(_response);
+        });
+    }
+
+    protected processLoad(response: Response): Promise<SampleDataLoadResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SampleDataLoadResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SampleDataLoadResultDto>(null as any);
+    }
+
+    /**
+     * Downloads matching sample OFX for upload through the normal bank-import workflow.
+     * @param scenarioId (optional) 
+     * @param revision (optional) 
+     * @param startDate (optional) 
+     * @param endDate (optional) 
+     * @return An OFX attachment named for the scenario and requested dates, without category assignments.
+     */
+    downloadOfx(scenarioId: string | undefined, revision: number | undefined, startDate: Date | null | undefined, endDate: Date | null | undefined, tenantKey: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/sample-data/ofx?";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (scenarioId === null)
+            throw new globalThis.Error("The parameter 'scenarioId' cannot be null.");
+        else if (scenarioId !== undefined)
+            url_ += "ScenarioId=" + encodeURIComponent("" + scenarioId) + "&";
+        if (revision === null)
+            throw new globalThis.Error("The parameter 'revision' cannot be null.");
+        else if (revision !== undefined)
+            url_ += "Revision=" + encodeURIComponent("" + revision) + "&";
+        if (startDate !== undefined && startDate !== null)
+            url_ += "StartDate=" + encodeURIComponent(startDate ? "" + startDate.toISOString() : "") + "&";
+        if (endDate !== undefined && endDate !== null)
+            url_ += "EndDate=" + encodeURIComponent(endDate ? "" + endDate.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDownloadOfx(_response);
+        });
+    }
+
+    protected processDownloadOfx(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+}
+
+export class TenantDataAdminClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    /**
+     * Deletes all supported workspace data, preserving the workspace and its memberships.
+     * @param tenantKey Route key identifying the authorized target workspace.
+     * @param request Exact current workspace name required for confirmation.
+     * @return Committed per-type deletion counts.
+     */
+    deleteAllData(tenantKey: string, request: TenantDataDeletionRequest): Promise<TenantDataDeletionResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/data";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDeleteAllData(_response);
+        });
+    }
+
+    protected processDeleteAllData(response: Response): Promise<TenantDataDeletionResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TenantDataDeletionResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantDataDeletionResultDto>(null as any);
+    }
+}
+
 export class TransactionsClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -4881,6 +5319,366 @@ export interface IPayeeMatchingRuleEditDto {
     payeePattern?: string;
     payeeIsRegex?: boolean;
     category?: string;
+}
+
+export class SampleScenarioDto implements ISampleScenarioDto {
+    id?: string;
+    revision?: number;
+    name?: string;
+    description?: string;
+    entityTypes?: string[];
+
+    constructor(data?: ISampleScenarioDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.revision = _data["revision"];
+            this.name = _data["name"];
+            this.description = _data["description"];
+            if (Array.isArray(_data["entityTypes"])) {
+                this.entityTypes = [] as any;
+                for (let item of _data["entityTypes"])
+                    this.entityTypes!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SampleScenarioDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SampleScenarioDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["revision"] = this.revision;
+        data["name"] = this.name;
+        data["description"] = this.description;
+        if (Array.isArray(this.entityTypes)) {
+            data["entityTypes"] = [];
+            for (let item of this.entityTypes)
+                data["entityTypes"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISampleScenarioDto {
+    id?: string;
+    revision?: number;
+    name?: string;
+    description?: string;
+    entityTypes?: string[];
+}
+
+export class SampleDataPreviewDto implements ISampleDataPreviewDto {
+    inputs?: SampleDataRequest;
+    counts?: SampleDataCounts;
+    existingTransactionCount?: number;
+
+    constructor(data?: ISampleDataPreviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.inputs = _data["inputs"] ? SampleDataRequest.fromJS(_data["inputs"]) : undefined as any;
+            this.counts = _data["counts"] ? SampleDataCounts.fromJS(_data["counts"]) : undefined as any;
+            this.existingTransactionCount = _data["existingTransactionCount"];
+        }
+    }
+
+    static fromJS(data: any): SampleDataPreviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SampleDataPreviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["inputs"] = this.inputs ? this.inputs.toJSON() : undefined as any;
+        data["counts"] = this.counts ? this.counts.toJSON() : undefined as any;
+        data["existingTransactionCount"] = this.existingTransactionCount;
+        return data;
+    }
+}
+
+export interface ISampleDataPreviewDto {
+    inputs?: SampleDataRequest;
+    counts?: SampleDataCounts;
+    existingTransactionCount?: number;
+}
+
+export class SampleDataRequest implements ISampleDataRequest {
+    scenarioId?: string;
+    revision?: number;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
+
+    constructor(data?: ISampleDataRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.scenarioId = _data["scenarioId"];
+            this.revision = _data["revision"];
+            this.startDate = _data["startDate"] ? new Date(_data["startDate"].toString()) : undefined as any;
+            this.endDate = _data["endDate"] ? new Date(_data["endDate"].toString()) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): SampleDataRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SampleDataRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["scenarioId"] = this.scenarioId;
+        data["revision"] = this.revision;
+        data["startDate"] = this.startDate ? formatDate(this.startDate) : undefined as any;
+        data["endDate"] = this.endDate ? formatDate(this.endDate) : undefined as any;
+        return data;
+    }
+}
+
+export interface ISampleDataRequest {
+    scenarioId?: string;
+    revision?: number;
+    startDate?: Date | undefined;
+    endDate?: Date | undefined;
+}
+
+export class SampleDataCounts implements ISampleDataCounts {
+    transactions?: number;
+    payeeMatchingRules?: number;
+    total?: number;
+
+    constructor(data?: ISampleDataCounts) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transactions = _data["transactions"];
+            this.payeeMatchingRules = _data["payeeMatchingRules"];
+            this.total = _data["total"];
+        }
+    }
+
+    static fromJS(data: any): SampleDataCounts {
+        data = typeof data === 'object' ? data : {};
+        let result = new SampleDataCounts();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transactions"] = this.transactions;
+        data["payeeMatchingRules"] = this.payeeMatchingRules;
+        data["total"] = this.total;
+        return data;
+    }
+}
+
+export interface ISampleDataCounts {
+    transactions?: number;
+    payeeMatchingRules?: number;
+    total?: number;
+}
+
+export class SampleDataLoadResultDto implements ISampleDataLoadResultDto {
+    inputs?: SampleDataRequest;
+    created?: SampleDataCounts;
+    updated?: SampleDataCounts;
+
+    constructor(data?: ISampleDataLoadResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.inputs = _data["inputs"] ? SampleDataRequest.fromJS(_data["inputs"]) : undefined as any;
+            this.created = _data["created"] ? SampleDataCounts.fromJS(_data["created"]) : undefined as any;
+            this.updated = _data["updated"] ? SampleDataCounts.fromJS(_data["updated"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): SampleDataLoadResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SampleDataLoadResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["inputs"] = this.inputs ? this.inputs.toJSON() : undefined as any;
+        data["created"] = this.created ? this.created.toJSON() : undefined as any;
+        data["updated"] = this.updated ? this.updated.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface ISampleDataLoadResultDto {
+    inputs?: SampleDataRequest;
+    created?: SampleDataCounts;
+    updated?: SampleDataCounts;
+}
+
+export class TenantDataDeletionResultDto implements ITenantDataDeletionResultDto {
+    deleted?: TenantDataDeletionCountsDto;
+
+    constructor(data?: ITenantDataDeletionResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.deleted = _data["deleted"] ? TenantDataDeletionCountsDto.fromJS(_data["deleted"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): TenantDataDeletionResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataDeletionResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["deleted"] = this.deleted ? this.deleted.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface ITenantDataDeletionResultDto {
+    deleted?: TenantDataDeletionCountsDto;
+}
+
+export class TenantDataDeletionCountsDto implements ITenantDataDeletionCountsDto {
+    transactions?: number;
+    splits?: number;
+    payeeMatchingRules?: number;
+    importReviewTransactions?: number;
+
+    constructor(data?: ITenantDataDeletionCountsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transactions = _data["transactions"];
+            this.splits = _data["splits"];
+            this.payeeMatchingRules = _data["payeeMatchingRules"];
+            this.importReviewTransactions = _data["importReviewTransactions"];
+        }
+    }
+
+    static fromJS(data: any): TenantDataDeletionCountsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataDeletionCountsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transactions"] = this.transactions;
+        data["splits"] = this.splits;
+        data["payeeMatchingRules"] = this.payeeMatchingRules;
+        data["importReviewTransactions"] = this.importReviewTransactions;
+        return data;
+    }
+}
+
+export interface ITenantDataDeletionCountsDto {
+    transactions?: number;
+    splits?: number;
+    payeeMatchingRules?: number;
+    importReviewTransactions?: number;
+}
+
+export class TenantDataDeletionRequest implements ITenantDataDeletionRequest {
+    confirmationWorkspaceName?: string;
+
+    constructor(data?: ITenantDataDeletionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.confirmationWorkspaceName = _data["confirmationWorkspaceName"];
+        }
+    }
+
+    static fromJS(data: any): TenantDataDeletionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataDeletionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["confirmationWorkspaceName"] = this.confirmationWorkspaceName;
+        return data;
+    }
+}
+
+export interface ITenantDataDeletionRequest {
+    confirmationWorkspaceName?: string;
 }
 
 export class PaginatedResultDtoOfTransactionResultDto implements IPaginatedResultDtoOfTransactionResultDto {

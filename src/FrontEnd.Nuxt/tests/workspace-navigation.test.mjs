@@ -29,6 +29,7 @@ const pageScript = compileFile('pages/workspaces/index.vue')
 const manageScript = compileFile('pages/workspaces/[key].vue')
 const selectorScript = compileFile('components/workspace/Selector.vue')
 const copyScript = compileFile('components/workspace/CopyKeyButton.vue')
+const copyTextScript = compileFile('components/CopyTextButton.vue')
 const cardTitleScript = compileFile('components/CardTitle.vue')
 const roles = { Owner: 1, Editor: 2, Viewer: 3 }
 
@@ -114,6 +115,7 @@ async function mount(
   let destination
   const globals = {
     ref,
+    reactive,
     computed,
     watch,
     onMounted,
@@ -142,7 +144,9 @@ async function mount(
       getTenants: async () => tenants,
       getTenant: (key) => {
         requests.push(key)
-        return getTenant ? getTenant(key) : Promise.resolve(tenants.find((tenant) => tenant.key === key))
+        return getTenant
+          ? getTenant(key)
+          : Promise.resolve(tenants.find((tenant) => tenant.key === key))
       },
     }),
   }
@@ -174,12 +178,15 @@ async function mount(
   })
   const copyExports = {}
   const copyGlobals = { ref, watch, onBeforeUnmount, navigator: { clipboard } }
-  new Function('require', 'exports', ...Object.keys(copyGlobals), copyScript)(
+  new Function('require', 'exports', ...Object.keys(copyGlobals), copyTextScript)(
     require,
     copyExports,
     ...Object.values(copyGlobals),
   )
-  app.component('WorkspaceCopyKeyButton', copyExports.default)
+  app.component('CopyTextButton', copyExports.default)
+  const copyKeyExports = {}
+  new Function('require', 'exports', copyScript)(require, copyKeyExports)
+  app.component('WorkspaceCopyKeyButton', copyKeyExports.default)
   app.component('DropDownPortable', {
     setup(_props, { slots }) {
       return () => h('div', [slots.trigger(), slots.default()])
@@ -214,10 +221,18 @@ async function mount(
     },
   })
   app.component('WorkspaceDeleteModal', {
-    props: ['workspace', 'show'],
+    props: ['workspace', 'show', 'scope'],
     emits: ['deleted', 'update:show', 'update:busy'],
     setup(props, { emit }) {
-      panes.delete = { props, emit }
+      panes[props.scope === 'data' ? 'deleteData' : 'delete'] = { props, emit }
+      return () => null
+    },
+  })
+  app.component('WorkspaceSampleDataPane', {
+    props: ['workspace', 'dataVersion'],
+    emits: ['loaded', 'update:busy'],
+    setup(props, { emit }) {
+      panes.sample = { props, emit }
       return () => null
     },
   })
@@ -317,6 +332,48 @@ test('deletion targets the route workspace and returns to the list after complet
   panes.delete.emit('deleted')
   await nextTick()
   assert.deepEqual(destination(), { path: '/workspaces' })
+})
+
+test('data deletion stays on the page, reports counts, and refreshes sample data', async (t) => {
+  const { root, panes, destination, guards } = await mount(t, { manage: true })
+  assert.equal(panes.sample.props.workspace.key, 'second')
+  assert.equal(panes.deleteData.props.show, false)
+  await find(find(root, 'delete-data-card'), 'delete-data-button').props.onClick()
+  await nextTick()
+  assert.equal(panes.deleteData.props.show, true)
+  assert.equal(panes.deleteData.props.workspace.key, 'second')
+  assert.equal(panes.delete.props.show, false)
+  const initialVersion = panes.sample.props.dataVersion
+  panes.deleteData.emit('update:busy', true)
+  await nextTick()
+  assert.equal(guards.leave(), false)
+  assert.equal(find(root, 'delete-workspace-button').props.disabled, true)
+  panes.deleteData.emit('deleted', {
+    deleted: { transactions: 12, payeeMatchingRules: 3, importReviewTransactions: 4 },
+  })
+  panes.deleteData.emit('update:busy', false)
+  await nextTick()
+  assert.equal(destination(), undefined)
+  assert.equal(guards.leave(), true)
+  const result = find(root, 'delete-data-result')
+  assert.equal(find(result, 'deleted-transactions').text, '12')
+  assert.equal(find(result, 'deleted-payee-rules').text, '3')
+  assert.equal(find(result, 'deleted-import-reviews').text, '4')
+  assert.equal(panes.sample.props.dataVersion, initialVersion + 1)
+  panes.sample.emit('loaded', {})
+  await nextTick()
+  assert.equal(find(root, 'delete-data-result'), undefined)
+})
+
+test('sample data loading blocks navigation while pending', async (t) => {
+  const { root, panes, guards } = await mount(t, { manage: true })
+  panes.sample.emit('update:busy', true)
+  await nextTick()
+  assert.equal(guards.leave(), false)
+  assert.equal(find(root, 'delete-data-button').props.disabled, true)
+  panes.sample.emit('update:busy', false)
+  await nextTick()
+  assert.equal(guards.leave(), true)
 })
 
 test('an unavailable route clears previous settings and reports the error without fallback', async (t) => {

@@ -52,7 +52,10 @@ test('preserves custom labels, input IDs, search text, and disabled buttons', as
   })
 
   assert.match(html, /<h5 class="card-title mb-0">Find transactions<\/h5>/)
-  assert.match(html, /<input[^>]*id="transaction-search"[^>]*aria-label="Find transactions"[^>]*value="Coffee"/)
+  assert.match(
+    html,
+    /<input[^>]*id="transaction-search"[^>]*aria-label="Find transactions"[^>]*value="Coffee"/,
+  )
   assert.match(html, /data-test-id="search-button" disabled/)
   assert.match(html, /data-test-id="clear-search-button" disabled/)
 })

@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { TenantClient, type TenantRoleResultDto, type IProblemDetails } from '~/utils/apiclient'
+import {
+  TenantClient,
+  type TenantDataDeletionResultDto,
+  type TenantRoleResultDto,
+  type IProblemDetails,
+} from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
 
@@ -19,9 +24,20 @@ const authenticated = ref(false)
 
 const workspace = ref<TenantRoleResultDto>()
 const loading = ref(true)
-const busy = ref(false)
+/** Pending-write flags reported by child panes; any pending write blocks navigation. */
+const busyFlags = reactive({
+  edit: false,
+  deleteWorkspace: false,
+  deleteData: false,
+  sample: false,
+})
+const busy = computed(() => Object.values(busyFlags).some(Boolean))
 const editing = ref(false)
 const showDeleteModal = ref(false)
+const showDeleteDataModal = ref(false)
+const deletionResult = ref<TenantDataDeletionResultDto>()
+/** Incremented when workspace data changes, so dependent views refresh. */
+const dataVersion = ref(0)
 const error = ref<IProblemDetails>()
 const showError = ref(false)
 let loadVersion = 0
@@ -64,6 +80,8 @@ async function loadWorkspace() {
   workspace.value = undefined
   editing.value = false
   showDeleteModal.value = false
+  showDeleteDataModal.value = false
+  deletionResult.value = undefined
   error.value = undefined
   showError.value = false
   loading.value = true
@@ -108,8 +126,17 @@ async function loadWorkspace() {
 }
 
 async function handleWorkspaceDeleted() {
-  busy.value = false
+  busyFlags.deleteWorkspace = false
   await router.push('/workspaces')
+}
+
+function handleDataDeleted(result?: TenantDataDeletionResultDto) {
+  deletionResult.value = result
+  dataVersion.value++
+}
+
+function handleSampleLoaded() {
+  deletionResult.value = undefined
 }
 </script>
 
@@ -173,7 +200,7 @@ async function handleWorkspaceDeleted() {
                 :workspace="workspace"
                 @cancel="editing = false"
                 @updated="loadWorkspace"
-                @update:busy="busy = $event"
+                @update:busy="busyFlags.edit = $event"
               />
               <template v-else>
                 <p>
@@ -236,11 +263,97 @@ async function handleWorkspaceDeleted() {
         </div>
       </div>
 
+      <h2
+        class="h4 mt-5 mb-3"
+        data-test-id="data-administration-heading"
+      >
+        Data Administration
+      </h2>
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <section
+            class="card h-100"
+            aria-labelledby="sample-data-heading"
+            data-test-id="sample-data-card"
+          >
+            <div class="card-body">
+              <CardTitle
+                id="sample-data-heading"
+                data-test-id="sample-data-title"
+                class="mb-3"
+                title="Sample Data"
+                subtitle="Add realistic sample transactions and payee matching rules to explore the app."
+              />
+              <WorkspaceSampleDataPane
+                :key="workspace.key"
+                :workspace="workspace"
+                :data-version="dataVersion"
+                @loaded="handleSampleLoaded"
+                @update:busy="busyFlags.sample = $event"
+              />
+            </div>
+          </section>
+        </div>
+
+        <div class="col-lg-4">
+          <section
+            class="card h-100 border-danger"
+            aria-labelledby="delete-data-heading"
+            data-test-id="delete-data-card"
+          >
+            <div class="card-body">
+              <CardTitle
+                id="delete-data-heading"
+                data-test-id="delete-data-title"
+                class="mb-3"
+                title="Delete All Workspace Data"
+                subtitle="Delete all transactions, payee matching rules, and pending bank imports. The workspace and its members remain. This action cannot be undone."
+              />
+              <button
+                class="btn btn-outline-danger"
+                :disabled="busy"
+                data-test-id="delete-data-button"
+                @click="showDeleteDataModal = true"
+              >
+                Delete All Workspace Data
+              </button>
+              <div
+                v-if="deletionResult?.deleted"
+                class="alert alert-success mt-3 mb-0"
+                role="status"
+                data-test-id="delete-data-result"
+              >
+                Deleted
+                <strong data-test-id="deleted-transactions">{{
+                  deletionResult.deleted.transactions
+                }}</strong>
+                transactions,
+                <strong data-test-id="deleted-payee-rules">{{
+                  deletionResult.deleted.payeeMatchingRules
+                }}</strong>
+                payee matching rules, and
+                <strong data-test-id="deleted-import-reviews">{{
+                  deletionResult.deleted.importReviewTransactions
+                }}</strong>
+                pending bank imports.
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
       <WorkspaceDeleteModal
         v-model:show="showDeleteModal"
         :workspace="workspace"
         @deleted="handleWorkspaceDeleted"
-        @update:busy="busy = $event"
+        @update:busy="busyFlags.deleteWorkspace = $event"
+      />
+      <WorkspaceDeleteModal
+        v-model:show="showDeleteDataModal"
+        :workspace="workspace"
+        scope="data"
+        @deleted="handleDataDeleted"
+        @update:busy="busyFlags.deleteData = $event"
       />
     </template>
   </div>
