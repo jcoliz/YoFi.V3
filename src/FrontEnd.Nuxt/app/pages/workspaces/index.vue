@@ -243,6 +243,7 @@ definePageMeta({
                     Open
                   </NuxtLink>
                   <NuxtLink
+                    v-if="tenant.role === TenantRole.Owner"
                     :to="`/workspaces/${tenant.key}`"
                     class="btn btn-sm btn-outline-primary position-relative z-2"
                     :aria-label="`Manage workspace ${tenant.name}`"
