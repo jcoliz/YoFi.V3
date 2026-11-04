@@ -10,6 +10,7 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
+import { fromDateInputValue, toDateInputValue } from '~/utils/dateOnly'
 
 const props = defineProps<{
   transaction: TransactionDetailDto
@@ -50,7 +51,7 @@ watch(
   () => props.transaction,
   (transaction) => {
     editData.value = {
-      date: transaction.date ? new Date(transaction.date).toISOString().split('T')[0] || '' : '',
+      date: toDateInputValue(transaction.date),
       amount: transaction.amount || 0,
       payee: transaction.payee || '',
       memo: transaction.memo || '',
@@ -148,7 +149,7 @@ async function saveTransaction() {
   let updatedTransaction: TransactionDetailDto | undefined
   try {
     const dto = new TransactionEditDto({
-      date: new Date(editData.value.date),
+      date: fromDateInputValue(editData.value.date),
       amount: editData.value.amount,
       payee: editData.value.payee.trim(),
       memo: editData.value.memo.trim() || undefined,

@@ -20,6 +20,7 @@ import {
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
 import { handleApiError } from '~/utils/errorHandler'
+import { formatDateOnly } from '~/utils/dateOnly'
 
 definePageMeta({
   title: 'Transactions',
@@ -252,17 +253,6 @@ function navigateToDetails(key: string | undefined) {
 function clearFilters() {
   transactionSearchStore.clearFilters()
   loadTransactions(1)
-}
-
-/**
- * Formats a date for display using the user's locale.
- *
- * @param date - The date to format
- * @returns Formatted date string or empty string if undefined
- */
-function formatDate(date: Date | undefined): string {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString()
 }
 
 /**
@@ -568,7 +558,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
                   class="clickable-row"
                   @click="navigateToDetails(transaction.key)"
                 >
-                  <td>{{ formatDate(transaction.date) }}</td>
+                  <td>{{ formatDateOnly(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
                   <td>{{ transaction.category || '' }}</td>

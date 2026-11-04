@@ -13,6 +13,7 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
+import { formatDateOnly } from '~/utils/dateOnly'
 
 definePageMeta({
   title: 'Transaction Details',
@@ -127,11 +128,6 @@ async function deleteTransaction() {
 
 function goBack() {
   router.push('/transactions')
-}
-
-function formatDate(date: Date | undefined): string {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString()
 }
 
 function formatCurrency(amount: number | undefined): string {
@@ -280,7 +276,7 @@ function formatCurrency(amount: number | undefined): string {
                 class="fw-bold"
                 data-test-id="transaction-date"
               >
-                {{ formatDate(transaction.date) }}
+                {{ formatDateOnly(transaction.date) }}
               </div>
             </div>
 
@@ -358,7 +354,7 @@ function formatCurrency(amount: number | undefined): string {
       >
         <strong>{{ transaction.payee }}</strong
         ><br />
-        {{ formatDate(transaction.date) }} - {{ formatCurrency(transaction.amount) }}
+        {{ formatDateOnly(transaction.date) }} - {{ formatCurrency(transaction.amount) }}
       </div>
     </ModalDialog>
   </div>

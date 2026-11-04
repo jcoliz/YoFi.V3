@@ -5,6 +5,7 @@
 import { TransactionsClient, TransactionEditDto, type IProblemDetails } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
+import { fromDateInputValue, todayDateInputValue } from '~/utils/dateOnly'
 
 const props = defineProps<{
   show: boolean
@@ -48,7 +49,7 @@ watch(
     if (!show) return
 
     formData.value = {
-      date: new Date().toISOString().split('T')[0] || '',
+      date: todayDateInputValue(),
       amount: 0,
       payee: '',
       memo: '',
@@ -135,7 +136,7 @@ async function createTransaction() {
 
   try {
     const dto = new TransactionEditDto({
-      date: new Date(formData.value.date),
+      date: fromDateInputValue(formData.value.date),
       amount: formData.value.amount,
       payee: formData.value.payee.trim(),
       memo: formData.value.memo.trim() || undefined,
