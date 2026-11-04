@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -39,14 +38,13 @@ public partial class SampleDataController(
     [ProducesResponseType(typeof(IReadOnlyCollection<SampleScenarioDto>), StatusCodes.Status200OK)]
     public Task<IActionResult> GetScenarios(CancellationToken cancellationToken)
     {
-        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(actor, null, null, null, null);
+        LogStarting();
         var succeeded = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = sampleDataFeature.GetScenarios();
-            LogOk(actor, null, null, null, null, null, null);
+            LogOk();
             succeeded = true;
             return Task.FromResult<IActionResult>(Ok(result));
         }
@@ -54,7 +52,7 @@ public partial class SampleDataController(
         {
             if (!succeeded)
             {
-                LogFailed(actor, null, null, null, null);
+                LogFailed();
             }
         }
     }
@@ -70,14 +68,13 @@ public partial class SampleDataController(
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        LogStarting(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
         var succeeded = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = await sampleDataFeature.PreviewAsync(request);
-            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
+            LogOk(request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
                 result.Counts.Transactions, result.Counts.PayeeMatchingRules);
             succeeded = true;
             return Ok(result);
@@ -86,7 +83,7 @@ public partial class SampleDataController(
         {
             if (!succeeded)
             {
-                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+                LogFailed(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
             }
         }
     }
@@ -107,14 +104,13 @@ public partial class SampleDataController(
         [FromBody] SampleDataRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        LogStarting(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
         var succeeded = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = await sampleDataFeature.LoadAsync(request, cancellationToken);
-            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
+            LogOk(request.ScenarioId, request.Revision, request.StartDate, request.EndDate,
                 result.Created.Transactions, result.Created.PayeeMatchingRules);
             succeeded = true;
             return Ok(result);
@@ -123,7 +119,7 @@ public partial class SampleDataController(
         {
             if (!succeeded)
             {
-                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+                LogFailed(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
             }
         }
     }
@@ -140,14 +136,13 @@ public partial class SampleDataController(
         [FromQuery] SampleDataRequest request,
         CancellationToken cancellationToken)
     {
-        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        LogStarting(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+        LogStarting(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
         var succeeded = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var download = sampleDataFeature.DownloadOfx(request);
-            LogOk(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate, null, null);
+            LogOkDownload(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
             succeeded = true;
             return Task.FromResult<IActionResult>(File(download.Stream, download.ContentType, download.FileName));
         }
@@ -155,20 +150,33 @@ public partial class SampleDataController(
         {
             if (!succeeded)
             {
-                LogFailed(actor, request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
+                LogFailed(request.ScenarioId, request.Revision, request.StartDate, request.EndDate);
             }
         }
     }
 
-    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogStarting(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate,
+    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogStarting(string? scenarioId, int revision, DateOnly? startDate, DateOnly? endDate,
         [CallerMemberName] string? location = null);
 
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
-    private partial void LogOk(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate, int? transactions, int? rules,
+    [LoggerMessage(2, LogLevel.Information, "{Location}: OK Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate} Transactions={Transactions} Rules={Rules}")]
+    private partial void LogOk(string? scenarioId, int revision, DateOnly? startDate, DateOnly? endDate, int transactions, int rules,
         [CallerMemberName] string? location = null);
 
-    [LoggerMessage(3, LogLevel.Warning, "{Location}: Failed Actor={Actor} Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
-    private partial void LogFailed(string? actor, string? scenarioId, int? revision, DateOnly? startDate, DateOnly? endDate,
+    [LoggerMessage(3, LogLevel.Warning, "{Location}: Failed Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogFailed(string? scenarioId, int revision, DateOnly? startDate, DateOnly? endDate,
+        [CallerMemberName] string? location = null);
+
+    [LoggerMessage(4, LogLevel.Debug, "{Location}: Starting")]
+    private partial void LogStarting([CallerMemberName] string? location = null);
+
+    [LoggerMessage(5, LogLevel.Information, "{Location}: OK")]
+    private partial void LogOk([CallerMemberName] string? location = null);
+
+    [LoggerMessage(6, LogLevel.Warning, "{Location}: Failed")]
+    private partial void LogFailed([CallerMemberName] string? location = null);
+
+    [LoggerMessage(7, LogLevel.Information, "{Location}: OK Scenario={ScenarioId} Revision={Revision} Start={StartDate} End={EndDate}")]
+    private partial void LogOkDownload(string? scenarioId, int revision, DateOnly? startDate, DateOnly? endDate,
         [CallerMemberName] string? location = null);
 }
