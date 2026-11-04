@@ -263,6 +263,11 @@ definePageMeta({
                   <small class="text-muted">
                     <strong>Key:</strong> <code data-test-id="workspace-key">{{ tenant.key }}</code>
                   </small>
+                  <WorkspaceCopyKeyButton
+                    :workspace-key="tenant.key"
+                    compact
+                    class="ms-2 position-relative z-2"
+                  />
                 </div>
 
                 <div

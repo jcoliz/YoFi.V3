@@ -237,7 +237,6 @@ defineExpose({
               >
                 <small>No workspace selected</small>
               </div>
-
               <!-- Switch List -->
               <div class="workspace-list">
                 <button

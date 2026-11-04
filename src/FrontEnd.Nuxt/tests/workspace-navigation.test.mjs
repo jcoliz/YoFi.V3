@@ -2,17 +2,32 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { test } from 'node:test'
-import { createRenderer, h, nextTick, onMounted, reactive, ref } from 'vue'
+import {
+  computed,
+  createRenderer,
+  h,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
 import { compileScript, parse } from 'vue/compiler-sfc'
 import ts from 'typescript'
 
 const require = createRequire(import.meta.url)
-const source = readFileSync(new URL('../app/pages/workspaces.vue', import.meta.url), 'utf8')
-const { descriptor } = parse(source, { filename: 'workspaces.vue' })
-const script = compileScript(descriptor, { id: 'workspace-navigation', inlineTemplate: true })
-const { outputText } = ts.transpileModule(script.content, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-})
+function compileFile(path) {
+  const source = readFileSync(new URL(`../app/${path}`, import.meta.url), 'utf8')
+  const { descriptor } = parse(source, { filename: path })
+  const script = compileScript(descriptor, { id: path, inlineTemplate: true })
+  return ts.transpileModule(script.content, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+}
+const pageScript = compileFile('pages/workspaces.vue')
+const selectorScript = compileFile('components/workspace/Selector.vue')
+const copyScript = compileFile('components/workspace/CopyKeyButton.vue')
 const roles = { Owner: 1, Editor: 2, Viewer: 3 }
 
 function node(type, text = '') {
@@ -53,7 +68,7 @@ function find(root, testId) {
   return root.children.map((child) => find(child, testId)).find(Boolean)
 }
 
-async function mount(t) {
+async function mount(t, { selector = false, clipboard = { writeText: async () => {} } } = {}) {
   const tenants = [
     { key: 'first', name: 'First workspace', role: roles.Owner },
     { key: 'second', name: 'Second workspace', role: roles.Editor },
@@ -62,7 +77,7 @@ async function mount(t) {
   const store = reactive({
     currentTenant: tenants[0],
     get getCurrentTenantKey() {
-      return this.currentTenant.key
+      return this.currentTenant?.key
     },
     get hasTenant() {
       return Boolean(this.currentTenant)
@@ -71,15 +86,24 @@ async function mount(t) {
       this.currentTenant = tenant
     },
     loadFromStorage() {},
+    clearPreferences() {
+      this.currentTenant = undefined
+    },
   })
   const exports = {}
   const globals = {
     ref,
+    computed,
     onMounted,
     definePageMeta() {},
     useApiClient: () => ({ getTenants: async () => tenants }),
   }
-  new Function('require', 'exports', ...Object.keys(globals), outputText)(
+  new Function(
+    'require',
+    'exports',
+    ...Object.keys(globals),
+    selector ? selectorScript : pageScript,
+  )(
     (id) => {
       if (id === '~/stores/userPreferences') return { useUserPreferencesStore: () => store }
       if (id === '~/utils/apiclient') return { TenantRole: roles, TenantClient: class {} }
@@ -92,6 +116,19 @@ async function mount(t) {
 
   const root = node('root')
   const app = renderer.createApp(exports.default)
+  const copyExports = {}
+  const copyGlobals = { ref, watch, onBeforeUnmount, navigator: { clipboard } }
+  new Function('require', 'exports', ...Object.keys(copyGlobals), copyScript)(
+    require,
+    copyExports,
+    ...Object.values(copyGlobals),
+  )
+  app.component('WorkspaceCopyKeyButton', copyExports.default)
+  app.component('DropDownPortable', {
+    setup(_props, { slots }) {
+      return () => h('div', [slots.trigger(), slots.default()])
+    },
+  })
   let destination
   app.component('NuxtLink', {
     props: ['to'],
@@ -181,3 +218,82 @@ test('editing removes card navigation until cancelled and management actions do 
   assert.ok(find(card, 'open-workspace-link'))
   assert.match(card.props.class, /workspace-card-navigable/)
 })
+
+async function copy(root) {
+  let stopped = false
+  await find(root, 'copy-workspace-key-button').props.onClick({
+    stopPropagation() {
+      stopped = true
+    },
+  })
+  await nextTick()
+  assert.ok(stopped, 'Copy must not bubble to navigation or close the dropdown')
+}
+
+test('only the copy control sits above the card navigation overlay and copying does not open or select', async (t) => {
+  const keys = []
+  const { root, store, destination } = await mount(t, {
+    clipboard: { writeText: async (key) => keys.push(key) },
+  })
+  const card = find(root, 'workspace-card-second')
+  const key = find(card, 'workspace-key')
+  assert.doesNotMatch(key.parent.parent.props.class, /position-relative|z-2/)
+  const button = find(card, 'copy-workspace-key-button')
+  assert.match(button.parent.props.class, /position-relative z-2/)
+  assert.match(button.props.class, /btn-link/)
+  assert.doesNotMatch(button.props.class, /btn-outline/)
+  assert.equal(key.text, 'second')
+  await copy(card)
+  assert.deepEqual(keys, ['second'])
+  assert.equal(store.getCurrentTenantKey, 'first')
+  assert.equal(destination(), undefined)
+  assert.equal(find(card, 'copy-workspace-key-status').text, 'Copied!')
+})
+
+test('selector menu does not expose workspace keys or copy controls', async (t) => {
+  const { root, store } = await mount(t, { selector: true })
+  assert.equal(find(root, 'copy-workspace-key-button'), undefined)
+  const hasCode = (node) => node.type === 'code' || node.children.some(hasCode)
+  assert.equal(hasCode(root), false)
+  store.setCurrentTenant({ key: 'second', name: 'Second workspace' })
+  await nextTick()
+  assert.equal(find(root, 'copy-workspace-key-button'), undefined)
+  store.clearPreferences()
+  await nextTick()
+  assert.equal(find(root, 'copy-workspace-key-button'), undefined)
+})
+
+test('copy confirmation disappears after two seconds', async (t) => {
+  const { root } = await mount(t)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  await copy(root)
+  assert.equal(find(root, 'copy-workspace-key-status').text, 'Copied!')
+  t.mock.timers.tick(2000)
+  await nextTick()
+  assert.equal(find(root, 'copy-workspace-key-status').text, '')
+})
+
+for (const failure of ['denied', 'unavailable']) {
+  test(`clipboard ${failure} shows an explicit error and allows retry`, async (t) => {
+    const clipboard = {}
+    if (failure === 'denied') {
+      clipboard.writeText = async () => {
+        throw new Error('Permission denied')
+      }
+    }
+    const log = t.mock.method(console, 'error', () => {})
+    const { root } = await mount(t, { clipboard })
+    await copy(root)
+    assert.match(
+      find(root, 'copy-workspace-key-error').text,
+      /Check clipboard permissions and try again/,
+    )
+    assert.equal(find(root, 'copy-workspace-key-status').text, '')
+    assert.equal(log.mock.callCount(), 1)
+    assert.equal(find(root, 'copy-workspace-key-button').props.disabled, false)
+    clipboard.writeText = async () => {}
+    await copy(root)
+    assert.equal(find(root, 'copy-workspace-key-error'), undefined)
+    assert.equal(find(root, 'copy-workspace-key-status').text, 'Copied!')
+  })
+}

@@ -127,6 +127,7 @@ async function mount(t, componentSource, { listeners = {} } = {}) {
     setup: (props) => () => h('svg', { icon: props.icon }),
   })
   app.component('BaseSpinner', { render: () => null })
+  app.component('WorkspaceCopyKeyButton', { render: () => null })
   app.mount(root)
   t.after(() => app.unmount())
   await nextTick()
