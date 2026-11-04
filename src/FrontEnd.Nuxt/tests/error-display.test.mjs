@@ -225,7 +225,7 @@ function mountTransactionModal(t, { transaction = {}, save = async () => {} } = 
   const calls = []
   const events = []
   const show = ref(true)
-  const Modal = loadComponent('TransactionEditModal', undefined, {
+  const Modal = loadComponent('transaction/EditModal', undefined, {
     imports: {
       '~/utils/apiclient': {
         TransactionsClient: class {},
@@ -393,7 +393,7 @@ function mountImportReviewModal(
     completeReview = async () => {},
     workspaceKey = 'workspace-key',
     summary = { selectedCount: 2, totalCount: 3, potentialDuplicateCount: 1 },
-    componentName = 'ImportConfirmationModal',
+    componentName = 'import/ConfirmationModal',
     apiMethod = 'completeReview',
     transactionCount = 3,
   } = {},
@@ -585,7 +585,7 @@ test('import confirmation omits optional statistics and uses singular selected c
 
 function mountDeleteAllModal(t, options = {}) {
   return mountImportReviewModal(t, {
-    componentName: 'ImportDeleteAllModal',
+    componentName: 'import/DeleteAllModal',
     apiMethod: 'deleteAllPendingReview',
     ...options,
   })
