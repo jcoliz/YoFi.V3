@@ -53,21 +53,6 @@ function getRoleName(role: TenantRole | undefined): string {
   }
 }
 
-// Helper function to get role badge class
-function getRoleBadgeClass(role: TenantRole | undefined): string {
-  if (!role) return 'bg-secondary'
-  switch (role) {
-    case TenantRole.Owner:
-      return 'bg-primary'
-    case TenantRole.Editor:
-      return 'bg-success'
-    case TenantRole.Viewer:
-      return 'bg-info'
-    default:
-      return 'bg-secondary'
-  }
-}
-
 // Check if user can edit/delete a tenant
 function canManageTenant(tenant: TenantRoleResultDto): boolean {
   return tenant.role === TenantRole.Owner
@@ -224,46 +209,27 @@ definePageMeta({
               <!-- View Mode -->
               <div v-else>
                 <div class="d-flex justify-content-between align-items-start mb-3">
-                  <h5
-                    class="card-title mb-0"
+                  <CardTitle
+                    class="mb-0"
                     data-test-id="workspace-name"
-                  >
-                    {{ tenant.name }}
-                    <span
-                      v-if="tenant.key === userPreferencesStore.getCurrentTenantKey"
-                      class="badge bg-success ms-2"
-                      data-test-id="current-workspace-badge"
-                    >
-                      Current
-                    </span>
-                  </h5>
+                    :title="tenant.name ?? 'No name'"
+                    :subtitle="tenant.description ?? 'No description'"
+                  />
                   <span
-                    class="badge"
-                    :class="getRoleBadgeClass(tenant.role)"
-                    data-test-id="workspace-role-badge"
+                    v-if="tenant.key === userPreferencesStore.getCurrentTenantKey"
+                    class="badge bg-success ms-2"
+                    data-test-id="current-workspace-badge"
                   >
-                    {{ getRoleName(tenant.role) }}
+                    Current
                   </span>
                 </div>
-
-                <p
-                  v-if="tenant.description"
-                  class="card-text text-muted"
-                >
-                  {{ tenant.description }}
-                </p>
-                <p
-                  v-else
-                  class="card-text text-muted fst-italic"
-                >
-                  No description
-                </p>
 
                 <div class="mb-3">
                   <small class="text-muted">
                     <strong>Key:</strong> <code data-test-id="workspace-key">{{ tenant.key }}</code>
                   </small>
                   <WorkspaceCopyKeyButton
+                    v-if="tenant.key"
                     :workspace-key="tenant.key"
                     compact
                     class="ms-2 position-relative z-2"
@@ -278,6 +244,15 @@ definePageMeta({
                     <strong>Created:</strong>
                     <span data-test-id="created-date">
                       {{ new Date(tenant.createdAt).toLocaleDateString() }}
+                    </span>
+                  </small>
+                </div>
+
+                <div class="mb-3">
+                  <small class="text-muted">
+                    <strong>Role:</strong>
+                    <span data-test-id="workspace-role-badge">
+                      {{ getRoleName(tenant.role) }}
                     </span>
                   </small>
                 </div>

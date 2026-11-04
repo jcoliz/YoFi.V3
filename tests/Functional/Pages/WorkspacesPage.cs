@@ -266,7 +266,12 @@ public partial class WorkspacesPage(IPage page) : BasePage(page)
     /// <returns>Locator for the workspace card</returns>
     public ILocator GetWorkspaceCardByName(string workspaceName)
     {
-        return WorkspacesList.Locator("[data-test-id^='workspace-card-']").Filter(new() { Has = Page!.GetByTestId("workspace-name").Filter(new() { HasText = workspaceName }) });
+        return WorkspacesList.Locator("[data-test-id^='workspace-card-']")
+            .Filter(new()
+            {
+                Has = Page!.GetByTestId("workspace-name")
+                    .GetByRole(AriaRole.Heading, new() { Name = workspaceName, Exact = true }),
+            });
     }
 
     /// <summary>
