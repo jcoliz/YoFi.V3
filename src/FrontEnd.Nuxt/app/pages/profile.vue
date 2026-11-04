@@ -184,6 +184,29 @@ useAuthenticationGuard().requireAuthenticatedUser()
               {{ data?.roles?.length ? data.roles.join(', ') : 'None' }}
             </div>
           </div>
+          <div
+            v-if="!data?.claims?.length"
+            class="row mb-3"
+          >
+            <div class="col-sm-3">
+              <strong>Claims:</strong>
+            </div>
+            <div class="col-sm-9">None</div>
+          </div>
+          <div
+            v-for="(claim, index) in data?.claims ?? []"
+            :key="index"
+            class="row mb-3"
+          >
+            <div class="col-sm-3">
+              <strong>Claim:</strong>
+            </div>
+            <div class="col-sm-9">
+              <div>
+                <strong>{{ claim.type }}:</strong> {{ claim.value }}
+              </div>
+            </div>
+          </div>
           <div class="row mb-3">
             <div class="col-sm-3">
               <strong>Token:</strong>
