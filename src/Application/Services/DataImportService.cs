@@ -11,7 +11,7 @@ namespace YoFi.V3.Application.Services;
 
 /// <summary>Typed create-only import path. Inputs have no Keys; every invocation adds new records.</summary>
 /// <remarks>
-/// Reusable by a future file importer. Validates every DTO before staging and constructs
+/// Shared by sample loading and file imports. Validates every DTO before staging and constructs
 /// records using the same <see cref="ImportModelFactory"/> as interactive creation,
 /// preserving category sanitization, internal splits, and rule initialization.
 /// A single EF-backed SaveChangesAsync transaction persists both entity types and splits.
@@ -57,6 +57,32 @@ public sealed class DataImportService(
         return new SampleDataCounts(dataset.Transactions.Length, dataset.Rules.Length);
     }
 
+    /// <summary>Validates and creates payee matching rules without updating or deduplicating existing rules.</summary>
+    /// <param name="rules">Key-free payee matching rule inputs.</param>
+    /// <param name="cancellationToken">Token checked before staging and passed to persistence.</param>
+    /// <returns>Number of rules committed.</returns>
+    /// <remarks>Empty input is a no-op. A successful non-empty save invalidates the tenant rule cache.</remarks>
+    public async Task<int> CreateRulesAsync(
+        IReadOnlyCollection<PayeeMatchingRuleEditDto> rules,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ValidateRules(rules, regexValidationService);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (rules.Count == 0)
+        {
+            return 0;
+        }
+
+        var tenantId = tenantProvider.CurrentTenant.Id;
+        var now = DateTimeOffset.UtcNow;
+        var records = rules.Select(rule => (IModel)ImportModelFactory.Rule(rule, tenantId, now)).ToArray();
+        dataProvider.AddRange(records);
+        await dataProvider.SaveChangesAsync(cancellationToken);
+        memoryCache.Remove(PayeeMatchingRuleFeature.CacheKey(tenantId));
+        return records.Length;
+    }
+
     /// <summary>Validates every transaction and rule without staging or persisting records.</summary>
     /// <param name="dataset">Dataset with initialized immutable collections to validate.</param>
     /// <param name="regexValidationService">Service used by the rule DTO validator.</param>
@@ -64,7 +90,6 @@ public sealed class DataImportService(
     internal static void Validate(SampleDataSet dataset, IRegexValidationService regexValidationService)
     {
         var transactionValidator = new TransactionEditDtoValidator();
-        var ruleValidator = new PayeeMatchingRuleEditDtoValidator(regexValidationService);
         foreach (var transaction in dataset.Transactions)
         {
             var result = transactionValidator.Validate(transaction);
@@ -73,12 +98,20 @@ public sealed class DataImportService(
                 throw new ValidationException(nameof(dataset.Transactions), result.ToString());
             }
         }
-        foreach (var rule in dataset.Rules)
+        ValidateRules(dataset.Rules, regexValidationService);
+    }
+
+    private static void ValidateRules(
+        IEnumerable<PayeeMatchingRuleEditDto> rules,
+        IRegexValidationService regexValidationService)
+    {
+        var ruleValidator = new PayeeMatchingRuleEditDtoValidator(regexValidationService);
+        foreach (var rule in rules)
         {
             var result = ruleValidator.Validate(rule);
             if (!result.IsValid)
             {
-                throw new ValidationException(nameof(dataset.Rules), result.ToString());
+                throw new ValidationException(nameof(SampleDataSet.Rules), result.ToString());
             }
         }
     }
