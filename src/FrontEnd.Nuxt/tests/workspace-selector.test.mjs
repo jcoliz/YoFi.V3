@@ -72,6 +72,7 @@ const tenants = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'].map((na
 }))
 
 async function mount(t, componentSource, { listeners = {} } = {}) {
+  const route = reactive({ path: '/transactions' })
   const store = reactive({
     currentTenant: tenants[0],
     get getCurrentTenantKey() {
@@ -93,6 +94,7 @@ async function mount(t, componentSource, { listeners = {} } = {}) {
     ref,
     computed,
     onMounted,
+    useRoute: () => route,
     navigateTo: async () => {},
     window: { location: { pathname: '/transactions' } },
     useApiClient: () => ({ getTenants: async () => tenants }),
@@ -132,7 +134,7 @@ async function mount(t, componentSource, { listeners = {} } = {}) {
   t.after(() => app.unmount())
   await nextTick()
   await nextTick()
-  return { root, store }
+  return { root, store, route }
 }
 
 function workspaceSection(root, header) {
@@ -215,4 +217,23 @@ test('selector shows a no-workspace message when nothing is selected', async (t)
   assert.equal(byTestId(root, 'selector-current-workspace').length, 0)
   assert.equal(text(byTestId(root, 'no-workspace-message')[0]), 'No workspace selected')
   assert.equal(byTestId(root, 'workspace-option').length, tenants.length)
+})
+
+test('account menu highlights Workspaces on list and detail routes only', async (t) => {
+  const { root, route } = await mount(t, menuSource)
+
+  for (const [path, active] of [
+    ['/workspaces', true],
+    ['/workspaces/first', true],
+    ['/workspaces/', true],
+    ['/workspaces-other', false],
+    ['/transactions', false],
+  ]) {
+    route.path = path
+    await nextTick()
+
+    const [link] = byTestId(root, 'all-workspaces-link')
+    assert.equal(link.props.href, '/workspaces')
+    assert.equal(link.props.class.split(' ').includes('active'), active, path)
+  }
 })

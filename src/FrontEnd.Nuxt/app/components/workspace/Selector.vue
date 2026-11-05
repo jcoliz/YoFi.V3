@@ -5,10 +5,11 @@
  * Displays the current workspace and allows users to switch between
  * their available workspaces. The options panel mirrors the workspace
  * section of the account menu (WorkspaceMenuSection), listing every
- * workspace and adding a Manage Workspaces link.
+ * workspace and providing links to manage the current workspace or view
+ * all workspaces.
  */
 
-import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
+import { TenantClient, TenantRole, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 /**
@@ -261,18 +262,28 @@ defineExpose({
 
           <hr class="dropdown-divider" />
 
-          <!-- Manage Workspaces Link -->
+          <!-- Workspace Management Links -->
           <div class="px-3 py-2">
             <NuxtLink
-              to="/workspaces"
-              class="btn btn-outline-primary btn-sm w-100"
-              data-test-id="manage-workspaces-button"
+              v-if="currentTenant?.key && currentTenant.role === TenantRole.Owner"
+              :to="`/workspaces/${currentTenant.key}`"
+              class="btn btn-primary btn-sm w-100 mb-2"
+              active-class="workspace-selector-link-active"
+              data-test-id="manage-current-workspace-button"
             >
               <FeatherIcon
                 icon="settings"
                 size="14"
                 class="me-1"
               />
+              Manage Workspace
+            </NuxtLink>
+            <NuxtLink
+              to="/workspaces"
+              class="btn btn-outline-primary btn-sm w-100"
+              active-class="workspace-selector-link-active"
+              data-test-id="manage-workspaces-button"
+            >
               All Workspaces
             </NuxtLink>
           </div>

@@ -10,6 +10,10 @@ import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 const userPreferencesStore = useUserPreferencesStore()
+const route = useRoute()
+const isWorkspacesRoute = computed(
+  () => route.path === '/workspaces' || route.path.startsWith('/workspaces/'),
+)
 const workspaces = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
 
@@ -106,6 +110,7 @@ async function switchWorkspace(workspace: TenantRoleResultDto) {
   <li>
     <NuxtLink
       class="dropdown-item"
+      :class="{ active: isWorkspacesRoute }"
       to="/workspaces"
       data-test-id="all-workspaces-link"
       >Workspaces</NuxtLink
