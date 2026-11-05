@@ -20,6 +20,7 @@ function compileComponent(path, id) {
 
 const selectorSource = compileComponent('../app/components/workspace/Selector.vue', 'selector')
 const menuSource = compileComponent('../app/components/workspace/MenuSection.vue', 'menu')
+const roles = { Viewer: 1, Editor: 2, Owner: 3 }
 
 function node(type, text = '') {
   return { type, text, props: {}, children: [], parent: undefined }
@@ -66,9 +67,10 @@ function text(root) {
   return (root.text + root.children.map(text).join('')).replace(/\s+/g, ' ').trim()
 }
 
-const tenants = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'].map((name) => ({
+const tenants = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'].map((name, index) => ({
   key: name.toLowerCase(),
   name: `${name} workspace`,
+  role: index === 0 ? roles.Owner : index === 1 ? roles.Editor : roles.Viewer,
 }))
 
 async function mount(t, componentSource, { listeners = {} } = {}) {
@@ -102,7 +104,7 @@ async function mount(t, componentSource, { listeners = {} } = {}) {
   new Function('require', 'exports', ...Object.keys(globals), componentSource)(
     (id) => {
       if (id === '~/stores/userPreferences') return { useUserPreferencesStore: () => store }
-      if (id === '~/utils/apiclient') return { TenantClient: class {} }
+      if (id === '~/utils/apiclient') return { TenantRole: roles, TenantClient: class {} }
       return require(id)
     },
     exports,
@@ -190,6 +192,23 @@ test('selector current workspace uses the same markup as the account menu', asyn
   assert.equal(selectorOption.props.class, menuOption.props.class)
 })
 
+test('selector offers current workspace management only to owners', async (t) => {
+  const { root, store } = await mount(t, selectorSource)
+
+  for (const role of [roles.Owner, roles.Editor, roles.Viewer, undefined, roles.Owner]) {
+    store.setCurrentTenant({ key: 'second', name: 'Second workspace', role })
+    await nextTick()
+
+    const links = byTestId(root, 'manage-current-workspace-button')
+    assert.equal(links.length, role === roles.Owner ? 1 : 0)
+    if (role === roles.Owner) {
+      assert.equal(links[0].props.href, '/workspaces/second')
+      assert.equal(text(links[0]), 'Manage Workspace')
+    }
+    assert.equal(byTestId(root, 'manage-workspaces-button')[0].props.href, '/workspaces')
+  }
+})
+
 test('choosing a workspace selects it, emits change, and updates the highlight', async (t) => {
   const changes = []
   const { root, store } = await mount(t, selectorSource, {
@@ -215,6 +234,7 @@ test('selector shows a no-workspace message when nothing is selected', async (t)
   await nextTick()
 
   assert.equal(byTestId(root, 'selector-current-workspace').length, 0)
+  assert.equal(byTestId(root, 'manage-current-workspace-button').length, 0)
   assert.equal(text(byTestId(root, 'no-workspace-message')[0]), 'No workspace selected')
   assert.equal(byTestId(root, 'workspace-option').length, tenants.length)
 })

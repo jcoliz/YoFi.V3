@@ -31,7 +31,7 @@ const selectorScript = compileFile('components/workspace/Selector.vue')
 const copyScript = compileFile('components/workspace/CopyKeyButton.vue')
 const copyTextScript = compileFile('components/CopyTextButton.vue')
 const cardTitleScript = compileFile('components/CardTitle.vue')
-const roles = { Owner: 1, Editor: 2, Viewer: 3 }
+const roles = { Viewer: 1, Editor: 2, Owner: 3 }
 
 function node(type, text = '') {
   return { type, text, props: {}, children: [], parent: undefined }
@@ -338,7 +338,7 @@ test('data deletion stays on the page, reports counts, and refreshes sample data
   const { root, panes, destination, guards } = await mount(t, { manage: true })
   assert.equal(panes.sample.props.workspace.key, 'second')
   assert.equal(panes.deleteData.props.show, false)
-  await find(find(root, 'delete-data-card'), 'delete-data-button').props.onClick()
+  await find(find(root, 'delete-workspace-card'), 'delete-data-button').props.onClick()
   await nextTick()
   assert.equal(panes.deleteData.props.show, true)
   assert.equal(panes.deleteData.props.workspace.key, 'second')
