@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Controllers.Tenancy.Exceptions;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Tenancy.Exceptions;
@@ -53,6 +54,10 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             // 404 Not Found - KeyNotFoundException (legacy, deprecated)
             KeyNotFoundException keyNotFound => await HandleKeyNotFoundExceptionAsync(
                 httpContext, keyNotFound, cancellationToken),
+
+            // 400 Bad Request - Import validation feedback is available from the preview endpoint
+            TenantDataImportValidationException => await HandleTenantDataImportValidationExceptionAsync(
+                httpContext, cancellationToken),
 
             // 400 Bad Request - ValidationException (input validation errors)
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
@@ -114,7 +119,12 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         problemDetails.Extensions["resourceType"] = exception.ResourceType;
         problemDetails.Extensions["resourceKey"] = exception.ResourceKey;
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
         return true;
     }
 
@@ -135,7 +145,12 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             "Resource not found",
             exception.Message);
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
         return true;
     }
 
@@ -175,7 +190,36 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
         problemDetails.Extensions["traceId"] = traceId;
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
+        return true;
+    }
+
+    private static async ValueTask<bool> HandleTenantDataImportValidationExceptionAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+        var problemDetails = new ProblemDetails
+        {
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            Title = "Import could not be completed.",
+            Status = StatusCodes.Status400BadRequest,
+            Instance = httpContext.Request.Path,
+            Detail = "Review the workbook preview for validation details, then try importing again."
+        };
+        problemDetails.Extensions["traceId"] = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
         return true;
     }
 

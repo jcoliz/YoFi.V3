@@ -11,7 +11,7 @@ public sealed class TenantDataImportValidationException : ValidationException
 
     /// <summary>Initializes the exception with the analysis that prevented persistence.</summary>
     public TenantDataImportValidationException(TenantDataImportPreviewDto preview)
-        : base(nameof(preview), "The workbook format is unsupported or one or more worksheets contain validation errors.")
+        : base("file", "The workbook format is unsupported or one or more worksheets contain validation errors.")
     {
         Preview = preview;
     }

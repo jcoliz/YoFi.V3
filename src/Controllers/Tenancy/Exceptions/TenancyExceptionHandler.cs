@@ -34,7 +34,12 @@ public static class TenancyExceptionHandler
         // Add type-specific extensions
         AddExceptionExtensions(problemDetails, exception);
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>
