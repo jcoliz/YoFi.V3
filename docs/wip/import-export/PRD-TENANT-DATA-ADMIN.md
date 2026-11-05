@@ -310,6 +310,18 @@ endpoint sketch for final-form counts, XLSX import/export, and deletion.
 - Implementation will use the particular entity types available in the app.
 - For the future we could consider a dynamic approach, however adding new entities will be rare.
 
+### Native YoFi.V3 workbook identification
+
+Native YoFi.V3 workbooks identify their source format with a reserved
+`Metadata` worksheet. It contains `Name` and `Value` columns in columns A and B,
+with a `Format` / `YoFi.V3` pair to identify the native format. This is a
+workbook format identifier, not schema-version metadata.
+
+The importer treats a recognized format marker as authoritative. If the marker
+is absent, it may detect original YoFi using that format's worksheet and header
+signatures; it must not guess when the evidence is unknown or ambiguous. The
+exporter's production of this metadata worksheet will be specified in its design.
+
 ### Original YoFi export format
 
 All original YoFi exports must be supported for import, in addition to natively exported YoFi.V3 exports
