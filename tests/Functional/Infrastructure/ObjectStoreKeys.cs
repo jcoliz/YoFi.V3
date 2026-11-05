@@ -137,6 +137,11 @@ public static class ObjectStoreKeys
     public const string OfxFilePath = "OfxFilePath";
 
     /// <summary>
+    /// Test-owned temporary download directory to remove after file cleanup.
+    /// </summary>
+    public const string DownloadDirectory = "DownloadDirectory";
+
+    /// <summary>
     /// Collection of payee names from recently-uploaded transactions.
     /// </summary>
     public const string UploadedTransactionPayees = "UploadedTransactionPayees";

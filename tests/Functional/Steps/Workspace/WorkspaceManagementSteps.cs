@@ -207,15 +207,22 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// <summary>
     /// When I download sample OFX data with the default data range
     /// </summary>
+    /// <remarks>
+    /// Note that CleanupTestResourcesAsync will attempt to delete the downloaded OFX file and the download directory.
+    /// </remarks>
     [When("I download sample OFX data with the default data range")]
     [Provides(ObjectStoreKeys.OfxFilePath)]
+    [Provides(ObjectStoreKeys.DownloadDirectory)]
     public async Task IDownloadSampleOFXDataWithTheDefaultDataRange()
     {
-        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
-        var filePath = await managementPage.DownloadSampleOFXAsync();
-        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, filePath);
+        var directory = Path.Combine(
+            Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
 
-        // TODO: Need to schedule this file for cleanup.
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        var filePath = await managementPage.DownloadSampleOFXAsync(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, filePath);
     }
 
     #endregion

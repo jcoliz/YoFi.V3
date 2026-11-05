@@ -407,6 +407,24 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                     TestContext.Out.WriteLine($"[Cleanup] Failed to delete OFX file '{ofxFilePath}': {ex.Message}");
                 }
             }
+
+            // Clean up the temporary directory we created to contain downloaded files (as applicable)
+            if (ObjectStore.Contains<string>(ObjectStoreKeys.DownloadDirectory))
+            {
+                var downloadDirectory = ObjectStore.Get<string>(ObjectStoreKeys.DownloadDirectory);
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(downloadDirectory) && Directory.Exists(downloadDirectory))
+                    {
+                        Directory.Delete(downloadDirectory, recursive: false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail test if cleanup fails
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete download directory '{downloadDirectory}': {ex.Message}");
+                }
+            }
         }
         catch (Exception ex)
         {

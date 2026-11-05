@@ -163,15 +163,11 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
         await Assertions.Expect(SampleLoadResult).ToBeVisibleAsync();
     }
 
-    internal async Task<string> DownloadSampleOFXAsync()
+    internal async Task<string> DownloadSampleOFXAsync(string directory)
     {
         var downloadTask = Page.WaitForDownloadAsync();
         await DownloadSampleOFXButton.ClickAsync();
         var download = await downloadTask;
-
-        var directory = Path.Combine(
-            Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
 
         var filePath = Path.Combine(directory, download.SuggestedFilename);
         await download.SaveAsAsync(filePath);
