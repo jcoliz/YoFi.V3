@@ -32,7 +32,6 @@ Scenario: Keep my existing data while trying sample data
   And the sample transactions and rules are available alongside them
 
 @id:4
-@explicit:wip
 Scenario: Categorize new sample bank transactions automatically
   Given I have loaded the "Personal Finance" sample data
   When I download sample OFX data with the default data range
