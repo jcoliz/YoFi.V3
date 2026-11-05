@@ -30,6 +30,12 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator AccessDenied => Page.GetByTestId("access-denied");
     public ILocator AccessDeniedTitle => AccessDenied.GetByTestId("title");
     public ILocator LoadingState => Page.GetByTestId("loading-state");
+    public ILocator SampleScenarioSelector => Page.Locator("#sample-scenario");
+    public ILocator LoadSampleDataButton => Page.GetByTestId("load-sample-data-button");
+
+    public ILocator LoadSampleModal => Page.GetByTestId("load-sample-modal");
+    public ILocator LoadSampleModalSubmitButton => LoadSampleModal.GetByTestId("load-sample-submit-button");
+    public ILocator SampleLoadResult => Page.GetByTestId("sample-load-result");
 
     public async Task WaitForWorkspaceAsync(string name)
     {
@@ -138,5 +144,20 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
         await Assertions.Expect(DeleteButton).ToBeHiddenAsync();
         await Assertions.Expect(EditForm).ToBeHiddenAsync();
         await Assertions.Expect(DeleteModal).ToBeHiddenAsync();
+    }
+
+    internal async Task LoadSampleDataAsync(string scenario)
+    {
+        await SampleScenarioSelector.SelectOptionAsync(
+            new SelectOptionValue { Label = scenario });
+        await LoadSampleDataButton.ClickAsync();
+        await LoadSampleModal.WaitForAsync();
+        await LoadSampleModalSubmitButton.ClickAsync();
+        await SampleLoadResult.WaitForAsync();
+    }
+
+    internal async Task ExpectSampleLoadResultAsync()
+    {
+        await Assertions.Expect(SampleLoadResult).ToBeVisibleAsync();
     }
 }

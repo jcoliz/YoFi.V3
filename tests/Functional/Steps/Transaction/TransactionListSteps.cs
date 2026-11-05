@@ -88,6 +88,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Adds __TEST__ prefix. Navigates to transactions page, selects workspace,
     /// waits for loading to complete, and stores as current workspace.
     /// </remarks>
+    [Given("I am viewing transactions in {workspaceName}")]
     [When("I view transactions in {workspaceName}")]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task WhenIViewTransactionsIn(string workspaceName)
@@ -344,6 +345,39 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         Assert.That(actualCategory?.Trim(), Is.EqualTo(category),
             $"Imported transaction for '{payee}' should retain category '{category}'");
     }
+
+    /// <summary>
+    /// Then I can see many pages of transactions (in the currently-selected workspace)
+    /// </summary>
+    [Then("I can see many pages of transactions")]
+    public async Task ICanSeeManyPagesOfTransactions()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+
+        var totalItems = await transactionsPage.GetTotalItemsAsync();
+        Assert.That(totalItems, Is.GreaterThan(100),
+            "Expected to see many pages of transactions, but total items count is not greater than 100");
+    }
+
+    /// <summary>
+    /// Then I can see many pages of transactions in {workspace}
+    /// </summary>
+    [Then("I can see many pages of transactions in {workspace}")]
+    public async Task ICanSeeManyPagesOfTransactionsIn(string workspace)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Then the transactions for {workspace} is empty
+    /// </summary>
+    [Then("the transactions for {workspace} is empty")]
+    public async Task TheTransactionsForIsEmpty(string workspace)
+    {
+        throw new NotImplementedException();
+    }
+
 
     #endregion
 

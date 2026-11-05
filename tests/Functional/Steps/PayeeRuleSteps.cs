@@ -275,5 +275,19 @@ public class PayeeRuleSteps(ITestContext _context)
         }
     }
 
+    /// <summary>
+    /// Then I can see many payee matching rules
+    /// </summary>
+    [Then("I can see many payee matching rules")]
+    public async Task ICanSeeManyPayeeMatchingRules()
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+
+        var totalItems = await page.GetTotalItemsAsync();
+        Assert.That(totalItems, Is.GreaterThan(10),
+            "Expected to see many rules, but total items count is not greater than 10");
+    }
+
     #endregion
 }

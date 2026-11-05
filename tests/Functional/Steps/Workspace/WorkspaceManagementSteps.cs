@@ -78,6 +78,7 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// <remarks>
     /// Opens Manage from the workspace card and stores it as current workspace.
     /// </remarks>
+    [Given("I am managing the details of {workspaceName}")]
     [When("I view the details of {workspaceName}")]
     [When("I manage the details of {workspaceName}")]
     [When("I open the manage page for {workspaceName}")]
@@ -183,6 +184,24 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         // Also remove this from workspace tracking, so we don't try to clean it up later
         _context.UntrackWorkspace(fullWorkspaceName);
     }
+
+    /// <summary>
+    /// When I load the {scenario} sample data
+    /// </summary>
+    [When("I load the {scenario} sample data")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task ILoadTheSampleData(string scenario)
+    {
+        // Get the current workspace name from object store
+        var currentName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+
+        var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        await workspacesPage.OpenManagementAsync(currentName);
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.LoadSampleDataAsync(scenario);
+    }
+
 
     #endregion
 }

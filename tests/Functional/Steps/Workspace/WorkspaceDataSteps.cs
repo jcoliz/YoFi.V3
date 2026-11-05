@@ -126,6 +126,8 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
     /// workspace context and pending user context in object store.
     /// </remarks>
     [Given("{username} owns a workspace called {workspaceName}")]
+    [Given("{username} own a workspace called {workspaceName}")]
+    [Given("{username} also own a workspace called {workspaceName}")]
     [Given("{username} owns {workspaceName}")]
     [Provides(ObjectStoreKeys.PendingUserContext)]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]

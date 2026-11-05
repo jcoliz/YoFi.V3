@@ -295,5 +295,15 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
             $"Workspace '{fullWorkspaceName}' should not be visible");
     }
 
+    /// <summary>
+    /// Then I see confirmation of the transactions and rules added
+    /// </summary>
+    [Then("I see confirmation of the transactions and rules added")]
+    public async Task ISeeConfirmationOfTheTransactionsAndRulesAdded()
+    {
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.ExpectSampleLoadResultAsync();
+    }
+
     #endregion
 }

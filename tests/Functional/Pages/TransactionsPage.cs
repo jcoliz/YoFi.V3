@@ -264,6 +264,13 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
+    #region Pagination Elements
+
+    private ILocator PaginationBar => Page.GetByTestId("PaginationBar"); // TODO: Should be pagination-bar
+    private ILocator TotalItems => PaginationBar.GetByTestId("totalitems");
+
+    #endregion
+
     #region Search Operations
 
     /// <summary>
@@ -1326,6 +1333,17 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     {
         var deleteButton = await GetDeleteButton(payeeName);
         return await IsAvailableAsync(deleteButton);
+    }
+
+    internal async Task<int> GetTotalItemsAsync()
+    {
+        await TotalItems.WaitForAsync();
+        var totalItemsText = await TotalItems.TextContentAsync();
+        if (int.TryParse(totalItemsText?.Trim(), out var totalItems))
+        {
+            return totalItems;
+        }
+        throw new InvalidOperationException("Unable to retrieve total items count from the pagination bar.");
     }
 
     #endregion

@@ -31,6 +31,15 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     private ILocator SearchInput => SearchFilterBar.GetByTestId("search-input");
     private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
 
+    #region Pagination Elements
+
+    // TODO: Refactor these into a component
+    private ILocator PaginationBar => Page.GetByTestId("PaginationBar"); // TODO: Should be pagination-bar
+    private ILocator TotalItems => PaginationBar.GetByTestId("totalitems");
+
+    #endregion
+
+
     /// <summary>
     /// Navigates to the payee rules page and waits for the rules to finish loading.
     /// </summary>
@@ -157,4 +166,16 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
         await SearchInput.FillAsync(string1);
         await SearchButton.ClickAsync();
     }
+
+    internal async Task<int> GetTotalItemsAsync()
+    {
+        await TotalItems.WaitForAsync();
+        var totalItemsText = await TotalItems.TextContentAsync();
+        if (int.TryParse(totalItemsText?.Trim(), out var totalItems))
+        {
+            return totalItems;
+        }
+        throw new InvalidOperationException("Unable to retrieve total items count from the pagination bar.");
+    }
+
 }
