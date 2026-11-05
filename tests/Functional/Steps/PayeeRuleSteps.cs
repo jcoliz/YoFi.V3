@@ -336,5 +336,14 @@ public class PayeeRuleSteps(ITestContext _context)
             "Expected to see many rules, but total items count is not greater than 10");
     }
 
+    [Then("the payee matching rules are empty")]
+    public async Task ThePayeeMatchingRulesAreIsEmpty()
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+
+        await page.ExpectEmptyStateAsync();
+    }
+
     #endregion
 }

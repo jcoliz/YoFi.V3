@@ -393,6 +393,14 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.ExpectEmptyStateAsync();
     }
 
+    [Then("the transactions list is empty")]
+    public async Task TheTransactionsListIsEmpty()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await transactionsPage.ExpectEmptyStateAsync();
+    }
+
     #endregion
 
 }

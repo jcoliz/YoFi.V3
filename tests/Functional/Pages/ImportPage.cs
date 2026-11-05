@@ -338,6 +338,12 @@ public partial class ImportPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Verifies that the empty state is displayed.
+    /// </summary>
+    public async Task ExpectEmptyStateAsync() =>
+        await Assertions.Expect(EmptyState).ToBeVisibleAsync();
+
+    /// <summary>
     /// Gets all payee names for transactions in the import review table
     /// </summary>
     /// <returns>List of payee names from all transaction rows</returns>

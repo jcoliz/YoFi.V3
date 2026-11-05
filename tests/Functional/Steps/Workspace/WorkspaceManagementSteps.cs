@@ -226,4 +226,35 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     }
 
     #endregion
+
+    #region Delete all data
+
+    /// <summary>
+    /// When I delete my workspace data
+    /// </summary>
+    [When("I delete my workspace data")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task IDeleteMyWorkspaceData()
+    {
+        // Get the current workspace name from object store
+        var currentName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+
+        var workspacesPage = _context.GetOrCreatePage<Pages.WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        await workspacesPage.OpenManagementAsync(currentName);
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.DeleteAllDataAsync(currentName);
+    }
+
+    /// <summary>
+    /// Then I see confirmation of the data deleted
+    /// </summary>
+    [Then("I see confirmation of the data deleted")]
+    public async Task ISeeConfirmationOfTheDataDeleted()
+    {
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.ExpectDeleteDataResultAsync();
+    }
+
+    #endregion
 }

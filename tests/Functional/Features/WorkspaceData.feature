@@ -6,6 +6,7 @@ Feature: Workspace Data Administration
     And I own a workspace called "My Finances"
     And I am logged into my existing account
 
+@story:2223
 Rule: Sample Data
 
 @id:1
@@ -40,16 +41,15 @@ Scenario: Categorize new sample bank transactions automatically
   And the first page of transactions are all selected
   And the first page of transactions have all been categorized
 
+@story:2222
 Rule: Delete all tenant data
 
 @id:5
-@hidden
 Scenario: Clear existing data after choosing sample import
-  Given I have loaded load the "Personal Finance" sample data
+  Given I have loaded the "Personal Finance" sample data
+  And I have uploaded an OFX file with 10 transactions
   When I delete my workspace data
-  And I have been warned that deletion is irreversible even if sample loading fails
-  When I confirm deleting all existing workspace data
   Then I see confirmation of the data deleted
-  And my previous transactions, rules, and pending imports are gone
-  And the workspace and its memberships remain
-  And sample loading awaits my separate confirmation
+  And the transactions list is empty
+  And the payee matching rules are empty
+  And the import review queue should be empty

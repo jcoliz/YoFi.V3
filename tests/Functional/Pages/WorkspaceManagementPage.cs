@@ -27,6 +27,11 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator DeletingWorkspaceName => DeleteModal.GetByTestId("deleting-workspace-name");
     public ILocator DeleteConfirmationName => DeleteModal.GetByTestId("confirmation-workspace-name");
     public ILocator DeleteConfirmationInput => DeleteModal.GetByTestId("confirmation-name-input");
+    public ILocator DeleteDataModal => Page.GetByTestId("delete-data-modal");
+    public ILocator DeleteDataModalSubmitButton => DeleteDataModal.GetByTestId("delete-submit-button");
+    public ILocator DeleteDataModalConfirmationInput => DeleteDataModal.GetByTestId("confirmation-name-input");
+    public ILocator DeleteDataResult => Page.GetByTestId("delete-data-result");
+
     public ILocator AccessDenied => Page.GetByTestId("access-denied");
     public ILocator AccessDeniedTitle => AccessDenied.GetByTestId("title");
     public ILocator LoadingState => Page.GetByTestId("loading-state");
@@ -38,6 +43,8 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator SampleLoadResult => Page.GetByTestId("sample-load-result");
 
     public ILocator DownloadSampleOFXButton => Page.GetByTestId("download-sample-ofx-button");
+
+    public ILocator DeleteDataButton => Page.GetByTestId("delete-data-button");
 
     public async Task WaitForWorkspaceAsync(string name)
     {
@@ -174,4 +181,31 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
 
         return filePath;
     }
+
+    /// <summary>
+    /// Deletes all data in the current workspace.
+    /// </summary>
+    /// <remarks>
+    /// This will walk through the entire delete and confirmation workflow.
+    /// </remarks>
+    public async Task DeleteAllDataAsync(string currentWorkspaceName)
+    {
+        // Click the button
+        await DeleteDataButton.ClickAsync();
+
+        // Await the confirmation modal to appear
+        await DeleteDataModal.WaitForAsync();
+
+        // Enter the workspace name into confirmation input
+        await DeleteDataModalConfirmationInput.FillAsync(currentWorkspaceName);
+
+        // Click the submit button to confirm deletion
+        await DeleteDataModalSubmitButton.ClickAsync();
+    }
+
+    /// <summary>
+    /// Asserts that the result of the delete data operation is visible on the page.
+    /// </summary>
+    public Task ExpectDeleteDataResultAsync()
+        => Assertions.Expect(DeleteDataResult).ToBeVisibleAsync();
 }

@@ -119,6 +119,12 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Verifies that the empty state is displayed.
+    /// </summary>
+    public async Task ExpectEmptyStateAsync() =>
+        await Assertions.Expect(EmptyState).ToBeVisibleAsync();
+
+    /// <summary>
     /// Gets the displayed category for the rule with the exact payee pattern.
     /// </summary>
     public async Task<string> GetRuleCategoryAsync(string payee, bool isRegex = false)

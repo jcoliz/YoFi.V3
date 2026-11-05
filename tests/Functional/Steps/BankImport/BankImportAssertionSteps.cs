@@ -32,6 +32,17 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
             $"Expected {count} transactions but found {actualCount}");
     }
 
+    /// <summary>
+    /// Verifies that the import review page is empty, i.e., contains no transactions.
+    /// </summary>
+    /// <returns></returns>
+    [Then("the import review is empty")]
+    public async Task ImportReviewIsEmpty()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        await importPage.ExpectEmptyStateAsync();
+    }
+
     [Then("I can see many transactions waiting for review")]
     public async Task CanSeeManyTransactionsWaitingForReview()
     {
@@ -113,6 +124,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
     /// </remarks>
     [Then("import review queue should be completely cleared")]
     [Then("import review queue should be empty")]
+    [Then("the import review queue should be empty")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ImportReviewQueueShouldBeCompletelyCleared()
     {
@@ -125,9 +137,7 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         await importPage.WorkspaceSelector.SelectWorkspaceAsync(workspaceName);
 
         // And: Verify empty state is displayed (no pending imports)
-        var isEmpty = await importPage.IsEmptyStateAsync();
-        Assert.That(isEmpty, Is.True,
-            "Expected import review queue to be empty but transactions are still pending");
+        await importPage.ExpectEmptyStateAsync();
     }
 
     /// <summary>
