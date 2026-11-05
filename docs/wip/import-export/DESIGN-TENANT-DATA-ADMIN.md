@@ -4,6 +4,7 @@ related_docs:
   - PRD-TENANT-DATA-ADMIN.md
   - DESIGN-SAMPLE-DATA.md
   - DESIGN-MANAGE-WORKSPACE.md
+  - DESIGN-DATA-IMPORT-PAYEES.md
 ado: Feature 2206
 ---
 
@@ -177,6 +178,10 @@ worksheet, row, and field errors. The full PRD permits partial success; final
 HTTP status rules and persistence boundaries remain to be designed rather than
 inherited from the superseded developer workflow. Do not expose internal numeric
 database IDs or evaluate spreadsheet formulas.
+
+The initial legacy-import scope is limited to payees from an original YoFi
+`Payee` worksheet; see [Import Original YoFi Payees](DESIGN-IMPORT-DATA-AUTO-DETECTION-PAYEES.md)
+for the legacy field mapping, preview, validation, and create-only behavior.
 
 ## Cross-Cutting Requirements
 
