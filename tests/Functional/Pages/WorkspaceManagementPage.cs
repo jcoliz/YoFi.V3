@@ -37,6 +37,8 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator LoadSampleModalSubmitButton => LoadSampleModal.GetByTestId("load-sample-submit-button");
     public ILocator SampleLoadResult => Page.GetByTestId("sample-load-result");
 
+    public ILocator DownloadSampleOFXButton => Page.GetByTestId("download-sample-ofx-button");
+
     public async Task WaitForWorkspaceAsync(string name)
     {
         await Assertions.Expect(PageHeading).ToHaveTextAsync(name);
@@ -159,5 +161,21 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     internal async Task ExpectSampleLoadResultAsync()
     {
         await Assertions.Expect(SampleLoadResult).ToBeVisibleAsync();
+    }
+
+    internal async Task<string> DownloadSampleOFXAsync()
+    {
+        var downloadTask = Page.WaitForDownloadAsync();
+        await DownloadSampleOFXButton.ClickAsync();
+        var download = await downloadTask;
+
+        var directory = Path.Combine(
+            Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        var filePath = Path.Combine(directory, download.SuggestedFilename);
+        await download.SaveAsAsync(filePath);
+
+        return filePath;
     }
 }

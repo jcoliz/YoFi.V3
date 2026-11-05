@@ -270,22 +270,19 @@ public partial class ImportPage(IPage page) : BasePage(page)
     /// <summary>
     /// Gets the count of selected transactions
     /// </summary>
-    public async Task<int> GetSelectedCountAsync()
+    public Task<int> GetSelectedCountAsync() =>
+        TransactionRows.Locator("input[type='checkbox']:checked").CountAsync();
+
+    /// <summary>
+    /// Gets the count of categorized transactions
+    /// </summary>
+    internal async Task<int> GetCategorizedCountAsync()
     {
-        int selectedCount = 0;
-        var count = await TransactionRows.CountAsync();
-
-        for (int i = 0; i < count; i++)
+        var visibleUncategorizedMarker = Page.Locator("td span[data-test-id='uncategorized']:visible");
+        return await TransactionRows.Filter(new()
         {
-            var row = TransactionRows.Nth(i);
-            var checkbox = row.Locator("input[type='checkbox']");
-            if (await checkbox.IsCheckedAsync())
-            {
-                selectedCount++;
-            }
-        }
-
-        return selectedCount;
+            HasNot = visibleUncategorizedMarker
+        }).CountAsync();
     }
 
     /// <summary>

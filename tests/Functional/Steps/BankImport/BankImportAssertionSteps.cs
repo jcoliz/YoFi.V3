@@ -32,6 +32,15 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
             $"Expected {count} transactions but found {actualCount}");
     }
 
+    [Then("I can see many transactions waiting for review")]
+    public async Task CanSeeManyTransactionsWaitingForReview()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        var count = await importPage.GetTransactionCountAsync();
+        NUnit.Framework.Assert.That(count, NUnit.Framework.Is.GreaterThan(10),
+            $"Expected many transactions waiting for review but found {count}");
+    }
+
     /// <summary>
     /// Verifies that the expected number of transactions are selected
     /// </summary>
@@ -48,6 +57,34 @@ public class BankImportAssertionSteps(ITestContext context) : BankImportStepsBas
         var actualCount = await importPage.GetSelectedCountAsync();
         NUnit.Framework.Assert.That(actualCount, NUnit.Framework.Is.EqualTo(count),
             $"Expected {count} transactions to be selected but found {actualCount}");
+    }
+
+    /// <summary>
+    /// Verifies that all transactions on the first page are selected.
+    /// </summary>
+    /// <returns></returns>
+    [Then("the first page of transactions are all selected")]
+    public async Task FirstPageOfTransactionsAreAllSelected()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        var selectedCount = await importPage.GetSelectedCountAsync();
+        var totalCount = await importPage.GetTransactionCountAsync();
+        NUnit.Framework.Assert.That(selectedCount, NUnit.Framework.Is.EqualTo(totalCount),
+            $"Expected all transactions on the first page to be selected but found {selectedCount} of {totalCount}");
+    }
+
+    /// <summary>
+    /// Verifies that all transactions on the first page have been categorized.
+    /// </summary>
+    /// <returns></returns>
+    [Then("the first page of transactions have all been categorized")]
+    public async Task FirstPageOfTransactionsHaveAllBeenCategorized()
+    {
+        var importPage = _context.GetOrCreatePage<ImportPage>();
+        var categorizedCount = await importPage.GetCategorizedCountAsync();
+        var totalCount = await importPage.GetTransactionCountAsync();
+        NUnit.Framework.Assert.That(categorizedCount, NUnit.Framework.Is.EqualTo(totalCount),
+            $"Expected all transactions on the first page to be categorized but found {categorizedCount} of {totalCount}");
     }
 
     /// <summary>

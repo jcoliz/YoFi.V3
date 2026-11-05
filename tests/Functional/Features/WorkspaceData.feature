@@ -31,23 +31,26 @@ Scenario: Keep my existing data while trying sample data
   Then my existing transactions and rules remain unchanged
   And the sample transactions and rules are available alongside them
 
+@id:4
+@explicit:wip
+Scenario: Categorize new sample bank transactions automatically
+  Given I have loaded the "Personal Finance" sample data
+  When I download sample OFX data with the default data range
+  And I upload the OFX file
+  Then I can see many transactions waiting for review
+  And the first page of transactions are all selected
+  And the first page of transactions have all been categorized
+
+Rule: Delete all tenant data
+
+@id:5
 @hidden
 Scenario: Clear existing data after choosing sample import
-  Given I am using a development or testing environment
-  And I own a workspace with transactions, payee matching rules, and pending bank imports
-  And I have chosen to load Personal Finance sample data
-  And I have chosen to delete all existing workspace data first
+  Given I have loaded load the "Personal Finance" sample data
+  When I delete my workspace data
   And I have been warned that deletion is irreversible even if sample loading fails
   When I confirm deleting all existing workspace data
   Then I see confirmation of the data deleted
   And my previous transactions, rules, and pending imports are gone
   And the workspace and its memberships remain
   And sample loading awaits my separate confirmation
-
-@hidden
-Scenario: Categorize new sample bank transactions automatically
-  Given I own a workspace containing the Personal Finance sample dataset
-  When I download sample OFX data for a later non-overlapping date range
-  And I upload that file through Bank Import
-  Then I see transactions within the requested dates ready for review
-  And the sample payee matching rules have assigned the expected categories

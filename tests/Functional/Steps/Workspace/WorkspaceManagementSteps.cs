@@ -204,6 +204,19 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         await managementPage.LoadSampleDataAsync(scenario);
     }
 
+    /// <summary>
+    /// When I download sample OFX data with the default data range
+    /// </summary>
+    [When("I download sample OFX data with the default data range")]
+    [Provides(ObjectStoreKeys.OfxFilePath)]
+    public async Task IDownloadSampleOFXDataWithTheDefaultDataRange()
+    {
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        var filePath = await managementPage.DownloadSampleOFXAsync();
+        _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, filePath);
+
+        // TODO: Need to schedule this file for cleanup.
+    }
 
     #endregion
 }
