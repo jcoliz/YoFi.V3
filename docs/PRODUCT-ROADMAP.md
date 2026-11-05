@@ -169,20 +169,16 @@ TBD. Enough that I can use it for my personal finances. Probably needs at least 
 
 Actual financial data now here, so production security needs to be tighter.
 
-- Test API Key in prod
-- Seed User
-- No registration without invitation. Perhaps make test control API generate invitations.
-- Log redaction for financial data
+- Deploy to prod
 - Functional tests against production
 - Production troubleshooting guide
+- Invitations MVP
+- No registration without invitation. Perhaps make test control API generate invitations.
+- Log redaction for financial data
 
 ### Beta 2: Household usable
 
 Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
-
-#### System readiness Beta 2
-
-- Invitations MVP
 
 ### Beta 3: Household active
 
@@ -247,10 +243,10 @@ My general practice is to break release miletones down into iterations as it app
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
-| Story 2221 - Export with Selection              | V3.0      |           | ✔️ Approved          |
-| Story 2222 - Import with Detection              | B1        |           | ✔️ Approved          |
-| Story 2223 - Delete All Data                    | V3.0      |           | ✔️ Approved          |
-| Story 2224 - Load Sample Data                   | A1        | 2         | ✔️ Approved          |
+| Story 2220 - Export with Selection              | V3.0      |           | ✔️ Approved          |
+| Story 2221 - Import with Detection              | B1        |           | ✔️ Approved          |
+| Story 2222 - Delete All Data                    | V3.0      |           | ✅ Implemented       |
+| Story 2223 - Load Sample Data                   | A1        | 2         | ✅ Implemented       |
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | ✔️ Approved          |
 | Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✔️ Approved          |
