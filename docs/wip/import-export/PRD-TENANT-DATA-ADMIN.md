@@ -154,31 +154,38 @@ Transactions have a special relationship with Splits (one-to-many):
 **I want** to import an XLSX file and have the system automatically detect what entity types it contains
 **So that** I don't have to specify what I'm importing
 
-**Acceptance Criteria**:
+**Scenario 2233: Acceptance Criteria for Payees only**:
 
-- [ ] User can navigate to Data Administration page
+For initial implementation we will implement payees ONLY (scenario 2233)
+
+- [ ] User can navigate to Manage Workspace page
 - [ ] Import section has file upload area (drag-and-drop or browse button)
 - [ ] User uploads XLSX file
-- [ ] System automatically detects worksheets present and maps to entity types:
-  - Worksheet name matches entity type name → Will import that entity
-  - "Splits" worksheet is special case (requires "Transactions" worksheet)
+- [ ] Accepts original YoFi export format
+- [ ] System automatically detects if Payee worksheet present and maps to entity types
 - [ ] System displays preview of what will be imported with record counts per worksheet
 - [ ] System validates XLSX structure (column headers match entity properties)
 - [ ] If validation fails, shows specific error messages
 - [ ] User reviews preview and clicks "Import Data" button
-- [ ] System determines dependency order for import:
-  - Entities without foreign keys first
-  - Entities with dependencies after their referenced entities
-  - Splits always imported after Transactions
 - [ ] For each record: Key-based create/update logic applies
 - [ ] User sees comprehensive summary showing results for each entity type: "EntityName: X created, Y updated, Z failed"
 - [ ] Imported/updated records appear immediately in their respective list views
 - [ ] NO import review workflow - changes are applied directly
 - [ ] If any records fail, user can download error report (CSV format)
-- [ ] System validates referential integrity (e.g., splits reference valid transaction Keys)
-- [ ] If referential integrity fails, system shows warning but allows proceeding
 - [ ] Import is transactional per worksheet (all or nothing per entity type)
 - [ ] System logs import operation (who, when, what types, success/failure counts)
+
+**Remaining Acceptance Criteria**
+
+- [ ] System automatically detects worksheets present and maps to entity types:
+  - Worksheet name matches entity type name → Will import that entity
+  - "Splits" worksheet is special case (requires "Transactions" worksheet)
+- [ ] System determines dependency order for import:
+  - Entities without foreign keys first
+  - Entities with dependencies after their referenced entities
+  - Splits always imported after Transactions
+- [ ] System validates referential integrity (e.g., splits reference valid transaction Keys)
+- [ ] If referential integrity fails, system shows warning but allows proceeding
 
 ### Story 2222: User - Delete All Tenant Data
 

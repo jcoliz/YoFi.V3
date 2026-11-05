@@ -4,6 +4,7 @@ related_docs:
   - PRD-TENANT-DATA-ADMIN.md
   - DESIGN-SAMPLE-DATA.md
   - DESIGN-MANAGE-WORKSPACE.md
+ado: Feature 2206
 ---
 
 # Design: Tenant Data Administration
