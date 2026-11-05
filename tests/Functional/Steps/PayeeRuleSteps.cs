@@ -32,6 +32,28 @@ public class PayeeRuleSteps(ITestContext _context)
         SeedPayeeRulesAsync(table, forceRegex: false);
 
     /// <summary>
+    /// Given I have some existing payee matching rules in my workspace.
+    /// </summary>
+    /// <remarks>
+    /// Synthetically creates payee rules, just to meet the desired count.
+    /// </remarks>
+    /// <param name="count">The number of payee matching rules to create.</param>
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    public Task IHaveSomeExistingPayeeMatchingRulesInMyWorkspace(int count) =>
+        SeedPayeeRulesAsync(GeneratePayeeRulesTable(count), forceRegex: false);
+
+    private DataTable GeneratePayeeRulesTable(int count)
+    {
+        var headers = new[] { "Payee", "Category", "IsRegex" };
+        var data = Enumerable.Range(0, count).Select(i => new string[] { $"Payee{i}", $"Category{i}", "false" }).ToArray();
+        var table = new DataTable(headers, data);
+
+        return table;
+    }
+
+    /// <summary>
     /// Seeds rules with regex matching enabled for every supplied row.
     /// </summary>
     [Given("I have a regex payee rule:")]
@@ -253,16 +275,41 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
-    /// Then I should see the expected rules
+    /// Then I should see exactly the expected rules
     /// </summary>
     [Then("I should see the expected rules")]
+    [Then("I should see exactly the expected rules")]
     [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
-    public async Task IShouldSeeTheExpectedRules()
+    public async Task IShouldSeeExactlyTheExpectedRules()
     {
         var page = _context.GetOrCreatePage<PayeeRulesPage>();
         var expectedRules = _context.ObjectStore.Get<ICollection<PayeeMatchingRuleResultDto>>(ObjectStoreKeys.ExpectedPayeeRules);
 
         await page.ExpectRuleCountAsync(expectedRules.Count);
+
+        foreach (var expectedRule in expectedRules)
+        {
+            var actualCategory = await page.GetRuleCategoryAsync(expectedRule.PayeePattern, expectedRule.PayeeIsRegex);
+            Assert.That(actualCategory, Is.EqualTo(expectedRule.Category),
+                $"Rule for '{expectedRule.PayeePattern}' should have category '{expectedRule.Category}'");
+            Assert.That(await page.IsRegexRuleAsync(expectedRule.PayeePattern, expectedRule.PayeeIsRegex),
+                Is.EqualTo(expectedRule.PayeeIsRegex),
+                $"Rule for '{expectedRule.PayeePattern}' should have regex status '{expectedRule.PayeeIsRegex}'");
+        }
+    }
+
+    /// <summary>
+    /// Then I should see the expected rules included
+    /// </summary>
+    /// <remarks>
+    /// Assumes we're already on the payee rules page.
+    /// </remarks>
+    [Then("I should see the expected rules included")]
+    [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task IShouldSeeTheExpectedRulesIncluded()
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        var expectedRules = _context.ObjectStore.Get<ICollection<PayeeMatchingRuleResultDto>>(ObjectStoreKeys.ExpectedPayeeRules);
 
         foreach (var expectedRule in expectedRules)
         {

@@ -1,6 +1,7 @@
 using Microsoft.Playwright;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 
 namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 
@@ -21,6 +22,14 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// </remarks>
 public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(context)
 {
+    #region Helper Steps
+
+    TransactionDataSteps transactionDataSteps = new(context);
+    TransactionListSteps transactionListSteps = new(context);
+    PayeeRuleSteps payeeRuleSteps = new(context);
+
+    #endregion
+
     #region Steps: THEN
 
     /// <summary>
@@ -303,6 +312,68 @@ public class WorkspaceAssertionSteps(ITestContext context) : WorkspaceStepsBase(
     {
         var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
         await managementPage.ExpectSampleLoadResultAsync();
+    }
+
+    /// <summary>
+    /// Given My workspace has existing transactions and payee matching rules
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step to allow the Gherkin to express higher-level BDD scenarios.
+    /// * IHaveSomeExistingTransactionsInMyWorkspace(5)
+    /// * IHaveSomeExistingPayeeMatchingRulesInMyWorkspace(5)
+    /// </remarks>
+    [Given("My workspace has existing transactions and payee matching rules")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Provides(ObjectStoreKeys.ExistingTransactions)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules()
+    {
+        await transactionDataSteps.IHaveSomeExistingTransactionsInMyWorkspace(5);
+        await payeeRuleSteps.IHaveSomeExistingPayeeMatchingRulesInMyWorkspace(5);
+    }
+
+    /// <summary>
+    /// Then my existing transactions and rules remain unchanged
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step, which will:
+    /// * Check that the "expected" transactions and rules are still present in the workspace, which were set by MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules
+    /// </remarks>
+    [Then("my existing transactions and rules remain unchanged")]
+    [Requires(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task MyExistingTransactionsAndRulesRemainUnchanged()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+
+        await transactionDataSteps.IShouldSeeTheOriginalTransactions();
+
+        var payeeRulesPage = _context.GetOrCreatePage<PayeeRulesPage>();
+        await payeeRulesPage.NavigateAsync();
+
+        await payeeRuleSteps.IShouldSeeTheExpectedRulesIncluded();
+    }
+
+    /// <summary>
+    /// Then the sample transactions and rules are available alongside them
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step, which will:
+    /// *   And I can see many pages of transactions (ICanSeeManyPagesOfTransactions)
+    /// *   And I can see many payee matching rules
+    ///
+    /// Note that the MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules needs to include LESS than the number of rules that
+    /// "And I can see many payee matching rules" checks for
+    /// </remarks>
+    [Then("the sample transactions and rules are available alongside them")]
+    public async Task TheSampleTransactionsAndRulesAreAvailableAlongsideThem()
+    {
+        // Note that these steps internally do their own navigation, so we don't need to do that here.
+        await transactionListSteps.ICanSeeManyPagesOfTransactions();
+        await payeeRuleSteps.ICanSeeManyPayeeMatchingRules();
     }
 
     #endregion

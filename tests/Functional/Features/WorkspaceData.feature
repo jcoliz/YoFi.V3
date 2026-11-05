@@ -24,11 +24,10 @@ Scenario: Load sample data into the workspace I select
   Then I can see many pages of transactions in "Practice"
   And the transactions for "My Finances" is empty
 
-@hidden
+@id:3
 Scenario: Keep my existing data while trying sample data
-  Given I own a workspace with existing transactions and payee matching rules
-  And I have chosen to load Personal Finance sample data
-  When I keep my existing data and confirm loading
+  Given My workspace has existing transactions and payee matching rules
+  When I load the "Personal Finance" sample data
   Then my existing transactions and rules remain unchanged
   And the sample transactions and rules are available alongside them
 

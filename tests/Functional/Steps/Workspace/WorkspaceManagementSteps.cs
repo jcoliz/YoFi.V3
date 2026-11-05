@@ -188,7 +188,9 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     /// <summary>
     /// When I load the {scenario} sample data
     /// </summary>
+    /// <param name="scenario">The sample data scenario to load.</param>
     [When("I load the {scenario} sample data")]
+    [Given("I have loaded the {scenario} sample data")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ILoadTheSampleData(string scenario)
     {

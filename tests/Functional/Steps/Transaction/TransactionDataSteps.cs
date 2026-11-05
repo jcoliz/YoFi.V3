@@ -312,6 +312,30 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     }
 
     /// <summary>
+    /// Then I should see the original transactions
+    /// </summary>
+    /// <remarks>
+    /// This step allows there to be OTHER transactions too, we just want to make sure our original transactions are still visible
+    /// TODO: Move to transaction list steps
+    /// </remarks>
+    [Then("I should see the original transactions")]
+    [Requires(ObjectStoreKeys.ExistingTransactionKeys)]
+    public async Task IShouldSeeTheOriginalTransactions()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // Retrieve the original transaction keys from object store
+        var expected = _context.ObjectStore.Get<List<Guid>>(ObjectStoreKeys.ExistingTransactionKeys);
+
+        // Get the transaction rows currently displayed
+        var actual = await transactionsPage.GetTransactionRowKeys();
+
+        // Verify that the original transactions are visible in the transaction list
+        Assert.That(expected, Is.SubsetOf(actual),
+            "The transaction list should include the original transactions seeded earlier.");
+    }
+
+    /// <summary>
     /// Then the uploaded transactions should not appear
     /// </summary>
     [Then("the uploaded transactions should not appear")]
