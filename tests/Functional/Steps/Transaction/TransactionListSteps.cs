@@ -91,7 +91,7 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     [Given("I am viewing transactions in {workspaceName}")]
     [When("I view transactions in {workspaceName}")]
     [Provides(ObjectStoreKeys.CurrentWorkspace)]
-    public async Task WhenIViewTransactionsIn(string workspaceName)
+    public async Task NavigateToTransactionsPageAndSelectWorkspace(string workspaceName)
     {
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
         await transactionsPage.NavigateAsync();
@@ -364,20 +364,34 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// Then I can see many pages of transactions in {workspace}
     /// </summary>
     [Then("I can see many pages of transactions in {workspace}")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task ICanSeeManyPagesOfTransactionsIn(string workspace)
     {
-        throw new NotImplementedException();
+        await NavigateToTransactionsPageAndSelectWorkspace(workspace);
+        // * Provides CurrentWorkspaceName
+
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        // Check the number of items
+        var totalItems = await transactionsPage.GetTotalItemsAsync();
+        Assert.That(totalItems, Is.GreaterThan(100),
+            $"Expected to see many pages of transactions in workspace '{workspace}', but total items count is not greater than 100");
     }
 
     /// <summary>
     /// Then the transactions for {workspace} is empty
     /// </summary>
     [Then("the transactions for {workspace} is empty")]
+    [Provides(ObjectStoreKeys.CurrentWorkspace)]
     public async Task TheTransactionsForIsEmpty(string workspace)
     {
-        throw new NotImplementedException();
-    }
+        await NavigateToTransactionsPageAndSelectWorkspace(workspace);
+        // * Provides CurrentWorkspaceName
 
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+
+        await transactionsPage.ExpectEmptyStateAsync();
+    }
 
     #endregion
 

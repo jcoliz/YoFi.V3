@@ -15,7 +15,6 @@ Scenario: Explore a workspace with realistic sample data
   And I can see many pages of transactions
   And I can see many payee matching rules
 
-@explicit:wip
 @id:2
 Scenario: Load sample data into the workspace I select
   Given I also own a workspace called "Practice"

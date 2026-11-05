@@ -1222,6 +1222,13 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Expects the empty state to be displayed
+    /// </summary>
+    /// <returns>True if empty state message is visible, false otherwise</returns>
+    public Task ExpectEmptyStateAsync()
+        => Assertions.Expect(EmptyState).ToBeVisibleAsync();
+
+    /// <summary>
     /// Gets the payee name from the first transaction in the table
     /// </summary>
     /// <returns>The payee name of the first transaction, or null if no transactions exist</returns>
