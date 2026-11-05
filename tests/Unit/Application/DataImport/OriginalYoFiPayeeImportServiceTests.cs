@@ -159,16 +159,17 @@ public class OriginalYoFiPayeeImportServiceTests
         var file = Workbook(["Name", "Category"], [["/(?=coffee)/", "Food"]]);
 
         var preview = _service.Preview(file);
+        var error = preview.Errors.Single();
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(preview.CanImport, Is.False);
             Assert.That(preview.ValidRecordCount, Is.Zero);
-            Assert.That(preview.Errors, Has.Length.EqualTo(1));
-            Assert.That(preview.Errors[0].RowNumber, Is.EqualTo(2));
-            Assert.That(preview.Errors[0].Field, Is.EqualTo("Name"));
-            Assert.That(preview.Errors[0].Code, Is.EqualTo("invalid_value"));
-            Assert.That(preview.Errors[0].Message, Does.Contain("not supported"));
+            Assert.That(preview.Errors, Has.Count.EqualTo(1));
+            Assert.That(error.RowNumber, Is.EqualTo(2));
+            Assert.That(error.Field, Is.EqualTo("Name"));
+            Assert.That(error.Code, Is.EqualTo("invalid_value"));
+            Assert.That(error.Message, Does.Contain("not supported"));
             Assert.That(_staged, Is.Empty);
         }
     }

@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace YoFi.V3.Application.Dto;
 
 /// <summary>A row-level validation or skip message from an imported workbook.</summary>
@@ -22,14 +20,14 @@ public record PayeeImportPreviewDto(
     bool WorksheetFound,
     int ValidRecordCount,
     int SkippedRecordCount,
-    ImmutableArray<string> IgnoredWorksheets,
-    ImmutableArray<string> IgnoredColumns,
-    ImmutableArray<PayeeImportIssueDto> Errors,
-    ImmutableArray<PayeeImportIssueDto> SkippedRows,
+    IReadOnlyCollection<string> IgnoredWorksheets,
+    IReadOnlyCollection<string> IgnoredColumns,
+    IReadOnlyCollection<PayeeImportIssueDto> Errors,
+    IReadOnlyCollection<PayeeImportIssueDto> SkippedRows,
     string Sha256)
 {
     /// <summary>Whether the preview can be confirmed without any blocking validation errors.</summary>
-    public bool CanImport => WorksheetFound && Errors.IsEmpty;
+    public bool CanImport => WorksheetFound && Errors.Count == 0;
 }
 
 /// <summary>Committed result for an original YoFi Payee worksheet import.</summary>
