@@ -173,12 +173,15 @@ Feature: Payee Matching Rules
         | 2024-01-15 | AMZN MKTP US*123 | -29.99 |
       Then the imported transaction should have category "Online Shopping"
 
+    # NOTE: We have to escape the backslash in the regex pattern so the generated C# string is valid.
+    # Better would be for the generator to escape that automatically.
+
     @pri:3
     @id:29
     Scenario: Regex rule matches exact pattern
       Given I have a regex payee rule:
         | Payee          | Category |
-        | ^SHELL #\\\\d{4}$ | Gas      |
+        | ^SHELL #\\d{4}$ | Gas      |
       When I upload an OFX file with transactions:
         | Date       | Payee       | Amount |
         | 2024-01-15 | SHELL #1234 | -40.00 |
