@@ -238,7 +238,7 @@ function handleSampleLoaded() {
 
         <div class="col-md-6">
           <section
-            class="card h-100"
+            class="card h-100 border-danger"
             aria-labelledby="delete-workspace-heading"
             data-test-id="delete-workspace-card"
           >
@@ -258,6 +258,42 @@ function handleSampleLoaded() {
               >
                 Delete Workspace
               </button>
+              <hr class="my-4" />
+              <CardTitle
+                id="delete-data-heading"
+                data-test-id="delete-data-title"
+                class="mb-3"
+                title="Delete All Workspace Data"
+                subtitle="Delete all transactions, payee matching rules, and pending bank imports. The workspace and its members remain. This action cannot be undone."
+              />
+              <button
+                class="btn btn-outline-danger"
+                :disabled="busy"
+                data-test-id="delete-data-button"
+                @click="showDeleteDataModal = true"
+              >
+                Delete All Workspace Data
+              </button>
+              <div
+                v-if="deletionResult?.deleted"
+                class="alert alert-success mt-3 mb-0"
+                role="status"
+                data-test-id="delete-data-result"
+              >
+                Deleted
+                <strong data-test-id="deleted-transactions">{{
+                  deletionResult.deleted.transactions
+                }}</strong>
+                transactions,
+                <strong data-test-id="deleted-payee-rules">{{
+                  deletionResult.deleted.payeeMatchingRules
+                }}</strong>
+                payee matching rules, and
+                <strong data-test-id="deleted-import-reviews">{{
+                  deletionResult.deleted.importReviewTransactions
+                }}</strong>
+                pending bank imports.
+              </div>
             </div>
           </section>
         </div>
@@ -297,46 +333,19 @@ function handleSampleLoaded() {
 
         <div class="col-lg-4">
           <section
-            class="card h-100 border-danger"
-            aria-labelledby="delete-data-heading"
-            data-test-id="delete-data-card"
+            class="card h-100"
+            aria-labelledby="import-data-heading"
+            data-test-id="import-data-card"
           >
             <div class="card-body">
               <CardTitle
-                id="delete-data-heading"
-                data-test-id="delete-data-title"
+                id="import-data-heading"
+                data-test-id="import-data-title"
                 class="mb-3"
-                title="Delete All Workspace Data"
-                subtitle="Delete all transactions, payee matching rules, and pending bank imports. The workspace and its members remain. This action cannot be undone."
+                title="Import Data"
+                subtitle="Import data into this workspace."
               />
-              <button
-                class="btn btn-outline-danger"
-                :disabled="busy"
-                data-test-id="delete-data-button"
-                @click="showDeleteDataModal = true"
-              >
-                Delete All Workspace Data
-              </button>
-              <div
-                v-if="deletionResult?.deleted"
-                class="alert alert-success mt-3 mb-0"
-                role="status"
-                data-test-id="delete-data-result"
-              >
-                Deleted
-                <strong data-test-id="deleted-transactions">{{
-                  deletionResult.deleted.transactions
-                }}</strong>
-                transactions,
-                <strong data-test-id="deleted-payee-rules">{{
-                  deletionResult.deleted.payeeMatchingRules
-                }}</strong>
-                payee matching rules, and
-                <strong data-test-id="deleted-import-reviews">{{
-                  deletionResult.deleted.importReviewTransactions
-                }}</strong>
-                pending bank imports.
-              </div>
+              <p class="text-muted mb-0">Coming soon.</p>
             </div>
           </section>
         </div>
