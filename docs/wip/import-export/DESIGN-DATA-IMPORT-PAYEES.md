@@ -135,6 +135,14 @@ sanitized category, and initialized audit/usage fields. Do not copy legacy IDs
 or allow workbook fields to set tenant ownership, match counts, timestamps, or
 other V3 state.
 
+Implement this as the original YoFi format detector plus a `Payee` worksheet
+handler registered with the shared `TenantDataImportFeature`, not as a
+payee-specific top-level import service. The preview and result use the generic
+per-worksheet import contract defined in
+[Tenant Data Administration](DESIGN-TENANT-DATA-ADMIN.md#import-architecture).
+The handler owns only this legacy worksheet's mapping and validation; typed
+rule creation remains in the shared persistence service.
+
 After a successful commit, invalidate the current tenant's payee matching-rule
 cache. A database failure must roll back the entire Payee worksheet. Never
 report a partial success if the transaction did not commit.

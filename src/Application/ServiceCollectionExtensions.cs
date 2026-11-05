@@ -23,7 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton(new SampleScenarioLoader());
         services.AddSingleton<SampleDataGenerator>();
         services.AddScoped<DataImportService>();
-        services.AddScoped<OriginalYoFiPayeeImportService>();
+        services.AddScoped<IWorkbookImportFormatDetector, OriginalYoFiWorkbookFormatDetector>();
+        services.AddScoped<IImportWorksheetHandler, OriginalYoFiPayeeWorksheetHandler>();
 
         // Register memory cache for features that need caching (e.g., PayeeMatchingRuleFeature)
         services.AddMemoryCache();

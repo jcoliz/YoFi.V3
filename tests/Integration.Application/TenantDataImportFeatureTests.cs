@@ -4,7 +4,6 @@ using Microsoft.Extensions.Caching.Memory;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Services;
-using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
@@ -13,12 +12,12 @@ using YoFi.V3.Tests.Integration.Application.TestHelpers;
 namespace YoFi.V3.Tests.Integration.Application;
 
 [TestFixture]
-public class OriginalYoFiPayeeImportServiceTests : FeatureTestBase
+public class TenantDataImportFeatureTests : FeatureTestBase
 {
     private MemoryCache _cache = null!;
     private Tenant _targetTenant = null!;
     private Tenant _otherTenant = null!;
-    private OriginalYoFiPayeeImportService _service = null!;
+    private TenantDataImportFeature _service = null!;
     private PayeeMatchingRuleFeature _rulesFeature = null!;
 
     [SetUp]
@@ -34,7 +33,9 @@ public class OriginalYoFiPayeeImportServiceTests : FeatureTestBase
         _cache = new MemoryCache(new MemoryCacheOptions());
         var regex = new RegexValidationService();
         var dataImport = new DataImportService(tenantProvider, _dataProvider, _cache, regex);
-        _service = new OriginalYoFiPayeeImportService(dataImport, regex);
+        _service = new TenantDataImportFeature(
+            [new OriginalYoFiWorkbookFormatDetector()],
+            [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
         _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache);
     }
 
@@ -74,9 +75,9 @@ public class OriginalYoFiPayeeImportServiceTests : FeatureTestBase
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Created, Is.EqualTo(2));
-            Assert.That(result.Updated, Is.Zero);
-            Assert.That(result.Failed, Is.Zero);
+            Assert.That(result.Worksheets.Single().Created, Is.EqualTo(2));
+            Assert.That(result.Worksheets.Single().Updated, Is.Zero);
+            Assert.That(result.Worksheets.Single().Failed, Is.Zero);
             Assert.That(imported, Has.Count.EqualTo(2));
             Assert.That(imported[0].PayeePattern, Is.EqualTo("AMAZON.*"));
             Assert.That(imported[0].PayeeIsRegex, Is.True);
@@ -113,12 +114,12 @@ public class OriginalYoFiPayeeImportServiceTests : FeatureTestBase
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.ValidRecordCount, Is.EqualTo(1));
-            Assert.That(preview.SkippedRecordCount, Is.EqualTo(1));
-            Assert.That(first.Created, Is.EqualTo(1));
-            Assert.That(first.Skipped, Is.EqualTo(1));
-            Assert.That(second.Created, Is.EqualTo(1));
-            Assert.That(second.Skipped, Is.EqualTo(1));
+            Assert.That(preview.Worksheets.Single().ValidRecordCount, Is.EqualTo(1));
+            Assert.That(preview.Worksheets.Single().SkippedRecordCount, Is.EqualTo(1));
+            Assert.That(first.Worksheets.Single().Created, Is.EqualTo(1));
+            Assert.That(first.Worksheets.Single().Skipped, Is.EqualTo(1));
+            Assert.That(second.Worksheets.Single().Created, Is.EqualTo(1));
+            Assert.That(second.Worksheets.Single().Skipped, Is.EqualTo(1));
             Assert.That(rules, Has.Count.EqualTo(2));
             Assert.That(rules.Select(rule => rule.PayeePattern), Is.All.EqualTo("Coffee Shop"));
             Assert.That(rules.Select(rule => rule.Key), Is.Unique);

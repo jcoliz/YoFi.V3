@@ -318,8 +318,20 @@ For payees, the schema is:
 - Worksheet named "Payee"
 - Integer "ID" column. We can ignore this.
 - String "Name" column. If this column starts and ends with a slash `/`, this is a Regex rule
-- String "Category" column. Note that this column may have blanks, which we can ignore.
+- String "Category" column.  Note that this column may have blanks, in which case we can ignore the containing row
 - Boolean Selected column. We can ignore this.
+
+For budget transactions, the schema is:
+- Worksheet named "BudgetTx"
+- Integer "ID" column. We can ignore this.
+- Currency "Amount" column, with negatives indicating money expected to be spent
+- DateOnly "TimeStamp" column, indicating when the money becomes available for that item
+- String "Category" column.  Note that this column may have blanks, in which case we can ignore the containing row
+- Integer "Frequency" column, which corresponds to "FrequencyName" column. 0 for Yearly, else the number of times in a year that the budget becomes available.
+- String "FrequencyName" column, which gives the human-readable form of the frequency
+- String "Memo" column, which can be blank.
+- Boolean "Selected" column, which we can ignore
+- "Reportables" column, which we can ignore
 
 ---
 

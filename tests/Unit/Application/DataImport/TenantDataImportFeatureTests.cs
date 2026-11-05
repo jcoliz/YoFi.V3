@@ -17,12 +17,12 @@ using YoFi.V3.Tests.Unit.TestHelpers;
 namespace YoFi.V3.Tests.Unit.Application.DataImport;
 
 [TestFixture]
-public class OriginalYoFiPayeeImportServiceTests
+public class TenantDataImportFeatureTests
 {
     private Mock<IDataProvider> _data = null!;
     private TestTenantProvider _tenant = null!;
     private MemoryCache _cache = null!;
-    private OriginalYoFiPayeeImportService _service = null!;
+    private TenantDataImportFeature _service = null!;
     private readonly List<IModel> _staged = [];
 
     [SetUp]
@@ -39,7 +39,9 @@ public class OriginalYoFiPayeeImportServiceTests
 
         var regex = new RegexValidationService();
         var dataImport = new DataImportService(_tenant, _data.Object, _cache, regex);
-        _service = new OriginalYoFiPayeeImportService(dataImport, regex);
+        _service = new TenantDataImportFeature(
+            [new OriginalYoFiWorkbookFormatDetector()],
+            [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
     }
 
     [TearDown]
@@ -60,14 +62,15 @@ public class OriginalYoFiPayeeImportServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.WorksheetFound, Is.True);
-            Assert.That(result.ValidRecordCount, Is.EqualTo(1));
-            Assert.That(result.SkippedRecordCount, Is.EqualTo(1));
-            Assert.That(result.SkippedRows.Single().RowNumber, Is.EqualTo(3));
-            Assert.That(result.SkippedRows.Single().Code, Is.EqualTo("blank_category"));
+            Assert.That(result.FormatId, Is.EqualTo("original-yofi"));
+            Assert.That(result.Worksheets, Has.Count.EqualTo(1));
+            Assert.That(result.Worksheets.Single().ValidRecordCount, Is.EqualTo(1));
+            Assert.That(result.Worksheets.Single().SkippedRecordCount, Is.EqualTo(1));
+            Assert.That(result.Worksheets.Single().SkippedRows.Single().RowNumber, Is.EqualTo(3));
+            Assert.That(result.Worksheets.Single().SkippedRows.Single().Code, Is.EqualTo("blank_category"));
             Assert.That(result.IgnoredWorksheets, Is.EqualTo(["Transactions"]));
-            Assert.That(result.IgnoredColumns, Is.EqualTo(["Vendor note"]));
-            Assert.That(result.Errors, Is.Empty);
+            Assert.That(result.Worksheets.Single().IgnoredColumns, Is.EqualTo(["Vendor note"]));
+            Assert.That(result.Worksheets.Single().Errors, Is.Empty);
             Assert.That(result.CanImport, Is.True);
             Assert.That(result.Sha256, Is.EqualTo(Convert.ToHexString(SHA256.HashData(file))));
             Assert.That(_staged, Is.Empty);
@@ -94,10 +97,10 @@ public class OriginalYoFiPayeeImportServiceTests
         var rules = _staged.OfType<PayeeMatchingRule>().ToArray();
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Created, Is.EqualTo(2));
-            Assert.That(result.Skipped, Is.Zero);
-            Assert.That(result.Updated, Is.Zero);
-            Assert.That(result.Failed, Is.Zero);
+            Assert.That(result.Worksheets.Single().Created, Is.EqualTo(2));
+            Assert.That(result.Worksheets.Single().Skipped, Is.Zero);
+            Assert.That(result.Worksheets.Single().Updated, Is.Zero);
+            Assert.That(result.Worksheets.Single().Failed, Is.Zero);
             Assert.That(rules, Has.Length.EqualTo(2));
             Assert.That(rules.Select(rule => rule.Key), Is.Unique.And.All.Not.EqualTo(Guid.Empty));
             Assert.That(rules.Select(rule => rule.TenantId), Is.All.EqualTo(42));
@@ -159,13 +162,14 @@ public class OriginalYoFiPayeeImportServiceTests
         var file = Workbook(["Name", "Category"], [["/(?=coffee)/", "Food"]]);
 
         var preview = _service.Preview(file);
-        var error = preview.Errors.Single();
+        var worksheet = preview.Worksheets.Single();
+        var error = worksheet.Errors.Single();
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(preview.CanImport, Is.False);
-            Assert.That(preview.ValidRecordCount, Is.Zero);
-            Assert.That(preview.Errors, Has.Count.EqualTo(1));
+            Assert.That(worksheet.ValidRecordCount, Is.Zero);
+            Assert.That(worksheet.Errors, Has.Count.EqualTo(1));
             Assert.That(error.RowNumber, Is.EqualTo(2));
             Assert.That(error.Field, Is.EqualTo("Name"));
             Assert.That(error.Code, Is.EqualTo("invalid_value"));
@@ -180,12 +184,12 @@ public class OriginalYoFiPayeeImportServiceTests
         var file = Workbook(["Name", "Category"], [["/(?=coffee)/", "Food"]]);
         var preview = _service.Preview(file);
 
-        var exception = await Assert.ThrowsAsync<PayeeImportValidationException>(
+        var exception = await Assert.ThrowsAsync<TenantDataImportValidationException>(
             () => _service.ImportAsync(file, preview.Sha256));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(exception!.Preview.Errors.Single().RowNumber, Is.EqualTo(2));
+            Assert.That(exception!.Preview.Worksheets.Single().Errors.Single().RowNumber, Is.EqualTo(2));
             Assert.That(_staged, Is.Empty);
         }
         _data.Verify(data => data.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -198,7 +202,7 @@ public class OriginalYoFiPayeeImportServiceTests
 
         var preview = _service.Preview(file);
 
-        Assert.That(preview.Errors.Select(error => error.Code), Does.Contain("duplicate_header"));
+        Assert.That(preview.Worksheets.Single().Errors.Select(error => error.Code), Does.Contain("duplicate_header"));
         Assert.That(preview.CanImport, Is.False);
     }
 
@@ -211,7 +215,7 @@ public class OriginalYoFiPayeeImportServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.WorksheetFound, Is.False);
+            Assert.That(preview.FormatId, Is.Null);
             Assert.That(preview.CanImport, Is.False);
             Assert.That(preview.IgnoredWorksheets, Is.EqualTo(["Transactions"]));
         }
@@ -244,8 +248,8 @@ public class OriginalYoFiPayeeImportServiceTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(preview.Errors.Single().Code, Is.EqualTo("formula_not_allowed"));
-            Assert.That(preview.Errors.Single().Field, Is.EqualTo("Name"));
+            Assert.That(preview.Worksheets.Single().Errors.Single().Code, Is.EqualTo("formula_not_allowed"));
+            Assert.That(preview.Worksheets.Single().Errors.Single().Field, Is.EqualTo("Name"));
             Assert.That(preview.CanImport, Is.False);
         }
     }
@@ -267,7 +271,7 @@ public class OriginalYoFiPayeeImportServiceTests
     }
 
     [Test]
-    public void DependencyRegistration_ResolvesPayeeImportService()
+    public void DependencyRegistration_ResolvesImportCoordinatorAndHandlers()
     {
         var services = new ServiceCollection().AddApplicationFeatures();
         services.AddSingleton(_data.Object);
@@ -275,7 +279,9 @@ public class OriginalYoFiPayeeImportServiceTests
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
 
-        Assert.That(scope.ServiceProvider.GetRequiredService<OriginalYoFiPayeeImportService>(), Is.Not.Null);
+        Assert.That(scope.ServiceProvider.GetRequiredService<TenantDataImportFeature>(), Is.Not.Null);
+        Assert.That(scope.ServiceProvider.GetRequiredService<IEnumerable<IImportWorksheetHandler>>().Single(),
+            Is.TypeOf<OriginalYoFiPayeeWorksheetHandler>());
     }
 
     private static byte[] Workbook(

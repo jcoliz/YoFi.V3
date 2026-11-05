@@ -12,9 +12,9 @@ ado: Feature 2206
 
 ## Overview
 
-Skeleton design for general workspace data administration. This document sketches
-controller ownership and proposed endpoints; it is not an implementation plan or
-a finalized request/response contract.
+Design for general workspace data administration. This document defines component
+ownership, import extensibility, and proposed endpoints; some request/response
+contracts remain to be finalized alongside implementation.
 
 Requirements come from [Tenant Data Administration](PRD-TENANT-DATA-ADMIN.md).
 Implement needed pieces directly in their intended final form, without an
@@ -49,6 +49,58 @@ making general administration depend on sample generation.
 
 Bank OFX/QFX upload and review remain in the existing `ImportController`, outside
 this administration API.
+
+## Import Architecture
+
+The import experience is one workspace-level operation, not a separate user
+flow or top-level service for each entity type. The user selects one workbook;
+the application detects its source format, identifies every supported data
+worksheet, previews them together, and imports the confirmed supported data.
+The long-term feature must support both original YoFi exports and native
+YoFi.V3 exports, including all tenant data types supported by each format.
+This does not require every format or data type to ship in the initial release.
+
+Use an extensible pipeline with these responsibilities:
+
+| Component | Responsibility |
+|-----------|----------------|
+| `TenantDataAdminController` | Transport upload/preview/import requests and return explicit results or validation feedback |
+| `TenantDataImportFeature` | Coordinate workbook parsing, source-format detection, supported worksheet discovery, preview aggregation, confirmation digest checking, and import execution |
+| Workbook format detectors | Identify a supported source format using workbook-level evidence; reject ambiguous or unknown formats rather than guessing |
+| Worksheet import handlers | Map one source-format/data-type worksheet into validated application inputs; own format-specific headers, conversions, and row-level issues |
+| Typed import persistence service | Persist validated application inputs using tenant-scoped create/update rules, transactional per-worksheet boundaries, and cache invalidation |
+
+Format detectors and worksheet handlers are registered through interfaces, not
+selected by a growing switch statement in the controller or a per-entity
+controller/service family. A worksheet handler declares the format and data
+type it supports. Different source formats may have different handlers for the
+same V3 data type; for example, the original YoFi `Payee` columns and a native
+V3 `PayeeMatchingRules` sheet have different schemas but target the same V3
+model and validation rules. Shared V3 validation and persistence logic belongs
+below those format-specific mappings.
+
+The import preview is format-neutral and reports the detected format, each
+recognized worksheet/data type, valid/skipped counts, and row/field issues,
+plus worksheets that will not be imported. Importing the confirmed workbook
+recomputes format detection and validation and checks the digest returned by
+preview. It must not trust a client-supplied preview as validated data.
+Unknown worksheets are ignored and reported, never implicitly imported.
+
+Each worksheet is the transaction boundary: validate it fully before writes,
+then commit all of that worksheet's writes atomically. Results identify counts
+per worksheet/data type. A failure must be explicit; already committed
+worksheets are reported as committed and later worksheets are not attempted.
+Where entity dependencies exist, the orchestration layer orders handlers
+according to declared dependencies (for example, transactions before splits)
+and blocks dependents when prerequisites fail. The first payee-only path has
+no cross-worksheet dependencies.
+
+The first increment implements only the original YoFi `Payee` worksheet
+handler. It maps to V3 payee matching rules, as detailed in
+[Import Original YoFi Payees](DESIGN-DATA-IMPORT-PAYEES.md). It is the first
+handler behind the shared orchestration contract, not the intended pattern of
+one public import service per original YoFi data type. Native YoFi.V3 detection
+and other data-type handlers are later increments.
 
 ## Proposed Endpoints
 
