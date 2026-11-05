@@ -69,7 +69,7 @@ public class PayeeRuleSteps(ITestContext _context)
         {
             PayeePattern = row.GetRequired("Payee"),
             PayeeIsRegex = forceRegex || (row.GetOptional<bool>("IsRegex") ?? false),
-            Category = WebUtility.HtmlDecode(row.GetRequired("Category"))
+            Category = row.GetRequired("Category")
         }).ToList();
 
         Assert.That(items, Is.Not.Empty, "At least one payee rule row is required.");
@@ -150,11 +150,9 @@ public class PayeeRuleSteps(ITestContext _context)
         // of identifying which rule to edit. For now, we assume there is only one rule and it corresponds to the single row in the table.
 
         var row = table.Rows.Single();
-        // Gherkin.Generator HTML-encodes special characters in table values.
-        // TODO: This is a Gherkin.Generator bug. Need to file it there and get it fixed there.
         await page.EditRuleAsync(
-            WebUtility.HtmlDecode(row.GetRequired("Payee")),
-            WebUtility.HtmlDecode(row.GetRequired("Category")));
+            row.GetRequired("Payee"),
+            row.GetRequired("Category"));
     }
 
     /// <summary>
