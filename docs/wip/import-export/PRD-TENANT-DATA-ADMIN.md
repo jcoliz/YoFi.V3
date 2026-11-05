@@ -310,6 +310,17 @@ endpoint sketch for final-form counts, XLSX import/export, and deletion.
 - Implementation will use the particular entity types available in the app.
 - For the future we could consider a dynamic approach, however adding new entities will be rare.
 
+### Original YoFi export format
+
+All original YoFi exports must be supported for import, in addition to natively exported YoFi.V3 exports
+
+For payees, the schema is:
+- Worksheet named "Payee"
+- Integer "ID" column. We can ignore this.
+- String "Name" column. If this column starts and ends with a slash `/`, this is a Regex rule
+- String "Category" column. Note that this column may have blanks, which we can ignore.
+- Boolean Selected column. We can ignore this.
+
 ---
 
 ## Open Questions
