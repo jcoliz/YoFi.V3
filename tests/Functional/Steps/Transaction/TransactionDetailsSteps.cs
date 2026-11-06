@@ -149,6 +149,7 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
             "Category" => await detailsPage.GetCategoryAsync(),
             "Source" => await detailsPage.GetSourceAsync(),
             "ExternalId" => await detailsPage.GetExternalIdAsync(),
+            "Amount" => await detailsPage.GetAmountAsync(),
             _ => throw new ArgumentException($"Unsupported field name: {fieldName}")
         };
 
@@ -156,6 +157,13 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
         Assert.That(actualValue?.Trim(), Is.EqualTo(expectedValue),
             $"{fieldName} field should be '{expectedValue}' but was '{actualValue}'");
     }
+
+    /// <summary>
+    /// Then the transaction amount remains {value}
+    /// </summary>
+    [Then("the transaction amount remains {value}")]
+    public Task TheTransactionAmountRemains(string value)
+        => ThenIShouldSeeValueAsField(value, "Amount");
 
     /// <summary>
     /// Verifies that the user returned to the transaction list page.
