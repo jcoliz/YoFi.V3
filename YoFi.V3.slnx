@@ -1,5 +1,10 @@
 <Solution>
   <Project Path="src/Application/YoFi.V3.Application.csproj" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/Data/" />
+  <Folder Name="/src/Data/PostgreSQL/">
+    <Project Path="src/Data/PostgreSQL/YoFi.V3.Data.PostgreSQL.csproj" />
+  </Folder>
   <Folder Name="/submodules/" />
   <Folder Name="/submodules/DotNetNuxt/" />
   <Folder Name="/submodules/DotNetNuxt/src/" />
