@@ -170,7 +170,7 @@ describe('workspace/Selector', () => {
   it('shows manage-current-workspace link only for owners', async () => {
     // Given: a single tenant that is owned by the user
     // The API returns the tenant with Owner role so loadTenants() doesn't overwrite it
-    const ownerTenant = { key: 'myworkspace', name: 'My Workspace', role: TenantRole.Owner }
+    const ownerTenant = { key: 'owner-workspace', name: 'Owner Workspace', role: TenantRole.Owner }
     const store = makeStore(ownerTenant)
 
     useApiClientMock.mockReturnValue({ getTenants: async () => [ownerTenant] })
@@ -187,14 +187,14 @@ describe('workspace/Selector', () => {
     expect(wrapper.find('[data-test-id="manage-current-workspace-button"]').exists()).toBe(true)
 
     // When: current workspace role changes to editor
-    store.setCurrentTenant({ key: 'myworkspace', name: 'My Workspace', role: TenantRole.Editor })
+    store.setCurrentTenant({ key: 'owner-workspace', name: 'Owner Workspace', role: TenantRole.Editor })
     await nextTick()
 
     // Then: manage link is hidden for editor
     expect(wrapper.find('[data-test-id="manage-current-workspace-button"]').exists()).toBe(false)
 
     // When: current workspace role changes to viewer
-    store.setCurrentTenant({ key: 'myworkspace', name: 'My Workspace', role: TenantRole.Viewer })
+    store.setCurrentTenant({ key: 'owner-workspace', name: 'Owner Workspace', role: TenantRole.Viewer })
     await nextTick()
 
     // Then: manage link is hidden for viewer

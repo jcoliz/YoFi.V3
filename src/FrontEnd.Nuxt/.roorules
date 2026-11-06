@@ -600,7 +600,7 @@ onMounted(async () => {
 - **DON'T** use `@param {type}` syntax - TypeScript types are sufficient
 - **DON'T** write lengthy documentation - keep it concise and focused
 
-#### Reference Examples
+#### Reference Examples for JSDoc
 
 See these files for comprehensive JSDoc documentation examples:
 

@@ -99,17 +99,17 @@ try {
     }
 
     # Strip ANSI escape sequences from a string for reliable regex matching.
-    function Remove-AnsiEscapes {
+    function ConvertFrom-AnsiString {
         param([string]$Text)
         return [System.Text.RegularExpressions.Regex]::Replace($Text, '\x1B\[[0-9;]*[mGKHF]', '')
     }
 
-    # Parse test counts and durations from output
-    function Parse-TestResults {
+    # Extract test counts and durations from test runner output.
+    function ConvertFrom-TestOutput {
         param([string]$Output)
 
         # Strip ANSI codes so regex patterns work regardless of terminal color output.
-        $plain = Remove-AnsiEscapes $Output
+        $plain = ConvertFrom-AnsiString $Output
 
         # Vitest format: "Tests  71 passed (71)" or "Tests  1 failed | 70 passed (71)"
         # Duration: "Duration  1.65s (...)"
@@ -162,7 +162,7 @@ try {
             } finally {
                 Pop-Location
             }
-            $suite.Stats = Parse-TestResults -Output ($capturedOutput -join "`n")
+            $suite.Stats = ConvertFrom-TestOutput -Output ($capturedOutput -join "`n")
             continue
         }
 
@@ -173,7 +173,7 @@ try {
 
         & dotnet @testArgs 2>&1 | Tee-Object -Variable capturedOutput | ForEach-Object { Write-Host $_ }
         $suite.ExitCode = $LASTEXITCODE
-        $suite.Stats = Parse-TestResults -Output ($capturedOutput -join "`n")
+        $suite.Stats = ConvertFrom-TestOutput -Output ($capturedOutput -join "`n")
     }
 
     # Summary
