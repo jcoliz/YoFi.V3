@@ -29,16 +29,6 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     }
 
     /// <summary>
-    /// Given I am on the transactions detail page for that transaction
-    /// </summary>
-    [Given("I am on the transactions detail page for that transaction")]
-    [Requires(ObjectStoreKeys.TransactionKey)]
-    public async Task IAmOnTheTransactionsDetailPageForThatTransaction()
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
     /// When I add a new split with the following details:
     /// </summary>
     /// <remarks>
