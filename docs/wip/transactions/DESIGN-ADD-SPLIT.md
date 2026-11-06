@@ -66,7 +66,68 @@ display order. The existing split keeps its key, category, and memo and is
 displayed first. A zero remainder is allowed; the transaction still has two
 splits and remains balanced.
 
-## Application/API behavior
+## Endpoint and DTO
+
+The general-purpose `POST .../transactions/{transactionKey}/splits` endpoint
+appends splits and may leave the transaction unbalanced. Keep that behavior
+unchanged. This scenario uses a separate command endpoint so the balance-and-
+reallocate behavior is explicit:
+
+```http
+POST /api/tenant/{tenantKey}/transactions/{transactionKey}/splits/balanced
+```
+
+Require the Editor tenant role. The endpoint is scoped to the tenant in the
+route, and the application feature must also load the transaction through its
+current-tenant query.
+
+Add this action to `TransactionsController`:
+
+```csharp
+[HttpPost("{transactionKey:guid}/splits/balanced")]
+[RequireTenantRole(TenantRole.Editor)]
+[ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+public async Task<IActionResult> AddBalancedSplit(
+    Guid transactionKey,
+    [FromBody] AddBalancedSplitDto split)
+{
+    var updated = await transactionsFeature.AddBalancedSplitAsync(transactionKey, split);
+    return Ok(updated);
+}
+```
+
+**Request body** — `AddBalancedSplitDto`:
+
+```csharp
+public record AddBalancedSplitDto(
+    decimal Amount,
+    string? Category,
+    string? Memo
+);
+```
+
+`Amount` accepts positive, negative, or zero values within the split amount
+range already used by `SplitEditDto`. `Category` is optional, may be blank for
+uncategorized, and has the existing 200-character limit. `Memo` is optional
+and has the split memo's existing 500-character limit. Validate the DTO at
+the controller boundary using a corresponding FluentValidation validator.
+Sanitize the category in the application feature before persisting it.
+
+**Success response**: `200 OK` with `TransactionDetailDto`, including both
+splits ordered by `Order`. Reuse this existing result DTO rather than defining
+a scenario-specific response type.
+
+**Errors**:
+
+- `400 Bad Request` for invalid request data.
+- `404 Not Found` when the transaction is not found in the tenant.
+- `409 Conflict` when the transaction no longer has exactly one split, so this
+  operation's precondition is not met.
+
+## Application feature operation
 
 Implement this as one tenant-authorized application operation that loads the
 transaction and its splits, verifies the transaction has exactly one split,
@@ -75,14 +136,29 @@ changes together. Do not calculate the remainder only in the browser or issue
 separate update and create requests: either approach can leave partial changes
 or use stale transaction data.
 
-Return the updated transaction detail (including its ordered splits), or an
-equivalent operation result with the updated split rows and balance state, so
-the page can render the committed result. Use existing category sanitization
-and split validation. Reject a missing transaction, a transaction with anything
-other than one current split, and malformed amount input using the application's
-standard API error responses. Do not silently fall back to appending a split.
+Add `TransactionsFeature.AddBalancedSplitAsync(Guid transactionKey,
+AddBalancedSplitDto split)` to perform the operation:
 
-The existing general-purpose add-splits operation described in
+1. Load the transaction and splits using the existing tenant-scoped transaction
+   query. Throw the standard transaction-not-found exception if no matching
+   transaction exists.
+2. Verify exactly one split exists. If not, report a conflict; do not silently
+   fall back to appending a split.
+3. Sanitize the requested category, update the existing split amount to
+   `transaction.Amount - split.Amount`, and leave its key, category, memo, and
+   order unchanged.
+4. Create the new split with the requested amount, sanitized category, optional
+   memo, and an order after the existing split.
+5. Persist the original-split update and new split together in a single
+   `SaveChangesAsync` call, with transaction-level concurrency protection so
+   concurrent split changes cannot violate the one-split precondition.
+6. Return `ToDetailDto(transaction)` after saving. Its ordered `Splits`
+   collection supplies the committed state to the page.
+
+The controller action should delegate to this feature method and return
+`Ok(result)`. It should not implement the allocation rule itself.
+
+The general-purpose add-splits operation described in
 [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) remains distinct:
 it appends splits and may leave a multi-split transaction unbalanced. This
 scenario's balancing behavior is specifically the one-to-two transition from a
