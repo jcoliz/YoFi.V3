@@ -106,7 +106,11 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Entire list of splits are displayed when viewing the details of a transaction.
 - [ ] Transactions list shows a split indicator in place of the category for transactions with multiple splits
 
-**Acceptance Criteria: Scenario 2251: Manipulation**
+**Acceptance Criteria: Scenario 2252: Add a single split to a new transaction**
+
+- [ ] User can add a single split to an existing single-category transaction, and the transaction will be automatically balanced
+
+**Acceptance Criteria: Scenario 2251: Modify**
 
 - [ ] Splits can be edited individually (amount, category, memo)
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
