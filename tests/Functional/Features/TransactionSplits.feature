@@ -1,3 +1,4 @@
+@ab:1982
 Feature: Transaction Splits
 
 Personal finance tracking requires categorizing transactions across multiple categories.
@@ -10,7 +11,9 @@ Background:
     Given the application is running
     And I am logged in as a user with "Editor" role
 
-@explicit:wip
+@ab:2252
+Rule: Add a single split to an existing transaction
+
 Scenario: Add a single split to an existing transaction with one split
     Given I have a workspace with a transaction:
         | Payee             | Amount  | Category |
@@ -26,7 +29,6 @@ Scenario: Add a single split to an existing transaction with one split
     And the transaction amount remains -100.00
     And the transaction is balanced
 
-@explicit:wip
 Scenario: Add a single split to an existing transaction with multiple splits
     Given I have a workspace with a transaction for payee "Super Duper Mart" having these splits:
         | Amount  | Category | Memo |

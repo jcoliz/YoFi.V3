@@ -1,3 +1,4 @@
+using System.Globalization;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -151,6 +152,16 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
             "Amount" => await detailsPage.GetAmountAsync(),
             _ => throw new ArgumentException($"Unsupported field name: {fieldName}")
         };
+
+        if (fieldName == "Amount")
+        {
+            var expectedAmount = decimal.Parse(expectedValue, NumberStyles.Number, CultureInfo.InvariantCulture);
+            Assert.That(decimal.TryParse(actualValue, NumberStyles.Currency, CultureInfo.GetCultureInfo("en-US"), out var actualAmount),
+                Is.True, $"Could not parse displayed transaction amount '{actualValue}'.");
+            Assert.That(actualAmount, Is.EqualTo(expectedAmount),
+                $"Transaction amount should be '{expectedAmount}' but was '{actualValue}'.");
+            return;
+        }
 
         // And: Verify the field displays the expected value
         Assert.That(actualValue?.Trim(), Is.EqualTo(expectedValue),

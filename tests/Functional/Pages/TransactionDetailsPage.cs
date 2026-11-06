@@ -129,6 +129,49 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     public ILocator ExternalIdDisplay => Page!.GetByTestId("transaction-external-id");
 
     #endregion
+    #region Transaction Splits Elements
+
+    /// <summary>
+    /// Transaction splits pane container
+    /// </summary>
+    public ILocator SplitsPane => Page!.GetByTestId("transaction-splits");
+
+    /// <summary>
+    /// Add split form within the transaction splits pane
+    /// </summary>
+    public ILocator AddSplitForm => SplitsPane.GetByTestId("add-split-form");
+
+    /// <summary>
+    /// Add button in the transaction splits pane
+    /// </summary>
+    public ILocator AddSplitButton => SplitsPane.GetByTestId("add-split-button");
+
+    /// <summary>
+    /// Category input in the add-split form
+    /// </summary>
+    public ILocator AddSplitCategoryInput => AddSplitForm.GetByTestId("add-split-category");
+
+    /// <summary>
+    /// Amount input in the add-split form
+    /// </summary>
+    public ILocator AddSplitAmountInput => AddSplitForm.GetByTestId("add-split-amount");
+
+    /// <summary>
+    /// Memo input in the add-split form
+    /// </summary>
+    public ILocator AddSplitMemoInput => AddSplitForm.GetByTestId("add-split-memo");
+
+    /// <summary>
+    /// Submit button in the add-split form
+    /// </summary>
+    public ILocator SaveSplitButton => AddSplitForm.GetByTestId("save-split-button");
+
+    /// <summary>
+    /// Displayed split rows, in transaction order
+    /// </summary>
+    public ILocator SplitRows => SplitsPane.GetByTestId("transaction-splits-table").Locator("tbody tr");
+
+    #endregion
 
     #region Edit Mode Elements
 
@@ -375,6 +418,22 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         await DetailsCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
+    /// <summary>
+    /// Adds a split using the form and waits for the update request to complete.
+    /// </summary>
+    public async Task AddSplitAsync(decimal amount, string category, string memo)
+    {
+        await AddSplitButton.ClickAsync();
+        await AddSplitCategoryInput.FillAsync(category);
+        await AddSplitAmountInput.FillAsync(amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+        await AddSplitMemoInput.FillAsync(memo);
+
+        await WaitForApi(async () =>
+        {
+            await SaveSplitButton.ClickAsync();
+        }, TransactionApiRegex());
+    }
+
     #endregion
 
     #region Delete Operations
@@ -470,6 +529,27 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     public async Task<string?> GetExternalIdAsync()
     {
         return await ExternalIdDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the displayed category, amount, and memo for each split, in transaction order.
+    /// </summary>
+    public async Task<IReadOnlyList<(string Category, string Amount, string Memo)>> GetDisplayedSplitsAsync()
+    {
+        var splits = new List<(string Category, string Amount, string Memo)>();
+        var count = await SplitRows.CountAsync();
+        for (var index = 0; index < count; index++)
+        {
+            var cells = await SplitRows.Nth(index).Locator("td").AllInnerTextsAsync();
+            if (cells.Count != 3)
+            {
+                throw new InvalidOperationException($"Expected three cells in split row {index}, found {cells.Count}.");
+            }
+
+            splits.Add((cells[0].Trim(), cells[1].Trim(), cells[2].Trim()));
+        }
+
+        return splits;
     }
 
     /// <summary>
