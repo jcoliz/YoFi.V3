@@ -121,9 +121,9 @@ export class AuthClient {
     }
 
     /**
-     * Registers a new user.
-     * @param request Signup credentials.
-     * @return JWT tokens and user information if successful; otherwise, bad request.
+     * Registers a new user. Dispatches to open or invitation-based registration
+    based on RegistrationOptions and the presence of an invitation code.
+     * @param request Signup credentials, optionally including an invitation code.
      */
     signUp(request: SignUpRequest): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/api/auth/signup";
@@ -282,7 +282,6 @@ export class AuthClient {
     /**
      * Handles logout logic. Can be overridden for custom behavior.
      * @param request The logout request containing the refresh token to revoke.
-     * @return Success response.
      */
     logout(request: RefreshRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/logout";
@@ -318,6 +317,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Validates an invitation code and returns its current status.
+     * @param request The request containing the invitation code to validate.
+     */
     validateInvitation(request: InvitationValidateRequest): Promise<InvitationStatusResponse> {
         let url_ = this.baseUrl + "/api/auth/invitations/validate";
         url_ = url_.replace(/[?&]$/, "");
@@ -356,6 +359,10 @@ export class AuthClient {
         return Promise.resolve<InvitationStatusResponse>(null as any);
     }
 
+    /**
+     * Initiates a password reset flow by generating a reset code and notifying the user.
+     * @param request The forgot password request containing a username or email.
+     */
     forgotPassword(request: ForgotPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/forgot-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -390,6 +397,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Resets a user's password using a reset code from the forgot-password flow.
+     * @param request The reset password request containing user identifier, reset code, and new password.
+     */
     resetPassword(request: ResetPasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/reset-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -431,6 +442,10 @@ export class AuthClient {
         return Promise.resolve<void>(null as any);
     }
 
+    /**
+     * Changes the authenticated user's password.
+     * @param request The change password request containing the current and new passwords.
+     */
     changePassword(request: ChangePasswordRequest): Promise<void> {
         let url_ = this.baseUrl + "/api/auth/change-password";
         url_ = url_.replace(/[?&]$/, "");
@@ -1716,6 +1731,175 @@ export class TenantDataAdminClient {
     constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
         this.http = http ? http : window as any;
         this.baseUrl = baseUrl ?? "";
+    }
+
+    /**
+     * Previews the supported data and validation issues in an uploaded XLSX workbook.
+     * @param tenantKey Route key identifying the authorized target workspace.
+     * @param file (optional) 
+     * @return Detected format, per-worksheet preview, and digest for import confirmation.
+     */
+    previewImport(tenantKey: string, file: FileParameter | null | undefined): Promise<TenantDataImportPreviewDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/import/preview";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPreviewImport(_response);
+        });
+    }
+
+    protected processPreviewImport(response: Response): Promise<TenantDataImportPreviewDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TenantDataImportPreviewDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantDataImportPreviewDto>(null as any);
+    }
+
+    /**
+     * Imports a previously previewed XLSX workbook into the authorized workspace.
+     * @param tenantKey Route key identifying the authorized target workspace.
+     * @param file (optional) 
+     * @param expectedSha256 (optional) 
+     * @return Committed per-worksheet import counts.
+     */
+    importData(tenantKey: string, file: FileParameter | null | undefined, expectedSha256: string | null | undefined): Promise<TenantDataImportResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/import";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+        if (expectedSha256 !== null && expectedSha256 !== undefined)
+            content_.append("expectedSha256", expectedSha256.toString());
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processImportData(_response);
+        });
+    }
+
+    protected processImportData(response: Response): Promise<TenantDataImportResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TenantDataImportResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantDataImportResultDto>(null as any);
     }
 
     /**
@@ -5548,6 +5732,310 @@ export interface ISampleDataLoadResultDto {
     inputs?: SampleDataRequest;
     created?: SampleDataCounts;
     updated?: SampleDataCounts;
+}
+
+export class TenantDataImportPreviewDto implements ITenantDataImportPreviewDto {
+    formatId?: string | undefined;
+    worksheets?: ImportWorksheetPreviewDto[];
+    ignoredWorksheets?: string[];
+    sha256?: string;
+    canImport?: boolean;
+
+    constructor(data?: ITenantDataImportPreviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.formatId = _data["formatId"];
+            if (Array.isArray(_data["worksheets"])) {
+                this.worksheets = [] as any;
+                for (let item of _data["worksheets"])
+                    this.worksheets!.push(ImportWorksheetPreviewDto.fromJS(item));
+            }
+            if (Array.isArray(_data["ignoredWorksheets"])) {
+                this.ignoredWorksheets = [] as any;
+                for (let item of _data["ignoredWorksheets"])
+                    this.ignoredWorksheets!.push(item);
+            }
+            this.sha256 = _data["sha256"];
+            this.canImport = _data["canImport"];
+        }
+    }
+
+    static fromJS(data: any): TenantDataImportPreviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataImportPreviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["formatId"] = this.formatId;
+        if (Array.isArray(this.worksheets)) {
+            data["worksheets"] = [];
+            for (let item of this.worksheets)
+                data["worksheets"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.ignoredWorksheets)) {
+            data["ignoredWorksheets"] = [];
+            for (let item of this.ignoredWorksheets)
+                data["ignoredWorksheets"].push(item);
+        }
+        data["sha256"] = this.sha256;
+        data["canImport"] = this.canImport;
+        return data;
+    }
+}
+
+export interface ITenantDataImportPreviewDto {
+    formatId?: string | undefined;
+    worksheets?: ImportWorksheetPreviewDto[];
+    ignoredWorksheets?: string[];
+    sha256?: string;
+    canImport?: boolean;
+}
+
+export class ImportWorksheetPreviewDto implements IImportWorksheetPreviewDto {
+    worksheetName?: string;
+    dataType?: string;
+    validRecordCount?: number;
+    skippedRecordCount?: number;
+    ignoredColumns?: string[];
+    errors?: DataImportIssueDto[];
+    skippedRows?: DataImportIssueDto[];
+    canImport?: boolean;
+
+    constructor(data?: IImportWorksheetPreviewDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.worksheetName = _data["worksheetName"];
+            this.dataType = _data["dataType"];
+            this.validRecordCount = _data["validRecordCount"];
+            this.skippedRecordCount = _data["skippedRecordCount"];
+            if (Array.isArray(_data["ignoredColumns"])) {
+                this.ignoredColumns = [] as any;
+                for (let item of _data["ignoredColumns"])
+                    this.ignoredColumns!.push(item);
+            }
+            if (Array.isArray(_data["errors"])) {
+                this.errors = [] as any;
+                for (let item of _data["errors"])
+                    this.errors!.push(DataImportIssueDto.fromJS(item));
+            }
+            if (Array.isArray(_data["skippedRows"])) {
+                this.skippedRows = [] as any;
+                for (let item of _data["skippedRows"])
+                    this.skippedRows!.push(DataImportIssueDto.fromJS(item));
+            }
+            this.canImport = _data["canImport"];
+        }
+    }
+
+    static fromJS(data: any): ImportWorksheetPreviewDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportWorksheetPreviewDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["worksheetName"] = this.worksheetName;
+        data["dataType"] = this.dataType;
+        data["validRecordCount"] = this.validRecordCount;
+        data["skippedRecordCount"] = this.skippedRecordCount;
+        if (Array.isArray(this.ignoredColumns)) {
+            data["ignoredColumns"] = [];
+            for (let item of this.ignoredColumns)
+                data["ignoredColumns"].push(item);
+        }
+        if (Array.isArray(this.errors)) {
+            data["errors"] = [];
+            for (let item of this.errors)
+                data["errors"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.skippedRows)) {
+            data["skippedRows"] = [];
+            for (let item of this.skippedRows)
+                data["skippedRows"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["canImport"] = this.canImport;
+        return data;
+    }
+}
+
+export interface IImportWorksheetPreviewDto {
+    worksheetName?: string;
+    dataType?: string;
+    validRecordCount?: number;
+    skippedRecordCount?: number;
+    ignoredColumns?: string[];
+    errors?: DataImportIssueDto[];
+    skippedRows?: DataImportIssueDto[];
+    canImport?: boolean;
+}
+
+export class DataImportIssueDto implements IDataImportIssueDto {
+    rowNumber?: number;
+    field?: string;
+    code?: string;
+    message?: string;
+
+    constructor(data?: IDataImportIssueDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.rowNumber = _data["rowNumber"];
+            this.field = _data["field"];
+            this.code = _data["code"];
+            this.message = _data["message"];
+        }
+    }
+
+    static fromJS(data: any): DataImportIssueDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new DataImportIssueDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["rowNumber"] = this.rowNumber;
+        data["field"] = this.field;
+        data["code"] = this.code;
+        data["message"] = this.message;
+        return data;
+    }
+}
+
+export interface IDataImportIssueDto {
+    rowNumber?: number;
+    field?: string;
+    code?: string;
+    message?: string;
+}
+
+export class TenantDataImportResultDto implements ITenantDataImportResultDto {
+    worksheets?: ImportWorksheetResultDto[];
+
+    constructor(data?: ITenantDataImportResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["worksheets"])) {
+                this.worksheets = [] as any;
+                for (let item of _data["worksheets"])
+                    this.worksheets!.push(ImportWorksheetResultDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TenantDataImportResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataImportResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.worksheets)) {
+            data["worksheets"] = [];
+            for (let item of this.worksheets)
+                data["worksheets"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+export interface ITenantDataImportResultDto {
+    worksheets?: ImportWorksheetResultDto[];
+}
+
+export class ImportWorksheetResultDto implements IImportWorksheetResultDto {
+    worksheetName?: string;
+    dataType?: string;
+    created?: number;
+    skipped?: number;
+    updated?: number;
+    failed?: number;
+
+    constructor(data?: IImportWorksheetResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.worksheetName = _data["worksheetName"];
+            this.dataType = _data["dataType"];
+            this.created = _data["created"];
+            this.skipped = _data["skipped"];
+            this.updated = _data["updated"];
+            this.failed = _data["failed"];
+        }
+    }
+
+    static fromJS(data: any): ImportWorksheetResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportWorksheetResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["worksheetName"] = this.worksheetName;
+        data["dataType"] = this.dataType;
+        data["created"] = this.created;
+        data["skipped"] = this.skipped;
+        data["updated"] = this.updated;
+        data["failed"] = this.failed;
+        return data;
+    }
+}
+
+export interface IImportWorksheetResultDto {
+    worksheetName?: string;
+    dataType?: string;
+    created?: number;
+    skipped?: number;
+    updated?: number;
+    failed?: number;
 }
 
 export class TenantDataDeletionResultDto implements ITenantDataDeletionResultDto {
