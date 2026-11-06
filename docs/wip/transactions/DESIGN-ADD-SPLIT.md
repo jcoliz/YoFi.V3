@@ -91,7 +91,7 @@ current-tenant query.
 The single-split request uses the existing `SplitEditDto`:
 
 ```csharp
-public record SplitEditDto(decimal Amount, string Category, string? Memo);
+public record SplitEditDto(decimal Amount, string? Category, string? Memo);
 ```
 
 `Amount` accepts positive, negative, or zero values within the split amount
@@ -104,17 +104,16 @@ The single-item POST action in `TransactionsController` requires the Editor
 role and delegates to `TransactionsFeature.AddSplitAsync`:
 
 ```csharp
-[HttpPost("{transactionKey:guid}/splits")]
+[HttpPost("{key:guid}/splits")]
 [RequireTenantRole(TenantRole.Editor)]
 [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
 public async Task<IActionResult> AddSplit(
-    Guid transactionKey,
+    Guid key,
     [FromBody] SplitEditDto split)
 {
-    var updated = await transactionsFeature.AddSplitAsync(transactionKey, split);
+    var updated = await transactionsFeature.AddSplitAsync(key, split);
     return Ok(updated);
 }
 ```
@@ -127,10 +126,8 @@ and may create an imbalance.
 **Errors**:
 
 - `400 Bad Request` for invalid request data.
+- `400 Bad Request` when the transaction has no existing split to rebalance.
 - `404 Not Found` when the transaction is not found in the tenant.
-- `409 Conflict` when a concurrent split change prevents applying the
-  reallocation against the current split set. A retry can reload the latest
-  splits and recompute the first split amount.
 
 ## Application feature operation
 

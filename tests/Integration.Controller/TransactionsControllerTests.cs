@@ -215,6 +215,101 @@ public class TransactionsControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task AddSplit_AsEditor_ReturnsBalancedTransactionWithOrderedSplitsAndMemo()
+    {
+        // Given: An existing transaction with its imported category
+        SwitchToEditor();
+        var createDto = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: 100m,
+            Payee: "Split Test",
+            Memo: null,
+            Source: null,
+            ExternalId: null,
+            Category: "Imported"
+        );
+        var createResponse = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/transactions", createDto);
+        Assert.That(createResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var created = await createResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(created, Is.Not.Null);
+
+        // When: User adds a split
+        var splitDto = new SplitEditDto(Amount: 35m, Category: "Dining", Memo: "Business lunch");
+        var response = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{created!.Key}/splits",
+            splitDto);
+
+        // Then: Updated transaction is returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated, Is.Not.Null);
+        Assert.That(updated!.Key, Is.EqualTo(created.Key));
+        Assert.That(updated.Splits, Has.Count.EqualTo(2));
+        Assert.That(updated.Splits[0].Order, Is.EqualTo(0));
+        Assert.That(updated.Splits[0].Category, Is.EqualTo("Imported"));
+        Assert.That(updated.Splits[0].Amount, Is.EqualTo(65m));
+        Assert.That(updated.Splits[1].Order, Is.EqualTo(1));
+        Assert.That(updated.Splits[1].Category, Is.EqualTo("Dining"));
+        Assert.That(updated.Splits[1].Amount, Is.EqualTo(35m));
+        Assert.That(updated.Splits[1].Memo, Is.EqualTo("Business lunch"));
+        Assert.That(updated.Splits.Sum(split => split.Amount), Is.EqualTo(updated.Amount));
+    }
+
+    [Test]
+    public async Task AddSplit_AsViewer_ReturnsForbidden()
+    {
+        // Given: User has Viewer role
+        SwitchToViewer();
+        var splitDto = new SplitEditDto(Amount: 35m, Category: "Dining", Memo: null);
+
+        // When: User attempts to add a split
+        var response = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{Guid.NewGuid()}/splits",
+            splitDto);
+
+        // Then: Viewer cannot add a split
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task AddSplit_WithInvalidDto_ReturnsBadRequestWithValidationErrors()
+    {
+        // Given: Split amount exceeds the validated maximum
+        SwitchToEditor();
+        var splitDto = new SplitEditDto(Amount: 1_000_000_000m, Category: "Dining", Memo: null);
+
+        // When: User attempts to add the invalid split
+        var response = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{Guid.NewGuid()}/splits",
+            splitDto);
+
+        // Then: Request validation returns Bad Request with ProblemDetails
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Errors, Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task AddSplit_ForMissingTransaction_ReturnsNotFound()
+    {
+        // Given: A valid split and a transaction key that does not exist
+        SwitchToEditor();
+        var splitDto = new SplitEditDto(Amount: 35m, Category: "Dining", Memo: null);
+
+        // When: User attempts to add the split
+        var response = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{Guid.NewGuid()}/splits",
+            splitDto);
+
+        // Then: Not Found is returned with ProblemDetails
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problemDetails, Is.Not.Null);
+        Assert.That(problemDetails!.Status, Is.EqualTo((int)HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task UpdateTransaction_AsEditor_ReturnsOK()
     {
         // Given: User has Editor role for tenant

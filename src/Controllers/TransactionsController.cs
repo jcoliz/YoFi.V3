@@ -91,6 +91,27 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     /// <summary>
+    /// Adds a split to an existing transaction and adjusts its first split to keep the transaction balanced.
+    /// </summary>
+    /// <param name="key">The unique identifier of the transaction.</param>
+    /// <param name="split">The split data to add.</param>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
+    [HttpPost("{key:guid}/splits")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddSplit(Guid key, [FromBody] SplitEditDto split)
+    {
+        LogStartingKey(key);
+
+        var updated = await transactionsFeature.AddSplitAsync(key, split);
+
+        LogOkKey(key);
+        return Ok(updated);
+    }
+
+    /// <summary>
     /// Updates an existing transaction in the tenant workspace.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
