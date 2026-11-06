@@ -22,7 +22,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
 {
     protected override TenantRole DefaultRole => TenantRole.Owner;
     private string BaseUrl => $"/api/tenant/{_testTenantKey}/admin/sample-data";
-    private static SampleDataRequest Request => new("personal-finance", 2, new(2026, 1, 1), new(2026, 1, 31));
+    private static SampleDataRequest Request => new("personal-finance", 3, new(2026, 1, 1), new(2026, 1, 31));
 
     [SetUp]
     public void SetUp() => SwitchToOwner();
@@ -36,7 +36,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         var scenario = catalog!.Single(s => s.Id == "personal-finance");
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(scenario.Revision, Is.EqualTo(2));
+            Assert.That(scenario.Revision, Is.EqualTo(3));
             Assert.That(scenario.Name, Is.EqualTo("Personal Finance"));
             Assert.That(scenario.EntityTypes, Is.EqualTo(new[] { "Transactions", "PayeeMatchingRules" }));
         }
@@ -263,7 +263,7 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         {
             Assert.That(success.Message, Does.Contain("Load: OK")
                 .And.Contain("Scenario=personal-finance")
-                .And.Contain("Revision=2").And.Contain($"Transactions={loaded!.Created.Transactions}")
+                .And.Contain("Revision=3").And.Contain($"Transactions={loaded!.Created.Transactions}")
                 .And.Contain($"Rules={loaded.Created.PayeeMatchingRules}"));
             Assert.That(failed.Level, Is.EqualTo(LogLevel.Warning));
             Assert.That(failed.Message, Does.Contain("Preview: Failed").And.Contain("Revision=999"));
