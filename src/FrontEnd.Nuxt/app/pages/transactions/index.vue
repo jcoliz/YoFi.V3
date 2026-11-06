@@ -281,7 +281,7 @@ function formatCurrency(amount: number | undefined): string {
 
 /**
  * Creates a payee matching rule from a transaction.
- * If the rule has a category, also updates the source transaction with that category.
+ * If the rule has a category, also updates the source transaction unless it has multiple splits.
  * Reloads transactions on success and closes the dialog.
  *
  * @param rule - The payee matching rule data to create
@@ -297,7 +297,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
     await payeeRulesClient.createRule(currentTenantKey.value, rule)
 
     // If category was provided/modified, also update the source transaction
-    if (rule.category && rule.category.trim()) {
+    if (!selectedTransaction.value?.hasMultipleSplits && rule.category && rule.category.trim()) {
       if (selectedTransaction.value?.key) {
         const updateDto = new TransactionQuickEditDto({
           payee: selectedTransaction.value.payee || '',
@@ -581,7 +581,17 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
                   <td>{{ formatDateOnly(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
-                  <td>{{ transaction.category || '' }}</td>
+                  <td>
+                    <span
+                      v-if="transaction.hasMultipleSplits"
+                      class="badge text-bg-secondary"
+                      title="Allocated across multiple splits."
+                      data-test-id="transaction-split-badge"
+                    >
+                      Split
+                    </span>
+                    <template v-else>{{ transaction.category || '' }}</template>
+                  </td>
                   <td
                     class="memo-cell"
                     :title="transaction.memo || ''"

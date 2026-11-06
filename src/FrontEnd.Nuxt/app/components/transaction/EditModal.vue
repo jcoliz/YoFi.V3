@@ -27,6 +27,7 @@ const transactionsClient = useApiClient(TransactionsClient)
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
+const hasMultipleSplits = computed(() => props.transaction?.hasMultipleSplits === true)
 
 const formData = ref({
   payee: '',
@@ -50,7 +51,7 @@ watch(
     formData.value = {
       payee: transaction?.payee || '',
       memo: transaction?.memo || '',
-      category: transaction?.category || '',
+      category: transaction?.hasMultipleSplits ? '' : transaction?.category || '',
     }
     validationErrors.value = {}
     error.value = undefined
@@ -70,7 +71,7 @@ function validateForm(): boolean {
     validationErrors.value.Memo = ['Memo cannot exceed 1000 characters']
   }
 
-  if (formData.value.category && formData.value.category.length > 100) {
+  if (!hasMultipleSplits.value && formData.value.category && formData.value.category.length > 100) {
     validationErrors.value.Category = ['Category cannot exceed 100 characters']
   }
 
@@ -117,7 +118,7 @@ async function updateTransaction() {
     const dto = new TransactionQuickEditDto({
       payee: formData.value.payee.trim(),
       memo: formData.value.memo.trim() || undefined,
-      category: formData.value.category.trim() || undefined,
+      category: hasMultipleSplits.value ? undefined : formData.value.category.trim() || undefined,
     })
 
     await transactionsClient.quickEditTransaction(transactionKey, tenantKey, dto)
@@ -190,9 +191,21 @@ function navigateToDetails() {
         :class="{ 'is-invalid': formErrors.category }"
         placeholder="Category (optional)"
         maxlength="100"
+        :disabled="hasMultipleSplits"
+        aria-describedby="editCategoryHelp"
         data-test-id="edit-transaction-category"
       />
-      <small class="form-text text-muted">Optional category for this transaction</small>
+      <small
+        id="editCategoryHelp"
+        class="form-text text-muted"
+        data-test-id="edit-transaction-category-help"
+      >
+        {{
+          hasMultipleSplits
+            ? 'This transaction is split across multiple categories. Category cannot be changed in Quick Edit.'
+            : 'Optional category for this transaction'
+        }}
+      </small>
       <div
         v-if="formErrors.category"
         class="invalid-feedback"

@@ -47,6 +47,53 @@ public class TransactionsFeatureTests : FeatureTestBase
 
     #region Navigation Property Loading Tests (Critical - Splits Bug)
 
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("Replacement")]
+    public async Task QuickEditTransactionAsync_WithMultipleSplits_PreservesAllocations(string? category)
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Original",
+            Memo = "Original memo",
+            Amount = 100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = 60m, Category = "Groceries", Order = 0 },
+                new Split { Amount = 40m, Category = "Household", Order = 1 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+        var input = new TransactionQuickEditDto("Updated", "Updated memo", category);
+
+        if (category == null)
+        {
+            var result = await _feature.QuickEditTransactionAsync(transaction.Key, input);
+            Assert.That(result.Category, Is.Empty);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<ValidationException>(() => _feature.QuickEditTransactionAsync(transaction.Key, input));
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Transactions.Include(t => t.Splits).SingleAsync();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(persisted.Payee, Is.EqualTo(category == null ? "Updated" : "Original"));
+            Assert.That(persisted.Memo, Is.EqualTo(category == null ? "Updated memo" : "Original memo"));
+            Assert.That(persisted.Splits.OrderBy(s => s.Order).Select(s => s.Category),
+                Is.EqualTo(new[] { "Groceries", "Household" }));
+            Assert.That(persisted.Splits.OrderBy(s => s.Order).Select(s => s.Amount),
+                Is.EqualTo(new[] { 60m, 40m }));
+            Assert.That(persisted.Amount, Is.EqualTo(100m));
+        }
+    }
+
     [TestCase(0, false, "")]
     [TestCase(1, false, "Groceries")]
     [TestCase(2, true, "")]

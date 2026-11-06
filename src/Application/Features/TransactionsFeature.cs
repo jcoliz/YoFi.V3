@@ -217,7 +217,12 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     {
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
-        // Alpha-1: Sanitize category
+        if (existingTransaction.Splits.Count > 1 && quickEdit.Category != null)
+        {
+            throw new ValidationException(nameof(quickEdit.Category),
+                "Category cannot be changed in Quick Edit for a transaction with multiple splits.");
+        }
+
         var sanitizedCategory = CategoryHelper.SanitizeCategory(quickEdit.Category);
 
         // Update only payee, memo, and category, preserve all other fields (Date, Amount, Source, ExternalId)
@@ -226,7 +231,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
 
         // Alpha-1: Update single split's category (Order = 0)
         var split = existingTransaction.Splits.FirstOrDefault(s => s.Order == 0);
-        if (split != null)
+        if (split != null && existingTransaction.Splits.Count <= 1)
         {
             split.Category = sanitizedCategory;
         }
@@ -242,7 +247,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             existingTransaction.Memo,
             existingTransaction.Source,
             existingTransaction.ExternalId,
-            sanitizedCategory
+            existingTransaction.Splits.Count > 1 ? string.Empty : sanitizedCategory
         );
     }
 
