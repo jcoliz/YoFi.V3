@@ -112,3 +112,82 @@ test('list distinguishes split transactions and protects them when creating rule
   assert.match(page, /title="Allocated across multiple splits\."/)
   assert.match(page, /if \(!selectedTransaction\.value\?\.hasMultipleSplits && rule\.category/)
 })
+
+function textContent(element) {
+  return element.text + element.children.map(textContent).join('')
+}
+
+for (const splits of [
+  undefined,
+  [],
+  [
+    { key: 'salary', category: 'Income:Salary', amount: 100, memo: 'Gross pay', order: 0 },
+    { key: 'tax', category: 'Taxes', amount: -25, memo: null, order: 1 },
+  ],
+]) {
+  test(`details ${splits?.length ? 'displays included splits' : 'keeps the normal category display'}`, async (t) => {
+    const pageSource = readFileSync(new URL('../app/pages/transactions/[key].vue', import.meta.url), 'utf8')
+    const { descriptor } = parse(pageSource)
+    const compiled = compileScript(descriptor, { id: 'transaction-details', inlineTemplate: true })
+    const pageScript = ts.transpileModule(compiled.content, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText
+    const transaction = {
+      key: 'transaction', payee: 'Employer', amount: 75, date: new Date('2026-01-01'),
+      category: splits?.length ? '' : 'Income', splits,
+    }
+    const roles = { Viewer: 1, Editor: 2, Owner: 3 }
+    let load
+    const globals = {
+      ref, computed,
+      definePageMeta() {},
+      useRoute: () => ({ params: { key: 'transaction' } }),
+      useRouter: () => ({ push() {} }),
+      useApiClient: () => ({ getTransactionById: async () => transaction }),
+      useAuthenticationGuard: () => ({ requireAuthenticatedUser: (callback) => { load = callback } }),
+    }
+    const exports = {}
+    new Function('require', 'exports', ...Object.keys(globals), pageScript)(
+      (id) => {
+        if (id === '~/utils/apiclient') return { TransactionsClient, TenantRole: roles }
+        if (id === '~/stores/userPreferences')
+          return { useUserPreferencesStore: () => ({
+            getCurrentTenantKey: 'workspace', hasTenant: true,
+            getCurrentTenant: { role: roles.Viewer }, loadFromStorage() {},
+          }) }
+        if (id === '~/utils/errorHandler') return { handleApiError: (error) => error }
+        if (id === '~/utils/dateOnly') return { formatDateOnly: () => '1/1/2026' }
+        return require(id)
+      }, exports, ...Object.values(globals),
+    )
+    const root = node('root')
+    const app = renderer.createApp(exports.default)
+    for (const name of ['WorkspaceSelector', 'PageBreadcrumb', 'ErrorDisplay', 'BaseSpinner', 'FeatherIcon', 'TransactionEditPane', 'ModalDialog'])
+      app.component(name, { render: () => h('span') })
+    app.component('CardTitle', {
+      props: ['title'],
+      setup: (props) => () => h('div', props.title),
+    })
+    app.mount(root)
+    t.after(() => app.unmount())
+    await load()
+    await nextTick()
+    if (splits?.length) {
+      assert.equal(textContent(find(root, 'transaction-category')), '(none)')
+      const splitsCard = find(root, 'transaction-splits')
+      const detailsCard = find(root, 'transaction-details-card')
+      assert.equal(splitsCard.props.class, 'card mt-3')
+      assert.equal(splitsCard.parent, detailsCard.parent)
+      const table = find(root, 'transaction-splits-table')
+      assert.equal(table.props['aria-labelledby'], 'transaction-splits-title')
+      const salary = find(root, 'transaction-split-salary')
+      const tax = find(root, 'transaction-split-tax')
+      assert.deepEqual(salary.children.map(textContent), ['Income:Salary', '$100.00', 'Gross pay'])
+      assert.deepEqual(tax.children.map(textContent), ['Taxes', '-$25.00', ''])
+      assert.ok(salary.parent.children.indexOf(salary) < salary.parent.children.indexOf(tax))
+    } else {
+      assert.equal(textContent(find(root, 'transaction-category')), 'Income')
+      assert.equal(find(root, 'transaction-splits'), undefined)
+    }
+  })
+}

@@ -248,12 +248,11 @@ function formatCurrency(amount: number | undefined): string {
         data-test-id="transaction-details-card"
       >
         <div class="card-body">
-          <h2
-            class="card-title mb-4"
+          <CardTitle
+            :title="transaction.payee || ''"
+            class="mb-4"
             data-test-id="transaction-payee"
-          >
-            {{ transaction.payee }}
-          </h2>
+          />
 
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -311,9 +310,54 @@ function formatCurrency(amount: number | undefined): string {
         </div>
       </div>
 
+      <div
+        v-if="transaction?.splits?.length && !isEditing && !loading"
+        class="card mt-3"
+        data-test-id="transaction-splits"
+      >
+        <div class="card-body">
+          <CardTitle
+            id="transaction-splits-title"
+            title="Splits"
+            class="mb-3"
+          />
+          <div class="table-responsive">
+            <table
+              class="table table-sm mb-0"
+              aria-labelledby="transaction-splits-title"
+              data-test-id="transaction-splits-table"
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Category</th>
+                  <th
+                    scope="col"
+                    class="text-end"
+                  >
+                    Amount
+                  </th>
+                  <th scope="col">Memo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="split in transaction.splits"
+                  :key="split.key"
+                  :data-test-id="`transaction-split-${split.key}`"
+                >
+                  <td>{{ split.category || '(none)' }}</td>
+                  <td class="text-end">{{ formatCurrency(split.amount) }}</td>
+                  <td style="white-space: pre-wrap">{{ split.memo || '' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Edit Form -->
       <TransactionEditPane
-        v-else-if="transaction && isEditing"
+        v-if="transaction && isEditing && !loading"
         :transaction="transaction"
         @updated="handleTransactionUpdated"
         @saving="editSaving = $event"
