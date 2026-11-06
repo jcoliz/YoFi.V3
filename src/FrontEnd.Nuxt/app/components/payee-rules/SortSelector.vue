@@ -110,6 +110,21 @@ onMounted(() => {
             Last Used
           </a>
         </li>
+        <li>
+          <a
+            class="dropdown-item"
+            :class="{ active: modelValue === PayeeRuleSortBy.NumberOfMatches }"
+            data-test-id="sort-number-of-matches"
+            @click="selectSort(PayeeRuleSortBy.NumberOfMatches)"
+          >
+            <FeatherIcon
+              icon="hash"
+              size="14"
+              class="me-2"
+            />
+            Number of Matches
+          </a>
+        </li>
       </ul>
     </template>
   </DropDownPortable>

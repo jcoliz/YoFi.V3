@@ -5618,6 +5618,7 @@ export enum PayeeRuleSortBy {
     PayeePattern = 0,
     Category = 1,
     LastUsedAt = 2,
+    NumberOfMatches = 3,
 }
 
 export class PayeeMatchingRuleEditDto implements IPayeeMatchingRuleEditDto {

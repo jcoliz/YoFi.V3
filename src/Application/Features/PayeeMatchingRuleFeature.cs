@@ -338,6 +338,7 @@ public class PayeeMatchingRuleFeature(
             PayeeRuleSortBy.PayeePattern => rules.OrderBy(r => r.PayeePattern).ToList(),
             PayeeRuleSortBy.Category => rules.OrderBy(r => r.Category).ToList(),
             PayeeRuleSortBy.LastUsedAt => rules.OrderByDescending(r => r.LastUsedAt ?? DateTimeOffset.MinValue).ToList(),
+            PayeeRuleSortBy.NumberOfMatches => rules.OrderByDescending(r => r.MatchCount).ToList(),
             _ => rules.OrderBy(r => r.PayeePattern).ToList()
         };
     }
@@ -372,5 +373,8 @@ public enum PayeeRuleSortBy
     Category,
 
     /// <summary>Sort by last used date (most recent first).</summary>
-    LastUsedAt
+    LastUsedAt,
+
+    /// <summary>Sort by number of matches (most to least).</summary>
+    NumberOfMatches
 }
