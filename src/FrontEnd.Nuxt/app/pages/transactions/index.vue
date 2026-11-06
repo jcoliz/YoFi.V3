@@ -464,7 +464,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
 
       <!-- Loading State -->
       <div
-        v-if="loading"
+        v-if="loading && !paginatedResult"
         class="text-center py-5"
         data-test-id="loading-state"
       >
@@ -481,10 +481,31 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
       <!-- Transactions Table -->
       <div
         v-else-if="hasWorkspace"
-        class="card"
+        class="card position-relative"
         data-test-id="transactions-card"
+        :aria-busy="loading"
       >
-        <div class="card-body">
+        <!-- Keep the table's height while loading so pagination does not collapse the scroll position. -->
+        <div
+          v-if="loading"
+          class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-body bg-opacity-75 z-1"
+          data-test-id="loading-state"
+        >
+          <div class="text-center">
+            <BaseSpinner />
+            <div class="mt-2">
+              <small
+                class="text-muted"
+                data-test-id="loading-transactions-text"
+                >Loading transactions...</small
+              >
+            </div>
+          </div>
+        </div>
+        <div
+          class="card-body"
+          :inert="loading"
+        >
           <div
             v-if="transactions.length === 0 && !searchText"
             class="text-center py-5 text-muted"
