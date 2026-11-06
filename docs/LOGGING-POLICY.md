@@ -1,9 +1,5 @@
 # Logging Policy
 
-**Status:** Active
-**Last Updated:** 2024-12-17
-**Applies To:** All YoFi.V3 application code
-
 ## Overview
 
 This document defines the logging standards and practices for the YoFi.V3 application. The policy balances operational visibility, debugging capability, performance, and security requirements.
@@ -265,7 +261,7 @@ Performance metrics (request duration, query execution time) are **not currently
 - Portable to other hosting models (CLI, desktop apps)
 - Controller logs provide sufficient context
 
-**Exception:** Add Application layer logging only for:
+**Exception:** If we need Application layer logging only for the below circumstances, create trace Activities and add tags.
 - Long-running operations (>5 seconds) requiring progress tracking
 - External service calls (APIs, message queues)
 - Complex business workflows with multiple decision points
@@ -351,7 +347,6 @@ When adding logging to a new controller:
 
 ## Related Documentation
 
-- [`.roorules` - Logging Pattern](../.roorules#logging-pattern) - Complete technical implementation details
 - [`docs/wip/LOGGING-ARCHITECTURE-ANALYSIS.md`](wip/LOGGING-ARCHITECTURE-ANALYSIS.md) - Architectural decision rationale
 - [`src/BackEnd/Logging/README.md`](../src/BackEnd/Logging/README.md) - Custom console logger implementation
 - [`src/Controllers/Middleware/CustomExceptionHandler.cs`](../src/Controllers/Middleware/CustomExceptionHandler.cs) - Exception logging implementation
