@@ -4,7 +4,7 @@
 
 ## The Testing Layers
 
-YoFi.V3 uses a **five-layer testing strategy** optimized for testing where the actual work happens: the Application layer interacting with the database.
+YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the actual work happens: the Application layer interacting with the database.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -14,13 +14,19 @@ YoFi.V3 uses a **five-layer testing strategy** optimized for testing where the a
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
+│ Frontend Component Tests (5%)                               │
+│ Vitest + @vue/test-utils, happy-dom                         │
+│ Purpose: Component logic, pure utility functions            │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
 │ Controller Integration Tests (20%)                          │
 │ HTTP → Controllers → (rest of stack)                        │
 │ Purpose: API contracts, auth, HTTP-specific concerns        │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Application Integration Tests (45%) ✨ PRIMARY              │
+│ Application Integration Tests (40%) ✨ PRIMARY              │
 │ Application Features → IDataContext → Database              │
 │ Purpose: Business logic + database integration              │
 └─────────────────────────────────────────────────────────────┘
@@ -38,11 +44,110 @@ YoFi.V3 uses a **five-layer testing strategy** optimized for testing where the a
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Target Distribution:** 10% Functional / 20% Controller / 45% Application / 10% Data / 15% Unit
+**Target Distribution:** 10% Functional / 5% Frontend Component / 20% Controller / 40% Application / 10% Data / 15% Unit
 
 **Key Insight:** "Most of the application's actual work happens between the app layer and the data context" - so test that boundary directly.
 
-## 1. Application Integration Tests (PRIMARY - 45%)
+## 1. Frontend Component Tests (LOGIC ONLY - 5%)
+
+**Location:** [`src/FrontEnd.Nuxt/tests/`](../src/FrontEnd.Nuxt/tests/)
+
+**Runner:** Vitest + @vue/test-utils + happy-dom
+
+**Purpose:** Test component logic and pure utility functions that are not covered by functional tests.
+
+### When to Use
+
+✅ **DO use Frontend Component tests for:**
+- Pure utility functions (date formatting, calculations, transformations)
+- Component behavioral logic (conditional rendering based on props/state, event emission)
+- Store interactions (does clicking X call the right store method?)
+- Role-based visibility (does the manage link appear only for owners?)
+
+❌ **DON'T use Frontend Component tests for:**
+- Page-level navigation tests — pages use `useAuth`, `useAuthenticationGuard`, `definePageMeta`, `onBeforeRouteLeave`, `onBeforeRouteUpdate` which cannot be meaningfully mocked. Write functional tests instead.
+- HTML structure / CSS class assertions — these break with every layout change and provide no value
+- Visual appearance — use visual review and functional tests
+- Anything already covered by functional tests
+
+### Speed
+
+~1-5ms per test (very fast, no browser)
+
+### Mocking Patterns
+
+Two distinct patterns depending on how the component imports its dependencies:
+
+**Explicitly imported modules** (e.g., Pinia stores) — use `vi.mock()`:
+```typescript
+vi.mock('~/stores/userPreferences', () => ({
+  useUserPreferencesStore: vi.fn(),
+}))
+```
+
+**Nuxt auto-imported composables** (e.g., `useApiClient`, `navigateTo`, `handleApiError`) — use `vi.stubGlobal()`:
+```typescript
+const useApiClientMock = vi.fn()
+vi.stubGlobal('useApiClient', useApiClientMock)
+vi.stubGlobal('navigateTo', vi.fn())
+vi.stubGlobal('handleApiError', (err: unknown) => err)
+```
+
+**Components using `<Teleport>`** (e.g., `ModalDialog`) — stub with an inline version that renders slots directly:
+```typescript
+const ModalDialogStub = {
+  props: ['show', 'testId', 'primaryButtonTestId', 'secondaryButtonTestId', 'loading'],
+  emits: ['primary', 'update:show'],
+  setup(props: any, { slots, emit }: any) {
+    return () => props.show
+      ? h('div', { 'data-test-id': props.testId }, [
+          slots.default?.(),
+          h('button', { 'data-test-id': props.primaryButtonTestId, onClick: () => emit('primary') }),
+          h('button', { 'data-test-id': props.secondaryButtonTestId, onClick: () => emit('update:show', false) }),
+        ])
+      : null
+  },
+}
+```
+
+**`NuxtLink` stub** — must use `inheritAttrs: false` to pass `data-test-id` through:
+```typescript
+const NuxtLink = {
+  inheritAttrs: false,
+  props: ['to'],
+  template: '<a v-bind="$attrs" :href="to"><slot /></a>',
+}
+```
+
+### Example
+
+```typescript
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { h } from 'vue'
+import MyComponent from '~/components/MyComponent.vue'
+
+vi.mock('~/stores/userPreferences', () => ({
+  useUserPreferencesStore: vi.fn(),
+}))
+vi.stubGlobal('useApiClient', vi.fn())
+
+describe('MyComponent', () => {
+  it('shows delete button only for owners', async () => {
+    // Given: a component mounted with owner role
+    const wrapper = mount(MyComponent, {
+      props: { role: 'Owner' },
+    })
+
+    // Then: delete button is visible
+    expect(wrapper.find('[data-test-id="delete-button"]').exists()).toBe(true)
+  })
+})
+```
+
+**See:** [`src/FrontEnd.Nuxt/tests/README.md`](../src/FrontEnd.Nuxt/tests/README.md) for complete guidelines and patterns.
+
+## 2. Application Integration Tests (PRIMARY - 40%)
 
 **Location:** [`tests/Integration.Application/`](../tests/Integration.Application/)
 
@@ -108,7 +213,7 @@ public class WeatherFeatureTests : FeatureTestBase
 
 **See:** [`tests/Integration.Application/WeatherFeatureTests.cs`](../tests/Integration.Application/WeatherFeatureTests.cs) for complete reference implementation.
 
-## 2. Controller Integration Tests (HTTP-SPECIFIC - 20%)
+## 3. Controller Integration Tests (HTTP-SPECIFIC - 20%)
 
 **Location:** [`tests/Integration.Controller/`](../tests/Integration.Controller/)
 
@@ -149,7 +254,7 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 }
 ```
 
-## 3. Data Integration Tests (SCHEMA VALIDATION - 10%)
+## 4. Data Integration Tests (SCHEMA VALIDATION - 10%)
 
 **Location:** [`tests/Integration.Data/`](../tests/Integration.Data/)
 
@@ -172,7 +277,7 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 ~10-20ms per test
 
-## 4. Unit Tests (PURE LOGIC - 15%)
+## 5. Unit Tests (PURE LOGIC - 15%)
 
 **Location:** [`tests/Unit/`](../tests/Unit/)
 
@@ -196,7 +301,7 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 ~1-10ms per test
 
-## 5. Functional Tests (E2E - 10%)
+## 6. Functional Tests (E2E - 10%)
 
 **Location:** [`tests/Functional/`](../tests/Functional/)
 
@@ -319,11 +424,12 @@ Assert.That(value, Is.GreaterThan(0));
 
 | Layer | Location | Speed | Primary Use |
 |-------|----------|-------|-------------|
-| **Application Integration** ✨ | `tests/Integration.Application/` | 20-50ms | Feature + IDataProvider |
+| **Functional** | `tests/Functional/` | 2-5s | E2E Workflows |
+| **Frontend Component** | `src/FrontEnd.Nuxt/tests/` | 1-5ms | Component logic, utilities |
 | **Controller Integration** | `tests/Integration.Controller/` | 100-200ms | HTTP + Auth |
+| **Application Integration** ✨ | `tests/Integration.Application/` | 20-50ms | Feature + IDataProvider |
 | **Data Integration** | `tests/Integration.Data/` | 10-20ms | EF Core + Schema |
 | **Unit** | `tests/Unit/` | 1-10ms | Pure Logic |
-| **Functional** | `tests/Functional/` | 2-5s | E2E Workflows |
 
 ## When In Doubt
 
@@ -333,11 +439,11 @@ Only use Controller Integration when you specifically need to test HTTP concerns
 
 ## Related Documentation
 
+- [`src/FrontEnd.Nuxt/tests/README.md`](../src/FrontEnd.Nuxt/tests/README.md) - Frontend component test guidelines
 - [`tests/Integration.Application/README.md`](../tests/Integration.Application/README.md) - Application Integration test patterns
 - [`tests/Integration.Controller/README.md`](../tests/Integration.Controller/README.md) - Controller Integration test patterns
 - [`tests/Integration.Data/README.md`](../tests/Integration.Data/README.md) - Data Integration test patterns
 - [`tests/Unit/README.md`](../tests/Unit/README.md) - Unit test patterns
 - [`tests/Functional/README.md`](../tests/Functional/README.md) - Functional test patterns
 - [`docs/wip/TESTING-STRATEGY-UPDATE-PLAN.md`](wip/TESTING-STRATEGY-UPDATE-PLAN.md) - Complete strategy update plan
-- [`docs/wip/INTEGRATION-APPLICATION-TEST-LAYER-DESIGN.md`](wip/INTEGRATION-APPLICATION-TEST-LAYER-DESIGN.md) - Application Integration layer design
 - [`.roorules`](../.roorules) - Project testing standards and patterns

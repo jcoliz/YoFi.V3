@@ -98,21 +98,44 @@ try {
         $selectedSuites += @{ Name = "FrontEnd"; Path = "src\FrontEnd.Nuxt" }
     }
 
+    # Strip ANSI escape sequences from a string for reliable regex matching.
+    function Remove-AnsiEscapes {
+        param([string]$Text)
+        return [System.Text.RegularExpressions.Regex]::Replace($Text, '\x1B\[[0-9;]*[mGKHF]', '')
+    }
+
     # Parse test counts and durations from output
     function Parse-TestResults {
         param([string]$Output)
 
+        # Strip ANSI codes so regex patterns work regardless of terminal color output.
+        $plain = Remove-AnsiEscapes $Output
+
+        # Vitest format: "Tests  71 passed (71)" or "Tests  1 failed | 70 passed (71)"
+        # Duration: "Duration  1.65s (...)"
+        if ($plain -match 'Tests\s+(?:\d+ failed \| )?(\d+) passed') {
+            $count = [int]$Matches[1]
+            $duration = "N/A"
+            if ($plain -match 'Duration\s+([\d.]+[smh]+)') {
+                $duration = $Matches[1]
+            }
+            return @{ Count = $count; Duration = $duration }
+        }
+
+        # dotnet test format: "Passed: N ... Duration: X"
         # Capture the full duration up to the assembly suffix, including values like "1 m 27 s".
-        if ($Output -match 'Passed:\s+(\d+).*?Duration:\s+([^\r\n]+?)(?:\s+-\s+|[\r\n]|$)') {
+        if ($plain -match 'Passed:\s+(\d+).*?Duration:\s+([^\r\n]+?)(?:\s+-\s+|[\r\n]|$)') {
             return @{
                 Count = [int]$Matches[1]
                 Duration = $Matches[2].Trim()
             }
         }
-        if ($Output -match '(?m)^[^\r\n]*?\bpass\s+(\d+)\s*$') {
+
+        # node:test format: "pass N"
+        if ($plain -match '(?m)^[^\r\n]*?\bpass\s+(\d+)\s*$') {
             $count = [int]$Matches[1]
             $duration = "N/A"
-            if ($Output -match '(?m)^[^\r\n]*?\bduration_ms\s+([\d.]+)\s*$') {
+            if ($plain -match '(?m)^[^\r\n]*?\bduration_ms\s+([\d.]+)\s*$') {
                 $duration = "$($Matches[1]) ms"
             }
             return @{ Count = $count; Duration = $duration }

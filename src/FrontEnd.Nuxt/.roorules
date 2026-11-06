@@ -89,6 +89,163 @@ if (!formData.value.trim()) {
 - Store errors as `IProblemDetails | undefined`, not strings
 - Use a separate `showError` boolean to control `ErrorDisplay` visibility
 
+## Frontend Component Testing
+
+### Test Runner: Vitest + @vue/test-utils
+
+Frontend component tests use **Vitest** with **@vue/test-utils** and **happy-dom**. Tests live in [`tests/`](tests/) and run via `npm run test:components`.
+
+**NEVER** use the old `node:test` runner or `.mjs` test files. All tests must be `.ts` files using Vitest APIs.
+
+### What to Test (and What NOT to Test)
+
+✅ **DO write component tests for:**
+- Pure utility functions (date formatting, calculations, transformations)
+- Component behavioral logic (conditional rendering based on props/state)
+- Store interactions (does clicking X call the right store method?)
+- Role-based visibility (does the manage link appear only for owners?)
+
+❌ **NEVER write component tests for:**
+- **Page-level navigation** — pages use `useAuth`, `useAuthenticationGuard`, `definePageMeta`, `onBeforeRouteLeave`, `onBeforeRouteUpdate` which cannot be meaningfully mocked. Write functional tests instead.
+- **HTML structure / CSS classes** — these break with every layout change and provide no value. Never assert on class names like `mb-0`, `btn-primary`, etc.
+- **Visual appearance** — use visual review and functional tests
+
+### Mocking Patterns
+
+There are two distinct mocking patterns depending on how the component imports its dependencies:
+
+#### 1. Explicitly Imported Modules → `vi.mock()`
+
+Use `vi.mock()` for modules that are **explicitly imported** in the component source (e.g., Pinia stores):
+
+```typescript
+// Component has: import { useUserPreferencesStore } from '~/stores/userPreferences'
+vi.mock('~/stores/userPreferences', () => ({
+  useUserPreferencesStore: vi.fn(),
+}))
+
+// Then in tests:
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+vi.mocked(useUserPreferencesStore).mockReturnValue(fakeStore as any)
+```
+
+#### 2. Nuxt Auto-Imported Composables → `vi.stubGlobal()`
+
+Use `vi.stubGlobal()` for composables that Nuxt **auto-imports** (no explicit import in the component):
+
+```typescript
+// Component uses useApiClient(), navigateTo(), handleApiError() without importing them
+vi.stubGlobal('useApiClient', vi.fn().mockReturnValue({ getTenants: async () => [] }))
+vi.stubGlobal('navigateTo', vi.fn())
+vi.stubGlobal('handleApiError', (err: unknown) => err)
+vi.stubGlobal('useProblemDetails', vi.fn())
+```
+
+#### 3. Components with `<Teleport>` → Inline Stub
+
+`ModalDialog` uses `<Teleport to="body">` which renders outside the wrapper. Stub it with an inline version:
+
+```typescript
+import { h } from 'vue'
+
+const ModalDialogStub = {
+  props: ['show', 'testId', 'primaryButtonTestId', 'secondaryButtonTestId', 'loading', 'primaryButtonDisabled'],
+  emits: ['primary', 'update:show'],
+  setup(props: any, { slots, emit }: any) {
+    return () => props.show
+      ? h('div', { 'data-test-id': props.testId }, [
+          slots.default?.(),
+          h('button', {
+            'data-test-id': props.primaryButtonTestId,
+            disabled: (props.loading || props.primaryButtonDisabled) ? true : undefined,
+            onClick: () => emit('primary'),
+          }),
+          h('button', {
+            'data-test-id': props.secondaryButtonTestId,
+            onClick: () => emit('update:show', false),
+          }),
+        ])
+      : null
+  },
+}
+```
+
+#### 4. `NuxtLink` Stub → `inheritAttrs: false`
+
+`NuxtLink` must use `inheritAttrs: false` so that `data-test-id` attributes pass through to the rendered `<a>`:
+
+```typescript
+const NuxtLink = {
+  inheritAttrs: false,
+  props: ['to'],
+  template: '<a v-bind="$attrs" :href="to"><slot /></a>',
+}
+```
+
+### Test File Structure
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import MyComponent from '~/components/MyComponent.vue'
+
+// 1. Mock explicitly imported modules at module scope
+vi.mock('~/stores/userPreferences', () => ({
+  useUserPreferencesStore: vi.fn(),
+}))
+
+// 2. Stub Nuxt auto-imports at module scope
+vi.stubGlobal('useApiClient', vi.fn())
+vi.stubGlobal('navigateTo', vi.fn())
+
+// 3. Import mocked modules after vi.mock()
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+
+// 4. Define stubs for child components
+const ModalDialogStub = { /* ... */ }
+const NuxtLink = { inheritAttrs: false, props: ['to'], template: '<a v-bind="$attrs" :href="to"><slot /></a>' }
+
+const globalConfig = {
+  components: { ModalDialogStub, NuxtLink },
+}
+
+describe('MyComponent', () => {
+  beforeEach(() => {
+    vi.mocked(useUserPreferencesStore).mockReset()
+  })
+
+  it('shows delete button only for owners', async () => {
+    // Given: component mounted with owner role
+    vi.mocked(useUserPreferencesStore).mockReturnValue({ role: 'Owner' } as any)
+    const wrapper = mount(MyComponent, { global: globalConfig })
+
+    // Then: delete button is visible
+    expect(wrapper.find('[data-test-id="delete-button"]').exists()).toBe(true)
+  })
+})
+```
+
+### Running Tests
+
+```bash
+npm run test:components        # Run once
+npm run test:components:watch  # Watch mode during development
+```
+
+Or via the project script:
+```powershell
+pwsh -File ./scripts/Run-Tests.ps1 -FrontEnd
+```
+
+### Reference Examples
+
+See these files for complete working examples:
+- [`tests/error-display.test.ts`](tests/error-display.test.ts) — `vi.stubGlobal` for auto-imported composable
+- [`tests/workspace-delete-modal.test.ts`](tests/workspace-delete-modal.test.ts) — `vi.mock` for Pinia store + `ModalDialog` stub
+- [`tests/workspace-selector.test.ts`](tests/workspace-selector.test.ts) — `NuxtLink` stub + `TenantRole` enum usage
+- [`tests/transaction-splits.test.ts`](tests/transaction-splits.test.ts) — combined patterns
+- [`tests/README.md`](tests/README.md) — complete testing philosophy and guidelines
+
 ## Testing Patterns
 
 ### Data Test IDs for Functional Tests

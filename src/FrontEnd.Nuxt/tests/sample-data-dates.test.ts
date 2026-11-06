@@ -1,17 +1,7 @@
-import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { test } from 'node:test'
-import ts from 'typescript'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { defaultSampleDataDateRanges } from '~/utils/sampleDataDates'
 
-const { outputText } = ts.transpileModule(
-  readFileSync(new URL('../app/utils/sampleDataDates.ts', import.meta.url), 'utf8'),
-  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
-)
-const exports = {}
-new Function('exports', outputText)(exports)
-const { defaultSampleDataDateRanges } = exports
-
-const cases = [
+const cases: [number[], Record<string, string>][] = [
   [
     [2026, 5, 15],
     {
@@ -51,18 +41,25 @@ const cases = [
 ]
 
 for (const timezone of ['America/Los_Angeles', 'UTC', 'Pacific/Kiritimati']) {
-  test(`sample data default ranges use local calendar dates in ${timezone}`, (t) => {
-    const originalTimezone = process.env.TZ
-    process.env.TZ = timezone
-    t.after(() => {
+  describe(`sample data default ranges use local calendar dates in ${timezone}`, () => {
+    let originalTimezone: string | undefined
+
+    beforeEach(() => {
+      originalTimezone = process.env.TZ
+      process.env.TZ = timezone
+    })
+
+    afterEach(() => {
       if (originalTimezone === undefined) delete process.env.TZ
       else process.env.TZ = originalTimezone
     })
 
     for (const [[year, month, day], expected] of cases) {
-      // Late evening local time must not roll into the next UTC day
-      const today = new Date(year, month, day, 23, 30)
-      assert.deepEqual({ ...defaultSampleDataDateRanges(today) }, expected)
+      it(`computes correct ranges for ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`, () => {
+        // Late evening local time must not roll into the next UTC day
+        const today = new Date(year, month, day, 23, 30)
+        expect({ ...defaultSampleDataDateRanges(today) }).toEqual(expected)
+      })
     }
   })
 }
