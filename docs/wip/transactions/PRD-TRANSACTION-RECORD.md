@@ -73,7 +73,7 @@ All of these will be considered as separate features. The goal of this is to get
 - [ ] Can add free text categories, at unlimited depth, separated by `:` ***[Superseded]*** Categories are attached to the Splits (see [`PRD-TRANSACTION-SPLITS.md`](./PRD-TRANSACTION-SPLITS.md))
 - [x] Can add a memorandum (memo) field with additional text to provide additional context (`Memo` field - string?, 1000 chars, backend complete)
 
-### Story 3: User - Manage transactions
+### Story 2234: User - Manage transactions
 
 **As a** user
 **I want** to edit transaction details or delete them
@@ -83,6 +83,15 @@ All of these will be considered as separate features. The goal of this is to get
 
 - [x] Edit all fields (PUT endpoint implemented, all fields editable via API)
 - [x] Delete a transaction (DELETE endpoint implemented)
+
+**Acceptance Criteria: Scenario 2235 Drop-down picker for categories**
+
+- [ ] Anywhere user types in categories, a drop-down is provided with category suggestions based on existing data
+- [ ] Available on the Transactions quick edit
+- [ ] Available on the Transactions detail page
+- [ ] Available on the Payees quick edit
+- [ ] Available on the Payees detail page
+- [ ] Available on the Transaction split editor
 
 ---
 

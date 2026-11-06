@@ -88,21 +88,38 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 ## User Stories
 
-### Story 1: User - Split Single Transaction
+### Story 2225: User - Split Single Transaction across multiple categories
 
 **As a** personal finance user
 **I want** to split a grocery store transaction across "Food" and "Home" categories
 **So that** my category reports accurately reflect spending in each area
 
-**Acceptance Criteria**:
+**Acceptance Criteria: Properties**
 
-- [ ] User can add multiple splits to an existing transaction
+- [ ] User can add multiple categories to a single transaction, choosing how much of the total amount applies to each category
+- [ ] The total amount of a transaction can be different than the sum of the splits. This is an error state, but it is allowed (see "Unbalanced transactions" below.)
 - [ ] Each split has its own amount and category
-- [ ] Entire list of splits can be viewed from a "transaction detail" page showing all aspects of a transaction
+- [ ] Split amounts can be negative or positive. Negative indicates money flowing away from us, positive indicates money flowing toward us.
+
+**Acceptance Criteria: Scenario 2250: Viewing**
+
+- [ ] Entire list of splits are displayed when viewing the details of a transaction.
+- [ ] Transactions list shows a split indicator in place of the category for transactions with multiple splits
+
+**Acceptance Criteria: Scenario 2251: Manipulation**
+
 - [ ] Splits can be edited individually (amount, category, memo)
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
-- [ ] UI shows warning when splits don't sum to transaction amount
-- [ ] Split amounts can be negative or positive. Negative indicates money flowing away from us, positive indicates money flowing toward us.
+- [ ] Category cannot be edited on a transaction with multiple splits
+
+**Acceptance Criteria: Scenario 2228 Sample data includes multiple splits**
+
+- [ ] Sample data includes at least one split transaction
+
+**Acceptance Criteria: Scenario 2226 Transaction Quick Search**
+
+- [ ] Transaction Quick Search includes the transaction in results if at least one split matches the category.
+- [ ] Transaction Quick Search **does not** consider the amount of an individual split. It only concerns the full transaction amount.
 
 ### Story 2: User - View Category Reports [SUPERSEDED]
 
@@ -138,10 +155,11 @@ Personal finance tracking requires categorizing transactions across multiple cat
 - [ ] Detail view shows transaction amount, splits total, and balance status
 - [ ] Warning is prominent but doesn't block saving (user's choice to fix later)
 - [ ] After editing split amount, balance status updates immediately
+- [ ] User is offered an option to add a balancing split, which follows the "new split" workflow, but sets the initial amount such that it would balance the transaction.
 
 ### Story 5: User - Import Transactions with Splits ✅ Alpha-1 Complete
 
-**As a** power user
+**As a** user
 **I want** to import transactions from my bank and then categorize them with splits
 **So that** I can efficiently process monthly statements
 
@@ -157,7 +175,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 ### Story 6: User - Upload splits
 
 **As a** detail-oriented user
-**I want** to upload an Excel spreadsheet of split data
+**I want** to upload an Excel spreadsheet of split data for a single transaction
 **So that** I don't have to enter a very long list of splits by hand (e.g. for my paystub)
 
 **Acceptance Criteria**:
@@ -180,11 +198,6 @@ Limits and constraints will be set during performance testing, as these constrai
 
 - Maximum splits per upload
 - Maximum upload
-
-### Stories under consideration
-
-- Drop-down selector for category edit on quick-edit (V1 parity) also should do this on transaction detail edit
-- Disable category edit in case of multiple splits
 
 ---
 

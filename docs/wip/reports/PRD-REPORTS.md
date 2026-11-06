@@ -38,7 +38,7 @@ mechanism to deliver this insight and understanding
 
 ## User Stories
 
-### Story 1: User - Views a built-in income/expense report
+### Story 2248: User - Views a built-in income/expense report
 
 **As a** user
 **I want** to review a summary of my income and/or expenses over a period of time
@@ -92,7 +92,7 @@ Following are the standard income/expense reports
   - Expenses report at Level 1 shows top-level expense categories like `Home`, `Transportation` (treated as if there's an implicit "Expenses" root)
   - Expenses report at Level 2 shows `Home:Utilities`, `Transportation:Fuel` (two levels of expense hierarchy)
 
-### Story 2: User - Configures report display
+### Story 2249: User - Configures report display
 
 **As a** user
 **I want** customize how the report is shown to me
