@@ -1,7 +1,7 @@
 /**
  * Transaction Search Store
  *
- * Holds the transactions page search term and filter criteria so they are retained
+ * Holds the transactions page search term, filter criteria, and current page so they are retained
  * when navigating away from the transactions list (e.g. to a transaction's details
  * page) and back. Add new filter dimensions here as they are introduced.
  * State is in-memory only; it does not persist across full page reloads.
@@ -22,6 +22,11 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
    * End date filter (inclusive), in YYYY-MM-DD format, or empty for no upper bound.
    */
   const toDate = ref('')
+
+  /**
+   * Current page number (1-based).
+   */
+  const currentPage = ref(1)
 
   // Getters
 
@@ -44,11 +49,12 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
   }
 
   /**
-   * Clears the search term and all filters.
+   * Clears the search term and all filters, and returns to page 1.
    */
   function reset() {
     clearSearch()
     clearFilters()
+    currentPage.value = 1
   }
 
   return {
@@ -56,6 +62,7 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
     searchText,
     fromDate,
     toDate,
+    currentPage,
     // Getters
     hasActiveFilters,
     // Actions

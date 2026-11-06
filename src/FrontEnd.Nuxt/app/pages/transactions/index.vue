@@ -100,16 +100,12 @@ const selectedTransaction = ref<TransactionResultDto | null>(null)
 const showFilters = ref(false)
 
 /**
- * Search term and filter criteria for transactions.
+ * Search term, filter criteria, and current page for transactions.
  * Kept in a store so they survive navigating to transaction details and back.
  */
 const transactionSearchStore = useTransactionSearchStore()
-const { searchText, fromDate, toDate, hasActiveFilters } = storeToRefs(transactionSearchStore)
-
-/**
- * Current page number for pagination.
- */
-const currentPage = ref(1)
+const { searchText, fromDate, toDate, currentPage, hasActiveFilters } =
+  storeToRefs(transactionSearchStore)
 
 /**
  * The unique key of the currently selected workspace.
@@ -146,8 +142,9 @@ const canManageWorkspace = computed(() => {
  * Clears transaction list when no workspace is selected.
  */
 watch(currentTenantKey, async (newKey) => {
+  currentPage.value = 1
   if (newKey) {
-    await loadTransactions()
+    await loadTransactions(1)
   } else {
     paginatedResult.value = undefined
   }
@@ -174,9 +171,9 @@ async function afterMounted() {
  * Loads transactions for the current workspace with optional search and date range filters.
  * Displays validation error if no workspace is selected.
  *
- * @param pageNumber - The page number to load (defaults to 1)
+ * @param pageNumber - The page number to load (defaults to the retained current page)
  */
-async function loadTransactions(pageNumber: number = 1) {
+async function loadTransactions(pageNumber: number = currentPage.value) {
   if (!currentTenantKey.value) {
     error.value = {
       title: 'No workspace selected',
