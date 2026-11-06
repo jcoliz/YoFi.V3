@@ -310,6 +310,7 @@ function formatCurrency(amount: number | undefined): string {
         </div>
       </div>
 
+      <!-- Splits -->
       <div
         v-if="transaction?.splits?.length && !isEditing && !loading"
         class="card mt-3"

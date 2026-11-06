@@ -540,6 +540,14 @@ return newSplits.Select(s => new SplitResultDto(s.Key, s.Amount, s.Category, s.M
 **Database operations**: N split inserts (batched by EF Core)
 **Performance**: Fast - batched insert, no full transaction reload
 **Note**: API accepts single SplitEditDto or collection - both use this pattern
+**Scenario 2252 exception**: Adding a split to a transaction with exactly one
+existing split is a one-to-two reallocation, not an append. The new split and
+the existing split's remainder must be saved atomically so they continue to sum
+to the authoritative transaction amount. See
+[`DESIGN-ADD-SPLIT.md`](DESIGN-ADD-SPLIT.md) for the UI and operation behavior.
+This exception does not change general additions to transactions that already
+have multiple splits; those can be unbalanced and are handled by the balance
+warning workflow.
 
 ### Pattern 8: Update Individual Split
 
