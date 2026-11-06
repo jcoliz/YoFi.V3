@@ -1,17 +1,63 @@
 id = "personal-finance"
-revision = 2
+revision = 3
 name = "Personal Finance"
 description = "Synthetic household income and spending, with net salary and ordinary loan payments. No real bank or account data."
 
 [[patterns]]
 id = "net-paycheck"
-category = "Income:Salary"
 payees = ["Megacorp Inc"]
-annual_amount = "61678.00"
 frequency = "semi-monthly"
 repeats = 1
 amount_jitter = "none"
 date_jitter = "none"
+
+[[patterns.splits]]
+category = "Income:Salary"
+annual_amount = "120000.00"
+
+[[patterns.splits]]
+category = "Income:401k Match"
+annual_amount = "4000.00"
+
+[[patterns.splits]]
+category = "Taxes:Federal:Paycheck"
+annual_amount = "-16488.00"
+
+[[patterns.splits]]
+category = "Taxes:SSA"
+annual_amount = "-7440.00"
+
+[[patterns.splits]]
+category = "Taxes:Medicare"
+annual_amount = "-1752.00"
+
+[[patterns.splits]]
+category = "Taxes:State Income"
+annual_amount = "-6240.00"
+
+[[patterns.splits]]
+category = "Taxes:State Disability"
+annual_amount = "-1152.00"
+
+[[patterns.splits]]
+category = "Healthcare:Premiums"
+annual_amount = "-6000.00"
+
+[[patterns.splits]]
+category = "Savings:401k Match"
+annual_amount = "-4000.00"
+
+[[patterns.splits]]
+category = "Savings:401k Contributions"
+annual_amount = "-19000.00"
+
+[[patterns.splits]]
+category = "Insurance:Life"
+annual_amount = "-200.00"
+
+[[patterns.splits]]
+category = "Insurance:Disability"
+annual_amount = "-50.00"
 
 [[patterns]]
 id = "rent"

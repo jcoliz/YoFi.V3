@@ -14,6 +14,8 @@ namespace YoFi.V3.Application.Services;
 /// registration and exposes an immutable catalog. Tomlyn 2.10.1 (BSD-2-Clause, native
 /// net10.0 target) parses TOML directly rather than through application configuration.
 /// Explicit table-to-type binding rejects unknown fields and non-string annual amounts.
+/// Split patterns are reduced to their first category and combined annual amount for the
+/// current single-category generator.
 /// Syntax diagnostics retain source positions; semantic diagnostics identify the asset,
 /// scenario, pattern, and field.
 /// </remarks>
@@ -86,7 +88,7 @@ public sealed partial class SampleScenarioLoader
         {
             var patternId = ReadString(pattern, "id", context);
             var location = $"{context}, pattern '{patternId}'";
-            RejectUnknown(pattern, location, "id", "category", "payees", "annual_amount", "frequency",
+            RejectUnknown(pattern, location, "id", "category", "payees", "annual_amount", "splits", "frequency",
                 "repeats", "amount_jitter", "date_jitter");
             ValidateId(patternId, location);
             if (!ids.Add(patternId))
@@ -94,11 +96,7 @@ public sealed partial class SampleScenarioLoader
                 throw Invalid(location, "id", "Duplicate pattern ID.");
             }
 
-            var category = ReadString(pattern, "category", location);
-            if (category.Length > 200 || CategoryHelper.SanitizeCategory(category).Length == 0)
-            {
-                throw Invalid(location, "category", "Expected a valid category of at most 200 characters.");
-            }
+            var (category, annual) = ReadPatternCategoryAndAmount(pattern, location);
 
             if (!pattern.TryGetValue("payees", out var rawPayees) || rawPayees is not TomlArray payees || payees.Count == 0)
             {
@@ -120,16 +118,6 @@ public sealed partial class SampleScenarioLoader
                 typedPayees.Add(payee);
             }
 
-            var annualText = ReadString(pattern, "annual_amount", location);
-            if (!decimal.TryParse(annualText, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                CultureInfo.InvariantCulture, out var annual) || annual == 0)
-            {
-                throw Invalid(location, "annual_amount", "Expected a quoted nonzero invariant decimal.");
-            }
-            if (Math.Abs(annual) > decimal.MaxValue / SampleDataGenerator.MaxTransactions / 2)
-            {
-                throw Invalid(location, "annual_amount", "Amount exceeds safe decimal arithmetic bounds for a maximum-sized statement.");
-            }
             var frequency = ReadChoice(pattern, "frequency", location, "weekly", "semi-monthly", "monthly", "quarterly", "yearly");
             var repeats = ReadPositiveInt(pattern, "repeats", location);
             if (repeats > SampleDataGenerator.MaxTransactions)
@@ -148,6 +136,90 @@ public sealed partial class SampleScenarioLoader
         }
 
         return new SampleScenario(id, revision, name, description, result.ToImmutable());
+    }
+
+    private static (string Category, decimal AnnualAmount) ReadPatternCategoryAndAmount(TomlTable pattern, string context)
+    {
+        var hasCategory = pattern.ContainsKey("category");
+        var hasAnnualAmount = pattern.ContainsKey("annual_amount");
+        var hasSplits = pattern.TryGetValue("splits", out var rawSplits);
+
+        if (hasSplits)
+        {
+            if (hasCategory || hasAnnualAmount || rawSplits is not TomlTableArray splits || splits.Count == 0)
+            {
+                throw Invalid(context, "splits", "Expected a nonempty array of split tables without pattern-level category or annual_amount.");
+            }
+
+            var firstCategory = string.Empty;
+            var totalAnnualAmount = 0m;
+            foreach (var split in splits)
+            {
+                RejectUnknown(split, context, "category", "annual_amount");
+                var category = ReadString(split, "category", context);
+                ValidateCategory(category, context);
+                var annualAmount = ReadAnnualAmount(split, "annual_amount", context);
+                if (firstCategory.Length == 0)
+                {
+                    firstCategory = category;
+                }
+
+                try
+                {
+                    totalAnnualAmount = checked(totalAnnualAmount + annualAmount);
+                }
+                catch (OverflowException)
+                {
+                    throw Invalid(context, "splits", "Combined annual amount exceeds decimal bounds.");
+                }
+            }
+
+            ValidateAnnualAmount(totalAnnualAmount, context, "splits");
+            return (firstCategory, totalAnnualAmount);
+        }
+
+        if (!hasCategory || !hasAnnualAmount)
+        {
+            throw Invalid(context, "splits", "Provide both category and annual_amount, or a splits array.");
+        }
+
+        var singleCategory = ReadString(pattern, "category", context);
+        ValidateCategory(singleCategory, context);
+        var singleAnnualAmount = ReadAnnualAmount(pattern, "annual_amount", context);
+        ValidateAnnualAmount(singleAnnualAmount, context, "annual_amount");
+        return (singleCategory, singleAnnualAmount);
+    }
+
+    private static void ValidateCategory(string category, string context)
+    {
+        if (category.Length > 200 || CategoryHelper.SanitizeCategory(category).Length == 0)
+        {
+            throw Invalid(context, "category", "Expected a valid category of at most 200 characters.");
+        }
+    }
+
+    private static decimal ReadAnnualAmount(TomlTable table, string field, string context)
+    {
+        var annualText = ReadString(table, field, context);
+        if (!decimal.TryParse(annualText, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture, out var annual) || annual == 0)
+        {
+            throw Invalid(context, field, "Expected a quoted nonzero invariant decimal.");
+        }
+
+        return annual;
+    }
+
+    private static void ValidateAnnualAmount(decimal annual, string context, string field)
+    {
+        if (annual == 0)
+        {
+            throw Invalid(context, field, "Combined annual amount must be nonzero.");
+        }
+        if (Math.Abs(annual) > decimal.MaxValue / SampleDataGenerator.MaxTransactions / 2)
+        {
+            throw Invalid(context, field, "Amount exceeds safe decimal arithmetic bounds for a maximum-sized statement.");
+        }
     }
 
     private static IEnumerable<(string Source, string Text)> LoadResources()

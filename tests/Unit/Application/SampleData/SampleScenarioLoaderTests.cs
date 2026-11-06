@@ -24,6 +24,51 @@ public class SampleScenarioLoaderTests
     }
 
     [Test]
+    public void BundledSplitPattern_UsesFirstCategoryAndSummedAnnualAmount()
+    {
+        var pattern = new SampleScenarioLoader().Scenarios.Single(s => s.Id == "personal-finance").Patterns[0];
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(pattern.Category, Is.EqualTo("Income:Salary"));
+            Assert.That(pattern.AnnualAmount, Is.EqualTo(61678m));
+        }
+    }
+
+    [Test]
+    public void SplitPattern_UsesFirstCategoryAndSummedAnnualAmount()
+    {
+        var document = """
+            id = "split-scenario"
+            revision = 1
+            name = "Split Scenario"
+            description = "Test definition."
+
+            [[patterns]]
+            id = "paycheck"
+            payees = ["Employer"]
+            frequency = "monthly"
+            repeats = 1
+            amount_jitter = "none"
+            date_jitter = "none"
+
+            [[patterns.splits]]
+            category = "Income:Salary"
+            annual_amount = "1200.00"
+
+            [[patterns.splits]]
+            category = "Taxes"
+            annual_amount = "-300.00"
+            """;
+
+        var pattern = SampleScenarioLoader.Parse(document, "split.toml").Patterns.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(pattern.Category, Is.EqualTo("Income:Salary"));
+            Assert.That(pattern.AnnualAmount, Is.EqualTo(900m));
+        }
+    }
+
+    [Test]
     public void QuotedAmounts_AreParsedAsInvariantDecimalWithoutDoubleConversion()
     {
         var original = CultureInfo.CurrentCulture;

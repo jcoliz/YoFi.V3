@@ -39,12 +39,12 @@ public sealed class SampleScenario
 
 /// <summary>Immutable, validated recurrence and variability settings for one financial pattern.</summary>
 /// <remarks>
-/// All properties participate in the generation fingerprint, including merchant order.
-/// Annual amounts are targets distributed across periods and repeats, not guaranteed realized totals.
+/// All generation-relevant properties participate in the fingerprint, including merchant and split order.
+/// Split annual amounts are targets distributed across periods and repeats, not guaranteed realized totals.
 /// </remarks>
 public sealed class SamplePattern
 {
-    /// <summary>Initializes a pattern from values already validated by the loader.</summary>
+    /// <summary>Initializes a pattern with its normal single-category allocation.</summary>
     /// <param name="id">Stable ID unique within the scenario.</param>
     /// <param name="category">Valid category assigned to transactions and merchant rules.</param>
     /// <param name="payees">Nonempty merchant alternatives in fingerprint-significant order.</param>
@@ -55,11 +55,25 @@ public sealed class SamplePattern
     /// <param name="dateJitter">Supported date jitter level.</param>
     internal SamplePattern(string id, string category, ImmutableArray<string> payees, decimal annualAmount,
         string frequency, int repeats, string amountJitter, string dateJitter)
+        : this(id, payees, [new SamplePatternSplit(category, annualAmount)],
+            frequency, repeats, amountJitter, dateJitter)
+    {
+    }
+
+    /// <summary>Initializes a pattern from values already validated by the loader.</summary>
+    /// <param name="id">Stable ID unique within the scenario.</param>
+    /// <param name="payees">Nonempty merchant alternatives in fingerprint-significant order.</param>
+    /// <param name="splits">Nonempty category allocations with nonzero signed annual targets.</param>
+    /// <param name="frequency">Supported recurrence frequency.</param>
+    /// <param name="repeats">Positive number of occurrences per canonical period.</param>
+    /// <param name="amountJitter">Supported amount jitter level.</param>
+    /// <param name="dateJitter">Supported date jitter level.</param>
+    internal SamplePattern(string id, ImmutableArray<string> payees, ImmutableArray<SamplePatternSplit> splits,
+        string frequency, int repeats, string amountJitter, string dateJitter)
     {
         Id = id;
-        Category = category;
         Payees = payees;
-        AnnualAmount = annualAmount;
+        Splits = splits;
         Frequency = frequency;
         Repeats = repeats;
         AmountJitter = amountJitter;
@@ -68,12 +82,20 @@ public sealed class SamplePattern
 
     /// <summary>Gets the stable pattern ID, unique within its scenario.</summary>
     public string Id { get; }
-    /// <summary>Gets the category used for direct-loaded transactions and merchant rules.</summary>
-    public string Category { get; }
+    /// <summary>Gets the category for a normal single-split pattern.</summary>
+    /// <exception cref="InvalidOperationException">The pattern contains multiple splits.</exception>
+    public string Category => Splits.Length == 1
+        ? Splits[0].Category
+        : throw new InvalidOperationException("A multi-split pattern has no single category.");
     /// <summary>Gets merchant alternatives in deterministic-choice order.</summary>
     public ImmutableArray<string> Payees { get; }
-    /// <summary>Gets the annual target: negative for spending, positive for income.</summary>
-    public decimal AnnualAmount { get; }
+    /// <summary>Gets category allocations in deterministic split order.</summary>
+    public ImmutableArray<SamplePatternSplit> Splits { get; }
+    /// <summary>Gets the annual target for a normal single-split pattern.</summary>
+    /// <exception cref="InvalidOperationException">The pattern contains multiple splits.</exception>
+    public decimal AnnualAmount => Splits.Length == 1
+        ? Splits[0].AnnualAmount
+        : throw new InvalidOperationException("A multi-split pattern has no single annual amount.");
     /// <summary>Gets the recurrence: weekly, semi-monthly, monthly, quarterly, or yearly.</summary>
     public string Frequency { get; }
     /// <summary>Gets the number of occurrences per period; repeats divide rather than multiply the annual target.</summary>
@@ -93,4 +115,22 @@ public sealed class SamplePattern
         "yearly" => 1,
         _ => throw new InvalidOperationException($"Unsupported frequency '{Frequency}'.")
     };
+}
+
+/// <summary>Immutable category and annual target for one transaction split.</summary>
+public sealed class SamplePatternSplit
+{
+    /// <summary>Initializes a split from values already validated by the loader.</summary>
+    /// <param name="category">Valid category assigned to this split.</param>
+    /// <param name="annualAmount">Nonzero signed annual target parsed directly as a decimal.</param>
+    internal SamplePatternSplit(string category, decimal annualAmount)
+    {
+        Category = category;
+        AnnualAmount = annualAmount;
+    }
+
+    /// <summary>Gets the category assigned to this split.</summary>
+    public string Category { get; }
+    /// <summary>Gets the signed annual target for this split.</summary>
+    public decimal AnnualAmount { get; }
 }
