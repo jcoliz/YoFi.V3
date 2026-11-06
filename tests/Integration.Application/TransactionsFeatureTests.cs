@@ -166,6 +166,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         // And: Category should come from split
         Assert.That(result.Category, Is.EqualTo("Groceries"),
             "Category should be loaded from splits collection");
+        Assert.That(result.Splits, Is.Empty);
     }
 
     [Test]
@@ -194,9 +195,10 @@ public class TransactionsFeatureTests : FeatureTestBase
             TransactionId = transaction.Id,
             Amount = 40.00m,
             Category = "Household",
+            Memo = "Household items",
             Order = 1
         };
-        _context.Splits.AddRange(split1, split2);
+        _context.Splits.AddRange(split2, split1);
         await _context.SaveChangesAsync();
 
         _context.ChangeTracker.Clear();
@@ -204,9 +206,14 @@ public class TransactionsFeatureTests : FeatureTestBase
         // When: Getting transaction through Feature
         var result = await _feature.GetTransactionByKeyAsync(transaction.Key);
 
-        // Then: Category should come from first split (Order = 0)
+        // Then: Category is blank and the full allocations are returned in display order.
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.Category, Is.EqualTo("Groceries"));
+        Assert.That(result.Category, Is.Empty);
+        Assert.That(result.Splits, Is.EqualTo(new[]
+        {
+            new TransactionSplitDto(split1.Key, 60m, "Groceries", null, 0),
+            new TransactionSplitDto(split2.Key, 40m, "Household", "Household items", 1)
+        }));
     }
 
     [Test]
@@ -231,6 +238,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         // Then: Category should be empty string
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Category, Is.EqualTo(string.Empty));
+        Assert.That(result.Splits, Is.Empty);
     }
 
     [Test]

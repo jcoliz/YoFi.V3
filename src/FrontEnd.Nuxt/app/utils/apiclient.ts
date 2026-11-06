@@ -6275,6 +6275,7 @@ export class TransactionDetailDto implements ITransactionDetailDto {
     source?: string | undefined;
     externalId?: string | undefined;
     category?: string;
+    splits?: TransactionSplitDto[];
 
     constructor(data?: ITransactionDetailDto) {
         if (data) {
@@ -6295,6 +6296,11 @@ export class TransactionDetailDto implements ITransactionDetailDto {
             this.source = _data["source"];
             this.externalId = _data["externalId"];
             this.category = _data["category"];
+            if (Array.isArray(_data["splits"])) {
+                this.splits = [] as any;
+                for (let item of _data["splits"])
+                    this.splits!.push(TransactionSplitDto.fromJS(item));
+            }
         }
     }
 
@@ -6315,6 +6321,11 @@ export class TransactionDetailDto implements ITransactionDetailDto {
         data["source"] = this.source;
         data["externalId"] = this.externalId;
         data["category"] = this.category;
+        if (Array.isArray(this.splits)) {
+            data["splits"] = [];
+            for (let item of this.splits)
+                data["splits"].push(item ? item.toJSON() : undefined as any);
+        }
         return data;
     }
 }
@@ -6328,6 +6339,59 @@ export interface ITransactionDetailDto {
     source?: string | undefined;
     externalId?: string | undefined;
     category?: string;
+    splits?: TransactionSplitDto[];
+}
+
+export class TransactionSplitDto implements ITransactionSplitDto {
+    key?: string;
+    amount?: number;
+    category?: string;
+    memo?: string | undefined;
+    order?: number;
+
+    constructor(data?: ITransactionSplitDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.amount = _data["amount"];
+            this.category = _data["category"];
+            this.memo = _data["memo"];
+            this.order = _data["order"];
+        }
+    }
+
+    static fromJS(data: any): TransactionSplitDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionSplitDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["amount"] = this.amount;
+        data["category"] = this.category;
+        data["memo"] = this.memo;
+        data["order"] = this.order;
+        return data;
+    }
+}
+
+export interface ITransactionSplitDto {
+    key?: string;
+    amount?: number;
+    category?: string;
+    memo?: string | undefined;
+    order?: number;
 }
 
 export class TransactionEditDto implements ITransactionEditDto {

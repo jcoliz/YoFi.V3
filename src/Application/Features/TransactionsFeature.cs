@@ -85,19 +85,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     {
         var transaction = await GetTransactionByKeyInternalAsync(key);
 
-        // Alpha-1: Get category from single split (Order = 0)
-        var category = transaction.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty;
-
-        return new TransactionDetailDto(
-            transaction.Key,
-            transaction.Date,
-            transaction.Amount,
-            transaction.Payee,
-            transaction.Memo,
-            transaction.Source,
-            transaction.ExternalId,
-            category
-        );
+        return ToDetailDto(transaction);
     }
 
     /// <summary>
@@ -113,16 +101,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         dataProvider.Add(newTransaction);
         await dataProvider.SaveChangesAsync();
 
-        return new TransactionDetailDto(
-            newTransaction.Key,
-            newTransaction.Date,
-            newTransaction.Amount,
-            newTransaction.Payee,
-            newTransaction.Memo,
-            newTransaction.Source,
-            newTransaction.ExternalId,
-            newTransaction.Splits.Single().Category
-        );
+        return ToDetailDto(newTransaction);
     }
 
     /// <summary>
@@ -145,16 +124,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         await dataProvider.SaveChangesAsync();
 
         // Now build result DTOs with generated Keys
-        var results = newTransactions.Select(t => new TransactionDetailDto(
-            t.Key,
-            t.Date,
-            t.Amount,
-            t.Payee,
-            t.Memo,
-            t.Source,
-            t.ExternalId,
-            t.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty
-        )).ToList();
+        var results = newTransactions.Select(ToDetailDto).ToList();
 
         return results;
     }
@@ -193,16 +163,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         dataProvider.UpdateRange([existingTransaction]);
         await dataProvider.SaveChangesAsync();
 
-        return new TransactionDetailDto(
-            existingTransaction.Key,
-            existingTransaction.Date,
-            existingTransaction.Amount,
-            existingTransaction.Payee,
-            existingTransaction.Memo,
-            existingTransaction.Source,
-            existingTransaction.ExternalId,
-            sanitizedCategory
-        );
+        return ToDetailDto(existingTransaction);
     }
 
     /// <summary>
@@ -239,16 +200,7 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
         dataProvider.UpdateRange([existingTransaction]);
         await dataProvider.SaveChangesAsync();
 
-        return new TransactionDetailDto(
-            existingTransaction.Key,
-            existingTransaction.Date,
-            existingTransaction.Amount,
-            existingTransaction.Payee,
-            existingTransaction.Memo,
-            existingTransaction.Source,
-            existingTransaction.ExternalId,
-            existingTransaction.Splits.Count > 1 ? string.Empty : sanitizedCategory
-        );
+        return ToDetailDto(existingTransaction);
     }
 
     /// <summary>
@@ -295,6 +247,23 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             .OrderByDescending(t => t.Date)
             .ThenByDescending(t => t.Id);
     }
+
+    private static TransactionDetailDto ToDetailDto(Transaction transaction)
+        => new(
+            transaction.Key,
+            transaction.Date,
+            transaction.Amount,
+            transaction.Payee,
+            transaction.Memo,
+            transaction.Source,
+            transaction.ExternalId,
+            transaction.Splits.Count > 1 ? string.Empty
+                : transaction.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty)
+        {
+            Splits = transaction.Splits.Count > 1 ? transaction.Splits.OrderBy(s => s.Order)
+                .Select(s => new TransactionSplitDto(s.Key, s.Amount, s.Category, s.Memo, s.Order)).ToArray()
+                : []
+        };
 
     private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
         t => new TransactionResultDto(
