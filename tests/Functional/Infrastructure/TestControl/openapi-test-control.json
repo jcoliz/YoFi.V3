@@ -1435,6 +1435,9 @@
           },
           "category": {
             "type": "string"
+          },
+          "hasMultipleSplits": {
+            "type": "boolean"
           }
         }
       },

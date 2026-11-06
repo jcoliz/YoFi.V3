@@ -298,7 +298,8 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
             t.Amount,
             t.Payee,
             t.Memo,
-            // Alpha-1: Get category from single split (Order = 0), default to empty string
-            t.Splits.Where(s => s.Order == 0).Select(s => s.Category).FirstOrDefault() ?? string.Empty
+            t.Splits.Count > 1 ? string.Empty
+                : t.Splits.Where(s => s.Order == 0).Select(s => s.Category).FirstOrDefault() ?? string.Empty,
+            t.Splits.Count > 1
         );
 }

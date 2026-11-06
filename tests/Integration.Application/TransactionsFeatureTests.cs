@@ -47,6 +47,42 @@ public class TransactionsFeatureTests : FeatureTestBase
 
     #region Navigation Property Loading Tests (Critical - Splits Bug)
 
+    [TestCase(0, false, "")]
+    [TestCase(1, false, "Groceries")]
+    [TestCase(2, true, "")]
+    [TestCase(3, true, "")]
+    public async Task GetTransactionsAsync_ReportsMultipleSplitsAndOnlySingleSplitCategory(
+        int splitCount, bool hasMultipleSplits, string category)
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Split indicator",
+            Amount = 100m,
+            TenantId = _testTenant.Id
+        };
+        for (var order = 0; order < splitCount; order++)
+        {
+            transaction.Splits.Add(new Split
+            {
+                Amount = 100m / splitCount,
+                Category = order == 0 ? "Groceries" : "Household",
+                Order = order
+            });
+        }
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var result = (await _feature.GetTransactionsAsync()).Items.Single();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Key, Is.EqualTo(transaction.Key));
+            Assert.That(result.HasMultipleSplits, Is.EqualTo(hasMultipleSplits));
+            Assert.That(result.Category, Is.EqualTo(category));
+        }
+    }
+
     [Test]
     public async Task GetTransactionByKeyAsync_WithSingleSplit_LoadsSplitsCollection()
     {

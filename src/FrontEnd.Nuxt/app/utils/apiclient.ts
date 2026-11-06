@@ -5725,6 +5725,7 @@ export class TransactionResultDto implements ITransactionResultDto {
     payee?: string;
     memo?: string | undefined;
     category?: string;
+    hasMultipleSplits?: boolean;
 
     constructor(data?: ITransactionResultDto) {
         if (data) {
@@ -5743,6 +5744,7 @@ export class TransactionResultDto implements ITransactionResultDto {
             this.payee = _data["payee"];
             this.memo = _data["memo"];
             this.category = _data["category"];
+            this.hasMultipleSplits = _data["hasMultipleSplits"];
         }
     }
 
@@ -5761,6 +5763,7 @@ export class TransactionResultDto implements ITransactionResultDto {
         data["payee"] = this.payee;
         data["memo"] = this.memo;
         data["category"] = this.category;
+        data["hasMultipleSplits"] = this.hasMultipleSplits;
         return data;
     }
 }
@@ -5772,6 +5775,7 @@ export interface ITransactionResultDto {
     payee?: string;
     memo?: string | undefined;
     category?: string;
+    hasMultipleSplits?: boolean;
 }
 
 export class TransactionDetailDto implements ITransactionDetailDto {

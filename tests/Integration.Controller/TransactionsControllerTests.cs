@@ -903,6 +903,7 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var firstTransaction = result.Items.First();
         Assert.That(firstTransaction.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(firstTransaction.Payee, Is.Not.Null);
+        Assert.That(firstTransaction.HasMultipleSplits, Is.False);
     }
 
     [Test]
