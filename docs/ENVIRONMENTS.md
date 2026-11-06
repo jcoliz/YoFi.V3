@@ -13,7 +13,7 @@ The application is built to run in three distinct environments:
 As described in [ADR 0004](./adr/0004-aspire-development.md), local development is done using .NET Aspire.
 
 **Architecture:**
-- Frontend runs in Node.js dev server (via npm) with hot module replacement
+- Frontend runs in Node.js dev server (via pnpm) with hot module replacement
 - Backend runs as .NET API service
 - Orchestrated by Aspire AppHost
 
@@ -24,8 +24,7 @@ As described in [ADR 0004](./adr/0004-aspire-development.md), local development 
 
 **How to run:**
 ```powershell
-cd src/AppHost
-dotnet run
+.\scripts\Start-LocalDev.ps1
 ```
 
 Then open the Aspire Dashboard URL shown in the console.
@@ -52,13 +51,12 @@ The application can be packaged into containers and orchestrated with a [Docker 
 
 **How to run:**
 ```powershell
-.\scripts\Build-Container.ps1
-.\scripts\Start-Container.ps1
+.\scripts\Start-Container.ps1 -Build
 ```
 
 Frontend available at http://localhost:5000, Backend at http://localhost:5001.
 
-Run functional tests with `.\scripts\Run-FunctionalTestsVsContainer.ps1`.
+Run functional tests with `.\scripts\Run-Tests.ps1 -Functional`, once the containers are started.
 
 ## Production
 

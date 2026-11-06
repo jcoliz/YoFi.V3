@@ -70,8 +70,9 @@ This project follows Clean Architecture with clear separation:
 ## Testing
 
 - Write unit tests for all Application Features
-- Tests live in `tests/Unit/`
-- Run tests: `dotnet test`
+- Write application integrations tests when Application Features affect the data layer
+- Unit Tests live in `tests/Unit/`
+- Run tests: `.\scripts\Run-Tests.ps1` for unit and frontend tests. Use `-Integration` switch to run all integration tests.
 - Aim for high coverage of business logic
 
 ## Pull Request Process
