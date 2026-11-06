@@ -6,6 +6,7 @@
  */
 
 import {
+  SplitEditDto,
   TransactionsClient,
   TenantRole,
   type TransactionDetailDto,
@@ -39,6 +40,15 @@ const editSaving = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 const showDeleteModal = ref(false)
+const showAddSplit = ref(false)
+const splitSaving = ref(false)
+const splitError = ref<IProblemDetails | undefined>(undefined)
+const showSplitError = ref(false)
+const splitForm = ref({
+  category: '',
+  amount: '',
+  memo: '',
+})
 
 // Editing state
 const isEditing = ref(false)
@@ -96,6 +106,46 @@ function startEditing() {
 
 function cancelEditing() {
   isEditing.value = false
+}
+
+function openAddSplit() {
+  splitForm.value = { category: '', amount: '', memo: '' }
+  splitError.value = undefined
+  showSplitError.value = false
+  showAddSplit.value = true
+}
+
+function cancelAddSplit() {
+  showAddSplit.value = false
+  splitError.value = undefined
+  showSplitError.value = false
+}
+
+async function addSplit() {
+  if (!transaction.value?.key || !currentTenantKey.value) return
+
+  splitSaving.value = true
+  splitError.value = undefined
+  showSplitError.value = false
+
+  try {
+    const updatedTransaction = await transactionsClient.addSplit(
+      transaction.value.key,
+      currentTenantKey.value,
+      new SplitEditDto({
+        amount: Number(splitForm.value.amount),
+        category: splitForm.value.category.trim() || undefined,
+        memo: splitForm.value.memo.trim() || undefined,
+      }),
+    )
+    transaction.value = updatedTransaction
+    showAddSplit.value = false
+  } catch (err) {
+    splitError.value = handleApiError(err, 'Add Split Failed', 'Failed to add split')
+    showSplitError.value = true
+  } finally {
+    splitSaving.value = false
+  }
 }
 
 function handleTransactionUpdated(updatedTransaction: TransactionDetailDto) {
@@ -312,17 +362,130 @@ function formatCurrency(amount: number | undefined): string {
 
       <!-- Splits -->
       <div
-        v-if="transaction?.splits?.length && !isEditing && !loading"
+        v-if="transaction && !isEditing && !loading"
         class="card mt-3"
         data-test-id="transaction-splits"
       >
         <div class="card-body">
-          <CardTitle
-            id="transaction-splits-title"
-            title="Splits"
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <CardTitle
+              id="transaction-splits-title"
+              title="Splits"
+              class="mb-0"
+            />
+            <button
+              v-if="canEditTransactions"
+              class="btn btn-sm btn-outline-primary"
+              type="button"
+              data-test-id="add-split-button"
+              :disabled="splitSaving"
+              @click="openAddSplit"
+            >
+              <FeatherIcon
+                icon="plus"
+                size="16"
+                class="me-1"
+              />
+              Add
+            </button>
+          </div>
+
+          <ErrorDisplay
+            v-model:show="showSplitError"
+            :problem="splitError"
             class="mb-3"
           />
-          <div class="table-responsive">
+
+          <form
+            v-if="showAddSplit"
+            class="mb-3"
+            data-test-id="add-split-form"
+            @submit.prevent="addSplit"
+          >
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label
+                  for="split-category"
+                  class="form-label"
+                >
+                  Category
+                </label>
+                <input
+                  id="split-category"
+                  v-model="splitForm.category"
+                  class="form-control"
+                  type="text"
+                  maxlength="200"
+                  data-test-id="add-split-category"
+                />
+              </div>
+              <div class="col-md-3">
+                <label
+                  for="split-amount"
+                  class="form-label"
+                >
+                  Amount
+                </label>
+                <input
+                  id="split-amount"
+                  v-model="splitForm.amount"
+                  class="form-control"
+                  type="number"
+                  step="0.01"
+                  required
+                  data-test-id="add-split-amount"
+                />
+              </div>
+              <div class="col-md-5">
+                <label
+                  for="split-memo"
+                  class="form-label"
+                >
+                  Memo
+                </label>
+                <input
+                  id="split-memo"
+                  v-model="splitForm.memo"
+                  class="form-control"
+                  type="text"
+                  maxlength="500"
+                  data-test-id="add-split-memo"
+                />
+              </div>
+              <div class="col-12 d-flex justify-content-end gap-2">
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  data-test-id="cancel-add-split-button"
+                  :disabled="splitSaving"
+                  @click="cancelAddSplit"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="btn btn-primary"
+                  type="submit"
+                  data-test-id="save-split-button"
+                  :disabled="splitSaving"
+                >
+                  {{ splitSaving ? 'Adding...' : 'Add split' }}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div
+            v-if="!transaction.splits?.length"
+            class="text-muted small"
+            data-test-id="transaction-no-splits"
+          >
+            No additional splits.
+          </div>
+
+          <div
+            v-else
+            class="table-responsive"
+          >
             <table
               class="table table-sm mb-0"
               aria-labelledby="transaction-splits-title"

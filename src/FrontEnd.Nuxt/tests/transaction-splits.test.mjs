@@ -7,7 +7,10 @@ import { compileScript, parse } from 'vue/compiler-sfc'
 import ts from 'typescript'
 
 const require = createRequire(import.meta.url)
-const source = readFileSync(new URL('../app/components/transaction/EditModal.vue', import.meta.url), 'utf8')
+const source = readFileSync(
+  new URL('../app/components/transaction/EditModal.vue', import.meta.url),
+  'utf8',
+)
 const { descriptor } = parse(source)
 const compiled = compileScript(descriptor, { id: 'transaction-edit', inlineTemplate: true })
 const script = ts.transpileModule(compiled.content, {
@@ -16,8 +19,13 @@ const script = ts.transpileModule(compiled.content, {
 
 function node(type, text = '') {
   return {
-    type, text, props: {}, children: [], parent: undefined,
-    addEventListener() {}, removeEventListener() {},
+    type,
+    text,
+    props: {},
+    children: [],
+    parent: undefined,
+    addEventListener() {},
+    removeEventListener() {},
     getRootNode: () => ({ activeElement: null }),
   }
 }
@@ -64,9 +72,14 @@ for (const hasMultipleSplits of [false, true]) {
       else globalThis.ShadowRoot = originalShadowRoot
     })
     const calls = []
-    const globals = { ref, computed, watch, useApiClient: () => ({
-      quickEditTransaction: async (...args) => calls.push(args),
-    }) }
+    const globals = {
+      ref,
+      computed,
+      watch,
+      useApiClient: () => ({
+        quickEditTransaction: async (...args) => calls.push(args),
+      }),
+    }
     const exports = {}
     new Function('require', 'exports', ...Object.keys(globals), script)(
       (id) => {
@@ -75,16 +88,30 @@ for (const hasMultipleSplits of [false, true]) {
           return { useUserPreferencesStore: () => ({ getCurrentTenantKey: 'workspace' }) }
         if (id === '~/utils/errorHandler') return { handleApiError: (error) => error }
         return require(id)
-      }, exports, ...Object.values(globals),
+      },
+      exports,
+      ...Object.values(globals),
     )
     const root = node('root')
     const app = renderer.createApp({
-      setup: () => () => h(exports.default, {
-        show: true,
-        transaction: { key: 'transaction', payee: 'Store', memo: 'Note', category: 'Food', hasMultipleSplits },
-      }),
+      setup: () => () =>
+        h(exports.default, {
+          show: true,
+          transaction: {
+            key: 'transaction',
+            payee: 'Store',
+            memo: 'Note',
+            category: 'Food',
+            hasMultipleSplits,
+          },
+        }),
     })
-    app.component('ModalDialog', { setup: (_props, { slots }) => () => h('div', [slots.default?.(), slots.footer?.()]) })
+    app.component('ModalDialog', {
+      setup:
+        (_props, { slots }) =>
+        () =>
+          h('div', [slots.default?.(), slots.footer?.()]),
+    })
     for (const name of ['ErrorDisplay', 'FeatherIcon', 'BaseSpinner'])
       app.component(name, { render: () => h('span') })
     app.mount(root)
@@ -93,7 +120,11 @@ for (const hasMultipleSplits of [false, true]) {
     assert.equal(category.props.disabled, hasMultipleSplits)
     assert.equal(category.props['aria-describedby'], 'editCategoryHelp')
     const help = find(root, 'edit-transaction-category-help')
-    assert.ok(help.text.includes(hasMultipleSplits ? 'split across multiple categories' : 'Optional category'))
+    assert.ok(
+      help.text.includes(
+        hasMultipleSplits ? 'split across multiple categories' : 'Optional category',
+      ),
+    )
     find(root, 'edit-transaction-payee').props['onUpdate:modelValue']('Updated payee')
     find(root, 'edit-transaction-memo').props['onUpdate:modelValue']('Updated memo')
     category.props['onUpdate:modelValue']('Changed category')
@@ -108,7 +139,10 @@ for (const hasMultipleSplits of [false, true]) {
 
 test('list distinguishes split transactions and protects them when creating rules', () => {
   const page = readFileSync(new URL('../app/pages/transactions/index.vue', import.meta.url), 'utf8')
-  assert.match(page, /v-if="transaction\.hasMultipleSplits"[\s\S]*?data-test-id="transaction-split-badge"/)
+  assert.match(
+    page,
+    /v-if="transaction\.hasMultipleSplits"[\s\S]*?data-test-id="transaction-split-badge"/,
+  )
   assert.match(page, /title="Allocated across multiple splits\."/)
   assert.match(page, /if \(!selectedTransaction\.value\?\.hasMultipleSplits && rule\.category/)
 })
@@ -126,43 +160,70 @@ for (const splits of [
   ],
 ]) {
   test(`details ${splits?.length ? 'displays included splits' : 'keeps the normal category display'}`, async (t) => {
-    const pageSource = readFileSync(new URL('../app/pages/transactions/[key].vue', import.meta.url), 'utf8')
+    const pageSource = readFileSync(
+      new URL('../app/pages/transactions/[key].vue', import.meta.url),
+      'utf8',
+    )
     const { descriptor } = parse(pageSource)
     const compiled = compileScript(descriptor, { id: 'transaction-details', inlineTemplate: true })
     const pageScript = ts.transpileModule(compiled.content, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText
     const transaction = {
-      key: 'transaction', payee: 'Employer', amount: 75, date: new Date('2026-01-01'),
-      category: splits?.length ? '' : 'Income', splits,
+      key: 'transaction',
+      payee: 'Employer',
+      amount: 75,
+      date: new Date('2026-01-01'),
+      category: splits?.length ? '' : 'Income',
+      splits,
     }
     const roles = { Viewer: 1, Editor: 2, Owner: 3 }
+    const role = splits?.length ? roles.Viewer : roles.Editor
     let load
     const globals = {
-      ref, computed,
+      ref,
+      computed,
       definePageMeta() {},
       useRoute: () => ({ params: { key: 'transaction' } }),
       useRouter: () => ({ push() {} }),
       useApiClient: () => ({ getTransactionById: async () => transaction }),
-      useAuthenticationGuard: () => ({ requireAuthenticatedUser: (callback) => { load = callback } }),
+      useAuthenticationGuard: () => ({
+        requireAuthenticatedUser: (callback) => {
+          load = callback
+        },
+      }),
     }
     const exports = {}
     new Function('require', 'exports', ...Object.keys(globals), pageScript)(
       (id) => {
         if (id === '~/utils/apiclient') return { TransactionsClient, TenantRole: roles }
         if (id === '~/stores/userPreferences')
-          return { useUserPreferencesStore: () => ({
-            getCurrentTenantKey: 'workspace', hasTenant: true,
-            getCurrentTenant: { role: roles.Viewer }, loadFromStorage() {},
-          }) }
+          return {
+            useUserPreferencesStore: () => ({
+              getCurrentTenantKey: 'workspace',
+              hasTenant: true,
+              getCurrentTenant: { role },
+              loadFromStorage() {},
+            }),
+          }
         if (id === '~/utils/errorHandler') return { handleApiError: (error) => error }
         if (id === '~/utils/dateOnly') return { formatDateOnly: () => '1/1/2026' }
         return require(id)
-      }, exports, ...Object.values(globals),
+      },
+      exports,
+      ...Object.values(globals),
     )
     const root = node('root')
     const app = renderer.createApp(exports.default)
-    for (const name of ['WorkspaceSelector', 'PageBreadcrumb', 'ErrorDisplay', 'BaseSpinner', 'FeatherIcon', 'TransactionEditPane', 'ModalDialog'])
+    for (const name of [
+      'WorkspaceSelector',
+      'PageBreadcrumb',
+      'ErrorDisplay',
+      'BaseSpinner',
+      'FeatherIcon',
+      'TransactionEditPane',
+      'ModalDialog',
+    ])
       app.component(name, { render: () => h('span') })
     app.component('CardTitle', {
       props: ['title'],
@@ -187,7 +248,30 @@ for (const splits of [
       assert.ok(salary.parent.children.indexOf(salary) < salary.parent.children.indexOf(tax))
     } else {
       assert.equal(textContent(find(root, 'transaction-category')), 'Income')
-      assert.equal(find(root, 'transaction-splits'), undefined)
+      assert.ok(find(root, 'transaction-splits'))
+      assert.equal(textContent(find(root, 'transaction-no-splits')).trim(), 'No additional splits.')
+      assert.ok(find(root, 'add-split-button'))
     }
   })
 }
+
+test('details add-split form submits the API DTO and retains failures in the form', () => {
+  const pageSource = readFileSync(
+    new URL('../app/pages/transactions/[key].vue', import.meta.url),
+    'utf8',
+  )
+  assert.match(
+    pageSource,
+    /transactionsClient\.addSplit\([\s\S]*?transaction\.value\.key,[\s\S]*?currentTenantKey\.value,[\s\S]*?new SplitEditDto/,
+  )
+  assert.match(
+    pageSource,
+    /amount: Number\(splitForm\.value\.amount\)[\s\S]*?category: splitForm\.value\.category\.trim\(\) \|\| undefined[\s\S]*?memo: splitForm\.value\.memo\.trim\(\) \|\| undefined/,
+  )
+  assert.match(pageSource, /transaction\.value = updatedTransaction[\s\S]*?showAddSplit\.value = false/)
+  assert.match(
+    pageSource,
+    /catch \(err\) \{[\s\S]*?splitError\.value = handleApiError\(err, 'Add Split Failed', 'Failed to add split'\)[\s\S]*?showSplitError\.value = true/,
+  )
+  assert.match(pageSource, /data-test-id="add-split-form"[\s\S]*?@submit\.prevent="addSplit"/)
+})
