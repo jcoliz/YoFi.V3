@@ -130,6 +130,46 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     }
 
     /// <summary>
+    /// Adds one split and adjusts the first existing split so the transaction remains balanced.
+    /// </summary>
+    /// <param name="transactionKey">The unique identifier of the transaction.</param>
+    /// <param name="split">The split data to add. MUST be validated before calling this method.</param>
+    /// <returns>The updated transaction with all splits in display order.</returns>
+    /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="ValidationException">Thrown when the transaction has no existing split.</exception>
+    public async Task<TransactionDetailDto> AddSplitAsync(Guid transactionKey, SplitEditDto split)
+    {
+        var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+        var existingSplits = transaction.Splits.OrderBy(s => s.Order).ToList();
+
+        if (existingSplits.Count == 0)
+        {
+            throw new ValidationException(
+                nameof(transactionKey),
+                "A split cannot be added to a transaction without an existing split.");
+        }
+
+        var firstSplit = existingSplits[0];
+        var otherSplitTotal = existingSplits.Skip(1).Sum(s => s.Amount);
+        firstSplit.Amount = transaction.Amount - otherSplitTotal - split.Amount;
+
+        var newSplit = new Split
+        {
+            TransactionId = transaction.Id,
+            Amount = split.Amount,
+            Category = CategoryHelper.SanitizeCategory(split.Category),
+            Memo = split.Memo,
+            Order = checked(existingSplits[^1].Order + 1)
+        };
+
+        transaction.Splits.Add(newSplit);
+        dataProvider.Add(newSplit);
+        await dataProvider.SaveChangesAsync();
+
+        return ToDetailDto(transaction);
+    }
+
+    /// <summary>
     /// Updates an existing transaction.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>

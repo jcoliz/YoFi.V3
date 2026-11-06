@@ -45,6 +45,155 @@ public class TransactionsFeatureTests : FeatureTestBase
         _feature = new TransactionsFeature(_tenantProvider, _dataProvider);
     }
 
+    [Test]
+    public async Task AddSplitAsync_WithOneExistingSplit_RebalancesAndPreservesTransaction()
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Maverick Markets",
+            Amount = -100m,
+            Memo = "Transaction memo",
+            Source = "Imported account",
+            ExternalId = "bank-transaction-1",
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split
+                {
+                    Amount = -100m,
+                    Category = "Fuel",
+                    Memo = "Original split memo",
+                    Order = 0
+                }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var originalSplitKey = transaction.Splits.Single().Key;
+        _context.ChangeTracker.Clear();
+
+        var result = await _feature.AddSplitAsync(
+            transaction.Key,
+            new SplitEditDto(-10m, "  snacks  ", "I was hungry"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Amount, Is.EqualTo(-100m));
+            Assert.That(result.Memo, Is.EqualTo("Transaction memo"));
+            Assert.That(result.Source, Is.EqualTo("Imported account"));
+            Assert.That(result.ExternalId, Is.EqualTo("bank-transaction-1"));
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -90m, -10m }));
+            Assert.That(result.Splits.Select(split => split.Category), Is.EqualTo(new[] { "Fuel", "Snacks" }));
+            Assert.That(result.Splits.Select(split => split.Memo),
+                Is.EqualTo(new[] { "Original split memo", "I was hungry" }));
+            Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 0, 1 }));
+            Assert.That(result.Splits[0].Key, Is.EqualTo(originalSplitKey));
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Transactions.Include(t => t.Splits).SingleAsync();
+        Assert.That(persisted.Splits.Sum(split => split.Amount), Is.EqualTo(persisted.Amount));
+    }
+
+    [Test]
+    public async Task AddSplitAsync_WithMultipleExistingSplits_RebalancesFirstAndPreservesOthers()
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Super Duper Mart",
+            Amount = -250m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -125m, Category = "Groceries", Order = 0 },
+                new Split { Amount = -50m, Category = "Supplies", Order = 1 },
+                new Split
+                {
+                    Amount = -75m,
+                    Category = "Healthcare:Prescriptions",
+                    Memo = "Can't forget my meds",
+                    Order = 2
+                }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var originalSplits = transaction.Splits.OrderBy(split => split.Order).ToArray();
+        _context.ChangeTracker.Clear();
+
+        var result = await _feature.AddSplitAsync(
+            transaction.Key,
+            new SplitEditDto(-25m, "Dining Out", "Also had dinner there"));
+
+        Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -100m, -50m, -75m, -25m }));
+        Assert.That(result.Splits.Select(split => split.Category),
+            Is.EqualTo(new[] { "Groceries", "Supplies", "Healthcare:Prescriptions", "Dining Out" }));
+        Assert.That(result.Splits.Select(split => split.Memo),
+            Is.EqualTo(new string?[] { null, null, "Can't forget my meds", "Also had dinner there" }));
+        Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 0, 1, 2, 3 }));
+        Assert.That(result.Splits[0].Key, Is.EqualTo(originalSplits[0].Key));
+        Assert.That(result.Splits[1].Key, Is.EqualTo(originalSplits[1].Key));
+        Assert.That(result.Splits[2].Key, Is.EqualTo(originalSplits[2].Key));
+        Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(result.Amount));
+    }
+
+    [Test]
+    public async Task AddSplitAsync_WithUnbalancedExistingSplits_RestoresBalance()
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Previously unbalanced",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -80m, Category = "Fuel", Order = 0 },
+                new Split { Amount = -10m, Category = "Snacks", Order = 1 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var result = await _feature.AddSplitAsync(
+            transaction.Key,
+            new SplitEditDto(-10m, "Parking", null));
+
+        Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -80m, -10m, -10m }));
+        Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(result.Amount));
+    }
+
+    [Test]
+    public async Task AddSplitAsync_WithoutExistingSplit_ThrowsValidationException()
+    {
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Missing split",
+            Amount = -100m,
+            TenantId = _testTenant.Id
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            _feature.AddSplitAsync(transaction.Key, new SplitEditDto(-10m, "Fuel", null)));
+
+        Assert.That(exception!.Message, Does.Contain("existing split"));
+        Assert.That(await _context.Splits.CountAsync(), Is.Zero);
+    }
+
+    [Test]
+    public async Task AddSplitAsync_NonExistentTransaction_ThrowsTransactionNotFoundException()
+    {
+        await Assert.ThrowsAsync<TransactionNotFoundException>(() =>
+            _feature.AddSplitAsync(Guid.NewGuid(), new SplitEditDto(-10m, "Fuel", null)));
+    }
+
     #region Navigation Property Loading Tests (Critical - Splits Bug)
 
     [TestCase(null)]
