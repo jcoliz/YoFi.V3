@@ -32,6 +32,7 @@ import { useUserPreferencesStore } from '~/stores/userPreferences'
 // NuxtLink must use inheritAttrs: false and pass $attrs through so that
 // data-test-id attributes on the component are rendered in the DOM.
 const DropDownPortable = {
+  inheritAttrs: false,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setup(_props: any, { slots }: any) {
     return () => [slots.trigger?.(), slots.default?.()]
