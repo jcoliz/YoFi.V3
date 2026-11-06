@@ -6,7 +6,7 @@ Feature: Workspace Data Administration
     And I own a workspace called "My Finances"
     And I am logged into my existing account
 
-@story:2223
+@category:2223
 Rule: Sample Data
 
 @id:1

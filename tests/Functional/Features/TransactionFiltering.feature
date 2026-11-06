@@ -10,7 +10,7 @@ Feature: Transaction Filtering
     Given the application is running
     And I am logged in as a user with "Editor" role
 
-  @story:2213
+  @category:2213
   Rule: Users can quickly find transactions by searching text
 
     @pri:1

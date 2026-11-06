@@ -9,7 +9,7 @@ Feature: Payee Matching Rules
     And I have an active workspace "My Finances"
     And I am logged into my existing account
 
-  @story:2211
+  @category:2211
   Rule: Users can establish and manage payee matching rules
 
     @pri:1
@@ -74,7 +74,7 @@ Feature: Payee Matching Rules
       Then I should see an error message containing "Category is required"
       And the rule should not be created
 
-  @story:2212
+  @category:2212
   Rule: Transactions are automatically categorized on bank import
 
     @pri:1
@@ -131,7 +131,7 @@ Feature: Payee Matching Rules
       And I view my transactions
       Then the transaction should have category "Gas & Fuel"
 
-  @story:2212
+  @category:2212
   Rule: Matching rules handle conflicts with defined precedence
 
     @pri:2

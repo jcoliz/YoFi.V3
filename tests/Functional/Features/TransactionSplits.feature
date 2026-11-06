@@ -1,4 +1,4 @@
-@ab:1982
+@category:1982
 Feature: Transaction Splits
 
 Personal finance tracking requires categorizing transactions across multiple categories.
@@ -11,7 +11,7 @@ Background:
     Given the application is running
     And I am logged in as a user with "Editor" role
 
-@ab:2252
+@category:2252
 Rule: Add a single split to an existing transaction
 
 Scenario: Add a single split to an existing transaction with one split
