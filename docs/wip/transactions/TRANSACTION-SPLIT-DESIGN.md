@@ -506,7 +506,9 @@ return new TransactionUpdateResultDto(
 
 ### Pattern 7: Add Splits to Transaction (Bulk)
 
-Add one or more splits to existing transaction. Handles both single split and bulk split additions.
+Append a collection of splits to an existing transaction. A single split uses
+the balancing `AddSplitAsync` operation described in
+[`DESIGN-ADD-SPLIT.md`](DESIGN-ADD-SPLIT.md).
 
 ```csharp
 // Load existing transaction to get next order number
@@ -539,15 +541,13 @@ return newSplits.Select(s => new SplitResultDto(s.Key, s.Amount, s.Category, s.M
 
 **Database operations**: N split inserts (batched by EF Core)
 **Performance**: Fast - batched insert, no full transaction reload
-**Note**: API accepts single SplitEditDto or collection - both use this pattern
-**Scenario 2252 exception**: Adding a split to a transaction with exactly one
-existing split is a one-to-two reallocation, not an append. The new split and
-the existing split's remainder must be saved atomically so they continue to sum
-to the authoritative transaction amount. See
+**Note**: This pattern applies to bulk additions. A single `SplitEditDto` uses
+`AddSplitAsync`: it adjusts the first existing split to the remainder and adds
+the new split atomically, so a single addition always leaves the transaction
+balanced, regardless of the existing split count. See
 [`DESIGN-ADD-SPLIT.md`](DESIGN-ADD-SPLIT.md) for the UI and operation behavior.
-This exception does not change general additions to transactions that already
-have multiple splits; those can be unbalanced and are handled by the balance
-warning workflow.
+Bulk additions append each submitted split and may leave the transaction
+unbalanced; later split editing and uploads may also create an imbalance.
 
 ### Pattern 8: Update Individual Split
 
@@ -1087,21 +1087,28 @@ Gets all splits for a transaction.
 
 #### POST /api/tenant/{tenantKey}/transactions/{transactionKey}/splits
 
-Adds one or more splits to existing transaction.
+Adds one split to an existing transaction. This is the interactive **Add Split**
+operation; it always rebalances the transaction by adjusting the first existing
+split. Bulk additions are handled separately by the upload workflow and may
+leave the transaction unbalanced.
 
-**Request body**: `SplitEditDto` (single) OR `IReadOnlyCollection<SplitEditDto>` (bulk)
-**Response**: `SplitOperationResultDto` - 201 Created
+**Request body**: `SplitEditDto`
+**Response**: `TransactionDetailDto` - 200 OK
 
 **Response includes**:
-- Created split(s) with assigned Key(s)
-- Updated transaction balance state (IsBalanced flag)
-- SplitsTotal (sum of all split amounts after addition)
+- Transaction fields and all updated splits in display order
 
 **Behavior**:
-- Accepts single split or array of splits
-- Assigns Order = max(existing Order) + 1, +2, +3, etc.
+- Adjusts the first existing split so all split amounts, including the new
+  split, sum to `Transaction.Amount`; all other existing splits are unchanged.
+- Appends the new split with Order = max(existing Order) + 1.
+- Persists the adjustment and addition atomically through
+  `TransactionsFeature.AddSplitAsync`.
 - Transaction must exist and user must have Editor role
-- Returns created split(s) AND updated balance state
+
+The future bulk upload operation accepts multiple split rows and may leave the
+transaction unbalanced; it does not use this endpoint's single-split
+reallocation behavior.
 
 #### PUT /api/tenant/{tenantKey}/transactions/{transactionKey}/splits/{splitKey}
 
@@ -1325,9 +1332,10 @@ public void SanitizeCategory_VariousInputs_ReturnsCleanedCategory(string input, 
 - `UpdateTransactionAsync_AmountChanged_DoesNotAdjustSplits()` - Editing Amount creates imbalance if splits don't match
 
 **Split CRUD Operations**:
-- `AddSplitAsync_ValidSplit_AddsToTransaction()` - Single split addition
-- `AddSplitAsync_MultipleSplits_AddsAllWithCorrectOrder()` - Bulk split addition with order assignment
-- `AddSplitAsync_ReturnsBalanceState()` - Verify SplitOperationResultDto includes balance calculation
+- `AddSplitAsync_ValidSplit_RebalancesFirstSplitAndAddsToTransaction()` - Single split addition
+- `AddSplitAsync_MultipleExistingSplits_RebalancesFirstAndPreservesOthers()` - Single addition to an already split transaction
+- `AddSplitsAsync_MultipleSplits_AddsAllWithCorrectOrder()` - Bulk split addition with order assignment
+- `AddSplitsAsync_MayLeaveTransactionUnbalanced()` - Bulk addition can create an imbalance
 - `UpdateSplitAsync_ValidUpdate_UpdatesSplitProperties()` - Amount, category, memo updates
 - `UpdateSplitAsync_AmountChanged_ReturnsUpdatedBalanceState()` - Balance recalculated after update
 - `UpdateSplitAsync_WrongTransaction_ThrowsInvalidOperationException()` - Security: split must belong to specified transaction
@@ -1350,6 +1358,7 @@ public void SanitizeCategory_VariousInputs_ReturnsCleanedCategory(string input, 
 
 **Tenant Isolation**:
 - `AddSplitAsync_OtherTenantTransaction_ThrowsNotFoundException()` - Security
+- `AddSplitsAsync_OtherTenantTransaction_ThrowsNotFoundException()` - Security
 - `UpdateSplitAsync_OtherTenantSplit_ThrowsNotFoundException()` - Security
 - `DeleteSplitAsync_OtherTenantSplit_ThrowsNotFoundException()` - Security
 
@@ -1464,9 +1473,11 @@ This design is comprehensive for backend implementation but has intentional gaps
 ### 4. Bulk Categorization Workflows (Out of Scope)
 
 **What's specified**:
-- POST endpoint accepts single OR collection of splits (line 840)
+- POST split endpoint accepts one `SplitEditDto`; `AddSplitAsync` adjusts the
+  first split so the transaction remains balanced
 - Line 969: "Atomic replacement is still available for bulk operations"
-- Listed as future enhancement (line 1108)
+- The future upload workflow accepts a set of splits and may leave the
+  transaction unbalanced
 
 **What's NOT specified**:
 - Bulk categorization workflow: How to apply category to multiple transactions at once?

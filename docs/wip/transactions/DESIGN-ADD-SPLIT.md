@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 ado: Scenario 2252
 parent: Story 2225 [User Can] Split Single Transactions across multiple categories
 prd: PRD-TRANSACTION-SPLITS.md
@@ -9,22 +9,25 @@ prd: PRD-TRANSACTION-SPLITS.md
 
 ## Scope clarification
 
-Scenario 2252 covers adding one split to an **existing single-category
-transaction**. The transaction already has one split, and the user divides that
-allocation between its existing category and one new category. Creating a
-transaction with multiple splits is a different workflow.
+Scenario 2252 covers adding one split to an **existing transaction**, whether
+it currently has one split or several. The new amount is allocated from the
+first split, preserving the existing split order and all other allocations.
+Creating a transaction with multiple splits is a different workflow.
 
 Note that the larger feature allows creating unbalanced splits. However, in the
-case of an existing transaction with only one category, it's obvious we can
-balance it, so we should do so.
+case of adding a single split through this workflow, we always rebalance the
+transaction. Later split editing and split uploads may still create unbalanced
+transactions.
 
 ## Acceptance criteria
 
-- [ ] An Editor or Owner can add one split to an existing transaction that has
-      one split.
+- [ ] An Editor or Owner can add one split to an existing transaction with any
+      number of splits.
 - [ ] The user supplies the new split's category, amount, and optionally a memo.
-- [ ] The existing split retains its category and memo and its amount becomes
-      the remainder needed to balance the transaction.
+- [ ] The first existing split retains its key, category, memo, and order; its
+      amount is adjusted to balance the transaction after the new split is added.
+- [ ] All other existing splits retain their keys, amounts, categories, memos,
+      and order.
 - [ ] The transaction amount, memo, and other transaction-level fields do not change.
 - [ ] The operation is saved atomically, and the updated splits are displayed
       after success.
@@ -43,137 +46,138 @@ balance it, so we should do so.
    On failure, keep the form open with its entered values and show the API error.
    Cancel makes no changes.
 
-For example, for a $-100.00 transaction with a $-100.00 Fuel split, entering a
-$-10.00 Snacks split adjusts Fuel to $-90.00. The adjusted Fuel split appears
-first, followed by the newly entered split, matching the functional test.
+The first existing split is the balancing allocation. For a -\$100.00
+transaction with a -\$100.00 Fuel split, entering a -\$10.00 Snacks split adjusts
+Fuel to -\$90.00. For a transaction with several splits, only its first split
+is adjusted; all other existing splits remain unchanged. The new split appears
+last.
 
 ## Allocation rule
 
-The transaction amount remains authoritative. Given transaction amount `T` and
-the new split amount `N`, set the existing split amount to:
+The transaction amount remains authoritative. Given transaction amount `T`,
+new split amount `N`, and all existing splits except the first, set the first
+split amount to:
 
 ```text
-existing split amount = T - N
+first split amount = T - sum(other existing split amounts) - N
 ```
 
-This works for both expenses and income: for a $100.00 transaction, entering
-$10.00 leaves $90.00 in the existing split. The formula also restores balance
-if the original single split was already out of balance. Do not change the
-transaction amount to fit the splits.
+This works for both expenses and income. For example, for a -\$250.00
+transaction with ordered existing splits of -\$125.00, -\$50.00, and -\$75.00,
+adding a -\$25.00 split adjusts only the first split to -\$100.00. The other
+existing splits remain -\$50.00 and -\$75.00, so the four splits sum to -\$250.00.
+The formula also corrects any prior imbalance by assigning the balancing
+difference to the first split. Do not change the transaction amount to fit the
+splits.
 
-The new split receives the entered category and amount and memo, and the last
-display order. The existing split keeps its key, category, and memo and is
-displayed first. A zero remainder is allowed; the transaction still has two
-splits and remains balanced.
+The new split receives the entered category, amount, and memo, and is appended
+after the existing splits with the next display order. The first existing split
+keeps its key, category, and memo and remains first. All other existing splits
+are unchanged. A zero amount for the new split is allowed if valid under split
+validation; the final allocations must still sum to the transaction amount.
 
 ## Endpoint and DTO
 
-The general-purpose `POST .../transactions/{transactionKey}/splits` endpoint
-appends splits and may leave the transaction unbalanced. Keep that behavior
-unchanged. This scenario uses a separate command endpoint so the balance-and-
-reallocate behavior is explicit:
+Use the existing split endpoint for a single split:
 
 ```http
-POST /api/tenant/{tenantKey}/transactions/{transactionKey}/splits/balanced
+POST /api/tenant/{tenantKey}/transactions/{transactionKey}/splits
 ```
 
 Require the Editor tenant role. The endpoint is scoped to the tenant in the
 route, and the application feature must also load the transaction through its
 current-tenant query.
 
-Add this action to `TransactionsController`:
+The single-split request uses the existing `SplitEditDto`:
 
 ```csharp
-[HttpPost("{transactionKey:guid}/splits/balanced")]
+public record SplitEditDto(decimal Amount, string Category, string? Memo);
+```
+
+`Amount` accepts positive, negative, or zero values within the split amount
+range already used by `SplitEditDto`. `Category` may be blank for uncategorized
+and has the existing 200-character limit. `Memo` is optional and has the split
+memo's existing 500-character limit. Use the existing DTO validator. Sanitize
+the category in the application feature before persisting it.
+
+The single-item POST action in `TransactionsController` requires the Editor
+role and delegates to `TransactionsFeature.AddSplitAsync`:
+
+```csharp
+[HttpPost("{transactionKey:guid}/splits")]
 [RequireTenantRole(TenantRole.Editor)]
 [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-public async Task<IActionResult> AddBalancedSplit(
+public async Task<IActionResult> AddSplit(
     Guid transactionKey,
-    [FromBody] AddBalancedSplitDto split)
+    [FromBody] SplitEditDto split)
 {
-    var updated = await transactionsFeature.AddBalancedSplitAsync(transactionKey, split);
+    var updated = await transactionsFeature.AddSplitAsync(transactionKey, split);
     return Ok(updated);
 }
 ```
 
-**Request body** — `AddBalancedSplitDto`:
-
-```csharp
-public record AddBalancedSplitDto(
-    decimal Amount,
-    string? Category,
-    string? Memo
-);
-```
-
-`Amount` accepts positive, negative, or zero values within the split amount
-range already used by `SplitEditDto`. `Category` is optional, may be blank for
-uncategorized, and has the existing 200-character limit. `Memo` is optional
-and has the split memo's existing 500-character limit. Validate the DTO at
-the controller boundary using a corresponding FluentValidation validator.
-Sanitize the category in the application feature before persisting it.
-
-**Success response**: `200 OK` with `TransactionDetailDto`, including both
-splits ordered by `Order`. Reuse this existing result DTO rather than defining
-a scenario-specific response type.
+The response is `200 OK` with `TransactionDetailDto`, including all splits
+ordered by `Order`. Reuse this existing result DTO rather than defining a
+scenario-specific response type. Bulk additions remain a distinct operation
+and may create an imbalance.
 
 **Errors**:
 
 - `400 Bad Request` for invalid request data.
 - `404 Not Found` when the transaction is not found in the tenant.
-- `409 Conflict` when the transaction no longer has exactly one split, so this
-  operation's precondition is not met.
+- `409 Conflict` when a concurrent split change prevents applying the
+  reallocation against the current split set. A retry can reload the latest
+  splits and recompute the first split amount.
 
 ## Application feature operation
 
 Implement this as one tenant-authorized application operation that loads the
-transaction and its splits, verifies the transaction has exactly one split,
-updates that split to the remainder, and creates the new split. Persist both
-changes together. Do not calculate the remainder only in the browser or issue
-separate update and create requests: either approach can leave partial changes
-or use stale transaction data.
+transaction and its splits, adjusts the first split to the remainder, and
+creates the new split. Persist both changes together. Do not calculate the
+remainder only in the browser or issue separate update and create requests:
+either approach can leave partial changes or use stale transaction data.
 
-Add `TransactionsFeature.AddBalancedSplitAsync(Guid transactionKey,
-AddBalancedSplitDto split)` to perform the operation:
+Add `TransactionsFeature.AddSplitAsync(Guid transactionKey, SplitEditDto split)`
+to perform the single-split operation:
 
 1. Load the transaction and splits using the existing tenant-scoped transaction
    query. Throw the standard transaction-not-found exception if no matching
-   transaction exists.
-2. Verify exactly one split exists. If not, report a conflict; do not silently
-   fall back to appending a split.
-3. Sanitize the requested category, update the existing split amount to
-   `transaction.Amount - split.Amount`, and leave its key, category, memo, and
-   order unchanged.
-4. Create the new split with the requested amount, sanitized category, optional
-   memo, and an order after the existing split.
-5. Persist the original-split update and new split together in a single
-   `SaveChangesAsync` call, with transaction-level concurrency protection so
-   concurrent split changes cannot violate the one-split precondition.
-6. Return `ToDetailDto(transaction)` after saving. Its ordered `Splits`
+   transaction exists. The transaction must have at least one split, as required
+   by the feature's invariant.
+2. Select the first split by `Order` (the import/category allocation). Sanitize
+   the requested category, then set the first split amount to
+   `transaction.Amount - sum(other existing split amounts) - split.Amount`.
+   Leave its key, category, memo, and order unchanged.
+3. Create the new split with the requested amount, sanitized category, optional
+   memo, and the next order after the current last split.
+4. Persist the first-split update and new split together in a single
+   `SaveChangesAsync` call. Use the repository's concurrency approach to detect
+   competing split changes; do not commit a calculation based on stale splits.
+5. Return `ToDetailDto(transaction)` after saving. Its ordered `Splits`
    collection supplies the committed state to the page.
 
 The controller action should delegate to this feature method and return
 `Ok(result)`. It should not implement the allocation rule itself.
 
-The general-purpose add-splits operation described in
+The bulk `AddSplitsAsync` operation described in
 [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md) remains distinct:
-it appends splits and may leave a multi-split transaction unbalanced. This
-scenario's balancing behavior is specifically the one-to-two transition from a
-single existing split. General rebalancing of transactions that already have
-multiple splits belongs to the balance-warning and balancing-split workflows
-in the parent feature.
+it appends splits without reallocating the first split and may leave a
+transaction unbalanced. `AddSplitAsync` always adds exactly one split and
+rebalances by adjusting the first existing split. Editing individual splits or
+uploading a set of splits may still result in an imbalance, handled by the
+parent feature's balance-warning workflow.
 
-## Functional test
+## Functional tests
 
 ```gherkin
 Background:
     Given the application is running
     And I am logged in as a user with "Editor" role
 
-Scenario: Add a single split to an existing transaction
+Scenario: Add a single split to an existing transaction with one split
     Given I have a workspace with a transaction:
         | Payee             | Amount  | Category |
         | Maverick Markets  | -100.00 | Fuel     |
@@ -187,11 +191,28 @@ Scenario: Add a single split to an existing transaction
         | Snacks   | -10.00  | I was hungry |
     And the transaction amount remains -100.00
     And the transaction is balanced
+
+Scenario: Add a single split to an existing transaction with multiple splits
+    Given I have a workspace with a transaction for payee "Super Duper Mart" having these splits:
+        | Amount  | Category | Memo |
+        | -125.00 | Groceries     | |
+        | -50.00 | Supplies     | |
+        | -75.00 | Healthcare:Prescriptions | Can't forget my meds |
+    And I am on the transactions detail page for that transaction
+    When I add a new split with the following details:
+        | Category | Amount | Memo |
+        | Dining Out   | -25.00 | Also had dinner there |
+    Then the following splits are displayed:
+        | Amount  | Category | Memo |
+        | -100.00 | Groceries     | |
+        | -50.00 | Supplies     | |
+        | -75.00 | Healthcare:Prescriptions | Can't forget my meds |
+        | -25.00 | Dining Out | Also had dinner there |
+    And the transaction amount remains -250.00
+    And the transaction is balanced
 ```
 
 ## Related cases
 
-- Adding a split to a transaction that already has multiple splits is not
-  covered here; use the general split-management and balance-warning behavior.
 - Editing or deleting splits, adding several splits at once, reordering, and
   uploading split data are covered by other scenarios in Story 2225.
