@@ -1,6 +1,7 @@
 using DotNetNuxt.Abstractions;
 using DotNetNuxt.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
 using YoFi.V3.Entities.Models;
@@ -52,6 +53,9 @@ namespace YoFi.V3.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : StandardIdentityDbContext(options), IDataProvider, ITenantRepository
 {
+    private const string UserTenantRoleAssignmentUniqueIndexName =
+        "IX_YoFi.V3.UserTenantRoleAssignments_UserId_TenantId";
+
     #region Data
 
     public DbSet<Tenant> Tenants
@@ -280,23 +284,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .IsRequired()
                 .HasMaxLength(200);
 
-            // DateTimeOffset conversions for SQLite (stored as TEXT in ISO 8601 format)
             entity.Property(e => e.CreatedAt)
-                .IsRequired()
-                .HasConversion(
-                    v => v.ToString("O"),
-                    v => DateTimeOffset.Parse(v));
+                .IsRequired();
 
             entity.Property(e => e.ModifiedAt)
-                .IsRequired()
-                .HasConversion(
-                    v => v.ToString("O"),
-                    v => DateTimeOffset.Parse(v));
-
-            entity.Property(e => e.LastUsedAt)
-                .HasConversion(
-                    v => v.HasValue ? v.Value.ToString("O") : null,
-                    v => v != null ? DateTimeOffset.Parse(v) : null);
+                .IsRequired();
 
             // MatchCount defaults to 0
             entity.Property(e => e.MatchCount)
@@ -347,7 +339,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
             // Unique constraint: one user can have only one role per account
             entity.HasIndex(uaa => new { uaa.UserId, uaa.TenantId })
-                .IsUnique();
+                .IsUnique()
+                .HasDatabaseName(UserTenantRoleAssignmentUniqueIndexName);
 
             // Convert enum to string in database
             entity.Property(uaa => uaa.Role)
@@ -417,9 +410,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             await SaveChangesAsync();
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException ex) when (IsUserTenantRoleUniqueViolation(ex))
         {
-            // Check if this is a unique constraint violation
             // Look up tenant key from database since assignment.Tenant may not be loaded
             var tenantKey = await Tenants
                 .Where(t => t.Id == assignment.TenantId)
@@ -435,6 +427,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             throw new DuplicateUserTenantRoleException(assignment.UserId, userName, tenantKey, ex);
         }
     }
+
+    private static bool IsUserTenantRoleUniqueViolation(DbUpdateException exception)
+        => exception.GetBaseException() is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: UserTenantRoleAssignmentUniqueIndexName
+        };
 
     /// <inheritdoc />
     async Task ITenantRepository.RemoveUserTenantRoleAsync(UserTenantRoleAssignment assignment)
@@ -478,10 +477,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     async Task<IReadOnlyCollection<Tenant>> ITenantRepository.GetTenantsByNamePrefixAsync(string namePrefix)
     {
         var tenants = await Tenants
-            .Where(t => t.Name.StartsWith(namePrefix))
+            .Where(t => EF.Functions.ILike(t.Name, $"{EscapeLikePattern(namePrefix)}%", "\\"))
             .ToListAsync();
         return tenants;
     }
+
+    private static string EscapeLikePattern(string value)
+        => value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
 
     #endregion
 
