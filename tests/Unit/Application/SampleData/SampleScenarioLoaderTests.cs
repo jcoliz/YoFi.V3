@@ -31,6 +31,10 @@ public class SampleScenarioLoaderTests
         {
             Assert.That(pattern.Category, Is.EqualTo("Income:Salary"));
             Assert.That(pattern.AnnualAmount, Is.EqualTo(61678m));
+            Assert.That(pattern.Splits, Has.Length.EqualTo(12));
+            Assert.That(pattern.Splits[0].AnnualAmount, Is.EqualTo(120000m));
+            Assert.That(pattern.Splits[2].Category, Is.EqualTo("Taxes:Federal:Paycheck"));
+            Assert.That(pattern.Splits[2].AnnualAmount, Is.EqualTo(-16488m));
         }
     }
 
@@ -65,6 +69,7 @@ public class SampleScenarioLoaderTests
         {
             Assert.That(pattern.Category, Is.EqualTo("Income:Salary"));
             Assert.That(pattern.AnnualAmount, Is.EqualTo(900m));
+            Assert.That(pattern.Splits.Select(s => s.AnnualAmount), Is.EqualTo(new[] { 1200m, -300m }));
         }
     }
 

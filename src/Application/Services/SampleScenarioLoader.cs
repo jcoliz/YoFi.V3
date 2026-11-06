@@ -14,8 +14,8 @@ namespace YoFi.V3.Application.Services;
 /// registration and exposes an immutable catalog. Tomlyn 2.10.1 (BSD-2-Clause, native
 /// net10.0 target) parses TOML directly rather than through application configuration.
 /// Explicit table-to-type binding rejects unknown fields and non-string annual amounts.
-/// Split patterns are reduced to their first category and combined annual amount for the
-/// current single-category generator.
+/// Split patterns retain their ordered allocations; single-category consumers use
+/// the first category and combined annual amount.
 /// Syntax diagnostics retain source positions; semantic diagnostics identify the asset,
 /// scenario, pattern, and field.
 /// </remarks>
@@ -96,7 +96,9 @@ public sealed partial class SampleScenarioLoader
                 throw Invalid(location, "id", "Duplicate pattern ID.");
             }
 
-            var (category, annual) = ReadPatternCategoryAndAmount(pattern, location);
+            var splits = ReadPatternSplits(pattern, location);
+            var category = splits[0].Category;
+            var annual = splits.Sum(s => s.AnnualAmount);
 
             if (!pattern.TryGetValue("payees", out var rawPayees) || rawPayees is not TomlArray payees || payees.Count == 0)
             {
@@ -126,7 +128,7 @@ public sealed partial class SampleScenarioLoader
             }
             var amountJitter = ReadChoice(pattern, "amount_jitter", location, "none", "low", "moderate", "high");
             var dateJitter = ReadChoice(pattern, "date_jitter", location, "none", "low", "moderate", "high");
-            var definition = new SamplePattern(patternId, category, typedPayees.ToImmutable(), annual, frequency, repeats, amountJitter, dateJitter);
+            var definition = new SamplePattern(patternId, typedPayees.ToImmutable(), splits, frequency, repeats, amountJitter, dateJitter);
             var minimumAmount = Math.Abs(annual / definition.PeriodsPerYear / repeats) * (1 - SampleDataGenerator.JitterProportion(amountJitter));
             if (decimal.Round(minimumAmount, 2, MidpointRounding.AwayFromZero) == 0)
             {
@@ -138,7 +140,7 @@ public sealed partial class SampleScenarioLoader
         return new SampleScenario(id, revision, name, description, result.ToImmutable());
     }
 
-    private static (string Category, decimal AnnualAmount) ReadPatternCategoryAndAmount(TomlTable pattern, string context)
+    private static ImmutableArray<SamplePatternSplit> ReadPatternSplits(TomlTable pattern, string context)
     {
         var hasCategory = pattern.ContainsKey("category");
         var hasAnnualAmount = pattern.ContainsKey("annual_amount");
@@ -151,7 +153,7 @@ public sealed partial class SampleScenarioLoader
                 throw Invalid(context, "splits", "Expected a nonempty array of split tables without pattern-level category or annual_amount.");
             }
 
-            var firstCategory = string.Empty;
+            var result = ImmutableArray.CreateBuilder<SamplePatternSplit>();
             var totalAnnualAmount = 0m;
             foreach (var split in splits)
             {
@@ -159,10 +161,8 @@ public sealed partial class SampleScenarioLoader
                 var category = ReadString(split, "category", context);
                 ValidateCategory(category, context);
                 var annualAmount = ReadAnnualAmount(split, "annual_amount", context);
-                if (firstCategory.Length == 0)
-                {
-                    firstCategory = category;
-                }
+                ValidateAnnualAmount(annualAmount, context, "annual_amount");
+                result.Add(new SamplePatternSplit(category, annualAmount));
 
                 try
                 {
@@ -175,7 +175,7 @@ public sealed partial class SampleScenarioLoader
             }
 
             ValidateAnnualAmount(totalAnnualAmount, context, "splits");
-            return (firstCategory, totalAnnualAmount);
+            return result.ToImmutable();
         }
 
         if (!hasCategory || !hasAnnualAmount)
@@ -187,7 +187,7 @@ public sealed partial class SampleScenarioLoader
         ValidateCategory(singleCategory, context);
         var singleAnnualAmount = ReadAnnualAmount(pattern, "annual_amount", context);
         ValidateAnnualAmount(singleAnnualAmount, context, "annual_amount");
-        return (singleCategory, singleAnnualAmount);
+        return [new SamplePatternSplit(singleCategory, singleAnnualAmount)];
     }
 
     private static void ValidateCategory(string category, string context)

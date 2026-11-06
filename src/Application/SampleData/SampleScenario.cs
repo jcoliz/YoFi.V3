@@ -82,20 +82,14 @@ public sealed class SamplePattern
 
     /// <summary>Gets the stable pattern ID, unique within its scenario.</summary>
     public string Id { get; }
-    /// <summary>Gets the category for a normal single-split pattern.</summary>
-    /// <exception cref="InvalidOperationException">The pattern contains multiple splits.</exception>
-    public string Category => Splits.Length == 1
-        ? Splits[0].Category
-        : throw new InvalidOperationException("A multi-split pattern has no single category.");
+    /// <summary>Gets the first category for single-category consumers.</summary>
+    public string Category => Splits[0].Category;
     /// <summary>Gets merchant alternatives in deterministic-choice order.</summary>
     public ImmutableArray<string> Payees { get; }
     /// <summary>Gets category allocations in deterministic split order.</summary>
     public ImmutableArray<SamplePatternSplit> Splits { get; }
-    /// <summary>Gets the annual target for a normal single-split pattern.</summary>
-    /// <exception cref="InvalidOperationException">The pattern contains multiple splits.</exception>
-    public decimal AnnualAmount => Splits.Length == 1
-        ? Splits[0].AnnualAmount
-        : throw new InvalidOperationException("A multi-split pattern has no single annual amount.");
+    /// <summary>Gets the combined signed annual target.</summary>
+    public decimal AnnualAmount => Splits.Sum(s => s.AnnualAmount);
     /// <summary>Gets the recurrence: weekly, semi-monthly, monthly, quarterly, or yearly.</summary>
     public string Frequency { get; }
     /// <summary>Gets the number of occurrences per period; repeats divide rather than multiply the annual target.</summary>

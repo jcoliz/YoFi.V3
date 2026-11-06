@@ -52,6 +52,25 @@ public class SampleDataFeatureTests
     [TearDown]
     public void TearDown() => _cache.Dispose();
 
+    [TestCase("missing")]
+    [TestCase("empty")]
+    [TestCase("unbalanced")]
+    [TestCase("category")]
+    public async Task InvalidSampleSplits_AreRejectedBeforeStaging(string invalid)
+    {
+        var transaction = new TransactionEditDto(new(2024, 1, 1), 75m, "Employer", null, null, "sample:test", "Income");
+        ImmutableArray<SampleSplitDto> splits = invalid == "empty" ? []
+            : [new(100m, "Income"), new(invalid == "unbalanced" ? -20m : -25m, invalid == "category" ? "::" : "Taxes")];
+        var dataset = new SampleDataSet([transaction], [])
+        {
+            TransactionSplits = ImmutableDictionary<string, ImmutableArray<SampleSplitDto>>.Empty
+                .Add(invalid == "missing" ? "sample:missing" : transaction.ExternalId!, splits)
+        };
+        await Assert.ThrowsAsync<ValidationException>(() => _importer.CreateAsync(dataset));
+        Assert.That(_staged, Is.Empty);
+        _data.Verify(d => d.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     [Test]
     public void DependencyRegistration_ResolvesCatalogAndAllUseCaseDependencies()
     {
@@ -101,10 +120,10 @@ public class SampleDataFeatureTests
             Assert.That(transactions, Has.Length.EqualTo(result.Created.Transactions));
             foreach (var transaction in transactions)
             {
-                Assert.That(transaction.Splits, Has.Count.EqualTo(1));
-                Assert.That(transaction.Splits.Single().Amount, Is.EqualTo(transaction.Amount));
-                Assert.That(transaction.Splits.Single().Order, Is.Zero);
-                Assert.That(transaction.Splits.Single().Category, Is.Not.Empty);
+                Assert.That(transaction.Splits, Has.Count.EqualTo(transaction.Payee == "Megacorp Inc" ? 12 : 1));
+                Assert.That(transaction.Splits.Sum(s => s.Amount), Is.EqualTo(transaction.Amount));
+                Assert.That(transaction.Splits.Select(s => s.Order), Is.EqualTo(Enumerable.Range(0, transaction.Splits.Count)));
+                Assert.That(transaction.Splits.Select(s => s.Category), Is.All.Not.Empty);
                 Assert.That(transaction.ExternalId, Does.StartWith("sample:").And.Length.LessThanOrEqualTo(100));
             }
             Assert.That(rules, Has.Length.EqualTo(result.Created.PayeeMatchingRules));

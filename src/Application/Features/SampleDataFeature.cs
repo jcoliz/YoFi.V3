@@ -21,8 +21,9 @@ namespace YoFi.V3.Application.Features;
 /// validation applies.
 /// </para>
 /// <para>
-/// The initial Personal Finance asset uses the design's illustrative 61,678 annual net
-/// salary as one income pattern, without payroll deductions, amortization, or budgets.
+/// The Personal Finance asset models a 61,678 annual net paycheck with ordered salary,
+/// tax, benefit, and savings splits. Direct loading persists these allocations together;
+/// OFX downloads contain only net transaction amounts, not splits.
 /// Curated generation changes require a scenario revision bump so stale previews must
 /// refresh before proceeding.
 /// </para>

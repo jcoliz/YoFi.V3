@@ -43,7 +43,17 @@ public record SampleDataLoadResultDto(SampleDataRequest Inputs, SampleDataCounts
 /// <param name="Transactions">Generated transactions within the inclusive requested range.</param>
 /// <param name="Rules">Rules covering all scenario merchant alternatives, regardless of occurrences in the range.</param>
 /// <remarks>Collections are immutable, but DTO validity must still be checked before persistence.</remarks>
-public record SampleDataSet(ImmutableArray<TransactionEditDto> Transactions, ImmutableArray<PayeeMatchingRuleEditDto> Rules);
+public record SampleDataSet(ImmutableArray<TransactionEditDto> Transactions, ImmutableArray<PayeeMatchingRuleEditDto> Rules)
+{
+    /// <summary>Gets sample-only allocations keyed by transaction ExternalId; absent entries use the normal single split.</summary>
+    public ImmutableDictionary<string, ImmutableArray<SampleSplitDto>> TransactionSplits { get; init; }
+        = ImmutableDictionary<string, ImmutableArray<SampleSplitDto>>.Empty;
+}
+
+/// <summary>A generated sample allocation, in its containing collection's display order.</summary>
+/// <param name="Amount">Signed, cent-rounded allocation.</param>
+/// <param name="Category">Category to sanitize at persistence.</param>
+public record SampleSplitDto(decimal Amount, string Category);
 
 /// <summary>An OFX attachment ready for the caller to return or consume.</summary>
 /// <param name="Stream">Readable stream positioned at its beginning. The consumer owns disposal.</param>

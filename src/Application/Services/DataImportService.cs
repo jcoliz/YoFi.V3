@@ -34,7 +34,7 @@ public sealed class DataImportService(
     /// <param name="cancellationToken">Token checked before staging and passed to the save operation.</param>
     /// <returns>Created counts only after the entire save succeeds.</returns>
     /// <remarks>
-    /// Assigns fresh Keys, the current tenant, sanitized categories, default splits, and
+    /// Assigns fresh Keys, the current tenant, sanitized categories, supplied sample or default splits, and
     /// initial rule audit/usage values. This shared import path does not enforce sample
     /// generation limits. Persistence errors propagate; the caller must not reuse a failed
     /// unit of work with its still-tracked inserts.
@@ -47,7 +47,10 @@ public sealed class DataImportService(
         cancellationToken.ThrowIfCancellationRequested();
         var tenantId = tenantProvider.CurrentTenant.Id;
         var now = DateTimeOffset.UtcNow;
-        var records = dataset.Transactions.Select(t => (IModel)ImportModelFactory.Transaction(t, tenantId))
+        var records = dataset.Transactions.Select(t => (IModel)(
+                t.ExternalId != null && dataset.TransactionSplits.TryGetValue(t.ExternalId, out var splits)
+                    ? ImportModelFactory.SampleTransactionWithSplits(t, splits, tenantId)
+                    : ImportModelFactory.Transaction(t, tenantId)))
             .Concat(dataset.Rules.Select(r => ImportModelFactory.Rule(r, tenantId, now))).ToArray();
 
         // The EF IDataProvider stages AddRange and commits this entire graph in one SaveChanges transaction.
@@ -96,6 +99,40 @@ public sealed class DataImportService(
             if (!result.IsValid)
             {
                 throw new ValidationException(nameof(dataset.Transactions), result.ToString());
+            }
+        }
+        var transactionsByExternalId = dataset.TransactionSplits.Count == 0 ? null
+            : dataset.Transactions.ToLookup(t => t.ExternalId, StringComparer.Ordinal);
+        foreach (var (externalId, splits) in dataset.TransactionSplits)
+        {
+            var matches = transactionsByExternalId![externalId].ToArray();
+            if (matches.Length != 1 || splits.IsDefaultOrEmpty)
+            {
+                throw new ValidationException(nameof(dataset.TransactionSplits),
+                    "Sample allocations require one matching transaction and a nonempty split collection.");
+            }
+            foreach (var split in splits)
+            {
+                if (split == null || split.Category == null || split.Category.Length > 200
+                    || CategoryHelper.SanitizeCategory(split.Category).Length == 0
+                    || Math.Abs(split.Amount) > decimal.MaxValue / SampleDataGenerator.MaxTransactions)
+                {
+                    throw new ValidationException(nameof(dataset.TransactionSplits),
+                        "Sample split categories and amounts must satisfy transaction constraints.");
+                }
+            }
+            decimal total;
+            try
+            {
+                total = splits.Sum(s => s.Amount);
+            }
+            catch (OverflowException)
+            {
+                throw new ValidationException(nameof(dataset.TransactionSplits), "Sample split amounts exceed decimal bounds.");
+            }
+            if (total != matches[0].Amount)
+            {
+                throw new ValidationException(nameof(dataset.TransactionSplits), "Sample split amounts must equal the transaction amount.");
             }
         }
         ValidateRules(dataset.Rules, regexValidationService);

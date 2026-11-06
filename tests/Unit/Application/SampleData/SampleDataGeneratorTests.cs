@@ -15,6 +15,45 @@ public class SampleDataGeneratorTests
     private static readonly DateOnly Start = new(2024, 1, 1);
     private static readonly DateOnly End = new(2024, 12, 31);
 
+    [TestCase("none")]
+    [TestCase("high")]
+    public void MultiSplitAmounts_UseSharedJitterAndBalanceAfterCentRounding(string jitter)
+    {
+        var pattern = new SamplePattern("payroll", ["Employer"],
+            [new SamplePatternSplit("Income:Salary", 1200.05m), new SamplePatternSplit("Taxes", -300.01m)],
+            "monthly", 3, jitter, "high");
+        var scenario = new SampleScenario("payroll", 1, "Payroll", "Payroll", [pattern]);
+        var data = _generator.Generate(scenario, Start, End);
+        var again = _generator.Generate(scenario, Start, End);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(data.TransactionSplits, Has.Count.EqualTo(36));
+            foreach (var transaction in data.Transactions)
+            {
+                var splits = data.TransactionSplits[transaction.ExternalId!];
+                Assert.That(splits.Select(s => s.Category), Is.EqualTo(new[] { "Income:Salary", "Taxes" }));
+                Assert.That(splits.Sum(s => s.Amount), Is.EqualTo(transaction.Amount));
+                Assert.That(splits[0].Amount, Is.Positive);
+                Assert.That(splits[1].Amount, Is.Negative);
+                Assert.That(splits[0].Amount + 4 * splits[1].Amount, Is.InRange(-.05m, .05m));
+                Assert.That(splits, Is.EqualTo(again.TransactionSplits[transaction.ExternalId!]));
+            }
+        }
+    }
+
+    [Test]
+    public void SplitEditsWithUnchangedNet_ChangeFingerprintAndOccurrenceIds()
+    {
+        var pattern = new SamplePattern("payroll", ["Employer"],
+            [new SamplePatternSplit("Income", 1200m), new SamplePatternSplit("Taxes", -300m)],
+            "monthly", 1, "none", "none");
+        var edited = new SamplePattern(pattern.Id, pattern.Payees,
+            [new SamplePatternSplit("Income", 1300m), new SamplePatternSplit("Taxes", -400m)],
+            pattern.Frequency, pattern.Repeats, pattern.AmountJitter, pattern.DateJitter);
+        Assert.That(edited.AnnualAmount, Is.EqualTo(pattern.AnnualAmount));
+        Assert.That(SampleDataGenerator.Fingerprint(edited), Is.Not.EqualTo(SampleDataGenerator.Fingerprint(pattern)));
+    }
+
     [TestCase("weekly", 52)]
     [TestCase("semi-monthly", 24)]
     [TestCase("monthly", 12)]

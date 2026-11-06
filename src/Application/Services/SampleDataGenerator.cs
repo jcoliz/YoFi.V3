@@ -28,11 +28,14 @@ namespace YoFi.V3.Application.Services;
 /// Jitter proportions are none=0%, low=10%, moderate=40%, high=90%.
 /// Amount jitter is symmetric about the base amount; cent rounding uses midpoint
 /// away from zero. Annual totals are targets, not reconciled balances.
+/// Multi-split amounts share the transaction's jitter factor. Any cent-rounding residual
+/// is assigned to the first split so allocations sum exactly to the rounded net amount.
 /// </para>
 /// <para>
 /// Fingerprints use SHA-256 over ordered UTF-8 fields, each prefixed by its four-byte
 /// little-endian byte length: pattern ID, category, merchant count, merchant alternatives
 /// in order, invariant G29 decimal, frequency, invariant repeats, amount jitter, date jitter.
+/// Multi-split patterns append "splits", the split count, and ordered category/G29 amount pairs.
 /// Occurrence keys hash fingerprint/year/zero-based period/repeat with the same encoding.
 /// Choice hashes add purpose (date, amount, payee); the first eight bytes form a big-endian
 /// unsigned integer, mapped by modulo for dates/payees or divided by UInt64.MaxValue for
@@ -80,6 +83,7 @@ public sealed class SampleDataGenerator
         }
 
         var transactions = ImmutableArray.CreateBuilder<TransactionEditDto>(count);
+        var transactionSplits = ImmutableDictionary.CreateBuilder<string, ImmutableArray<SampleSplitDto>>();
         foreach (var (pattern, fingerprint) in definitions)
         {
             foreach (var (year, period, repeat, date) in Occurrences(pattern, fingerprint, start, end))
@@ -94,6 +98,15 @@ public sealed class SampleDataGenerator
                 }
                 var payee = pattern.Payees[(int)(Choice(key, "payee") % (ulong)pattern.Payees.Length)];
                 var externalId = "sample:" + Hash(Canonical(scenario.Id, key));
+                if (pattern.Splits.Length > 1)
+                {
+                    var splits = pattern.Splits.Select(s => new SampleSplitDto(
+                        decimal.Round(s.AnnualAmount / pattern.PeriodsPerYear / pattern.Repeats * factor,
+                            2, MidpointRounding.AwayFromZero), s.Category)).ToImmutableArray();
+                    // Keep the net transaction amount authoritative; put the cent-rounding residual on the first split.
+                    splits = splits.SetItem(0, splits[0] with { Amount = splits[0].Amount + amount - splits.Sum(s => s.Amount) });
+                    transactionSplits.Add(externalId, splits);
+                }
                 transactions.Add(new TransactionEditDto(date, amount, payee, null, Source, externalId, pattern.Category));
             }
         }
@@ -102,7 +115,10 @@ public sealed class SampleDataGenerator
                 new PayeeMatchingRuleEditDto(payee, false, p.Category)))
             .DistinctBy(r => (r.PayeePattern.ToUpperInvariant(), CategoryHelper.SanitizeCategory(r.Category)))
             .OrderBy(r => r.PayeePattern, StringComparer.Ordinal).ToImmutableArray();
-        return new SampleDataSet(transactions.OrderBy(t => t.Date).ThenBy(t => t.ExternalId, StringComparer.Ordinal).ToImmutableArray(), rules);
+        return new SampleDataSet(transactions.OrderBy(t => t.Date).ThenBy(t => t.ExternalId, StringComparer.Ordinal).ToImmutableArray(), rules)
+        {
+            TransactionSplits = transactionSplits.ToImmutable()
+        };
     }
 
     /// <summary>Checks explicit ordered dates and the one-rolling-calendar-year generation limit.</summary>
@@ -139,10 +155,23 @@ public sealed class SampleDataGenerator
     /// <param name="pattern">Validated pattern whose merchant ordering is preserved.</param>
     /// <returns>A lowercase SHA-256 hexadecimal fingerprint, excluding scenario metadata and revision.</returns>
     internal static string Fingerprint(SamplePattern pattern)
-        => Hash(Canonical(
+    {
+        var fields = new List<string>(
             [pattern.Id, pattern.Category, pattern.Payees.Length.ToString(CultureInfo.InvariantCulture),
             .. pattern.Payees, pattern.AnnualAmount.ToString("G29", CultureInfo.InvariantCulture),
-            pattern.Frequency, pattern.Repeats.ToString(CultureInfo.InvariantCulture), pattern.AmountJitter, pattern.DateJitter]));
+            pattern.Frequency, pattern.Repeats.ToString(CultureInfo.InvariantCulture), pattern.AmountJitter, pattern.DateJitter]);
+        if (pattern.Splits.Length > 1)
+        {
+            fields.Add("splits");
+            fields.Add(pattern.Splits.Length.ToString(CultureInfo.InvariantCulture));
+            foreach (var split in pattern.Splits)
+            {
+                fields.Add(split.Category);
+                fields.Add(split.AnnualAmount.ToString("G29", CultureInfo.InvariantCulture));
+            }
+        }
+        return Hash(Canonical([.. fields]));
+    }
 
     private static IEnumerable<(int Year, int Period, int Repeat, DateOnly Date)> Occurrences(
         SamplePattern pattern, string fingerprint, DateOnly start, DateOnly end)

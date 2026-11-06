@@ -36,6 +36,28 @@ internal static class ImportModelFactory
         return transaction;
     }
 
+    /// <summary>Constructs a sample transaction with its complete, previously validated allocations.</summary>
+    /// <param name="input">Validated transaction input.</param>
+    /// <param name="splits">Nonempty ordered allocations whose sum equals the transaction amount.</param>
+    /// <param name="tenantId">Authorized tenant's internal database ID.</param>
+    /// <returns>An untracked transaction graph for the sample import's atomic save.</returns>
+    internal static Transaction SampleTransactionWithSplits(
+        TransactionEditDto input, IReadOnlyList<SampleSplitDto> splits, long tenantId)
+    {
+        var transaction = Transaction(input, tenantId);
+        transaction.Splits.Clear();
+        for (var order = 0; order < splits.Count; order++)
+        {
+            transaction.Splits.Add(new Split
+            {
+                Amount = splits[order].Amount,
+                Category = CategoryHelper.SanitizeCategory(splits[order].Category),
+                Order = order
+            });
+        }
+        return transaction;
+    }
+
     /// <summary>Constructs a rule with sanitized category, common audit time, and unused usage state.</summary>
     /// <param name="input">Validated matching-rule input.</param>
     /// <param name="tenantId">Authorized tenant's internal database ID.</param>
