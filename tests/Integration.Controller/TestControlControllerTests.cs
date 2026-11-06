@@ -155,6 +155,58 @@ public class TestControlControllerTests
         Assert.That(await response.Content.ReadFromJsonAsync<List<PayeeMatchingRuleResultDto>>(), Is.Empty);
     }
 
+    [Test]
+    public async Task SeedTransactionWithSplits_CreatesTransactionWithOrderedAllocations()
+    {
+        using var factory = new BaseTestWebApplicationFactory();
+        var (username, tenantKey) = await CreateSeedWorkspaceAsync(factory);
+        using var client = CreateControlClient(factory);
+        var path = $"/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits";
+        var request = new
+        {
+            Payee = "Super Duper Mart",
+            Splits = new[]
+            {
+                new SplitEditDto(-125m, "Groceries", "First memo"),
+                new SplitEditDto(-50m, "Supplies", null),
+                new SplitEditDto(-75m, "Healthcare:Prescriptions", "Medication"),
+                new SplitEditDto(-10m, null, null)
+            }
+        };
+
+        using var response = await client.PostAsJsonAsync(path, request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        Assert.That(response.Headers.Location?.AbsolutePath, Is.EqualTo(path));
+        var transaction = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(transaction, Is.Not.Null);
+        Assert.That(transaction!.Payee, Is.EqualTo("Super Duper Mart"));
+        Assert.That(transaction.Amount, Is.EqualTo(-260m));
+        Assert.That(transaction.Splits.Select(split => (split.Order, split.Amount, split.Category, split.Memo)),
+            Is.EqualTo(new[]
+            {
+                (0, -125m, "Groceries", "First memo"),
+                (1, -50m, "Supplies", (string?)null),
+                (2, -75m, "Healthcare:Prescriptions", "Medication"),
+                (3, -10m, "", (string?)null)
+            }));
+        Assert.That(transaction.Splits.Sum(split => split.Amount), Is.EqualTo(transaction.Amount));
+    }
+
+    [Test]
+    public async Task SeedTransactionWithSplits_EmptySplits_ReturnsBadRequest()
+    {
+        using var factory = new BaseTestWebApplicationFactory();
+        var (username, tenantKey) = await CreateSeedWorkspaceAsync(factory);
+        using var client = CreateControlClient(factory);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits",
+            new { Payee = "Super Duper Mart", Splits = Array.Empty<object>() });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
     [TestCase("regular-user", "__TEST__workspace", true)]
     [TestCase("__TEST__user", "regular-workspace", true)]
     [TestCase("__TEST__user", "__TEST__workspace", false)]

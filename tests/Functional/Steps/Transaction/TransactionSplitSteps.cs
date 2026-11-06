@@ -13,22 +13,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(context)
 {
     /// <summary>
-    /// Given I have a workspace with a transaction for payee {string1} having these splits:
-    /// </summary>
-    [Given("I have a workspace with a transaction for payee {string1} having these splits:")]
-    [Requires(ObjectStoreKeys.LoggedInAs)]
-    [Requires(ObjectStoreKeys.CurrentWorkspace)]
-    [Provides(ObjectStoreKeys.TransactionPayee)]
-    [Provides(ObjectStoreKeys.TransactionAmount)]
-    [Provides(ObjectStoreKeys.TransactionCategory)]
-    [Provides(ObjectStoreKeys.TransactionMemo)]
-    [Provides(ObjectStoreKeys.TransactionKey)]
-    public async Task IHaveAWorkspaceWithATransactionForPayeeHavingTheseSplits(string string1, DataTable table)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
     /// When I add a new split with the following details:
     /// </summary>
     /// <remarks>

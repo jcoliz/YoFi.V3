@@ -682,6 +682,113 @@
         }
       }
     },
+    "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits": {
+      "post": {
+        "tags": [
+          "TestControl"
+        ],
+        "summary": "Seed one transaction with its ordered splits in a workspace for a user.",
+        "operationId": "TestControl_SeedTransactionWithSplits",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "description": "The username (must include __TEST__ prefix) of the user.",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "tenantKey",
+            "in": "path",
+            "required": true,
+            "description": "The unique key of the workspace.",
+            "schema": {
+              "type": "string",
+              "format": "guid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "description": "The transaction payee and split allocations.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionSplitsSeedRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 3
+        },
+        "responses": {
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The created transaction including its ordered splits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/TestControl/users/{username}/workspaces/{tenantKey}/payee-rules/seed": {
       "post": {
         "tags": [
@@ -1517,6 +1624,109 @@
             "nullable": true
           },
           "category": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TransactionDetailDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "guid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "payee": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string"
+          },
+          "splits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionSplitDto"
+            }
+          }
+        }
+      },
+      "TransactionSplitDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "format": "guid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "category": {
+            "type": "string"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TransactionSplitsSeedRequest": {
+        "type": "object",
+        "description": "Request to seed one transaction with its ordered splits.",
+        "additionalProperties": false,
+        "properties": {
+          "payee": {
+            "type": "string",
+            "description": "The transaction payee."
+          },
+          "splits": {
+            "type": "array",
+            "description": "The ordered split allocations to create.",
+            "items": {
+              "$ref": "#/components/schemas/SplitEditDto"
+            }
+          }
+        }
+      },
+      "SplitEditDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "decimal"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "memo": {
             "type": "string",
             "nullable": true
           }

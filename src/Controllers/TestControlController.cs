@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Collections.Immutable;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +14,8 @@ using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Application.Tenancy.Features;
+using YoFi.V3.Application.Services;
+using YoFi.V3.Application.Validation;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
 
@@ -62,6 +66,38 @@ public record TransactionSeedRequest(
 );
 
 /// <summary>
+/// Request to seed one transaction with its ordered splits.
+/// </summary>
+/// <param name="Payee">The transaction payee.</param>
+/// <param name="Splits">The ordered split allocations to create.</param>
+public record TransactionSplitsSeedRequest(string Payee, IReadOnlyCollection<SplitEditDto> Splits);
+
+/// <summary>
+/// Validates a test transaction and its requested split allocations.
+/// </summary>
+internal sealed class TransactionSplitsSeedRequestValidator : AbstractValidator<TransactionSplitsSeedRequest>
+{
+    public TransactionSplitsSeedRequestValidator()
+    {
+        RuleFor(request => request.Payee)
+            .NotEmpty()
+            .Must(payee => !string.IsNullOrWhiteSpace(payee))
+            .WithMessage("Payee cannot be empty")
+            .MaximumLength(200);
+
+        RuleFor(request => request.Splits)
+            .NotEmpty()
+            .WithMessage("At least one split is required")
+            .Must(splits => splits.Sum(split => split.Amount) != 0)
+            .When(request => request.Splits is { Count: > 0 }, ApplyConditionTo.CurrentValidator)
+            .WithMessage("The transaction amount cannot be zero");
+
+        RuleForEach(request => request.Splits)
+            .SetValidator(new SplitEditDtoValidator());
+    }
+}
+
+/// <summary>
 /// Request for setting up a workspace with a specific role.
 /// </summary>
 /// <param name="Name">The name of the workspace.</param>
@@ -109,6 +145,7 @@ public record ErrorCodeInfo(string Code, string Description);
 /// <item><description>Create workspaces for test users with specified roles</description></item>
 /// <item><description>Assign users to existing workspaces</description></item>
 /// <item><description>Seed transactions in workspaces</description></item>
+/// <item><description>Seed a transaction with ordered splits</description></item>
 /// <item><description>Seed payee matching rules in workspaces</description></item>
 /// <item><description>Bulk workspace setup</description></item>
 /// </list>
@@ -705,6 +742,71 @@ public partial class TestControlController(
 
         LogOkCount(createdTransactions.Count);
         return CreatedAtAction(nameof(SeedTransactionsPrecise), new { username, tenantKey }, createdTransactions);
+    }
+
+    /// <summary>
+    /// Seed one transaction with its ordered splits in a workspace for a user.
+    /// </summary>
+    /// <param name="username">The username (must include __TEST__ prefix) of the user.</param>
+    /// <param name="tenantKey">The unique key of the workspace.</param>
+    /// <param name="request">The transaction payee and split allocations.</param>
+    /// <param name="transactionsFeature">Feature providing transaction operations.</param>
+    /// <param name="dataImportService">Service that atomically imports the transaction and its splits.</param>
+    /// <returns>The created transaction including its ordered splits.</returns>
+    [HttpPost("users/{username}/workspaces/{tenantKey:guid}/transactions/seed-with-splits")]
+    [Authorize("AllowAnonymousTenantAccess")]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SeedTransactionWithSplits(
+        string username,
+        Guid tenantKey,
+        [FromBody] TransactionSplitsSeedRequest request,
+        [FromServices] TransactionsFeature transactionsFeature,
+        [FromServices] DataImportService dataImportService)
+    {
+        LogStarting();
+
+        var validationResult = await ValidateUserWorkspaceAccessAsync(username, tenantKey);
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        var splitList = request.Splits.ToList();
+        var transactionAmount = splitList.Sum(split => split.Amount);
+        var externalId = $"test-control:{Guid.NewGuid():N}";
+        var transactionInput = new TransactionEditDto(
+            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Amount: transactionAmount,
+            Payee: request.Payee,
+            Memo: null,
+            Source: null,
+            ExternalId: externalId,
+            Category: splitList[0].Category
+        );
+        var dataset = new SampleDataSet(
+            [transactionInput],
+            [])
+        {
+            TransactionSplits = ImmutableDictionary<string, ImmutableArray<SampleSplitDto>>.Empty
+                .Add(externalId, splitList
+                    .Select(split => new SampleSplitDto(
+                        split.Amount,
+                        split.Category ?? string.Empty,
+                        split.Memo))
+                    .ToImmutableArray())
+        };
+        var createdKeys = await dataImportService.CreateAndGetTransactionKeysAsync(dataset);
+        var transaction = await transactionsFeature.GetTransactionByKeyAsync(createdKeys.Single());
+
+        LogOkKey(transaction.Key);
+        return CreatedAtAction(
+            nameof(SeedTransactionWithSplits),
+            new { username, tenantKey },
+            transaction);
     }
 
     /// <summary>

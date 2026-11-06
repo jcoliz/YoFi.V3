@@ -31,6 +31,7 @@ public static class ServiceCollectionExtensions
 
         // Register FluentValidation validators from Application assembly
         services.AddValidatorsFromAssemblyContaining<TransactionEditDtoValidator>();
+        services.AddTransient<IValidator<TransactionSplitsSeedRequest>, TransactionSplitsSeedRequestValidator>();
 
         // Explicitly register generic CollectionRequestValidator for commonly used types
         // (Generic validators may not be auto-discovered by AddValidatorsFromAssemblyContaining)

@@ -53,7 +53,8 @@ public record SampleDataSet(ImmutableArray<TransactionEditDto> Transactions, Imm
 /// <summary>A generated sample allocation, in its containing collection's display order.</summary>
 /// <param name="Amount">Signed, cent-rounded allocation.</param>
 /// <param name="Category">Category to sanitize at persistence.</param>
-public record SampleSplitDto(decimal Amount, string Category);
+/// <param name="Memo">Optional split-specific memo.</param>
+public record SampleSplitDto(decimal Amount, string Category, string? Memo = null);
 
 /// <summary>An OFX attachment ready for the caller to return or consume.</summary>
 /// <param name="Stream">Readable stream positioned at its beginning. The consumer owns disposal.</param>

@@ -3637,6 +3637,92 @@ export class TestControlClient {
     }
 
     /**
+     * Seed one transaction with its ordered splits in a workspace for a user.
+     * @param username The username (must include __TEST__ prefix) of the user.
+     * @param tenantKey The unique key of the workspace.
+     * @param request The transaction payee and split allocations.
+     * @return The created transaction including its ordered splits.
+     */
+    seedTransactionWithSplits(username: string, tenantKey: string, request: TransactionSplitsSeedRequest): Promise<TransactionDetailDto> {
+        let url_ = this.baseUrl + "/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits";
+        if (username === undefined || username === null)
+            throw new globalThis.Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSeedTransactionWithSplits(_response);
+        });
+    }
+
+    protected processSeedTransactionWithSplits(response: Response): Promise<TransactionDetailDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = TransactionDetailDto.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TransactionDetailDto>(null as any);
+    }
+
+    /**
      * Seed payee matching rules in a workspace for a user.
      * @param username The username (must include __TEST__ prefix) of the user.
      * @param tenantKey The unique key of the workspace.
@@ -7125,6 +7211,60 @@ export class CollectionRequestOfTransactionEditDto implements ICollectionRequest
 
 export interface ICollectionRequestOfTransactionEditDto {
     items?: TransactionEditDto[];
+}
+
+/** Request to seed one transaction with its ordered splits. */
+export class TransactionSplitsSeedRequest implements ITransactionSplitsSeedRequest {
+    /** The transaction payee. */
+    payee?: string;
+    /** The ordered split allocations to create. */
+    splits?: SplitEditDto[];
+
+    constructor(data?: ITransactionSplitsSeedRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.payee = _data["payee"];
+            if (Array.isArray(_data["splits"])) {
+                this.splits = [] as any;
+                for (let item of _data["splits"])
+                    this.splits!.push(SplitEditDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): TransactionSplitsSeedRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new TransactionSplitsSeedRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["payee"] = this.payee;
+        if (Array.isArray(this.splits)) {
+            data["splits"] = [];
+            for (let item of this.splits)
+                data["splits"].push(item ? item.toJSON() : undefined as any);
+        }
+        return data;
+    }
+}
+
+/** Request to seed one transaction with its ordered splits. */
+export interface ITransactionSplitsSeedRequest {
+    /** The transaction payee. */
+    payee?: string;
+    /** The ordered split allocations to create. */
+    splits?: SplitEditDto[];
 }
 
 export class CollectionRequestOfPayeeMatchingRuleEditDto implements ICollectionRequestOfPayeeMatchingRuleEditDto {

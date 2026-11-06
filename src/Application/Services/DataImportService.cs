@@ -5,6 +5,7 @@ using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Validation;
 using YoFi.V3.Entities.Exceptions;
+using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
 namespace YoFi.V3.Application.Services;
@@ -43,21 +44,43 @@ public sealed class DataImportService(
     /// <exception cref="OperationCanceledException">Cancellation is observed before staging or during persistence.</exception>
     public async Task<SampleDataCounts> CreateAsync(SampleDataSet dataset, CancellationToken cancellationToken = default)
     {
+        await CreateRecordsAsync(dataset, cancellationToken);
+        return new SampleDataCounts(dataset.Transactions.Length, dataset.Rules.Length);
+    }
+
+    /// <summary>Creates a dataset and returns the keys assigned to its transactions.</summary>
+    /// <param name="dataset">Key-free, tenant-free inputs with initialized immutable collections.</param>
+    /// <param name="cancellationToken">Token checked before staging and passed to the save operation.</param>
+    /// <returns>The keys assigned to the committed transactions.</returns>
+    public async Task<IReadOnlyCollection<Guid>> CreateAndGetTransactionKeysAsync(
+        SampleDataSet dataset,
+        CancellationToken cancellationToken = default)
+    {
+        var transactions = await CreateRecordsAsync(dataset, cancellationToken);
+        return transactions.Select(transaction => transaction.Key).ToArray();
+    }
+
+    private async Task<IReadOnlyCollection<Transaction>> CreateRecordsAsync(
+        SampleDataSet dataset,
+        CancellationToken cancellationToken)
+    {
         Validate(dataset, regexValidationService);
         cancellationToken.ThrowIfCancellationRequested();
         var tenantId = tenantProvider.CurrentTenant.Id;
         var now = DateTimeOffset.UtcNow;
-        var records = dataset.Transactions.Select(t => (IModel)(
+        var transactions = dataset.Transactions.Select(t =>
                 t.ExternalId != null && dataset.TransactionSplits.TryGetValue(t.ExternalId, out var splits)
                     ? ImportModelFactory.SampleTransactionWithSplits(t, splits, tenantId)
-                    : ImportModelFactory.Transaction(t, tenantId)))
+                    : ImportModelFactory.Transaction(t, tenantId))
+            .ToArray();
+        var records = transactions.Cast<IModel>()
             .Concat(dataset.Rules.Select(r => ImportModelFactory.Rule(r, tenantId, now))).ToArray();
 
         // The EF IDataProvider stages AddRange and commits this entire graph in one SaveChanges transaction.
         dataProvider.AddRange(records);
         await dataProvider.SaveChangesAsync(cancellationToken);
         memoryCache.Remove(PayeeMatchingRuleFeature.CacheKey(tenantId));
-        return new SampleDataCounts(dataset.Transactions.Length, dataset.Rules.Length);
+        return transactions;
     }
 
     /// <summary>Validates and creates payee matching rules without updating or deduplicating existing rules.</summary>
@@ -114,7 +137,9 @@ public sealed class DataImportService(
             foreach (var split in splits)
             {
                 if (split == null || split.Category == null || split.Category.Length > 200
-                    || CategoryHelper.SanitizeCategory(split.Category).Length == 0
+                    || split.Memo is { Length: > 500 }
+                    || (!string.IsNullOrWhiteSpace(split.Category)
+                        && CategoryHelper.SanitizeCategory(split.Category).Length == 0)
                     || Math.Abs(split.Amount) > decimal.MaxValue / SampleDataGenerator.MaxTransactions)
                 {
                     throw new ValidationException(nameof(dataset.TransactionSplits),

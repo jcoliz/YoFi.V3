@@ -175,6 +175,62 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     }
 
     /// <summary>
+    /// Given I have a workspace with a transaction for payee {string1} having these splits:
+    /// </summary>
+    /// <remarks>
+    /// DataTable contains columns for Category, Amount, and Memo for each split.
+    /// Transaction Amount is set to be the sum of the split amounts.
+    /// </remarks>
+    [Given("I have a workspace with a transaction for payee {string1} having these splits:")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
+    public async Task IHaveAWorkspaceWithATransactionForPayeeHavingTheseSplits(string string1, DataTable table)
+    {
+        var splits = table.Rows.Select(row => new SplitEditDto
+        {
+            Amount = decimal.Parse(row["Amount"], CultureInfo.InvariantCulture),
+            Category = row.TryGetValue("Category", out var category) ? category : string.Empty,
+            Memo = row.TryGetValue("Memo", out var memo) ? memo : null
+        }).ToArray();
+
+        Assert.That(splits, Is.Not.Empty, "At least one split row is required.");
+
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceKey = _context.GetWorkspaceKey(workspaceName);
+        var loggedInUser = _context.ObjectStore.Get<string>(ObjectStoreKeys.LoggedInAs);
+
+        TransactionDetailDto? seededTransaction = null;
+        try
+        {
+            seededTransaction = await _context.TestControlClient.TestControl_SeedTransactionWithSplitsAsync(
+                loggedInUser,
+                workspaceKey,
+                new TransactionSplitsSeedRequest
+                {
+                    Payee = string1,
+                    Splits = splits
+                });
+        }
+        catch (ApiException<ProblemDetails> ex)
+        {
+            Assert.Fail("Failed to seed transaction with splits via Test Control API: " + ex.Result.Detail);
+        }
+
+        Assert.That(seededTransaction, Is.Not.Null, "Test Control API did not return the seeded transaction.");
+
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionPayee, seededTransaction!.Payee);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionAmount, seededTransaction.Amount.ToString("F2", CultureInfo.InvariantCulture));
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, seededTransaction.Category);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionMemo, seededTransaction.Memo ?? string.Empty);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, seededTransaction.Key.ToString());
+    }
+
+    /// <summary>
     /// Sets up a logged-in user with Editor role, creates a transaction, and navigates to its details page.
     /// </summary>
     /// <param name="transactionTable">DataTable with Payee (required), and optional Amount, Memo, Source, ExternalId, Category.</param>

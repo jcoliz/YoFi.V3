@@ -52,6 +52,7 @@ internal static class ImportModelFactory
             {
                 Amount = splits[order].Amount,
                 Category = CategoryHelper.SanitizeCategory(splits[order].Category),
+                Memo = splits[order].Memo,
                 Order = order
             });
         }

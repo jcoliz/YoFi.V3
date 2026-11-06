@@ -36,6 +36,21 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.WaitForLoadingCompleteAsync();
     }
 
+    /// <summary>
+    /// Given I am on the transactions detail page for that transaction
+    /// </summary>
+    [Given("I am on the transactions detail page for that transaction")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task IAmOnTheTransactionsDetailPageForThatTransaction()
+    {
+        await IAmOnTheTransactionsPage();
+        await WhenIClickOnTheTransactionRow();
+
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.WaitForPageReadyAsync();
+    }
+
     #endregion
 
     #region Steps: WHEN

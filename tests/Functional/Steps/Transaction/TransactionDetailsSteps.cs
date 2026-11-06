@@ -16,23 +16,6 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// </remarks>
 public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBase(context)
 {
-
-    #region Steps: GIVEN
-
-    /// <summary>
-    /// Given I am on the transactions detail page for that transaction
-    /// </summary>
-    [Given("I am on the transactions detail page for that transaction")]
-    [Requires(ObjectStoreKeys.TransactionKey)]
-    public async Task IAmOnTheTransactionsDetailPageForThatTransaction()
-    {
-        var transactionKey = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionKey);
-        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
-        await detailsPage.NavigateAsync(transactionKey);
-    }
-
-    #endregion
-
     #region Steps: WHEN
 
     /// <summary>
