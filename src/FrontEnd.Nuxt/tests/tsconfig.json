@@ -1,0 +1,23 @@
+{
+  // TypeScript configuration for frontend component tests.
+  // This file provides path alias resolution for the IDE when editing test files.
+  // Vitest resolves aliases via vitest.config.ts; this file is for IDE IntelliSense only.
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM"],
+    "types": ["vitest/globals"],
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "~/*": ["../app/*"],
+      "@/*": ["../app/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": [
+    "./**/*.ts"
+  ]
+}

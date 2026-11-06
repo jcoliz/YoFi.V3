@@ -16,6 +16,7 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import EditModal from '~/components/transaction/EditModal.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import type { TransactionResultDto } from '~/utils/apiclient'
 
 // useUserPreferencesStore is explicitly imported in EditModal from this path.
 vi.mock('~/stores/userPreferences', () => ({
@@ -68,7 +69,7 @@ describe('transaction/EditModal – split category protection', () => {
     useApiClientMock.mockReturnValue({ quickEditTransaction })
     vi.mocked(useUserPreferencesStore).mockReturnValue({
       getCurrentTenantKey: 'workspace',
-    } as ReturnType<typeof useUserPreferencesStore>)
+    } as unknown as ReturnType<typeof useUserPreferencesStore>)
   })
 
   it('disables the category field when the transaction has multiple splits', () => {
@@ -76,7 +77,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: true },
+        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: true } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })
@@ -91,7 +92,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: false },
+        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: false } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })
@@ -106,7 +107,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', hasMultipleSplits: true },
+        transaction: { key: 'tx', payee: 'Store', hasMultipleSplits: true } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })
@@ -121,7 +122,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', hasMultipleSplits: false },
+        transaction: { key: 'tx', payee: 'Store', hasMultipleSplits: false } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })
@@ -136,7 +137,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: true },
+        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: true } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })
@@ -158,7 +159,7 @@ describe('transaction/EditModal – split category protection', () => {
     const wrapper = mount(EditModal, {
       props: {
         show: true,
-        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: false },
+        transaction: { key: 'tx', payee: 'Store', category: 'Food', hasMultipleSplits: false } as unknown as TransactionResultDto,
       },
       global: globalConfig,
     })

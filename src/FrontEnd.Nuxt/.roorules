@@ -100,12 +100,14 @@ Frontend component tests use **Vitest** with **@vue/test-utils** and **happy-dom
 ### What to Test (and What NOT to Test)
 
 ✅ **DO write component tests for:**
+
 - Pure utility functions (date formatting, calculations, transformations)
 - Component behavioral logic (conditional rendering based on props/state)
 - Store interactions (does clicking X call the right store method?)
 - Role-based visibility (does the manage link appear only for owners?)
 
 ❌ **NEVER write component tests for:**
+
 - **Page-level navigation** — pages use `useAuth`, `useAuthenticationGuard`, `definePageMeta`, `onBeforeRouteLeave`, `onBeforeRouteUpdate` which cannot be meaningfully mocked. Write functional tests instead.
 - **HTML structure / CSS classes** — these break with every layout change and provide no value. Never assert on class names like `mb-0`, `btn-primary`, etc.
 - **Visual appearance** — use visual review and functional tests
@@ -233,6 +235,7 @@ npm run test:components:watch  # Watch mode during development
 ```
 
 Or via the project script:
+
 ```powershell
 pwsh -File ./scripts/Run-Tests.ps1 -FrontEnd
 ```
@@ -240,6 +243,7 @@ pwsh -File ./scripts/Run-Tests.ps1 -FrontEnd
 ### Reference Examples
 
 See these files for complete working examples:
+
 - [`tests/error-display.test.ts`](tests/error-display.test.ts) — `vi.stubGlobal` for auto-imported composable
 - [`tests/workspace-delete-modal.test.ts`](tests/workspace-delete-modal.test.ts) — `vi.mock` for Pinia store + `ModalDialog` stub
 - [`tests/workspace-selector.test.ts`](tests/workspace-selector.test.ts) — `NuxtLink` stub + `TenantRole` enum usage
@@ -251,6 +255,7 @@ See these files for complete working examples:
 ### Data Test IDs for Functional Tests
 
 **ALWAYS** add `data-test-id` attributes to elements that:
+
 - Users interact with (buttons, links, inputs, form fields)
 - Display important state or data (error messages, success messages, loading indicators, headings)
 - Are used in automated functional tests
@@ -348,6 +353,7 @@ onMounted(() => {
 - **NEVER** rely on button text for test locators - use stable `data-test-id` instead
 
 **Benefits:**
+
 - ✅ Tests detect loading state via `.IsDisabledAsync()` on the button
 - ✅ Button text can change without breaking tests
 - ✅ Supports internationalization (text in any language)
@@ -418,6 +424,7 @@ TypeScript code uses **JSDoc** (not Javadoc) for documentation. JSDoc uses `/** 
 #### What to Document
 
 **ALWAYS document:**
+
 - Component-level overview (at the top of `<script setup>`)
 - Interfaces (Props, Emits, custom types)
 - Reactive references and composables
@@ -429,6 +436,7 @@ TypeScript code uses **JSDoc** (not Javadoc) for documentation. JSDoc uses `/** 
 #### JSDoc Tags
 
 Common tags to use:
+
 - `@param` - Document function parameters
 - `@returns` / `@return` - Document return values
 - `@throws` - Document exceptions (rare in Vue/TypeScript)
@@ -446,6 +454,7 @@ Common tags to use:
 #### Examples
 
 **Component overview:**
+
 ```vue
 <script setup lang="ts">
 /**
@@ -456,6 +465,7 @@ Common tags to use:
 ```
 
 **Props interface:**
+
 ```typescript
 /**
  * Component props for PayeeRuleDialog.
@@ -476,6 +486,7 @@ interface Props {
 ```
 
 **Emits:**
+
 ```typescript
 /**
  * Component events emitted by PayeeRuleDialog.
@@ -493,6 +504,7 @@ const emit = defineEmits<{
 ```
 
 **Reactive references:**
+
 ```typescript
 /**
  * List of payee matching rules loaded from the API.
@@ -511,6 +523,7 @@ const userPreferencesStore = useUserPreferencesStore()
 ```
 
 **Functions:**
+
 ```typescript
 /**
  * Creates a new payee matching rule.
@@ -534,6 +547,7 @@ function getRoleName(role: TenantRole | undefined): string {
 ```
 
 **Computed properties:**
+
 ```typescript
 /**
  * Whether the current user has permission to edit rules.
@@ -554,6 +568,7 @@ const totalCount = computed(() => paginationMetadata.value?.totalCount || 0)
 ```
 
 **Watchers:**
+
 ```typescript
 /**
  * Watch for workspace changes and reload rules.
@@ -565,6 +580,7 @@ watch(currentTenantKey, async (newKey) => {
 ```
 
 **Lifecycle hooks:**
+
 ```typescript
 /**
  * Load user preferences and initial rules on component mount.
@@ -587,6 +603,7 @@ onMounted(async () => {
 #### Reference Examples
 
 See these files for comprehensive JSDoc documentation examples:
+
 - [`src/FrontEnd.Nuxt/app/components/PayeeRuleDialog.vue`](app/components/PayeeRuleDialog.vue)
 - [`src/FrontEnd.Nuxt/app/components/WorkspaceSelector.vue`](app/components/WorkspaceSelector.vue)
 - [`src/FrontEnd.Nuxt/app/pages/payee-rules/index.vue`](app/pages/payee-rules/index.vue)

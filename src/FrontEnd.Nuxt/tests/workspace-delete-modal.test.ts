@@ -14,6 +14,7 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import DeleteModal from '~/components/workspace/DeleteModal.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import type { TenantRoleResultDto } from '~/utils/apiclient'
 
 // useUserPreferencesStore is explicitly imported in DeleteModal from this path.
 // Mock the module so Pinia is never initialized.
@@ -68,7 +69,7 @@ const ModalDialogStub = {
   },
 }
 
-const workspace = { key: 'second', name: 'Second Workspace' }
+const workspace = { key: 'second', name: 'Second Workspace' } as unknown as TenantRoleResultDto
 
 /** Shared global config for all DeleteModal mounts */
 const globalConfig = {
@@ -99,7 +100,7 @@ describe('DeleteModal – workspace scope', () => {
       },
     }
     useApiClientMock.mockReturnValue({ deleteTenant })
-    vi.mocked(useUserPreferencesStore).mockReturnValue(store as ReturnType<typeof useUserPreferencesStore>)
+    vi.mocked(useUserPreferencesStore).mockReturnValue(store as unknown as ReturnType<typeof useUserPreferencesStore>)
   })
 
   it('submit button is disabled until the exact workspace name is typed', async () => {

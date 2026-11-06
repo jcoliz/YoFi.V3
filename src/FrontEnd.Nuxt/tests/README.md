@@ -218,7 +218,7 @@ const NuxtLink = {
 
 ## Relationship to Other Test Layers
 
-```
+```text
 Frontend Unit Tests (this directory)
   ↓ covers: logic, component contracts, timezone edge cases
   ↓ does NOT cover: full user workflows, real API calls, browser rendering
@@ -231,7 +231,7 @@ Functional Tests (tests/Functional/)
 The two layers are complementary. When deciding where to test something:
 
 | Question | Answer |
-|---|---|
+| --- | --- |
 | Is it a pure TypeScript function with real logic? | Unit test here |
 | Does it involve timezone-sensitive date handling? | Unit test here |
 | Is it a component behavior that's hard to trigger in a browser? | Unit test here |

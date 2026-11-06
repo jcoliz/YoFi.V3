@@ -1,12 +1,12 @@
 # Testing Strategy
 
-**How to test Application Features effectively in YoFi.V3**
+How to test Application Features effectively in YoFi.V3
 
 ## The Testing Layers
 
 YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the actual work happens: the Application layer interacting with the database.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │ Functional Tests (10%)                                      │
 │ Browser → Frontend → Backend → Database                     │
@@ -59,12 +59,14 @@ YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the ac
 ### When to Use
 
 ✅ **DO use Frontend Component tests for:**
+
 - Pure utility functions (date formatting, calculations, transformations)
 - Component behavioral logic (conditional rendering based on props/state, event emission)
 - Store interactions (does clicking X call the right store method?)
 - Role-based visibility (does the manage link appear only for owners?)
 
 ❌ **DON'T use Frontend Component tests for:**
+
 - Page-level navigation tests — pages use `useAuth`, `useAuthenticationGuard`, `definePageMeta`, `onBeforeRouteLeave`, `onBeforeRouteUpdate` which cannot be meaningfully mocked. Write functional tests instead.
 - HTML structure / CSS class assertions — these break with every layout change and provide no value
 - Visual appearance — use visual review and functional tests
@@ -79,6 +81,7 @@ YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the ac
 Two distinct patterns depending on how the component imports its dependencies:
 
 **Explicitly imported modules** (e.g., Pinia stores) — use `vi.mock()`:
+
 ```typescript
 vi.mock('~/stores/userPreferences', () => ({
   useUserPreferencesStore: vi.fn(),
@@ -86,6 +89,7 @@ vi.mock('~/stores/userPreferences', () => ({
 ```
 
 **Nuxt auto-imported composables** (e.g., `useApiClient`, `navigateTo`, `handleApiError`) — use `vi.stubGlobal()`:
+
 ```typescript
 const useApiClientMock = vi.fn()
 vi.stubGlobal('useApiClient', useApiClientMock)
@@ -94,6 +98,7 @@ vi.stubGlobal('handleApiError', (err: unknown) => err)
 ```
 
 **Components using `<Teleport>`** (e.g., `ModalDialog`) — stub with an inline version that renders slots directly:
+
 ```typescript
 const ModalDialogStub = {
   props: ['show', 'testId', 'primaryButtonTestId', 'secondaryButtonTestId', 'loading'],
@@ -111,6 +116,7 @@ const ModalDialogStub = {
 ```
 
 **`NuxtLink` stub** — must use `inheritAttrs: false` to pass `data-test-id` through:
+
 ```typescript
 const NuxtLink = {
   inheritAttrs: false,
@@ -153,9 +159,10 @@ describe('MyComponent', () => {
 
 **Purpose:** Test Application Features with real IDataContext to verify business logic + database integration.
 
-### When to Use
+### When to Use Application Integration Tests
 
 ✅ **DO use Application Integration tests for:**
+
 - Any Feature method that uses IDataContext
 - Navigation property loading verification
 - Complex queries and filtering through Features
@@ -164,15 +171,16 @@ describe('MyComponent', () => {
 - Feature query builders (e.g., `GetTransactionsWithSplits()`)
 
 ❌ **DON'T use Application Integration tests for:**
+
 - HTTP contracts, status codes, auth → Use Controller Integration instead
 - Database schema, EF Core configs → Use Data Integration instead
 - Pure business logic without database → Use Unit tests instead
 
-### Speed
+### Speed of Application Integration Tests
 
 ~20-50ms per test (faster than Controller Integration ~100-200ms)
 
-### Example
+### Example Application Integration Tests
 
 ```csharp
 [TestFixture]
@@ -219,9 +227,10 @@ public class WeatherFeatureTests : FeatureTestBase
 
 **Purpose:** Test HTTP boundary concerns ONLY - don't duplicate business logic testing.
 
-### When to Use
+### When to Use Controller Integration Tests
 
 ✅ **DO use Controller Integration tests for:**
+
 - Authentication/authorization middleware
 - HTTP status codes (401, 403, 404, etc.)
 - Request/response serialization
@@ -230,15 +239,16 @@ public class WeatherFeatureTests : FeatureTestBase
 - API versioning, CORS, rate limiting
 
 ❌ **DON'T use Controller Integration tests for:**
+
 - Testing business logic (use Application Integration instead)
 - Testing navigation property loading (use Application Integration)
 - Testing complex queries (use Application Integration)
 
-### Speed
+### Speed of Controller Integration Tests
 
 ~100-200ms per test
 
-### Example
+### Example of Controller Integration Tests
 
 ```csharp
 [Test]
@@ -260,9 +270,10 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 **Purpose:** Test database layer directly - EF Core configurations, schema, relationships.
 
-### When to Use
+### When to Use Data Integration Tests
 
 ✅ **DO use Data Integration tests for:**
+
 - EF Core entity configurations
 - Database schema validation (indexes, constraints)
 - Relationship configurations (one-to-many, many-to-many)
@@ -270,10 +281,11 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 - Database-specific features (SQL functions, stored procedures)
 
 ❌ **DON'T use Data Integration tests for:**
+
 - Testing Feature business logic (use Application Integration instead)
 - Testing through Features (use Application Integration)
 
-### Speed
+### Speed of Data Integration Tests
 
 ~10-20ms per test
 
@@ -283,9 +295,10 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 **Purpose:** Test pure business logic without any dependencies.
 
-### When to Use
+### When to Use Unit Tests
 
 ✅ **DO use Unit tests for:**
+
 - Entities layer validation and logic
 - Application layer logic testable WITHOUT IDataContext
 - Algorithms, calculations, transformations
@@ -294,10 +307,11 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 - Pure domain logic
 
 ❌ **DON'T use Unit tests for:**
+
 - Anything requiring IDataContext (use Application Integration)
 - Anything requiring HTTP context (use Controller Integration)
 
-### Speed
+### Speed of Unit Tests
 
 ~1-10ms per test
 
@@ -307,9 +321,10 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 **Purpose:** Test complete user workflows through the browser.
 
-### When to Use
+### When to Use Functional Tests
 
 ✅ **DO use Functional tests for:**
+
 - Critical user workflows (login, registration, core features)
 - End-to-end acceptance tests
 - UI-dependent functionality
@@ -318,18 +333,19 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 ### Tagging Strategy
 
 Some functional feature sets use tags for planning and traceability:
+
 - `@pri:<n>` - Priority level defined by the feature's test plan (1=highest; use that plan's range)
 - `@id:1` through `@id:N` - Sequential scenario identifiers when used by that feature set
 - Apply these tags consistently within the feature set; they are not required on every feature.
 - Document acceptance criteria as Gherkin scenarios and implement according to the agreed test plan.
 
-### Speed
+### Speed of Functional Tests
 
 ~2-5 seconds per test
 
 ## Decision Flowchart: Which Test Layer?
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │  START: Analyzing What to Test                          │
 └───────────────────────┬─────────────────────────────────┘
@@ -407,6 +423,7 @@ public async Task GetTransactions_InvalidTenantIdFormat_Returns404()
 YoFi.V3 uses **NUnit** as the standard testing framework.
 
 **Required attributes:**
+
 - `[Test]` - Test methods
 - `[TestFixture]` - Test classes
 - `[SetUp]` / `[TearDown]` - Test lifecycle
@@ -414,6 +431,7 @@ YoFi.V3 uses **NUnit** as the standard testing framework.
 - `[Explicit("reason")]` - Intentionally skipped tests
 
 **Constraint-based assertions:**
+
 ```csharp
 Assert.That(actual, Is.EqualTo(expected));
 Assert.That(collection, Is.Not.Empty);
@@ -423,7 +441,7 @@ Assert.That(value, Is.GreaterThan(0));
 ## Quick Reference
 
 | Layer | Location | Speed | Primary Use |
-|-------|----------|-------|-------------|
+| ------- | ---------- | ------- | ------------- |
 | **Functional** | `tests/Functional/` | 2-5s | E2E Workflows |
 | **Frontend Component** | `src/FrontEnd.Nuxt/tests/` | 1-5ms | Component logic, utilities |
 | **Controller Integration** | `tests/Integration.Controller/` | 100-200ms | HTTP + Auth |
