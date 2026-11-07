@@ -4,19 +4,7 @@ Date: 2025-11-09
 
 ## Status
 
-Accepted; original SQLite approach superseded by PostgreSQL adoption.
-
-### Current Implementation (November 2026)
-
-The backend now uses [`Data.PostgreSQL`](../../src/Data/PostgreSQL/) in all
-environments. Aspire and Docker Compose provide PostgreSQL for development and
-container testing; Data, Application, and Controller integration tests use
-PostgreSQL Testcontainers. Non-production startup applies EF migrations.
-Production uses system-assigned managed identity and requires a provisioned
-PostgreSQL database with migrations applied externally.
-
-The original context, options, and decision below are retained as history, not
-current setup instructions. See [ENVIRONMENTS.md](../ENVIRONMENTS.md).
+Accepted (updated November 2026 to adopt PostgreSQL in all environments).
 
 ## Context
 
@@ -36,7 +24,7 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 
 ### Options Considered
 
-#### 1. SQLite (Local development, initial production testing)
+#### 1. SQLite (Previous approach, not selected)
 
 **Pros:**
 
@@ -53,7 +41,7 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 - Requires persistent storage configuration in Azure App Service
 - [Migration limitations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations)
 
-#### 2. PostgreSQL Everywhere (Scale-up plan)
+#### 2. PostgreSQL Everywhere (Selected)
 
 **Pros:**
 
@@ -67,7 +55,7 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 - Requires containers for local development
 - Slightly more complex setup
 
-#### 3. Azure SQL Server (Fallback)
+#### 3. Azure SQL Server (Not selected)
 
 **Pros:**
 
@@ -82,33 +70,40 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 
 ## Decision
 
-1. **Primary approach**: Use SQLite for local development & CI.
-2. **Production deployment**: Test SQLite Azure App Service using Azure Storage mounts during intial pre-releases stages. Determine performance limits of this system.
-3. **Scale-up plan**: As scale grows beyond capability of SQlite in production, prepare to migrate to PostgreSQL Everywhere. If this presents too many hurdles,  fall back to proven capability of Azure SQL Server
-4. **Migration strategy**: Accept that we may need multiple providers as the application scales, as this promotes proper layer decoupling.
-5. **Container Matching**: Whatever backend we land on in production, migrate the containerized environment (including CI) to that technology, to catch issues early.
+1. **Primary approach**: Use PostgreSQL in all environments through [`Data.PostgreSQL`](../../src/Data/PostgreSQL/), with Entity Framework Core and Npgsql. Identity and business data share one database.
+2. **Development and container testing**: Aspire manages PostgreSQL for local development; Docker Compose provides PostgreSQL for the application container environment.
+3. **Integration testing**: Data, Application, and Controller integration tests use PostgreSQL Testcontainers with isolated databases and real EF migrations. Docker must be running.
+4. **Production deployment**: Use Azure Database for PostgreSQL Flexible Server, with system-assigned managed-identity authentication from App Service. Provision database permissions and network connectivity before deployment.
+5. **Migration lifecycle**: Non-production backend startup applies EF migrations before Identity seeding. Production migrations must be applied by deployment tooling before backend startup.
+6. **Provider boundary**: Keep PostgreSQL-specific configuration, SQL, and migrations in Data. Application Features depend on Entities data-access abstractions, not Npgsql or EF Core. The legacy provider is retained only temporarily pending removal, not as a supported runtime alternative.
+
+See [ENVIRONMENTS.md](../ENVIRONMENTS.md) for connection-string configuration and
+[ADR 0006](0006-production-infrastructure.md) for production infrastructure requirements.
 
 ## Consequences
 
 ### Positive
 
-- Single codebase for all environments
-- Simplified development setup - no containers required locally
-- Zero database costs in production initially
-- Easy CI/CD with no external dependencies
+- One database provider across development, container testing, integration tests, and production
+- Real-database tests exercise PostgreSQL constraints, timestamp precision, queries, and migrations
+- Database persistence is independent of the backend filesystem and deployments
+- Managed-identity authentication avoids a static production database password
 
 ### Negative
 
-- May need to migrate database provider as application scales
-- Requires careful management of SQLite limitations (migrations, concurrent access)
-- Need to explore and configure persistent storage mounting in Azure App Service
+- Docker is required for local database orchestration and integration tests
+- PostgreSQL adds production provisioning, networking, permissions, and ongoing service costs
+- Production schema migrations must be coordinated with application deployments
+- Provider-specific behavior still requires explicit validation, including enforced lengths, numeric precision, and UTC timestamps
 
 ### Mitigation
 
-- Monitor application performance and concurrent usage patterns
-- Plan for database provider migration if scaling requirements change
-- Document Azure Storage mount configuration for production deployment
+- Check Docker availability before integration test runs
+- Use isolated PostgreSQL test databases with real migrations to catch persistence differences early
+- Configure managed-identity access and network connectivity, and verify migrations before production deployment
+- Monitor database capacity and concurrent workload as usage grows
 
 ## Related Decisions
 
-- [0006. Production Infrastructure](0006-production-infrastructure.md) - Azure App Service provides persistent storage for SQLite database
+- [0006. Production Infrastructure](0006-production-infrastructure.md) - App Service backend with PostgreSQL Flexible Server
+- [0011. Clean Architecture](0011-clean-architecture.md) - Database-specific infrastructure behind Entities abstractions

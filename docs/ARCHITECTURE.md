@@ -92,12 +92,14 @@ Dependencies point inward. Inner layers have no knowledge of outer layers.
 ## Data Flow
 
 ### Development Workflow
+
 1. **AppHost** starts all services via Aspire orchestration
 2. **BackEnd** API starts with health checks and monitoring
 3. **FrontEnd.Nuxt** starts with hot reload capabilities
 4. Services communicate through service discovery
 
 ### Runtime Application Flow
+
 1. User interacts with **Vue.js components** in browser
 2. Frontend calls **BackEnd** REST API using generated TypeScript client
 3. **Controllers** receive HTTP requests, delegate to **Application** Features
@@ -106,6 +108,7 @@ Dependencies point inward. Inner layers have no knowledge of outer layers.
 6. Results flow back through layers to update UI
 
 ### Build & Deployment Flow
+
 1. **Unit tests** validate Application layer logic
 2. **Integration tests** verify Data, Application, and HTTP controller behavior against PostgreSQL Testcontainers (Docker required)
 3. **Functional tests** (Playwright) validate end-to-end workflows
@@ -116,12 +119,14 @@ Dependencies point inward. Inner layers have no knowledge of outer layers.
 ## Multi-Tenancy Architecture
 
 ### Tenant Model (Implementation: "Tenant", UI: "Workspace")
+
 - **Tenant-Scoped Data**: All financial data isolated by tenant ID
 - **Role-Based Access**: Owner/Editor/Viewer roles per tenant
 - **User Context**: Current tenant context flows through all layers
 - **Authorization**: Tenant-scoped policies at API level
 
 ### Database Schema
+
 ```sql
 -- Multi-tenancy foundation
 Tenants (Id, Name, IsActive)
@@ -136,6 +141,7 @@ Budgets (Id, TenantId, Month, Amount)
 ## Technology Stack
 
 ### Backend (.NET 10)
+
 - **Framework**: ASP.NET Core with minimal APIs
 - **Database**: PostgreSQL with Entity Framework Core and Npgsql
 - **Authentication**: ASP.NET Core Identity with JWT tokens
@@ -143,12 +149,14 @@ Budgets (Id, TenantId, Month, Amount)
 - **Development**: .NET Aspire for orchestration
 
 ### Frontend (Vue 3 + TypeScript)
+
 - **Framework**: Nuxt 4 meta-framework
 - **Language**: TypeScript for type safety
 - **Testing**: Playwright for E2E testing
 - **Build**: Vite bundling and hot module replacement
 
 ### Infrastructure & DevOps
+
 - **Cloud**: Azure (Static Web Apps + App Service)
 - **IaC**: Azure Bicep templates
 - **CI/CD**: Azure Pipelines
@@ -159,21 +167,25 @@ Budgets (Id, TenantId, Month, Amount)
 Documented in [Architecture Decision Records](adr/README.md):
 
 ### Architecture & Patterns
+
 - [0011: Clean Architecture Pattern](adr/0011-clean-architecture.md) - Layer definitions, dependency rules, and alternatives
 - [0010: Backend for Frontend](adr/0010-backend-for-frontend.md) - BFF pattern and DTO design
 
 ### Foundational
+
 - [0001: SPA Web Application](adr/0001-spa-web-app.md) - Single-page app vs server-rendered
 - [0002: Vue.js Frontend](adr/0002-vue-js.md) - Vue over React/Angular
 - [0003: Nuxt Meta-Framework](adr/0003-nuxt.md) - Nuxt 4 for Vue development
 - [0004: Aspire Development](adr/0004-aspire-development.md) - .NET Aspire orchestration
 
 ### Infrastructure & Data
+
 - [0005: Database Backend](adr/0005-database-backend.md) - Original SQLite decision and current PostgreSQL adoption
 - [0006: Production Infrastructure](adr/0006-production-infrastructure.md) - Azure deployment
 - [0007: Backend Integration](adr/0007-backend-proxy-or-direct.md) - Direct API calls
 
 ### Security & Multi-Tenancy
+
 - [0008: Identity System](adr/0008-identity.md) - ASP.NET Core Identity
 - [0009: Multi-Tenancy Model](adr/0009-accounts-and-tenancy.md) - Tenant/Workspace architecture
 
@@ -182,6 +194,7 @@ Documented in [Architecture Decision Records](adr/README.md):
 YoFi.V3 follows a **Testing Pyramid** strategy optimized for API-driven applications. See **[TESTING-STRATEGY.md](TESTING-STRATEGY.md)** for complete guidance on mapping PRD acceptance criteria to test layers.
 
 ### Test Distribution Target
+
 - **60% Controller Integration tests** - Primary layer for API contract verification, authentication, and authorization
 - **25% Unit tests** - Business logic, algorithms, and validation rules
 - **15% Functional tests** - Critical end-to-end user workflows through the browser
@@ -189,6 +202,7 @@ YoFi.V3 follows a **Testing Pyramid** strategy optimized for API-driven applicat
 Controller Integration tests are the sweet spot: they validate complete API contracts including authentication, authorization, and database operations while remaining fast (~100-200ms) and maintainable.
 
 ### Test Organization
+
 - **Unit Tests** ([`tests/Unit/`](../tests/Unit/)) - Application layer business logic isolation with mocked dependencies
 - **Integration.Data Tests** ([`tests/Integration.Data/`](../tests/Integration.Data/)) - Repository operations and Entity Framework configurations
 - **Integration.Application Tests** ([`tests/Integration.Application/`](../tests/Integration.Application/)) - Application Features interacting with PostgreSQL
@@ -198,6 +212,7 @@ Controller Integration tests are the sweet spot: they validate complete API cont
 All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenario descriptions. See [`.roorules`](../.roorules) for complete testing patterns.
 
 ### Current Test Coverage
+
 - ✅ **Application layer** - Comprehensive unit tests approaching 100% coverage
 - ✅ **Database operations** - Integration tests for all repository operations
 - ✅ **API controllers** - Integration tests with authentication and multi-tenancy
@@ -206,6 +221,7 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 - 📋 **Additional features** - Test coverage expands as features are developed (targeting ~300 total tests for current PRDs)
 
 ### Testing Tools
+
 - **Unit**: NUnit with constraint-based assertions and Moq for mocking
 - **Integration.Data / Integration.Application**: NUnit with PostgreSQL Testcontainers, a fresh database per test, and real EF migrations
 - **Integration.Controller**: NUnit with WebApplicationFactory, an isolated PostgreSQL database per factory, and test authentication handlers (real Identity/JWT for authentication workflow tests)
@@ -215,6 +231,7 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 ## Security Considerations
 
 ### Authentication & Authorization
+
 - ✅ **Identity**: ASP.NET Core Identity with JWT tokens (implemented)
 - ✅ **Multi-Tenancy**: Role-based authorization with claims (Owner/Editor/Viewer)
 - ✅ **Tenant Isolation**: Middleware-enforced tenant context with authorization policies
@@ -225,6 +242,7 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 
 ### Data Protection
+
 - **Database**: PostgreSQL; Production authentication uses system-assigned managed identity
 - **Secrets**: Azure Key Vault integration planned
 - **Logging**: Structured logging with PII filtering
@@ -233,11 +251,13 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 ## Scalability Considerations
 
 ### Current Scale (MVP)
+
 - **Single-region** deployment
 - **PostgreSQL database** for development, containers, and integration tests; production provisioning must match the provider before deployment
 - **Single App Service** instance
 
 ### Future Scaling Options
+
 - **Database**: PostgreSQL capacity and availability scaling
 - **Caching**: Redis for session state and data caching
 - **CDN**: Azure Front Door for global distribution
@@ -246,6 +266,7 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 ## Development Workflow
 
 ### Local Development
+
 1. Clone repository with submodules: `git submodule update --init --recursive`
    Ensure Docker is running for Aspire's PostgreSQL container.
 2. Start with Aspire: `dotnet run --project src/AppHost`
@@ -254,6 +275,7 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 5. Backend API: `http://localhost:5001` (with live reload)
 
 ### Code Organization Patterns
+
 - **Feature-based** organization in Application layer (TransactionsFeature, TenantFeature)
 - **Clean Architecture** dependency rules enforced by project references
 - **IDataProvider** interface for direct LINQ queries (NOT Repository pattern)
