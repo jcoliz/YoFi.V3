@@ -78,7 +78,7 @@ public record PayeeMatchingRule: BaseTenantModel
     /// Timestamp when this rule was created.
     /// </summary>
     /// <remarks>
-    /// Auto-set on creation. Stored as TEXT in SQLite using ISO 8601 format ("O" format string).
+    /// Auto-set on creation. Timestamp values must use the UTC offset.
     /// </remarks>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -91,7 +91,7 @@ public record PayeeMatchingRule: BaseTenantModel
     /// match the same transaction (most recently modified rule wins for equal precedence).
     /// </para>
     /// <para>
-    /// Stored as TEXT in SQLite using ISO 8601 format ("O" format string).
+    /// Timestamp values must use the UTC offset.
     /// </para>
     /// </remarks>
     public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -106,7 +106,7 @@ public record PayeeMatchingRule: BaseTenantModel
     /// </para>
     /// <para>
     /// Used for analytics and rule cleanup (identifying unused rules).
-    /// Stored as TEXT in SQLite using ISO 8601 format ("O" format string).
+    /// Non-null timestamp values must use the UTC offset.
     /// </para>
     /// </remarks>
     public DateTimeOffset? LastUsedAt { get; set; }
