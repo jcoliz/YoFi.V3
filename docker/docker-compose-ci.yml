@@ -39,9 +39,26 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://dashboard:18889
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
+      - ConnectionStrings__DefaultConnection=Host=db;Database=db;Username=postgres;Password=development
       - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD}
     restart: unless-stopped
     ports:
       - '5001:8080'
     depends_on:
       - dashboard
+      - db
+  db:
+    image: postgres:15-alpine
+    tmpfs:
+      - /var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=development
+      - POSTGRES_DB=db
+      - POSTGRES_USER=postgres
+      - PGUSER=postgres
+    healthcheck:
+      test: [ "CMD-SHELL" , "pg_isready" ]
+      interval: 1s
+      timeout: 5s
+      retries: 10
