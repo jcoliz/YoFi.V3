@@ -1,9 +1,9 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 using NuxtIdentity.Core.Models;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Tenancy.Dto;
 using YoFi.V3.Entities.Tenancy.Models;
+using YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Controller;
 
@@ -35,30 +35,18 @@ namespace YoFi.V3.Tests.Integration.Controller;
 [TestFixture]
 public class EndToEndAuthenticationTests
 {
-    private WebApplicationFactory<Program> _factory = null!;
+    private BaseTestWebApplicationFactory _factory = null!;
     private HttpClient _client = null!;
-    private string _dbPath = null!;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"e2e_test_{Guid.NewGuid()}.db");
-
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureAppConfiguration((context, config) =>
-                {
-                    var configOverrides = new Dictionary<string, string?>
-                    {
-                        ["Application:Version"] = "e2e-test-version",
-                        ["Application:Environment"] = "Local",
-                        ["Application:AllowedCorsOrigins:0"] = "http://localhost:3000",
-                        ["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}"
-                    };
-                    config.AddInMemoryCollection(configOverrides);
-                });
-            });
+        _factory = new BaseTestWebApplicationFactory(new Dictionary<string, string?>
+        {
+            ["Application:Version"] = "e2e-test-version",
+            ["Application:Environment"] = "Local",
+            ["Application:AllowedCorsOrigins:0"] = "http://localhost:3000"
+        }, useTestAuthentication: false);
 
         _client = _factory.CreateClient();
     }
@@ -68,19 +56,6 @@ public class EndToEndAuthenticationTests
     {
         _client?.Dispose();
         _factory?.Dispose();
-
-        // Clean up the temporary database file
-        try
-        {
-            if (File.Exists(_dbPath))
-            {
-                File.Delete(_dbPath);
-            }
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
     }
 
     [Test]

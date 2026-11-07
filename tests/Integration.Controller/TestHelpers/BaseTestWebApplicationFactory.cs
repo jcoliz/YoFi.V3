@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 
@@ -18,7 +19,7 @@ namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 /// <remarks>
 /// <para>
 /// This factory configures a test instance of the web application with:
-/// - In-memory SQLite database (auto-created, auto-cleaned)
+/// - Isolated PostgreSQL database (auto-created, auto-cleaned)
 /// - Test authentication scheme that bypasses production JWT authentication
 /// - Configurable application settings via constructor
 /// </para>
@@ -51,30 +52,37 @@ namespace YoFi.V3.Tests.Integration.Controller.TestHelpers;
 /// </code>
 ///
 /// <para>
-/// The factory automatically creates a temporary SQLite database and cleans it up on disposal.
+/// The factory creates a PostgreSQL database and drops it after disposing the host.
 /// Default configuration values are provided for common settings (version, environment, CORS, connection string).
 /// </para>
 /// </remarks>
 public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _dbPath;
+    private readonly string _databaseName = $"controller_{Guid.NewGuid():N}";
+    private readonly string _connectionString;
+    private bool _databaseCreated;
+    private readonly bool _useTestAuthentication;
     private readonly Dictionary<string, string?> _configurationOverrides;
     private readonly string? _environment;
 
     public BaseTestWebApplicationFactory(
         Dictionary<string, string?>? configurationOverrides = null,
-        string? dbPath = null,
-        string? environment = null)
+        string? environment = null,
+        bool useTestAuthentication = true)
     {
         _configurationOverrides = configurationOverrides ?? new Dictionary<string, string?>();
-        _dbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.db");
         _environment = environment;
+        _useTestAuthentication = useTestAuthentication;
+        _connectionString = new NpgsqlConnectionStringBuilder(PostgreSqlTestDatabase.ConnectionString)
+        {
+            Database = _databaseName,
+            Pooling = false
+        }.ConnectionString;
 
         if (!_configurationOverrides.ContainsKey("Application:AllowedCorsOrigins:0"))
             _configurationOverrides["Startup:AllowedCorsOrigins:0"] = "http://localhost:3000";
 
-        if (!_configurationOverrides.ContainsKey("ConnectionStrings:DefaultConnection"))
-            _configurationOverrides["ConnectionStrings:DefaultConnection"] = $"Data Source={_dbPath}";
+        _configurationOverrides["ConnectionStrings:DefaultConnection"] = _connectionString;
 
         // JWT configuration required for non-Development environments
         if (!_configurationOverrides.ContainsKey("Jwt:Key"))
@@ -89,6 +97,17 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        if (!_databaseCreated)
+        {
+            using var connection = new NpgsqlConnection(PostgreSqlTestDatabase.ConnectionString);
+            connection.Open();
+            using var command = new NpgsqlCommand($"CREATE DATABASE \"{_databaseName}\"", connection);
+            command.ExecuteNonQuery();
+            _databaseCreated = true;
+        }
+
+        builder.UseSetting("ConnectionStrings:DefaultConnection", _connectionString);
+
         // Set environment if specified
         if (_environment is not null)
         {
@@ -105,7 +124,12 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
             // AddDatabase captures its connection string before test configuration overrides apply.
             services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite($"Data Source={_dbPath}"));
+                options.UseNpgsql(_connectionString));
+
+            if (!_useTestAuthentication)
+            {
+                return;
+            }
 
             // Override the production authentication setup with test authentication
             // We need to set the test scheme as the default for all authentication types
@@ -222,18 +246,27 @@ public class BaseTestWebApplicationFactory : WebApplicationFactory<Program>
 
         if (disposing)
         {
-            // Clean up the temporary database file
-            try
-            {
-                if (File.Exists(_dbPath))
-                {
-                    File.Delete(_dbPath);
-                }
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+            DropDatabase();
         }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        DropDatabase();
+    }
+
+    private void DropDatabase()
+    {
+        if (!_databaseCreated)
+        {
+            return;
+        }
+
+        using var connection = new NpgsqlConnection(PostgreSqlTestDatabase.ConnectionString);
+        connection.Open();
+        using var command = new NpgsqlCommand($"DROP DATABASE \"{_databaseName}\"", connection);
+        command.ExecuteNonQuery();
+        _databaseCreated = false;
     }
 }

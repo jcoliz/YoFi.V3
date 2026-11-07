@@ -33,8 +33,14 @@ Authorized Request → Controller
 **Key Features**:
 - Replaces production auth with `TestAuthenticationHandler` as default scheme
 - Provides `CreateAuthenticatedClient()` methods for programmatic authentication
-- Manages temporary SQLite database (auto-created on construction, auto-deleted on disposal)
+- Creates an isolated PostgreSQL database when the host starts and drops it after host disposal
 - Supports configuration overrides via constructor
+- Set `useTestAuthentication: false` to retain the real Identity/JWT authentication stack
+
+Docker must be running. The project links the assembly-level PostgreSQL
+Testcontainers fixture from `Integration.Data`. Each factory gets its own database;
+normal backend startup applies the real EF migrations before seeding. The test
+container is disposed after the assembly finishes, without modifying app containers.
 
 **Usage**:
 ```csharp

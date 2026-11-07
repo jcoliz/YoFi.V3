@@ -83,11 +83,13 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER reject_tenant_data_transaction_delete
-            BEFORE DELETE ON "YoFi.V3.Transactions"
+            CREATE FUNCTION reject_tenant_data_transaction_delete() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-                SELECT RAISE(ABORT, 'Injected deletion failure');
+                RAISE EXCEPTION 'Injected deletion failure';
             END;
+            $$;
+            CREATE TRIGGER reject_tenant_data_transaction_delete BEFORE DELETE ON "Transactions"
+            FOR EACH ROW EXECUTE FUNCTION reject_tenant_data_transaction_delete();
             """);
 
         try
@@ -102,7 +104,10 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
         }
         finally
         {
-            await db.Database.ExecuteSqlRawAsync("DROP TRIGGER reject_tenant_data_transaction_delete;");
+            await db.Database.ExecuteSqlRawAsync("""
+                DROP TRIGGER reject_tenant_data_transaction_delete ON "Transactions";
+                DROP FUNCTION reject_tenant_data_transaction_delete();
+                """);
         }
     }
 

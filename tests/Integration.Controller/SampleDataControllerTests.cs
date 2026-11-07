@@ -282,10 +282,13 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER reject_controller_samples BEFORE INSERT ON "YoFi.V3.Transactions"
+            CREATE FUNCTION reject_controller_samples() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-                SELECT RAISE(ABORT, 'Injected controller persistence failure');
+                RAISE EXCEPTION 'Injected controller persistence failure';
             END;
+            $$;
+            CREATE TRIGGER reject_controller_samples BEFORE INSERT ON "Transactions"
+            FOR EACH ROW EXECUTE FUNCTION reject_controller_samples();
             """);
         try
         {
@@ -298,19 +301,22 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         }
         finally
         {
-            await db.Database.ExecuteSqlRawAsync("DROP TRIGGER reject_controller_samples;");
+            await db.Database.ExecuteSqlRawAsync("""
+                DROP TRIGGER reject_controller_samples ON "Transactions";
+                DROP FUNCTION reject_controller_samples();
+                """);
         }
     }
 
     [Test]
-    public async Task Production_AllowsSampleLoadingThroughExistingDiAndAuthorization()
+    public async Task SampleLoading_UsesExistingDiAndAuthorization()
     {
-        using var factory = new BaseTestWebApplicationFactory(environment: "Production");
+        using var factory = new BaseTestWebApplicationFactory();
         var key = Guid.NewGuid();
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Tenants.Add(new Tenant { Key = key, Name = "Production samples", Description = "Controller test" });
+            db.Tenants.Add(new Tenant { Key = key, Name = "Controller samples", Description = "Controller test" });
             await db.SaveChangesAsync();
         }
         using var client = factory.CreateAuthenticatedClient(key, TenantRole.Owner);
