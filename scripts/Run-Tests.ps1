@@ -15,6 +15,7 @@
     - tests/Functional - Functional tests against running containers
     - src/FrontEnd.Nuxt/tests - Frontend component tests via npm run test:components
 
+    Integration tests require Docker for PostgreSQL Testcontainers.
     Functional tests require Docker and the application containers to be running.
     Use Run-FunctionalTestsVsContainer.ps1 to manage containers automatically.
 
@@ -22,7 +23,7 @@
     Run unit tests.
 
 .PARAMETER Integration
-    Run all three integration test projects.
+    Check Docker availability and run all three integration test projects.
 
 .PARAMETER Functional
     Check Docker availability and run functional tests.
@@ -71,7 +72,7 @@ if (-not $Unit -and -not $Integration -and -not $Functional -and -not $FrontEnd)
     $FrontEnd = $true
 }
 
-if ($Functional) {
+if ($Integration -or $Functional) {
     Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
 }
 
@@ -144,15 +145,15 @@ try {
     }
 
     Write-Host "Running selected tests..." -ForegroundColor Cyan
-    foreach ($suite in $selectedSuites) {
-        if ($suite.Name -eq "Functional") {
-            Write-Host "`nChecking Docker availability..." -ForegroundColor Cyan
-            if (-not (Test-DockerRunning)) {
-                Write-Host "ERROR Docker is not running or not available. Start Docker Desktop or the Docker daemon and try again." -ForegroundColor Red
-                exit 1
-            }
+    if ($Integration -or $Functional) {
+        Write-Host "`nChecking Docker availability..." -ForegroundColor Cyan
+        if (-not (Test-DockerRunning)) {
+            Write-Host "ERROR Docker is not running or not available. Start Docker Desktop or the Docker daemon and try again." -ForegroundColor Red
+            exit 1
         }
+    }
 
+    foreach ($suite in $selectedSuites) {
         Write-Host "`nRunning $($suite.Name) tests..." -ForegroundColor Cyan
         if ($suite.Name -eq "FrontEnd") {
             Push-Location $suite.Path

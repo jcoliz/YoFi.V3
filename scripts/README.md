@@ -78,7 +78,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 # Run unit and frontend component tests (default)
 .\Run-Tests.ps1
 
-# Run unit and all integration tests
+# Run unit and all integration tests (checks Docker first)
 .\Run-Tests.ps1 -Unit -Integration
 
 # Run frontend component tests (requires installed frontend dependencies)
@@ -104,6 +104,9 @@ Test type switches can be combined, including `-Unit -Integration -Functional -F
 Frontend tests run via `npm run test:components`; `-Filter` applies only to .NET tests.
 Only selected test projects and their dependencies are built by `dotnet test`;
 the script does not build the solution.
+Selecting `-Integration` or `-Functional` checks Docker once before any tests run
+and exits with an error if it is unavailable. Integration tests manage their own
+PostgreSQL test containers; they do not require the application containers.
 
 The functional container wrapper starts containers without opening browser windows
 and uses the functional test project's default runsettings. It does not set a
