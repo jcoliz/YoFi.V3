@@ -1,30 +1,27 @@
 <#
 .SYNOPSIS
-Adds a new Entity Framework migration to the specified database provider.
+Adds a new Entity Framework migration for PostgreSQL.
 
 .DESCRIPTION
-This script creates a new Entity Framework Core migration for the YoFi.V3 application.
-It builds the solution and then uses dotnet ef to add a migration to the specified
-database provider (default: Sqlite).
+This script creates a new Entity Framework Core migration for the application.
+It builds the solution and then uses dotnet ef to add a migration for the
+Postgres data project.
 
 .PARAMETER Name
 The name of the migration to create. This is required and should describe the database
 schema changes being made.
 
-.PARAMETER Provider
-The database provider to create the migration for. Default value is "Sqlite".
-
 .EXAMPLE
 .\Add-Migration.ps1 -Name "AddUserTable"
-Creates a new migration named "AddUserTable" for the Sqlite provider.
+Creates a new migration named "AddUserTable" for Postgres.
 
 .EXAMPLE
-.\Add-Migration.ps1 -Name "AddIndexes" -Provider "Sqlite"
-Creates a new migration named "AddIndexes" for the Sqlite provider.
+.\Add-Migration.ps1 -Name "AddIndexes"
+Creates a new migration named "AddIndexes" for Postgres.
 
 .NOTES
-The migration files will be created in the .\Migrations\ directory of the provider project.
-See the Migration README at ../src/Data/Sqlite.MigrationHost/README.md for more information.
+The migration files will be created in the .\Migrations\ directory of the Postgres project.
+See the Migration README at ../tools/Postgres.MigrationsMain/README.md for more information.
 
 .LINK
 https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/
@@ -34,11 +31,7 @@ https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/
 param(
     [Parameter(Mandatory=$true)]
     [string]
-    $Name,
-    [Parameter()]
-    [ValidateSet("Sqlite")]
-    [string]
-    $Provider = "Sqlite"
+    $Name
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,19 +39,25 @@ $ErrorActionPreference = "Stop"
 try {
     $Top = "$PSScriptRoot/.."
     Push-Location $Top
-    
+
+    Write-Host "Restoring local .NET tools..." -ForegroundColor Cyan
+    dotnet tool restore
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tool restore failed with exit code $LASTEXITCODE"
+    }
+
     Write-Host "Building solution..." -ForegroundColor Cyan
     dotnet build
     if ($LASTEXITCODE -ne 0) {
         throw "Build failed with exit code $LASTEXITCODE"
     }
-    
-    Write-Host "Adding migration '$Name' for provider '$Provider'..." -ForegroundColor Cyan
-    dotnet ef migrations add $Name -o .\Migrations\ -n "YoFi.V3.Data.$Provider.Migrations" --project ".\src\Data\$Provider\" --startup-project ".\src\Data\$Provider.MigrationHost\" --context ApplicationDbContext
+
+    Write-Host "Adding migration '$Name' for provider 'Postgres'..." -ForegroundColor Cyan
+    dotnet ef migrations add $Name -o .\Migrations\ --project ".\src\Data\PostgreSQL\" --startup-project ".\tools\Postgres.MigrationsMain\" --context ApplicationDbContext
     if ($LASTEXITCODE -ne 0) {
         throw "Migration creation failed with exit code $LASTEXITCODE"
     }
-    
+
     Write-Host "Migration '$Name' created successfully" -ForegroundColor Green
 }
 catch {

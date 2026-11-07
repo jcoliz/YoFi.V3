@@ -25,6 +25,10 @@
   <Folder Name="/submodules/jcoliz.FunctionalTests/src/FunctionalTests/">
     <Project Path="submodules/jcoliz.FunctionalTests/src/FunctionalTests/jcoliz.FunctionalTests.csproj" />
   </Folder>
+  <Folder Name="/tools/" />
+  <Folder Name="/tools/Postgres.MigrationsMain/">
+    <Project Path="tools/Postgres.MigrationsMain/YoFi.V3.MigrationsMain.csproj" />
+  </Folder>
   <Project Path="src/AppHost/YoFi.V3.AppHost.csproj" />
   <Project Path="src/BackEnd/YoFi.V3.BackEnd.csproj" />
   <Project Path="src/Controllers/YoFi.V3.Controllers.csproj" />
