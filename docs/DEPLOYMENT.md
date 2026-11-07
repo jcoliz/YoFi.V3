@@ -10,6 +10,12 @@ This application uses **Azure Pipelines** for Continuous Deployment (CD) to Azur
 - **Backend**: Deployed to Azure App Service
 - **Infrastructure**: Provisioned using Azure Bicep templates
 
+**PostgreSQL migration prerequisite:** The backend now requires a PostgreSQL
+`ConnectionStrings:DefaultConnection`, system-assigned managed-identity access,
+and externally applied EF migrations in Production. Verify provisioning and the
+deployment pipeline supply these before deploying; the older infrastructure
+workflow described here is not sufficient by itself for the migrated backend.
+
 ## Pipeline Configuration
 
 The main pipeline configuration is located in **`.azure/pipelines/ci.yaml`**.
@@ -188,4 +194,3 @@ az webapp deploy --resource-group <rg> --name <app-name> --src-path <zip-file>
 - Configure **approval gates** for production deployments
 - Add **monitoring alerts** for deployment failures
 - Consider **blue-green deployments** for zero-downtime updates
-

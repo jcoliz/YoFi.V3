@@ -17,7 +17,8 @@
 
     Integration tests require Docker for PostgreSQL Testcontainers.
     Functional tests require Docker and the application containers to be running.
-    Use Run-FunctionalTestsVsContainer.ps1 to manage containers automatically.
+    Use Start-Container.ps1 -Build -NoBrowser to start application containers.
+    Leave application containers running after tests.
 
 .PARAMETER Unit
     Run unit tests.

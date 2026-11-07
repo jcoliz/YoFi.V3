@@ -405,7 +405,7 @@ Once the high-priority items above are complete, migrate YoFi features using thi
 ### Per-Feature Checklist
 
 1. ✅ Create entity models in [`Entities`](../src/Entities) project
-2. ✅ Add DbSet to [`ApplicationDbContext`](../src/Data/Sqlite/ApplicationDbContext.cs)
+2. ✅ Add DbSet to [`ApplicationDbContext`](../src/Data/PostgreSQL/ApplicationDbContext.cs)
 3. ✅ Create and apply EF migration
 4. ✅ Implement Feature class in [`Application`](../src/Application)
 5. ✅ Create Controller in [`Controllers`](../src/Controllers) project

@@ -4,7 +4,19 @@ Date: 2025-11-09
 
 ## Status
 
-Accepted
+Accepted; original SQLite approach superseded by PostgreSQL adoption.
+
+### Current Implementation (November 2026)
+
+The backend now uses [`Data.PostgreSQL`](../../src/Data/PostgreSQL/) in all
+environments. Aspire and Docker Compose provide PostgreSQL for development and
+container testing; Data, Application, and Controller integration tests use
+PostgreSQL Testcontainers. Non-production startup applies EF migrations.
+Production uses system-assigned managed identity and requires a provisioned
+PostgreSQL database with migrations applied externally.
+
+The original context, options, and decision below are retained as history, not
+current setup instructions. See [ENVIRONMENTS.md](../ENVIRONMENTS.md).
 
 ## Context
 
@@ -25,7 +37,9 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 ### Options Considered
 
 #### 1. SQLite (Local development, initial production testing)
+
 **Pros:**
+
 - Single implementation - works everywhere (dev, CI/CD, production)
 - Zero cost - file-based, no server needed
 - Trivial in Azure Pipelines - no container needed
@@ -33,29 +47,36 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 - Perfect for low volumes
 
 **Cons:**
+
 - No concurrent writes at scale
 - Limited for multi-server scenarios
 - Requires persistent storage configuration in Azure App Service
 - [Migration limitations](https://learn.microsoft.com/en-us/ef/core/providers/sqlite/limitations#migrations-limitations)
 
 #### 2. PostgreSQL Everywhere (Scale-up plan)
+
 **Pros:**
+
 - Single implementation
 - Azure Database for PostgreSQL Flexible Server available
 - Container support via Aspire orchestration
 - More features than SQL Server for similar cost
 
 **Cons:**
+
 - Requires containers for local development
 - Slightly more complex setup
 
 #### 3. Azure SQL Server (Fallback)
+
 **Pros:**
+
 - Known quantity from previous projects
 - Proven to work in Azure App Services
 - $5/month basic tier
 
 **Cons:**
+
 - Would still need separate solution for CI/CD
 - Multiple data layer implementations
 
@@ -70,17 +91,20 @@ In my last project, I used Azure SQL Server for production ($5/month) and Postgr
 ## Consequences
 
 ### Positive
+
 - Single codebase for all environments
 - Simplified development setup - no containers required locally
 - Zero database costs in production initially
 - Easy CI/CD with no external dependencies
 
 ### Negative
+
 - May need to migrate database provider as application scales
 - Requires careful management of SQLite limitations (migrations, concurrent access)
 - Need to explore and configure persistent storage mounting in Azure App Service
 
 ### Mitigation
+
 - Monitor application performance and concurrent usage patterns
 - Plan for database provider migration if scaling requirements change
 - Document Azure Storage mount configuration for production deployment

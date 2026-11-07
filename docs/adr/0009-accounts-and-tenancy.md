@@ -19,6 +19,7 @@ YoFi.V3 is a rewrite of the [YoFi personal finance application](https://github.c
 ### Use Case Analysis
 
 **Primary Use Cases:**
+
 - **Personal Finance**: Individual manages their own financial data
 - **Household Finance**: Family members share access to household financial data
 - **Small Business**: Business owner + bookkeeper access business financial data
@@ -29,11 +30,13 @@ YoFi.V3 is a rewrite of the [YoFi personal finance application](https://github.c
 ### Terminology: Implementation vs. User Interface
 
 **Implementation Layer**: Uses "Tenant" terminology throughout the codebase
-- Database: `Tenants`, `UserTenantRoles`, `TenantId` columns
+
+- Database: `Tenants`, `UserTenantRoleAssignments`, `TenantId` columns in PostgreSQL
 - Code: `Tenant`, `ITenantService`, `TenantContext` classes
-- APIs: `/api/tenant/{tenantId}/transactions`
+- APIs: `/api/tenant/{tenantKey}/transactions` (public tenant GUID, not the internal database ID)
 
 **User Interface Layer**: Uses "Workspace" terminology for end users
+
 - UI components: Workspace selector, workspace switcher
 - All user-facing text and documentation
 
@@ -44,6 +47,7 @@ YoFi.V3 is a rewrite of the [YoFi personal finance application](https://github.c
 A "Workspace" (UI) / "Tenant" (implementation) represents a complete set of financial records (transactions, budgets, categories, etc.) managed as a unit.
 
 Examples:
+
 - "Smith Family Finances" (household)
 - "John's Personal Finances" (individual)
 - "ABC Consulting Business" (business)
@@ -51,15 +55,18 @@ Examples:
 ### Multi-Tenancy: Role-Based Access Control
 
 **User-to-Tenant Relationships:**
+
 - **One User → Multiple Tenants**: Personal + business finances
 - **Multiple Users → One Tenant**: Family members, business owner + bookkeeper
 
 **Role Levels:**
+
 1. **Owner** - Full control (edit data, manage users, delete tenant)
 2. **Editor** - Edit financial data, view reports (cannot manage users)
 3. **Viewer** - Read-only access to data and reports
 
 **Rules:**
+
 - Tenant creation makes creator the Owner
 - Only Owners can invite/remove users and change roles
 - Each tenant must have at least one Owner
@@ -68,11 +75,16 @@ Examples:
 ### Data Architecture
 
 **Core Entities:**
+
 - **Tenants** - Container for financial data (called "Workspace" in UI)
-- **UserTenantRoles** - User-to-Tenant relationships with role assignments
+- **UserTenantRoleAssignments** - User-to-Tenant relationships with role assignments
 - **Financial Data** - All entities (Transactions, Categories, Budgets) are tenant-scoped
 
 **Key Principles:**
+
+- One shared PostgreSQL database stores Identity and tenant financial data
+- Tenants share tables; isolation is enforced by tenant-scoped application queries and authorization, not separate databases or schemas per tenant
+- A unique constraint on `(UserId, TenantId)` allows one role assignment per user per tenant
 - Complete data isolation by tenant
 - All financial queries must be tenant-scoped
 - Role-based authorization on tenant resources
@@ -81,14 +93,16 @@ Examples:
 
 ## Consequences
 
-### Easier:
+### Easier
+
 - Clear data boundaries prevent leaks
 - Supports personal, household, and business scenarios
 - Role-based access scales to complex use cases
 - Domain-agnostic code reusable for other applications
 - UI terminology can evolve without code changes
 
-### More Complex:
+### More Complex
+
 - All queries must be tenant-scoped
 - Users need tenant selection/switching UI
 - Email invitation and acceptance workflow required
@@ -97,7 +111,7 @@ Examples:
 ## Related Decisions
 
 - [ADR 0008: Identity System](0008-identity.md) - Authentication foundation
-- [ADR 0005: Database Backend](0005-database-backend.md) - SQLite storage
+- [ADR 0005: Database Backend](0005-database-backend.md) - Shared PostgreSQL storage for Identity and tenant data
 
 ## Implementation
 
@@ -107,9 +121,10 @@ The tenancy system has been implemented using a lightweight pattern that provide
 - **Security-First Authorization:** Returns 403 for both "tenant not found" and "access denied" to prevent tenant enumeration
 - **Claims-Based Access:** JWT tokens contain `tenant_role` claims in format `"{tenantKey}:{role}"`
 - **Middleware Pipeline:** Authorization → Tenant Context → Controller flow ensures proper isolation
-- **Production-Ready:** Comprehensive integration test coverage validates cross-tenant isolation
+- **Integration Coverage:** PostgreSQL-backed integration tests validate cross-tenant isolation, including tenant-scoped queries and HTTP authorization
 
 **Complete Documentation:** See [`TENANCY.md`](../TENANCY.md) for:
+
 - Architecture and component overview
 - Data model and database configuration
 - Authorization policies and role-based access

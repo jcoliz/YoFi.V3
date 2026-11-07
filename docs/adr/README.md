@@ -1,6 +1,13 @@
 # Architecture Decision Records
 
 ## Accepted Decisions
+
+The backend and integration tests use PostgreSQL. The production infrastructure,
+Identity, tenancy, and Clean Architecture decisions reflect that implementation.
+See the [database decision](0005-database-backend.md) and
+[environment configuration](../ENVIRONMENTS.md) for database setup and deployment
+requirements. Dates below identify when each decision was originally recorded.
+
 - [0001. Single Page Web App](0001-spa-web-app.md) - Nov 1, 2025
 - [0002. Vue.js Frontend](0002-vue-js.md) - Nov 9, 2025
 - [0003. Nuxt Meta-Framework](0003-nuxt.md) - Nov 9, 2025
@@ -14,4 +21,5 @@
 - [0011. Clean Architecture pattern](0011-clean-architecture.md) - Jan 1, 2026
 
 ## Template
+
 See [template.md](template.md) for creating new ADRs.

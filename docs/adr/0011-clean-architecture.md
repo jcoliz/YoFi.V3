@@ -13,6 +13,7 @@ Accepted
 YoFi.V3 is a complete rewrite of the [YoFi personal finance application](https://github.com/jcoliz/yofi). Starting from scratch provided an opportunity to evaluate architectural patterns and select the best foundation for a modern, maintainable application.
 
 Requirements for the architectural pattern:
+
 - Clear separation between business rules and infrastructure
 - Testability at all layers
 - Independence from UI frameworks and databases
@@ -44,38 +45,46 @@ UI → Controllers → Application → Entities ← Data
 Dependencies flow inward. Outer layers depend on inner layers. Inner layers have no knowledge of outer layers.
 
 #### 1. Entities
+
 **The Core Domain Layer** (`src/Entities/`)
 
 Contains:
+
 - Domain models
 - Data access interfaces (IDataProvider for queryable table access, ITenantRepository for special tenancy operations)
 - Domain exceptions
 
 **Rules:**
+
 - Zero dependencies on other layers
 - No knowledge of databases, frameworks, or UI
 - Contains ONLY domain concepts and contracts
 - Framework-agnostic (pure C# with minimal framework dependencies)
 
 #### 2. Application
+
 **The Business Logic Layer** (`src/Application/`)
 
 Contains:
+
 - Feature implementations
 - DTOs for data transfer
 - Business workflows and use cases
 - Validation logic
 
 **Rules:**
+
 - Depends ONLY on Entities layer (interfaces and models)
 - No knowledge of Controllers, databases, or UI frameworks
 - Orchestrates business logic using IDataProvider for direct queryable access
 - Contains no infrastructure concerns
 
 #### 3. Controllers
+
 **The API Boundary Layer** (`src/Controllers/`)
 
 Contains:
+
 - All ASP.NET concerns
 - HTTP endpoint implementations
 - Request/response handling
@@ -84,33 +93,41 @@ Contains:
 - OpenAPI/Swagger documentation
 
 **Rules:**
+
 - Depends on Application layer (Features) and Entities layer (exceptions)
 - Thin layer - delegates all business logic to Application Features
 - Handles ONLY HTTP concerns (routing, status codes, authentication, logging)
 - No business logic in controllers
 
 #### 4. Data
+
 **The Infrastructure Layer** (Database-specific implementations)
 
 Contains:
+
 - All Entity Framework concerns (e.g. DbContext and configurations)
 - Database migrations
 - IDataProvider implementation (exposes IQueryable<T> for each table)
 - Special-case implementations (ITenantRepository for tenancy operations)
 
 **Rules:**
+
 - Depends on Entities layer (implements data access interfaces)
 - No knowledge of Controllers or Application layer
 - Handles ONLY data persistence concerns
 
 **Current Implementations:**
-- Data.Sqlite (src/Data/Sqlite/) - SQLite-specific DbContext and migrations
-- Future: Data.Postgres - PostgreSQL implementation when scaling requires it
+
+- [Data.PostgreSQL](../../src/Data/PostgreSQL/) - Npgsql-backed `ApplicationDbContext`, PostgreSQL configurations, and EF migrations
+- Implements `IDataProvider` and `ITenantRepository` without introducing database dependencies into Application or Entities
+- Used by the backend and all Data, Application, and Controller integration tests
 
 #### 5. BackEnd
+
 **The Host Layer** (`src/BackEnd/`)
 
 Contains:
+
 - Application startup and configuration
 - Dependency injection registration
 - Middleware pipeline setup
@@ -119,6 +136,7 @@ Contains:
 - Environment-specific settings
 
 **Rules:**
+
 - References all other projects to wire them together
 - Contains no business logic
 - Purely composition root
@@ -148,17 +166,20 @@ YoFi.V3 combines Clean Architecture with the **Backend for Frontend (BFF)** patt
 ## Key Architectural Patterns
 
 **Data Access Pattern (NOT Repository Pattern):**
-- IDataProvider<T> exposes IQueryable<T> for direct LINQ queries
+
+- IDataProvider exposes IQueryable<T> for entity queries
 - Application Features write queries without intermediate repository methods
 - Only tenancy (ITenantRepository) needs special operations beyond queryable access
 - Avoids repository pattern boilerplate and repetition
 
 **Feature Pattern:**
+
 - Each business capability is a Feature class (TransactionsFeature, TenantFeature)
 - Features use constructor injection to get IDataProvider
 - Features return DTOs, not entities
 
 **Dependency Injection:**
+
 - ServiceCollectionExtensions in each layer register dependencies
 - Controllers → Application → Entities registration chain
 - Interfaces resolved to implementations at runtime
@@ -169,7 +190,8 @@ YoFi.V3 combines Clean Architecture with the **Backend for Frontend (BFF)** patt
 
 - Features testable in isolation via mocked interfaces
 - Business logic has no Entity Framework dependencies
-- Can swap SQLite for PostgreSQL without changing Features
+- PostgreSQL-specific persistence remains isolated in Data; Features depend on data-access abstractions rather than Npgsql or EF Core
+- Data and Application integration tests verify persistence behavior against PostgreSQL; Controller integration tests verify the HTTP stack against the same provider
 - Each layer has single, well-defined responsibility
 - Changes isolated to appropriate layer
 - Easy to locate code by feature
@@ -193,11 +215,14 @@ Each service is kept separate rather than combined into a monolithic Infrastruct
 
 ### Additional Database Implementations
 
-- Add database-specific Data projects as needed (Data.Postgres for scaling)
+- If another database provider is needed, implement the existing Entities data-access interfaces in a separate Data project
+- Keep provider-specific SQL, schema configuration, and migrations out of Application Features
+- Validate any new provider with its own real-database integration tests rather than assuming identical persistence behavior
 
 ## References
 
 **Clean Architecture Resources:**
+
 - Robert C. Martin, "Clean Architecture: A Craftsman's Guide to Software Structure and Design"
 - [Clean Architecture Blog Post](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Microsoft .NET Application Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures#clean-architecture)

@@ -33,7 +33,7 @@ YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the ac
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Data Integration Tests (10%)                                │
-│ Direct DbContext → Database (in-memory)                     │
+│ Direct DbContext → PostgreSQL (Testcontainers)              │
 │ Purpose: EF Core configurations, schema validation          │
 └─────────────────────────────────────────────────────────────┘
                           ↓
@@ -47,6 +47,17 @@ YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the ac
 **Target Distribution:** 10% Functional / 5% Frontend Component / 20% Controller / 40% Application / 10% Data / 15% Unit
 
 **Key Insight:** "Most of the application's actual work happens between the app layer and the data context" - so test that boundary directly.
+
+### Integration Database Lifecycle
+
+All three integration projects require Docker and use PostgreSQL Testcontainers
+with real EF migrations. Data and Application tests get a fresh database per
+test; Controller tests get an isolated database per WebApplicationFactory.
+Test databases and their disposable test containers are cleaned up automatically.
+Application containers are separate and must not be stopped by test runs.
+
+Run `.\scripts\Run-Tests.ps1 -Integration` from the repository root. The script
+checks Docker availability before starting any selected tests.
 
 ## 1. Frontend Component Tests (LOGIC ONLY - 5%)
 

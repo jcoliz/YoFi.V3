@@ -10,7 +10,7 @@ YoFi.V3 is a web-based personal finance application that helps you track and man
 - **Multi-Tenant Architecture** - Secure isolation for multiple users and accounts
 - **RESTful API** - Modern HTTP API with OpenAPI/Swagger documentation
 - **Authentication & Authorization** - JWT-based security with user registration and login
-- **Data Persistence** - SQLite database for reliable transaction storage
+- **Data Persistence** - PostgreSQL database for reliable transaction storage
 - **Health Monitoring** - Built-in health checks and comprehensive logging
 
 This container provides the backend API service. The frontend is a separate Vue.js/Nuxt application that connects to this API.
@@ -18,16 +18,17 @@ This container provides the backend API service. The frontend is a separate Vue.
 **Technology Stack:**
 - .NET 10.0 with ASP.NET Core
 - Entity Framework Core ORM
-- SQLite database
+- PostgreSQL database via Npgsql
 - JWT authentication
 - OpenAPI/Swagger documentation
 
 ## Quick Start
 
-Pull and run the backend container:
+Run the Compose project, which also starts PostgreSQL and supplies the backend
+connection string:
 
 ```bash
-docker run -p 5001:8080 yofi-v3-backend
+docker compose -f docker/docker-compose-ci.yml up -d --wait
 ```
 
 The API will be available at http://localhost:5001
@@ -38,13 +39,13 @@ ASP.NET Core 10 REST API providing backend services for personal finance managem
 
 **Features:**
 - RESTful API with OpenAPI/Swagger documentation
-- Entity Framework Core with SQLite database
+- Entity Framework Core with PostgreSQL database
 - JWT-based authentication
 - Health check endpoints
 - Multi-tenant support
 - Comprehensive logging with structured output
 
-**Base Image:** `mcr.microsoft.com/dotnet/aspnet:10.0.0-rc.2`
+**Base Image:** `mcr.microsoft.com/dotnet/aspnet:10.0.13`
 
 **Exposed Ports:**
 - `8080` - HTTP API endpoint
@@ -84,7 +85,7 @@ Swagger descriptions on auth endpoints inherited from NuxtIdentity.
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `SOLUTION_VERSION` | Version tag for the build | `docker-local` |
+| `SOLUTION_VERSION` | Version tag for the build | `container` |
 
 Example with version:
 ```bash
@@ -101,8 +102,9 @@ Configure the container using these environment variables:
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `APPLICATION__ENVIRONMENT` | Runtime environment (Container/Development/Production) | `Container` | No |
-| `APPLICATION__ALLOWEDCORSORIGINS__0` | CORS allowed origin | _(none)_ | Yes |
+| `ASPNETCORE_ENVIRONMENT` | Runtime environment (Container/Development/Production) | `Production` if unset; Compose sets `Container` | No |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string | _(none)_ | Yes |
+| `STARTUP__ALLOWEDCORSORIGINS__0` | CORS allowed origin | _(none)_ | Yes |
 | `JWT__ISSUER` | JWT token issuer URL | _(none)_ | Yes |
 | `JWT__AUDIENCE` | JWT token audience URL | _(none)_ | Yes |
 | `JWT__KEY` | JWT signing key (base64) | _(none)_ | Yes |
@@ -117,13 +119,18 @@ Run with environment variables:
 
 ```bash
 docker run -p 5001:8080 \
-  -e APPLICATION__ENVIRONMENT=Container \
-  -e APPLICATION__ALLOWEDCORSORIGINS__0=http://localhost:5000 \
+  -e ASPNETCORE_ENVIRONMENT=Container \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Database=yofi;Username=yofi;Password=YourDatabasePassword" \
+  -e STARTUP__ALLOWEDCORSORIGINS__0=http://localhost:5000 \
   -e JWT__ISSUER=http://localhost:5001 \
   -e JWT__AUDIENCE=http://localhost:5001 \
   -e JWT__KEY=YourSecureBase64EncodedKeyHere \
   yofi-v3-backend
 ```
+
+PostgreSQL must already be reachable with the specified credentials. Non-production
+startup applies EF migrations; Production uses managed identity and does not
+automatically migrate the database.
 
 ### Using Docker Compose
 
@@ -138,6 +145,9 @@ docker compose -f docker/docker-compose-ci.yml up backend
 ## Usage
 
 ### Run the Container
+
+For standalone runs, `.env` must include `ASPNETCORE_ENVIRONMENT=Container`,
+`ConnectionStrings__DefaultConnection`, and the authentication/CORS settings.
 
 Start in foreground with logs:
 ```bash
@@ -185,20 +195,16 @@ Key endpoints:
 
 ## Data Persistence
 
-By default, the SQLite database runs ephemerally inside the container. Data is lost when the container is removed.
+The backend stores data in PostgreSQL, not in its own container filesystem.
+The CI Compose project runs PostgreSQL as the `db` service and mounts its data
+directory as `tmpfs`. Data is lost when the database container stops, not when
+only the backend container is replaced.
 
 ### Persist Data with Volumes
 
-Mount a volume to persist the database:
-
-```bash
-docker run -p 5001:8080 \
-  -v $(pwd)/data:/app/data \
-  --env-file .env \
-  yofi-v3-backend
-```
-
-The database file location is controlled by the connection string in configuration.
+For durable data, replace the `db` service's `tmpfs` mount with a named volume
+mounted at `/var/lib/postgresql/data`, or connect to an external PostgreSQL server.
+Mounting a data directory in the backend container does not persist PostgreSQL data.
 
 ## Health Checks
 
@@ -206,7 +212,7 @@ The image includes a built-in health check that monitors:
 - Application startup state
 - ASP.NET Core health endpoints
 
-Docker automatically performs health checks every 5 seconds with a 5-second timeout.
+Docker automatically performs health checks every 10 seconds with a 5-second timeout.
 
 Check health status manually:
 ```bash
@@ -227,7 +233,7 @@ The docker-compose configuration includes the Aspire Dashboard for comprehensive
 
 When running containers via [`docker-compose-ci.yml`](docker-compose-ci.yml), the Aspire Dashboard is automatically available at:
 
-**http://localhost:18888**
+**http://localhost:18788**
 
 The dashboard provides real-time visibility into:
 - **Structured Logs** - Filter, search, and correlate logs with TraceIds
@@ -260,7 +266,7 @@ The dashboard provides real-time visibility into:
 **During functional tests:**
 ```powershell
 .\scripts\Run-FunctionalTestsVsContainer.ps1
-# Dashboard available at http://localhost:18888
+# Dashboard available at http://localhost:18788
 ```
 
 **When troubleshooting container issues:**
@@ -279,7 +285,7 @@ The dashboard provides much richer diagnostics than `docker logs` alone, making 
 
 ### View Telemetry in Aspire Dashboard
 
-For most troubleshooting scenarios, the Aspire Dashboard (http://localhost:18888) provides the best visibility. Check the Structured Logs and Traces tabs to see detailed diagnostic information with correlation IDs.
+For most troubleshooting scenarios, the Aspire Dashboard (http://localhost:18788) provides the best visibility. Check the Structured Logs and Traces tabs to see detailed diagnostic information with correlation IDs.
 
 ### Container Exits Immediately
 
@@ -341,7 +347,7 @@ This script:
 4. Runs the complete Playwright test suite
 5. Tears down the environment
 
-**Tip:** Open the Aspire Dashboard (http://localhost:18888) while tests are running to see real-time logs, traces, and metrics.
+**Tip:** Open the Aspire Dashboard (http://localhost:18788) while tests are running to see real-time logs, traces, and metrics.
 
 ## Performance
 
@@ -359,8 +365,8 @@ This script:
 
 This container is designed to run in multiple environments:
 
-- **Development/Testing:** Use with default or test JWT keys, SQLite database
-- **Production:** Requires secure JWT configuration, consider external database (SQL Server, PostgreSQL)
+- **Development/Testing:** Use PostgreSQL connection-string authentication and default or test JWT keys; startup applies EF migrations
+- **Production:** Requires secure JWT configuration, PostgreSQL managed-identity access, and migrations applied externally before startup
 
 See [Container Environment Guide](../docs/CONTAINER-ENVIRONMENT.md) for detailed information about running in different environments.
 

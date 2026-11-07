@@ -6,6 +6,10 @@ Looking at your git commit history, I can see a clear progression of how you bui
 
 Based on the YoFi.V3 project development history (Nov 8-16, 2025)
 
+This is a historical setup guide. Its SQLite examples describe the original
+implementation; the current backend and integration tests use PostgreSQL.
+See [ENVIRONMENTS.md](ENVIRONMENTS.md) for current setup.
+
 ## Phase 1: Foundation & Architecture (Days 1-2)
 
 ### 1.1 Initial Project Setup

@@ -2,6 +2,10 @@
 
 This project provides the SQLite implementation of the data layer for YoFi.V3.
 
+**Legacy provider:** The backend and all integration tests now use
+[`PostgreSQL`](../PostgreSQL/). This project remains temporarily pending removal;
+the SQLite notes below are historical and do not describe current test behavior.
+
 ## Important SQLite Behavior Notes
 
 ### Type Affinity and Constraint Enforcement
@@ -65,12 +69,11 @@ This approach:
 - ✅ Provides consistent validation regardless of database provider
 - ✅ Eliminates magic numbers scattered through validation code
 
-#### Integration Tests Document This Behavior
+#### Current Integration Tests
 
-The integration tests in [`tests/Integration.Data`](../../../tests/Integration.Data) explicitly test and document this SQLite behavior:
-
-- [`Tenant_NameMaxLengthConfigured()`](../../../tests/Integration.Data/TenantTests.cs) - Documents that 101 chars are stored despite 100 char EF Core configuration
-- [`UserTenantRoleAssignment_UserIdMaxLengthConfigured()`](../../../tests/Integration.Data/UserTenantRoleAssignmentTests.cs) - Documents that 451 chars are stored despite 450 char configuration
+The tests in [`tests/Integration.Data`](../../../tests/Integration.Data) now run
+against PostgreSQL and assert that overlength values are rejected. They no longer
+exercise SQLite's permissive length behavior.
 
 ### Other SQLite Quirks
 

@@ -7,7 +7,7 @@
 - .NET 10.0 SDK
 - Node.js 24+ with pnpm
 - Visual Studio 2022 or VS Code with recommended extensions
-- Docker Desktop (optional, for container workflows)
+- Docker Desktop or Docker Engine, running for Aspire, integration tests, and container workflows
 
 ### Quick Start (Recommended)
 
@@ -73,6 +73,7 @@ This project follows Clean Architecture with clear separation:
 - Write application integrations tests when Application Features affect the data layer
 - Unit Tests live in `tests/Unit/`
 - Run tests: `.\scripts\Run-Tests.ps1` for unit and frontend tests. Use `-Integration` switch to run all integration tests.
+- Integration tests use PostgreSQL Testcontainers with isolated databases and real EF migrations. The script checks Docker before running any selected suites; application containers are not required.
 - Aim for high coverage of business logic
 
 ## Pull Request Process

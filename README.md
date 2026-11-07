@@ -27,6 +27,7 @@ For detailed feature roadmap and release planning, see [PRODUCT-ROADMAP.md](docs
 * [.NET 10](https://dotnet.microsoft.com/) - Cross-platform development framework
 * [ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/) - Web API framework
 * [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/) - Object-relational mapper (ORM)
+* [PostgreSQL](https://www.postgresql.org/) - Relational database used by the backend and integration tests
 
 ### Development & Tooling
 
@@ -39,7 +40,7 @@ For detailed feature roadmap and release planning, see [PRODUCT-ROADMAP.md](docs
 
 * [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static/) - Hosting for frontend application
 * [Azure App Service](https://azure.microsoft.com/en-us/products/app-service/) - Managed hosting for web applications
-* [Azure SQL Database](https://azure.microsoft.com/en-us/products/azure-sql/database/) - Managed relational database
+* [Azure Database for PostgreSQL](https://azure.microsoft.com/en-us/products/postgresql/) - Target managed relational database; provisioning must be configured before production deployment
 * [Azure Storage](https://azure.microsoft.com/en-us/products/storage/blobs/) - Cloud object storage for documents and files
 
 ## Architecture
@@ -58,12 +59,13 @@ graph TB
         Backend[BackEnd<br/>ASP.NET Core]
         Controllers[Controllers<br/>HTTP API Layer]
         Application[Application<br/>Business Logic]
-        Data[Data.Sqlite<br/>Entity Framework]
+        Data[Data.PostgreSQL<br/>Entity Framework]
         Entities[Entities<br/>Data Models & Interfaces]
 
         Backend --> Controllers
         Controllers --> Application
-        Application --> Data
+        Application --> Entities
+        Backend --> Data
         Data --> Entities
     end
 
@@ -96,6 +98,8 @@ graph TB
 - **[src/FrontEnd.Nuxt](src/FrontEnd.Nuxt)** - Vue/Nuxt user interface
 - **[tests/Unit](tests/Unit)** - Unit tests for Application layer
 - **[tests/Integration.Data](tests/Integration.Data)** - Integration tests for Data layer
+- **[tests/Integration.Application](tests/Integration.Application)** - Application Features with PostgreSQL
+- **[tests/Integration.Controller](tests/Integration.Controller)** - HTTP API tests with PostgreSQL
 - **[tests/Functional](tests/Functional)** - Functional tests for end-to-end scenarios
 
 ## Getting Started
@@ -104,7 +108,7 @@ For more details about the various environments where the app is built to run, p
 
 ### Development Setup
 
-**Prerequisites:** .NET 10.0 SDK, Node.js 24+, pnpm, Visual Studio 2022 or VS Code
+**Prerequisites:** .NET 10.0 SDK, Node.js 24+, pnpm, Visual Studio 2022 or VS Code, and Docker installed and running for Aspire and integration tests
 
 Run the automated setup script after cloning:
 
@@ -136,4 +140,3 @@ It's quick and easy to run the app:
     ```
 
 This will open a browser window to the running app.
-

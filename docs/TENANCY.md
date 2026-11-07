@@ -117,7 +117,7 @@ public record UserTenantRoleAssignment
 
 ### Database Configuration
 
-Key configuration in [`ApplicationDbContext.OnModelCreating`](../src/Data/Sqlite/ApplicationDbContext.cs:46-126):
+Key configuration in [`ApplicationDbContext.OnModelCreating`](../src/Data/PostgreSQL/ApplicationDbContext.cs):
 - Unique constraint on (UserId, TenantId) - one role per user per tenant
 - Foreign key relationships with cascade delete
 - Indexes for tenant-scoped queries
@@ -240,7 +240,7 @@ public interface ITenantRepository
 }
 ```
 
-**Implementation:** [`ApplicationDbContext`](../src/Data/Sqlite/ApplicationDbContext.cs:170-222) implements the interface with proper exception handling.
+**Implementation:** [`ApplicationDbContext`](../src/Data/PostgreSQL/ApplicationDbContext.cs) implements the interface. Duplicate role assignments are translated only for the PostgreSQL unique violation on the user/tenant index; other database errors propagate.
 
 ## Exception Handling
 

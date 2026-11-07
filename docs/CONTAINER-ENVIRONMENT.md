@@ -14,7 +14,7 @@ As a developer I can...
 
 ### Near-production environment locally
 
-The container build generates the frontend as a static site. It runs the backend with production settings as a release build. Configuration is handled by environment variables, including CORS settings, in a production-like manner. All this without waiting for any cloud deployments, from the comfort of my desk, reliably and repeatably every time.
+The container build generates the frontend as a static site. It runs the backend in the `Container` environment, using PostgreSQL connection-string authentication and automatic EF migrations rather than Production managed-identity authentication. Configuration is handled by environment variables, including CORS settings, in a production-like manner.
 
 ### Fast functional tests
 
@@ -24,7 +24,8 @@ decay in the functional tests or last-minute surprises when CI builds fail.
 Instead, with one script, we can quickly build the application into containers and run the entire suite of functional tests against it.
 
 ```powershell
-./scripts/Run-FunctionalTestsInContainer.ps1
+.\scripts\Start-Container.ps1 -Build -NoBrowser
+.\scripts\Run-Tests.ps1 -Functional
 ```
 
 ### Functional tests in CI build
@@ -54,11 +55,8 @@ To run `docker compose up --wait -d`, and bring up browser window:
 ./scripts/Start-Container.ps1
 ```
 
-Finally, to run `docker compose down`:
-
-```
-./scripts/Stop-Container.ps1
-```
+Leave application containers running after tests. Disposable integration-test
+containers are managed separately by Testcontainers.
 
 ## How it's built
 
@@ -70,7 +68,10 @@ Using a docker compose project to manage building, running, pushing, and publish
 
 The [Backend.dockerfile](../docker/BackEnd.dockerfile) and the Frontend.Nuxt [Dockerfile](../src/FrontEnd.Nuxt/docker/Dockerfile) specify the needed build and run details.
 
-The database runs as an ephemeral SQLite file in the container file system. I have not found a need for persistence across container runs, although that is easily accomplished by mounting a local volume.
+The database runs in the Compose `db` service using PostgreSQL. Its data directory
+is mounted as `tmpfs`, so data is lost when that database container stops. This is
+intentional for testing. Durable storage requires replacing the `tmpfs` mount with
+a PostgreSQL data volume, not mounting a database file in the backend container.
 
 Note that containers are not intended to replace a robust local development setup. To make this easy, we even have a script which checks all local development prerequisites so you can catch issues right away.
 
@@ -89,7 +90,7 @@ docker run jcoliz/yofi-v3:latest
 
 ### Aspire Dashboard
 
-The docker-compose configuration includes the Aspire Dashboard for comprehensive observability. When containers are running, the dashboard is available at **http://localhost:18888**.
+The docker-compose configuration includes the Aspire Dashboard for comprehensive observability. When containers are running, the dashboard is available at **http://localhost:18788**.
 
 **Dashboard Features:**
 - **Structured Logs** - Filter, search, and correlate logs with TraceIds (better than `docker logs`)
@@ -109,7 +110,7 @@ If functional tests fail against the container, you have several options:
 
 ### 1. View Telemetry in Aspire Dashboard (Recommended)
 
-Open http://localhost:18888 and check:
+Open http://localhost:18788 and check:
 - **Structured Logs tab** - Filter by log level, search by content, view structured properties
 - **Traces tab** - See request flows with timing information
 - **Metrics tab** - Check for performance issues

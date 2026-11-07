@@ -32,6 +32,7 @@ I created a new library, [Nuxt Identity](https://github.com/jcoliz/NuxtIdentity)
 
 - **[@sidebase/nuxt-auth](https://auth.sidebase.com/) with local provider** - Client-side authentication
 - **ASP.NET Core Identity** with JWT tokens for stateless authentication
+- **PostgreSQL persistence** through the Npgsql-backed `ApplicationDbContext`, shared by Identity, refresh tokens, and business data
 
 Nuxt Identity aims to be a thin library, focused on moving data between .NET Identity and @sidebase/nuxt-auth. Here's what it's doing:
 
@@ -61,7 +62,7 @@ Nuxt Identity aims to be a thin library, focused on moving data between .NET Ide
 ✅ **Static Hosting Compatible**: No server-side session handling required  
 ✅ **Cost Effective**: Works with Azure Static Web Apps infrastructure  
 ✅ **Extensible**: Easy to add external providers later  
-✅ **Single Database**: User data stays in your SQLite database with your business data  
+✅ **Single Database**: Identity, refresh tokens, and business data share PostgreSQL
 ✅ **Authorization Ready**: Built-in support for roles and custom claims for account-level permissions  
 
 ## Consequences
@@ -73,7 +74,7 @@ Nuxt Identity aims to be a thin library, focused on moving data between .NET Ide
 - **Stateless Architecture**: JWT tokens work perfectly with direct API call architecture
 - **Static Hosting**: Compatible with Azure Static Web Apps cost-effective infrastructure
 - **Extensibility**: Easy to add external providers later
-- **Single Database**: User data stays in SQLite database with business data
+- **Single Database**: Identity, refresh tokens, and business data share PostgreSQL and the same EF migration lifecycle
 - **Authorization**: Built-in support for roles and custom claims using the AccountView/AccountEdit/AccountOwn policies defined in ADR 0009
 
 ### What becomes more complex:
@@ -83,6 +84,7 @@ Nuxt Identity aims to be a thin library, focused on moving data between .NET Ide
 - **Custom Claims**: Account-level authorization requires custom implementation
 - **Security Considerations**: Tokens stored client-side (though mitigated by secure cookies and short expiry)
 - **Testing**: Authentication flows need to be tested across both frontend and backend
+- **Database Deployment**: Production requires PostgreSQL managed-identity access and EF migrations applied before backend startup
 
 ### Future Considerations:
 
@@ -106,4 +108,4 @@ The frontend will authenticate against the App Service backend using standard RE
 
 - [ADR 0009: Multi-tenancy and Account Model](0009-accounts-and-tenancy.md) - Defines the account structure, roles, and authorization policies that this identity system implements
 - [ADR 0006: Production Infrastructure](0006-production-infrastructure.md) - Azure infrastructure decisions
-- [ADR 0005: Database Backend](0005-database-backend.md) - SQLite database for storing user and account data
+- [ADR 0005: Database Backend](0005-database-backend.md) - PostgreSQL storage for Identity, refresh tokens, and tenant data

@@ -22,6 +22,7 @@ As described in [ADR 0004](./adr/0004-aspire-development.md), local development 
 **Architecture:**
 - Frontend runs in Node.js dev server (via pnpm) with hot module replacement
 - Backend runs as .NET API service
+- PostgreSQL runs in a Docker container managed by Aspire (Docker must be running)
 - Orchestrated by Aspire AppHost
 
 **Frontend-to-Backend Communication:**
@@ -49,6 +50,7 @@ The application can be packaged into containers and orchestrated with a [Docker 
 - Frontend generated as static site using `nuxt generate`
 - Frontend served by nginx
 - Backend runs as containerized .NET API
+- PostgreSQL runs as the Compose `db` service, with ephemeral storage for testing
 - Orchestrated via [docker compose](../docker/docker-compose-ci.yml)
 
 **Frontend-to-Backend Communication:**
@@ -72,6 +74,7 @@ As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 000
 **Architecture:**
 - Frontend: Azure Static Web Apps (static site from `nuxt generate`)
 - Backend: Azure App Service (.NET Web API)
+- Database: PostgreSQL must be provisioned and configured separately, with managed-identity access and migrations applied before backend startup
 - Deployed via [Azure Pipelines](../.azure/pipelines/ci.yaml). Note this is the **ONLY** supported methodology to deploy bits.
 
 **Frontend-to-Backend Communication:**
@@ -88,6 +91,7 @@ As described in [ADR 0006](./adr/0006-production-infrastructure.md) and [ADR 000
 |--------|-------------|-----------|------------|
 | Frontend host | Node dev server | nginx (static) | Azure Static Web Apps |
 | Backend host | .NET process | Docker container | Azure App Service |
+| Database | Aspire PostgreSQL container | Compose PostgreSQL container | PostgreSQL with managed-identity access (requires provisioning) |
 | Frontend build | `npm run dev` | `npm run generate` | `npm run generate` |
 | API calls | Proxied via Nuxt | Direct (baked URL) | Direct (baked URL) |
 | Orchestration | .NET Aspire | Docker Compose | Azure |

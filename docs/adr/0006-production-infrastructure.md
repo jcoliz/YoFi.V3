@@ -24,6 +24,8 @@ We will likely have just two components to the app itself.
 * Back End .NET API service
 * Front End Nuxt UI
 
+Persistent application and identity data is stored separately in PostgreSQL.
+
 ### Possibilities
 
 1. Azure Container Apps (ACA). Seems like the default way to deploy Aspire apps
@@ -45,9 +47,17 @@ We will likely have just two components to the app itself.
 
 **Backend**: Azure App Service (Basic B1 tier)
 - Single container deployment
-- Persistent storage for SQLite database (contemplated in [ADR 0005](./0005-database-backend.md))
+- System-assigned managed identity for PostgreSQL authentication
 - Cost-effective for low, steady traffic (~$13/month)
 - Provides authentication endpoints for frontend
+
+**Database**: Azure Database for PostgreSQL Flexible Server
+- Stores application and ASP.NET Core Identity data in one database, as described in [ADR 0005](./0005-database-backend.md)
+- Persistent storage is managed by the database service, not the App Service filesystem
+- Configure `ConnectionStrings:DefaultConnection` with the server, database, and database role for the backend's managed identity
+- Provision Microsoft Entra authentication, grant the identity the required database permissions, and configure network access from App Service
+- Apply EF migrations through deployment tooling before backend startup; Production startup does not apply migrations
+- Database provisioning and deployment configuration must be completed before deploying the PostgreSQL-backed backend; see [deployment prerequisites](../DEPLOYMENT.md)
 
 ### Alternative Considered: Azure Container Apps
 
@@ -56,8 +66,8 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 ## Consequences
 
 **Easier**:
-- Predictable, low monthly costs
-- SQLite works naturally with App Service persistent storage
+- Predictable App Service compute costs, with database costs budgeted separately
+- Managed PostgreSQL storage is independent of backend deployments and instance scaling
 - Native HTTPS on custom domain for both frontend and backend
 - Less configuration complexity than ACA
 - `.PublishAsDockerFile()` in `AppHost.cs` already supports this
@@ -68,6 +78,9 @@ ACA was considered but rejected for cost reasons. At low volumes, the consumptio
 - Cannot easily scale to zero like ACA
 - May need to migrate to ACA later if traffic patterns become highly variable
 - Authentication state managed entirely client-side
+- PostgreSQL adds a separately provisioned service and ongoing database costs
+- Managed-identity database permissions and network connectivity require explicit configuration
+- Schema migrations must be coordinated with application deployments
 
 ## Authentication Compatibility
 
@@ -83,6 +96,6 @@ The static frontend will authenticate against the App Service backend using stan
 ## Related Decisions
 
 - [0004. Aspire Development](0004-aspire-development.md) - Development orchestration differs from production deployment
-- [0005. Database Backend](0005-database-backend.md) - SQLite database stored on App Service persistent storage
+- [0005. Database Backend](0005-database-backend.md) - PostgreSQL for application and identity data
 - [0007. Proxy to backend or make direct calls?](0007-backend-proxy-or-direct.md) - Frontend-to-backend communication approach
 - [0008. Identity](0008-identity.md) - Client-side authentication using local provider

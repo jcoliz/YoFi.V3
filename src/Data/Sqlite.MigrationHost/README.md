@@ -1,5 +1,10 @@
 # Migrations Host for Data.Sqlite
 
+**Legacy tooling:** The backend now uses PostgreSQL. Do not use the commands below
+to update the active backend schema. Use [`Add-Migration.ps1`](../../../scripts/Add-Migration.ps1)
+and [`Export-PostgresMigration.ps1`](../../../scripts/Export-PostgresMigration.ps1)
+for PostgreSQL; this README preserves the old SQLite workflow.
+
 In order to run migrations, EF Core needs a "main" app to run. To keep this simple,
 we dedicate a whole app, with very minimal things going on, so we don't have to worry
 about configuration, secrets, etc, which have nothing to do with the migration.

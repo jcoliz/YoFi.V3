@@ -53,12 +53,12 @@ Dependencies point inward. Inner layers have no knowledge of outer layers.
   - Middleware: TenantContext, CustomExceptionHandler
   - Monitoring: Application Insights
 
-- **Data.Sqlite** (`src/Data/Sqlite/`) - Database-specific implementation
-  - DbContext: `AppDbContext` with Entity Framework Core
-  - Migrations: `Sqlite.MigrationHost` for schema updates
-  - Implements `IDataProvider<T>` (exposes `IQueryable<T>`)
+- **Data.PostgreSQL** ([`src/Data/PostgreSQL/`](../src/Data/PostgreSQL/)) - Database-specific implementation
+  - DbContext: `ApplicationDbContext` with Entity Framework Core and Npgsql
+  - Migrations: PostgreSQL migrations generated using [`Add-Migration.ps1`](../scripts/Add-Migration.ps1)
+  - Implements `IDataProvider` (exposes entity queries)
   - Implements `ITenantRepository` (special tenancy operations)
-  - Future: `Data.Postgres` for scaling
+  - Non-production startup applies migrations; Production uses managed identity and externally applied migrations
 
 ### Frontend
 
@@ -102,12 +102,12 @@ Dependencies point inward. Inner layers have no knowledge of outer layers.
 2. Frontend calls **BackEnd** REST API using generated TypeScript client
 3. **Controllers** receive HTTP requests, delegate to **Application** Features
 4. **Application** Features execute business logic using **Entities**
-5. **Data** layer handles persistence (SQLite via Entity Framework)
+5. **Data** layer handles persistence (PostgreSQL via Entity Framework)
 6. Results flow back through layers to update UI
 
 ### Build & Deployment Flow
 1. **Unit tests** validate Application layer logic
-2. **Integration tests** verify Data layer operations
+2. **Integration tests** verify Data, Application, and HTTP controller behavior against PostgreSQL Testcontainers (Docker required)
 3. **Functional tests** (Playwright) validate end-to-end workflows
 4. **Azure Pipelines** builds, tests, and deploys to Azure
 5. **Frontend** → Azure Static Web Apps
@@ -137,7 +137,7 @@ Budgets (Id, TenantId, Month, Amount)
 
 ### Backend (.NET 10)
 - **Framework**: ASP.NET Core with minimal APIs
-- **Database**: SQLite with Entity Framework Core
+- **Database**: PostgreSQL with Entity Framework Core and Npgsql
 - **Authentication**: ASP.NET Core Identity with JWT tokens
 - **Monitoring**: Application Insights + Log Analytics
 - **Development**: .NET Aspire for orchestration
@@ -169,7 +169,7 @@ Documented in [Architecture Decision Records](adr/README.md):
 - [0004: Aspire Development](adr/0004-aspire-development.md) - .NET Aspire orchestration
 
 ### Infrastructure & Data
-- [0005: Database Backend](adr/0005-database-backend.md) - SQLite database, PostgreSql for scale
+- [0005: Database Backend](adr/0005-database-backend.md) - Original SQLite decision and current PostgreSQL adoption
 - [0006: Production Infrastructure](adr/0006-production-infrastructure.md) - Azure deployment
 - [0007: Backend Integration](adr/0007-backend-proxy-or-direct.md) - Direct API calls
 
@@ -191,6 +191,7 @@ Controller Integration tests are the sweet spot: they validate complete API cont
 ### Test Organization
 - **Unit Tests** ([`tests/Unit/`](../tests/Unit/)) - Application layer business logic isolation with mocked dependencies
 - **Integration.Data Tests** ([`tests/Integration.Data/`](../tests/Integration.Data/)) - Repository operations and Entity Framework configurations
+- **Integration.Application Tests** ([`tests/Integration.Application/`](../tests/Integration.Application/)) - Application Features interacting with PostgreSQL
 - **Integration.Controller Tests** ([`tests/Integration.Controller/`](../tests/Integration.Controller/)) - API endpoints with authentication and authorization
 - **Functional Tests** ([`tests/Functional/`](../tests/Functional/)) - End-to-end user workflows with Playwright and BDD-style scenarios
 
@@ -206,8 +207,8 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 
 ### Testing Tools
 - **Unit**: NUnit with constraint-based assertions and Moq for mocking
-- **Integration.Data**: NUnit with SQLite in-memory database
-- **Integration.Controller**: NUnit with WebApplicationFactory and test authentication handlers
+- **Integration.Data / Integration.Application**: NUnit with PostgreSQL Testcontainers, a fresh database per test, and real EF migrations
+- **Integration.Controller**: NUnit with WebApplicationFactory, an isolated PostgreSQL database per factory, and test authentication handlers (real Identity/JWT for authentication workflow tests)
 - **Functional**: Playwright with C# bindings and SpecFlow-style Gherkin scenarios
 - **API Client**: NSwag-generated TypeScript client for type-safe frontend integration
 
@@ -224,7 +225,7 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 
 ### Data Protection
-- **Database**: SQLite+Azure Storage, moving to PostgreSql for scale
+- **Database**: PostgreSQL; Production authentication uses system-assigned managed identity
 - **Secrets**: Azure Key Vault integration planned
 - **Logging**: Structured logging with PII filtering
 - **Monitoring**: Application Insights for observability
@@ -233,11 +234,11 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 
 ### Current Scale (MVP)
 - **Single-region** deployment
-- **SQLite database** for low-volume scenarios
+- **PostgreSQL database** for development, containers, and integration tests; production provisioning must match the provider before deployment
 - **Single App Service** instance
 
 ### Future Scaling Options
-- **Database**: Migration path to PostgreSQL
+- **Database**: PostgreSQL capacity and availability scaling
 - **Caching**: Redis for session state and data caching
 - **CDN**: Azure Front Door for global distribution
 - **Compute**: App Service Plan scaling
@@ -246,6 +247,7 @@ See [TENANCY.md](TENANCY.md) for complete multi-tenancy architecture details.
 
 ### Local Development
 1. Clone repository with submodules: `git submodule update --init --recursive`
+   Ensure Docker is running for Aspire's PostgreSQL container.
 2. Start with Aspire: `dotnet run --project src/AppHost`
 3. Access dashboard at `https://localhost:17191`
 4. Frontend: `http://localhost:5173` (hot reload)

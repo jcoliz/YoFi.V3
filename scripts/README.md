@@ -90,10 +90,11 @@ This folder contains scripts of many different kinds. Often these would be scatt
 # Run functional tests against already running containers (checks Docker first)
 .\Run-Tests.ps1 -Functional
 
-# Build/start containers, run functional tests, then clean up
-.\Run-FunctionalTestsVsContainer.ps1
+# Build/start containers and run functional tests without tearing down app containers
+.\Start-Container.ps1 -Build -NoBrowser
+.\Run-Tests.ps1 -Functional
 
-# Leave containers running after functional tests for investigation
+# Alternative wrapper invocation that preserves app containers
 .\Run-FunctionalTestsVsContainer.ps1 -KeepAlive
 
 # Collect code coverage
@@ -111,7 +112,10 @@ PostgreSQL test containers; they do not require the application containers.
 The functional container wrapper starts containers without opening browser windows
 and uses the functional test project's default runsettings. It does not set a
 solution version; version overrides are reserved for CI/CD pipelines.
-Use `Stop-Container.ps1` to clean up after running with `-KeepAlive`.
+Leave application containers running after tests. The wrapper's default invocation
+tears down containers, so use `-KeepAlive` when using it. Disposable PostgreSQL
+Testcontainers used by integration tests are cleaned up automatically and are
+separate from the application containers.
 
 ### Docker Workflows
 
