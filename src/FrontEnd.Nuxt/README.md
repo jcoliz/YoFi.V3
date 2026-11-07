@@ -2,16 +2,11 @@
 
 This project implements the application user interface (Front End).
 
-## Card titles
+## Dependency compatibility
 
-Use `CardTitle` for a consistent card heading and optional muted subtitle.
-The `title` prop is required; `subtitle` is optional. The component adds no
-bottom spacing; callers control it with classes such as `mb-3` or `pb-3`.
+Keep `@vitejs/plugin-vue` compatible with the Vite versions used by Nuxt,
+Vue Router, and Vitest. Vue Router 5 requires Vite 7.3 or 8, so the component
+tests must not use `@vitejs/plugin-vue` 5 (which only supports Vite 5 and 6).
+Use `pnpm install` after dependency changes and commit the updated lockfile.
+Do not bypass dependency conflicts with `--force` or `--legacy-peer-deps`.
 
-```vue
-<CardTitle
-  title="Upload Files"
-  subtitle="Select OFX or QFX files from your bank to import transactions."
-  class="mb-3"
-/>
-```
