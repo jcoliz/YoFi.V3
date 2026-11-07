@@ -182,7 +182,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             // Category is required (empty string for uncategorized)
             entity.Property(s => s.Category)
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(200);
 
             // Memo is optional
             entity.Property(s => s.Memo)

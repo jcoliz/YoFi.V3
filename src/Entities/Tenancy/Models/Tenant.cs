@@ -10,7 +10,6 @@ namespace YoFi.V3.Entities.Tenancy.Models;
 /// Entire tenancy feature is designed to be application-independent, so
 /// Tenant does not inherit from BaseModel or implement IModel directly.
 /// </remarks>
-[Table("YoFi.V3.Tenants")]
 public record Tenant
 {
     /// <summary>

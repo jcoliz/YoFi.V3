@@ -10,7 +10,6 @@ namespace YoFi.V3.Entities.Tenancy.Models;
 /// So a user with the Editor role can do everything a Viewer can do, but not
 /// everything an Owner can do.
 /// </remarks>
-[Table("YoFi.V3.UserTenantRoleAssignments")]
 public record UserTenantRoleAssignment
 {
     public long Id { get; set; }

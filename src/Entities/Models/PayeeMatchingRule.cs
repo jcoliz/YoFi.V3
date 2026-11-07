@@ -22,7 +22,6 @@ namespace YoFi.V3.Entities.Models;
 /// consistency with transaction split categories.
 /// </para>
 /// </remarks>
-[Table("YoFi.V3.PayeeMatchingRules")]
 public record PayeeMatchingRule: BaseTenantModel
 {
     /// <summary>

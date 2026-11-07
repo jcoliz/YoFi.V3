@@ -11,7 +11,6 @@ namespace YoFi.V3.Entities.Models;
 /// Transactions represent financial events imported from bank/credit card sources
 /// or entered manually. Each transaction has one or more splits for categorization.
 /// </remarks>
-[Table("YoFi.V3.Transactions")]
 public record Transaction : BaseTenantModel
 {
     /// <summary>

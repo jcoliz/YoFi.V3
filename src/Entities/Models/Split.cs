@@ -15,7 +15,6 @@ namespace YoFi.V3.Entities.Models;
 /// Splits inherit from BaseModel (not BaseTenantModel) because tenant isolation
 /// comes from the parent Transaction entity.
 /// </remarks>
-[Table("YoFi.V3.Splits")]
 public record Split : BaseModel
 {
     /// <summary>

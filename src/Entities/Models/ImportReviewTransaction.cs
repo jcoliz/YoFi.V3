@@ -23,7 +23,6 @@ namespace YoFi.V3.Entities.Models;
 /// </list>
 /// </para>
 /// </remarks>
-[Table("YoFi.V3.ImportReviewTransactions")]
 public record ImportReviewTransaction : BaseTenantModel
 {
     /// <summary>
