@@ -4,7 +4,6 @@ using YoFi.V3.BackEnd.Setup;
 using YoFi.V3.BackEnd.Startup;
 using YoFi.V3.Controllers.Extensions;
 using YoFi.V3.Controllers.Tenancy;
-using YoFi.V3.Data;
 using NuxtIdentity.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Identity;
 using static DotNetNuxt.Hosting.Logging.BootLoggerExtensions;
@@ -57,7 +56,7 @@ try
     builder.Services.AddControllerServices(version);
     builder.Services.AddSwagger();
     builder.Services.AddApplicationFeatures();
-    builder.Services.AddDatabase(builder.Configuration);
+    builder.Services.AddDatabase(builder.Configuration, builder.Environment, logger);
     builder.Services.AddIdentityConfiguration(builder.Configuration);
     builder.Services.AddTenancy();
     builder.Services.AddStandardCorsPolicy(startupOptions.AllowedCorsOrigins);
@@ -72,7 +71,7 @@ try
     logger.LogCheckpointReached("Built Application");
 
     // Prepare the database
-    app.PrepareDatabaseAsync();
+    app.Services.MigrateAsNeeded(app.Environment);
     logger.LogCheckpointReached("Prepared Database");
 
     await app.SeedNuxtIdentityAsync<IdentityUser>();

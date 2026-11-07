@@ -8,6 +8,13 @@ The application is built to run in three distinct environments:
 
 **Environment Configuration:** Uses standard ASP.NET Core `ASPNETCORE_ENVIRONMENT` variable (Development, Container, Production).
 
+**Database Configuration:** The backend requires a PostgreSQL connection string at
+`ConnectionStrings:DefaultConnection` (environment variable
+`ConnectionStrings__DefaultConnection`). Aspire supplies this connection string
+in development. Non-production startup applies EF migrations before identity
+seeding; production uses system-assigned managed identity authentication and
+expects migrations to be applied by deployment tooling.
+
 ## Development
 
 As described in [ADR 0004](./adr/0004-aspire-development.md), local development is done using .NET Aspire.

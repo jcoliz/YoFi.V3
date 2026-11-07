@@ -18,7 +18,7 @@
     <PackageReference Include="Alexinea.Extensions.Configuration.Toml" />
     <ProjectReference Include="..\ServiceDefaults\YoFi.V3.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Controllers\YoFi.V3.Controllers.csproj" />
-    <ProjectReference Include="..\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\Data\PostgreSQL\YoFi.V3.Data.PostgreSQL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

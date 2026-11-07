@@ -1,13 +1,16 @@
-using Microsoft.Extensions.Configuration;
-
 DotNetEnv.Env.Load();
 var builder = DistributedApplication.CreateBuilder(args);
 var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
+var postgresDb = builder.AddPostgres("postgres", port: 5500)
+    .AddDatabase("yofi-v3");
+
 var apiService = builder.AddProject<Projects.YoFi_V3_BackEnd>("backend")
+    .WithReference(postgresDb, connectionName: "DefaultConnection")
     .WithHttpHealthCheck("/health")
     .WithEnvironment("APPLICATIONINSIGHTS_CONNECTION_STRING", appInsightsConnectionString ?? "")
-    .WithEnvironment("APPLICATION__ENVIRONMENT", "Local");
+    .WithEnvironment("APPLICATION__ENVIRONMENT", "Local")
+    .WaitFor(postgresDb);
 
 // Note that the version of the frontend isn't super relevant
 // when running locally, since the backend and frontend are built together.

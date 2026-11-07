@@ -10,7 +10,8 @@
         "Nuxt",
         "roorules",
         "sidebase",
-        "Vitest"
+        "Vitest",
+        "yofi"
     ],
     "cSpell.ignoreWords": [
         "GKHF"

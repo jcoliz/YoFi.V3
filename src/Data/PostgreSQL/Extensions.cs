@@ -2,6 +2,7 @@ using Azure.Core;
 using Azure.Identity;
 using DotNetNuxt.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -18,15 +19,22 @@ public static class DatabaseServiceExtensions
 {
     /// <summary>
     /// Register <see cref="ApplicationDbContext"/> with the Npgsql provider.
+    /// Reads the required DefaultConnection connection string from configuration.
     /// In production, uses Entra managed-identity token auth;
     /// otherwise uses the connection string as-is (password from Aspire or config).
     /// </summary>
     public static IServiceCollection AddDatabase(
         this IServiceCollection services,
-        string connectionString,
+        IConfiguration configuration,
         IHostEnvironment environment,
         ILogger logger)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:DefaultConnection must contain a PostgreSQL connection string.");
+        }
+
         if (environment.IsProduction())
         {
             services.AddSingleton(
