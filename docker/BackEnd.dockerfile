@@ -13,7 +13,7 @@ COPY submodules/DotNetNuxt/Directory.Packages.props submodules/DotNetNuxt/
 COPY src/Entities/YoFi.V3.Entities.csproj src/Entities/
 COPY src/ServiceDefaults/YoFi.V3.ServiceDefaults.csproj src/ServiceDefaults/
 COPY src/Controllers/YoFi.V3.Controllers.csproj src/Controllers/
-COPY src/Data/Sqlite/YoFi.V3.Data.Sqlite.csproj src/Data/Sqlite/
+COPY src/Data/PostgreSQL/YoFi.V3.Data.PostgreSQL.csproj src/Data/PostgreSQL/
 COPY src/Application/YoFi.V3.Application.csproj src/Application/
 COPY src/BackEnd/YoFi.V3.BackEnd.csproj src/BackEnd/
 COPY submodules/DotNetNuxt/src/Abstractions/DotNetNuxt.Abstractions.csproj submodules/DotNetNuxt/src/Abstractions/
