@@ -46,10 +46,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         // And: Convert datatable to TransactionEditDtos
         var transactions = table.Rows.Select(row => new TransactionEditDto
         {
-            ExternalId = row["ExternalId"],
-            Date = DateTimeOffset.Parse(row["Date"], CultureInfo.InvariantCulture),
-            Payee = row["Payee"],
-            Amount = decimal.Parse(row["Amount"], CultureInfo.InvariantCulture),
+            ExternalId = row.GetRequired("ExternalId"),
+            Date = row.GetRequired<DateTimeOffset>("Date"),
+            Payee = row.GetRequired("Payee"),
+            Amount = row.GetOptional<decimal>("Amount") ?? 100.00m,
             Memo = string.Empty,
             Source = "OFX",
             Category = string.Empty
@@ -113,15 +113,12 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
             var amountValue = GetValue("Amount");
             return new TransactionEditDto
             {
-                Payee = GetValue("Payee")
-                    ?? throw new InvalidOperationException("Each transaction row must include a Payee."),
-                Amount = string.IsNullOrWhiteSpace(amountValue)
-                    ? 100.00m
-                    : decimal.Parse(amountValue, CultureInfo.InvariantCulture),
-                Memo = GetValue("Memo"),
-                Source = GetValue("Source"),
-                ExternalId = GetValue("ExternalId"),
-                Category = GetValue("Category"),
+                Payee = row.GetRequired("Payee"),
+                Amount = row.GetOptional<decimal>("Amount") ?? 100.00m,
+                Memo = row.GetOptional("Memo"),
+                Source = row.GetOptional("Source"),
+                ExternalId = row.GetOptional("ExternalId"),
+                Category = row.GetOptional("Category") ?? string.Empty,
                 Date = DateTimeOffset.UtcNow
             };
         }).ToArray();
@@ -193,9 +190,9 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     {
         var splits = table.Rows.Select(row => new SplitEditDto
         {
-            Amount = decimal.Parse(row["Amount"], CultureInfo.InvariantCulture),
-            Category = row.TryGetValue("Category", out var category) ? category : string.Empty,
-            Memo = row.TryGetValue("Memo", out var memo) ? memo : null
+            Amount = row.GetRequired<decimal>("Amount"),
+            Category = row.GetOptional("Category") ?? string.Empty,
+            Memo = row.GetOptional("Memo")
         }).ToArray();
 
         Assert.That(splits, Is.Not.Empty, "At least one split row is required.");

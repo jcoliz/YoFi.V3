@@ -25,9 +25,9 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     {
         Assert.That(table.Rows, Has.Count.EqualTo(1), "Adding a single split requires exactly one row.");
         var row = table.Rows.Single();
-        var amount = decimal.Parse(row.GetRequired("Amount"), NumberStyles.Number, CultureInfo.InvariantCulture);
-        var category = row.TryGetValue("Category", out var value) ? value ?? string.Empty : string.Empty;
-        var memo = row.TryGetValue("Memo", out value) ? value ?? string.Empty : string.Empty;
+        var amount = row.GetRequired<decimal>("Amount");
+        var category = row.GetOptional("Category") ?? string.Empty;
+        var memo = row.GetOptional("Memo") ?? string.Empty;
 
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
         await detailsPage.AddSplitAsync(amount, category, memo);
@@ -41,9 +41,9 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     {
         var expectedSplits = table.Rows.Select(row => new
         {
-            Category = row.TryGetValue("Category", out var category) ? category ?? string.Empty : string.Empty,
-            Amount = decimal.Parse(row.GetRequired("Amount"), NumberStyles.Number, CultureInfo.InvariantCulture),
-            Memo = row.TryGetValue("Memo", out var memo) ? memo ?? string.Empty : string.Empty
+            Category = row.GetOptional("Category") ?? string.Empty,
+            Amount = row.GetRequired<decimal>("Amount"),
+            Memo = row.GetOptional("Memo") ?? string.Empty
         }).ToArray();
 
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
