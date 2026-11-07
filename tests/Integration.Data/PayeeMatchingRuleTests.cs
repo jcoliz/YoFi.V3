@@ -8,39 +8,21 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// <summary>
 /// Integration tests for PayeeMatchingRule entity and tenant-scoped data operations.
 /// These tests verify database behavior, tenant isolation, EF Core configuration,
-/// and DateTimeOffset handling for SQLite.
+/// and native PostgreSQL timestamp handling.
 /// </summary>
-public class PayeeMatchingRuleTests
+public class PayeeMatchingRuleTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
     private Tenant _tenant1;
     private Tenant _tenant2;
 
     [SetUp]
     public async Task Setup()
     {
-        // Given: An in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-
         // And: Test tenants
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
         _tenant2 = new Tenant { Name = "Tenant 2", Description = "Second test tenant" };
         _context.Tenants.AddRange(_tenant1, _tenant2);
         await _context.SaveChangesAsync();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
     }
 
     [Test]
@@ -61,11 +43,11 @@ public class PayeeMatchingRuleTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.PayeeMatchingRules'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='PayeeMatchingRules'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.PayeeMatchingRules"));
+        Assert.That(tableName, Is.EqualTo("PayeeMatchingRules"));
     }
 
     [Test]
@@ -577,7 +559,7 @@ public class PayeeMatchingRuleTests
     }
 
     [Test]
-    public async Task PayeeMatchingRule_DateTimeOffsetStoredAsISO8601Text()
+    public async Task PayeeMatchingRule_DateTimeOffsetStoredAsNativeTimestamp()
     {
         // Given: A rule with specific DateTimeOffset values
         var createdAt = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.Zero);
@@ -588,6 +570,7 @@ public class PayeeMatchingRuleTests
             Category = "Test Category",
             CreatedAt = createdAt,
             ModifiedAt = modifiedAt,
+            LastUsedAt = modifiedAt,
             TenantId = _tenant1.Id
         };
 
@@ -598,20 +581,24 @@ public class PayeeMatchingRuleTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = $"SELECT CreatedAt, ModifiedAt FROM \"YoFi.V3.PayeeMatchingRules\" WHERE Id = {rule.Id}";
-        using var reader = await command.ExecuteReaderAsync();
-        await reader.ReadAsync();
-        var createdAtText = reader.GetString(0);
-        var modifiedAtText = reader.GetString(1);
-
-        // Then: DateTimeOffset should be stored as ISO 8601 text
-        Assert.That(createdAtText, Does.Contain("2024-01-15"));
-        Assert.That(modifiedAtText, Does.Contain("2024-01-20"));
+        command.CommandText = $"SELECT \"CreatedAt\", \"ModifiedAt\", \"LastUsedAt\" FROM \"PayeeMatchingRules\" WHERE \"Id\" = {rule.Id}";
+        using (var reader = await command.ExecuteReaderAsync())
+        {
+            Assert.That(await reader.ReadAsync(), Is.True);
+            Assert.That(reader.GetDataTypeName(0), Is.EqualTo("timestamp with time zone"));
+            Assert.That(reader.GetDataTypeName(1), Is.EqualTo("timestamp with time zone"));
+            Assert.That(reader.GetDataTypeName(2), Is.EqualTo("timestamp with time zone"));
+            Assert.That(reader.GetFieldValue<DateTimeOffset>(0), Is.EqualTo(createdAt));
+            Assert.That(reader.GetFieldValue<DateTimeOffset>(1), Is.EqualTo(modifiedAt));
+            Assert.That(reader.GetFieldValue<DateTimeOffset>(2), Is.EqualTo(modifiedAt));
+        }
 
         // And: Values should round-trip correctly
+        _context.ChangeTracker.Clear();
         var retrieved = await _context.PayeeMatchingRules.FindAsync(rule.Id);
         Assert.That(retrieved!.CreatedAt, Is.EqualTo(createdAt));
         Assert.That(retrieved.ModifiedAt, Is.EqualTo(modifiedAt));
+        Assert.That(retrieved.LastUsedAt, Is.EqualTo(modifiedAt));
     }
 
     [Test]
@@ -697,10 +684,9 @@ public class PayeeMatchingRuleTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.PayeeMatchingRules'
-            AND sql LIKE '%TenantId%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='PayeeMatchingRules'
+            AND indexname='IX_PayeeMatchingRules_TenantId'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: TenantId index should exist
@@ -717,11 +703,10 @@ public class PayeeMatchingRuleTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.PayeeMatchingRules'
-            AND sql LIKE '%Key%'
-            AND sql LIKE '%UNIQUE%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='PayeeMatchingRules'
+            AND indexname='IX_PayeeMatchingRules_Key'
+            AND indexdef LIKE 'CREATE UNIQUE INDEX%'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Unique Key index should exist

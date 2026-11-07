@@ -12,10 +12,8 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// These tests verify EF Core configuration, database schema, relationships, indexes,
 /// and data integrity constraints for the Split entity.
 /// </remarks>
-public class SplitTests
+public class SplitTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
     private Tenant _tenant1;
     private Tenant _tenant2;
     private Transaction _transaction1;
@@ -24,15 +22,6 @@ public class SplitTests
     [SetUp]
     public async Task Setup()
     {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-
         // Create test tenants
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
         _tenant2 = new Tenant { Name = "Tenant 2", Description = "Second test tenant" };
@@ -56,13 +45,6 @@ public class SplitTests
         };
         _context.Transactions.AddRange(_transaction1, _transaction2);
         await _context.SaveChangesAsync();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
     }
 
     #region Basic CRUD Operations
@@ -534,10 +516,9 @@ public class SplitTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.Splits'
-            AND name LIKE '%TransactionId%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='Splits'
+            AND indexname='IX_Splits_TransactionId'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: TransactionId index should exist
@@ -555,10 +536,9 @@ public class SplitTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.Splits'
-            AND name LIKE '%Category%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='Splits'
+            AND indexname='IX_Splits_Category'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Category index should exist
@@ -576,10 +556,9 @@ public class SplitTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.Splits'
-            AND name LIKE '%TransactionId%Order%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='Splits'
+            AND indexname='IX_Splits_TransactionId_Order'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Composite index should exist
@@ -616,27 +595,28 @@ public class SplitTests
     }
 
     [Test]
-    public async Task Split_CategoryMaxLengthIs100()
+    public async Task Split_CategoryMaxLengthIs200()
     {
-        // Given: A split with Category exactly at max length (100 chars)
-        var category100 = new string('A', 100);
+        // Given: A split with Category exactly at max length (200 chars)
+        var category200 = new string('A', 200);
         var split = new Split
         {
             TransactionId = _transaction1.Id,
             Amount = 50.00m,
-            Category = category100,
+            Category = category200,
             Order = 0
         };
 
         // When: Saving the split
         _context.Splits.Add(split);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Then: Category should be saved without truncation
         var retrieved = await _context.Splits.FindAsync(split.Id);
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.Category, Is.EqualTo(category100));
-        Assert.That(retrieved.Category.Length, Is.EqualTo(100));
+        Assert.That(retrieved!.Category, Is.EqualTo(category200));
+        Assert.That(retrieved.Category.Length, Is.EqualTo(200));
     }
 
     [Test]
@@ -682,6 +662,7 @@ public class SplitTests
         await _context.SaveChangesAsync();
 
         // Then: Amount precision should be preserved (decimal 18,2)
+        _context.ChangeTracker.Clear();
         var retrieved = await _context.Splits.FindAsync(split.Id);
         Assert.That(retrieved, Is.Not.Null);
         Assert.That(retrieved!.Amount, Is.EqualTo(preciseAmount));
@@ -853,11 +834,11 @@ public class SplitTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.Splits'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='Splits'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.Splits"));
+        Assert.That(tableName, Is.EqualTo("Splits"));
     }
 
     [Test]

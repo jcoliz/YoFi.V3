@@ -6,6 +6,7 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -13,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Data\Sqlite\YoFi.V3.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\Data\PostgreSQL\YoFi.V3.Data.PostgreSQL.csproj" />
   </ItemGroup>
 
 </Project>

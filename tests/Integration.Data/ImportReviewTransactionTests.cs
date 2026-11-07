@@ -9,37 +9,19 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Integration tests for ImportReviewTransaction entity and tenant-scoped data operations.
 /// These tests verify database behavior, tenant isolation, EF Core configuration, and duplicate detection metadata.
 /// </summary>
-public class ImportReviewTransactionTests
+public class ImportReviewTransactionTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context = null!;
-    private DbContextOptions<ApplicationDbContext> _options = null!;
     private Tenant _tenant1 = null!;
     private Tenant _tenant2 = null!;
 
     [SetUp]
     public async Task Setup()
     {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-
         // Create test tenants
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
         _tenant2 = new Tenant { Name = "Tenant 2", Description = "Second test tenant" };
         _context.Tenants.AddRange(_tenant1, _tenant2);
         await _context.SaveChangesAsync();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
     }
 
     [Test]
@@ -61,11 +43,11 @@ public class ImportReviewTransactionTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.ImportReviewTransactions'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='ImportReviewTransactions'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.ImportReviewTransactions"));
+        Assert.That(tableName, Is.EqualTo("ImportReviewTransactions"));
     }
 
     [Test]
@@ -271,10 +253,9 @@ public class ImportReviewTransactionTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.ImportReviewTransactions'
-            AND name LIKE '%TenantId_ExternalId%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='ImportReviewTransactions'
+            AND indexname='IX_ImportReviewTransactions_TenantId_ExternalId'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Composite index should exist
@@ -520,7 +501,7 @@ public class ImportReviewTransactionTests
     }
 
     [Test]
-    public async Task ImportReviewTransaction_DecimalAmountPrecisionIsPreserved()
+    public async Task ImportReviewTransaction_DecimalAmountIsRoundedToTwoPlaces()
     {
         // Given: An import review transaction with a precise decimal amount
         var preciseAmount = 123.456789m;
@@ -535,13 +516,14 @@ public class ImportReviewTransactionTests
         _context.ImportReviewTransactions.Add(transaction);
         await _context.SaveChangesAsync();
         var id = transaction.Id;
+        _context.ChangeTracker.Clear();
 
         // When: Retrieving the transaction
         var retrieved = await _context.ImportReviewTransactions.FindAsync(id);
 
-        // Then: The decimal precision should be preserved
+        // Then: PostgreSQL numeric(18,2) rounds the stored amount
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.Amount, Is.EqualTo(preciseAmount));
+        Assert.That(retrieved!.Amount, Is.EqualTo(123.46m));
     }
 
     [Test]
@@ -662,10 +644,9 @@ public class ImportReviewTransactionTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.ImportReviewTransactions'
-            AND name LIKE '%TenantId_IsSelected%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public' AND tablename='ImportReviewTransactions'
+            AND indexname='IX_ImportReviewTransactions_TenantId_IsSelected'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Composite index should exist

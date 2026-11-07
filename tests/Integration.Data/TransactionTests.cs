@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using YoFi.V3.Data;
+using Npgsql;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Models;
 
@@ -9,25 +9,14 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Integration tests for Transaction entity and tenant-scoped data operations.
 /// These tests verify database behavior, tenant isolation, and EF Core configuration.
 /// </summary>
-public class TransactionTests
+public class TransactionTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
     private Tenant _tenant1;
     private Tenant _tenant2;
 
     [SetUp]
     public async Task Setup()
     {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-
         // Create test tenants
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
         _tenant2 = new Tenant { Name = "Tenant 2", Description = "Second test tenant" };
@@ -35,11 +24,14 @@ public class TransactionTests
         await _context.SaveChangesAsync();
     }
 
-    [TearDown]
-    public void TearDown()
+    [Test]
+    public async Task Transaction_DatabaseStartsEmptyWithMigrationsApplied()
     {
-        _context.Database.CloseConnection();
-        _context.Dispose();
+        Assert.That(await _context.Transactions.CountAsync(), Is.Zero);
+        var migrations = _context.Database.GetMigrations();
+        var appliedMigrations = await _context.Database.GetAppliedMigrationsAsync();
+        Assert.That(migrations, Is.Not.Empty);
+        Assert.That(appliedMigrations, Is.EquivalentTo(migrations));
     }
 
     [Test]
@@ -61,11 +53,11 @@ public class TransactionTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.Transactions'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='Transactions'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.Transactions"));
+        Assert.That(tableName, Is.EqualTo("Transactions"));
     }
 
     [Test]
@@ -318,7 +310,7 @@ public class TransactionTests
     }
 
     [Test]
-    public async Task Transaction_DecimalAmountPrecisionIsPreserved()
+    public async Task Transaction_DecimalAmountIsRoundedToTwoPlaces()
     {
         // Given: A transaction with a precise decimal amount
         var preciseAmount = 123.456789m;
@@ -333,13 +325,14 @@ public class TransactionTests
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
         var id = transaction.Id;
+        _context.ChangeTracker.Clear();
 
         // When: Retrieving the transaction
         var retrieved = await _context.Transactions.FindAsync(id);
 
-        // Then: The decimal precision should be preserved
+        // Then: PostgreSQL numeric(18,2) rounds the stored amount
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.Amount, Is.EqualTo(preciseAmount));
+        Assert.That(retrieved!.Amount, Is.EqualTo(123.46m));
     }
 
     [Test]
@@ -641,6 +634,45 @@ public class TransactionTests
         Assert.That(retrieved.Memo!.Length, Is.EqualTo(1000));
     }
 
+    [TestCase(nameof(Transaction.Payee), 200)]
+    [TestCase(nameof(Transaction.Source), 200)]
+    [TestCase(nameof(Transaction.ExternalId), 100)]
+    [TestCase(nameof(Transaction.Memo), 1000)]
+    public async Task Transaction_OverlengthFieldIsRejected(string propertyName, int maxLength)
+    {
+        var transaction = new Transaction
+        {
+            Payee = "Test Payee",
+            Amount = 100m,
+            TenantId = _tenant1.Id
+        };
+        _context.Transactions.Add(transaction);
+        _context.Entry(transaction).Property(propertyName).CurrentValue = new string('A', maxLength + 1);
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.StringDataRightTruncation));
+    }
+
+    [Test]
+    public async Task Transaction_AmountExceedingPrecisionIsRejected()
+    {
+        _context.Transactions.Add(new Transaction
+        {
+            Payee = "Test Payee",
+            Amount = 10000000000000000m,
+            TenantId = _tenant1.Id
+        });
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.NumericValueOutOfRange));
+    }
+
     [Test]
     public async Task Transaction_DuplicateExternalIdWithinSameTenant_IsAllowed()
     {
@@ -745,15 +777,14 @@ public class TransactionTests
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
         command.CommandText = @"
-            SELECT name FROM sqlite_master
-            WHERE type='index'
-            AND tbl_name='YoFi.V3.Transactions'
-            AND name LIKE '%TenantId_ExternalId%'";
+            SELECT indexname FROM pg_catalog.pg_indexes
+            WHERE schemaname='public'
+            AND tablename='Transactions'
+            AND indexname='IX_Transactions_TenantId_ExternalId'";
         var indexName = await command.ExecuteScalarAsync();
 
         // Then: Composite index should exist
-        Assert.That(indexName, Is.Not.Null);
-        Assert.That(indexName!.ToString(), Does.Contain("TenantId_ExternalId"));
+        Assert.That(indexName, Is.EqualTo("IX_Transactions_TenantId_ExternalId"));
     }
 
     [Test]

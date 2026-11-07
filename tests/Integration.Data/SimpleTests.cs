@@ -10,30 +10,8 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Uses WeatherForecast as a test entity to verify IDataProvider operations.
 /// Weather forecast-specific tests are in WeatherForecastTests.cs
 /// </summary>
-public class SimpleTests
+public class SimpleTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
-
-    [SetUp]
-    public void Setup()
-    {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
-    }
 
     [Test]
     public async Task Add_SavesEntityToDatabase()
@@ -234,8 +212,7 @@ public class SimpleTests
     }
 
     [Test]
-    [Explicit("SQLite doesn't support true concurrency testing with in-memory databases")]
-    public async Task ConcurrentUpdates_HandledCorrectly()
+    public async Task ConcurrentUpdates_LastWriteWins()
     {
         // Given: Two contexts accessing the same entity
         using var context1 = new ApplicationDbContext(_options);
@@ -261,9 +238,11 @@ public class SimpleTests
 
         await context1.SaveChangesAsync(); // First save succeeds
 
-        // Then: Second save should either succeed (last-write-wins) or throw concurrency exception
-        // The exact behavior depends on your concurrency strategy
-        await Assert.DoesNotThrowAsync(async () => await context2.SaveChangesAsync());
+        await context2.SaveChangesAsync();
+
+        // Then: Without a concurrency token, the last update wins
+        var saved = await _context.WeatherForecasts.AsNoTracking().SingleAsync(f => f.Id == id);
+        Assert.That(saved.Summary, Is.EqualTo("Rainy"));
     }
 
     [Test]

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 
@@ -8,37 +9,19 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Integration tests for UserTenantRoleAssignment entity and related database operations.
 /// These tests verify role assignment functionality, constraints, and relationships.
 /// </summary>
-public class UserTenantRoleAssignmentTests
+public class UserTenantRoleAssignmentTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
     private Tenant _tenant1;
     private Tenant _tenant2;
 
     [SetUp]
     public async Task Setup()
     {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-
         // Create test tenants
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
         _tenant2 = new Tenant { Name = "Tenant 2", Description = "Second test tenant" };
         _context.Tenants.AddRange(_tenant1, _tenant2);
         await _context.SaveChangesAsync();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
     }
 
     [Test]
@@ -59,11 +42,11 @@ public class UserTenantRoleAssignmentTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.UserTenantRoleAssignments'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='UserTenantRoleAssignments'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.UserTenantRoleAssignments"));
+        Assert.That(tableName, Is.EqualTo("UserTenantRoleAssignments"));
     }
 
     [Test]
@@ -142,7 +125,7 @@ public class UserTenantRoleAssignmentTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Role FROM \"YoFi.V3.UserTenantRoleAssignments\" WHERE Id = @id";
+        command.CommandText = "SELECT \"Role\" FROM \"UserTenantRoleAssignments\" WHERE \"Id\" = @id";
         var parameter = command.CreateParameter();
         parameter.ParameterName = "@id";
         parameter.Value = assignment.Id;
@@ -392,7 +375,7 @@ public class UserTenantRoleAssignmentTests
     }
 
     [Test]
-    public async Task UserTenantRoleAssignment_UserIdMaxLengthConfigured()
+    public async Task UserTenantRoleAssignment_UserIdOverMaxLengthIsRejected()
     {
         // Given: An assignment with UserId exceeding the configured max length (450 chars)
         var longUserId = new string('A', 451);
@@ -404,15 +387,10 @@ public class UserTenantRoleAssignmentTests
         };
 
         _context.UserTenantRoleAssignments.Add(assignment);
-        await _context.SaveChangesAsync();
-
-        // When: Retrieving the assignment
-        var retrieved = await _context.UserTenantRoleAssignments.FindAsync(assignment.Id);
-
-        // Then: SQLite doesn't enforce max length by default, but the configuration exists
-        // Application-level validation should prevent this scenario
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.UserId, Is.EqualTo(longUserId));
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.StringDataRightTruncation));
     }
 
     [Test]

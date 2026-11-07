@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -10,26 +11,16 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Integration tests for ITenantRepository implementation in ApplicationDbContext.
 /// These tests verify repository methods for tenant-related data operations.
 /// </summary>
-public class TenantRepositoryTests
+public class TenantRepositoryTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
     private ITenantRepository _repository;
-    private DbContextOptions<ApplicationDbContext> _options;
     private Tenant _tenant1;
     private Tenant _tenant2;
 
     [SetUp]
     public async Task Setup()
     {
-        // Given: An in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
         _repository = _context;
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
 
         // And: Test tenants are created
         _tenant1 = new Tenant { Name = "Tenant 1", Description = "First test tenant" };
@@ -38,11 +29,42 @@ public class TenantRepositoryTests
         await _context.SaveChangesAsync();
     }
 
-    [TearDown]
-    public void TearDown()
+    [Test]
+    [TestCase("__TEST__")]
+    [TestCase("Percent%")]
+    [TestCase("Path\\")]
+    public async Task GetTenantsByNamePrefixAsync_MatchesCaseInsensitivelyAndLiterally(string prefix)
     {
-        _context.Database.CloseConnection();
-        _context.Dispose();
+        var matching = new Tenant { Name = prefix.ToLowerInvariant() + " workspace" };
+        var notMatching = new Tenant { Name = "unrelated workspace" };
+        var wildcardDecoy = new Tenant
+        {
+            Name = prefix.Replace("_", "x").Replace("%", "x").Replace("\\", "x") + " workspace"
+        };
+        _context.Tenants.AddRange(matching, notMatching, wildcardDecoy);
+        await _context.SaveChangesAsync();
+
+        var results = await _repository.GetTenantsByNamePrefixAsync(prefix);
+
+        Assert.That(results.Select(t => t.Key), Is.EquivalentTo(new[] { matching.Key }));
+    }
+
+    [Test]
+    public async Task AddUserTenantRoleAsync_InvalidTenant_PropagatesDatabaseException()
+    {
+        var assignment = new UserTenantRoleAssignment
+        {
+            UserId = "user123",
+            TenantId = long.MaxValue,
+            Role = TenantRole.Editor
+        };
+
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(
+            () => _repository.AddUserTenantRoleAsync(assignment));
+
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.ForeignKeyViolation));
     }
 
     [Test]

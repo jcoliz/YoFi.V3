@@ -8,30 +8,8 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Tests specific to WeatherForecast entity functionality.
 /// General database/IDataProvider tests are in SimpleTests.cs
 /// </summary>
-public class WeatherForecastTests
+public class WeatherForecastTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
-
-    [SetUp]
-    public void Setup()
-    {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
-    }
 
     [Test]
     public async Task WeatherForecast_HasCorrectTableName()
@@ -51,11 +29,11 @@ public class WeatherForecastTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.WeatherForecasts'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='WeatherForecasts'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.WeatherForecasts"));
+        Assert.That(tableName, Is.EqualTo("WeatherForecasts"));
     }
 
     [Test]

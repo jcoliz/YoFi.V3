@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using YoFi.V3.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 
@@ -8,30 +9,8 @@ namespace YoFi.V3.Tests.Integration.Data;
 /// Integration tests for Tenant entity and related database operations.
 /// These tests verify database configuration, constraints, and entity relationships.
 /// </summary>
-public class TenantTests
+public class TenantTests : PostgreSqlTestBase
 {
-    private ApplicationDbContext _context;
-    private DbContextOptions<ApplicationDbContext> _options;
-
-    [SetUp]
-    public void Setup()
-    {
-        // Use in-memory database for testing
-        _options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlite("DataSource=:memory:")
-            .Options;
-
-        _context = new ApplicationDbContext(_options);
-        _context.Database.OpenConnection(); // Keep in-memory DB alive
-        _context.Database.EnsureCreated();
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _context.Database.CloseConnection();
-        _context.Dispose();
-    }
 
     [Test]
     public async Task Tenant_HasCorrectTableName()
@@ -50,11 +29,11 @@ public class TenantTests
         var connection = _context.Database.GetDbConnection();
         await connection.OpenAsync();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='YoFi.V3.Tenants'";
+        command.CommandText = "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename='Tenants'";
         var tableName = await command.ExecuteScalarAsync();
 
         // Then: The table should exist with the correct name
-        Assert.That(tableName, Is.EqualTo("YoFi.V3.Tenants"));
+        Assert.That(tableName, Is.EqualTo("Tenants"));
     }
 
     [Test]
@@ -100,7 +79,7 @@ public class TenantTests
     }
 
     [Test]
-    public async Task Tenant_NameMaxLengthConfigured()
+    public async Task Tenant_NameOverMaxLengthIsRejected()
     {
         // Given: A tenant with a name exceeding the configured max length (100 chars)
         var longName = new string('A', 101);
@@ -111,15 +90,10 @@ public class TenantTests
         };
 
         _context.Tenants.Add(tenant);
-        await _context.SaveChangesAsync();
-
-        // When: Retrieving the tenant
-        var retrieved = await _context.Tenants.FindAsync(tenant.Id);
-
-        // Then: SQLite doesn't enforce max length by default, but the configuration exists
-        // Application-level validation should prevent this scenario
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.Name, Is.EqualTo(longName));
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.StringDataRightTruncation));
     }
 
     [Test]
@@ -142,7 +116,7 @@ public class TenantTests
     }
 
     [Test]
-    public async Task Tenant_DescriptionMaxLengthConfigured()
+    public async Task Tenant_DescriptionOverMaxLengthIsRejected()
     {
         // Given: A tenant with a description exceeding the configured max length (500 chars)
         var longDescription = new string('A', 501);
@@ -153,15 +127,10 @@ public class TenantTests
         };
 
         _context.Tenants.Add(tenant);
-        await _context.SaveChangesAsync();
-
-        // When: Retrieving the tenant
-        var retrieved = await _context.Tenants.FindAsync(tenant.Id);
-
-        // Then: SQLite doesn't enforce max length by default, but the configuration exists
-        // Application-level validation should prevent this scenario
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.Description, Is.EqualTo(longDescription));
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() => _context.SaveChangesAsync());
+        Assert.That(exception!.InnerException, Is.TypeOf<PostgresException>());
+        Assert.That(((PostgresException)exception.InnerException!).SqlState,
+            Is.EqualTo(PostgresErrorCodes.StringDataRightTruncation));
     }
 
     [Test]
