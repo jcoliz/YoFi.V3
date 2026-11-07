@@ -80,11 +80,14 @@ public class SampleDataFeatureTests : FeatureTestBase
     public async Task SplitPersistenceFailure_RollsBackTransactionsRulesAndSplits()
     {
         await _context.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER reject_sample_splits BEFORE INSERT ON "YoFi.V3.Splits"
-            WHEN NEW."Order" = 1
+            CREATE FUNCTION reject_sample_splits() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-                SELECT RAISE(ABORT, 'Injected sample split failure');
+                RAISE EXCEPTION 'Injected sample split failure';
             END;
+            $$;
+            CREATE TRIGGER reject_sample_splits BEFORE INSERT ON "Splits"
+            FOR EACH ROW WHEN (NEW."Order" = 1)
+            EXECUTE FUNCTION reject_sample_splits();
             """);
         await Assert.ThrowsAsync<DbUpdateException>(() => _feature.LoadAsync(Request));
         _context.ChangeTracker.Clear();
@@ -144,10 +147,13 @@ public class SampleDataFeatureTests : FeatureTestBase
     public async Task PersistenceFailure_RollsBackBothTypesAndSplits()
     {
         await _context.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER reject_sample_transactions BEFORE INSERT ON "YoFi.V3.Transactions"
+            CREATE FUNCTION reject_sample_transactions() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-                SELECT RAISE(ABORT, 'Injected sample persistence failure');
+                RAISE EXCEPTION 'Injected sample persistence failure';
             END;
+            $$;
+            CREATE TRIGGER reject_sample_transactions BEFORE INSERT ON "Transactions"
+            FOR EACH ROW EXECUTE FUNCTION reject_sample_transactions();
             """);
 
         await Assert.ThrowsAsync<DbUpdateException>(() => _feature.LoadAsync(Request));

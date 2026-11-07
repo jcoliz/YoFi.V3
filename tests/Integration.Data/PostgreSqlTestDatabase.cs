@@ -1,6 +1,6 @@
 using Testcontainers.PostgreSql;
 
-namespace YoFi.V3.Tests.Integration.Data;
+namespace YoFi.V3.Tests.Integration;
 
 [SetUpFixture]
 public class PostgreSqlTestDatabase

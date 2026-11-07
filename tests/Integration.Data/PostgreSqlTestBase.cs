@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using YoFi.V3.Data;
 
-namespace YoFi.V3.Tests.Integration.Data;
+namespace YoFi.V3.Tests.Integration;
 
 public abstract class PostgreSqlTestBase
 {

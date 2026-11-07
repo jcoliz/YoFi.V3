@@ -66,6 +66,7 @@ public class PayeeMatchingRuleFeatureFindBestMatchAsyncTests : PayeeMatchingRule
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
         var ruleId = rule.Id;
+        await _context.Entry(rule).ReloadAsync();
         var originalMatchCount = rule.MatchCount;
         var originalLastUsedAt = rule.LastUsedAt;
 

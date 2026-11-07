@@ -17,11 +17,12 @@ Test that Application Features correctly use `IDataProvider` methods to interact
 
 **Key Insight:** "Most of the application's actual work happens between the app layer and the data context."
 
-This layer catches bugs at the Feature level (fast, ~20-50ms per test) rather than the Controller level (slower, ~100-200ms per test).
+This layer catches bugs at the Feature level without starting an HTTP host.
 
 ## When to Use
 
 ✅ **DO use Integration.Application tests for:**
+
 - Testing Feature methods that use IDataProvider
 - Verifying navigation properties load correctly
 - Testing complex queries and filtering through Features
@@ -29,6 +30,7 @@ This layer catches bugs at the Feature level (fast, ~20-50ms per test) rather th
 - Testing business rules that require database state
 
 ❌ **DON'T use Integration.Application tests for:**
+
 - HTTP contracts, status codes, auth → Use [`Integration.Controller`](../Integration.Controller/) tests
 - Database schema, EF Core configs → Use [`Integration.Data`](../Integration.Data/) tests
 - Pure business logic without database → Use [`Unit`](../Unit/) tests
@@ -88,6 +90,7 @@ This ensures EF Core re-queries the database instead of returning cached entitie
 ## Example Tests
 
 See [`WeatherFeatureTests.cs`](WeatherFeatureTests.cs) for a complete working example demonstrating:
+
 - Testing Feature queries with real database
 - Verifying data persistence through IDataProvider
 - Testing business logic that generates and stores data
@@ -99,7 +102,7 @@ See [`WeatherFeatureTests.cs`](WeatherFeatureTests.cs) for a complete working ex
 pwsh -File .\scripts\Run-Tests.ps1 -Unit -Integration
 
 # Run only Integration.Application tests
-dotnet test tests/Integration.Application
+dotnet test .\tests\Integration.Application\YoFi.V3.Tests.Integration.Application.csproj
 
 # Run specific test class
 dotnet test --filter "FullyQualifiedName~WeatherFeatureTests"
@@ -115,11 +118,18 @@ dotnet test --filter "FullyQualifiedName~WeatherFeatureTests.GetWeatherForecasts
 - [`docs/wip/INTEGRATION-APPLICATION-TEST-LAYER-DESIGN.md`](../../docs/wip/INTEGRATION-APPLICATION-TEST-LAYER-DESIGN.md) - Design document
 - [`TestHelpers/README.md`](TestHelpers/README.md) - Test helper classes
 
-## Speed Expectations
+## Database Lifecycle
 
-- **Target:** 20-50ms per test
-- **Reality:** Faster than Controller Integration tests (~100-200ms)
-- **Database:** In-memory SQLite (same as Integration.Data)
+Docker must be running. The project links the PostgreSQL test helpers from
+`Integration.Data`, sharing their implementation without referencing another test
+assembly. Each test assembly starts its own `postgres:17-alpine` Testcontainers
+container. Each test gets a unique database with the real EF migrations applied.
+The database is dropped after the context is disposed, and the test container
+is disposed after the assembly finishes. Application containers are untouched.
+
+Feature tests initialize their dependencies after the inherited database setup.
+Failure-injection tests use PostgreSQL trigger functions to verify transaction
+rollback against the actual provider.
 
 ## Architecture Alignment
 

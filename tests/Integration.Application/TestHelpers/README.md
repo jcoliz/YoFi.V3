@@ -6,7 +6,7 @@ Supporting classes for Integration.Application tests.
 
 Base class for all Application Integration tests. Provides:
 
-- **Real ApplicationDbContext** with in-memory SQLite database
+- **Real ApplicationDbContext** with a fresh PostgreSQL database and applied EF migrations
 - **Real IDataProvider** interface (DbContext implements it)
 
 ### Usage
@@ -36,3 +36,8 @@ public class MyFeatureTests : FeatureTestBase
 
 - `_context` - ApplicationDbContext instance
 - `_dataProvider` - IDataProvider interface (same as _context)
+
+`FeatureTestBase` inherits the PostgreSQL lifecycle helpers linked from
+`Integration.Data`. NUnit runs their database setup before feature setup and
+drops the database after feature teardown. Docker is required; the test container
+is automatically disposed when the assembly finishes.

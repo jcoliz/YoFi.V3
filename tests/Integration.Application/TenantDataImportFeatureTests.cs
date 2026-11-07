@@ -130,10 +130,13 @@ public class TenantDataImportFeatureTests : FeatureTestBase
     public async Task Import_PersistenceFailureRollsBackWorksheetAndDoesNotReturnSuccess()
     {
         await _context.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER reject_payee_rules BEFORE INSERT ON "YoFi.V3.PayeeMatchingRules"
+            CREATE FUNCTION reject_payee_rules() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-                SELECT RAISE(ABORT, 'Injected payee-rule persistence failure');
+                RAISE EXCEPTION 'Injected payee-rule persistence failure';
             END;
+            $$;
+            CREATE TRIGGER reject_payee_rules BEFORE INSERT ON "PayeeMatchingRules"
+            FOR EACH ROW EXECUTE FUNCTION reject_payee_rules();
             """);
         var file = Workbook(["Name", "Category"], [["Coffee Shop", "Food"]]);
         var preview = _service.Preview(file);
