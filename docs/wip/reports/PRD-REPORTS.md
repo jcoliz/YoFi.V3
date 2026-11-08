@@ -22,7 +22,7 @@ mechanism to deliver this insight and understanding
 - [ ] Support data verification through drill-down from report values to underlying transactions
 - [ ] Deliver fast report generation (<500ms for single year, <2s for multi-year aggregation)
 - [ ] Present data visually through charts for better comprehension
-- [ ] Show hierarchical category rollups (e.g., "Home:Utilities" rolls up to "Home")
+- [ ] Show hierarchical category roll-ups (e.g., "Home:Utilities" rolls up to "Home")
 
 ### Non-Goals
 
@@ -231,7 +231,7 @@ The requirements we will have on filtering:
 **Acceptance Criteria**:
 
 - [ ] User can customize any of the existing built-in report parameters
-- [ ] User has complete CRUD control of report defintions
+- [ ] User has complete CRUD control of report definitions
 - [ ] Custom reports are available to anyone in the workspace (tenant)
 
 **NOTE** This is included here for future vision. Remainder of PRD does not include further consideration of this
@@ -252,7 +252,7 @@ The requirements we will have on filtering:
 
 1. **Split-Based Aggregation** - Reports aggregate split amounts by category, not transaction amounts. Each split contributes independently to its category total.
 
-2. **Hierarchical Category Rollups** - Categories use `:` delimiter for hierarchy (e.g., "Home:Utilities:Electric"). Reports show both detail rows for each level and rollup subtotals for parent categories.
+2. **Hierarchical Category Roll-ups** - Categories use `:` delimiter for hierarchy (e.g., "Home:Utilities:Electric"). Reports show both detail rows for each level and rollup subtotals for parent categories.
 
 3. **Uncategorized Split Handling** - Whether uncategorized splits (empty string category) are included is defined per report. When included, they appear as top-level "Uncategorized" row. Each split in a multi-split transaction is counted independently.
 
@@ -303,7 +303,7 @@ The requirements we will have on filtering:
 **Dependencies**:
 
 - Requires PRD-TRANSACTION-SPLITS to be complete, so Category field is available. We are actually summarizing the **SPLITS** in the system
-- Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accomodate needs of report-driven filters
+- Requires PRD-TRANSACTION-FILTERING to be complete, so we can show the drill-down. There may be changes required to that design to accommodate needs of report-driven filters
 
 **Constraints**:
 
