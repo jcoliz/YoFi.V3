@@ -88,11 +88,11 @@ Following are the standard income/expense reports
 **Notes:**
 
 - **Category Filtering**: "Expenses" and "Expenses Detail" include all categories EXCEPT Income, Taxes, Savings, and Transfer. They also include uncategorized splits.
-- **Category Depth Levels**: "Default Level: N" means show N levels below the report filter root. For example:
-  - Income report at Level 1 shows categories like `Income:Salary`, `Income:Bonus` (one level below Income)
-  - Income report at Level 2 shows categories like `Income:Salary:Primary`, `Income:Bonus:Annual` (two levels below Income)
-  - Expenses report at Level 1 shows top-level expense categories like `Home`, `Transportation` (treated as if there's an implicit "Expenses" root)
-  - Expenses report at Level 2 shows `Home:Utilities`, `Transportation:Fuel` (two levels of expense hierarchy)
+- **Category Depth Levels**: "Default Level: N" means show N category levels below the report filter root. The report root is represented by the grand-total footer, not a separate category row. At each displayed category level, show its subtotal before its indented descendants. For example:
+  - Income report at Level 1 shows categories like `Income:Salary`, `Income:Bonus`; the bottom grand total is the total for `Income:*`
+  - Income report at Level 2 shows subtotal rows like `Income:Salary`, followed by indented categories like `Income:Salary:Primary`; the bottom grand total is the total for `Income:*`
+  - Expenses report at Level 1 shows top-level expense category rows like `Home`, `Transportation`
+  - Expenses report at Level 2 shows each top-level category subtotal, such as `Home`, followed by indented categories like `Home:Utilities`
 
 ### Story 2249: User - Configures report display
 

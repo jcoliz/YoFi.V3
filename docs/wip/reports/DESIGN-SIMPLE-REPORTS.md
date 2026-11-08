@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 target_release: V3.0
 ado: Story 2248
 parent: Feature 2207 Reports
@@ -37,7 +37,7 @@ building them now.
 - Choosing a different year or changing category depth/month display (Story 2249).
 - Charts (Story 3), summary report composition (Story 4), historical multi-year
   reporting (Story 6), and transaction drill-down (Story 7).
-- Custom report definitions, report persistence, export, and database schema
+- Custom report definitions, export, and database schema
   changes.
 
 ## User experience
@@ -52,15 +52,26 @@ The page contains:
 2. The selected report's name and a table with category rows and totals.
 3. Loading, error, and no-data states consistent with existing pages.
 
-Changing the selection loads the selected report. With no matching splits, show
-the table's column headers and a clear no-data message; do not manufacture
-category rows. Report selection is page state for this story and is not persisted.
+Changing the selection loads the selected report and saves its ID in browser
+localStorage, scoped to the current workspace. When the user navigates away and
+returns, restore that workspace's last selected report. If there is no saved
+selection, or the saved ID is no longer in the built-in catalog, select the
+catalog's default report and save that selection.
+
+With no matching splits, show the table's column headers and a clear no-data
+message; do not manufacture category rows. This story persists only the selected
+report ID. Per-report year, depth, and display settings are added by Story 2249
+and should use the same workspace-scoped browser preference mechanism, keyed by
+report ID, so returning to a report restores its settings as well.
 
 For reports with month columns, the table is ordered as Category, January through
 December, Total, and % of report total. For reports without month columns, it is
 Category, Total, and % of report total. Category rows are indented by depth. A
-footer shows the total for each displayed amount column. The percentage footer
-is 100% when the report total is nonzero.
+footer at the bottom shows the report grand total for each displayed amount
+column; do not add a separate report-root row. The percentage footer is 100%
+when the report total is nonzero. Within the table, render each category subtotal
+before its descendants, with child categories indented under it. Style subtotal
+rows in bold, following the provided original YoFi report example.
 
 ## Built-in report definitions
 
@@ -99,17 +110,17 @@ as a synthetic top-level `Uncategorized` row.
    Preserve signs; credits, refunds, and unexpected signs are not inverted.
 4. Build category nodes from the grouped category paths. Each displayed node's
    amount is the sum of its own direct splits and all descendant splits. A node
-   with descendants is therefore a subtotal; the implicit root for an Income,
-   Taxes, Savings, or Transfer report is not displayed. Expenses has an implicit
-   root as well.
-5. Display nodes through the report definition's default depth. Deeper categories
-   contribute to the deepest displayed ancestor. Include the synthetic
-   Uncategorized row only where the definition enables it.
+   with descendants is therefore a subtotal. Do not add a synthetic report-root
+   category row; the report root total is shown once in the bottom totals footer.
+5. Display category nodes through the report definition's default depth below the
+   filter root. Deeper categories contribute to the deepest displayed ancestor.
+   Include the synthetic Uncategorized row only where the definition enables it.
 6. Compute each report/month grand total from the matching exact-category groups
    once, not by adding displayed parent and child rows. This prevents hierarchy
    rollups from double-counting amounts.
-7. Order rows by category path, case-insensitively, with a stable ordinal
-   tie-breaker.
+7. Order rows in depth-first category order, placing each parent subtotal before
+   its descendants. Sibling categories are ordered case-insensitively with a
+   stable ordinal tie-breaker.
 
 For each displayed category row, calculate its percentage as its annual row
 total divided by the annual report grand total. This remains an annual share for
@@ -175,8 +186,9 @@ meaning of report totals.
 
 Use one table component for both annual-only and month-column reports. Derive
 headers from response metadata, render category indentation from the row depth,
-and use the explicit totals object for the footer. Do not derive the footer by
-summing displayed rows, because parent subtotals overlap with child rows.
+and emphasize subtotal rows. Use the explicit totals object for the bottom
+footer. Do not derive the footer by summing displayed rows, because parent
+subtotals overlap with child rows.
 
 Format amounts using the app's established currency/number formatting. Display
 the row percentage after the annual total; render null as an em dash. The table
