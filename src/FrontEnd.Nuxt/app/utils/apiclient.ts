@@ -1389,6 +1389,167 @@ export class PayeeMatchingRulesClient {
     }
 }
 
+export class ReportsClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
+        this.baseUrl = baseUrl ?? "";
+    }
+
+    /**
+     * Lists the built-in report definitions available to the tenant.
+     */
+    getAvailableReports(tenantKey: string): Promise<ReportDefinitionDto[]> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/reports/available";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAvailableReports(_response);
+        });
+    }
+
+    protected processGetAvailableReports(response: Response): Promise<ReportDefinitionDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ReportDefinitionDto.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReportDefinitionDto[]>(null as any);
+    }
+
+    /**
+     * Gets the selected built-in report for a calendar year.
+     * @param reportId Stable identifier of a built-in report.
+     * @param year (optional) Calendar year to report, defaulting to the current UTC year.
+     */
+    getReport(reportId: string, year: number | null | undefined, tenantKey: string): Promise<ReportResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/reports/{reportId}?";
+        if (reportId === undefined || reportId === null)
+            throw new globalThis.Error("The parameter 'reportId' must be defined.");
+        url_ = url_.replace("{reportId}", encodeURIComponent("" + reportId));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (year !== undefined && year !== null)
+            url_ += "year=" + encodeURIComponent("" + year) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetReport(_response);
+        });
+    }
+
+    protected processGetReport(response: Response): Promise<ReportResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReportResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReportResultDto>(null as any);
+    }
+}
+
 export class SampleDataClient {
     private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
@@ -5663,6 +5824,234 @@ export interface IPayeeMatchingRuleEditDto {
     payeePattern?: string;
     payeeIsRegex?: boolean;
     category?: string;
+}
+
+export class ReportDefinitionDto implements IReportDefinitionDto {
+    id?: string;
+    name?: string;
+    defaultDepth?: number;
+    hasMonthColumns?: boolean;
+    includesUncategorized?: boolean;
+
+    constructor(data?: IReportDefinitionDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.defaultDepth = _data["defaultDepth"];
+            this.hasMonthColumns = _data["hasMonthColumns"];
+            this.includesUncategorized = _data["includesUncategorized"];
+        }
+    }
+
+    static fromJS(data: any): ReportDefinitionDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReportDefinitionDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["defaultDepth"] = this.defaultDepth;
+        data["hasMonthColumns"] = this.hasMonthColumns;
+        data["includesUncategorized"] = this.includesUncategorized;
+        return data;
+    }
+}
+
+export interface IReportDefinitionDto {
+    id?: string;
+    name?: string;
+    defaultDepth?: number;
+    hasMonthColumns?: boolean;
+    includesUncategorized?: boolean;
+}
+
+export class ReportResultDto implements IReportResultDto {
+    id?: string;
+    name?: string;
+    year?: number;
+    hasMonthColumns?: boolean;
+    rows?: ReportRowDto[];
+    totals?: ReportTotalsDto;
+
+    constructor(data?: IReportResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.year = _data["year"];
+            this.hasMonthColumns = _data["hasMonthColumns"];
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(ReportRowDto.fromJS(item));
+            }
+            this.totals = _data["totals"] ? ReportTotalsDto.fromJS(_data["totals"]) : undefined as any;
+        }
+    }
+
+    static fromJS(data: any): ReportResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReportResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["year"] = this.year;
+        data["hasMonthColumns"] = this.hasMonthColumns;
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["totals"] = this.totals ? this.totals.toJSON() : undefined as any;
+        return data;
+    }
+}
+
+export interface IReportResultDto {
+    id?: string;
+    name?: string;
+    year?: number;
+    hasMonthColumns?: boolean;
+    rows?: ReportRowDto[];
+    totals?: ReportTotalsDto;
+}
+
+export class ReportRowDto implements IReportRowDto {
+    categoryPath?: string;
+    depth?: number;
+    isSubtotal?: boolean;
+    monthlyAmounts?: number[] | undefined;
+    annualTotal?: number;
+    percentage?: number | undefined;
+
+    constructor(data?: IReportRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.categoryPath = _data["categoryPath"];
+            this.depth = _data["depth"];
+            this.isSubtotal = _data["isSubtotal"];
+            if (Array.isArray(_data["monthlyAmounts"])) {
+                this.monthlyAmounts = [] as any;
+                for (let item of _data["monthlyAmounts"])
+                    this.monthlyAmounts!.push(item);
+            }
+            this.annualTotal = _data["annualTotal"];
+            this.percentage = _data["percentage"];
+        }
+    }
+
+    static fromJS(data: any): ReportRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReportRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["categoryPath"] = this.categoryPath;
+        data["depth"] = this.depth;
+        data["isSubtotal"] = this.isSubtotal;
+        if (Array.isArray(this.monthlyAmounts)) {
+            data["monthlyAmounts"] = [];
+            for (let item of this.monthlyAmounts)
+                data["monthlyAmounts"].push(item);
+        }
+        data["annualTotal"] = this.annualTotal;
+        data["percentage"] = this.percentage;
+        return data;
+    }
+}
+
+export interface IReportRowDto {
+    categoryPath?: string;
+    depth?: number;
+    isSubtotal?: boolean;
+    monthlyAmounts?: number[] | undefined;
+    annualTotal?: number;
+    percentage?: number | undefined;
+}
+
+export class ReportTotalsDto implements IReportTotalsDto {
+    monthlyAmounts?: number[] | undefined;
+    annualTotal?: number;
+
+    constructor(data?: IReportTotalsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["monthlyAmounts"])) {
+                this.monthlyAmounts = [] as any;
+                for (let item of _data["monthlyAmounts"])
+                    this.monthlyAmounts!.push(item);
+            }
+            this.annualTotal = _data["annualTotal"];
+        }
+    }
+
+    static fromJS(data: any): ReportTotalsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReportTotalsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.monthlyAmounts)) {
+            data["monthlyAmounts"] = [];
+            for (let item of this.monthlyAmounts)
+                data["monthlyAmounts"].push(item);
+        }
+        data["annualTotal"] = this.annualTotal;
+        return data;
+    }
+}
+
+export interface IReportTotalsDto {
+    monthlyAmounts?: number[] | undefined;
+    annualTotal?: number;
 }
 
 export class SampleScenarioDto implements ISampleScenarioDto {
