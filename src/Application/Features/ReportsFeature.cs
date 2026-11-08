@@ -265,7 +265,7 @@ public class ReportsFeature(
             rows.Add(new ReportRowDto(
                 node.Path,
                 depth,
-                node.Children.Count > 0,
+                depth < definition.DefaultDepth && node.Children.Count > 0,
                 definition.HasMonthColumns ? amounts : null,
                 annualTotal,
                 grandTotal == 0 ? null : annualTotal / grandTotal));
