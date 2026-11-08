@@ -40,6 +40,8 @@ mechanism to deliver this insight and understanding
 
 ### Story 2248: User - Views a built-in income/expense report
 
+**Detailed Design:** [DESIGN-REPORTS-STORY-2248.md](DESIGN-REPORTS-STORY-2248.md)
+
 **As a** user
 **I want** to review a summary of my income and/or expenses over a period of time
 **So that** I can understand where my money is going, and what changes I might want to make in my financial life

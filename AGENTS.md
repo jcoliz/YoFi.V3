@@ -6,6 +6,15 @@
 - Preserve inward dependency flow: Application depends on Entities abstractions, not database or HTTP infrastructure. Data implements the Entities data-access interfaces.
 - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/adr/README.md](docs/adr/README.md) for architecture details and decision rationale.
 
+## Work Tracking
+
+This project uses Azure Dev Ops to track work. When you see an Epic, Feature, Story, Scenario or Bug number, this refers to the [YoFiV3](https://dev.azure.com/jcoliz/YoFiV3) project.
+
+The source is kept in GitHub.
+
+Automated builds for CI and Deployment are done in Azure Pipelines, see [.azure\pipelines\ci.yaml](.azure\pipelines\ci.yaml). There is a basic
+GitHub Workflow, but it's not the primary.
+
 ## Logging
 
 - Always use `[LoggerMessage]`-attributed partial methods for logging. Do not call logger methods directly (for example, `_logger.LogInformation(...)`).

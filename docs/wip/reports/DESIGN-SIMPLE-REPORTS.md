@@ -1,0 +1,223 @@
+---
+status: Draft
+target_release: V3.0
+ado: Story 2248
+parent: Feature 2207 Reports
+prd: PRD-REPORTS.md
+---
+
+# Detailed Design: Built-in Income/Expense Report (simple-reports)
+
+## Overview
+
+Story 2248 gives a user a set of built-in reports and a tabular view of categorized
+income and expenses for a calendar year. Report definitions select the included
+categories and specify the initial category depth and whether month columns are
+shown. The report aggregates transaction **splits**, presents category rollups,
+and shows row and column totals.
+
+The design is intentionally limited to Story 2248. Year/depth/month controls,
+chart views, and transaction drill-down remain owned by their respective stories.
+The report contract and page structure leave room for those features without
+building them now.
+
+## Scope
+
+### In scope
+
+- A catalog of the built-in reports defined in [PRD-REPORTS.md](PRD-REPORTS.md).
+- A user-selectable report and a report table for the currently selected workspace.
+- Calendar-year split aggregation, using the current year by default.
+- Category filtering, hierarchical rollups, grand totals, row totals, and row
+  percentages.
+- Inclusion of uncategorized splits according to each report definition.
+
+### Out of scope
+
+- Choosing a different year or changing category depth/month display (Story 2249).
+- Charts (Story 3), summary report composition (Story 4), historical multi-year
+  reporting (Story 6), and transaction drill-down (Story 7).
+- Custom report definitions, report persistence, export, and database schema
+  changes.
+
+## User experience
+
+Add a Reports destination to the authenticated workspace navigation, following
+the existing Transactions page conventions. The page requires an active
+workspace and uses that workspace's tenant context for every request.
+
+The page contains:
+
+1. A report selector populated from the built-in report catalog.
+2. The selected report's name and a table with category rows and totals.
+3. Loading, error, and no-data states consistent with existing pages.
+
+Changing the selection loads the selected report. With no matching splits, show
+the table's column headers and a clear no-data message; do not manufacture
+category rows. Report selection is page state for this story and is not persisted.
+
+For reports with month columns, the table is ordered as Category, January through
+December, Total, and % of report total. For reports without month columns, it is
+Category, Total, and % of report total. Category rows are indented by depth. A
+footer shows the total for each displayed amount column. The percentage footer
+is 100% when the report total is nonzero.
+
+## Built-in report definitions
+
+Implement the definitions in the PRD as application code, not database records:
+
+| Report | Category filter | Default depth | Month columns | Uncategorized |
+| --- | --- | ---: | --- | --- |
+| Income | `Income:*` | 1 | No | No |
+| Taxes | `Taxes:*` | 1 | No | No |
+| Expenses | Expense categories | 1 | No | Yes |
+| Savings | `Savings:*` | 1 | No | No |
+| Transfers | `Transfer:*` | 1 | No | No |
+| Income Detail | `Income:*` | 2 | Yes | No |
+| Taxes Detail | `Taxes:*` | 2 | Yes | No |
+| Expenses Detail | Expense categories | 2 | Yes | Yes |
+| Savings Detail | `Savings:*` | 2 | No | No |
+| All | `*` | 1 | No | Yes |
+| All Detail | `*` | 2 | Yes | Yes |
+
+Use stable, URL-safe report IDs independent of display names. Category matching
+uses the top-level category segment, case-insensitively, and requires a segment
+boundary: `Income:Salary` matches `Income:*`, but `IncomeTax` does not. The
+reserved top-level names are Income, Taxes, Savings, and Transfer. Expenses
+means all other categorized splits, plus uncategorized splits when enabled.
+Uncategorized means a split whose category is the empty string and is displayed
+as a synthetic top-level `Uncategorized` row.
+
+## Category aggregation rules
+
+1. Select splits whose parent transaction belongs to the current tenant and falls
+   within the requested calendar year, inclusive of January 1 and December 31.
+2. Apply the report's category filter to each split. A split is the unit of
+   aggregation: do not substitute the parent transaction amount or count a
+   multi-split transaction only once.
+3. Group matching splits by their exact category and sum their stored amounts.
+   Preserve signs; credits, refunds, and unexpected signs are not inverted.
+4. Build category nodes from the grouped category paths. Each displayed node's
+   amount is the sum of its own direct splits and all descendant splits. A node
+   with descendants is therefore a subtotal; the implicit root for an Income,
+   Taxes, Savings, or Transfer report is not displayed. Expenses has an implicit
+   root as well.
+5. Display nodes through the report definition's default depth. Deeper categories
+   contribute to the deepest displayed ancestor. Include the synthetic
+   Uncategorized row only where the definition enables it.
+6. Compute each report/month grand total from the matching exact-category groups
+   once, not by adding displayed parent and child rows. This prevents hierarchy
+   rollups from double-counting amounts.
+7. Order rows by category path, case-insensitively, with a stable ordinal
+   tie-breaker.
+
+For each displayed category row, calculate its percentage as its annual row
+total divided by the annual report grand total. This remains an annual share for
+month-column reports. If the annual grand total is zero, return a null percentage
+and display an em dash; otherwise preserve the signed ratio. This makes refunds
+or mixed-sign categories visible without silently converting them to absolute
+values.
+
+## Backend design
+
+Follow the existing Clean Architecture and tenant-scoped BFF patterns:
+
+- **Application:** Add a Reports feature and DTOs. Keep built-in definitions and
+  category/report aggregation in the Application layer. Use the existing data
+  provider to query splits and their parent transactions, scoped by the current
+  tenant from `ITenantProvider`.
+- **Controllers:** Add a thin tenant-scoped Reports controller. Require at least
+  the Viewer role, return typed DTOs, and use the repository's
+  `[LoggerMessage]` partial-method pattern for boundary logging. Do not log
+  transaction or category contents.
+- **Data:** No new entity or migration is required. Start with an indexed,
+  tenant-and-date-constrained query over the existing Transaction/Split
+  relationship. Aggregate exact category totals in the database where supported;
+  build the small category tree in Application code. The expected volume and
+  <500 ms single-year target in the PRD do not justify adding a cache or schema
+  change up front.
+- **Frontend:** Add a Reports page that requests definitions and results through
+  the generated API client. Regenerate the client from the controller contract
+  using the existing project workflow.
+
+### API shape
+
+Use the existing tenant route convention:
+
+- `GET /api/tenant/{tenantKey:guid}/reports/available` — report ID, display name, and
+  definition metadata needed by the selector.
+- `GET /api/tenant/{tenantKey:guid}/reports/{reportId}?year={year}` — result for the
+  requested report and calendar year. `year` is optional and defaults to the
+  current calendar year for Story 2248.
+
+The year parameter provides an integration point for Story 2249; the Story 2248
+page does not expose a year picker. Unknown report IDs return the standard 404
+problem response. Invalid years use the standard validation problem response.
+Tenant authorization and error handling use existing middleware and policies.
+
+### Response model
+
+Return typed report metadata and rows rather than a matrix of untyped JSON values:
+
+- Report ID, name, and year.
+- Column metadata describing whether the report has month columns.
+- Ordered rows containing category path, depth, subtotal status, twelve monthly
+  amounts when enabled, annual total, and nullable percentage.
+- A totals object containing each displayed month total and the annual grand
+  total.
+
+For reports without month columns, omit monthly amounts/columns. Preserve numeric
+amounts as decimals. This response shape makes the table straightforward to
+render and can later support user-selected display options without changing the
+meaning of report totals.
+
+## Frontend table behavior
+
+Use one table component for both annual-only and month-column reports. Derive
+headers from response metadata, render category indentation from the row depth,
+and use the explicit totals object for the footer. Do not derive the footer by
+summing displayed rows, because parent subtotals overlap with child rows.
+
+Format amounts using the app's established currency/number formatting. Display
+the row percentage after the annual total; render null as an em dash. The table
+does not make cells interactive in this story. Keep report identity and row
+category data in the response so Story 7 can add drill-down without parsing
+formatted labels.
+
+## Validation and tests
+
+Add focused coverage at each layer:
+
+- **Application unit tests:** all built-in definitions; category matching
+  (including case and segment boundaries); reserved categories; uncategorized
+  inclusion; depth truncation; direct amounts plus descendant rollups; signed
+  amounts; zero denominators; and totals that do not double-count hierarchy rows.
+- **Application integration tests:** tenant and calendar-year constraints on
+  split aggregation, including a split transaction and dates at the year
+  boundaries.
+- **Controller integration tests:** Viewer access, denial without tenant access,
+  invalid report ID, and validation errors.
+- **Frontend tests:** report selection, month/no-month column layouts, subtotal
+  indentation, footer rendering, empty data, loading, and API error states.
+
+Confirm the single-year response meets the PRD's <500 ms target on representative
+tenant data. If database profiling reveals a bottleneck, optimize the query and
+indexes based on the measured plan rather than adding speculative infrastructure.
+
+## Follow-on integration points
+
+- **Story 2249:** The query already takes a year; later add selected year, depth,
+  and month-display options and persist per-report preferences as that story
+  requires.
+- **Story 3:** Keep the report response structured so chart series can be
+  derived from rows and month values. Charts remain outside this page change.
+- **Story 7:** Preserve report ID, category path, month, and year as data fields
+  for future transaction filters. No navigation or filters are added now.
+- **Story 4:** The stable report catalog and totals can later back summary
+  sections without embedding summary composition in this feature.
+
+## Open questions
+
+No product questions block this design. Story 2248 uses the current calendar year,
+the default depth and month-display settings from the report definition, signed
+percentages, and an em dash where a zero grand total makes percentage undefined.
