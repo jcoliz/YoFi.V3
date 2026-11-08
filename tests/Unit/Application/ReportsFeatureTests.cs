@@ -10,6 +10,7 @@ namespace YoFi.V3.Tests.Unit.Application;
 public class ReportsFeatureTests
 {
     private Mock<IDataProvider> _dataProvider = null!;
+    private Mock<TimeProvider> _timeProvider = null!;
     private TestTenantProvider _tenantProvider = null!;
     private List<Transaction> _transactions = null!;
     private ReportsFeature _feature = null!;
@@ -19,6 +20,9 @@ public class ReportsFeatureTests
     {
         _transactions = [];
         _dataProvider = new Mock<IDataProvider>();
+        _timeProvider = new Mock<TimeProvider>();
+        _timeProvider.Setup(time => time.GetUtcNow())
+            .Returns(new DateTimeOffset(2040, 7, 1, 0, 0, 0, TimeSpan.Zero));
         _tenantProvider = new TestTenantProvider();
         _tenantProvider.CurrentTenant.Id = 42;
         _dataProvider.Setup(data => data.Get<Transaction>())
@@ -26,7 +30,7 @@ public class ReportsFeatureTests
         _dataProvider.Setup(data =>
                 data.ToListNoTrackingAsync(It.IsAny<IQueryable<ReportSplitAmount>>()))
             .Returns((IQueryable<ReportSplitAmount> query) => Task.FromResult(query.ToList()));
-        _feature = new ReportsFeature(_tenantProvider, _dataProvider.Object);
+        _feature = new ReportsFeature(_tenantProvider, _dataProvider.Object, _timeProvider.Object);
     }
 
     [Test]
@@ -159,6 +163,21 @@ public class ReportsFeatureTests
             Assert.That(result.Rows, Is.Empty);
             Assert.That(result.Totals.AnnualTotal, Is.Zero);
             Assert.That(result.Totals.MonthlyAmounts, Is.EqualTo(new decimal[12]));
+        }
+    }
+
+    [Test]
+    public async Task GetReportAsync_YearOmittedUsesCurrentUtcYearFromTimeProvider()
+    {
+        AddTransaction(2040, 1, ("Income:Salary", 80m));
+        AddTransaction(2039, 12, ("Income:Salary", 100m));
+
+        var result = await _feature.GetReportAsync("income");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Year, Is.EqualTo(2040));
+            Assert.That(result.Totals.AnnualTotal, Is.EqualTo(80m));
         }
     }
 

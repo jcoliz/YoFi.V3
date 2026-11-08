@@ -16,7 +16,8 @@ public class ReportsFeatureTests : FeatureTestBase
         var otherTenant = await CreateTenantAsync("Other tenant");
         var feature = new ReportsFeature(
             new FixedTenantProvider(currentTenant),
-            _dataProvider);
+            _dataProvider,
+            TimeProvider.System);
 
         _context.Transactions.AddRange(
             CreateTransaction(currentTenant.Id, new DateOnly(2024, 1, 1),

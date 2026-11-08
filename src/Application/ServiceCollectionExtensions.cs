@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPayeeMatchingService, PayeeMatchingRuleFeature>();
 
         // Register application services
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IRegexValidationService, RegexValidationService>();
         services.AddSingleton(new SampleScenarioLoader());
         services.AddSingleton<SampleDataGenerator>();

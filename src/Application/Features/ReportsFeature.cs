@@ -14,7 +14,10 @@ internal sealed record ReportSplitAmount(string Category, int Month, decimal Amo
 /// <summary>
 /// Provides the built-in report catalog and tenant-scoped yearly report data.
 /// </summary>
-public class ReportsFeature(ITenantProvider tenantProvider, IDataProvider dataProvider)
+public class ReportsFeature(
+    ITenantProvider tenantProvider,
+    IDataProvider dataProvider,
+    TimeProvider timeProvider)
 {
     private static readonly IReadOnlyList<ReportDefinition> Definitions =
     [
@@ -60,7 +63,7 @@ public class ReportsFeature(ITenantProvider tenantProvider, IDataProvider dataPr
             throw new KeyNotFoundException($"Report with ID '{reportId}' was not found.");
         }
 
-        var reportYear = year ?? DateTime.UtcNow.Year;
+        var reportYear = year ?? timeProvider.GetUtcNow().Year;
         if (reportYear < DateOnly.MinValue.Year || reportYear > DateOnly.MaxValue.Year)
         {
             throw new ValidationException(nameof(year), "Year must be between 1 and 9999.");
