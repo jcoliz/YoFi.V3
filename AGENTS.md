@@ -8,12 +8,9 @@
 
 ## Work Tracking
 
-This project uses Azure Dev Ops to track work. When you see an Epic, Feature, Story, Scenario or Bug number, this refers to the [YoFiV3](https://dev.azure.com/jcoliz/YoFiV3) project.
+This project tracks Epics, Features, Stories, Scenarios, and Bugs as work items in the [YoFiV3 Azure DevOps project](https://dev.azure.com/jcoliz/YoFiV3). Do not look for these work items in GitHub Issues. The source code is hosted on GitHub.
 
-The source is kept in GitHub.
-
-Automated builds for CI and Deployment are done in Azure Pipelines, see [.azure\pipelines\ci.yaml](.azure\pipelines\ci.yaml). There is a basic
-GitHub Workflow, but it's not the primary.
+CI and deployment use Azure Pipelines; see [`.azure/pipelines/ci.yaml`](.azure/pipelines/ci.yaml). The GitHub repository also has a basic Actions workflow, but it is not the primary build or deployment system.
 
 ## Logging
 
@@ -41,6 +38,11 @@ GitHub Workflow, but it's not the primary.
   ```
 
 - **Never stop or tear down the containers**, even if you started them. Do not run `Stop-Container.ps1` or a compose-down command. Avoid test wrappers that clean up containers automatically.
+
+## Document Metadata
+
+- For Markdown documents that have metadata, put it in YAML front matter at the very top of the file, between `---` delimiters.
+- Do not put document metadata such as status, release, ADO work item, parent, or PRD reference in the document body. Follow the front-matter fields used by nearby documents of the same type.
 
 ## Further Guidance
 
