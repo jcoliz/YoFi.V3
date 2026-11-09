@@ -43,6 +43,15 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task ScalarApiReference_IsMapped()
+    {
+        var response = await _client.GetAsync("/scalar/v1");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/html"));
+    }
+
+    [Test]
     public async Task PreviewAndLoad_AsOwner_ReturnMatchingInputsAndCommittedCounts()
     {
         var previewResponse = await _client.PostAsJsonAsync($"{BaseUrl}/preview", Request);
@@ -209,11 +218,22 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     [Test]
     public async Task OpenApi_DescribesAllEndpointsAndOfxResponse()
     {
-        var response = await _client.GetAsync("/swagger/v1/swagger.json");
+        var response = await _client.GetAsync("/openapi/v1.json");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var bearerScheme = root.GetProperty("components").GetProperty("securitySchemes").GetProperty("Bearer");
         var paths = document.RootElement.GetProperty("paths");
         const string prefix = "/api/tenant/{tenantKey}/admin/sample-data";
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(root.GetProperty("info").GetProperty("title").GetString(), Is.EqualTo("YoFi.V3 Backend"));
+            Assert.That(bearerScheme.GetProperty("type").GetString(), Is.EqualTo("http"));
+            Assert.That(bearerScheme.GetProperty("scheme").GetString(), Is.EqualTo("bearer"));
+            Assert.That(paths.GetProperty($"{prefix}/scenarios").GetProperty("get").GetProperty("summary").GetString(),
+                Does.Contain("Lists bundled scenarios"));
+        }
+
         foreach (var (suffix, method) in new[] { ("scenarios", "get"), ("preview", "post"), ("load", "post"), ("ofx", "post") })
         {
             var operation = paths.GetProperty($"{prefix}/{suffix}").GetProperty(method);
@@ -222,7 +242,14 @@ public class SampleDataControllerTests : AuthenticatedTestBase
         }
         var content = paths.GetProperty($"{prefix}/ofx").GetProperty("post").GetProperty("responses").GetProperty("200").GetProperty("content");
         Assert.That(content.TryGetProperty("application/x-ofx", out _), Is.True, content.GetRawText());
-        Assert.That(content.GetProperty("application/x-ofx").GetProperty("schema").GetProperty("format").GetString(), Is.EqualTo("binary"));
+        var schema = content.GetProperty("application/x-ofx").GetProperty("schema");
+        if (schema.TryGetProperty("$ref", out var schemaReference))
+        {
+            var schemaName = schemaReference.GetString()!.Split('/').Last();
+            schema = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
+        }
+        Assert.That(schema.TryGetProperty("format", out var format), Is.True, schema.GetRawText());
+        Assert.That(format.GetString(), Is.EqualTo("binary"));
     }
 
     [TestCase("LogStarting")]

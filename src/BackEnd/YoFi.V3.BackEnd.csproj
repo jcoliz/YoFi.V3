@@ -3,16 +3,7 @@
   <PropertyGroup>
     <!-- Configure dotnet watch to ignore database files -->
     <DefaultItemExcludes>$(DefaultItemExcludes);**/*.db;**/*.db-shm;**/*.db-wal</DefaultItemExcludes>
-    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
   </PropertyGroup>
-
-  <!-- Copy Controllers XML documentation to output for Swagger -->
-  <ItemGroup>
-    <Content Include="..\Controllers\bin\$(Configuration)\$(TargetFramework)\YoFi.V3.Controllers.xml">
-      <Link>YoFi.V3.Controllers.xml</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Alexinea.Extensions.Configuration.Toml" />
@@ -22,7 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSwag.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>
 
   <PropertyGroup>

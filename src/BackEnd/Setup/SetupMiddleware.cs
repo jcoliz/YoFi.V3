@@ -24,7 +24,7 @@ public static class SetupMiddleware
     /// <remarks>
     /// Middleware order is critical. This method ensures the correct sequence:
     /// 1. Production-specific middleware (HSTS, HTTPS redirection)
-    /// 2. Swagger (if enabled)
+    /// 2. OpenAPI and Scalar (if enabled)
     /// 3. CORS
     /// 4. Test correlation middleware
     /// 5. Exception handler
@@ -45,11 +45,11 @@ public static class SetupMiddleware
             app.UseHttpsRedirection();
         }
 
-        // Swagger (enabled in all environments during development phase)
-        if (ShouldEnableSwagger(env))
+        // API documentation (enabled in all environments during development phase)
+        if (ShouldEnableApiDocumentation(env))
         {
-            logger.LogEnablingSwagger();
-            app.UseSwagger();
+            logger.LogEnablingApiDocumentation();
+            app.MapApiDocumentation();
         }
 
         // CORS must come before other middleware that might reject requests
@@ -80,7 +80,7 @@ public static class SetupMiddleware
         return app;
     }
 
-    private static bool ShouldEnableSwagger(IWebHostEnvironment env)
+    private static bool ShouldEnableApiDocumentation(IWebHostEnvironment env)
     {
         // During development phase, we keep swagger up even in non-development environments
         return true; // TODO: Revisit when moving to production

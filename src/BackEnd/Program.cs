@@ -54,7 +54,7 @@ try
     builder.Services.AddControllers();
     builder.Services.AddProblemDetails();
     builder.Services.AddControllerServices(version);
-    builder.Services.AddSwagger();
+    builder.Services.AddApiDocumentation();
     builder.Services.AddApplicationFeatures();
     builder.Services.AddDatabase(builder.Configuration, builder.Environment, logger);
     builder.Services.AddIdentityConfiguration(builder.Configuration);

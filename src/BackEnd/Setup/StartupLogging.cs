@@ -26,8 +26,8 @@ public static partial class StartupLogging
         this ILogger logger,
         [CallerMemberName] string? location = null);
 
-    [LoggerMessage(8, LogLevel.Information, "{Location}: Enabling Swagger UI")]
-    public static partial void LogEnablingSwagger(
+    [LoggerMessage(8, LogLevel.Information, "{Location}: Enabling OpenAPI and Scalar API reference")]
+    public static partial void LogEnablingApiDocumentation(
         this ILogger logger,
         [CallerMemberName] string? location = null);
 

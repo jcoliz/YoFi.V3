@@ -115,23 +115,51 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
     [TestCase("/api/tenant/{tenantKey}/admin/import")]
     public async Task OpenApi_DescribesWorkbookAsBinaryMultipartUpload(string path)
     {
-        var response = await _client.GetAsync("/swagger/v1/swagger.json");
+        var response = await _client.GetAsync("/openapi/v1.json");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var schema = document.RootElement.GetProperty("paths").GetProperty(path)
             .GetProperty("post").GetProperty("requestBody").GetProperty("content")
             .GetProperty("multipart/form-data").GetProperty("schema");
-        var properties = schema.GetProperty("properties");
-        var file = properties.GetProperty("file");
-
-        using (Assert.EnterMultipleScope())
+        if (schema.TryGetProperty("$ref", out var schemaReference))
         {
-            Assert.That(file.GetProperty("type").GetString(), Is.EqualTo("string"));
-            Assert.That(file.GetProperty("format").GetString(), Is.EqualTo("binary"));
-            if (path.EndsWith("/import", StringComparison.Ordinal))
+            var schemaName = schemaReference.GetString()!.Split('/').Last();
+            schema = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
+        }
+        var properties = new Dictionary<string, JsonElement>();
+        CollectProperties(schema);
+        var file = properties["file"];
+        if (file.TryGetProperty("$ref", out var fileReference))
+        {
+            var schemaName = fileReference.GetString()!.Split('/').Last();
+            file = document.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(schemaName);
+        }
+
+        Assert.That(file.TryGetProperty("type", out var fileType), Is.True, file.GetRawText());
+        Assert.That(fileType.GetString(), Is.EqualTo("string"));
+        Assert.That(file.TryGetProperty("format", out var fileFormat), Is.True, file.GetRawText());
+        Assert.That(fileFormat.GetString(), Is.EqualTo("binary"));
+        if (path.EndsWith("/import", StringComparison.Ordinal))
+        {
+            Assert.That(properties["expectedSha256"].GetProperty("type").GetString(), Is.EqualTo("string"));
+        }
+
+        void CollectProperties(JsonElement current)
+        {
+            if (current.TryGetProperty("properties", out var currentProperties))
             {
-                Assert.That(properties.GetProperty("expectedSha256").GetProperty("type").GetString(),
-                    Is.EqualTo("string"));
+                foreach (var property in currentProperties.EnumerateObject())
+                {
+                    properties[property.Name] = property.Value;
+                }
+            }
+
+            if (current.TryGetProperty("allOf", out var allOf))
+            {
+                foreach (var item in allOf.EnumerateArray())
+                {
+                    CollectProperties(item);
+                }
             }
         }
     }
