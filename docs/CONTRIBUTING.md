@@ -32,6 +32,31 @@ After setup completes, start the development environment:
 .\scripts\Start-LocalDev.ps1
 ```
 
+## Interactive API reference
+
+Open `/scalar/v1` on the backend, select **ScalarLogin** in **Authentication**,
+enter an existing YoFi username and password, and click **Authorize**. Scalar
+uses the token automatically for protected requests. The **Bearer** scheme
+remains available if you prefer to paste an existing JWT.
+
+After signing in, use **Refresh** in Scalar's authentication panel to obtain a new
+access token without re-entering your password. Refresh tokens rotate: each refresh
+replaces the previous refresh token, which can no longer be used. If the refresh
+token expires or is revoked, authorize again.
+
+The reference uses `POST /api/auth/token`, a form-encoded adapter supporting
+`password` and `refresh_token` grants. It delegates to the existing login and
+refresh implementations; the JSON `POST /api/auth/login` and
+`POST /api/auth/refresh` APIs are unchanged. The adapter returns `access_token`,
+`token_type`, and `refresh_token`; it is not a general-purpose OAuth authorization
+server and does not support clients or scopes.
+
+Scalar persists authentication, including the longer-lived refresh token, in this
+browser's local storage across reloads.
+Use development accounts, avoid shared browsers, and clear the authentication
+when finished. Clearing Scalar's stored credentials does not revoke an issued
+JWT. Do not pre-fill real credentials in the server configuration.
+
 ## Architecture
 
 See [Architecture Decision Records](adr/README.md) for key design decisions.

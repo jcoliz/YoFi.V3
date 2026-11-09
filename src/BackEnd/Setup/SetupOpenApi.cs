@@ -26,6 +26,20 @@ public static class SetupOpenApi
                         Scheme = "bearer",
                         BearerFormat = "JWT",
                         Description = "Enter your JWT token (without 'Bearer' prefix)"
+                    },
+                    ["ScalarLogin"] = new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.OAuth2,
+                        Description = "Sign in with your YoFi username and password. Use Refresh to obtain a new access token.",
+                        Flows = new OpenApiOAuthFlows
+                        {
+                            Password = new OpenApiOAuthFlow
+                            {
+                                TokenUrl = new Uri("/api/auth/token", UriKind.Relative),
+                                RefreshUrl = new Uri("/api/auth/token", UriKind.Relative),
+                                Scopes = new Dictionary<string, string>()
+                            }
+                        }
                     }
                 };
                 return Task.CompletedTask;
@@ -41,6 +55,10 @@ public static class SetupOpenApi
                     operation.Security.Add(new OpenApiSecurityRequirement
                     {
                         [new OpenApiSecuritySchemeReference("Bearer", context.Document)] = []
+                    });
+                    operation.Security.Add(new OpenApiSecurityRequirement
+                    {
+                        [new OpenApiSecuritySchemeReference("ScalarLogin", context.Document)] = []
                     });
                 }
 
@@ -75,7 +93,10 @@ public static class SetupOpenApi
     public static WebApplication MapApiDocumentation(this WebApplication app)
     {
         app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithTitle("YoFi.V3 Backend"));
+        app.MapScalarApiReference(options => options
+            .WithTitle("YoFi.V3 Backend")
+            .AddPreferredSecuritySchemes("ScalarLogin")
+            .EnablePersistentAuthentication());
         return app;
     }
 }

@@ -4,3 +4,21 @@ GET {{ApiService_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Scalar's password-grant adapter (use a development account)
+POST {{ApiService_HostAddress}}/api/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&username={{username}}&password={{password}}
+
+### Refresh and rotate tokens (use the latest refresh_token from the response)
+POST {{ApiService_HostAddress}}/api/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&refresh_token={{refreshToken}}
+
+### Unsupported grants return an OAuth error
+POST {{ApiService_HostAddress}}/api/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials

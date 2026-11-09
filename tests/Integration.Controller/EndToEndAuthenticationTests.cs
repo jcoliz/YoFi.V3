@@ -1,4 +1,7 @@
 using System.Net;
+using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NuxtIdentity.Core.Models;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Tenancy.Dto;
@@ -19,9 +22,8 @@ namespace YoFi.V3.Tests.Integration.Controller;
 ///
 /// <para><strong>Test Scope:</strong></para>
 /// <para>
-/// These tests focus on the happy path only - successful registration, login, tenant creation,
-/// and transaction management. Edge cases, validation errors, and failure scenarios are covered
-/// by other test suites that use TestAuthenticationHandler for more focused testing.
+/// These tests cover registration, login, tenant creation, transaction management,
+/// and Scalar's token exchange, including refresh rotation and rejected token requests.
 /// </para>
 ///
 /// <para><strong>Authentication Flow:</strong></para>
@@ -56,6 +58,204 @@ public class EndToEndAuthenticationTests
     {
         _client?.Dispose();
         _factory?.Dispose();
+    }
+
+    [Test]
+    public async Task ScalarToken_WithValidCredentials_AuthorizesProtectedRequests()
+    {
+        var username = $"scalar_{Guid.NewGuid():N}";
+        const string password = "TestPassword123!";
+        var signup = await _client.PostAsJsonAsync("/api/auth/signup", new
+        {
+            email = $"{username}@example.com",
+            username,
+            password,
+            confirmPassword = password
+        });
+        Assert.That(signup.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        using var logs = new CapturingLoggerProvider();
+        _factory.Services.GetRequiredService<ILoggerFactory>().AddProvider(logs);
+
+        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "password",
+            ["username"] = username,
+            ["password"] = password
+        });
+        var response = await _client.PostAsync("/api/auth/token", form);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var token = body.RootElement.GetProperty("access_token").GetString();
+        var refreshToken = body.RootElement.GetProperty("refresh_token").GetString();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(token, Is.Not.Null.And.Not.Empty);
+            Assert.That(body.RootElement.GetProperty("token_type").GetString(), Is.EqualTo("Bearer"));
+            Assert.That(refreshToken, Is.Not.Null.And.Not.Empty);
+            Assert.That(response.Headers.CacheControl?.NoStore, Is.True);
+            Assert.That(response.Headers.Pragma.Select(p => p.Name), Does.Contain("no-cache"));
+            Assert.That(response.Headers.TryGetValues("Set-Cookie", out _), Is.False);
+        }
+
+        using var authenticatedClient = _factory.CreateClient();
+        authenticatedClient.DefaultRequestHeaders.Authorization = new("Bearer", token);
+        var tenants = await authenticatedClient.GetAsync("/api/tenant");
+        Assert.That(tenants.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        for (var rotation = 0; rotation < 2; rotation++)
+        {
+            using var refreshForm = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken!
+            });
+            var refreshed = await _client.PostAsync("/api/auth/token", refreshForm);
+            Assert.That(refreshed.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            using var refreshedBody = JsonDocument.Parse(await refreshed.Content.ReadAsStringAsync());
+            var newAccessToken = refreshedBody.RootElement.GetProperty("access_token").GetString();
+            var newRefreshToken = refreshedBody.RootElement.GetProperty("refresh_token").GetString();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(newAccessToken, Is.Not.Null.And.Not.Empty);
+                Assert.That(newRefreshToken, Is.Not.Null.And.Not.Empty.And.Not.EqualTo(refreshToken));
+                Assert.That(refreshedBody.RootElement.GetProperty("token_type").GetString(), Is.EqualTo("Bearer"));
+                Assert.That(refreshed.Headers.CacheControl?.NoStore, Is.True);
+                Assert.That(refreshed.Headers.TryGetValues("Set-Cookie", out _), Is.False);
+            }
+
+            authenticatedClient.DefaultRequestHeaders.Authorization = new("Bearer", newAccessToken);
+            var authorized = await authenticatedClient.GetAsync("/api/tenant");
+            Assert.That(authorized.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+            using var reusedForm = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken!
+            });
+            var reused = await _client.PostAsync("/api/auth/token", reusedForm);
+            Assert.That(reused.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            using var reusedBody = JsonDocument.Parse(await reused.Content.ReadAsStringAsync());
+            Assert.That(reusedBody.RootElement.GetProperty("error").GetString(), Is.EqualTo("invalid_grant"));
+            Assert.That(reusedBody.RootElement.TryGetProperty("access_token", out _), Is.False);
+            refreshToken = newRefreshToken;
+        }
+
+        var logout = await _client.PostAsJsonAsync("/api/auth/logout", new { refreshToken });
+        Assert.That(logout.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        using var revokedForm = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken!
+        });
+        var revoked = await _client.PostAsync("/api/auth/token", revokedForm);
+        Assert.That(revoked.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        using var revokedBody = JsonDocument.Parse(await revoked.Content.ReadAsStringAsync());
+        Assert.That(revokedBody.RootElement.GetProperty("error").GetString(), Is.EqualTo("invalid_grant"));
+
+        using var incorrectPassword = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "password",
+            ["username"] = username,
+            ["password"] = "IncorrectPassword!"
+        });
+        var failure = await _client.PostAsync("/api/auth/token", incorrectPassword);
+        Assert.That(failure.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        using var error = JsonDocument.Parse(await failure.Content.ReadAsStringAsync());
+        Assert.That(error.RootElement.GetProperty("error").GetString(), Is.EqualTo("invalid_grant"));
+
+        var tokenOkLogs = logs.Entries.Where(e => e.Category == typeof(Controllers.AuthController).FullName
+            && e.EventId.Name == "LogTokenOk").ToArray();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(tokenOkLogs, Has.Length.EqualTo(3), "Only the login and two successful refreshes should log OK.");
+            Assert.That(tokenOkLogs.Select(e => e.EventId.Id), Is.All.EqualTo(4));
+            Assert.That(tokenOkLogs.Select(e => e.Level), Is.All.EqualTo(LogLevel.Information));
+            Assert.That(tokenOkLogs.Select(e => e.Message), Is.All.EqualTo("Token: OK"));
+        }
+    }
+
+    [TestCase("", "invalid_request")]
+    [TestCase("grant_type=password", "invalid_request")]
+    [TestCase("grant_type=password&username=test", "invalid_request")]
+    [TestCase("grant_type=password&password=test", "invalid_request")]
+    [TestCase("grant_type=password&username=test&password=", "invalid_request")]
+    [TestCase("grant_type=client_credentials", "unsupported_grant_type")]
+    [TestCase("grant_type=refresh_token", "invalid_request")]
+    [TestCase("grant_type=refresh_token&refresh_token=", "invalid_request")]
+    [TestCase("grant_type=refresh_token&refresh_token=%20", "invalid_request")]
+    [TestCase("grant_type=refresh_token&refresh_token=invalid", "invalid_grant")]
+    [TestCase("grant_type=password&username=nonexistent_scalar_user&password=incorrect", "invalid_grant")]
+    public async Task ScalarToken_WithInvalidForm_ReturnsOAuthError(string form, string expectedError)
+    {
+        using var content = new StringContent(form, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+        var response = await _client.PostAsync("/api/auth/token", content);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(body.RootElement.GetProperty("error").GetString(), Is.EqualTo(expectedError));
+            Assert.That(body.RootElement.GetProperty("error_description").GetString(), Is.Not.Empty);
+            Assert.That(body.RootElement.TryGetProperty("access_token", out _), Is.False);
+            Assert.That(response.Headers.CacheControl?.NoStore, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task ScalarToken_WithJson_ReturnsUnsupportedMediaType()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/token", new
+        {
+            grant_type = "password",
+            username = "test",
+            password = "test"
+        });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnsupportedMediaType));
+    }
+
+    [Test]
+    public async Task OpenApi_OffersScalarLoginAsAlternativeToBearer()
+    {
+        var response = await _client.GetAsync("/openapi/v1.json");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var schemes = root.GetProperty("components").GetProperty("securitySchemes");
+        var login = schemes.GetProperty("ScalarLogin");
+        var flow = login.GetProperty("flows").GetProperty("password");
+        var paths = root.GetProperty("paths");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(login.GetProperty("type").GetString(), Is.EqualTo("oauth2"));
+            Assert.That(flow.GetProperty("tokenUrl").GetString(), Is.EqualTo("/api/auth/token"));
+            Assert.That(flow.GetProperty("refreshUrl").GetString(), Is.EqualTo("/api/auth/token"));
+            Assert.That(flow.GetProperty("scopes").EnumerateObject(), Is.Empty);
+            Assert.That(schemes.GetProperty("Bearer").GetProperty("scheme").GetString(), Is.EqualTo("bearer"));
+        }
+
+        var requirements = paths.GetProperty("/api/Tenant").GetProperty("get").GetProperty("security")
+            .EnumerateArray().ToArray();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(requirements.Any(r => r.TryGetProperty("ScalarLogin", out _)
+                && r.EnumerateObject().Count() == 1), Is.True);
+            Assert.That(requirements.Any(r => r.TryGetProperty("Bearer", out _)
+                && r.EnumerateObject().Count() == 1), Is.True);
+        }
+
+        foreach (var path in new[] { "/api/auth/login", "/api/auth/token" })
+        {
+            var operation = paths.GetProperty(path).GetProperty("post");
+            Assert.That(!operation.TryGetProperty("security", out var security)
+                || security.GetArrayLength() == 0, Is.True, $"{path} must allow anonymous requests");
+        }
+        var tokenContent = paths.GetProperty("/api/auth/token").GetProperty("post")
+            .GetProperty("requestBody").GetProperty("content");
+        Assert.That(tokenContent.TryGetProperty("application/x-www-form-urlencoded", out _), Is.True);
+
+        var scalar = await _client.GetStringAsync("/scalar/v1");
+        Assert.That(scalar, Does.Contain("\"persistAuth\":true"));
+        Assert.That(scalar, Does.Contain("ScalarLogin"));
     }
 
     [Test]

@@ -72,4 +72,10 @@ public partial class AuthController(
 
     [LoggerMessage(2, LogLevel.Information, "{Location}: OK {Key}")]
     private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(3, LogLevel.Warning, "{Location}: Rejected token request: {Error}")]
+    private partial void LogTokenRequestRejected(string error, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(4, LogLevel.Information, "{Location}: OK")]
+    private partial void LogTokenOk([CallerMemberName] string? location = null);
 }
