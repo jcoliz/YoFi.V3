@@ -31,6 +31,10 @@ connection string:
 docker compose -f docker/docker-compose-ci.yml up -d --wait
 ```
 
+The backend waits for PostgreSQL's TCP healthcheck before starting migrations.
+The check uses TCP so the temporary Unix-socket server used during database
+initialization does not report readiness prematurely.
+
 The API will be available at http://localhost:5001
 
 ## Image Details

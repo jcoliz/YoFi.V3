@@ -8,10 +8,12 @@ services:
       - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
     restart: unless-stopped
   frontend:
-    image: ${REGISTRY_PREFIX:-}yofi-v3-frontend
+    image: ${REGISTRY_PREFIX:-}yofi-v3-frontend:${SOLUTION_VERSION:-local}
     build:
       context: ../src/FrontEnd.Nuxt
       dockerfile: ./docker/Dockerfile
+      tags:
+        - ${REGISTRY_PREFIX:-}yofi-v3-frontend:latest
       args:
           # Set the API base URL for the frontend to point to the backend service, from the
           # perspective of JS code running in user's browser, *not* from the perspective of
@@ -26,10 +28,12 @@ services:
       backend:
         condition: service_healthy
   backend:
-    image: ${REGISTRY_PREFIX:-}yofi-v3-backend
+    image: ${REGISTRY_PREFIX:-}yofi-v3-backend:${SOLUTION_VERSION:-local}
     build:
       context: ..
       dockerfile: ./docker/BackEnd.dockerfile
+      tags:
+        - ${REGISTRY_PREFIX:-}yofi-v3-backend:latest
       args:
         - SOLUTION_VERSION=${SOLUTION_VERSION:-container}
     environment:
@@ -40,13 +44,15 @@ services:
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
       - OTEL_SERVICE_NAME=yofi-backend
       - ConnectionStrings__DefaultConnection=Host=db;Database=db;Username=postgres;Password=development
-      - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD}
+      - IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD=${TESTPWORD:-}
     restart: unless-stopped
     ports:
       - '5001:8080'
     depends_on:
-      - dashboard
-      - db
+      dashboard:
+        condition: service_started
+      db:
+        condition: service_healthy
   db:
     image: postgres:15-alpine
     tmpfs:
@@ -58,7 +64,7 @@ services:
       - POSTGRES_USER=postgres
       - PGUSER=postgres
     healthcheck:
-      test: [ "CMD-SHELL" , "pg_isready" ]
+      test: [ "CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "db" ]
       interval: 1s
       timeout: 5s
       retries: 10
