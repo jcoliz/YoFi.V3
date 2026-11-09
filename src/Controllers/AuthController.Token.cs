@@ -79,6 +79,9 @@ public partial class AuthController
 
         if (result is ObjectResult { StatusCode: StatusCodes.Status401Unauthorized })
         {
+            // RFC 6749 §5.2 specifies 400 Bad Request with error: "invalid_grant" when:
+            // - The user’s username/password is invalid.
+            // - A refresh token is invalid, expired, revoked, or already used.
             return BadRequest(new ScalarTokenError("invalid_grant", "Invalid credentials or refresh token."));
         }
 
