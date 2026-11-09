@@ -37,7 +37,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 | Script | Synopsis |
 |--------|----------|
 | [`Build-Container.ps1`](Build-Container.ps1) | Builds the Docker CI containers locally for testing |
-| [`Push-Container.ps1`](Push-Container.ps1) | Pushes Docker CI containers to DockerHub |
+| [`Push-Containers.ps1`](Push-Containers.ps1) | Builds and pushes Docker CI containers to Docker Hub, optionally publishing the Compose project |
 | [`Start-Container.ps1`](Start-Container.ps1) | Starts the Docker CI containers locally and opens the application in browser |
 | [`Stop-Container.ps1`](Stop-Container.ps1) | Stops the Docker CI containers locally |
 
@@ -123,14 +123,14 @@ separate from the application containers.
 # Build containers
 .\Build-Container.ps1
 
-# Push containers to DockerHub (requires docker login)
-.\Push-Container.ps1
+# Build and push containers to Docker Hub (logs in interactively)
+.\Push-Containers.ps1 -DockerHubNamespace "myorganization" -Version "1.2.3"
 
-# Or build and push in one step
-.\Push-Container.ps1 -Build
+# Also publish the Compose project with images pinned to digests
+.\Push-Containers.ps1 -PublishProject -Version "1.2.3"
 
-# Push with a custom tag
-.\Push-Container.ps1 -Tag "latest"
+# CI: push tested images using an existing login, without confirmation prompts
+.\Push-Containers.ps1 -SkipBuild -SkipLogin -PublishProject -Yes
 
 # Start containers
 .\Start-Container.ps1
@@ -138,6 +138,17 @@ separate from the application containers.
 # Stop containers
 .\Stop-Container.ps1
 ```
+
+Publishing requires `SOLUTION_VERSION` from the environment or Compose environment
+file, or an explicit `-Version`; the `local` tag is rejected. Set `REGISTRY_PREFIX`
+(for example, `myorganization/`) or pass `-DockerHubNamespace`.
+CI uses the same registry prefix and version for build, run, and push, and does
+not rebuild the images after functional tests. `-Yes` accepts all Compose publish
+prompts, including sensitive-data warnings; use only with reviewed inputs.
+The container-run step receives the secret functional-test password; the publishing
+script clears `TESTPWORD` and restores the caller's value afterward, locally and
+in CI. The Compose expression `${TESTPWORD:-}` remains
+available for downstream users to supply their own password.
 
 ### Code Generation
 
