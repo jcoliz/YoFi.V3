@@ -46,6 +46,7 @@ public class ReportsControllerTests : AuthenticatedTestBase
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(report, Is.Not.Null);
             Assert.That(report!.Id, Is.EqualTo("income-detail"));
+            Assert.That(report.CategoryRoot, Is.EqualTo("Income"));
             Assert.That(report.Year, Is.EqualTo(2034));
             Assert.That(report.HasMonthColumns, Is.True);
             Assert.That(report.Rows.Single(row => row.CategoryPath == "Income:Controller Test Income").AnnualTotal,

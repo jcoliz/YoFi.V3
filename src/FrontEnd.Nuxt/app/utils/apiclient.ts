@@ -5881,6 +5881,7 @@ export interface IReportDefinitionDto {
 export class ReportResultDto implements IReportResultDto {
     id?: string;
     name?: string;
+    categoryRoot?: string | undefined;
     year?: number;
     hasMonthColumns?: boolean;
     rows?: ReportRowDto[];
@@ -5899,6 +5900,7 @@ export class ReportResultDto implements IReportResultDto {
         if (_data) {
             this.id = _data["id"];
             this.name = _data["name"];
+            this.categoryRoot = _data["categoryRoot"];
             this.year = _data["year"];
             this.hasMonthColumns = _data["hasMonthColumns"];
             if (Array.isArray(_data["rows"])) {
@@ -5921,6 +5923,7 @@ export class ReportResultDto implements IReportResultDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["name"] = this.name;
+        data["categoryRoot"] = this.categoryRoot;
         data["year"] = this.year;
         data["hasMonthColumns"] = this.hasMonthColumns;
         if (Array.isArray(this.rows)) {
@@ -5936,6 +5939,7 @@ export class ReportResultDto implements IReportResultDto {
 export interface IReportResultDto {
     id?: string;
     name?: string;
+    categoryRoot?: string | undefined;
     year?: number;
     hasMonthColumns?: boolean;
     rows?: ReportRowDto[];

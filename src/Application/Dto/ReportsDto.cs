@@ -15,9 +15,11 @@ public record ReportDefinitionDto(
 /// <summary>
 /// Annual report data with category rows and explicit report totals.
 /// </summary>
+/// <param name="CategoryRoot">Category filter root used as the category-column header, or null for reports spanning roots.</param>
 public record ReportResultDto(
     string Id,
     string Name,
+    string? CategoryRoot,
     int Year,
     bool HasMonthColumns,
     IReadOnlyList<ReportRowDto> Rows,

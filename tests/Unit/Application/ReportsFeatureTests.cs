@@ -53,6 +53,26 @@ public class ReportsFeatureTests
     }
 
     [Test]
+    public async Task GetReportAsync_ReturnsCategoryRootForEachDefinitionIncludingEmptyReports()
+    {
+        foreach (var definition in _feature.GetAvailableReports())
+        {
+            var expectedRoot = definition.Id.Split('-')[0] switch
+            {
+                "income" => "Income",
+                "taxes" => "Taxes",
+                "savings" => "Savings",
+                "transfers" => "Transfer",
+                _ => null
+            };
+
+            var result = await _feature.GetReportAsync(definition.Id, 2024);
+
+            Assert.That(result.CategoryRoot, Is.EqualTo(expectedRoot), definition.Id);
+        }
+    }
+
+    [Test]
     public async Task GetReportAsync_FiltersReservedFamilyCaseInsensitivelyAtSegmentBoundary()
     {
         AddTransaction(2024, 1, ("Income:Salary", 100m), ("income:Bonus", -25m),

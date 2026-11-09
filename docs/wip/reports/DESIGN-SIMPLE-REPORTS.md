@@ -179,7 +179,9 @@ Tenant authorization and error handling use existing middleware and policies.
 
 Return typed report metadata and rows rather than a matrix of untyped JSON values:
 
-- Report ID, name, and year.
+- Report ID, name, year, and nullable `CategoryRoot` from the report definition.
+  Use the category root as the first-column header, falling back to `Category`
+  when null (Expenses and All reports). The report title remains the report name.
 - Column metadata describing whether the report has month columns.
 - Ordered rows containing the full category path, a backend-supplied local category
   name for display, depth, subtotal status, twelve monthly

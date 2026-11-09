@@ -169,6 +169,7 @@ public class ReportsFeature(
         return new ReportResultDto(
             definition.Id,
             definition.Name,
+            definition.CategoryRoot,
             year,
             definition.HasMonthColumns,
             rows,

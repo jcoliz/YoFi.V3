@@ -25,6 +25,7 @@ function makeReport(id = 'income', detail = false) {
   return ReportResultDto.fromJS({
     id,
     name: detail ? 'Expenses Detail' : 'Income',
+    categoryRoot: detail ? null : 'Income',
     year: 2040,
     hasMonthColumns: detail,
     rows: [
@@ -96,6 +97,20 @@ beforeEach(() => {
 })
 
 describe('Reports table', () => {
+  it.each([
+    ['Taxes', 'Taxes'],
+    ['Transfer', 'Transfer'],
+    [null, 'Category'],
+    [undefined, 'Category'],
+  ])('uses category root %s as the header with a fallback for no root', (root, header) => {
+    const report = makeReport()
+    report.categoryRoot = root ?? undefined
+    const wrapper = mount(ReportsTable, { props: { report } })
+
+    expect(wrapper.find('thead th').text()).toBe(header)
+    expect(wrapper.find('caption').text()).toContain('Income')
+  })
+
   it('renders annual-only columns, currency and signed annual percentages', () => {
     const report = makeReport()
     report.rows![0]!.annualTotal = -25
