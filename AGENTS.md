@@ -25,19 +25,19 @@ CI and deployment use Azure Pipelines; see [`.azure/pipelines/ci.yaml`](.azure/p
 - Before working in `tests/Functional`, read [tests/Functional/README.md](tests/Functional/README.md) and the relevant guides it links to. Also check area-specific READMEs when changing that area.
 - In Gherkin scenarios, put all `When` action steps before `Then` assertion steps. Never add a `When` step after a `Then` step.
 - Do not run functional tests against the Aspire development environment or with `development*.runsettings`; that setup is often unsuitable for functional tests. Use the container workflow below instead.
-- To build and start the functional-test containers without opening browser windows, run:
+- To build and start the app containers without opening browser windows, run:
 
   ```powershell
   .\scripts\Start-Container.ps1 -Build -NoBrowser
   ```
 
-- With the containers running, run functional tests using:
+- With the app containers running, run functional tests using:
 
   ```powershell
   .\scripts\Run-Tests.ps1 -Functional
   ```
 
-- **Never stop or tear down the containers**, even if you started them. Do not run `Stop-Container.ps1` or a compose-down command. Avoid test wrappers that clean up containers automatically.
+- **Never stop or tear down the app containers**, even if you started them. Do not run `Stop-Container.ps1` or a compose-down command. Avoid test wrappers that clean up app containers automatically.
 
 ## Document Metadata
 
