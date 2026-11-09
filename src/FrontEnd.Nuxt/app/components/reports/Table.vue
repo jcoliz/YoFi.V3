@@ -46,7 +46,7 @@ function formatPercentage(value: number | null | undefined) {
       </caption>
       <thead>
         <tr>
-          <th scope="col">Category</th>
+          <th scope="col">{{ report.name }}</th>
           <template v-if="report.hasMonthColumns">
             <th
               v-for="month in months"

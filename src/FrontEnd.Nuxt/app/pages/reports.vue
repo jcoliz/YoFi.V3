@@ -180,3 +180,10 @@ async function loadSelectedReport() {
     </div>
   </div>
 </template>
+<style scoped>
+.workspace-selector-container {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+}
+</style>
