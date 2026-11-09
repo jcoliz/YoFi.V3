@@ -97,6 +97,12 @@ Following are the standard income/expense reports
   even when they have no displayed children; second-level rows are normal weight
   and indented. One-level reports use normal-weight category rows. Formatting is
   independent of subtotal status and month-column visibility.
+- **Row Ordering**: The backend sorts categories within each parent by signed
+  annual total, including all descendant amounts. Top-level categories are sorted
+  amongst themselves, and each parent's children are sorted independently while
+  remaining immediately below their parent. Report definitions select ascending
+  order except Income and Income Detail, which use descending order. Equal totals
+  are ordered by category name case-insensitively, then ordinally for stability.
 - **Future Depth Formatting**: Original YoFi supports up to four displayed levels.
   In a four-level report, level four is unformatted, level three is bold, level
   two is highlighted, and level one is highlighted more strongly. Deeper levels

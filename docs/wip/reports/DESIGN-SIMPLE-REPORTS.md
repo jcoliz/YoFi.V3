@@ -80,19 +80,19 @@ depth, not subtotal status or whether month columns are shown.
 
 Implement the definitions in the PRD as application code, not database records:
 
-| Report | Category filter | Default depth | Month columns | Uncategorized |
-| --- | --- | ---: | --- | --- |
-| Income | `Income:*` | 1 | No | No |
-| Taxes | `Taxes:*` | 1 | No | No |
-| Expenses | Expense categories | 1 | No | Yes |
-| Savings | `Savings:*` | 1 | No | No |
-| Transfers | `Transfer:*` | 1 | No | No |
-| Income Detail | `Income:*` | 2 | Yes | No |
-| Taxes Detail | `Taxes:*` | 2 | Yes | No |
-| Expenses Detail | Expense categories | 2 | Yes | Yes |
-| Savings Detail | `Savings:*` | 2 | No | No |
-| All | `*` | 1 | No | Yes |
-| All Detail | `*` | 2 | Yes | Yes |
+| Report | Category filter | Default depth | Month columns | Uncategorized | Amount sort |
+| --- | --- | ---: | --- | --- | --- |
+| Income | `Income:*` | 1 | No | No | Descending |
+| Taxes | `Taxes:*` | 1 | No | No | Ascending |
+| Expenses | Expense categories | 1 | No | Yes | Ascending |
+| Savings | `Savings:*` | 1 | No | No | Ascending |
+| Transfers | `Transfer:*` | 1 | No | No | Ascending |
+| Income Detail | `Income:*` | 2 | Yes | No | Descending |
+| Taxes Detail | `Taxes:*` | 2 | Yes | No | Ascending |
+| Expenses Detail | Expense categories | 2 | Yes | Yes | Ascending |
+| Savings Detail | `Savings:*` | 2 | No | No | Ascending |
+| All | `*` | 1 | No | Yes | Ascending |
+| All Detail | `*` | 2 | Yes | Yes | Ascending |
 
 Use stable, URL-safe report IDs independent of display names. Category matching
 uses the top-level category segment, case-insensitively, and requires a segment
@@ -121,9 +121,15 @@ as a synthetic top-level `Uncategorized` row.
 6. Compute each report/month grand total from the matching exact-category groups
    once, not by adding displayed parent and child rows. This prevents hierarchy
    rollups from double-counting amounts.
-7. Order rows in depth-first category order, placing each parent subtotal before
-   its descendants. Sibling categories are ordered case-insensitively with a
-   stable ordinal tie-breaker.
+7. Order rows in depth-first category order, placing each parent before its
+   descendants. Sort siblings independently by signed annual total, including
+   direct amounts and all descendants even below the displayed depth. The internal
+   report definition selects ascending order by default; Income and Income Detail
+   use descending order. Do not sort by absolute value, individual month totals,
+   or globally across parents. Equal totals use case-insensitive category-name
+   ordering, then ordinal name ordering as a stable tie-breaker. Uncategorized
+   participates in the same sibling ordering. The backend supplies this order;
+   the frontend preserves it.
 
 For each displayed category row, calculate its percentage as its annual row
 total divided by the annual report grand total. This remains an annual share for
@@ -215,7 +221,9 @@ Add focused coverage at each layer:
 - **Application unit tests:** all built-in definitions; category matching
   (including case and segment boundaries); reserved categories; uncategorized
   inclusion; depth truncation; direct amounts plus descendant rollups; signed
-  amounts; zero denominators; and totals that do not double-count hierarchy rows.
+  amounts; zero denominators; totals that do not double-count hierarchy rows;
+  per-report sort direction; sibling ordering by annual roll-up including hidden
+  descendants; and deterministic equal-total ordering.
 - **Application integration tests:** tenant and calendar-year constraints on
   split aggregation, including a split transaction and dates at the year
   boundaries.

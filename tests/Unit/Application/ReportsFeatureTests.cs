@@ -64,11 +64,11 @@ public class ReportsFeatureTests
         {
             Assert.That(result.Totals.AnnualTotal, Is.EqualTo(75m));
             Assert.That(result.Rows.Select(row => row.CategoryPath),
-                Is.EqualTo(new[] { "income:Bonus", "Income:Salary" }));
+                Is.EqualTo(new[] { "Income:Salary", "income:Bonus" }));
             Assert.That(result.Rows.Select(row => row.CategoryName),
-                Is.EqualTo(new[] { "Bonus", "Salary" }));
-            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { -25m, 100m }));
-            Assert.That(result.Rows.Select(row => row.Percentage), Is.EqualTo(new[] { -1m / 3m, 4m / 3m }));
+                Is.EqualTo(new[] { "Salary", "Bonus" }));
+            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { 100m, -25m }));
+            Assert.That(result.Rows.Select(row => row.Percentage), Is.EqualTo(new[] { 4m / 3m, -1m / 3m }));
             Assert.That(result.Totals.MonthlyAmounts, Is.Null);
         }
     }
@@ -86,10 +86,10 @@ public class ReportsFeatureTests
         {
             Assert.That(result.Totals.AnnualTotal, Is.EqualTo(22m));
             Assert.That(result.Rows.Select(row => row.CategoryPath),
-                Is.EqualTo(new[] { "Food", "IncomeTax", "Uncategorized" }));
+                Is.EqualTo(new[] { "Uncategorized", "IncomeTax", "Food" }));
             Assert.That(result.Rows.Select(row => row.CategoryName),
-                Is.EqualTo(new[] { "Food", "IncomeTax", "Uncategorized" }));
-            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { 20m, 7m, -5m }));
+                Is.EqualTo(new[] { "Uncategorized", "IncomeTax", "Food" }));
+            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { -5m, 7m, 20m }));
             Assert.That(result.Rows.Select(row => row.IsSubtotal), Is.All.False);
         }
     }
@@ -110,9 +110,9 @@ public class ReportsFeatureTests
             Assert.That(result.Rows.Select(row => (row.CategoryPath, row.Depth, row.IsSubtotal)),
                 Is.EqualTo(new[]
                 {
-                    ("Food", 1, false),
                     ("Home", 1, true),
-                    ("Home:Utilities", 2, false)
+                    ("Home:Utilities", 2, false),
+                    ("Food", 1, false)
                 }));
             Assert.That(home.AnnualTotal, Is.EqualTo(25m));
             Assert.That(utilities.AnnualTotal, Is.EqualTo(15m));
@@ -155,9 +155,81 @@ public class ReportsFeatureTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Totals.AnnualTotal, Is.Zero);
-            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { -10m, 10m }));
+            Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { 10m, -10m }));
             Assert.That(result.Rows.Select(row => row.Percentage), Is.All.Null);
         }
+    }
+
+    [Test]
+    public async Task GetReportAsync_EachDefinitionUsesItsConfiguredAmountSortDirection()
+    {
+        AddTransaction(2024, 1,
+            ("Income:Alpha", -20m), ("Income:Zulu", 10m),
+            ("Taxes:Alpha", 10m), ("Taxes:Zulu", -20m),
+            ("Savings:Alpha", 10m), ("Savings:Zulu", -20m),
+            ("Transfer:Alpha", 10m), ("Transfer:Zulu", -20m),
+            ("Alpha", 10m), ("Zulu", -20m));
+
+        foreach (var definition in _feature.GetAvailableReports())
+        {
+            var result = await _feature.GetReportAsync(definition.Id, 2024);
+            var rootTotals = result.Rows.Where(row => row.Depth == 1)
+                .Select(row => row.AnnualTotal).ToArray();
+            var expected = definition.Id is "income" or "income-detail"
+                ? rootTotals.OrderByDescending(amount => amount)
+                : rootTotals.OrderBy(amount => amount);
+
+            Assert.That(rootTotals, Is.EqualTo(expected), definition.Id);
+        }
+    }
+
+    [TestCase("expenses-detail", "", -1)]
+    [TestCase("income-detail", "Income:", 1)]
+    public async Task GetReportAsync_SortsWithinParentsUsingFullSignedAnnualRollups(
+        string reportId, string prefix, int sign)
+    {
+        AddTransaction(2024, 1,
+            ($"{prefix}Alpha", sign * 5m),
+            ($"{prefix}Alpha:First", sign * 10m),
+            ($"{prefix}Alpha:Second", sign * 20m),
+            ($"{prefix}Zulu:Small", sign * 2m),
+            ($"{prefix}Zulu:Large:Hidden", sign * 40m),
+            ($"{prefix}Refund", sign * -100m));
+        AddTransaction(2024, 12, ($"{prefix}Zulu:Large:Hidden", sign * 10m));
+
+        var result = await _feature.GetReportAsync(reportId, 2024);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[]
+            {
+                $"{prefix}Zulu", $"{prefix}Zulu:Large", $"{prefix}Zulu:Small",
+                $"{prefix}Alpha", $"{prefix}Alpha:Second", $"{prefix}Alpha:First",
+                $"{prefix}Refund"
+            }));
+            Assert.That(result.Rows.Select(row => row.AnnualTotal),
+                Is.EqualTo(new[] { 52m, 50m, 2m, 35m, 20m, 10m, -100m }
+                    .Select(amount => sign * amount)));
+            Assert.That(result.Totals.AnnualTotal, Is.EqualTo(sign * -13m));
+        }
+    }
+
+    [TestCase("expenses", "")]
+    [TestCase("income", "Income:")]
+    public async Task GetReportAsync_EqualAnnualTotalsUseStableCategoryNameTieBreakers(
+        string reportId, string prefix)
+    {
+        AddTransaction(2024, 1,
+            ($"{prefix}beta", 10m), ($"{prefix}alpha", 10m));
+        AddTransaction(2024, 12,
+            ($"{prefix}Alpha", 10m), ($"{prefix}Zero", 0m));
+
+        var result = await _feature.GetReportAsync(reportId, 2024);
+        var tiedRows = result.Rows.Where(row => row.AnnualTotal == 10m);
+
+        Assert.That(tiedRows.Select(row => row.CategoryName),
+            Is.EqualTo(new[] { "Alpha", "alpha", "beta" }));
+        Assert.That(result.Rows.Single(row => row.CategoryName == "Zero").AnnualTotal, Is.Zero);
     }
 
     [Test]

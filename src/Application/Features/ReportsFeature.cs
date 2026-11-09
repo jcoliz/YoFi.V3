@@ -21,12 +21,12 @@ public class ReportsFeature(
 {
     private static readonly IReadOnlyList<ReportDefinition> Definitions =
     [
-        new("income", "Income", "Income", 1, false, false),
+        new("income", "Income", "Income", 1, false, false, SortDescending: true),
         new("taxes", "Taxes", "Taxes", 1, false, false),
         new("expenses", "Expenses", null, 1, false, true, ReportCategoryFilter.Expenses),
         new("savings", "Savings", "Savings", 1, false, false),
         new("transfers", "Transfers", "Transfer", 1, false, false),
-        new("income-detail", "Income Detail", "Income", 2, true, false),
+        new("income-detail", "Income Detail", "Income", 2, true, false, SortDescending: true),
         new("taxes-detail", "Taxes Detail", "Taxes", 2, true, false),
         new("expenses-detail", "Expenses Detail", null, 2, true, true, ReportCategoryFilter.Expenses),
         new("savings-detail", "Savings Detail", "Savings", 2, false, false),
@@ -155,8 +155,13 @@ public class ReportsFeature(
             AddAmounts(node!.DirectAmounts, amounts);
         }
 
+        foreach (var root in roots)
+        {
+            CalculateTotals(root);
+        }
+
         var rows = new List<ReportRowDto>();
-        foreach (var root in OrderSiblings(roots))
+        foreach (var root in OrderSiblings(roots, definition))
         {
             AppendRows(root, 1, definition, grandTotal, rows);
         }
@@ -237,8 +242,8 @@ public class ReportsFeature(
     /// <summary>
     /// Emits a category subtotal before its descendants in depth-first order.
     /// The row amount includes direct amounts and every descendant, while the separate report
-    /// total remains based on exact categories. Nodes below the display depth are traversed but
-    /// not emitted, because their values have already rolled into the deepest visible ancestor.
+    /// total remains based on exact categories. Descendants below the display depth are not
+    /// emitted, but their values are included in the precomputed totals.
     /// </summary>
     /// <param name="node">Category node to emit and traverse.</param>
     /// <param name="depth">Displayed depth, with report-level categories at depth one.</param>
@@ -252,66 +257,70 @@ public class ReportsFeature(
         decimal grandTotal,
         ICollection<ReportRowDto> rows)
     {
-        var amounts = node.DirectAmounts.ToArray();
-        foreach (var child in node.Children)
+        rows.Add(new ReportRowDto(
+            node.Path,
+            node.Name,
+            depth,
+            depth < definition.DefaultDepth && node.Children.Count > 0,
+            definition.HasMonthColumns ? node.TotalAmounts : null,
+            node.AnnualTotal,
+            grandTotal == 0 ? null : node.AnnualTotal / grandTotal));
+
+        if (depth >= definition.DefaultDepth)
         {
-            AddAmounts(amounts, child.DirectAmounts);
-            AddDescendantAmounts(amounts, child);
+            return;
         }
 
-        if (depth <= definition.DefaultDepth)
-        {
-            var annualTotal = amounts.Sum();
-            rows.Add(new ReportRowDto(
-                node.Path,
-                node.Name,
-                depth,
-                depth < definition.DefaultDepth && node.Children.Count > 0,
-                definition.HasMonthColumns ? amounts : null,
-                annualTotal,
-                grandTotal == 0 ? null : annualTotal / grandTotal));
-        }
-
-        foreach (var child in OrderSiblings(node.Children))
+        foreach (var child in OrderSiblings(node.Children, definition))
         {
             AppendRows(child, depth + 1, definition, grandTotal, rows);
         }
     }
 
     /// <summary>
-    /// Adds every descendant's direct amounts into an ancestor's amount vector.
-    /// This is used to calculate subtotals without treating already-rolled-up node totals as
-    /// new source amounts.
+    /// Calculates monthly and annual roll-ups bottom-up before sibling ordering.
+    /// Each child contributes once, including descendants hidden by the display depth.
     /// </summary>
-    /// <param name="amounts">Ancestor vector to update.</param>
-    /// <param name="node">Node whose descendants are included.</param>
-    private static void AddDescendantAmounts(decimal[] amounts, CategoryNode node)
+    /// <param name="node">Node whose totals and descendant totals are calculated.</param>
+    private static void CalculateTotals(CategoryNode node)
     {
+        AddAmounts(node.TotalAmounts, node.DirectAmounts);
         foreach (var child in node.Children)
         {
-            AddAmounts(amounts, child.DirectAmounts);
-            AddDescendantAmounts(amounts, child);
+            CalculateTotals(child);
+            AddAmounts(node.TotalAmounts, child.TotalAmounts);
         }
+
+        node.AnnualTotal = node.TotalAmounts.Sum();
     }
 
     /// <summary>
-    /// Orders sibling categories case-insensitively, with ordinal ordering as a stable tie-breaker.
+    /// Orders siblings by signed annual roll-up in the report's direction, breaking equal totals
+    /// by case-insensitive category name and then ordinal name for deterministic results.
     /// </summary>
     /// <param name="nodes">Sibling nodes to sort.</param>
+    /// <param name="definition">Report settings that select the amount sort direction.</param>
     /// <returns>Nodes in deterministic display order.</returns>
-    private static IOrderedEnumerable<CategoryNode> OrderSiblings(IEnumerable<CategoryNode> nodes)
-        => nodes.OrderBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
+    private static IOrderedEnumerable<CategoryNode> OrderSiblings(
+        IEnumerable<CategoryNode> nodes,
+        ReportDefinition definition)
+        => (definition.SortDescending
+                ? nodes.OrderByDescending(node => node.AnnualTotal)
+                : nodes.OrderBy(node => node.AnnualTotal))
+            .ThenBy(node => node.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(node => node.Name, StringComparer.Ordinal);
 
     /// <summary>
-    /// In-memory category tree node storing only direct amounts; ancestors calculate subtotals
-    /// by summing these direct values recursively.
+    /// In-memory category node retaining direct amounts and precomputed descendant roll-ups
+    /// so row rendering and sibling sorting use the same totals.
     /// </summary>
     private sealed class CategoryNode(string name, string path)
     {
         public string Name { get; } = name;
         public string Path { get; } = path;
         public decimal[] DirectAmounts { get; } = new decimal[12];
+        public decimal[] TotalAmounts { get; } = new decimal[12];
+        public decimal AnnualTotal { get; set; }
         public List<CategoryNode> Children { get; } = [];
     }
 
@@ -325,7 +334,8 @@ public class ReportsFeature(
         int DefaultDepth,
         bool HasMonthColumns,
         bool IncludesUncategorized,
-        ReportCategoryFilter CategoryFilter = ReportCategoryFilter.Root);
+        ReportCategoryFilter CategoryFilter = ReportCategoryFilter.Root,
+        bool SortDescending = false);
 
     /// <summary>
     /// Describes the built-in category-selection rule independently of display settings.

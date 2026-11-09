@@ -40,7 +40,7 @@ public class ReportsFeatureTests : FeatureTestBase
             Assert.That(result.Totals.MonthlyAmounts![0], Is.EqualTo(15m));
             Assert.That(result.Totals.MonthlyAmounts[11], Is.EqualTo(20m));
             Assert.That(result.Rows.Select(row => row.CategoryPath),
-                Is.EqualTo(new[] { "Home", "Home:Food", "Home:Supplies", "Income", "Income:Salary" }));
+                Is.EqualTo(new[] { "Home", "Home:Supplies", "Home:Food", "Income", "Income:Salary" }));
             Assert.That(result.Rows.Single(row => row.CategoryPath == "Home").AnnualTotal, Is.EqualTo(15m));
         }
     }
