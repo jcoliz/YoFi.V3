@@ -110,9 +110,7 @@ public class ReportSteps(ITestContext _context)
     /// Then the report should show monthly amounts
     /// </summary>
     [Then("the report should show monthly amounts")]
-    public async Task TheReportShouldShowMonthlyAmounts()
-    {
-        throw new NotImplementedException();
-    }
+    public Task TheReportShouldShowMonthlyAmounts() =>
+        TheReportShouldShowAmounts("monthly");
     #endregion
 }
