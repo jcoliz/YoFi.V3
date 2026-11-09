@@ -163,25 +163,8 @@ public class ProfilePage(IPage _page): BasePage(_page)
     /// Useful when the page needs time to fully load before the button is enabled.
     /// Uses Playwright's WaitForAsync with polling to check the enabled state.
     /// </remarks>
-    public async Task WaitForLogoutButtonReadyAsync(float timeout = 5000)
-    {
-        await LogoutButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await LogoutButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await LogoutButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return;
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Logout button did not become enabled within {timeout}ms");
-    }
+    public Task WaitForLogoutButtonReadyAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(LogoutButton, timeout);
 
     #endregion
 

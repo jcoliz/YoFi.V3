@@ -285,25 +285,8 @@ public class RegisterPage(IPage _page): BasePage(_page)
     /// Useful when form validation needs to complete before the button is enabled.
     /// Uses Playwright's WaitForAsync with Enabled state.
     /// </remarks>
-    public async Task WaitForRegisterButtonEnabledAsync(float timeout = 5000)
-    {
-        await RegisterButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await RegisterButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await RegisterButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return;
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Register button did not become enabled within {timeout}ms");
-    }
+    public Task WaitForRegisterButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(RegisterButton, timeout);
 
     #endregion
 

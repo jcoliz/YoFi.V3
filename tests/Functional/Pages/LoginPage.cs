@@ -231,25 +231,8 @@ public partial class LoginPage(IPage _page): BasePage(_page)
     /// Useful when form validation needs to complete before the button is enabled.
     /// Uses Playwright's WaitForAsync with Enabled state.
     /// </remarks>
-    public async Task WaitForLoginButtonEnabledAsync(float timeout = 5000)
-    {
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await LoginButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await LoginButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return;
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Login button did not become enabled within {timeout}ms");
-    }
+    public Task WaitForLoginButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(LoginButton, timeout);
 
     #endregion
 

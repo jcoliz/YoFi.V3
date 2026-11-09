@@ -377,25 +377,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// This button is always present regardless of permissions, making it suitable as a ready indicator
     /// for all user roles. This ensures the Vue client has finished hydrating and the page is interactive.
     /// </remarks>
-    public async Task WaitForFiltersToggleButtonEnabledAsync(float timeout = 5000)
-    {
-        await FiltersToggleButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await FiltersToggleButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await FiltersToggleButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return; // Button is now enabled - page is ready
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Filters toggle button did not become enabled within {timeout}ms");
-    }
+    public  Task WaitForFiltersToggleButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(FiltersToggleButton, timeout);
 
     /// <summary>
     /// Waits until the New Transaction button becomes enabled
@@ -406,25 +389,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// Note: This method is only useful for users with Editor or Owner roles who have the button.
     /// For general page readiness, use WaitForPageReadyAsync() which works for all permission levels.
     /// </remarks>
-    public async Task WaitForNewTransactionButtonEnabledAsync(float timeout = 5000)
-    {
-        await NewTransactionButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await NewTransactionButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await NewTransactionButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return; // Button is now enabled - page is ready
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"New Transaction button did not become enabled within {timeout}ms");
-    }
+    public Task WaitForNewTransactionButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(NewTransactionButton, timeout);
 
     #endregion
 
@@ -1310,7 +1276,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// This button should only be available to users with Editor or Owner roles.
     /// Viewers should not have access to create transactions.
     /// </remarks>
-    public Task<bool> IsNewTransactionAvailableAsync() => IsAvailableAsync(NewTransactionButton);
+    public Task<bool> IsNewTransactionAvailableAsync()
+        => IsAvailableAsync(NewTransactionButton);
 
     /// <summary>
     /// Checks if the Edit button for a specific transaction is available for interaction.

@@ -277,25 +277,8 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
     /// This ensures the Vue client has finished hydrating and the page is interactive.
     /// </remarks>
-    public async Task WaitForEditButtonEnabledAsync(float timeout = 5000)
-    {
-        await EditButton.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = timeout });
-        await EditButton.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = timeout });
-
-        // Poll until the button is enabled
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeout);
-        while (DateTime.UtcNow < deadline)
-        {
-            var isDisabled = await EditButton.IsDisabledAsync();
-            if (!isDisabled)
-            {
-                return; // Button is now enabled - page is ready
-            }
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"Edit button did not become enabled within {timeout}ms");
-    }
+    public Task WaitForEditButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(EditButton, timeout);
 
     /// <summary>
     /// Navigates back to the transactions list

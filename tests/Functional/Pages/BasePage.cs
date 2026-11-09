@@ -67,6 +67,20 @@ public class BasePage(IPage _page): PageObjectModel(_page)
         await Page.GetByTestId("BaseSpinner").WaitForAsync(new LocatorWaitForOptions() { State = WaitForSelectorState.Hidden });
     }
 
+    /// <summary>
+    /// Waits for the specified button to become visible and enabled within the given timeout.
+    /// </summary>
+    /// <param name="button">The button locator to wait for</param>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    public async Task WaitForButtonToBeEnabledAsync(ILocator button, float timeout = 5000)
+    {
+        await Assertions.Expect(button)
+            .ToBeVisibleAsync(new() { Timeout = timeout });
+
+        await Assertions.Expect(button)
+            .ToBeEnabledAsync(new() { Timeout = timeout });
+    }
+
     #endregion
 
 }
