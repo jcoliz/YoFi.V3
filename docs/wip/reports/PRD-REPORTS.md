@@ -287,6 +287,24 @@ The requirements we will have on filtering:
 
 ---
 
+## Known Parity Gap: Direct Amounts in Parent Categories
+
+Original YoFi adds a synthetic child row only when a category has children
+and also has transactions categorized directly to the parent. The synthetic
+child's display name is an em dash (`—`), and its amount represents only those
+direct transactions, separately from the other children.
+
+For example, in a report displaying two or more levels, `Personal` could have
+both `Personal:Clothing` expenses and expenses categorized simply as `Personal`.
+Original YoFi shows the `Personal` roll-up, its `Clothing` child, and an additional
+indented `—` child for the expenses categorized directly as `Personal`.
+
+**Decision: Record only; do not implement at this time.** V3 currently includes
+direct parent amounts in the parent's roll-up but does not add a synthetic child
+to display them separately. Consequently, displayed children may not sum to the
+parent total. It is not yet clear whether this difference is problematic. Try the
+current behavior and revisit this parity gap only if experience warrants it.
+
 ## Open Questions
 
 **All questions have been resolved and integrated into the appropriate sections above.**
