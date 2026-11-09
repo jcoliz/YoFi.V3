@@ -50,6 +50,8 @@ public class ReportsControllerTests : AuthenticatedTestBase
             Assert.That(report.HasMonthColumns, Is.True);
             Assert.That(report.Rows.Single(row => row.CategoryPath == "Income:Controller Test Income").AnnualTotal,
                 Is.EqualTo(125.50m));
+            Assert.That(report.Rows.Single(row => row.CategoryPath == "Income:Controller Test Income").CategoryName,
+                Is.EqualTo("Controller Test Income"));
             Assert.That(report.Totals.AnnualTotal, Is.EqualTo(125.50m));
         }
     }

@@ -172,7 +172,8 @@ Return typed report metadata and rows rather than a matrix of untyped JSON value
 
 - Report ID, name, and year.
 - Column metadata describing whether the report has month columns.
-- Ordered rows containing category path, depth, subtotal status, twelve monthly
+- Ordered rows containing the full category path, a backend-supplied local category
+  name for display, depth, subtotal status, twelve monthly
   amounts when enabled, annual total, and nullable percentage.
 - A totals object containing each displayed month total and the annual grand
   total.
@@ -189,6 +190,12 @@ headers from response metadata, render category indentation from the row depth,
 and emphasize subtotal rows. Use the explicit totals object for the bottom
 footer. Do not derive the footer by summing displayed rows, because parent
 subtotals overlap with child rows.
+
+Render the backend-supplied category name rather than the full path: ancestor
+names are already represented by parent rows or by the report itself. For example,
+the Income report displays `Salary` for `Income:Salary`, and Expenses Detail
+displays `Movies` beneath `Entertainment` for `Entertainment:Movies`. Keep the full
+category path in the response for identity and future transaction drill-down.
 
 Format amounts using the app's established currency/number formatting. Display
 the row percentage after the annual total; render null as an em dash. The table

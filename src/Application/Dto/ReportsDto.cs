@@ -27,6 +27,7 @@ public record ReportResultDto(
 /// One category's annual amount and optional January-to-December amounts.
 /// </summary>
 /// <param name="CategoryPath">Full category path; uncategorized splits use "Uncategorized".</param>
+/// <param name="CategoryName">Local category name for display; ancestor names are provided by parent rows or the report.</param>
 /// <param name="Depth">Displayed depth below the report filter root.</param>
 /// <param name="IsSubtotal">Whether this row includes amounts from descendant categories.</param>
 /// <param name="MonthlyAmounts">Amounts indexed January through December, or null when months are hidden.</param>
@@ -34,6 +35,7 @@ public record ReportResultDto(
 /// <param name="Percentage">Signed share of the report annual total, or null when that total is zero.</param>
 public record ReportRowDto(
     string CategoryPath,
+    string CategoryName,
     int Depth,
     bool IsSubtotal,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] decimal[]? MonthlyAmounts,

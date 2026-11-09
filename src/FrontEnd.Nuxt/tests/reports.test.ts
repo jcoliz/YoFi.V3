@@ -30,6 +30,7 @@ function makeReport(id = 'income', detail = false) {
     rows: [
       {
         categoryPath: 'Home',
+        categoryName: 'Home',
         depth: 1,
         isSubtotal: detail,
         annualTotal: 100,
@@ -40,6 +41,7 @@ function makeReport(id = 'income', detail = false) {
         ? [
             {
               categoryPath: 'Home:Utilities',
+              categoryName: 'Utilities',
               depth: 2,
               isSubtotal: false,
               annualTotal: 25,
@@ -121,7 +123,24 @@ describe('Reports table', () => {
     expect(rows[1]!.classes()).not.toContain('fw-bold')
     expect(rows[0]!.find('th').attributes('style')).toContain('0.5rem')
     expect(rows[1]!.find('th').attributes('style')).toContain('2rem')
-    expect(rows[1]!.text()).toContain('Home:Utilities')
+    expect(rows[0]!.find('th').text()).toBe('Home')
+    expect(rows[1]!.find('th').text()).toBe('Utilities')
+  })
+
+  it.each([
+    ['Income:401k Match', '401k Match'],
+    ['Income:Salary', 'Salary'],
+    ['Income:Salary:Primary', 'Primary'],
+    ['Uncategorized', 'Uncategorized'],
+    ['Income:Salary', 'Backend-supplied label'],
+  ])('renders the backend category name for %s without changing its full path', (path, label) => {
+    const report = makeReport()
+    report.rows![0]!.categoryPath = path
+    report.rows![0]!.categoryName = label
+    const wrapper = mount(ReportsTable, { props: { report } })
+
+    expect(wrapper.find('[data-test-id="report-row"] th').text()).toBe(label)
+    expect(report.rows![0]!.categoryPath).toBe(path)
   })
 
   it('uses explicit footer totals instead of adding overlapping parent and child rows', () => {
@@ -135,7 +154,9 @@ describe('Reports table', () => {
   it('renders undefined percentages as em dashes, including the zero-total footer', () => {
     const report = ReportResultDto.fromJS({
       ...makeReport().toJSON(),
-      rows: [{ categoryPath: 'Home', annualTotal: 0, percentage: null, depth: 1 }],
+      rows: [
+        { categoryPath: 'Home', categoryName: 'Home', annualTotal: 0, percentage: null, depth: 1 },
+      ],
       totals: { annualTotal: 0 },
     })
     const wrapper = mount(ReportsTable, { props: { report } })

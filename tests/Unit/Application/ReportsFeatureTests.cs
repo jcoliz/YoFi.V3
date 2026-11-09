@@ -65,6 +65,8 @@ public class ReportsFeatureTests
             Assert.That(result.Totals.AnnualTotal, Is.EqualTo(75m));
             Assert.That(result.Rows.Select(row => row.CategoryPath),
                 Is.EqualTo(new[] { "income:Bonus", "Income:Salary" }));
+            Assert.That(result.Rows.Select(row => row.CategoryName),
+                Is.EqualTo(new[] { "Bonus", "Salary" }));
             Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { -25m, 100m }));
             Assert.That(result.Rows.Select(row => row.Percentage), Is.EqualTo(new[] { -1m / 3m, 4m / 3m }));
             Assert.That(result.Totals.MonthlyAmounts, Is.Null);
@@ -84,6 +86,8 @@ public class ReportsFeatureTests
         {
             Assert.That(result.Totals.AnnualTotal, Is.EqualTo(22m));
             Assert.That(result.Rows.Select(row => row.CategoryPath),
+                Is.EqualTo(new[] { "Food", "IncomeTax", "Uncategorized" }));
+            Assert.That(result.Rows.Select(row => row.CategoryName),
                 Is.EqualTo(new[] { "Food", "IncomeTax", "Uncategorized" }));
             Assert.That(result.Rows.Select(row => row.AnnualTotal), Is.EqualTo(new[] { 20m, 7m, -5m }));
             Assert.That(result.Rows.Select(row => row.IsSubtotal), Is.All.False);
@@ -112,6 +116,8 @@ public class ReportsFeatureTests
                 }));
             Assert.That(home.AnnualTotal, Is.EqualTo(25m));
             Assert.That(utilities.AnnualTotal, Is.EqualTo(15m));
+            Assert.That(home.CategoryName, Is.EqualTo("Home"));
+            Assert.That(utilities.CategoryName, Is.EqualTo("Utilities"));
             Assert.That(home.MonthlyAmounts, Is.EqualTo(new[] { 10m, 20m, -5m, 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m }));
             Assert.That(result.Totals.MonthlyAmounts,
                 Is.EqualTo(new[] { 85m, 20m, -5m, 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m, 0m }));

@@ -5944,6 +5944,7 @@ export interface IReportResultDto {
 
 export class ReportRowDto implements IReportRowDto {
     categoryPath?: string;
+    categoryName?: string;
     depth?: number;
     isSubtotal?: boolean;
     monthlyAmounts?: number[] | undefined;
@@ -5962,6 +5963,7 @@ export class ReportRowDto implements IReportRowDto {
     init(_data?: any) {
         if (_data) {
             this.categoryPath = _data["categoryPath"];
+            this.categoryName = _data["categoryName"];
             this.depth = _data["depth"];
             this.isSubtotal = _data["isSubtotal"];
             if (Array.isArray(_data["monthlyAmounts"])) {
@@ -5984,6 +5986,7 @@ export class ReportRowDto implements IReportRowDto {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["categoryPath"] = this.categoryPath;
+        data["categoryName"] = this.categoryName;
         data["depth"] = this.depth;
         data["isSubtotal"] = this.isSubtotal;
         if (Array.isArray(this.monthlyAmounts)) {
@@ -5999,6 +6002,7 @@ export class ReportRowDto implements IReportRowDto {
 
 export interface IReportRowDto {
     categoryPath?: string;
+    categoryName?: string;
     depth?: number;
     isSubtotal?: boolean;
     monthlyAmounts?: number[] | undefined;

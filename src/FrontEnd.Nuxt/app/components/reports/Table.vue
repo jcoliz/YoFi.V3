@@ -66,6 +66,7 @@ function formatPercentage(value: number | null | undefined) {
           <th
             scope="col"
             class="text-end"
+            :class="{ 'annual-percentage': !report.hasMonthColumns }"
           >
             % Total
           </th>
@@ -91,7 +92,7 @@ function formatPercentage(value: number | null | undefined) {
             :class="{ 'fw-normal': !row.isSubtotal }"
             :style="{ paddingLeft: `${0.5 + Math.max(0, (row.depth ?? 1) - 1) * 1.5}rem` }"
           >
-            {{ row.categoryPath }}
+            {{ row.categoryName }}
           </th>
           <template v-if="report.hasMonthColumns">
             <td
@@ -102,6 +103,7 @@ function formatPercentage(value: number | null | undefined) {
               {{ formatAmount(row.monthlyAmounts?.[month]) }}
             </td>
           </template>
+
           <td class="text-end text-nowrap">{{ formatAmount(row.annualTotal) }}</td>
           <td class="text-end text-nowrap">{{ formatPercentage(row.percentage) }}</td>
         </tr>
@@ -127,3 +129,11 @@ function formatPercentage(value: number | null | undefined) {
     </table>
   </div>
 </template>
+
+<style scoped>
+.annual-percentage {
+  width: 1%;
+  white-space: nowrap;
+  padding-left: 2rem;
+}
+</style>

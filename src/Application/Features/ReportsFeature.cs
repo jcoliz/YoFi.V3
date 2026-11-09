@@ -264,6 +264,7 @@ public class ReportsFeature(
             var annualTotal = amounts.Sum();
             rows.Add(new ReportRowDto(
                 node.Path,
+                node.Name,
                 depth,
                 depth < definition.DefaultDepth && node.Children.Count > 0,
                 definition.HasMonthColumns ? amounts : null,
