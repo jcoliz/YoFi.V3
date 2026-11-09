@@ -19,6 +19,7 @@ public class TenantDataImportFeatureTests : FeatureTestBase
     private Tenant _otherTenant = null!;
     private TenantDataImportFeature _service = null!;
     private PayeeMatchingRuleFeature _rulesFeature = null!;
+    private TestTimeProvider _timeProvider = null!;
 
     [SetUp]
     public new async Task SetUp()
@@ -32,11 +33,12 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         ITenantProvider tenantProvider = new TestTenantProvider { CurrentTenant = _targetTenant };
         _cache = new MemoryCache(new MemoryCacheOptions());
         var regex = new RegexValidationService();
-        var dataImport = new DataImportService(tenantProvider, _dataProvider, _cache, regex);
+        _timeProvider = new TestTimeProvider();
+        var dataImport = new DataImportService(tenantProvider, _dataProvider, _cache, regex, _timeProvider);
         _service = new TenantDataImportFeature(
             [new OriginalYoFiWorkbookFormatDetector()],
             [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
-        _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache, TimeProvider.System);
+        _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache, _timeProvider);
     }
 
     [TearDown]
@@ -79,6 +81,8 @@ public class TenantDataImportFeatureTests : FeatureTestBase
             Assert.That(result.Worksheets.Single().Updated, Is.Zero);
             Assert.That(result.Worksheets.Single().Failed, Is.Zero);
             Assert.That(imported, Has.Count.EqualTo(2));
+            Assert.That(imported.Select(rule => rule.CreatedAt), Is.All.EqualTo(_timeProvider.GetUtcNow()));
+            Assert.That(imported.Select(rule => rule.ModifiedAt), Is.All.EqualTo(_timeProvider.GetUtcNow()));
             Assert.That(imported[0].PayeePattern, Is.EqualTo("AMAZON.*"));
             Assert.That(imported[0].PayeeIsRegex, Is.True);
             Assert.That(imported[0].Category, Is.EqualTo("Shopping:Food"));

@@ -22,6 +22,7 @@ public class SampleDataFeatureTests
     private MemoryCache _cache = null!;
     private SampleDataFeature _feature = null!;
     private DataImportService _importer = null!;
+    private Mock<TimeProvider> _timeProvider = null!;
     private readonly List<IModel> _staged = [];
     private static SampleDataRequest Request => new("personal-finance", 3, new(2024, 1, 1), new(2024, 3, 31));
 
@@ -34,7 +35,10 @@ public class SampleDataFeatureTests
         _tenant.CurrentTenant.Id = 42;
         _cache = new MemoryCache(new MemoryCacheOptions());
         var regex = new RegexValidationService();
-        _importer = new DataImportService(_tenant, _data.Object, _cache, regex);
+        _timeProvider = new Mock<TimeProvider>();
+        _timeProvider.Setup(time => time.GetUtcNow())
+            .Returns(new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero));
+        _importer = new DataImportService(_tenant, _data.Object, _cache, regex, _timeProvider.Object);
         _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenant, _data.Object, regex);
         _data.Setup(d => d.Get<Transaction>()).Returns(new[]
         {
@@ -107,7 +111,6 @@ public class SampleDataFeatureTests
         var preview = await _feature.PreviewAsync(Request);
         _cache.Set(PayeeMatchingRuleFeature.CacheKey(42), "stale");
         _cache.Set(PayeeMatchingRuleFeature.CacheKey(99), "other tenant");
-        var before = DateTimeOffset.UtcNow;
         var result = await _feature.LoadAsync(Request);
         var transactions = _staged.OfType<Transaction>().ToArray();
         var rules = _staged.OfType<PayeeMatchingRule>().ToArray();
@@ -129,8 +132,8 @@ public class SampleDataFeatureTests
             Assert.That(rules, Has.Length.EqualTo(result.Created.PayeeMatchingRules));
             foreach (var rule in rules)
             {
-                Assert.That(rule.CreatedAt, Is.InRange(before, DateTimeOffset.UtcNow));
-                Assert.That(rule.ModifiedAt, Is.EqualTo(rule.CreatedAt));
+                Assert.That(rule.CreatedAt, Is.EqualTo(_timeProvider.Object.GetUtcNow()));
+                Assert.That(rule.ModifiedAt, Is.EqualTo(_timeProvider.Object.GetUtcNow()));
                 Assert.That(rule.MatchCount, Is.Zero);
                 Assert.That(rule.LastUsedAt, Is.Null);
                 Assert.That(rule.PayeeIsRegex, Is.False);

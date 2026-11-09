@@ -24,11 +24,13 @@ namespace YoFi.V3.Application.Services;
 /// <param name="dataProvider">Unit of work that stages records and atomically saves the complete graph.</param>
 /// <param name="memoryCache">Shared rule cache invalidated for the target tenant after a successful save.</param>
 /// <param name="regexValidationService">Service used by matching-rule DTO validation.</param>
+/// <param name="timeProvider">Provider for UTC rule audit timestamps.</param>
 public sealed class DataImportService(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
     IMemoryCache memoryCache,
-    IRegexValidationService regexValidationService)
+    IRegexValidationService regexValidationService,
+    TimeProvider timeProvider)
 {
     /// <summary>Validates and creates all supplied transactions and rules in one persistence save.</summary>
     /// <param name="dataset">Key-free, tenant-free inputs with initialized immutable collections.</param>
@@ -67,7 +69,7 @@ public sealed class DataImportService(
         Validate(dataset, regexValidationService);
         cancellationToken.ThrowIfCancellationRequested();
         var tenantId = tenantProvider.CurrentTenant.Id;
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
         var transactions = dataset.Transactions.Select(t =>
                 t.ExternalId != null && dataset.TransactionSplits.TryGetValue(t.ExternalId, out var splits)
                     ? ImportModelFactory.SampleTransactionWithSplits(t, splits, tenantId)
@@ -101,7 +103,7 @@ public sealed class DataImportService(
         }
 
         var tenantId = tenantProvider.CurrentTenant.Id;
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
         var records = rules.Select(rule => (IModel)ImportModelFactory.Rule(rule, tenantId, now)).ToArray();
         dataProvider.AddRange(records);
         await dataProvider.SaveChangesAsync(cancellationToken);

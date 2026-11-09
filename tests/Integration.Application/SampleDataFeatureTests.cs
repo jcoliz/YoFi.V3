@@ -20,6 +20,7 @@ public class SampleDataFeatureTests : FeatureTestBase
     private SampleDataFeature _feature = null!;
     private DataImportService _importer = null!;
     private TestTenantProvider _tenantProvider = null!;
+    private TestTimeProvider _timeProvider = null!;
     private SampleDataRequest Request => new(
         "personal-finance",
         _feature.GetScenarios().Single(s => s.Id == "personal-finance").Revision,
@@ -37,7 +38,8 @@ public class SampleDataFeatureTests : FeatureTestBase
         _tenantProvider = new TestTenantProvider { CurrentTenant = _tenant };
         _cache = new MemoryCache(new MemoryCacheOptions());
         var regex = new RegexValidationService();
-        _importer = new DataImportService(_tenantProvider, _dataProvider, _cache, regex);
+        _timeProvider = new TestTimeProvider();
+        _importer = new DataImportService(_tenantProvider, _dataProvider, _cache, regex, _timeProvider);
         _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenantProvider, _dataProvider, regex);
     }
 
@@ -170,10 +172,10 @@ public class SampleDataFeatureTests : FeatureTestBase
     [Test]
     public async Task ExistingRuleCache_IsInvalidatedAfterCommitAndSamplesMatchThroughRealRuleFeature()
     {
-        // TODO: Use a shared fixed test clock when DataImportService is migrated to TimeProvider.
-        var ruleFeature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _cache, TimeProvider.System);
+        var ruleFeature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _cache, _timeProvider);
         Assert.That((await ruleFeature.GetRulesAsync()).Items, Is.Empty);
         await _feature.LoadAsync(Request);
+        _timeProvider.UtcNow = _timeProvider.GetUtcNow().AddDays(1);
         var scenario = new SampleScenarioLoader().Scenarios[0];
         var payees = scenario.Patterns.SelectMany(p => p.Payees).Distinct().ToArray();
         var matches = await ruleFeature.MatchPayeesAsync(payees);
@@ -185,12 +187,18 @@ public class SampleDataFeatureTests : FeatureTestBase
                 Assert.That(matches[payee], Is.EqualTo(pattern.Category));
             }
         }
+
+        _context.ChangeTracker.Clear();
+        var rules = await _context.PayeeMatchingRules.ToListAsync();
+        Assert.That(rules.Select(rule => rule.CreatedAt), Is.All.EqualTo(_timeProvider.GetUtcNow().AddDays(-1)));
+        var usedRules = rules.Where(rule => rule.MatchCount > 0).ToArray();
+        Assert.That(usedRules, Is.Not.Empty);
+        Assert.That(usedRules.Select(rule => rule.LastUsedAt), Is.All.EqualTo(_timeProvider.GetUtcNow()));
     }
 
     [Test]
     public async Task SharedImport_SanitizesCategoriesAndInitializesAuditAndUsage()
     {
-        var before = DateTimeOffset.UtcNow;
         await _importer.CreateAsync(new SampleDataSet(
             [new TransactionEditDto(new(2024, 1, 1), -5, "Store", null, null, null, " food :: groceries ")],
             [new PayeeMatchingRuleEditDto("Store", false, " food :: groceries ")]));
@@ -201,8 +209,8 @@ public class SampleDataFeatureTests : FeatureTestBase
         {
             Assert.That(transaction.Splits.Single().Category, Is.EqualTo("Food:Groceries"));
             Assert.That(rule.Category, Is.EqualTo("Food:Groceries"));
-            Assert.That(rule.CreatedAt, Is.InRange(before, DateTimeOffset.UtcNow));
-            Assert.That(rule.ModifiedAt, Is.EqualTo(rule.CreatedAt));
+            Assert.That(rule.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
+            Assert.That(rule.ModifiedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
             Assert.That(rule.MatchCount, Is.Zero);
             Assert.That(rule.LastUsedAt, Is.Null);
         }

@@ -23,6 +23,7 @@ public class TenantDataImportFeatureTests
     private TestTenantProvider _tenant = null!;
     private MemoryCache _cache = null!;
     private TenantDataImportFeature _service = null!;
+    private Mock<TimeProvider> _timeProvider = null!;
     private readonly List<IModel> _staged = [];
 
     [SetUp]
@@ -38,7 +39,10 @@ public class TenantDataImportFeatureTests
         _cache = new MemoryCache(new MemoryCacheOptions());
 
         var regex = new RegexValidationService();
-        var dataImport = new DataImportService(_tenant, _data.Object, _cache, regex);
+        _timeProvider = new Mock<TimeProvider>();
+        _timeProvider.Setup(time => time.GetUtcNow())
+            .Returns(new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero));
+        var dataImport = new DataImportService(_tenant, _data.Object, _cache, regex, _timeProvider.Object);
         _service = new TenantDataImportFeature(
             [new OriginalYoFiWorkbookFormatDetector()],
             [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
@@ -90,7 +94,6 @@ public class TenantDataImportFeatureTests
         var preview = _service.Preview(file);
         _cache.Set(PayeeMatchingRuleFeature.CacheKey(42), "stale");
         _cache.Set(PayeeMatchingRuleFeature.CacheKey(99), "other tenant");
-        var before = DateTimeOffset.UtcNow;
 
         var result = await _service.ImportAsync(file, preview.Sha256);
 
@@ -109,7 +112,8 @@ public class TenantDataImportFeatureTests
             Assert.That(rules[0].Category, Is.EqualTo("Shopping:Food"));
             Assert.That(rules[1].PayeePattern, Is.EqualTo("Coffee Shop"));
             Assert.That(rules[1].PayeeIsRegex, Is.False);
-            Assert.That(rules.All(rule => rule.CreatedAt >= before), Is.True);
+            Assert.That(rules.Select(rule => rule.CreatedAt), Is.All.EqualTo(_timeProvider.Object.GetUtcNow()));
+            Assert.That(rules.Select(rule => rule.ModifiedAt), Is.All.EqualTo(_timeProvider.Object.GetUtcNow()));
             Assert.That(rules.All(rule => rule.MatchCount == 0 && rule.LastUsedAt is null), Is.True);
             Assert.That(_cache.TryGetValue(PayeeMatchingRuleFeature.CacheKey(42), out _), Is.False);
             Assert.That(_cache.Get<string>(PayeeMatchingRuleFeature.CacheKey(99)), Is.EqualTo("other tenant"));

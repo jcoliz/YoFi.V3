@@ -44,10 +44,7 @@ public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
         // Create feature with dependencies
-        _timeProvider = new TestTimeProvider
-        {
-            UtcNow = new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero)
-        };
+        _timeProvider = new TestTimeProvider();
         _feature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _memoryCache, _timeProvider);
     }
 
@@ -56,13 +53,6 @@ public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
     {
         // Dispose memory cache before base class disposes context
         _memoryCache?.Dispose();
-    }
-
-    protected sealed class TestTimeProvider : TimeProvider
-    {
-        public DateTimeOffset UtcNow { get; set; }
-
-        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 }
 
