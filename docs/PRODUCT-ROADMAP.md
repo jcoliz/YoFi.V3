@@ -239,7 +239,7 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
 | Story 2211 - Establish Rules (CRUD)             | B2        |           | ✅ Implemented       |
 | Story 2212 - Auto-categorize on Import          | A1        | 3         | ✅ Implemented       |
-| Story 3 - Manual Trigger Matching               | B3        |           | ✔️ Approved          |
+| Story 2266 - Manual Trigger Matching            | B3        |           | ✔️ Approved          |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
@@ -249,8 +249,8 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2223 - Load Sample Data                   | A1        | 2         | ✅ Implemented       |
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
-| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✅ Implemented       |
-| Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
+| Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
+| Story 2249 - Configure Report Display           | B2        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
 | Story 5 - View Budget Reports                   | B3        |           | ✔️ Approved          |

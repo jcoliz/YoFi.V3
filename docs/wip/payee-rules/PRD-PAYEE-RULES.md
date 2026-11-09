@@ -84,7 +84,7 @@ to what transactions.
 - [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
 - [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 
-### Story 3: User - Manually triggers rule matching
+### Story 2266: User - Manually triggers rule matching
 
 **As a** User
 **I want** to trigger automatic categorization on a specific transaction
