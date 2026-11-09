@@ -20,6 +20,15 @@ public class ReportsPage(IPage page) : BasePage(page)
     private ILocator DecemberHeader => ReportTable.GetByRole(AriaRole.Columnheader, new() { Name = "December", Exact = true });
 
     /// <summary>
+    /// Reloads the page and waits for the restored report to finish loading.
+    /// </summary>
+    public async Task ReloadAsync()
+    {
+        await Page.ReloadAsync();
+        await ReportTable.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
     /// Selects a report by its displayed name and waits for its result.
     /// </summary>
     public async Task SelectReportAsync(string name)

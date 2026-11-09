@@ -18,10 +18,11 @@ intentionally not implemented yet.
 See [writing page objects](../docs/writing-pages.md) for the authoring guide and
 [the Nuxt hydration pattern](../docs/NUXT-SSR-TESTING-PATTERN.md) for client-readiness requirements.
 
-[`ReportsPage`](ReportsPage.cs) supports only the representative-report smoke
-scenario: selecting a report, checking the selected and displayed report,
-finding a category, reading the annual grand total, and checking monthly-column
-visibility. Reload and multi-category scenario steps remain unimplemented.
+[`ReportsPage`](ReportsPage.cs) supports the representative-report and selection
+persistence scenarios: selecting and reloading a report, checking the selected
+and displayed report, finding categories, reading the annual grand total, and
+checking monthly-column visibility. Multi-category steps reuse the single-category
+assertion.
 
 [`ImportPage`](ImportPage.cs) provides retrying assertions for a single imported transaction's
 category text and read-only state, including the absence of category editing controls.

@@ -30,7 +30,8 @@ public class ReportSteps(ITestContext _context)
     [When("I reload the reports page")]
     public async Task IReloadTheReportsPage()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ReloadAsync();
     }
 
     #endregion
@@ -98,7 +99,11 @@ public class ReportSteps(ITestContext _context)
     [Then("the report should include these categories:")]
     public async Task TheReportShouldIncludeTheseCategories(DataTable table)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        foreach (var row in table.Rows)
+        {
+            await page.ExpectCategoryAsync(row.GetRequired("Category"));
+        }
     }
 
     /// <summary>
