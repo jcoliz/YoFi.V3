@@ -3,10 +3,13 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using YoFi.V3.Application.Dto;
@@ -156,9 +159,34 @@ public class TestControlControllerTests
     }
 
     [Test]
+    public async Task SeedTransactions_UsesProviderUtcDateForThirtyDayWindow()
+    {
+        using var factory = new FixedClockWebApplicationFactory();
+        var (username, tenantKey) = await CreateSeedWorkspaceAsync(factory);
+        using var client = CreateControlClient(factory);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed",
+            new { Count = 32 });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var transactions = await response.Content.ReadFromJsonAsync<List<TransactionResultDto>>();
+        Assert.That(transactions, Has.Count.EqualTo(32));
+        var today = DateOnly.FromDateTime(factory.Clock.GetUtcNow().UtcDateTime);
+        Assert.That(transactions!.Select(transaction => transaction.Date),
+            Is.All.InRange(today.AddDays(-30), today.AddDays(-1)));
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var storedDates = await db.Transactions.Where(transaction => transaction.Tenant!.Key == tenantKey)
+            .Select(transaction => transaction.Date).ToListAsync();
+        Assert.That(storedDates, Is.EquivalentTo(transactions.Select(transaction => transaction.Date)));
+    }
+
+    [Test]
     public async Task SeedTransactionWithSplits_CreatesTransactionWithOrderedAllocations()
     {
-        using var factory = new BaseTestWebApplicationFactory();
+        using var factory = new FixedClockWebApplicationFactory();
         var (username, tenantKey) = await CreateSeedWorkspaceAsync(factory);
         using var client = CreateControlClient(factory);
         var path = $"/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits";
@@ -181,6 +209,7 @@ public class TestControlControllerTests
         var transaction = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
         Assert.That(transaction, Is.Not.Null);
         Assert.That(transaction!.Payee, Is.EqualTo("Super Duper Mart"));
+        Assert.That(transaction.Date, Is.EqualTo(new DateOnly(2040, 3, 1)));
         Assert.That(transaction.Amount, Is.EqualTo(-260m));
         Assert.That(transaction.Splits.Select(split => (split.Order, split.Amount, split.Category, split.Memo)),
             Is.EqualTo(new[]
@@ -191,6 +220,11 @@ public class TestControlControllerTests
                 (3, -10m, "", (string?)null)
             }));
         Assert.That(transaction.Splits.Sum(split => split.Amount), Is.EqualTo(transaction.Amount));
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var stored = await db.Transactions.SingleAsync(t => t.Key == transaction.Key);
+        Assert.That(stored.Date, Is.EqualTo(new DateOnly(2040, 3, 1)));
     }
 
     [Test]
@@ -309,5 +343,25 @@ public class TestControlControllerTests
         }
 
         return (username, tenant.Key);
+    }
+
+    private sealed class FixedClockWebApplicationFactory : BaseTestWebApplicationFactory
+    {
+        public TimeProvider Clock { get; } = new FixedTimeProvider();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton(Clock);
+            });
+        }
+    }
+
+    private sealed class FixedTimeProvider : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2040, 3, 1, 0, 0, 0, TimeSpan.Zero);
     }
 }

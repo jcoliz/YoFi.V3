@@ -128,6 +128,7 @@ public record ErrorCodeInfo(string Code, string Description);
 /// <param name="userManager">User manager for identity operations.</param>
 /// <param name="tenantFeature">Feature providing tenant management operations.</param>
 /// <param name="logger">Logger for diagnostic output.</param>
+/// <param name="timeProvider">Provider for UTC dates used by generated test transactions.</param>
 /// <remarks>
 /// This controller provides endpoints for creating and managing test users, workspaces,
 /// and test data during functional testing. All operations enforce the __TEST__ prefix
@@ -166,7 +167,8 @@ public record ErrorCodeInfo(string Code, string Description);
 public partial class TestControlController(
     UserManager<IdentityUser> userManager,
     TenantFeature tenantFeature,
-    ILogger<TestControlController> logger
+    ILogger<TestControlController> logger,
+    TimeProvider timeProvider
 ) : ControllerBase
 {
     /// <summary>
@@ -656,7 +658,7 @@ public partial class TestControlController(
 
         // Generate transactions from the request
         var random = new Random();
-        var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var baseDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).AddDays(-30);
         var transactions = new List<TransactionEditDto>();
 
         for (int i = 1; i <= request.Count; i++)
@@ -779,7 +781,7 @@ public partial class TestControlController(
         var transactionAmount = splitList.Sum(split => split.Amount);
         var externalId = $"test-control:{Guid.NewGuid():N}";
         var transactionInput = new TransactionEditDto(
-            Date: DateOnly.FromDateTime(DateTime.UtcNow),
+            Date: DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime),
             Amount: transactionAmount,
             Payee: request.Payee,
             Memo: null,
