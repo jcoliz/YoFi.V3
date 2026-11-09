@@ -1,6 +1,5 @@
-using System.Net;
+using System.Globalization;
 using YoFi.V3.Tests.Functional.Infrastructure;
-using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps;
@@ -21,7 +20,8 @@ public class ReportSteps(ITestContext _context)
     [When("I select the {Report} report")]
     public async Task ISelectTheReport(string Report)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.SelectReportAsync(Report);
     }
 
     /// <summary>
@@ -43,7 +43,8 @@ public class ReportSteps(ITestContext _context)
     [Then("the selected report should be {string1}")]
     public async Task TheSelectedReportShouldBe(string string1)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ExpectSelectedReportAsync(string1);
     }
 
 
@@ -53,7 +54,8 @@ public class ReportSteps(ITestContext _context)
     [Then("the displayed report should be {Report}")]
     public async Task TheDisplayedReportShouldBe(string Report)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ExpectDisplayedReportAsync(Report);
     }
 
     /// <summary>
@@ -62,7 +64,8 @@ public class ReportSteps(ITestContext _context)
     [Then("the report should include the category {Category}")]
     public async Task TheReportShouldIncludeTheCategory(string Category)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ExpectCategoryAsync(Category);
     }
 
     /// <summary>
@@ -72,7 +75,10 @@ public class ReportSteps(ITestContext _context)
     [Then("the report grand total should be {Total}")]
     public async Task TheReportGrandTotalShouldBe(string Total)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        var actual = await page.GetGrandTotalAsync();
+        Assert.That(actual, Is.EqualTo(decimal.Parse(Total, CultureInfo.InvariantCulture)),
+            "The report grand total should match the seeded transactions.");
     }
 
     /// <summary>
@@ -81,7 +87,9 @@ public class ReportSteps(ITestContext _context)
     [Then("the report should show {Periods} amounts")]
     public async Task TheReportShouldShowAmounts(string Periods)
     {
-        throw new NotImplementedException();
+        Assert.That(Periods, Is.AnyOf("annual", "monthly"), "Unsupported report period.");
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ExpectMonthlyAmountsAsync(Periods == "monthly");
     }
 
     /// <summary>

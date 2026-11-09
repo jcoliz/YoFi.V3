@@ -120,7 +120,12 @@ function formatPercentage(value: number | null | undefined) {
               {{ formatAmount(report.totals?.monthlyAmounts?.[month]) }}
             </td>
           </template>
-          <td class="text-end text-nowrap">{{ formatAmount(report.totals?.annualTotal) }}</td>
+          <td
+            class="text-end text-nowrap"
+            data-test-id="report-grand-total"
+          >
+            {{ formatAmount(report.totals?.annualTotal) }}
+          </td>
           <td class="text-end text-nowrap">
             {{ formatPercentage(report.totals?.annualTotal ? 1 : null) }}
           </td>

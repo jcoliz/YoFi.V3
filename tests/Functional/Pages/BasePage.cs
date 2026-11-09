@@ -49,6 +49,12 @@ public class BasePage(IPage _page): PageObjectModel(_page)
         return await Header.InnerTextAsync();
     }
 
+    /// <summary>
+    /// Waits for the expected heading after client-side navigation.
+    /// </summary>
+    public Task ExpectPageHeadingAsync(string text) =>
+        Assertions.Expect(Header).ToHaveTextAsync(text);
+
     #endregion
 
     #region Wait Helpers

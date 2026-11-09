@@ -137,8 +137,7 @@ public class NavigationSteps(ITestContext _context)
     public async Task PageHeadingIs(string text)
     {
         var pageModel = _context.GetOrCreatePage<BasePage>();
-        var heading1 = await pageModel.GetPageHeading();
-        Assert.That(heading1, Is.EqualTo(text));
+        await pageModel.ExpectPageHeadingAsync(text);
     }
 
     /// <summary>
