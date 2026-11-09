@@ -293,17 +293,8 @@ public class RegisterPage(IPage _page): BasePage(_page)
     #region Helpers
 
     /// <summary>
-    /// Fills registration form fields and waits for Vue reactivity to complete
+    /// Fills registration form fields and verifies their values before submission.
     /// </summary>
-    /// <remarks>
-    /// This method handles the timing issue where Vue.js needs time to process
-    /// input events before the form is ready for submission. It fills all fields,
-    /// triggers blur events, and polls until the email field contains a value.
-    ///
-    /// TODO: Track whether this is still used. I think the problem was that I didn't wait
-    /// for the client-side controls to be ready before filling. If that is fixed, this method
-    /// may be unnecessary.
-    /// </remarks>
     private async Task FillRegistrationWithVueWaitAsync(string email, string username, string password, string confirmPassword)
     {
         // Click each field first to ensure it's ready for input (required for FillAsync to work)
@@ -323,41 +314,10 @@ public class RegisterPage(IPage _page): BasePage(_page)
         await PasswordAgainInput.FillAsync(confirmPassword);
         await PasswordAgainInput.BlurAsync();
 
-        // Wait for fields to actually contain values (Vue reactivity completion)
-        // This prevents race condition where button is clicked before form is ready
-        var maxRetries = 20; // Increased from 10 to handle slower production environments
-        for (int i = 0; i < maxRetries; i++)
-        {
-            var emailValue = await EmailInput.InputValueAsync();
-            if (!string.IsNullOrEmpty(emailValue))
-            {
-                if (i > 0)
-                {
-                    TestContext.Out.WriteLine($"[REGISTER] Email field populated after {i + 1} retries");
-                }
-                return;
-            }
-
-            // If we've tried 5 times unsuccessfully, try filling again
-            if (i == 4)
-            {
-                TestContext.Out.WriteLine("[REGISTER] First fill may have failed, attempting to fill fields again...");
-                await EmailInput.FillAsync(email);
-                await EmailInput.BlurAsync();
-                await UsernameInput.FillAsync(username);
-                await UsernameInput.BlurAsync();
-                await PasswordInput.FillAsync(password);
-                await PasswordInput.BlurAsync();
-                await PasswordAgainInput.FillAsync(confirmPassword);
-                await PasswordAgainInput.BlurAsync();
-            }
-
-            TestContext.Out.WriteLine($"[REGISTER] Retry {i + 1}/{maxRetries}: Email field still empty, waiting for Vue reactivity...");
-            await Task.Delay(50);
-        }
-
-        // If we get here, field never populated - log warning but continue
-        TestContext.Out.WriteLine($"[REGISTER] WARNING: Email field still empty after {maxRetries} retries. Form may not submit properly.");
+        await Assertions.Expect(EmailInput).ToHaveValueAsync(email);
+        await Assertions.Expect(UsernameInput).ToHaveValueAsync(username);
+        await Assertions.Expect(PasswordInput).ToHaveValueAsync(password);
+        await Assertions.Expect(PasswordAgainInput).ToHaveValueAsync(confirmPassword);
     }
 
     #endregion

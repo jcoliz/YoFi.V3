@@ -419,8 +419,6 @@ public partial class ImportPage(IPage page) : BasePage(page)
     public async Task ClickSelectAllAsync()
     {
         await SelectAllButton.ClickAsync();
-        // Give UI time to update optimistically
-        await Task.Delay(100);
     }
 
     /// <summary>
@@ -429,8 +427,6 @@ public partial class ImportPage(IPage page) : BasePage(page)
     public async Task ClickDeselectAllAsync()
     {
         await DeselectAllButton.ClickAsync();
-        // Give UI time to update optimistically
-        await Task.Delay(100);
     }
 
     #endregion

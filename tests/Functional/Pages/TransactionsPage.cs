@@ -759,9 +759,18 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         return rowData.Columns.TryGetValue(column, out var cellText) ? cellText : throw new ArgumentException($"Column with data-test-id '{column}' not found in row for payee '{payee}'");
     }
 
-    public async Task<TransactionRowData?> GetTransactionRowDataByPayeeAsync(string payeeName)
+    public ILocator GetTransactionRowLocatorByPayee(string payeeName) =>
+        TransactionRows.Filter(new()
+        {
+            Has = Page!.GetByRole(AriaRole.Cell, new() { Name = payeeName, Exact = true })
+        });
+
+    public Task ExpectTransactionRowByPayeeToBeVisible(string payeeName) =>
+        Assertions.Expect(GetTransactionRowLocatorByPayee(payeeName)).ToBeVisibleAsync();
+
+    public async Task<TransactionRowData?> GetTransactionRowDataByPayeeAsync(string payeeName, bool forceReload = false)
     {
-        var tableData = await LoadTransactionTableDataAsync();
+        var tableData = await LoadTransactionTableDataAsync(forceReload);
         return tableData.Rows.FirstOrDefault(r => r.Columns.TryGetValue("payee", out var payee) && payee == payeeName);
     }
 

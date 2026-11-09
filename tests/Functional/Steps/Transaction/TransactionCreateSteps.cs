@@ -193,19 +193,10 @@ public class TransactionCreateSteps(ITestContext context) : TransactionStepsBase
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
 
         // And: Wait for the transaction to appear in the list
-        var rowData = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee);
+        await transactionsPage.ExpectTransactionRowByPayeeToBeVisible(payee);
 
-        if (rowData == null)
-        {
-            await Task.Delay(100);
-            rowData = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee)
-                ?? throw new Exception($"Transaction with payee '{payee}' not found in the list");
-        }
-
-        // And: Verify the transaction is visible
-        var hasTransaction = await rowData.RowLocator.IsVisibleAsync();
-        Assert.That(hasTransaction, Is.True,
-            $"Transaction with payee '{payee}' should be visible in the transaction list");
+        var rowData = await transactionsPage.GetTransactionRowDataByPayeeAsync(payee, forceReload: true)
+            ?? throw new InvalidOperationException($"Transaction with payee '{payee}' was visible but could not be loaded");
 
         // And: Store row data in object store for later verification
         _context.ObjectStore.Add(rowData);
