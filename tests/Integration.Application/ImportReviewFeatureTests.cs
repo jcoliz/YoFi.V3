@@ -23,6 +23,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
     private TransactionsFeature _transactionsFeature = null!;
     private ITenantProvider _tenantProvider = null!;
     private Tenant _testTenant = null!;
+    private TestTimeProvider _timeProvider = null!;
 
     [SetUp]
     public new async Task SetUp()
@@ -46,10 +47,29 @@ public class ImportReviewFeatureTests : FeatureTestBase
 
         // Create features with real dependencies
         _transactionsFeature = new TransactionsFeature(_tenantProvider, _dataProvider);
-        _feature = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, stubPayeeMatchingService);
+        _timeProvider = new TestTimeProvider();
+        _feature = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, stubPayeeMatchingService, _timeProvider);
     }
 
     #region ImportFileAsync Tests
+
+    [Test]
+    public async Task SeedTestDataAsync_ClockAdvances_UsesCurrentUtcDateForEachBatch()
+    {
+        var firstDate = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        await _feature.SeedTestDataAsync(32);
+        _context.ChangeTracker.Clear();
+        var firstBatch = await _context.ImportReviewTransactions.OrderBy(t => t.ExternalId).ToListAsync();
+        Assert.That(firstBatch.Select(t => t.Date),
+            Is.EqualTo(Enumerable.Range(1, 32).Select(i => firstDate.AddDays(-30 + i % 30))));
+
+        await _feature.DeleteAllAsync();
+        _timeProvider.UtcNow = _timeProvider.GetUtcNow().AddDays(1);
+        await _feature.SeedTestDataAsync(1);
+        _context.ChangeTracker.Clear();
+        var secondBatch = await _context.ImportReviewTransactions.SingleAsync();
+        Assert.That(secondBatch.Date, Is.EqualTo(firstDate.AddDays(-28)));
+    }
 
     [Test]
     public async Task ImportFileAsync_ValidOFXFile_ParsesAndStoresTransactions()
@@ -754,7 +774,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
     {
         // Given: Payee matching service that returns categories for specific payees
         var matchingService = new CategoryMatchingPayeeMatchingService();
-        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService, _timeProvider);
 
         // And: Valid OFX file with QFC transaction (matches "Groceries")
         var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
@@ -782,7 +802,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
     {
         // Given: Payee matching service that returns null for all payees (no match)
         var matchingService = new StubPayeeMatchingService();
-        var featureWithNoMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+        var featureWithNoMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService, _timeProvider);
 
         // And: Valid OFX file
         var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
@@ -809,7 +829,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
     {
         // Given: Payee matching service that returns categories for some payees only
         var matchingService = new CategoryMatchingPayeeMatchingService();
-        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService, _timeProvider);
 
         // And: Valid OFX file with multiple transactions
         var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
@@ -841,7 +861,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
     {
         // Given: Import review transaction with matched category
         var matchingService = new CategoryMatchingPayeeMatchingService();
-        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService);
+        var featureWithMatching = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, matchingService, _timeProvider);
 
         var ofxFilePath = Path.Combine("SampleData", "Ofx", "Bank1.ofx");
         var ofxContent = await File.ReadAllBytesAsync(ofxFilePath);

@@ -641,11 +641,14 @@ public class ImportReviewFeatureTests
         Assert.That(thirdTransaction.ExternalId, Is.EqualTo("FITID-TEST000000000003"));
     }
 
-    [Test]
-    public async Task SeedTestDataAsync_GeneratesDeterministicDates()
+    [TestCase(2040, 7, 1)]
+    [TestCase(2040, 3, 1)]
+    [TestCase(2040, 1, 1)]
+    public async Task SeedTestDataAsync_GeneratesDeterministicDates(int year, int month, int day)
     {
         // Given: Mock dependencies and feature configured for transactions
-        var (feature, dataProvider) = CreateFeatureWithMocks();
+        var now = new DateTimeOffset(year, month, day, 0, 0, 0, TimeSpan.Zero);
+        var (feature, dataProvider) = CreateFeatureWithMocks(utcNow: now);
         var count = 32; // Test date cycling (more than 30 days)
         var capturedTransactions = new List<ImportReviewTransaction>();
 
@@ -656,7 +659,11 @@ public class ImportReviewFeatureTests
         // When: SeedTestDataAsync is called
         await feature.SeedTestDataAsync(count);
 
-        // Then: Dates should cycle within 30-day window
+        // Then: Dates should cycle from the provider's UTC date minus 30 days
+        var baseDate = new DateOnly(year, month, day).AddDays(-30);
+        Assert.That(capturedTransactions.Select(t => t.Date),
+            Is.EqualTo(Enumerable.Range(1, count).Select(i => baseDate.AddDays(i % 30))));
+
         var baseDateRange = capturedTransactions.Select(t => t.Date).Distinct().OrderBy(d => d).ToList();
 
         // And: Date range should span 30 days or less
@@ -723,7 +730,8 @@ public class ImportReviewFeatureTests
     /// </summary>
     /// <param name="tenantId">Optional tenant ID to use. If null, uses a default value.</param>
     /// <returns>A tuple containing the feature instance and the mock data provider.</returns>
-    private static (ImportReviewFeature Feature, Mock<IDataProvider> DataProvider) CreateFeatureWithMocks(long? tenantId = null)
+    private static (ImportReviewFeature Feature, Mock<IDataProvider> DataProvider) CreateFeatureWithMocks(
+        long? tenantId = null, DateTimeOffset? utcNow = null)
     {
         var actualTenantId = tenantId ?? 1L;
         var tenant = new YoFi.V3.Entities.Tenancy.Models.Tenant { Id = actualTenantId, Name = "Test Tenant", Key = Guid.NewGuid() };
@@ -744,11 +752,16 @@ public class ImportReviewFeatureTests
             .ReturnsAsync((IReadOnlyCollection<YoFi.V3.Application.Services.IMatchableTransaction> transactions) =>
                 transactions.Select(t => (string?)null).ToList());
 
+        var timeProvider = new Mock<TimeProvider>();
+        timeProvider.Setup(time => time.GetUtcNow())
+            .Returns(utcNow ?? new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero));
+
         var feature = new ImportReviewFeature(
             mockTenantProvider.Object,
             mockDataProvider.Object,
             mockTransactionsFeature.Object,
-            mockPayeeMatchingService.Object);
+            mockPayeeMatchingService.Object,
+            timeProvider.Object);
 
         return (feature, mockDataProvider);
     }

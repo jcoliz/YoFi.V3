@@ -15,6 +15,7 @@ namespace YoFi.V3.Application.Features;
 /// <param name="dataProvider">Repository for data operations on import review transactions.</param>
 /// <param name="transactionsFeature">Feature for managing transactions (used when accepting imports).</param>
 /// <param name="payeeMatchingService">Service for applying payee matching rules to categorize transactions.</param>
+/// <param name="timeProvider">Provider for UTC dates used when seeding test transactions.</param>
 /// <remarks>
 /// <para>
 /// Import workflow orchestration:
@@ -44,7 +45,8 @@ public class ImportReviewFeature(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
     TransactionsFeature transactionsFeature,
-    IPayeeMatchingService payeeMatchingService)
+    IPayeeMatchingService payeeMatchingService,
+    TimeProvider timeProvider)
 {
     private const int DefaultPageNumber = 1;
 
@@ -462,7 +464,8 @@ public class ImportReviewFeature(
     /// <returns>The number of transactions created.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when selectedCount is greater than count or negative.</exception>
     /// <remarks>
-    /// Generates deterministic transaction data based on index and inserts them into ImportReviewTransaction table.
+    /// Generates deterministic transaction data based on index and the provider's current UTC date
+    /// and inserts them into ImportReviewTransaction table.
     /// All transactions are marked as New status. The first selectedCount transactions are marked as selected.
     /// This method is intended for use only in test scenarios via TestControlController.
     /// </remarks>
@@ -477,7 +480,7 @@ public class ImportReviewFeature(
                 $"selectedCount must be between 0 and {count}, but was {normalizedSelectedCount}");
         }
 
-        var baseDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var baseDate = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).AddDays(-30);
         var importReviewTransactions = new List<ImportReviewTransaction>();
 
         for (int i = 1; i <= count; i++)
