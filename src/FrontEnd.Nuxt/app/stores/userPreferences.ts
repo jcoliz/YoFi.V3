@@ -61,6 +61,16 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     }
   }
 
+  function getSelectedReportId(tenantKey: string): string | null {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(`userPreferences:tenant:${tenantKey}:reports:selectedId`)
+  }
+
+  function setSelectedReportId(tenantKey: string, reportId: string) {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(`userPreferences:tenant:${tenantKey}:reports:selectedId`, reportId)
+  }
+
   return {
     // State
     currentTenant,
@@ -72,5 +82,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     setCurrentTenant,
     loadFromStorage,
     clearPreferences,
+    getSelectedReportId,
+    setSelectedReportId,
   }
 })
