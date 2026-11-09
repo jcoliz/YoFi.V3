@@ -24,7 +24,7 @@ namespace YoFi.V3.Application.Services;
 /// <param name="dataProvider">Unit of work that stages records and atomically saves the complete graph.</param>
 /// <param name="memoryCache">Shared rule cache invalidated for the target tenant after a successful save.</param>
 /// <param name="regexValidationService">Service used by matching-rule DTO validation.</param>
-/// <param name="timeProvider">Provider for UTC rule audit timestamps.</param>
+/// <param name="timeProvider">Provider for UTC date validation and rule audit timestamps.</param>
 public sealed class DataImportService(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
@@ -66,7 +66,7 @@ public sealed class DataImportService(
         SampleDataSet dataset,
         CancellationToken cancellationToken)
     {
-        Validate(dataset, regexValidationService);
+        Validate(dataset, regexValidationService, timeProvider);
         cancellationToken.ThrowIfCancellationRequested();
         var tenantId = tenantProvider.CurrentTenant.Id;
         var now = timeProvider.GetUtcNow();
@@ -114,10 +114,11 @@ public sealed class DataImportService(
     /// <summary>Validates every transaction and rule without staging or persisting records.</summary>
     /// <param name="dataset">Dataset with initialized immutable collections to validate.</param>
     /// <param name="regexValidationService">Service used by the rule DTO validator.</param>
+    /// <param name="timeProvider">Provider for the current UTC date used by transaction validation.</param>
     /// <exception cref="ValidationException">A record fails validation; the message identifies its entity type.</exception>
-    internal static void Validate(SampleDataSet dataset, IRegexValidationService regexValidationService)
+    internal static void Validate(SampleDataSet dataset, IRegexValidationService regexValidationService, TimeProvider timeProvider)
     {
-        var transactionValidator = new TransactionEditDtoValidator();
+        var transactionValidator = new TransactionEditDtoValidator(timeProvider);
         foreach (var transaction in dataset.Transactions)
         {
             var result = transactionValidator.Validate(transaction);

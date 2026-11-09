@@ -39,7 +39,7 @@ public class SampleDataFeatureTests
         _timeProvider.Setup(time => time.GetUtcNow())
             .Returns(new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero));
         _importer = new DataImportService(_tenant, _data.Object, _cache, regex, _timeProvider.Object);
-        _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenant, _data.Object, regex);
+        _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenant, _data.Object, regex, _timeProvider.Object);
         _data.Setup(d => d.Get<Transaction>()).Returns(new[]
         {
             new Transaction { TenantId = 42 },
@@ -172,6 +172,25 @@ public class SampleDataFeatureTests
         await Assert.ThrowsAsync<ValidationException>(() => _feature.LoadAsync(request));
         Assert.Throws<ValidationException>(() => _feature.DownloadOfx(request));
         Assert.That(_staged, Is.Empty);
+    }
+
+    [TestCase(2080)]
+    [TestCase(2010)]
+    public async Task DatesOutsideProviderRange_AreRejectedBySampleUseCasesAndSharedImport(int currentYear)
+    {
+        _timeProvider.Setup(time => time.GetUtcNow())
+            .Returns(new DateTimeOffset(currentYear, 7, 1, 12, 0, 0, TimeSpan.Zero));
+        var dataset = new SampleDataSet(
+            [new TransactionEditDto(new(2024, 1, 1), 1m, "Store", null, null, null, null)], []);
+
+        await Assert.ThrowsAsync<ValidationException>(() => _feature.PreviewAsync(Request));
+        await Assert.ThrowsAsync<ValidationException>(() => _feature.LoadAsync(Request));
+        Assert.Throws<ValidationException>(() => _feature.DownloadOfx(Request));
+        await Assert.ThrowsAsync<ValidationException>(() => _importer.CreateAsync(dataset));
+        await Assert.ThrowsAsync<ValidationException>(() => _importer.CreateAndGetTransactionKeysAsync(dataset));
+
+        Assert.That(_staged, Is.Empty);
+        _data.Verify(data => data.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestCase("personal-finance", 999)]

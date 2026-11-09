@@ -40,7 +40,7 @@ public class SampleDataFeatureTests : FeatureTestBase
         var regex = new RegexValidationService();
         _timeProvider = new TestTimeProvider();
         _importer = new DataImportService(_tenantProvider, _dataProvider, _cache, regex, _timeProvider);
-        _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenantProvider, _dataProvider, regex);
+        _feature = new SampleDataFeature(new SampleScenarioLoader(), new SampleDataGenerator(), _importer, _tenantProvider, _dataProvider, regex, _timeProvider);
     }
 
     private sealed class TestTenantProvider : ITenantProvider

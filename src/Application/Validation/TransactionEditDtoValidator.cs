@@ -12,14 +12,16 @@ namespace YoFi.V3.Application.Validation;
 /// - Amount must be non-zero (can be negative for credits/refunds)
 /// - Payee is required, cannot be whitespace, max 200 characters
 /// - Memo, Source, ExternalId, Category are optional with max length constraints
+/// Date limits are evaluated against the current UTC date on every validation.
 /// </remarks>
 public class TransactionEditDtoValidator : AbstractValidator<TransactionEditDto>
 {
-    private static readonly DateOnly MinDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-50));
-    private static readonly DateOnly MaxDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(5));
+    private readonly TimeProvider _timeProvider;
 
-    public TransactionEditDtoValidator()
+    /// <param name="timeProvider">Provider for the current UTC date used by date validation.</param>
+    public TransactionEditDtoValidator(TimeProvider timeProvider)
     {
+        _timeProvider = timeProvider;
         RuleFor(x => x.Date)
             .Must(BeWithinValidRange)
             .WithMessage("Transaction date must be within 50 years in the past and 5 years in the future");
@@ -57,8 +59,9 @@ public class TransactionEditDtoValidator : AbstractValidator<TransactionEditDto>
             .When(x => x.Category != null);
     }
 
-    private static bool BeWithinValidRange(DateOnly date)
+    private bool BeWithinValidRange(DateOnly date)
     {
-        return date >= MinDate && date <= MaxDate;
+        var today = DateOnly.FromDateTime(_timeProvider.GetUtcNow().UtcDateTime);
+        return date >= today.AddYears(-50) && date <= today.AddYears(5);
     }
 }

@@ -40,13 +40,15 @@ namespace YoFi.V3.Application.Features;
 /// <param name="tenantProvider">Provider of the already authorized current tenant.</param>
 /// <param name="dataProvider">Data access used to count existing tenant transactions.</param>
 /// <param name="regexValidationService">Rule validation dependency used when validating generated DTOs.</param>
+/// <param name="timeProvider">Provider for the current UTC date used by transaction validation.</param>
 public sealed class SampleDataFeature(
     SampleScenarioLoader loader,
     SampleDataGenerator generator,
     DataImportService importer,
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
-    IRegexValidationService regexValidationService)
+    IRegexValidationService regexValidationService,
+    TimeProvider timeProvider)
 {
     /// <summary>Returns display metadata, current revisions, and supported entity types for bundled scenarios.</summary>
     /// <returns>An immutable catalog without generation defaults or workspace-specific data.</returns>
@@ -109,7 +111,7 @@ public sealed class SampleDataFeature(
             throw new ValidationException(nameof(request.StartDate), "Explicit start and end dates are required.");
         }
         SampleDataGenerator.ValidateRange(start, end);
-        var validator = new TransactionEditDtoValidator();
+        var validator = new TransactionEditDtoValidator(timeProvider);
         foreach (var date in new[] { start, end })
         {
             var validation = validator.Validate(new TransactionEditDto(date, 1, "Sample", null, null, null, null));
@@ -120,7 +122,7 @@ public sealed class SampleDataFeature(
         }
 
         var dataset = generator.Generate(scenario, start, end);
-        DataImportService.Validate(dataset, regexValidationService);
+        DataImportService.Validate(dataset, regexValidationService, timeProvider);
         return dataset;
     }
 }
