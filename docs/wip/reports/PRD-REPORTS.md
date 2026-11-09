@@ -93,6 +93,14 @@ Following are the standard income/expense reports
   - Income report at Level 2 shows subtotal rows like `Income:Salary`, followed by indented categories like `Income:Salary:Primary`; the bottom grand total is the total for `Income:*`
   - Expenses report at Level 1 shows top-level expense category rows like `Home`, `Transportation`
   - Expenses report at Level 2 shows each top-level category subtotal, such as `Home`, followed by indented categories like `Home:Utilities`
+- **Hierarchy Formatting**: In a two-level report, all first-level rows are bold,
+  even when they have no displayed children; second-level rows are normal weight
+  and indented. One-level reports use normal-weight category rows. Formatting is
+  independent of subtotal status and month-column visibility.
+- **Future Depth Formatting**: Original YoFi supports up to four displayed levels.
+  In a four-level report, level four is unformatted, level three is bold, level
+  two is highlighted, and level one is highlighted more strongly. Deeper levels
+  are not planned because the visual hierarchy stops making sense.
 
 ### Story 2249: User - Configures report display
 

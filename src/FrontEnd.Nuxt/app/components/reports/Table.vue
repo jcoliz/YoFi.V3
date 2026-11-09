@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ReportResultDto } from '~/utils/apiclient'
 
-defineProps<{ report: ReportResultDto }>()
+defineProps<{ report: ReportResultDto; displayDepth?: number }>()
 
 const months = [
   'January',
@@ -84,12 +84,12 @@ function formatPercentage(value: number | null | undefined) {
         <tr
           v-for="(row, index) in report.rows"
           :key="index"
-          :class="{ 'fw-bold': row.isSubtotal }"
+          :class="{ 'fw-bold': displayDepth === 2 && row.depth === 1 }"
           data-test-id="report-row"
         >
           <th
             scope="row"
-            :class="{ 'fw-normal': !row.isSubtotal }"
+            :class="{ 'fw-normal': !(displayDepth === 2 && row.depth === 1) }"
             :style="{ paddingLeft: `${0.5 + Math.max(0, (row.depth ?? 1) - 1) * 1.5}rem` }"
           >
             {{ row.categoryName }}

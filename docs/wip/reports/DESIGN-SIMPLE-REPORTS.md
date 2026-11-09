@@ -70,8 +70,11 @@ Category, Total, and % of report total. Category rows are indented by depth. A
 footer at the bottom shows the report grand total for each displayed amount
 column; do not add a separate report-root row. The percentage footer is 100%
 when the report total is nonzero. Within the table, render each category subtotal
-before its descendants, with child categories indented under it. Style subtotal
-rows in bold, following the provided original YoFi report example.
+before its descendants, with child categories indented under it. In a two-level
+report, style all level-one rows in bold, including rows without displayed
+children; level-two rows use normal weight and indentation. In a one-level
+report, category rows use normal weight. Formatting depends on configured report
+depth, not subtotal status or whether month columns are shown.
 
 ## Built-in report definitions
 
@@ -187,7 +190,9 @@ meaning of report totals.
 
 Use one table component for both annual-only and month-column reports. Derive
 headers from response metadata, render category indentation from the row depth,
-and emphasize subtotal rows. Use the explicit totals object for the bottom
+and apply hierarchy styling using the catalog's configured report depth. Keep
+`IsSubtotal` as a semantic indicator of totals over other displayed rows, not a
+formatting flag. Use the explicit totals object for the bottom
 footer. Do not derive the footer by summing displayed rows, because parent
 subtotals overlap with child rows.
 
@@ -216,8 +221,9 @@ Add focused coverage at each layer:
   boundaries.
 - **Controller integration tests:** Viewer access, denial without tenant access,
   invalid report ID, and validation errors.
-- **Frontend tests:** report selection, month/no-month column layouts, subtotal
-  indentation, footer rendering, empty data, loading, and API error states.
+- **Frontend tests:** report selection, month/no-month column layouts, hierarchy
+  styling and indentation (including top-level rows without children), footer
+  rendering, empty data, loading, and API error states.
 
 Confirm the single-year response meets the PRD's <500 ms target on representative
 tenant data. If database profiling reveals a bottleneck, optimize the query and
@@ -227,7 +233,11 @@ indexes based on the measured plan rather than adding speculative infrastructure
 
 - **Story 2249:** The query already takes a year; later add selected year, depth,
   and month-display options and persist per-report preferences as that story
-  requires.
+  requires. Original YoFi supports at most four displayed levels because deeper
+  formatting becomes difficult to interpret. For a four-level report, level four
+  is normal weight, level three is bold, level two is highlighted, and level one
+  is highlighted more strongly. Preserve that guidance when adding configurable
+  depth; the initial reports only require the one- and two-level styles above.
 - **Story 3:** Keep the report response structured so chart series can be
   derived from rows and month values. Charts remain outside this page change.
 - **Story 7:** Preserve report ID, category path, month, and year as data fields

@@ -166,7 +166,12 @@ async function loadSelectedReport() {
             {{ report.name }} &mdash; {{ report.year }}
           </h2>
           <div class="card">
-            <ReportsTable :report="report" />
+            <ReportsTable
+              :report="report"
+              :display-depth="
+                definitions.find((definition) => definition.id === report?.id)?.defaultDepth
+              "
+            />
           </div>
         </section>
         <button

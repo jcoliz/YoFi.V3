@@ -103,7 +103,7 @@ describe('Reports table', () => {
     const wrapper = mount(ReportsTable, { props: { report } })
 
     expect(wrapper.findAll('thead th').map((header) => header.text())).toEqual([
-      'Category',
+      'Income',
       'Total',
       '% Total',
     ])
@@ -112,8 +112,10 @@ describe('Reports table', () => {
     expect(wrapper.findAll('tbody tr')[0]!.classes()).not.toContain('fw-bold')
   })
 
-  it('renders twelve month columns, visible subtotals and indented child rows', () => {
-    const wrapper = mount(ReportsTable, { props: { report: makeReport('expenses-detail', true) } })
+  it('renders twelve month columns, bold parent rows and indented normal child rows', () => {
+    const wrapper = mount(ReportsTable, {
+      props: { report: makeReport('expenses-detail', true), displayDepth: 2 },
+    })
     const headers = wrapper.findAll('thead th').map((header) => header.text())
     expect(headers).toHaveLength(15)
     expect(headers[1]).toBe('January')
@@ -121,10 +123,37 @@ describe('Reports table', () => {
     const rows = wrapper.findAll('[data-test-id="report-row"]')
     expect(rows[0]!.classes()).toContain('fw-bold')
     expect(rows[1]!.classes()).not.toContain('fw-bold')
+    expect(rows[0]!.find('th').classes()).not.toContain('fw-normal')
+    expect(rows[1]!.find('th').classes()).toContain('fw-normal')
     expect(rows[0]!.find('th').attributes('style')).toContain('0.5rem')
     expect(rows[1]!.find('th').attributes('style')).toContain('2rem')
     expect(rows[0]!.find('th').text()).toBe('Home')
     expect(rows[1]!.find('th').text()).toBe('Utilities')
+  })
+
+  it.each([false, true])(
+    'bolds all level-one rows in a two-level report even without children (months: %s)',
+    (hasMonthColumns) => {
+      const report = makeReport()
+      report.hasMonthColumns = hasMonthColumns
+      const wrapper = mount(ReportsTable, { props: { report, displayDepth: 2 } })
+      const row = wrapper.find('[data-test-id="report-row"]')
+
+      expect(report.rows![0]!.isSubtotal).toBe(false)
+      expect(row.classes()).toContain('fw-bold')
+      expect(row.find('th').classes()).not.toContain('fw-normal')
+      expect(row.find('th').attributes('style')).toContain('0.5rem')
+    },
+  )
+
+  it('does not use subtotal status to style a one-level report', () => {
+    const report = makeReport()
+    report.rows![0]!.isSubtotal = true
+    const wrapper = mount(ReportsTable, { props: { report, displayDepth: 1 } })
+    const row = wrapper.find('[data-test-id="report-row"]')
+
+    expect(row.classes()).not.toContain('fw-bold')
+    expect(row.find('th').classes()).toContain('fw-normal')
   })
 
   it.each([
@@ -196,6 +225,7 @@ describe('Reports page', () => {
     await flushPromises()
     expect(getReport).toHaveBeenLastCalledWith('expenses-detail', undefined, 'first')
     expect(store.getSelectedReportId('first')).toBe('expenses-detail')
+    expect(wrapper.findComponent(ReportsTable).props('displayDepth')).toBe(2)
     wrapper.unmount()
     const returned = setupPage()
     await flushPromises()
