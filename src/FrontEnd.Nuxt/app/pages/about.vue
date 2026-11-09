@@ -3,14 +3,12 @@
  * About Page
  *
  * Displays version information for both frontend and backend, along with
- * configuration details like API base URL and Application Insights connection.
- * Demonstrates authenticated API calls to retrieve backend version.
+ * information about the application and its source repository.
  */
 
 import * as api from '../utils/apiclient'
 definePageMeta({
   title: 'About',
-  auth: true,
 })
 
 /**
@@ -25,24 +23,16 @@ const client = useApiClient(api.VersionClient)
 const version = ref<string>('Loading...')
 const runtimeConfig = useRuntimeConfig()
 const frontEndVersion = runtimeConfig.public.solutionVersion
-const applicationInsightsConnectionString = runtimeConfig.public.applicationInsightsConnectionString
-const { baseUrl } = useApiBaseUrl()
-
-/**
- * This page requires an authenticated user. If not authenticated, redirect to login page.
- * Only after we've confirmed authentication, do we call getData() to load the data for this page.
- */
-useAuthenticationGuard().requireAuthenticatedUser(afterMounted)
 
 /**
  * When mounted, get the view data from server
  */
-async function afterMounted() {
+onMounted(() => {
   client.index().then(() => {
     // TODO: This returns a File Response?!?!
     version.value = 'fetched' //result
   })
-}
+})
 </script>
 <template>
   <div class="row">
@@ -67,25 +57,6 @@ async function afterMounted() {
           </div>
           <div class="col-sm-8">
             {{ version }}
-          </div>
-        </div>
-        <div class="row mb-3">
-          <div class="col-sm-4">
-            <strong>API Base URL</strong>
-          </div>
-          <div class="col-sm-8">
-            {{ baseUrl }}
-          </div>
-        </div>
-        <div class="row mb-3">
-          <div class="col-sm-4">
-            <strong>Application Insights Connection String</strong><br />
-            <small class="text-muted"
-              >runtimeConfig.public.applicationInsightsConnectionString</small
-            >
-          </div>
-          <div class="col-sm-8">
-            {{ applicationInsightsConnectionString }}
           </div>
         </div>
       </InfoCard>

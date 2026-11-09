@@ -26,6 +26,7 @@ useHead({
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+    <SiteFooter />
     <AppToastHost />
   </div>
 </template>
