@@ -248,8 +248,8 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2222 - Delete All Data                    | V3.0      |           | ✅ Implemented       |
 | Story 2223 - Load Sample Data                   | A1        | 2         | ✅ Implemented       |
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
-| **Feature 2207: Reports**                       |           |           | ✔️ Approved          |
-| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✔️ Approved          |
+| **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
+| Story 1 - View Built-in Income/Expense Report   | A1        | 4         | ✅ Implemented       |
 | Story 2 - Configure Report Display              | B2        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
