@@ -36,7 +36,7 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         _service = new TenantDataImportFeature(
             [new OriginalYoFiWorkbookFormatDetector()],
             [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
-        _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache);
+        _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache, TimeProvider.System);
     }
 
     [TearDown]

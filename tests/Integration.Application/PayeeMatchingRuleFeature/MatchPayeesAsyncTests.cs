@@ -78,17 +78,15 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             Category = "Shopping",
             TenantId = _testTenant.Id,
             MatchCount = 5,
-            LastUsedAt = DateTimeOffset.UtcNow.AddDays(-7)
+            LastUsedAt = _timeProvider.GetUtcNow().AddDays(-7)
         };
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
         var ruleId = rule.Id;
 
         // When: Matching payees (causes rule to match)
-        var beforeMatch = DateTimeOffset.UtcNow;
         var payees = new[] { "Amazon.com" };
         await _feature.MatchPayeesAsync(payees);
-        var afterMatch = DateTimeOffset.UtcNow;
 
         // Then: MatchCount should be incremented
         _context.ChangeTracker.Clear(); // Force reload from database
@@ -96,9 +94,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
         Assert.That(updatedRule.MatchCount, Is.EqualTo(6));
 
         // And: LastUsedAt should be updated
-        Assert.That(updatedRule.LastUsedAt, Is.Not.Null);
-        Assert.That(updatedRule.LastUsedAt!.Value, Is.GreaterThanOrEqualTo(beforeMatch));
-        Assert.That(updatedRule.LastUsedAt!.Value, Is.LessThanOrEqualTo(afterMatch));
+        Assert.That(updatedRule.LastUsedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
     }
 
     [Test]
@@ -111,7 +107,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = true,
             Category = "Online",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         var substringRule = new PayeeMatchingRule
         {
@@ -119,7 +115,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = false,
             Category = "Shopping",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         _context.PayeeMatchingRules.AddRange(regexRule, substringRule);
         await _context.SaveChangesAsync();
@@ -142,7 +138,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = false,
             Category = "Shopping",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         var longRule = new PayeeMatchingRule
         {
@@ -150,7 +146,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = false,
             Category = "Subscription",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         _context.PayeeMatchingRules.AddRange(shortRule, longRule);
         await _context.SaveChangesAsync();
@@ -173,7 +169,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = false,
             Category = "Shopping",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-10)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-10)
         };
         var newerRule = new PayeeMatchingRule
         {
@@ -181,7 +177,7 @@ public class PayeeMatchingRuleFeatureMatchPayeesAsyncTests : PayeeMatchingRuleFe
             PayeeIsRegex = false,
             Category = "E-Commerce",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         _context.PayeeMatchingRules.AddRange(olderRule, newerRule);
         await _context.SaveChangesAsync();

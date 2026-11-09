@@ -113,8 +113,8 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
     public async Task GetRulesAsync_SortByLastUsedAt_SortsByMostRecentFirst()
     {
         // Given: Multiple rules with different LastUsedAt values
-        var old = DateTimeOffset.UtcNow.AddDays(-10);
-        var recent = DateTimeOffset.UtcNow.AddDays(-1);
+        var old = _timeProvider.GetUtcNow().AddDays(-10);
+        var recent = _timeProvider.GetUtcNow().AddDays(-1);
         var rule1 = new PayeeMatchingRule { PayeePattern = "P1", Category = "C1", TenantId = _testTenant.Id, LastUsedAt = old };
         var rule2 = new PayeeMatchingRule { PayeePattern = "P2", Category = "C2", TenantId = _testTenant.Id, LastUsedAt = recent };
         var rule3 = new PayeeMatchingRule { PayeePattern = "P3", Category = "C3", TenantId = _testTenant.Id, LastUsedAt = null };

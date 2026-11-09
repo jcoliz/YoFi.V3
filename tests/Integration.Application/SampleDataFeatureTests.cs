@@ -170,7 +170,8 @@ public class SampleDataFeatureTests : FeatureTestBase
     [Test]
     public async Task ExistingRuleCache_IsInvalidatedAfterCommitAndSamplesMatchThroughRealRuleFeature()
     {
-        var ruleFeature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _cache);
+        // TODO: Use a shared fixed test clock when DataImportService is migrated to TimeProvider.
+        var ruleFeature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _cache, TimeProvider.System);
         Assert.That((await ruleFeature.GetRulesAsync()).Items, Is.Empty);
         await _feature.LoadAsync(Request);
         var scenario = new SampleScenarioLoader().Scenarios[0];

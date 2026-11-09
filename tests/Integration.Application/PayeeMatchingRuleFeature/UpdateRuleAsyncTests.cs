@@ -20,12 +20,12 @@ public class PayeeMatchingRuleFeatureUpdateRuleAsyncTests : PayeeMatchingRuleFea
             PayeeIsRegex = false,
             Category = "Shopping",
             TenantId = _testTenant.Id,
-            CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-5)
+            CreatedAt = _timeProvider.GetUtcNow().AddDays(-5),
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-5)
         };
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
-        var originalModifiedAt = rule.ModifiedAt;
+        var originalCreatedAt = rule.CreatedAt;
 
         // When: Updating the rule
         var updateDto = new PayeeMatchingRuleEditDto(
@@ -41,10 +41,15 @@ public class PayeeMatchingRuleFeatureUpdateRuleAsyncTests : PayeeMatchingRuleFea
         Assert.That(result.Category, Is.EqualTo("Online"));
 
         // And: ModifiedAt should be updated
-        Assert.That(result.ModifiedAt, Is.GreaterThan(originalModifiedAt));
+        Assert.That(result.ModifiedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: CreatedAt should remain unchanged
-        Assert.That(result.CreatedAt, Is.EqualTo(rule.CreatedAt));
+        Assert.That(result.CreatedAt, Is.EqualTo(originalCreatedAt));
+
+        _context.ChangeTracker.Clear();
+        var dbRule = _context.PayeeMatchingRules.Single(r => r.Key == result.Key);
+        Assert.That(dbRule.ModifiedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
+        Assert.That(dbRule.CreatedAt, Is.EqualTo(originalCreatedAt));
     }
 
     [Test]

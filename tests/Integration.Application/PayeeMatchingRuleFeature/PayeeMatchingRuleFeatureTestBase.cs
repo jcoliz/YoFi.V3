@@ -13,7 +13,7 @@ namespace YoFi.V3.Tests.Integration.Application;
 /// </summary>
 /// <remarks>
 /// Provides shared setup and teardown for PayeeMatchingRuleFeature tests,
-/// including test tenant creation and dependency initialization.
+/// including test tenant creation, a controllable clock, and dependency initialization.
 /// </remarks>
 public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
 {
@@ -21,6 +21,7 @@ public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
     protected ITenantProvider _tenantProvider = null!;
     protected IMemoryCache _memoryCache = null!;
     protected Tenant _testTenant = null!;
+    protected TestTimeProvider _timeProvider = null!;
 
     [SetUp]
     public new async Task SetUp()
@@ -43,7 +44,11 @@ public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
 
         // Create feature with dependencies
-        _feature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _memoryCache);
+        _timeProvider = new TestTimeProvider
+        {
+            UtcNow = new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero)
+        };
+        _feature = new PayeeMatchingRuleFeature(_tenantProvider, _dataProvider, _memoryCache, _timeProvider);
     }
 
     [TearDown]
@@ -51,6 +56,13 @@ public abstract class PayeeMatchingRuleFeatureTestBase : FeatureTestBase
     {
         // Dispose memory cache before base class disposes context
         _memoryCache?.Dispose();
+    }
+
+    protected sealed class TestTimeProvider : TimeProvider
+    {
+        public DateTimeOffset UtcNow { get; set; }
+
+        public override DateTimeOffset GetUtcNow() => UtcNow;
     }
 }
 

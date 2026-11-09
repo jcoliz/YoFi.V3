@@ -61,7 +61,7 @@ public class PayeeMatchingRuleFeatureFindBestMatchAsyncTests : PayeeMatchingRule
             Category = "Shopping",
             TenantId = _testTenant.Id,
             MatchCount = 5,
-            LastUsedAt = DateTimeOffset.UtcNow.AddDays(-7)
+            LastUsedAt = _timeProvider.GetUtcNow().AddDays(-7)
         };
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();

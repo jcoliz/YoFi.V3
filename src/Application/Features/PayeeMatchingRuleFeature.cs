@@ -16,6 +16,7 @@ namespace YoFi.V3.Application.Features;
 /// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
 /// <param name="dataProvider">Provider for data access operations.</param>
 /// <param name="memoryCache">Cache for storing rules per tenant.</param>
+/// <param name="timeProvider">Provider for UTC audit and usage timestamps.</param>
 /// <remarks>
 /// Manages CRUD operations on payee matching rules, rule matching logic, and cache management.
 /// Rules are cached per tenant for performance during matching operations.
@@ -24,7 +25,8 @@ namespace YoFi.V3.Application.Features;
 public class PayeeMatchingRuleFeature(
     ITenantProvider tenantProvider,
     IDataProvider dataProvider,
-    IMemoryCache memoryCache) : IPayeeMatchingService
+    IMemoryCache memoryCache,
+    TimeProvider timeProvider) : IPayeeMatchingService
 {
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
@@ -90,7 +92,7 @@ public class PayeeMatchingRuleFeature(
     /// <returns>The created rule with generated Key.</returns>
     public async Task<PayeeMatchingRuleResultDto> CreateRuleAsync(PayeeMatchingRuleEditDto ruleDto)
     {
-        var newRule = ImportModelFactory.Rule(ruleDto, _currentTenant.Id, DateTimeOffset.UtcNow);
+        var newRule = ImportModelFactory.Rule(ruleDto, _currentTenant.Id, timeProvider.GetUtcNow());
 
         dataProvider.Add(newRule);
         await dataProvider.SaveChangesAsync();
@@ -120,7 +122,7 @@ public class PayeeMatchingRuleFeature(
         existingRule.PayeePattern = ruleDto.PayeePattern;
         existingRule.PayeeIsRegex = ruleDto.PayeeIsRegex;
         existingRule.Category = sanitizedCategory;
-        existingRule.ModifiedAt = DateTimeOffset.UtcNow;
+        existingRule.ModifiedAt = timeProvider.GetUtcNow();
 
         dataProvider.UpdateRange([existingRule]);
         await dataProvider.SaveChangesAsync();
@@ -307,7 +309,7 @@ public class PayeeMatchingRuleFeature(
     /// <param name="ruleIds">Set of rule IDs that matched transactions.</param>
     private async Task UpdateRuleUsageStatisticsAsync(HashSet<long> ruleIds)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = timeProvider.GetUtcNow();
 
         // Load rules by IDs
         var query = dataProvider.Get<PayeeMatchingRule>()

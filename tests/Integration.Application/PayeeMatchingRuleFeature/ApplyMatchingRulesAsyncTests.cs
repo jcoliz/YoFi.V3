@@ -155,7 +155,7 @@ public class PayeeMatchingRuleFeatureApplyMatchingRulesAsyncTests : PayeeMatchin
             Category = "Shopping",
             TenantId = _testTenant.Id,
             MatchCount = 5,
-            LastUsedAt = DateTimeOffset.UtcNow.AddDays(-7)
+            LastUsedAt = _timeProvider.GetUtcNow().AddDays(-7)
         };
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
@@ -169,9 +169,7 @@ public class PayeeMatchingRuleFeatureApplyMatchingRulesAsyncTests : PayeeMatchin
         };
 
         // When: Applying matching rules
-        var beforeMatch = DateTimeOffset.UtcNow;
         await _feature.ApplyMatchingRulesAsync(transactions);
-        var afterMatch = DateTimeOffset.UtcNow;
 
         // Then: MatchCount should be incremented
         _context.ChangeTracker.Clear();
@@ -179,9 +177,7 @@ public class PayeeMatchingRuleFeatureApplyMatchingRulesAsyncTests : PayeeMatchin
         Assert.That(updatedRule.MatchCount, Is.EqualTo(6));
 
         // And: LastUsedAt should be updated
-        Assert.That(updatedRule.LastUsedAt, Is.Not.Null);
-        Assert.That(updatedRule.LastUsedAt!.Value, Is.GreaterThanOrEqualTo(beforeMatch));
-        Assert.That(updatedRule.LastUsedAt!.Value, Is.LessThanOrEqualTo(afterMatch));
+        Assert.That(updatedRule.LastUsedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
     }
 
     [Test]
@@ -247,7 +243,7 @@ public class PayeeMatchingRuleFeatureApplyMatchingRulesAsyncTests : PayeeMatchin
             PayeeIsRegex = false,
             Category = "Shopping",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-10)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-10)
         };
         var newerRule = new PayeeMatchingRule
         {
@@ -255,7 +251,7 @@ public class PayeeMatchingRuleFeatureApplyMatchingRulesAsyncTests : PayeeMatchin
             PayeeIsRegex = false,
             Category = "E-Commerce",
             TenantId = _testTenant.Id,
-            ModifiedAt = DateTimeOffset.UtcNow.AddDays(-1)
+            ModifiedAt = _timeProvider.GetUtcNow().AddDays(-1)
         };
         _context.PayeeMatchingRules.AddRange(olderRule, newerRule);
         await _context.SaveChangesAsync();

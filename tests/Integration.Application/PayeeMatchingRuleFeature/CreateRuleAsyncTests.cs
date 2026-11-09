@@ -81,16 +81,20 @@ public class PayeeMatchingRuleFeatureCreateRuleAsyncTests : PayeeMatchingRuleFea
     public async Task CreateRuleAsync_SetsTimestamps()
     {
         // Given: Valid rule data
-        var beforeCreate = DateTimeOffset.UtcNow;
+        _timeProvider.UtcNow = _timeProvider.GetUtcNow().AddDays(1);
+        var now = _timeProvider.GetUtcNow();
         var ruleDto = new PayeeMatchingRuleEditDto("Amazon", false, "Shopping");
 
         // When: Creating the rule
         var result = await _feature.CreateRuleAsync(ruleDto);
-        var afterCreate = DateTimeOffset.UtcNow;
 
         // Then: CreatedAt and ModifiedAt should be set to same value
-        Assert.That(result.CreatedAt, Is.GreaterThanOrEqualTo(beforeCreate));
-        Assert.That(result.CreatedAt, Is.LessThanOrEqualTo(afterCreate));
-        Assert.That(result.ModifiedAt, Is.EqualTo(result.CreatedAt));
+        Assert.That(result.CreatedAt, Is.EqualTo(now));
+        Assert.That(result.ModifiedAt, Is.EqualTo(now));
+
+        _context.ChangeTracker.Clear();
+        var dbRule = _context.PayeeMatchingRules.Single(r => r.Key == result.Key);
+        Assert.That(dbRule.CreatedAt, Is.EqualTo(now));
+        Assert.That(dbRule.ModifiedAt, Is.EqualTo(now));
     }
 }
