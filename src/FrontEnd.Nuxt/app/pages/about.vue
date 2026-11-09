@@ -28,9 +28,8 @@ const frontEndVersion = runtimeConfig.public.solutionVersion
  * When mounted, get the view data from server
  */
 onMounted(() => {
-  client.index().then(() => {
-    // TODO: This returns a File Response?!?!
-    version.value = 'fetched' //result
+  client.index().then(async (response) => {
+    version.value = await response.data.text()
   })
 })
 </script>
