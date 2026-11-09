@@ -9,7 +9,8 @@ namespace YoFi.V3.Application.Tenancy.Features;
 /// Provides tenant management operations including tenant creation and user-tenant role retrieval.
 /// </summary>
 /// <param name="tenantRepository">The repository for tenant data operations.</param>
-public class TenantFeature(ITenantRepository tenantRepository)
+/// <param name="timeProvider">Provider for UTC tenant creation timestamps.</param>
+public class TenantFeature(ITenantRepository tenantRepository, TimeProvider timeProvider)
 {
     #region USER Functionality
 
@@ -25,7 +26,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
         {
             Name = tenantDto.Name,
             Description = tenantDto.Description,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = timeProvider.GetUtcNow()
         };
 
         await tenantRepository.AddTenantAsync(tenant);
@@ -180,7 +181,7 @@ public class TenantFeature(ITenantRepository tenantRepository)
         {
             Name = tenantDto.Name,
             Description = tenantDto.Description,
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = timeProvider.GetUtcNow()
         };
 
         await tenantRepository.AddTenantAsync(tenant);

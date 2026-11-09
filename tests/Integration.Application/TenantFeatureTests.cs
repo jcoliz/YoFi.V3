@@ -19,6 +19,7 @@ namespace YoFi.V3.Tests.Integration.Application;
 public class TenantFeatureTests : FeatureTestBase
 {
     private TenantFeature _tenantFeature = null!;
+    private TestTimeProvider _timeProvider = null!;
 
     [SetUp]
     public new async Task SetUp()
@@ -26,7 +27,8 @@ public class TenantFeatureTests : FeatureTestBase
         await base.SetUp();
         // ApplicationDbContext implements ITenantRepository
         ITenantRepository tenantRepository = _context;
-        _tenantFeature = new TenantFeature(tenantRepository);
+        _timeProvider = new TestTimeProvider();
+        _tenantFeature = new TenantFeature(tenantRepository, _timeProvider);
     }
 
     #region CreateTenantForUserAsync Tests
@@ -49,13 +51,15 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(result.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result.Name, Is.EqualTo("New Tenant"));
         Assert.That(result.Description, Is.EqualTo("This is a new tenant"));
-        Assert.That(result.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
+        Assert.That(result.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: Tenant should exist in database
+        _context.ChangeTracker.Clear();
         var tenant = await _context.Set<Tenant>()
             .FirstOrDefaultAsync(t => t.Key == result.Key);
         Assert.That(tenant, Is.Not.Null);
         Assert.That(tenant!.Name, Is.EqualTo("New Tenant"));
+        Assert.That(tenant.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: User should be assigned Owner role
         var roleAssignment = await _context.Set<UserTenantRoleAssignment>()
@@ -74,6 +78,8 @@ public class TenantFeatureTests : FeatureTestBase
         // When: User 1 creates a tenant
         var tenant1Dto = new TenantEditDto("User 1 Tenant", "User 1's tenant");
         var result1 = await _tenantFeature.CreateTenantForUserAsync(user1Id, tenant1Dto);
+        var firstCreatedAt = _timeProvider.GetUtcNow();
+        _timeProvider.UtcNow = firstCreatedAt.AddDays(1);
 
         // And: User 2 creates a tenant
         var tenant2Dto = new TenantEditDto("User 2 Tenant", "User 2's tenant");
@@ -83,6 +89,8 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(result1.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result2.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result1.Key, Is.Not.EqualTo(result2.Key));
+        Assert.That(result1.CreatedAt, Is.EqualTo(firstCreatedAt));
+        Assert.That(result2.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: Each user can only access their own tenant
         var user1Tenants = await _tenantFeature.GetTenantsForUserAsync(user1Id);
@@ -187,7 +195,7 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(result.Key, Is.EqualTo(tenantKey));
         Assert.That(result.Name, Is.EqualTo("My Tenant"));
         Assert.That(result.Role, Is.EqualTo(TenantRole.Editor));
-        Assert.That(result.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
+        Assert.That(result.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
     }
 
     [Test]
@@ -242,6 +250,8 @@ public class TenantFeatureTests : FeatureTestBase
         );
 
         // When: User updates the tenant
+        var originalCreatedAt = _timeProvider.GetUtcNow();
+        _timeProvider.UtcNow = originalCreatedAt.AddDays(1);
         var result = await _tenantFeature.UpdateTenantForUserAsync(userId, tenantKey, updateDto);
 
         // Then: Should return updated tenant
@@ -249,6 +259,7 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(result.Key, Is.EqualTo(tenantKey));
         Assert.That(result.Name, Is.EqualTo("Updated Name"));
         Assert.That(result.Description, Is.EqualTo("Updated Description"));
+        Assert.That(result.CreatedAt, Is.EqualTo(originalCreatedAt));
 
         // And: Changes should be persisted in database
         _context.ChangeTracker.Clear();
@@ -256,6 +267,7 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(tenant, Is.Not.Null);
         Assert.That(tenant!.Name, Is.EqualTo("Updated Name"));
         Assert.That(tenant.Description, Is.EqualTo("Updated Description"));
+        Assert.That(tenant.CreatedAt, Is.EqualTo(originalCreatedAt));
     }
 
     [Test]
@@ -494,13 +506,15 @@ public class TenantFeatureTests : FeatureTestBase
         Assert.That(result.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result.Name, Is.EqualTo("__TEST__AdminTenant"));
         Assert.That(result.Description, Is.EqualTo("Tenant created by admin"));
-        Assert.That(result.CreatedAt, Is.Not.EqualTo(default(DateTimeOffset)));
+        Assert.That(result.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: Tenant should exist in database
+        _context.ChangeTracker.Clear();
         var tenant = await _context.Set<Tenant>()
             .FirstOrDefaultAsync(t => t.Key == result.Key);
         Assert.That(tenant, Is.Not.Null);
         Assert.That(tenant!.Name, Is.EqualTo("__TEST__AdminTenant"));
+        Assert.That(tenant.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: No role assignments should exist for this tenant
         var roleAssignments = await _context.Set<UserTenantRoleAssignment>()
@@ -518,12 +532,16 @@ public class TenantFeatureTests : FeatureTestBase
 
         // When: Admin creates multiple tenants
         var result1 = await _tenantFeature.CreateTenantAsync(tenant1Dto);
+        var firstCreatedAt = _timeProvider.GetUtcNow();
+        _timeProvider.UtcNow = firstCreatedAt.AddDays(1);
         var result2 = await _tenantFeature.CreateTenantAsync(tenant2Dto);
 
         // Then: Each tenant should have a unique key
         Assert.That(result1.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result2.Key, Is.Not.EqualTo(Guid.Empty));
         Assert.That(result1.Key, Is.Not.EqualTo(result2.Key));
+        Assert.That(result1.CreatedAt, Is.EqualTo(firstCreatedAt));
+        Assert.That(result2.CreatedAt, Is.EqualTo(_timeProvider.GetUtcNow()));
 
         // And: Both tenants should exist in database
         var tenant1 = await _context.Set<Tenant>().FirstOrDefaultAsync(t => t.Key == result1.Key);
@@ -628,7 +646,7 @@ public class TenantFeatureTests : FeatureTestBase
             Key = Guid.NewGuid(),
             Name = name,
             Description = $"Test tenant: {name}",
-            CreatedAt = DateTimeOffset.UtcNow
+            CreatedAt = _timeProvider.GetUtcNow()
         };
 
         _context.Set<Tenant>().Add(tenant);
