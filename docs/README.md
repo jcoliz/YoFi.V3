@@ -2,6 +2,11 @@
 
 This folder contains documentation for the YoFi.V3 personal finance application.
 
+## Evaluation
+
+- **[Demo Guide](DEMO-GUIDE.md)** - A guided journey through accounts, workspaces, sample data, transactions, bank import, automatic categorization, and reports
+- **[Product Roadmap](PRODUCT-ROADMAP.md)** - Implemented features and release plans
+
 ## Architecture & Design
 
 - **[Architecture Overview](ARCHITECTURE.md)** - System architecture, project organization, and data flow
