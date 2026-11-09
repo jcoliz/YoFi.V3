@@ -23,7 +23,9 @@ public record Tenant
     public Guid Key { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    /// <summary>UTC creation timestamp assigned by the application.</summary>
+    /// <remarks>Defaults to <see cref="DateTimeOffset.MinValue"/> until assigned.</remarks>
+    public DateTimeOffset CreatedAt { get; set; }
 
     // For future use
 #if false

@@ -78,23 +78,24 @@ public record PayeeMatchingRule: BaseTenantModel
     /// Timestamp when this rule was created.
     /// </summary>
     /// <remarks>
-    /// Auto-set on creation. Timestamp values must use the UTC offset.
+    /// Assigned by the application on creation. Timestamp values must use the UTC offset.
+    /// Defaults to <see cref="DateTimeOffset.MinValue"/> until assigned.
     /// </remarks>
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>
     /// Timestamp when this rule was last modified.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Auto-updated on any rule modification. Used for conflict resolution when multiple rules
+    /// Assigned by the application on creation and modification. Used for conflict resolution when multiple rules
     /// match the same transaction (most recently modified rule wins for equal precedence).
     /// </para>
     /// <para>
-    /// Timestamp values must use the UTC offset.
+    /// Timestamp values must use the UTC offset. Defaults to <see cref="DateTimeOffset.MinValue"/> until assigned.
     /// </para>
     /// </remarks>
-    public DateTimeOffset ModifiedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ModifiedAt { get; set; }
 
     /// <summary>
     /// Timestamp when this rule last matched a transaction.

@@ -421,51 +421,51 @@ public class PayeeMatchingRuleTests : PostgreSqlTestBase
     }
 
     [Test]
-    public async Task PayeeMatchingRule_CreatedAtIsSetAutomatically()
+    public async Task PayeeMatchingRule_ExplicitCreatedAtIsPreserved()
     {
-        // Given: A rule without explicitly setting CreatedAt
-        var beforeCreation = DateTimeOffset.UtcNow;
+        // Given: A rule with an explicit creation timestamp
+        var createdAt = new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero);
         var rule = new PayeeMatchingRule
         {
             PayeePattern = "Starbucks",
             Category = "Coffee",
-            TenantId = _tenant1.Id
+            TenantId = _tenant1.Id,
+            CreatedAt = createdAt
         };
-        var afterCreation = DateTimeOffset.UtcNow;
 
         // When: Saving the rule
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
 
-        // Then: CreatedAt should be set to current time
+        // Then: The supplied timestamp should be persisted unchanged
+        _context.ChangeTracker.Clear();
         var retrieved = await _context.PayeeMatchingRules.FindAsync(rule.Id);
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.CreatedAt, Is.GreaterThanOrEqualTo(beforeCreation));
-        Assert.That(retrieved.CreatedAt, Is.LessThanOrEqualTo(afterCreation.AddSeconds(1)));
+        Assert.That(retrieved!.CreatedAt, Is.EqualTo(createdAt));
     }
 
     [Test]
-    public async Task PayeeMatchingRule_ModifiedAtIsSetAutomatically()
+    public async Task PayeeMatchingRule_ExplicitModifiedAtIsPreserved()
     {
-        // Given: A rule without explicitly setting ModifiedAt
-        var beforeCreation = DateTimeOffset.UtcNow;
+        // Given: A rule with an explicit modification timestamp
+        var modifiedAt = new DateTimeOffset(2040, 7, 2, 12, 0, 0, TimeSpan.Zero);
         var rule = new PayeeMatchingRule
         {
             PayeePattern = "Target",
             Category = "Shopping",
-            TenantId = _tenant1.Id
+            TenantId = _tenant1.Id,
+            ModifiedAt = modifiedAt
         };
-        var afterCreation = DateTimeOffset.UtcNow;
 
         // When: Saving the rule
         _context.PayeeMatchingRules.Add(rule);
         await _context.SaveChangesAsync();
 
-        // Then: ModifiedAt should be set to current time
+        // Then: The supplied timestamp should be persisted unchanged
+        _context.ChangeTracker.Clear();
         var retrieved = await _context.PayeeMatchingRules.FindAsync(rule.Id);
         Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved!.ModifiedAt, Is.GreaterThanOrEqualTo(beforeCreation));
-        Assert.That(retrieved.ModifiedAt, Is.LessThanOrEqualTo(afterCreation.AddSeconds(1)));
+        Assert.That(retrieved!.ModifiedAt, Is.EqualTo(modifiedAt));
     }
 
     [Test]

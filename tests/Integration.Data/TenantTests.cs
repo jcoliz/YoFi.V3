@@ -134,24 +134,25 @@ public class TenantTests : PostgreSqlTestBase
     }
 
     [Test]
-    public async Task Tenant_CreatedAtIsAutoSet()
+    public async Task Tenant_ExplicitCreatedAtIsPreserved()
     {
-        // Given: A tenant
-        var beforeCreate = DateTimeOffset.UtcNow.AddSeconds(-1);
+        // Given: A tenant with an explicit creation timestamp
+        var createdAt = new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero);
         var tenant = new Tenant
         {
             Name = "Test Tenant",
-            Description = "A test tenant"
+            Description = "A test tenant",
+            CreatedAt = createdAt
         };
-        var afterCreate = DateTimeOffset.UtcNow.AddSeconds(1);
 
         // When: Creating the tenant
         _context.Tenants.Add(tenant);
         await _context.SaveChangesAsync();
 
-        // Then: CreatedAt should be set to approximately now
-        Assert.That(tenant.CreatedAt, Is.GreaterThan(beforeCreate));
-        Assert.That(tenant.CreatedAt, Is.LessThan(afterCreate));
+        // Then: The supplied timestamp should be persisted unchanged
+        _context.ChangeTracker.Clear();
+        var retrieved = await _context.Tenants.SingleAsync(t => t.Key == tenant.Key);
+        Assert.That(retrieved.CreatedAt, Is.EqualTo(createdAt));
     }
 
     [Test]

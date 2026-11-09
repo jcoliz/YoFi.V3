@@ -9,7 +9,8 @@ namespace YoFi.V3.Controllers.Tenancy.Seeding;
 /// Seed stage for creating tenants and assigning user roles to those new tenants
 /// </summary>
 /// <param name="tenantRepository"></param>
-public class TenantSeedStage(ITenantRepository tenantRepository) : ISeedStage
+/// <param name="timeProvider">Provider for UTC tenant creation timestamps.</param>
+public class TenantSeedStage(ITenantRepository tenantRepository, TimeProvider timeProvider) : ISeedStage
 {
     string ISeedStage.Name => "Tenants";
     int ISeedStage.Order => 0;
@@ -37,6 +38,7 @@ public class TenantSeedStage(ITenantRepository tenantRepository) : ISeedStage
                     Key = item.Value.Key,
                     Name = item.Value.Name,
                     Description = item.Value.Description,
+                    CreatedAt = timeProvider.GetUtcNow(),
                 };
 
                 await tenantRepository.AddTenantAsync(newTenant);

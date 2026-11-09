@@ -16,7 +16,8 @@ public record Transaction : BaseTenantModel
     /// <summary>
     /// Date the transaction occurred.
     /// </summary>
-    public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    /// <remarks>Supplied explicitly by the caller; defaults to <see cref="DateOnly.MinValue"/>.</remarks>
+    public DateOnly Date { get; set; }
 
     /// <summary>
     /// Recipient or payee of the transaction.
