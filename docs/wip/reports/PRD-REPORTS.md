@@ -87,6 +87,9 @@ Following are the standard income/expense reports
 
 **Notes:**
 
+- **Default Report**: Expenses is the first report in the backend catalog and is
+  selected when the workspace has no valid saved report selection. A valid saved
+  selection takes precedence.
 - **Category Filtering**: "Expenses" and "Expenses Detail" include all categories EXCEPT Income, Taxes, Savings, and Transfer. They also include uncategorized splits.
 - **Category Depth Levels**: "Default Level: N" means show N category levels below the report filter root. The report root is represented by the grand-total footer, not a separate category row. At each displayed category level, show its subtotal before its indented descendants. For example:
   - Income report at Level 1 shows categories like `Income:Salary`, `Income:Bonus`; the bottom grand total is the total for `Income:*`

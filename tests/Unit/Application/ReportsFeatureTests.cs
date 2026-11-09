@@ -40,7 +40,7 @@ public class ReportsFeatureTests
 
         Assert.That(reports.Select(report => report.Id), Is.EqualTo(new[]
         {
-            "income", "taxes", "expenses", "savings", "transfers",
+            "expenses", "income", "taxes", "savings", "transfers",
             "income-detail", "taxes-detail", "expenses-detail", "savings-detail",
             "all", "all-detail"
         }));
@@ -49,7 +49,7 @@ public class ReportsFeatureTests
         Assert.That(reports.Select(report => report.HasMonthColumns),
             Is.EqualTo(new[] { false, false, false, false, false, true, true, true, false, false, true }));
         Assert.That(reports.Select(report => report.IncludesUncategorized),
-            Is.EqualTo(new[] { false, false, true, false, false, false, false, true, false, true, true }));
+            Is.EqualTo(new[] { true, false, false, false, false, false, false, true, false, true, true }));
     }
 
     [Test]

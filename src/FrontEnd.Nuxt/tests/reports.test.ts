@@ -174,6 +174,24 @@ describe('Reports table', () => {
 })
 
 describe('Reports page', () => {
+  it('uses Expenses when the backend lists it first, without overriding a saved selection', async () => {
+    getAvailableReports.mockResolvedValue([
+      { id: 'expenses', name: 'Expenses', defaultDepth: 1, hasMonthColumns: false },
+      ...catalog,
+    ])
+    const { wrapper, store } = setupPage()
+    await flushPromises()
+    expect(getReport).toHaveBeenLastCalledWith('expenses', undefined, 'first')
+    expect(store.getSelectedReportId('first')).toBe('expenses')
+    wrapper.unmount()
+
+    store.setSelectedReportId('first', 'income')
+    setupPage()
+    await flushPromises()
+    expect(getReport).toHaveBeenLastCalledWith('income', undefined, 'first')
+    expect(store.getSelectedReportId('first')).toBe('income')
+  })
+
   it('loads the catalog default, persists it and leaves the year unspecified', async () => {
     const { wrapper, store } = setupPage()
     await flushPromises()

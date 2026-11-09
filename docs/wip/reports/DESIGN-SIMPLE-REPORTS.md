@@ -56,7 +56,8 @@ Changing the selection loads the selected report and saves its ID in browser
 localStorage, scoped to the current workspace. When the user navigates away and
 returns, restore that workspace's last selected report. If there is no saved
 selection, or the saved ID is no longer in the built-in catalog, select the
-catalog's default report and save that selection.
+catalog's first report, Expenses, and save that selection. The backend catalog
+order defines the default; valid saved selections still take precedence.
 
 With no matching splits, show the table's column headers and a clear no-data
 message; do not manufacture category rows. This story persists only the selected

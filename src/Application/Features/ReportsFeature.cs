@@ -21,9 +21,9 @@ public class ReportsFeature(
 {
     private static readonly IReadOnlyList<ReportDefinition> Definitions =
     [
+        new("expenses", "Expenses", null, 1, false, true, ReportCategoryFilter.Expenses),
         new("income", "Income", "Income", 1, false, false, SortDescending: true),
         new("taxes", "Taxes", "Taxes", 1, false, false),
-        new("expenses", "Expenses", null, 1, false, true, ReportCategoryFilter.Expenses),
         new("savings", "Savings", "Savings", 1, false, false),
         new("transfers", "Transfers", "Transfer", 1, false, false),
         new("income-detail", "Income Detail", "Income", 2, true, false, SortDescending: true),
