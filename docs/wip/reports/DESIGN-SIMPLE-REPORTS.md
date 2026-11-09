@@ -231,9 +231,11 @@ Add focused coverage at each layer:
   boundaries.
 - **Controller integration tests:** Viewer access, denial without tenant access,
   invalid report ID, and validation errors.
-- **Frontend tests:** report selection, month/no-month column layouts, hierarchy
-  styling and indentation (including top-level rows without children), footer
-  rendering, empty data, loading, and API error states.
+- **Frontend tests:** use fake report data to verify report content, backend row
+  order, month visibility, explicit totals, selection persistence, empty data,
+  loading, and API error states. Prefer stable `data-test-id` selectors. Do not
+  assert CSS classes, indentation, exact number formatting, or other cosmetic
+  details; those should remain free to change without breaking tests.
 
 Confirm the single-year response meets the PRD's <500 ms target on representative
 tenant data. If database profiling reveals a bottleneck, optimize the query and
