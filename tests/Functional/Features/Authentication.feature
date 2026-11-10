@@ -84,6 +84,7 @@ Rule: Account Management
         When I navigate to my profile page
         Then I should see my account information
 
+@category:access-control
 Rule: Access Control
     The system enforces authentication requirements for protected resources
 
@@ -104,5 +105,7 @@ Rule: Access Control
             | page     |
             | /weather |
             | /counter |
-            | /about   |
             | /profile |
+            | /transactions |
+            | /import |
+            | /payee-rules |
