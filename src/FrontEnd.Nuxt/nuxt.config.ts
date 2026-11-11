@@ -10,6 +10,8 @@ export default defineNuxtConfig({
     },
   },
   devServer: {
+    // Nuxt CLI caches this value for its next startup; keep it a hostname string.
+    host: process.env.NUXT_HOST || process.env.NITRO_HOST || process.env.HOST || 'localhost',
     port: parseInt(process.env.PORT ?? '5173'),
   },
   vite: {
