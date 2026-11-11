@@ -20,6 +20,8 @@ updates:
     directory: "/src/FrontEnd.Nuxt"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "@types/node"
     open-pull-requests-limit: 5
     groups:
       npm-minor-patch:
