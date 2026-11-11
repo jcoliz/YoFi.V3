@@ -1,0 +1,77 @@
+{% comment -%}
+Based on NSwag 14.7.1's Client.RequestUrl.liquid. The query parameter branches
+below customize date-only serialization; the remaining URL generation follows
+the upstream template. Compare with upstream when upgrading NSwag.
+{% endcomment -%}
+let url_ = this.baseUrl + "/{{ operation.Path }}{% if operation.HasQueryParameters %}?{% endif %}";
+{% for parameter in operation.PathParameters -%}
+{%    if parameter.IsRequired -%}
+if ({{ parameter.VariableName }} === undefined || {{ parameter.VariableName }} === null)
+    throw new globalThis.Error("The parameter '{{ parameter.VariableName }}' must be defined.");
+{%    else -%}
+if ({{ parameter.VariableName }} !== null && {{ parameter.VariableName }} !== undefined)
+{%    endif -%}
+{%    if parameter.IsDateOrDateTimeArray -%}
+url_ = url_.replace("{{ "{" }}{{ parameter.Name }}}", encodeURIComponent({{ parameter.VariableName }}.map(s_ => s_ ? s_.{{ parameter.GetDateTimeToString }} : "null").join()));
+{%    elsif parameter.IsDateOrDateTime -%}
+url_ = url_.replace("{{ "{" }}{{ parameter.Name }}}", encodeURIComponent({{ parameter.VariableName }} ? "" + {{ parameter.VariableName }}.{{ parameter.GetDateTimeToString }} : "null"));
+{%    elsif parameter.IsArray -%}
+url_ = url_.replace("{{ "{" }}{{ parameter.Name }}}", encodeURIComponent({{ parameter.VariableName }}.join()));
+{%    else -%}
+url_ = url_.replace("{{ "{" }}{{ parameter.Name }}}", encodeURIComponent("" + {{ parameter.VariableName }}));
+{%    endif -%}
+{%    if parameter.IsOptional -%}
+else
+    url_ = url_.replace("/{{ "{" }}{{ parameter.Name }}}", "");
+{%    endif -%}
+{% endfor -%}
+{% for parameter in operation.QueryParameters -%}
+{%    if parameter.IsRequired -%}
+{%        if parameter.IsNullable -%}
+if ({{ parameter.VariableName }} === undefined)
+    throw new globalThis.Error("The parameter '{{ parameter.VariableName }}' must be defined.");
+else if({{ parameter.VariableName }} !== null)
+{%        else -%}
+if ({{ parameter.VariableName }} === undefined || {{ parameter.VariableName }} === null)
+    throw new globalThis.Error("The parameter '{{ parameter.VariableName }}' must be defined and cannot be null.");
+else
+{%        endif -%}
+{%    else -%}
+{%        if parameter.IsNullable -%}
+if ({{ parameter.VariableName }} !== undefined && {{ parameter.VariableName }} !== null)
+{%        else -%}
+if ({{ parameter.VariableName }} === null)
+    throw new globalThis.Error("The parameter '{{ parameter.VariableName }}' cannot be null.");
+else if ({{ parameter.VariableName }} !== undefined)
+{%        endif -%}
+{%    endif -%}
+{% comment -%}
+Date-only query parameters, including arrays, must use yyyy-MM-dd rather than
+the timestamp produced by toISOString(), which ASP.NET DateOnly rejects.
+formatDate uses local calendar fields, matching the generated DTO serializer.
+Callers should construct date input values with fromDateInputValue; parsing
+yyyy-MM-dd with new Date(value) creates UTC midnight and can shift the local day.
+Date-time parameters continue to use NSwag's configured serialization.
+{% endcomment -%}
+{%    if parameter.IsDateArray -%}
+    {{ parameter.VariableName }} && {{ parameter.VariableName }}.forEach(item_ => { url_ += "{{ parameter.Name }}=" + encodeURIComponent(item_ ? formatDate(item_) : "null") + "&"; });
+{%    elsif parameter.IsDateOrDateTimeArray -%}
+    {{ parameter.VariableName }} && {{ parameter.VariableName }}.forEach(item_ => { url_ += "{{ parameter.Name }}=" + encodeURIComponent(item_ ? "" + item_.{{ parameter.GetDateTimeToString }} : "null") + "&"; });
+{%    elsif parameter.IsObjectArray -%}
+    {{ parameter.VariableName }} && {{ parameter.VariableName }}.forEach((item, index) => {
+        for (const attr in item)
+			if (item.hasOwnProperty(attr)) {
+				url_ += "{{ parameter.Name }}[" + index + "]." + attr + "=" + encodeURIComponent("" + (item as any)[attr]) + "&";
+			}
+    });
+{%    elsif parameter.IsDate -%}
+    url_ += "{{ parameter.Name }}=" + encodeURIComponent({{ parameter.VariableName }} ? formatDate({{ parameter.VariableName }}) : "{{ QueryNullValue }}") + "&";
+{%    elsif parameter.IsDateOrDateTime -%}
+    url_ += "{{ parameter.Name }}=" + encodeURIComponent({{ parameter.VariableName }} ? "" + {{ parameter.VariableName }}.{{ parameter.GetDateTimeToString }} : "{{ QueryNullValue }}") + "&";
+{%    elsif parameter.IsArray -%}
+    {{ parameter.VariableName }} && {{ parameter.VariableName }}.forEach(item => { url_ += "{{ parameter.Name }}=" + encodeURIComponent("" + item) + "&"; });
+{%    else -%}
+    url_ += "{{ parameter.Name }}=" + encodeURIComponent("" + {{ parameter.VariableName }}) + "&";
+{%    endif -%}
+{% endfor -%}
+url_ = url_.replace(/[?&]$/, "");

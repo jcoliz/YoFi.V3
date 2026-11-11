@@ -71,6 +71,66 @@ export class AuthClient {
     }
 
     /**
+     * Exchanges form-encoded credentials or a refresh token for tokens in Scalar.
+     * @param grant_type (optional) 
+     * @param username (optional) 
+     * @param password (optional) 
+     * @param refresh_token (optional) 
+     * @return An OAuth-style access token or error response.
+     */
+    token(grant_type: string | null | undefined, username: string | null | undefined, password: string | null | undefined, refresh_token: string | null | undefined): Promise<ScalarTokenResponse> {
+        let url_ = this.baseUrl + "/api/auth/token";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (grant_type !== null && grant_type !== undefined)
+            content_.append("grant_type", grant_type.toString());
+        if (username !== null && username !== undefined)
+            content_.append("username", username.toString());
+        if (password !== null && password !== undefined)
+            content_.append("password", password.toString());
+        if (refresh_token !== null && refresh_token !== undefined)
+            content_.append("refresh_token", refresh_token.toString());
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processToken(_response);
+        });
+    }
+
+    protected processToken(response: Response): Promise<ScalarTokenResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ScalarTokenResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ScalarTokenError.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ScalarTokenResponse>(null as any);
+    }
+
+    /**
      * Authenticates a user with username and password.
      * @param request Login credentials.
      * @return JWT tokens and user information if successful; otherwise, unauthorized.
@@ -2171,9 +2231,9 @@ export class TransactionsClient {
         if (pageNumber !== undefined && pageNumber !== null)
             url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
         if (fromDate !== undefined && fromDate !== null)
-            url_ += "fromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+            url_ += "fromDate=" + encodeURIComponent(fromDate ? formatDate(fromDate) : "") + "&";
         if (toDate !== undefined && toDate !== null)
-            url_ += "toDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+            url_ += "toDate=" + encodeURIComponent(toDate ? formatDate(toDate) : "") + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
@@ -4480,6 +4540,104 @@ export class TestControlClient {
         }
         return Promise.resolve<string>(null as any);
     }
+}
+
+/** An OAuth-style access token response for the API reference. */
+export class ScalarTokenResponse implements IScalarTokenResponse {
+    /** JWT used to authorize API requests. */
+    access_token?: string;
+    /** Authorization header scheme. */
+    token_type?: string;
+    /** Refresh token replaced on every successful refresh. */
+    refresh_token?: string;
+
+    constructor(data?: IScalarTokenResponse) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.access_token = _data["access_token"];
+            this.token_type = _data["token_type"];
+            this.refresh_token = _data["refresh_token"];
+        }
+    }
+
+    static fromJS(data: any): ScalarTokenResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScalarTokenResponse();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["access_token"] = this.access_token;
+        data["token_type"] = this.token_type;
+        data["refresh_token"] = this.refresh_token;
+        return data;
+    }
+}
+
+/** An OAuth-style access token response for the API reference. */
+export interface IScalarTokenResponse {
+    /** JWT used to authorize API requests. */
+    access_token?: string;
+    /** Authorization header scheme. */
+    token_type?: string;
+    /** Refresh token replaced on every successful refresh. */
+    refresh_token?: string;
+}
+
+/** An OAuth-style token request error. */
+export class ScalarTokenError implements IScalarTokenError {
+    /** OAuth error code. */
+    error?: string;
+    /** Non-sensitive explanation of the error. */
+    error_description?: string;
+
+    constructor(data?: IScalarTokenError) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.error = _data["error"];
+            this.error_description = _data["error_description"];
+        }
+    }
+
+    static fromJS(data: any): ScalarTokenError {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScalarTokenError();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        data["error_description"] = this.error_description;
+        return data;
+    }
+}
+
+/** An OAuth-style token request error. */
+export interface IScalarTokenError {
+    /** OAuth error code. */
+    error?: string;
+    /** Non-sensitive explanation of the error. */
+    error_description?: string;
 }
 
 /** Response data returned after successful user login. */

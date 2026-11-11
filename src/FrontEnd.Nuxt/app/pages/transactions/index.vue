@@ -20,7 +20,7 @@ import {
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
 import { handleApiError } from '~/utils/errorHandler'
-import { formatDateOnly } from '~/utils/dateOnly'
+import { formatDateOnly, fromDateInputValue } from '~/utils/dateOnly'
 
 definePageMeta({
   title: 'Transactions',
@@ -188,8 +188,8 @@ async function loadTransactions(pageNumber: number = currentPage.value) {
   showError.value = false
 
   try {
-    const from = fromDate.value ? new Date(fromDate.value) : undefined
-    const to = toDate.value ? new Date(toDate.value) : undefined
+    const from = fromDate.value ? fromDateInputValue(fromDate.value) : undefined
+    const to = toDate.value ? fromDateInputValue(toDate.value) : undefined
 
     paginatedResult.value = await transactionsClient.getTransactions(
       pageNumber,

@@ -75,7 +75,7 @@
       "inlineNamedDictionaries": false,
       "inlineNamedAny": false,
       "includeHttpContext": false,
-      "templateDirectory": null,
+      "templateDirectory": "Templates",
       "serviceHost": null,
       "serviceSchemes": null,
       "output": "$(OutputFile)",
