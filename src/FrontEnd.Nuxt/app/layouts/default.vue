@@ -8,6 +8,7 @@
   <div data-test-id="default-layout">
     <SiteHeader />
     <main class="container">
+      <PageBreadcrumb />
       <RoutePageHeader />
       <slot />
     </main>

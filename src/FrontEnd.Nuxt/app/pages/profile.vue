@@ -2,8 +2,8 @@
 /**
  * Profile Page
  *
- * User profile management page displaying account information, workspace details,
- * and authentication tokens. Includes edit functionality (UI only, backend integration pending)
+ * User profile management page displaying account information.
+ * Includes edit functionality (UI only, backend integration pending)
  * and account actions like logout.
  */
 
@@ -12,7 +12,7 @@ definePageMeta({
   auth: true,
 })
 
-const { refreshToken, token, data, signOut, refresh } = useAuth()
+const { data, signOut } = useAuth()
 
 const ready = ref(false)
 onMounted(() => {
@@ -50,14 +50,6 @@ const systemLogout = async () => {
     await signOut({ redirect: true, callbackUrl: '/' })
   } catch (error) {
     console.error('Logout error:', error)
-  }
-}
-
-const doRefreshToken = async () => {
-  try {
-    await refresh()
-  } catch (error) {
-    console.error('Token refresh error:', error)
   }
 }
 
@@ -207,22 +199,6 @@ useAuthenticationGuard().requireAuthenticatedUser()
               </div>
             </div>
           </div>
-          <div class="row mb-3">
-            <div class="col-sm-3">
-              <strong>Token:</strong>
-            </div>
-            <div class="col-sm-9">
-              <small class="text-break font-monospace">{{ token }}</small>
-            </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-sm-3">
-              <strong>Refresh Token:</strong>
-            </div>
-            <div class="col-sm-9">
-              <small class="text-break font-monospace">{{ refreshToken }}</small>
-            </div>
-          </div>
         </div>
 
         <!-- Edit Mode -->
@@ -299,14 +275,13 @@ useAuthenticationGuard().requireAuthenticatedUser()
         header-tag="h5"
       >
         <div class="d-grid gap-2">
-          <button
+          <NuxtLink
+            to="/identity/tokens"
             class="btn btn-outline-primary btn-sm"
-            data-test-id="refresh-token"
-            @click="doRefreshToken"
+            data-test-id="InspectTokens"
           >
-            <i class="bi bi-lock me-1" />
-            Refresh Token
-          </button>
+            Inspect Tokens
+          </NuxtLink>
           <button
             class="btn btn-outline-warning btn-sm"
             data-test-id="ChangePassword"

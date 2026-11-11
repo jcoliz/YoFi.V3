@@ -1,11 +1,8 @@
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 namespace YoFi.V3.Tests.Functional.Pages;
 
 public class ProfilePage(IPage _page): BasePage(_page)
 {
-    private static readonly Regex RefreshTokenApiRegex = new("/api/auth/refresh", RegexOptions.Compiled);
-
     #region Page Elements
 
     /// <summary>
@@ -33,11 +30,6 @@ public class ProfilePage(IPage _page): BasePage(_page)
     /// </summary>
     public ILocator LogoutButton => Page!.GetByTestId("Logout");
 
-    /// <summary>
-    /// Refresh token button
-    /// </summary>
-    public ILocator RefreshButton => Page!.GetByTestId("refresh-token");
-
     #endregion
 
     #region Navigation
@@ -55,17 +47,6 @@ public class ProfilePage(IPage _page): BasePage(_page)
     #endregion
 
     #region Actions
-
-    /// <summary>
-    /// Clicks the refresh button and waits for the refresh token API call
-    /// </summary>
-    public async Task ClickRefreshButtonAsync()
-    {
-        await WaitForApi(async () =>
-        {
-            await RefreshButton.ClickAsync();
-        }, RefreshTokenApiRegex);
-    }
 
     /// <summary>
     /// Clicks the logout button
