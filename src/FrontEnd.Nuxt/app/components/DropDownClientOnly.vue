@@ -15,7 +15,7 @@
 import { Dropdown } from 'bootstrap'
 import { ref, onMounted } from 'vue'
 
-const { logger } = useDebugLog('DropDownClientOnly')
+const { logger } = useDebugLog('DropDownClientOnly', { minimumLevel: 'info' })
 
 const dropdown = ref<Dropdown>()
 const triggerWrapperRef = ref<HTMLElement>()
