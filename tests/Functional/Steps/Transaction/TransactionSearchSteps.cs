@@ -63,6 +63,7 @@ public class TransactionSearchSteps(ITestContext context) : TransactionStepsBase
     /// </summary>
     /// <remarks>
     /// The table should contain the expected transactions with "Payee" column.
+    /// Feel free to extend this to include other columns as needed.
     /// </remarks>
     [Then("the following transactions should be shown:")]
     public async Task TheFollowingTransactionsShouldBeShown(DataTable table)

@@ -1,4 +1,5 @@
-@category:1983
+@category:feature-1983
+@category:transaction-filtering
 Feature: Transaction Filtering
   As a YoFi user
   I want to search my transactions with one text input
@@ -11,7 +12,8 @@ Feature: Transaction Filtering
     Given the application is running
     And I am logged in as a user with "Editor" role
 
-  @category:2213
+  @category:story-2213
+  @category:quick-search
   Rule: Users can quickly find transactions by searching text
 
     @pri:1
@@ -72,7 +74,6 @@ Feature: Transaction Filtering
   Rule: Users can filter transactions by date
 
     @category:bug-2271
-    @explicit:fails
     Scenario: Bug 2271 Transactions date filter can never pass validation
       Given I have a workspace with the following transactions:
         | Payee            |  Date       |
