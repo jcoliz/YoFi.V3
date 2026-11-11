@@ -1,5 +1,5 @@
 ---
-status: Approved (Detailed Design Complete)
+status: Approved
 target_release: Beta 1
 ado: "[Feature 1983](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1983): Transaction Filtering"
 ---
@@ -22,12 +22,13 @@ Users need to find specific transactions quickly from potentially hundreds or th
 - [ ] Allow field-specific searches for precision filtering
 - [ ] Support filtering by balance status (balanced vs. unbalanced transactions)
 - [ ] Maintain minimal, uncluttered UI (progressive disclosure)
+- [ ] Retain the current search and filter settings when leaving and returning to the transactions page within the same app session; cross-session persistence is not required
 - [ ] Support report-driven navigation with hierarchical category filtering (Story 6 - V3.1)
 
 ### Non-Goals
 
 - Complex boolean query syntax (AND/OR/NOT operators)
-- Saved filter presets (future enhancement)
+- Named, saved filter presets (future enhancement); retaining the current filter settings between page visits in the same app session IS required
 - Advanced analytics on filtered results (future enhancement)
 
 ---
@@ -44,7 +45,7 @@ Users need to find specific transactions quickly from potentially hundreds or th
 
 - [X] Single search bar always visible at top of transactions page
 - [X] Searches across payee, split categories, split memos, transaction memo, and amount fields
-- [ ] **DEFERRED** When a transaction has multiple splits, match if ANY split matches the search criteria -- Will defer until splits are implemented (See Scenario #2226)
+- [X] When a transaction has multiple splits, match if ANY split matches the search criteria
 - [ ] **POSTPONED** Results update as user types (debounced) -- Will re-evaluate if this is needed after initial availability.
 - [X] Clear button (×) appears when text is present
 
@@ -59,9 +60,12 @@ Users need to find specific transactions quickly from potentially hundreds or th
 **Acceptance Criteria**:
 
 - [ ] Checkbox filter for "Uncategorized only"
-- [ ] Finds transactions where ANY split has blank or whitespace category
+- [ ] Finds transactions where ANY split has an empty category; whitespace-only category input is sanitized to empty before saving
 - [ ] Transactions with mixed categorized/uncategorized splits ARE included (they need attention)
 - [ ] Works in combination with other filters (date range, text search)
+
+**Combined design**: [Advanced Filtering and Uncategorized Transactions](TRANSACTION-ADVANCED-FILTERING-DESIGN.md)
+implements Stories 2214 and 2216 together in the existing collapsible filter panel.
 
 ### Story 2215: User - Default Date Range [V3.0]
 
@@ -85,12 +89,14 @@ Users need to find specific transactions quickly from potentially hundreds or th
 **Acceptance Criteria**:
 
 - [ ] Collapsible filter panel hidden by default
-- [ ] Field-specific inputs for payee, split category, split memo, transaction memo
+- [ ] Field-specific inputs for payee, split category, and one Memo input that matches the transaction memo or any split memo
+- [ ] The dedicated Category filter and regular quick search's category predicate use the shared [category sanitization rules](PRD-TRANSACTION-SPLITS.md#category-sanitization) before matching; quick search preserves its original trimmed term for other fields and amount parsing
 - [ ] Exact amount search (matches transaction amount, not split amounts)
-- [ ] Balance status filter: All / Balanced only / Unbalanced only
 - [ ] Date range quick-select buttons (Last 30d, 3mo, 12mo, This year, All time)
 - [ ] Custom date range inputs (From/To)
 - [ ] "Clear All" button resets all filters
+
+**Combined design**: [Advanced Filtering and Uncategorized Transactions](TRANSACTION-ADVANCED-FILTERING-DESIGN.md).
 
 ### Story 2217: User - Filter by Balance Status
 
@@ -149,7 +155,7 @@ GET /api/tenant/{key}/transactions?category=Income:*&fromDate=2024-01-01&toDate=
 
 - `search` - Multi-field substring search across payee, split categories, split memos, transaction memo, amount (OR logic within transaction/splits)
 - `payee` - Field-specific substring search on transaction payee (AND logic)
-- `category` - Field-specific search on split categories (matches if ANY split matches). Supports wildcard suffix `*` for hierarchical category matching (see Key Business Rules below)
+- `category` - Field-specific search on split categories (matches if ANY split matches); sanitize the search term using the shared category rules before matching. Wildcard suffix `*` support for hierarchical category matching is deferred to report integration (see Key Business Rules below)
 - `memo` - Field-specific substring search on transaction memo OR split memos (matches if ANY matches)
 - `amount` - Exact amount match on transaction amount (not split amounts)
 - `fromDate`, `toDate` - Date range on transaction date
@@ -222,6 +228,8 @@ else
 
 - [x] **Q**: Should uncategorizedOnly require ALL splits to be uncategorized or just ANY split uncategorized?
   **A**: ANY split uncategorized. Transactions with mixed categorized/uncategorized splits need attention just as much as fully uncategorized transactions.
+  Stored uncategorized categories are empty strings, not whitespace: category
+  sanitization cleans whitespace-only input to empty before saving.
 
 - [x] **Q**: How to handle balance status filtering performance?
   **A**: Add computed property `IsBalanced` to `TransactionResultDto` (calculated in Application layer during query). Frontend filters based on DTO property. Backend doesn't need SQL-level filtering for balance status (calculation requires loading splits anyway).
@@ -276,7 +284,7 @@ else
 1. **Search-first UX** - Always-visible search bar, collapsible advanced filters (progressive disclosure)
 2. **Multi-field OR search** - Primary search bar searches all transaction and split fields with OR logic (broad, fast)
 3. **Field-specific AND search** - Advanced panel provides field-specific inputs with AND logic (precise, narrow)
-4. **Split-aware filtering** - Category and memo searches check both transaction-level AND all splits (matches if ANY split matches)
+4. **Split-aware filtering** - Category searches check all splits; one Memo filter matches the transaction memo OR any split memo
 5. **Backend filtering** - All filtering at database level for performance (not client-side)
 6. **Smart defaults** - 12-month date range by default, user can clear or adjust
 7. **Balance status awareness** - Expose balance status as filterable property (leverages splits feature)
@@ -306,4 +314,4 @@ Implementation planning complete:
 - Split category filtering UI/UX
 - Split memo searching
 - Balance status indicators in list view
-- Filter panel terminology (distinguish transaction memo vs split memos)
+- Filter panel terminology (one Memo input searches transaction and split memos)

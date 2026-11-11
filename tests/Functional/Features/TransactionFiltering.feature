@@ -1,3 +1,4 @@
+@category:1983
 Feature: Transaction Filtering
   As a YoFi user
   I want to search my transactions with one text input

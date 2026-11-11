@@ -4,6 +4,11 @@ For implementation of **Story 2213 only**, use the proposed
 [Transaction Quick Text Search design](TRANSACTION-QUICK-SEARCH-DESIGN.md).
 This document covers the broader feature; its phases and examples combine multiple stories.
 
+For **Stories 2216 and 2214 together**, use the proposed
+[Advanced Filtering and Uncategorized Transactions design](TRANSACTION-ADVANCED-FILTERING-DESIGN.md).
+It expands and extracts the existing collapsible date-filter panel rather than
+adding another one, and supersedes this document's proposals for those stories.
+
 ## Executive Summary
 
 This document provides architectural recommendations for implementing transaction filtering in YoFi.V3, balancing power-user needs with minimal/modern UX principles. The solution emphasizes progressive disclosure, keyboard accessibility, and mobile-first responsive design.
