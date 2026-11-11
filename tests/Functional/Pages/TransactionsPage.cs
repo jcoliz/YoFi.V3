@@ -84,22 +84,22 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Date range filters card (collapsed by default)
     /// </summary>
-    public ILocator DateRangeFilters => Page!.GetByTestId("date-range-filters");
+    public ILocator FilterPane => Page!.GetByTestId("date-range-filters");
 
     /// <summary>
     /// From date filter input
     /// </summary>
-    public ILocator FromDateInput => Page!.Locator("#fromDate");
+    public ILocator FromDateInput => FilterPane.Locator("#fromDate");
 
     /// <summary>
     /// To date filter input
     /// </summary>
-    public ILocator ToDateInput => Page!.Locator("#toDate");
+    public ILocator ToDateInput => FilterPane.Locator("#toDate");
 
     /// <summary>
     /// Clear Filters button
     /// </summary>
-    public ILocator ClearFiltersButton => Page!.GetByTestId("clear-filters-button");
+    public ILocator ClearFiltersButton => FilterPane.GetByTestId("clear-filters-button");
 
     #endregion
 
@@ -1029,7 +1029,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         if (await FiltersToggleButton.GetAttributeAsync("aria-expanded") != "true")
         {
             await FiltersToggleButton.ClickAsync();
-            await DateRangeFilters.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+            await FilterPane.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         }
     }
 

@@ -94,6 +94,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// | Book Store  | 12.00  | Books     |                |
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
+    [Given("I have a workspace with the following transactions:")]
     [Given("I have a transaction:")]
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
@@ -119,7 +120,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
                 Source = row.GetOptional("Source"),
                 ExternalId = row.GetOptional("ExternalId"),
                 Category = row.GetOptional("Category") ?? string.Empty,
-                Date = DateTimeOffset.UtcNow
+                Date = row.GetOptional<DateTimeOffset>("Date") ?? DateTimeOffset.UtcNow
             };
         }).ToArray();
 

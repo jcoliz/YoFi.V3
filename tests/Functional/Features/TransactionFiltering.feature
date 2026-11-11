@@ -68,3 +68,23 @@ Feature: Transaction Filtering
       And the following transactions should be shown:
         | Payee            |
         | Starbucks Coffee |
+
+  Rule: Users can filter transactions by date
+
+    @category:bug-2271
+    @explicit:fails
+    Scenario: Bug 2271 Transactions date filter can never pass validation
+      Given I have a workspace with the following transactions:
+        | Payee            |  Date       |
+        | Starbucks Coffee |  2024-06-01 |
+        | Gas Mart         |  2024-06-02 |
+        | Supermarket      |  2024-06-03 |
+        | Veterinarian     |  2024-06-04 |
+        | Cinema           |  2024-06-05 |
+        | Supermarket      |  2024-06-06 |
+      When I filter transactions by dates "2024-06-02" through "2024-06-04"
+      Then the following transactions should be shown:
+        | Payee    |
+        | Gas Mart |
+        | Supermarket |
+        | Veterinarian |

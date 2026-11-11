@@ -41,6 +41,19 @@ public class TransactionSearchSteps(ITestContext context) : TransactionStepsBase
         await page.ClearSearchAsync();
     }
 
+    /// <summary>
+    /// When I filter transactions by dates {string1} through {string2}
+    /// </summary>
+    [When("I filter transactions by dates {string1} through {string2}")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task IFilterTransactionsByDatesThrough(string string1, string string2)
+    {
+        await _listSteps.IAmOnTheTransactionsPage();
+
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.SetDateRangeAsync(string1, string2);
+    }
+
     #endregion
 
     #region Steps: THEN
