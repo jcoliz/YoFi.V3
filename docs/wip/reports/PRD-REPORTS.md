@@ -239,7 +239,7 @@ The requirements we will have on filtering:
 - [ ] Reports can use special "Expenses" moniker to mean "all transactions not in Income, Taxes, Savings, or Transfer" top level categories
 - [ ] Reports can (and almost always will) specify *both* a date range and a category with wildcard.
 
-### Story 8: User - Defines a custom report [FUTURE]
+### Story 2280: User - Defines a custom report [FUTURE]
 
 **As a** user
 **I want** define my own report
@@ -247,9 +247,12 @@ The requirements we will have on filtering:
 
 **Acceptance Criteria**:
 
+- [ ] User with "Editor" workspace permission can create a custom report
+- [ ] User with "Reader" workspace permission can custom reports
 - [ ] User can customize any of the existing built-in report parameters
 - [ ] User has complete CRUD control of report definitions
-- [ ] Custom reports are available to anyone in the workspace (tenant)
+- [ ] Custom report definitions are included in tenant data export
+- [ ] Custom report definitions can be imported using tenant data import
 
 **NOTE** This is included here for future vision. Remainder of PRD does not include further consideration of this
 
