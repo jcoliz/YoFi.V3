@@ -15,6 +15,8 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 ///
 /// These steps use the Test Control API (not UI) to prepare test state
 /// before executing the actual test scenario.
+///
+/// TODO: Remove sample data from this into own steps. These steps should be TEST DATA via the Test Control API only.
 /// </remarks>
 public class WorkspaceDataSteps : WorkspaceStepsBase
 {
