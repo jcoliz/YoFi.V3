@@ -30,6 +30,7 @@ const busyFlags = reactive({
   deleteWorkspace: false,
   deleteData: false,
   sample: false,
+  importData: false,
 })
 const busy = computed(() => Object.values(busyFlags).some(Boolean))
 const editing = ref(false)
@@ -137,6 +138,11 @@ function handleDataDeleted(result?: TenantDataDeletionResultDto) {
 
 function handleSampleLoaded() {
   deletionResult.value = undefined
+}
+
+function handleDataImported() {
+  deletionResult.value = undefined
+  dataVersion.value++
 }
 </script>
 
@@ -332,22 +338,12 @@ function handleSampleLoaded() {
         </div>
 
         <div class="col-lg-4">
-          <section
-            class="card h-100"
-            aria-labelledby="import-data-heading"
-            data-test-id="import-data-card"
-          >
-            <div class="card-body">
-              <CardTitle
-                id="import-data-heading"
-                data-test-id="import-data-title"
-                class="mb-3"
-                title="Import Data"
-                subtitle="Import data into this workspace."
-              />
-              <p class="text-muted mb-0">Coming soon.</p>
-            </div>
-          </section>
+          <WorkspaceImportDataPane
+            :key="workspace.key"
+            :workspace="workspace"
+            @imported="handleDataImported"
+            @update:busy="busyFlags.importData = $event"
+          />
         </div>
       </div>
 
