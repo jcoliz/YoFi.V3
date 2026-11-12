@@ -1128,6 +1128,25 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public Task SetMemoFilterAsync(string value) =>
         ApplyTextFilterAsync(MemoFilterInput, value);
 
+    /// <summary>
+    /// Enables the uncategorized-only filter.
+    /// </summary>
+    public async Task SetUncategorizedOnlyAsync()
+    {
+        await ExpandFiltersAsync();
+        if (await UncategorizedOnlyCheckbox.IsCheckedAsync())
+        {
+            return;
+        }
+
+        await WaitForApi(async () =>
+        {
+            await UncategorizedOnlyCheckbox.CheckAsync();
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
+    }
+
     private async Task ApplyTextFilterAsync(ILocator input, string value)
     {
         await ExpandFiltersAsync();

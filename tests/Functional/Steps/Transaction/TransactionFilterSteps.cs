@@ -9,6 +9,8 @@ namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 /// <param name="context">Test context providing access to test infrastructure.</param>
 public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase(context)
 {
+    private readonly TransactionListSteps _listSteps = new(context);
+
     #region Steps: GIVEN and WHEN
 
     /// <summary>
@@ -60,9 +62,13 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     /// When I filter transactions to show uncategorized only
     /// </summary>
     [When("I filter transactions to show uncategorized only")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IFilterTransactionsToShowUncategorizedOnly()
     {
-        throw new NotImplementedException();
+        await _listSteps.IAmOnTheTransactionsPage();
+
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.SetUncategorizedOnlyAsync();
     }
 
     /// <summary>
