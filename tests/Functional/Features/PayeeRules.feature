@@ -1,3 +1,5 @@
+@category:feature-2205
+@category:payee-rules
 Feature: Payee Matching Rules
   As a YoFi user
   I want to set up payee matching rules
@@ -9,7 +11,7 @@ Feature: Payee Matching Rules
     And I have an active workspace "My Finances"
     And I am logged into my existing account
 
-  @category:2211
+  @category:story-2211
   Rule: Users can establish and manage payee matching rules
 
     @pri:1
@@ -27,8 +29,8 @@ Feature: Payee Matching Rules
         | Payee       | Category  |
         | Coffee Shop | Beverages |
       When I edit the rule to:
-        | Payee  | Category      |
-        | Coffee | Coffee & Tea  |
+        | Payee  | Category     |
+        | Coffee | Coffee & Tea |
       Then I should see the rule for "Coffee" with category "Coffee & Tea"
 
     @pri:2
@@ -44,10 +46,10 @@ Feature: Payee Matching Rules
     @id:5
     Scenario: User views list of all payee matching rules
       Given I have the following payee rules:
-        | Payee        | Category        | IsRegex |
-        | Starbucks    | Coffee          | false   |
-        | Shell        | Gas & Fuel      | false   |
-        | ^AMZN.*MKTP  | Online Shopping | true    |
+        | Payee       | Category        | IsRegex |
+        | Starbucks   | Coffee          | false   |
+        | Shell       | Gas & Fuel      | false   |
+        | ^AMZN.*MKTP | Online Shopping | true    |
       When I view my payee rules
       Then I should see the expected rules
 
@@ -55,14 +57,14 @@ Feature: Payee Matching Rules
     @id:8
     Scenario: User searches across both payee and category
       Given I have the following payee rules:
-        | Payee     | Category |
-        | Shell     | Gas      |
-        | Gasoline Alley  | Dining Out   |
-        | BP        | Fuel     |
+        | Payee          | Category   |
+        | Shell          | Gas        |
+        | Gasoline Alley | Dining Out |
+        | BP             | Fuel       |
       When I search for rules matching "Gas"
       Then the following rules should be shown:
-        | Payee    |
-        | Shell    |
+        | Payee          |
+        | Shell          |
         | Gasoline Alley |
 
     @pri:1
@@ -74,7 +76,7 @@ Feature: Payee Matching Rules
       Then I should see an error message containing "Category is required"
       And the rule should not be created
 
-  @category:2212
+    @category:story-2212
   Rule: Transactions are automatically categorized on bank import
 
     @pri:1
@@ -122,8 +124,8 @@ Feature: Payee Matching Rules
     @id:25
     Scenario: Matched category persists after import
       Given I have a payee rule:
-        | Payee | Category    |
-        | Shell | Gas & Fuel  |
+        | Payee | Category   |
+        | Shell | Gas & Fuel |
       And I have uploaded an OFX file with transactions:
         | Date       | Payee             | Amount |
         | 2024-01-15 | SHELL GAS STATION | -50.00 |
@@ -131,7 +133,7 @@ Feature: Payee Matching Rules
       And I view my transactions
       Then the transaction should have category "Gas & Fuel"
 
-  @category:2212
+    @category:story-2212
   Rule: Matching rules handle conflicts with defined precedence
 
     @pri:2
@@ -142,8 +144,8 @@ Feature: Payee Matching Rules
         | Starbucks         | Coffee         |
         | Starbucks Reserve | Premium Coffee |
       When I upload an OFX file with transactions:
-        | Date       | Payee                       | Amount |
-        | 2024-01-15 | STARBUCKS RESERVE ROASTERY  | -8.50  |
+        | Date       | Payee                      | Amount |
+        | 2024-01-15 | STARBUCKS RESERVE ROASTERY | -8.50  |
       Then the imported transaction should have category "Premium Coffee"
 
     @pri:2
@@ -180,7 +182,7 @@ Feature: Payee Matching Rules
     @id:29
     Scenario: Regex rule matches exact pattern
       Given I have a regex payee rule:
-        | Payee          | Category |
+        | Payee           | Category |
         | ^SHELL #\\d{4}$ | Gas      |
       When I upload an OFX file with transactions:
         | Date       | Payee       | Amount |
