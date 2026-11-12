@@ -1,5 +1,6 @@
 using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 
 namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 
@@ -15,18 +16,11 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 ///
 /// These steps use the Test Control API (not UI) to prepare test state
 /// before executing the actual test scenario.
-///
-/// TODO: Remove sample data from this into own steps. These steps should be TEST DATA via the Test Control API only.
 /// </remarks>
-public class WorkspaceDataSteps : WorkspaceStepsBase
+public class WorkspaceDataSteps(ITestContext context) : WorkspaceStepsBase(context)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WorkspaceDataSteps"/> class.
-    /// </summary>
-    /// <param name="context">Test context providing access to test infrastructure.</param>
-    public WorkspaceDataSteps(ITestContext context) : base(context)
-    {
-    }
+    TransactionDataSteps transactionDataSteps = new(context);
+    PayeeRuleSteps payeeRuleSteps = new(context);
 
     #region Steps: GIVEN
 
@@ -475,6 +469,26 @@ public class WorkspaceDataSteps : WorkspaceStepsBase
             // Track workspace for cleanup
             _context.TrackCreatedWorkspace(result.Name, result.Key);
         }
+    }
+
+    /// <summary>
+    /// Given My workspace has existing transactions and payee matching rules
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step to allow the Gherkin to express higher-level BDD scenarios.
+    /// * IHaveSomeExistingTransactionsInMyWorkspace(5)
+    /// * IHaveSomeExistingPayeeMatchingRulesInMyWorkspace(5)
+    /// </remarks>
+    [Given("My workspace has existing transactions and payee matching rules")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Provides(ObjectStoreKeys.ExistingTransactions)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules()
+    {
+        await transactionDataSteps.IHaveSomeExistingTransactionsInMyWorkspace(5);
+        await payeeRuleSteps.IHaveSomeExistingPayeeMatchingRulesInMyWorkspace(5);
     }
 
     #endregion

@@ -1,4 +1,7 @@
+using ClosedXML.Excel;
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Pages;
+using YoFi.V3.Tests.Functional.Steps.Transaction;
 
 namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 
@@ -16,15 +19,12 @@ namespace YoFi.V3.Tests.Functional.Steps.Workspace;
 /// All operations work with user-readable workspace names (without __TEST__ prefix).
 /// The prefix is added automatically when needed via AddTestPrefix().
 /// </remarks>
-public class WorkspaceManagementSteps : WorkspaceStepsBase
+public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase(context)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WorkspaceManagementSteps"/> class.
-    /// </summary>
-    /// <param name="context">Test context providing access to test infrastructure.</param>
-    public WorkspaceManagementSteps(ITestContext context) : base(context)
-    {
-    }
+
+    TransactionDataSteps transactionDataSteps = new(context);
+    PayeeRuleSteps payeeRuleSteps = new(context);
+    TransactionListSteps transactionListSteps = new(context);
 
     #region Steps: WHEN
 
@@ -185,6 +185,10 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         _context.UntrackWorkspace(fullWorkspaceName);
     }
 
+    #endregion
+
+    #region Sample data
+
     /// <summary>
     /// When I load the {scenario} sample data
     /// </summary>
@@ -225,6 +229,60 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
         _context.ObjectStore.Add(ObjectStoreKeys.OfxFilePath, filePath);
     }
 
+
+
+    /// <summary>
+    /// Then I see confirmation of the transactions and rules added
+    /// </summary>
+    [Then("I see confirmation of the transactions and rules added")]
+    public async Task ISeeConfirmationOfTheTransactionsAndRulesAdded()
+    {
+        var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
+        await managementPage.ExpectSampleLoadResultAsync();
+    }
+
+    /// <summary>
+    /// Then my existing transactions and rules remain unchanged
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step, which will:
+    /// * Check that the "expected" transactions and rules are still present in the workspace, which were set by MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules
+    /// </remarks>
+    [Then("my existing transactions and rules remain unchanged")]
+    [Requires(ObjectStoreKeys.ExistingTransactionKeys)]
+    [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task MyExistingTransactionsAndRulesRemainUnchanged()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+
+        await transactionDataSteps.IShouldSeeTheOriginalTransactions();
+
+        var payeeRulesPage = _context.GetOrCreatePage<PayeeRulesPage>();
+        await payeeRulesPage.NavigateAsync();
+
+        await payeeRuleSteps.IShouldSeeTheExpectedRulesIncluded();
+    }
+
+    /// <summary>
+    /// Then the sample transactions and rules are available alongside them
+    /// </summary>
+    /// <remarks>
+    /// This is a meta-step, which will:
+    /// *   And I can see many pages of transactions (ICanSeeManyPagesOfTransactions)
+    /// *   And I can see many payee matching rules
+    ///
+    /// Note that the MyWorkspaceHasExistingTransactionsAndPayeeMatchingRules needs to include LESS than the number of rules that
+    /// "And I can see many payee matching rules" checks for
+    /// </remarks>
+    [Then("the sample transactions and rules are available alongside them")]
+    public async Task TheSampleTransactionsAndRulesAreAvailableAlongsideThem()
+    {
+        // Note that these steps internally do their own navigation, so we don't need to do that here.
+        await transactionListSteps.ICanSeeManyPagesOfTransactions();
+        await payeeRuleSteps.ICanSeeManyPayeeMatchingRules();
+    }
+
     #endregion
 
     #region Delete all data
@@ -254,6 +312,52 @@ public class WorkspaceManagementSteps : WorkspaceStepsBase
     {
         var managementPage = _context.GetOrCreatePage<Pages.WorkspaceManagementPage>();
         await managementPage.ExpectDeleteDataResultAsync();
+    }
+
+    #endregion
+
+    #region Import data
+
+    /// <summary>
+    /// When I upload a file containing original YoFi Payees
+    /// </summary>
+    [When("I upload a file containing original YoFi Payees")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task IUploadAFileContainingOriginalYoFiPayees()
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Payee");
+        worksheet.Cell(1, 1).Value = "ID";
+        worksheet.Cell(1, 2).Value = "Name";
+        worksheet.Cell(1, 3).Value = "Category";
+        worksheet.Cell(1, 4).Value = "Selected";
+        for (var index = 1; index <= 12; index++)
+        {
+            worksheet.Cell(index + 1, 1).Value = index;
+            worksheet.Cell(index + 1, 2).Value = $"Original YoFi Payee {index}";
+            worksheet.Cell(index + 1, 3).Value = "Shopping";
+            worksheet.Cell(index + 1, 4).Value = false;
+        }
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+
+        var currentName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        await workspacesPage.OpenManagementAsync(currentName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.UploadImportWorkbookAsync("original-yofi-payees.xlsx", stream.ToArray());
+    }
+
+    /// <summary>
+    /// When I preview and confirm the upload
+    /// </summary>
+    [When("I preview and confirm the upload")]
+    public async Task IPreviewAndConfirmTheUpload()
+    {
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.PreviewAndConfirmImportAsync();
     }
 
     #endregion
