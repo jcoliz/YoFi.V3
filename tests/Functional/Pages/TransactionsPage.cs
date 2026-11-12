@@ -352,6 +352,12 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         Assertions.Expect(TransactionRows).ToHaveCountAsync(expectedCount);
 
     /// <summary>
+    /// Waits until at least one transaction result is visible.
+    /// </summary>
+    public Task ExpectFirstTransactionResultAsync() =>
+        Assertions.Expect(TransactionRows.First).ToBeVisibleAsync();
+
+    /// <summary>
     /// Waits until a transaction with the exact payee is displayed.
     /// </summary>
     public Task ExpectTransactionForAsync(string expectedPayee) =>

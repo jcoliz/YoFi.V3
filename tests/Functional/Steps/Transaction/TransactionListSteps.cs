@@ -94,6 +94,20 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await row.ClickAsync();
     }
 
+    /// <summary>
+    /// Opens the first visible transaction result and waits for its details page to be ready.
+    /// </summary>
+    [When("I open the first transaction result")]
+    public async Task IOpenTheFirstTransactionResult()
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.ExpectFirstTransactionResultAsync();
+        var firstResult = transactionsPage.TransactionRows.First;
+        await firstResult.ClickAsync();
+
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.WaitForPageReadyAsync();
+    }
 
     /// <summary>
     /// Views transactions in a specific workspace.
