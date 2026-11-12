@@ -1317,13 +1317,31 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Gets the category text from a transaction row by payee name
+    /// Gets the category value from a transaction row by payee name.
+    /// A split badge represents multiple categories, so its category value is empty.
     /// </summary>
     /// <param name="payeeName">The payee name of the transaction</param>
-    /// <returns>The category text as displayed in the table</returns>
+    /// <returns>The category value, or an empty string when the row represents multiple splits</returns>
     public async Task<string?> GetTransactionCategoryAsync(string payeeName)
     {
-        return await TransactionsTableCellText(payeeName, "category");
+        var categoryCell = await TransactionsTableCell(payeeName, "category");
+        if (await categoryCell.GetByTestId("transaction-split-badge").CountAsync() > 0)
+        {
+            return string.Empty;
+        }
+
+        return await categoryCell.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets whether a transaction is shown with the split badge.
+    /// </summary>
+    /// <param name="payeeName">The payee name of the transaction</param>
+    /// <returns>"Yes" when the transaction has multiple splits; otherwise, "No"</returns>
+    public async Task<string> GetTransactionSplitIndicatorAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return await row.GetByTestId("transaction-split-badge").CountAsync() > 0 ? "Yes" : "No";
     }
 
     /// <summary>

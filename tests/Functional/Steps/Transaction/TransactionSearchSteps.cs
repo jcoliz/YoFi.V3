@@ -62,21 +62,36 @@ public class TransactionSearchSteps(ITestContext context) : TransactionStepsBase
     /// Then the following transactions should be shown:
     /// </summary>
     /// <remarks>
-    /// The table should contain the expected transactions with "Payee" column.
-    /// Feel free to extend this to include other columns as needed.
+    /// The table must contain a "Payee" column and may include "Category" and
+    /// "Split Indicator" columns for additional assertions.
     /// </remarks>
     [Then("the following transactions should be shown:")]
     public async Task TheFollowingTransactionsShouldBeShown(DataTable table)
     {
         var page = _context.GetOrCreatePage<TransactionsPage>();
 
-        var expectedPayees = table.Rows.Select(r => r.GetRequired("Payee")).ToList();
+        await page.ExpectTransactionCountAsync(table.Rows.Count);
 
-        await page.ExpectTransactionCountAsync(expectedPayees.Count);
-
-        foreach (var expectedPayee in expectedPayees)
+        foreach (var row in table.Rows)
         {
+            var expectedPayee = row.GetRequired("Payee");
             await page.ExpectTransactionForAsync(expectedPayee);
+
+            var expectedCategory = row.GetOptional("Category");
+            if (expectedCategory is not null)
+            {
+                var actualCategory = await page.GetTransactionCategoryAsync(expectedPayee);
+                Assert.That(actualCategory?.Trim(), Is.EqualTo(expectedCategory.Trim()),
+                    $"Expected category for '{expectedPayee}' to be '{expectedCategory}' but was '{actualCategory}'");
+            }
+
+            var expectedSplitIndicator = row.GetOptional("Split Indicator");
+            if (expectedSplitIndicator is not null)
+            {
+                var actualSplitIndicator = await page.GetTransactionSplitIndicatorAsync(expectedPayee);
+                Assert.That(actualSplitIndicator, Is.EqualTo(expectedSplitIndicator.Trim()),
+                    $"Expected split indicator for '{expectedPayee}' to be '{expectedSplitIndicator}' but was '{actualSplitIndicator}'");
+            }
         }
     }
 
