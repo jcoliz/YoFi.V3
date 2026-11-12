@@ -91,7 +91,6 @@ Feature: Transaction Filtering
 
   @category:story-2216
   @category:advanced-filtering
-  @explicit:wip
   Rule: Users can combine advanced transaction filters
 
     @id:1
@@ -188,3 +187,15 @@ Feature: Transaction Filtering
       And the following transactions should be shown:
         | Payee             |
         | Cafe Coffee House |
+
+    @id:6
+    Scenario: Unspecified filter fields remain empty after viewing transaction details
+      Given I have a workspace with the following transactions:
+        | Payee             | Amount | Category | Memo          | Date       |
+        | Cafe Coffee House | -12.00 | Food     | Business trip | 2026-04-15 |
+      And my transaction filters are applied:
+        | Filter | Value |
+        | Payee  | Cafe  |
+      When I open the first transaction result
+      And I return to the transaction list
+      Then the search and advanced filter fields should retain their applied values

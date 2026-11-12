@@ -19,7 +19,9 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     [Given("the transaction filter panel is expanded")]
     public async Task TheTransactionFilterPanelIsExpanded()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await EnsureTransactionsPageAsync(page);
+        await page.ExpandFiltersAsync();
     }
 
     /// <summary>
@@ -27,6 +29,7 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     /// </summary>
     [When("I filter transactions by:")]
     [Given("my transaction filters are applied:")]
+    [Provides(ObjectStoreKeys.AppliedTransactionFilters)]
     public async Task IFilterTransactionsBy(DataTable table)
     {
         var page = _context.GetOrCreatePage<TransactionsPage>();
@@ -64,6 +67,7 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
                     throw new ArgumentException($"Unsupported transaction filter '{filter}'.", nameof(table));
             }
         }
+        _context.ObjectStore.Add(ObjectStoreKeys.AppliedTransactionFilters, table);
     }
 
     /// <summary>
@@ -91,7 +95,7 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     }
 
     /// <summary>
-    /// When I click Clear All in the transaction filters
+    /// When I clear all transaction filters
     /// </summary>
     [When("I clear the transaction filters")]
     public async Task IClickClearAllInTheTransactionFilters()
@@ -125,12 +129,22 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     }
 
     /// <summary>
-    /// Then the search and advanced filter fields should retain their applied values
+    /// Verifies applied values and expects unspecified filter fields to be empty.
     /// </summary>
     [Then("the search and advanced filter fields should retain their applied values")]
+    [Requires(ObjectStoreKeys.AppliedTransactionFilters)]
     public async Task TheSearchAndAdvancedFilterFieldsShouldRetainTheirAppliedValues()
     {
-        throw new NotImplementedException();
+        var table = _context.ObjectStore.Get<DataTable>(ObjectStoreKeys.AppliedTransactionFilters);
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        var expectedFilters = new Dictionary<string, string>();
+
+        foreach (var row in table.Rows)
+        {
+            expectedFilters[row.GetRequired("Filter")] = row.GetRequired("Value");
+        }
+
+        await page.ExpectSearchAndFiltersAsync(expectedFilters);
     }
 
     #endregion

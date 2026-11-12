@@ -1229,19 +1229,43 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
-    /// Verifies that quick search and all advanced filter controls are cleared.
+    /// Verifies all filter fields, expecting unspecified values to be empty.
     /// </summary>
-    public async Task ExpectSearchAndFiltersEmptyAsync()
+    public async Task ExpectSearchAndFiltersAsync(IReadOnlyDictionary<string, string> expectedFilters)
     {
-        await Assertions.Expect(SearchInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(FromDateInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(ToDateInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(PayeeFilterInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(CategoryFilterInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(MemoFilterInput).ToHaveValueAsync(string.Empty);
-        await Assertions.Expect(AmountFilterInput).ToHaveValueAsync(string.Empty);
+        var inputs = new Dictionary<string, ILocator>
+        {
+            ["Search"] = SearchInput,
+            ["Payee"] = PayeeFilterInput,
+            ["Category"] = CategoryFilterInput,
+            ["Memo"] = MemoFilterInput,
+            ["Amount"] = AmountFilterInput,
+            ["From Date"] = FromDateInput,
+            ["To Date"] = ToDateInput
+        };
+
+        foreach (var filter in expectedFilters.Keys)
+        {
+            if (!inputs.ContainsKey(filter))
+            {
+                throw new ArgumentException($"Unsupported transaction filter '{filter}'.", nameof(expectedFilters));
+            }
+        }
+
+        foreach (var (filter, input) in inputs)
+        {
+            var value = expectedFilters.TryGetValue(filter, out var expectedValue) ? expectedValue : string.Empty;
+            await Assertions.Expect(input).ToHaveValueAsync(value);
+        }
+
         await Assertions.Expect(UncategorizedOnlyCheckbox).Not.ToBeCheckedAsync();
     }
+
+    /// <summary>
+    /// Verifies that quick search and all advanced filter controls are cleared.
+    /// </summary>
+    public Task ExpectSearchAndFiltersEmptyAsync() =>
+        ExpectSearchAndFiltersAsync(new Dictionary<string, string>());
 
     #endregion
 

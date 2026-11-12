@@ -99,6 +99,11 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string AffectedTransactionKeys = "AffectedTransactionKeys";
 
+    /// <summary>
+    /// Collection of applied transaction filters.
+    /// </summary>
+    public const string AppliedTransactionFilters = "AppliedTransactionFilters";
+
     #endregion
 
     #region Permission Check Keys
