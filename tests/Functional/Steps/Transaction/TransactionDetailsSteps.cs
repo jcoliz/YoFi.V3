@@ -26,6 +26,7 @@ public class TransactionDetailsSteps(ITestContext context) : TransactionStepsBas
     /// Navigates from the transaction details page back to the transactions list page.
     /// </remarks>
     [When("I click \"Back to Transactions\"")]
+    [When("I return to the transaction list")]
     public async Task WhenIClickBackToTransactions()
     {
         // When: Click the back button to return to transactions list
