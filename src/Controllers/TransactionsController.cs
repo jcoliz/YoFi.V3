@@ -28,12 +28,17 @@ namespace YoFi.V3.Controllers;
 public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
 {
     /// <summary>
-    /// Retrieves paginated transactions for the tenant, optionally filtered by date range.
+    /// Retrieves paginated transactions for the tenant, optionally filtered by search, dates, and advanced criteria.
     /// </summary>
     /// <param name="pageNumber">Page number to retrieve (1-based). If not specified, defaults to first page.</param>
     /// <param name="fromDate">The starting date for the date range filter (inclusive). If null, no lower bound is applied.</param>
     /// <param name="toDate">The ending date for the date range filter (inclusive). If null, no upper bound is applied.</param>
     /// <param name="search">Optional search term to filter transactions by text or amount.</param>
+    /// <param name="payee">Optional literal substring filter for transaction payees.</param>
+    /// <param name="category">Optional sanitized substring filter for any split category.</param>
+    /// <param name="memo">Optional literal substring filter for transaction and split memos.</param>
+    /// <param name="amount">Optional exact transaction amount filter, preserving explicit sign semantics.</param>
+    /// <param name="uncategorizedOnly">Whether to include only transactions with an uncategorized split.</param>
     [HttpGet()]
     [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(PaginatedResultDto<TransactionResultDto>), StatusCodes.Status200OK)]
@@ -42,11 +47,17 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
         [FromQuery] int? pageNumber = null,
         [FromQuery] DateOnly? fromDate = null,
         [FromQuery] DateOnly? toDate = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] string? payee = null,
+        [FromQuery] string? category = null,
+        [FromQuery] string? memo = null,
+        [FromQuery] string? amount = null,
+        [FromQuery] bool uncategorizedOnly = false)
     {
         LogStarting();
 
-        var result = await transactionsFeature.GetTransactionsAsync(pageNumber, fromDate, toDate, search);
+        var result = await transactionsFeature.GetTransactionsAsync(
+            pageNumber, fromDate, toDate, search, payee, category, memo, amount, uncategorizedOnly);
 
         LogOkCount(result.Items.Count);
         return Ok(result);

@@ -95,6 +95,65 @@ public class TransactionSearchControllerTests : AuthenticatedTestBase
         Assert.That(result.Metadata.TotalCount, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task GetTransactions_AdvancedFilters_BindTogetherAndPreserveSignedAmount()
+    {
+        var uncategorizedMatch = new Transaction
+        {
+            Payee = "Cafe",
+            Amount = 42m,
+            Memo = "Work trip",
+            Splits =
+            [
+                new Split { Amount = 40m, Category = "Food", Memo = null, Order = 0 },
+                new Split { Amount = 2m, Category = string.Empty, Memo = "Transit", Order = 1 }
+            ]
+        };
+        var categorizedMatch = new Transaction
+        {
+            Payee = "Cafe",
+            Amount = 42m,
+            Memo = "Work trip",
+            Splits = [new Split { Amount = 42m, Category = "Food", Memo = "Transit", Order = 0 }]
+        };
+        await SeedTransactionsAsync(_testTenantKey, uncategorizedMatch, categorizedMatch);
+
+        var query = "payee=cafe&category=%20food%20&memo=transit&amount=%2B42";
+        using var uncategorizedResponse = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions?{query}&uncategorizedOnly=true");
+
+        Assert.That(uncategorizedResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var uncategorizedResult = await uncategorizedResponse.Content
+            .ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(uncategorizedResult, Is.Not.Null);
+        Assert.That(uncategorizedResult!.Items.Select(item => item.Key),
+            Is.EqualTo(new[] { uncategorizedMatch.Key }));
+        Assert.That(uncategorizedResult.Metadata.TotalCount, Is.EqualTo(1));
+
+        using var allResponse = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions?{query}&uncategorizedOnly=false");
+
+        Assert.That(allResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var allResult = await allResponse.Content.ReadFromJsonAsync<PaginatedResultDto<TransactionResultDto>>();
+        Assert.That(allResult, Is.Not.Null);
+        Assert.That(allResult!.Items.Select(item => item.Key),
+            Is.EquivalentTo(new[] { uncategorizedMatch.Key, categorizedMatch.Key }));
+        Assert.That(allResult.Metadata.TotalCount, Is.EqualTo(2));
+    }
+
+    [TestCase("amount=not-an-amount")]
+    [TestCase("amount=79228162514264337593543950336")]
+    public async Task GetTransactions_InvalidAdvancedAmount_Returns400WithProblemDetails(string query)
+    {
+        using var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions?{query}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problem, Is.Not.Null);
+        Assert.That(problem!.Status, Is.EqualTo(400));
+    }
+
     [TestCase("fromDate=2026-10-17&toDate=2026-10-16")]
     [TestCase("fromDate=not-a-date")]
     public async Task GetTransactions_SearchWithInvalidDates_Returns400WithProblemDetails(string dateQuery)
