@@ -30,6 +30,7 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     public async Task IFilterTransactionsBy(DataTable table)
     {
         var page = _context.GetOrCreatePage<TransactionsPage>();
+        await EnsureTransactionsPageAsync(page);
 
         foreach (var row in table.Rows)
         {
@@ -46,6 +47,9 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
                     break;
                 case "Memo":
                     await page.SetMemoFilterAsync(value);
+                    break;
+                case "Amount":
+                    await page.SetAmountFilterAsync(value);
                     break;
                 case "From Date":
                     await page.SetFromDateAsync(value);
@@ -78,7 +82,9 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     [When("I choose the {string1} date filter preset")]
     public async Task IChooseTheDateFilterPreset(string string1)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await EnsureTransactionsPageAsync(page);
+        await page.SetDatePresetAsync(string1);
     }
 
     /// <summary>
@@ -122,4 +128,12 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     }
 
     #endregion
+
+    private async Task EnsureTransactionsPageAsync(TransactionsPage page)
+    {
+        if (!page.IsOnTransactionsPage)
+        {
+            await _listSteps.IAmOnTheTransactionsPage();
+        }
+    }
 }

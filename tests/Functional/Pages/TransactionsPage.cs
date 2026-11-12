@@ -87,6 +87,13 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator FilterPane => Page!.GetByTestId("date-range-filters");
 
     /// <summary>
+    /// Whether the browser is currently displaying the transactions page.
+    /// </summary>
+    public bool IsOnTransactionsPage =>
+        Uri.TryCreate(Page!.Url, UriKind.Absolute, out var currentUri) &&
+        currentUri.AbsolutePath.TrimEnd('/').Equals("/transactions", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// From date filter input
     /// </summary>
     public ILocator FromDateInput => FilterPane.Locator("#fromDate");
@@ -1127,6 +1134,37 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public Task SetMemoFilterAsync(string value) =>
         ApplyTextFilterAsync(MemoFilterInput, value);
+
+    /// <summary>
+    /// Sets and applies the amount filter.
+    /// </summary>
+    public Task SetAmountFilterAsync(string value) =>
+        ApplyTextFilterAsync(AmountFilterInput, value);
+
+    /// <summary>
+    /// Selects a date preset using its stable test ID, then waits for results to load.
+    /// </summary>
+    /// <param name="preset">The displayed preset name.</param>
+    public async Task SetDatePresetAsync(string preset)
+    {
+        var testId = preset switch
+        {
+            "Last 30d" => "date-preset-last30Days",
+            "Last 3mo" => "date-preset-last3Months",
+            "Last 12mo" => "date-preset-last12Months",
+            "This year" => "date-preset-thisYear",
+            "All time" => "date-preset-allTime",
+            _ => throw new ArgumentException($"Unsupported date filter preset '{preset}'.", nameof(preset))
+        };
+
+        await ExpandFiltersAsync();
+        await WaitForApi(async () =>
+        {
+            await FilterPane.GetByTestId(testId).ClickAsync();
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
+    }
 
     /// <summary>
     /// Enables the uncategorized-only filter.
