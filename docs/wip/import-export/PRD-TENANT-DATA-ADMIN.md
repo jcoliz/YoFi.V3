@@ -122,10 +122,21 @@ Transactions have a special relationship with Splits (one-to-many):
 **I want** to export any combination of my entity types with flexible filtering
 **So that** I can get exactly the data I need without downloading everything
 
+**Scenario 2278: Acceptance Criteria for Export Native Payees only**
+
+- [ ] User can download native payees
+- [ ] User can accomplish this from Workspace Administration page (Settings or Workspace menu)
+- [ ] Export section displays checkboxes for each available entity type
+- [ ] System generates single XLSX file with one worksheet per selected entity type
+- [ ] Each worksheet includes ALL fields from entity schema (including Key)
+- [ ] Worksheet names match entity type names
+- [ ] Column headers match entity property names
+- [ ] File downloads with descriptive filename indicating entities selected
+- [ ] System logs export operation (who, when, what types, date range, record counts)
+- [ ] User sees confirmation toast with record counts per entity type
+
 **Acceptance Criteria**:
 
-- [ ] User can navigate to Data Administration page (Settings or Workspace menu)
-- [ ] Export section displays checkboxes for each available entity type
 - [ ] System dynamically discovers entity types (not hardcoded list)
 - [ ] Special handling: "Transactions" checkbox automatically includes Splitss
 - [ ] User can select any combination of entity types (one, some, or all)
@@ -140,13 +151,7 @@ Transactions have a special relationship with Splits (one-to-many):
   - Exports ALL entity types for current tenant with ALL date ranges (no filtering)
   - File downloads as `yofi-complete-export-{date}.xlsx`
   - Primary path for GDPR data portability compliance
-- [ ] System generates single XLSX file with one worksheet per selected entity type
-- [ ] Each worksheet includes ALL fields from entity schema (including Key)
-- [ ] Worksheet names match entity type names
-- [ ] Column headers match entity property names
 - [ ] File downloads with descriptive filename indicating selection and date range
-- [ ] User sees confirmation toast with record counts per entity type
-- [ ] System logs export operation (who, when, what types, date range, record counts)
 
 ### Story 2221: User - Import Data with Automatic Detection
 
@@ -154,7 +159,7 @@ Transactions have a special relationship with Splits (one-to-many):
 **I want** to import an XLSX file and have the system automatically detect what entity types it contains
 **So that** I don't have to specify what I'm importing
 
-**Scenario 2233: Acceptance Criteria for Payees only**:
+**Scenario 2233: Acceptance Criteria for Original Payees only**:
 
 For initial implementation we will implement payees ONLY (scenario 2233)
 
@@ -174,6 +179,14 @@ For initial implementation we will implement payees ONLY (scenario 2233)
 - [ ] If any records fail, user can download error report (CSV format)
 - [ ] Import is transactional per worksheet (all or nothing per entity type)
 - [ ] System logs import operation (who, when, what types, success/failure counts)
+
+**Scenario 2279: Acceptance Criteria for Import Native Payees only**
+
+For next step, we will implement the ability to export (Scenario 2278) and import (Scenario 2279)
+native payees. The above criteria apply, plus:
+
+- [ ] Accepts native (new) YoFi export format
+- [ ] System automatically detects native payee worksheets present and maps to Payee Rules type
 
 **Remaining Acceptance Criteria**
 
