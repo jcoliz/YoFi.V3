@@ -103,6 +103,7 @@ export default defineNuxtConfig({
   },
   appConfig: {
     name: 'YoFi.V3',
+    icon: 'dollar-sign',
   },
   nitro: {
     prerender: {

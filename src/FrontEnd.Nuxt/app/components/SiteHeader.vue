@@ -25,7 +25,7 @@ const displayRoutes = useRouter()
       >
         <FeatherIcon
           class="me-2"
-          icon="box"
+          :icon="appConfig.icon ?? 'box'"
           size="32"
         />
         <span class="fs-4">{{ appConfig.name }}</span>
