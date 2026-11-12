@@ -1,4 +1,5 @@
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Pages;
 
 namespace YoFi.V3.Tests.Functional.Steps.Transaction;
 
@@ -22,11 +23,37 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     /// <summary>
     /// When I filter transactions by:
     /// </summary>
-    [Given("my transaction filters are applied:")]
     [When("I filter transactions by:")]
     public async Task IFilterTransactionsBy(DataTable table)
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+
+        foreach (var row in table.Rows)
+        {
+            var filter = row.GetRequired("Filter");
+            var value = row.GetRequired("Value");
+
+            switch (filter)
+            {
+                case "Payee":
+                    await page.SetPayeeFilterAsync(value);
+                    break;
+                case "Category":
+                    await page.SetCategoryFilterAsync(value);
+                    break;
+                case "Memo":
+                    await page.SetMemoFilterAsync(value);
+                    break;
+                case "From Date":
+                    await page.SetFromDateAsync(value);
+                    break;
+                case "To Date":
+                    await page.SetToDateAsync(value);
+                    break;
+                default:
+                    throw new ArgumentException($"Unsupported transaction filter '{filter}'.", nameof(table));
+            }
+        }
     }
 
     /// <summary>

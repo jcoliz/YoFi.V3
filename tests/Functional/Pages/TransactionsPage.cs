@@ -1076,8 +1076,12 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task SetFromDateAsync(string date)
     {
         await ExpandFiltersAsync();
-        await FromDateInput.FillAsync(date);
-        // The filter commits when the date input changes.
+        await WaitForApi(async () =>
+        {
+            await FromDateInput.FillAsync(date);
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
     }
 
     /// <summary>
@@ -1087,8 +1091,12 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task SetToDateAsync(string date)
     {
         await ExpandFiltersAsync();
-        await ToDateInput.FillAsync(date);
-        // The filter commits when the date input changes.
+        await WaitForApi(async () =>
+        {
+            await ToDateInput.FillAsync(date);
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
     }
 
     /// <summary>
@@ -1098,10 +1106,38 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// <param name="toDate">To date in YYYY-MM-DD format</param>
     public async Task SetDateRangeAsync(string fromDate, string toDate)
     {
+        await SetFromDateAsync(fromDate);
+        await SetToDateAsync(toDate);
+    }
+
+    /// <summary>
+    /// Sets and applies the payee filter.
+    /// </summary>
+    public Task SetPayeeFilterAsync(string value) =>
+        ApplyTextFilterAsync(PayeeFilterInput, value);
+
+    /// <summary>
+    /// Sets and applies the category filter.
+    /// </summary>
+    public Task SetCategoryFilterAsync(string value) =>
+        ApplyTextFilterAsync(CategoryFilterInput, value);
+
+    /// <summary>
+    /// Sets and applies the memo filter.
+    /// </summary>
+    public Task SetMemoFilterAsync(string value) =>
+        ApplyTextFilterAsync(MemoFilterInput, value);
+
+    private async Task ApplyTextFilterAsync(ILocator input, string value)
+    {
         await ExpandFiltersAsync();
-        await FromDateInput.FillAsync(fromDate);
-        await ToDateInput.FillAsync(toDate);
-        // The final date change commits the complete range.
+        await WaitForApi(async () =>
+        {
+            await input.FillAsync(value);
+            await input.PressAsync("Enter");
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
     }
 
     /// <summary>
