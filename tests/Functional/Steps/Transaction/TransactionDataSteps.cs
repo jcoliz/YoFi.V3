@@ -89,9 +89,10 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// use separate navigation step. Default amount is 100.00 if not specified.
     ///
     /// Table format:
-    /// | Payee       | Amount | Category  | Memo           |
-    /// | Coffee Shop | 5.50   | Beverages | Morning coffee |
-    /// | Book Store  | 12.00  | Books     |                |
+    /// | Payee       | Amount | Category  | Memo           | Date       | Days Ago |
+    /// | Coffee Shop | 5.50   | Beverages | Morning coffee |            | 3        |
+    /// | Book Store  | 12.00  | Books     |                | 2024-01-05 |          |
+    /// Date takes precedence when both Date and Days Ago are supplied.
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
     [Given("I have a workspace with the following transactions:")]
@@ -112,6 +113,8 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
                 row.TryGetValue(column, out var value) ? value : null;
 
             var amountValue = GetValue("Amount");
+            var dateValue = row.GetOptional<DateTimeOffset>("Date");
+            var daysAgo = row.GetOptional<int>("Days Ago");
             return new TransactionEditDto
             {
                 Payee = row.GetRequired("Payee"),
@@ -120,7 +123,9 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
                 Source = row.GetOptional("Source"),
                 ExternalId = row.GetOptional("ExternalId"),
                 Category = row.GetOptional("Category") ?? string.Empty,
-                Date = row.GetOptional<DateTimeOffset>("Date") ?? DateTimeOffset.UtcNow
+                Date = dateValue ?? (daysAgo.HasValue
+                    ? DateTimeOffset.UtcNow.AddDays(-daysAgo.Value)
+                    : DateTimeOffset.UtcNow)
             };
         }).ToArray();
 

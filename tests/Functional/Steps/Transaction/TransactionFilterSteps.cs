@@ -26,6 +26,7 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     /// When I filter transactions by:
     /// </summary>
     [When("I filter transactions by:")]
+    [Given("my transaction filters are applied:")]
     public async Task IFilterTransactionsBy(DataTable table)
     {
         var page = _context.GetOrCreatePage<TransactionsPage>();
