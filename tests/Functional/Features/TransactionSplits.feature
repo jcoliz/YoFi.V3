@@ -1,4 +1,4 @@
-@category:1982
+@category:feature-1982
 @category:transaction-splits
 Feature: Transaction Splits
 
@@ -12,7 +12,7 @@ Feature: Transaction Splits
         Given the application is running
         And I am logged in as a user with "Editor" role
 
-    @category:2252
+    @category:story-2252
     @category:add-splits
     Rule: Add a single split to an existing transaction
 
@@ -50,7 +50,7 @@ Feature: Transaction Splits
             And the transaction amount remains -250.00
             And the transaction is balanced
 
-    @category:2250
+    @category:story-2250
     @category:view-splits
     Rule: View splits on list and details page
 
