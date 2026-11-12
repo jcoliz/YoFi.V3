@@ -39,6 +39,9 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
 
             switch (filter)
             {
+                case "Search":
+                    await page.SearchAsync(value);
+                    break;
                 case "Payee":
                     await page.SetPayeeFilterAsync(value);
                     break;
@@ -93,7 +96,8 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     [When("I clear the transaction filters")]
     public async Task IClickClearAllInTheTransactionFilters()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.ClearAllAsync();
     }
 
     #endregion
@@ -106,7 +110,8 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     [Then("the transaction filter panel should remain open")]
     public async Task TheTransactionFilterPanelShouldRemainOpen()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.ExpectFiltersExpandedAsync();
     }
 
     /// <summary>
@@ -115,7 +120,8 @@ public class TransactionFilterSteps(ITestContext context) : TransactionStepsBase
     [Then("the search and advanced filter fields should be empty")]
     public async Task TheSearchAndAdvancedFilterFieldsShouldBeEmpty()
     {
-        throw new NotImplementedException();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.ExpectSearchAndFiltersEmptyAsync();
     }
 
     /// <summary>

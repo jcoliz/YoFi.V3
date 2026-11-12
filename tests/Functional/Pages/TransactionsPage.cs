@@ -1211,11 +1211,36 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task ClearAllAsync()
     {
         await ExpandFiltersAsync();
-        await ClearAllButton.ClickAsync();
-        await Page!.GetByTestId("transaction-result-count").WaitForAsync(new()
+        await WaitForApi(async () =>
         {
-            State = WaitForSelectorState.Visible
-        });
+            await ClearAllButton.ClickAsync();
+        }, TransactionsApiRegex());
+        await WaitForLoadingCompleteAsync();
+        _cachedTableData = null;
+    }
+
+    /// <summary>
+    /// Verifies that the advanced filter panel remains expanded and visible.
+    /// </summary>
+    public async Task ExpectFiltersExpandedAsync()
+    {
+        await Assertions.Expect(FiltersToggleButton).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(FilterPane).ToBeVisibleAsync();
+    }
+
+    /// <summary>
+    /// Verifies that quick search and all advanced filter controls are cleared.
+    /// </summary>
+    public async Task ExpectSearchAndFiltersEmptyAsync()
+    {
+        await Assertions.Expect(SearchInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(FromDateInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(ToDateInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(PayeeFilterInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(CategoryFilterInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(MemoFilterInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(AmountFilterInput).ToHaveValueAsync(string.Empty);
+        await Assertions.Expect(UncategorizedOnlyCheckbox).Not.ToBeCheckedAsync();
     }
 
     #endregion

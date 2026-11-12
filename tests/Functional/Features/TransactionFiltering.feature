@@ -59,7 +59,7 @@ Feature: Transaction Filtering
         | Starbucks Coffee | -5.50  | Drinks   |
         | Gas Mart         | -40.00 | Auto     |
       And I have searched for transactions matching "coffee"
-      When I click on the first seeded transaction
+      When I open the first transaction result
       And I click "Back to Transactions"
       Then I should return to the transaction list
       And the search box should contain "coffee"
