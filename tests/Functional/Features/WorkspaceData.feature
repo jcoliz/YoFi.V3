@@ -60,7 +60,6 @@ Feature: Workspace Data Administration
   Rule: Import data into workspace
 
     @category:scenario-2233
-    @explicit:wip
     Scenario: Import original YoFi Payees into workspace
       When I upload a file containing original YoFi Payees
       And I preview and confirm the upload

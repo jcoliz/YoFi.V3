@@ -45,6 +45,35 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator DownloadSampleOFXButton => Page.GetByTestId("download-sample-ofx-button");
 
     public ILocator DeleteDataButton => Page.GetByTestId("delete-data-button");
+    public ILocator ImportFileInput => Page.GetByTestId("import-file-input");
+    public ILocator PreviewImportButton => Page.GetByTestId("preview-import-button");
+    public ILocator ImportPreview => Page.GetByTestId("import-preview");
+    public ILocator ImportPayeesButton => Page.GetByTestId("import-payees-button");
+    public ILocator ImportConfirmModal => Page.GetByTestId("import-payees-confirm-modal");
+    public ILocator ImportConfirmButton => ImportConfirmModal.GetByTestId("import-payees-confirm-button");
+    public ILocator ImportResult => Page.GetByTestId("import-result");
+
+    public async Task UploadImportWorkbookAsync(string fileName, byte[] contents)
+    {
+        await ImportFileInput.SetInputFilesAsync(new FilePayload
+        {
+            Name = fileName,
+            MimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            Buffer = contents
+        });
+        await PreviewImportButton.WaitForAsync();
+        await Assertions.Expect(PreviewImportButton).ToBeEnabledAsync();
+    }
+
+    public async Task PreviewAndConfirmImportAsync()
+    {
+        await PreviewImportButton.ClickAsync();
+        await ImportPreview.WaitForAsync();
+        await ImportPayeesButton.ClickAsync();
+        await ImportConfirmModal.WaitForAsync();
+        await ImportConfirmButton.ClickAsync();
+        await ImportResult.WaitForAsync();
+    }
 
     public async Task WaitForWorkspaceAsync(string name)
     {

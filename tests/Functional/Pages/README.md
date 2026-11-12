@@ -18,6 +18,9 @@ intentionally not implemented yet.
 See [writing page objects](../docs/writing-pages.md) for the authoring guide and
 [the Nuxt hydration pattern](../docs/NUXT-SSR-TESTING-PATTERN.md) for client-readiness requirements.
 
+[`WorkspaceManagementPage`](WorkspaceManagementPage.cs) supports uploading an in-memory XLSX
+workbook, previewing it, confirming the import, and waiting for the visible import result.
+
 [`ReportsPage`](ReportsPage.cs) supports the representative-report and selection
 persistence scenarios: selecting and reloading a report, checking the selected
 and displayed report, finding categories, reading the annual grand total, and
