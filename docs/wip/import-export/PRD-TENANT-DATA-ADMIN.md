@@ -124,6 +124,9 @@ Transactions have a special relationship with Splits (one-to-many):
 
 **Scenario 2278: Acceptance Criteria for Export Native Payees only**
 
+Scenarios 2278 and 2279 are designed and delivered together as Scenario 2279;
+see [Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md).
+
 - [ ] User can download native payees
 - [ ] User can accomplish this from Workspace Administration page (Settings or Workspace menu)
 - [ ] Export section displays checkboxes for each available entity type
@@ -332,8 +335,9 @@ workbook format identifier, not schema-version metadata.
 
 The importer treats a recognized format marker as authoritative. If the marker
 is absent, it may detect original YoFi using that format's worksheet and header
-signatures; it must not guess when the evidence is unknown or ambiguous. The
-exporter's production of this metadata worksheet will be specified in its design.
+signatures; it must not guess when the evidence is unknown or ambiguous. Native
+payee export/import metadata and worksheet details are specified in
+[Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md).
 
 ### Original YoFi export format
 

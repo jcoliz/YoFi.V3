@@ -5,6 +5,7 @@ related_docs:
   - DESIGN-SAMPLE-DATA.md
   - DESIGN-MANAGE-WORKSPACE.md
   - DESIGN-DATA-IMPORT-PAYEES.md
+  - DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md
 ado: Feature 2206
 ---
 
@@ -95,12 +96,14 @@ according to declared dependencies (for example, transactions before splits)
 and blocks dependents when prerequisites fail. The first payee-only path has
 no cross-worksheet dependencies.
 
-The first increment implements only the original YoFi `Payee` worksheet
-handler. It maps to V3 payee matching rules, as detailed in
-[Import Original YoFi Payees](DESIGN-DATA-IMPORT-PAYEES.md). It is the first
-handler behind the shared orchestration contract, not the intended pattern of
-one public import service per original YoFi data type. Native YoFi.V3 detection
-and other data-type handlers are later increments.
+The original YoFi `Payee` worksheet handler maps to V3 payee matching rules,
+as detailed in [Import Original YoFi Payees](DESIGN-DATA-IMPORT-PAYEES.md).
+The joint Scenario 2278/2279 delivery adds native payee-rule export and import,
+as detailed in
+[Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md). Both
+formats use the shared import orchestration contract; format-specific handlers
+own their distinct mapping and validation. Other data-type handlers remain
+later increments.
 
 ## Proposed Endpoints
 
@@ -231,9 +234,11 @@ HTTP status rules and persistence boundaries remain to be designed rather than
 inherited from the superseded developer workflow. Do not expose internal numeric
 database IDs or evaluate spreadsheet formulas.
 
-The initial legacy-import scope is limited to payees from an original YoFi
-`Payee` worksheet; see [Import Original YoFi Payees](DESIGN-IMPORT-DATA-AUTO-DETECTION-PAYEES.md)
-for the legacy field mapping, preview, validation, and create-only behavior.
+Payee import supports original YoFi and native YoFi.V3 formats through separate
+handlers. See [Import Original YoFi Payees](DESIGN-DATA-IMPORT-PAYEES.md) for
+the legacy field mapping and create-only behavior, and
+[Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md) for the
+native workbook contract and Key-based update/create behavior.
 
 ## Cross-Cutting Requirements
 
