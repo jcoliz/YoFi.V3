@@ -163,7 +163,7 @@ Feature: Transaction Filtering
         | Memo      | trip       |
         | From Date | 2026-04-01 |
         | To Date   | 2026-04-30 |
-      When I click Clear All in the transaction filters
+      When I clear the transaction filters
       Then I should see exactly 3 transactions
       And the transaction filter panel should remain open
       And the search and advanced filter fields should be empty
