@@ -2217,13 +2217,18 @@ export class TransactionsClient {
     }
 
     /**
-     * Retrieves paginated transactions for the tenant, optionally filtered by date range.
+     * Retrieves paginated transactions for the tenant, optionally filtered by search, dates, and advanced criteria.
      * @param pageNumber (optional) Page number to retrieve (1-based). If not specified, defaults to first page.
      * @param fromDate (optional) The starting date for the date range filter (inclusive). If null, no lower bound is applied.
      * @param toDate (optional) The ending date for the date range filter (inclusive). If null, no upper bound is applied.
      * @param search (optional) Optional search term to filter transactions by text or amount.
+     * @param payee (optional) Optional literal substring filter for transaction payees.
+     * @param category (optional) Optional sanitized substring filter for any split category.
+     * @param memo (optional) Optional literal substring filter for transaction and split memos.
+     * @param amount (optional) Optional exact transaction amount filter, preserving explicit sign semantics.
+     * @param uncategorizedOnly (optional) Whether to include only transactions with an uncategorized split.
      */
-    getTransactions(pageNumber: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, search: string | null | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
+    getTransactions(pageNumber: number | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, search: string | null | undefined, payee: string | null | undefined, category: string | null | undefined, memo: string | null | undefined, amount: string | null | undefined, uncategorizedOnly: boolean | undefined, tenantKey: string): Promise<PaginatedResultDtoOfTransactionResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
@@ -2236,6 +2241,18 @@ export class TransactionsClient {
             url_ += "toDate=" + encodeURIComponent(toDate ? formatDate(toDate) : "") + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (payee !== undefined && payee !== null)
+            url_ += "payee=" + encodeURIComponent("" + payee) + "&";
+        if (category !== undefined && category !== null)
+            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (memo !== undefined && memo !== null)
+            url_ += "memo=" + encodeURIComponent("" + memo) + "&";
+        if (amount !== undefined && amount !== null)
+            url_ += "amount=" + encodeURIComponent("" + amount) + "&";
+        if (uncategorizedOnly === null)
+            throw new globalThis.Error("The parameter 'uncategorizedOnly' cannot be null.");
+        else if (uncategorizedOnly !== undefined)
+            url_ += "uncategorizedOnly=" + encodeURIComponent("" + uncategorizedOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
