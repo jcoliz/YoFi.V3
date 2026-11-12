@@ -40,12 +40,24 @@ internal static partial class TransactionSearchHelper
 
         // Keep matching in the provider; SQLite's built-in lower() is ASCII-only.
         var normalizedTerm = term.ToLowerInvariant();
+        var normalizedCategoryTerm = CategoryHelper.SanitizeCategory(term).ToLowerInvariant();
         var hasAmountSearch = TryParseAmount(term, out var amountSearch);
+
+        if (string.IsNullOrEmpty(normalizedCategoryTerm))
+        {
+            return query.Where(transaction =>
+                transaction.Payee.ToLower().Contains(normalizedTerm)
+                || (transaction.Memo != null && transaction.Memo.ToLower().Contains(normalizedTerm))
+                || transaction.Splits.Any(split => split.Memo != null && split.Memo.ToLower().Contains(normalizedTerm))
+                || (hasAmountSearch
+                    && (transaction.Amount == amountSearch.Amount
+                        || (!amountSearch.HasExplicitSign && transaction.Amount == -amountSearch.Amount))));
+        }
 
         return query.Where(transaction =>
             transaction.Payee.ToLower().Contains(normalizedTerm)
             || (transaction.Memo != null && transaction.Memo.ToLower().Contains(normalizedTerm))
-            || transaction.Splits.Any(split => split.Category.ToLower().Contains(normalizedTerm))
+            || transaction.Splits.Any(split => split.Category.ToLower().Contains(normalizedCategoryTerm))
             || transaction.Splits.Any(split => split.Memo != null && split.Memo.ToLower().Contains(normalizedTerm))
             || (hasAmountSearch
                 && (transaction.Amount == amountSearch.Amount

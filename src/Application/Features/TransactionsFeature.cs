@@ -25,37 +25,30 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// <param name="fromDate">Optional start date for filtering transactions (inclusive).</param>
     /// <param name="toDate">Optional end date for filtering transactions (inclusive).</param>
     /// <param name="search">Optional search term for transaction payee, memos, split categories, and amount.</param>
+    /// <param name="payee">Optional literal substring filter for transaction payees.</param>
+    /// <param name="category">Optional sanitized substring filter for split categories.</param>
+    /// <param name="memo">Optional literal substring filter for transaction and split memos.</param>
+    /// <param name="amount">Optional exact transaction amount filter.</param>
+    /// <param name="uncategorizedOnly">Whether to include only transactions with an uncategorized split.</param>
     /// <returns>Paginated result containing transactions and pagination metadata.</returns>
     public async Task<PaginatedResultDto<TransactionResultDto>> GetTransactionsAsync(
         int? pageNumber = null,
         DateOnly? fromDate = null,
         DateOnly? toDate = null,
-        string? search = null)
+        string? search = null,
+        string? payee = null,
+        string? category = null,
+        string? memo = null,
+        string? amount = null,
+        bool uncategorizedOnly = false)
     {
         // Apply defaults
         var actualPageNumber = pageNumber ?? 1;
 
-        // Validate date range logic
-        if (fromDate.HasValue && toDate.HasValue && fromDate > toDate)
-        {
-            throw new ValidationException(
-                nameof(fromDate),
-                "From date cannot be later than to date."
-            );
-        }
-
         var query = GetBaseTransactionQuery();
         query = TransactionSearchHelper.Apply(query, search);
-
-        if (fromDate.HasValue)
-        {
-            query = query.Where(t => t.Date >= fromDate.Value);
-        }
-
-        if (toDate.HasValue)
-        {
-            query = query.Where(t => t.Date <= toDate.Value);
-        }
+        query = TransactionFilterHelper.Apply(
+            query, fromDate, toDate, payee, category, memo, amount, uncategorizedOnly);
 
         // Get total count before pagination
         var totalCount = await dataProvider.CountAsync(query);
