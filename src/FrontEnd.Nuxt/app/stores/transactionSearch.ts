@@ -8,20 +8,16 @@
  */
 
 import { defineStore } from 'pinia'
+import {
+  emptyTransactionAdvancedFilters,
+  type TransactionAdvancedFilters,
+} from '~/types/transactionFilters'
 
 export const useTransactionSearchStore = defineStore('transactionSearch', () => {
   // State
   const searchText = ref('')
-
-  /**
-   * Start date filter (inclusive), in YYYY-MM-DD format, or empty for no lower bound.
-   */
-  const fromDate = ref('')
-
-  /**
-   * End date filter (inclusive), in YYYY-MM-DD format, or empty for no upper bound.
-   */
-  const toDate = ref('')
+  const filters = ref<TransactionAdvancedFilters>(emptyTransactionAdvancedFilters())
+  const showFilters = ref(false)
 
   /**
    * Current page number (1-based).
@@ -33,7 +29,18 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
   /**
    * Whether any filter (excluding the search term) is currently applied.
    */
-  const hasActiveFilters = computed(() => !!fromDate.value || !!toDate.value)
+  const hasActiveFilters = computed(() => {
+    const activeFilters = filters.value
+    return (
+      !!activeFilters.fromDate ||
+      !!activeFilters.toDate ||
+      !!activeFilters.payee.trim() ||
+      !!activeFilters.category.trim() ||
+      !!activeFilters.memo.trim() ||
+      !!activeFilters.amount.trim() ||
+      activeFilters.uncategorizedOnly
+    )
+  })
 
   // Actions
   function clearSearch() {
@@ -44,8 +51,21 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
    * Clears all filters, leaving the search term intact.
    */
   function clearFilters() {
-    fromDate.value = ''
-    toDate.value = ''
+    filters.value = emptyTransactionAdvancedFilters()
+  }
+
+  function setFilters(nextFilters: TransactionAdvancedFilters) {
+    filters.value = { ...nextFilters }
+    currentPage.value = 1
+  }
+
+  /**
+   * Clears the entire query while preserving the panel's expanded state.
+   */
+  function clearAll() {
+    clearSearch()
+    clearFilters()
+    currentPage.value = 1
   }
 
   /**
@@ -55,19 +75,22 @@ export const useTransactionSearchStore = defineStore('transactionSearch', () => 
     clearSearch()
     clearFilters()
     currentPage.value = 1
+    showFilters.value = false
   }
 
   return {
     // State
     searchText,
-    fromDate,
-    toDate,
+    filters,
+    showFilters,
     currentPage,
     // Getters
     hasActiveFilters,
     // Actions
     clearSearch,
     clearFilters,
+    setFilters,
+    clearAll,
     reset,
   }
 })

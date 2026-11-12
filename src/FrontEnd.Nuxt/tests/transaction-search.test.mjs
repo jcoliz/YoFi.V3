@@ -31,7 +31,23 @@ function loadScript(source, globals, imports = {}) {
   return exports
 }
 
-const { useTransactionSearchStore } = loadScript(storeSource, { ref, computed })
+const { useTransactionSearchStore } = loadScript(
+  storeSource,
+  { ref, computed },
+  {
+    '~/types/transactionFilters': {
+      emptyTransactionAdvancedFilters: () => ({
+        fromDate: '',
+        toDate: '',
+        payee: '',
+        category: '',
+        memo: '',
+        amount: '',
+        uncategorizedOnly: false,
+      }),
+    },
+  },
+)
 const { ssrRender } = loadScript(
   compileTemplate({
     source: descriptor.template.content,
@@ -50,6 +66,7 @@ function renderPage(page) {
     'FeatherIcon',
     'ErrorDisplay',
     'SearchFilterBar',
+    'TransactionFilterPanel',
     'BaseSpinner',
     'TransactionCreateModal',
     'TransactionEditModal',
@@ -77,10 +94,11 @@ function harness(t) {
   })
   const requests = []
   let failRequest = false
-  let pendingRequest
+  const pendingRequests = []
 
   async function mount() {
     let initialize
+    let cleanup
     const scope = effectScope()
     t.after(() => scope.stop())
     const { default: component } = loadScript(
@@ -89,17 +107,21 @@ function harness(t) {
         ref,
         computed,
         watch,
+        onBeforeUnmount(callback) {
+          cleanup = callback
+        },
         storeToRefs,
         definePageMeta() {},
         navigateTo() {},
         useApiClient: () => ({
           async getTransactions(...args) {
             requests.push(args)
+            const pendingRequest = pendingRequests.shift()
             if (pendingRequest) await pendingRequest
             if (failRequest) throw new Error('Request failed')
             return {
               items: [{ key: `page-${args[0]}` }],
-              metadata: { pageNumber: args[0], totalPages: 3 },
+              metadata: { pageNumber: args[0], totalPages: 3, totalCount: 3 },
             }
           },
         }),
@@ -114,12 +136,21 @@ function harness(t) {
         '~/stores/userPreferences': { useUserPreferencesStore: () => preferences },
         '~/utils/apiclient': { TenantRole: { Viewer: 1, Editor: 2, Owner: 3 } },
         '~/utils/errorHandler': { handleApiError: (error) => ({ detail: error.message }) },
-        '~/utils/dateOnly': { formatDateOnly: (date) => date },
+        '~/utils/dateOnly': {
+          formatDateOnly: (date) => date,
+          fromDateInputValue: (date) => new Date(`${date}T00:00:00`),
+        },
       },
     )
     const page = scope.run(() => component.setup({}, { expose() {} }))
     await initialize()
-    return { page, unmount: () => scope.stop() }
+    return {
+      page,
+      unmount() {
+        cleanup?.()
+        scope.stop()
+      },
+    }
   }
 
   return {
@@ -130,7 +161,8 @@ function harness(t) {
     fail: () => (failRequest = true),
     pause() {
       let resume
-      pendingRequest = new Promise((resolve) => (resume = resolve))
+      const pendingRequest = new Promise((resolve) => (resume = resolve))
+      pendingRequests.push(pendingRequest)
       return resume
     },
   }
@@ -162,8 +194,14 @@ test('keeps the table and pagination in the layout while the next page is loadin
 test('retains the selected page and filters when returning from transaction details', async (t) => {
   const { store, requests, mount } = harness(t)
   store.searchText = 'Coffee'
-  store.fromDate = '2026-01-01'
-  store.toDate = '2026-01-31'
+  store.filters.fromDate = '2026-01-01'
+  store.filters.toDate = '2026-01-31'
+  store.filters.payee = 'Cafe'
+  store.filters.category = 'Food'
+  store.filters.memo = 'Trip'
+  store.filters.amount = '+42'
+  store.filters.uncategorizedOnly = true
+  store.showFilters = true
   const first = await mount()
   assert.equal(requests.at(-1)[0], 1)
 
@@ -175,13 +213,19 @@ test('retains the selected page and filters when returning from transaction deta
   const second = await mount()
   assert.deepEqual(requests.at(-1), [
     2,
-    new Date('2026-01-01'),
-    new Date('2026-01-31'),
+    new Date(2026, 0, 1),
+    new Date(2026, 0, 31),
     'Coffee',
+    'Cafe',
+    'Food',
+    'Trip',
+    '+42',
+    true,
     'workspace-one',
   ])
   assert.equal(second.page.currentPage.value, 2)
   assert.equal(second.page.transactions.value[0].key, 'page-2')
+  assert.equal(second.page.showFilters.value, true)
 
   await second.page.loadTransactions()
   assert.equal(requests.at(-1)[0], 2)
@@ -190,10 +234,10 @@ test('retains the selected page and filters when returning from transaction deta
 test('search and filter changes return to page 1', async (t) => {
   const { store, requests, mount } = harness(t)
   const { page } = await mount()
-  for (const clear of [page.clearSearch, page.clearFilters]) {
+  for (const clear of [page.handleClearSearch, page.handleClearAll]) {
     await page.loadTransactions(2)
     store.searchText = 'Coffee'
-    store.fromDate = '2026-01-01'
+    store.filters.fromDate = '2026-01-01'
     clear()
     await nextTick()
     assert.equal(requests.at(-1)[0], 1)
@@ -214,7 +258,26 @@ test('workspace changes return to page 1', async (t) => {
   await nextTick()
   assert.equal(store.currentPage, 1)
   assert.equal(requests.at(-1)[0], 1)
-  assert.equal(requests.at(-1)[4], 'workspace-two')
+  assert.equal(requests.at(-1)[9], 'workspace-two')
+})
+
+test('out-of-order responses from an old workspace cannot replace the new workspace results', async (t) => {
+  const { preferences, requests, mount, pause } = harness(t)
+  const { page } = await mount()
+  const resumeOldRequest = pause()
+  const oldWorkspaceLoad = page.loadTransactions(2)
+
+  preferences.getCurrentTenantKey = 'workspace-two'
+  await nextTick()
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.equal(requests.at(-1)[9], 'workspace-two')
+  assert.equal(page.transactions.value[0].key, 'page-1')
+
+  resumeOldRequest()
+  await oldWorkspaceLoad
+  assert.equal(page.transactions.value[0].key, 'page-1')
+  assert.equal(page.currentPage.value, 1)
+  assert.equal(page.loading.value, false)
 })
 
 test('failed page loads preserve the last successfully loaded page and display an error', async (t) => {
@@ -235,13 +298,50 @@ test('failed page loads preserve the last successfully loaded page and display a
 test('reset clears retained search state including pagination', () => {
   const store = useTransactionSearchStore(createPinia())
   store.searchText = 'Coffee'
-  store.fromDate = '2026-01-01'
-  store.toDate = '2026-01-31'
+  store.filters.fromDate = '2026-01-01'
+  store.filters.toDate = '2026-01-31'
+  store.filters.payee = 'Cafe'
+  store.filters.category = 'Food'
+  store.filters.memo = 'Trip'
+  store.filters.amount = '+42'
+  store.filters.uncategorizedOnly = true
   store.currentPage = 2
+  store.showFilters = true
   store.reset()
   assert.equal(store.searchText, '')
-  assert.equal(store.fromDate, '')
-  assert.equal(store.toDate, '')
+  assert.deepEqual(store.filters, {
+    fromDate: '',
+    toDate: '',
+    payee: '',
+    category: '',
+    memo: '',
+    amount: '',
+    uncategorizedOnly: false,
+  })
   assert.equal(store.hasActiveFilters, false)
   assert.equal(store.currentPage, 1)
+  assert.equal(store.showFilters, false)
+})
+
+test('clear search preserves panel filters while Clear All clears the query and keeps the panel expanded', () => {
+  const store = useTransactionSearchStore(createPinia())
+  store.searchText = 'Coffee'
+  store.filters.amount = '0'
+  store.filters.payee = 'Cafe'
+  store.showFilters = true
+  store.currentPage = 3
+
+  store.clearSearch()
+  assert.equal(store.searchText, '')
+  assert.equal(store.filters.amount, '0')
+  assert.equal(store.filters.payee, 'Cafe')
+  assert.equal(store.currentPage, 3)
+  assert.equal(store.hasActiveFilters, true)
+
+  store.searchText = 'Tea'
+  store.clearAll()
+  assert.equal(store.searchText, '')
+  assert.equal(store.hasActiveFilters, false)
+  assert.equal(store.currentPage, 1)
+  assert.equal(store.showFilters, true)
 })

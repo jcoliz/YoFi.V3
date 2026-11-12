@@ -3,7 +3,7 @@
  * Transactions Page
  *
  * Displays and manages transactions for the selected workspace.
- * Supports viewing, creating, quick editing, searching, filtering by date range, and creating payee rules.
+ * Supports viewing, creating, quick editing, searching, advanced filtering, and creating payee rules.
  * Delete functionality is restricted to the transaction details page only.
  */
 
@@ -21,6 +21,7 @@ import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
 import { handleApiError } from '~/utils/errorHandler'
 import { formatDateOnly, fromDateInputValue } from '~/utils/dateOnly'
+import type { TransactionAdvancedFilters } from '~/types/transactionFilters'
 
 definePageMeta({
   title: 'Transactions',
@@ -95,17 +96,26 @@ const showCreateRuleModal = ref(false)
 const selectedTransaction = ref<TransactionResultDto | null>(null)
 
 /**
- * Whether the date range filters pane is expanded.
- */
-const showFilters = ref(false)
-
-/**
  * Search term, filter criteria, and current page for transactions.
  * Kept in a store so they survive navigating to transaction details and back.
  */
 const transactionSearchStore = useTransactionSearchStore()
-const { searchText, fromDate, toDate, currentPage, hasActiveFilters } =
+const { searchText, filters, showFilters, currentPage, hasActiveFilters } =
   storeToRefs(transactionSearchStore)
+const searchDraft = ref(searchText.value)
+const filterPanel = ref<{
+  validateAndCommit: (options?: {
+    emit?: boolean
+    focusInvalid?: boolean
+  }) => TransactionAdvancedFilters | null
+  resetDraft: () => void
+} | null>(null)
+let requestVersion = 0
+const retryPageNumber = ref(1)
+
+watch(searchText, (value) => {
+  searchDraft.value = value
+})
 
 /**
  * The unique key of the currently selected workspace.
@@ -142,12 +152,20 @@ const canManageWorkspace = computed(() => {
  * Clears transaction list when no workspace is selected.
  */
 watch(currentTenantKey, async (newKey) => {
+  requestVersion++
+  paginatedResult.value = undefined
+  error.value = undefined
+  showError.value = false
+  loading.value = false
+  filterPanel.value?.resetDraft()
   currentPage.value = 1
   if (newKey) {
     await loadTransactions(1)
-  } else {
-    paginatedResult.value = undefined
   }
+})
+
+onBeforeUnmount(() => {
+  requestVersion++
 })
 
 /**
@@ -168,43 +186,111 @@ async function afterMounted() {
 }
 
 /**
- * Loads transactions for the current workspace with optional search and date range filters.
- * Displays validation error if no workspace is selected.
+ * Loads transactions using a snapshot of the applied query and workspace.
  *
  * @param pageNumber - The page number to load (defaults to the retained current page)
  */
 async function loadTransactions(pageNumber: number = currentPage.value) {
-  if (!currentTenantKey.value) {
-    error.value = {
-      title: 'No workspace selected',
-      detail: 'Please select a workspace to view transactions',
-    }
-    showError.value = true
-    return
-  }
+  const tenantKey = currentTenantKey.value
+  if (!tenantKey) return
 
+  const requestId = ++requestVersion
+  retryPageNumber.value = pageNumber
+  const appliedFilters = { ...filters.value }
+  const appliedSearch = searchText.value || undefined
   loading.value = true
   error.value = undefined
   showError.value = false
 
   try {
-    const from = fromDate.value ? fromDateInputValue(fromDate.value) : undefined
-    const to = toDate.value ? fromDateInputValue(toDate.value) : undefined
-
-    paginatedResult.value = await transactionsClient.getTransactions(
+    const result = await transactionsClient.getTransactions(
       pageNumber,
-      from,
-      to,
-      searchText.value || undefined,
-      currentTenantKey.value,
+      appliedFilters.fromDate ? fromDateInputValue(appliedFilters.fromDate) : undefined,
+      appliedFilters.toDate ? fromDateInputValue(appliedFilters.toDate) : undefined,
+      appliedSearch,
+      appliedFilters.payee || undefined,
+      appliedFilters.category || undefined,
+      appliedFilters.memo || undefined,
+      appliedFilters.amount || undefined,
+      appliedFilters.uncategorizedOnly,
+      tenantKey,
     )
+    if (requestId !== requestVersion) return
+    paginatedResult.value = result
     currentPage.value = pageNumber
   } catch (err) {
+    if (requestId !== requestVersion) return
     error.value = handleApiError(err, 'Load Failed', 'Failed to load transactions')
     showError.value = true
   } finally {
-    loading.value = false
+    if (requestId === requestVersion) loading.value = false
   }
+}
+
+function sameFilters(left: TransactionAdvancedFilters, right: TransactionAdvancedFilters): boolean {
+  return (
+    left.fromDate === right.fromDate &&
+    left.toDate === right.toDate &&
+    left.payee === right.payee &&
+    left.category === right.category &&
+    left.memo === right.memo &&
+    left.amount === right.amount &&
+    left.uncategorizedOnly === right.uncategorizedOnly
+  )
+}
+
+function commitPanelDraft(): boolean | null {
+  const nextFilters = filterPanel.value?.validateAndCommit({
+    emit: false,
+    focusInvalid: true,
+  })
+  if (!nextFilters) return filterPanel.value ? null : false
+  if (sameFilters(nextFilters, filters.value)) return false
+  transactionSearchStore.setFilters(nextFilters)
+  return true
+}
+
+function handleFilterCommit(nextFilters: TransactionAdvancedFilters) {
+  if (loading.value || sameFilters(nextFilters, filters.value)) return
+  transactionSearchStore.setFilters(nextFilters)
+  void loadTransactions(1)
+}
+
+function handleSearch(value: string) {
+  const changedFilters = commitPanelDraft()
+  if (changedFilters === null) return
+  searchText.value = value
+  currentPage.value = 1
+  void loadTransactions(1)
+}
+
+function handleClearSearch() {
+  const changedFilters = commitPanelDraft()
+  if (changedFilters === null) return
+  transactionSearchStore.clearSearch()
+  searchDraft.value = ''
+  currentPage.value = 1
+  void loadTransactions(1)
+}
+
+function handleFiltersToggle() {
+  if (!showFilters.value) {
+    showFilters.value = true
+    return
+  }
+
+  const changedFilters = commitPanelDraft()
+  if (changedFilters === null) return
+  showFilters.value = false
+  if (changedFilters) void loadTransactions(1)
+}
+
+function handleClearAll() {
+  transactionSearchStore.clearAll()
+  showFilters.value = true
+  searchDraft.value = ''
+  filterPanel.value?.resetDraft()
+  void loadTransactions(1)
 }
 
 /**
@@ -213,15 +299,9 @@ async function loadTransactions(pageNumber: number = currentPage.value) {
  * @param pageNumber - The new page number to load
  */
 function handlePageChange(pageNumber: number) {
-  loadTransactions(pageNumber)
-}
-
-/**
- * Clears the search text and reloads transactions from page 1.
- */
-function clearSearch() {
-  transactionSearchStore.clearSearch()
-  loadTransactions(1)
+  const changedFilters = commitPanelDraft()
+  if (changedFilters === null) return
+  void loadTransactions(changedFilters ? 1 : pageNumber)
 }
 
 /**
@@ -252,14 +332,6 @@ function openCreateRuleModal(transaction: TransactionResultDto) {
 function navigateToDetails(key: string | undefined) {
   if (!key) return
   navigateTo(`/transactions/${key}`)
-}
-
-/**
- * Clears date range filters and reloads transactions from page 1.
- */
-function clearFilters() {
-  transactionSearchStore.clearFilters()
-  loadTransactions(1)
 }
 
 /**
@@ -319,6 +391,10 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
     loading.value = false
   }
 }
+
+function retryLoadTransactions() {
+  void loadTransactions(retryPageNumber.value)
+}
 </script>
 
 <template>
@@ -372,11 +448,11 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
       <!-- Search Bar -->
       <SearchFilterBar
         v-if="hasWorkspace"
-        v-model="searchText"
+        v-model="searchDraft"
         placeholder="Search payee, memo, category, or amount..."
         :disabled="loading || !ready"
-        @search="() => loadTransactions(1)"
-        @clear="() => loadTransactions(1)"
+        @search="handleSearch"
+        @clear="handleClearSearch"
       >
         <!--
           IMPORTANT: Keep :disabled="loading || !ready" on this button.
@@ -390,11 +466,12 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
           :class="hasActiveFilters ? 'btn-secondary' : 'btn-outline-secondary'"
           type="button"
           title="Filters"
+          aria-label="Filters"
           data-test-id="filters-toggle-button"
           aria-controls="date-range-filters"
           :aria-expanded="showFilters"
           :disabled="loading || !ready"
-          @click="showFilters = !showFilters"
+          @click="handleFiltersToggle"
         >
           <FeatherIcon
             icon="filter"
@@ -403,64 +480,40 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
         </button>
       </SearchFilterBar>
 
-      <!-- Date Range Filters (animated expand/collapse) -->
-      <Transition name="expand">
-        <div
-          v-if="hasWorkspace && showFilters"
-          class="expand-panel"
+      <TransactionFilterPanel
+        v-if="hasWorkspace"
+        ref="filterPanel"
+        :expanded="showFilters"
+        :disabled="loading || !ready"
+        :filters="filters"
+        @commit="handleFilterCommit"
+        @clear-all="handleClearAll"
+      />
+
+      <div
+        v-if="!loading && !showError && paginatedResult"
+        class="small text-muted mb-2"
+        role="status"
+        aria-live="polite"
+        data-test-id="transaction-result-count"
+      >
+        {{ paginatedResult.metadata?.totalCount ?? 0 }} transactions found.
+      </div>
+
+      <div
+        v-if="showError"
+        class="mb-3"
+      >
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          data-test-id="retry-transactions-button"
+          :disabled="loading || !ready"
+          @click="retryLoadTransactions"
         >
-          <div class="expand-panel-inner">
-            <div
-              id="date-range-filters"
-              class="card mb-4"
-              data-test-id="date-range-filters"
-            >
-              <div class="card-body">
-                <div class="row g-3">
-                  <div class="col-md-4">
-                    <label
-                      for="fromDate"
-                      class="form-label"
-                      >From Date</label
-                    >
-                    <input
-                      id="fromDate"
-                      v-model="fromDate"
-                      type="date"
-                      class="form-control"
-                      @change="() => loadTransactions(1)"
-                    />
-                  </div>
-                  <div class="col-md-4">
-                    <label
-                      for="toDate"
-                      class="form-label"
-                      >To Date</label
-                    >
-                    <input
-                      id="toDate"
-                      v-model="toDate"
-                      type="date"
-                      class="form-control"
-                      @change="() => loadTransactions(1)"
-                    />
-                  </div>
-                  <div class="col-md-4 d-flex align-items-end">
-                    <button
-                      class="btn btn-secondary"
-                      data-test-id="clear-filters-button"
-                      :disabled="loading || !ready"
-                      @click="clearFilters"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
+          Retry
+        </button>
+      </div>
 
       <!-- Loading State -->
       <div
@@ -507,7 +560,7 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
           :inert="loading"
         >
           <div
-            v-if="transactions.length === 0 && !searchText"
+            v-if="transactions.length === 0 && !searchText && !hasActiveFilters"
             class="text-center py-5 text-muted"
             data-test-id="empty-state"
           >
@@ -537,9 +590,9 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
             </button>
           </div>
 
-          <!-- No Search Results -->
+          <!-- No Filter Results -->
           <div
-            v-else-if="transactions.length === 0 && searchText"
+            v-else-if="transactions.length === 0"
             class="text-center py-5 text-muted"
             data-test-id="no-results"
           >
@@ -548,14 +601,14 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
               size="48"
               class="mb-3"
             />
-            <p>No transactions match your search</p>
-            <p class="small">Search term: "{{ searchText }}"</p>
+            <p>No transactions match your filters.</p>
+            <p class="small">Try adjusting the filters or use Clear All.</p>
             <button
               class="btn btn-secondary btn-sm"
-              data-test-id="no-results-clear-search-button"
-              @click="clearSearch"
+              data-test-id="no-results-clear-all-button"
+              @click="handleClearAll"
             >
-              Clear search
+              Clear All
             </button>
           </div>
 
@@ -687,37 +740,6 @@ async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
 </template>
 
 <style scoped>
-/* Animates height via grid rows (0fr -> 1fr) so the panel's natural height needn't be known */
-.expand-panel {
-  display: grid;
-  grid-template-rows: 1fr;
-}
-
-.expand-panel-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.expand-enter-active,
-.expand-leave-active {
-  transition:
-    grid-template-rows 250ms ease,
-    opacity 250ms ease;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  grid-template-rows: 0fr;
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .expand-enter-active,
-  .expand-leave-active {
-    transition: none;
-  }
-}
-
 .workspace-selector-container {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;

@@ -18,7 +18,7 @@ Authentication and session management.
 
 Transaction CRUD operations within tenant workspaces.
 
-- `getTransactions(fromDate?, toDate?, tenantKey): Promise<TransactionResultDto[]>` - Retrieves all transactions for the tenant, optionally filtered by date range
+- `getTransactions(pageNumber?, fromDate?, toDate?, search?, payee?, category?, memo?, amount?, uncategorizedOnly?, tenantKey): Promise<PaginatedResultDtoOfTransactionResultDto>` - Retrieves a tenant's paginated transactions with optional quick search, date bounds, and advanced filters. Amount remains a string so an explicit `+` or `-` sign is preserved.
 - `createTransaction(tenantKey, transaction: TransactionEditDto): Promise<TransactionResultDto>` - Creates a new transaction in the tenant workspace
 - `getTransactionById(key, tenantKey): Promise<TransactionResultDto>` - Retrieves a specific transaction by its unique key
 - `updateTransaction(key, tenantKey, transaction: TransactionEditDto): Promise<void>` - Updates an existing transaction in the tenant workspace
@@ -157,13 +157,17 @@ import { TransactionsClient, TransactionEditDto } from './apiclient'
 const client = new TransactionsClient()
 const tenantKey = 'your-tenant-key'
 
-// Get all transactions
-const transactions = await client.getTransactions(null, null, tenantKey)
+// Get the first page of unfiltered transactions
+const transactions = await client.getTransactions(
+  1, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, tenantKey,
+)
 
-// Get transactions with date range
+// Search transactions with date and advanced filters
 const fromDate = new Date('2024-01-01')
 const toDate = new Date('2024-12-31')
-const filtered = await client.getTransactions(fromDate, toDate, tenantKey)
+const filtered = await client.getTransactions(
+  1, fromDate, toDate, 'coffee', 'Cafe', 'Food', 'trip', '+42', true, tenantKey,
+)
 
 // Create transaction
 const newTx = new TransactionEditDto({

@@ -50,3 +50,43 @@ export function todayDateInputValue(): string {
   const day = String(now.getDate()).padStart(2, '0')
   return `${now.getFullYear()}-${month}-${day}`
 }
+
+export type TransactionDatePreset =
+  'last30Days' | 'last3Months' | 'last12Months' | 'thisYear' | 'allTime'
+
+/**
+ * Resolves a date preset using local calendar dates, returning inclusive bounds.
+ */
+export function transactionDatePreset(
+  preset: TransactionDatePreset,
+  today = todayDateInputValue(),
+): { fromDate: string; toDate: string } {
+  if (preset === 'allTime') return { fromDate: '', toDate: '' }
+
+  const [year, month, day] = today.split('-').map(Number)
+  const current = new Date(Date.UTC(year!, month! - 1, day!))
+
+  if (preset === 'thisYear') {
+    return { fromDate: `${year}-01-01`, toDate: `${year}-12-31` }
+  }
+
+  if (preset === 'last30Days') {
+    current.setUTCDate(current.getUTCDate() - 29)
+  } else {
+    const monthsBack = preset === 'last3Months' ? 3 : 12
+    const targetMonthIndex = year! * 12 + month! - 1 - monthsBack
+    const targetYear = Math.floor(targetMonthIndex / 12)
+    const targetMonth = targetMonthIndex % 12
+    const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate()
+    current.setUTCFullYear(targetYear, targetMonth, Math.min(day!, lastDayOfTargetMonth))
+    current.setUTCDate(current.getUTCDate() + 1)
+  }
+
+  const fromDate = [
+    current.getUTCFullYear(),
+    String(current.getUTCMonth() + 1).padStart(2, '0'),
+    String(current.getUTCDate()).padStart(2, '0'),
+  ].join('-')
+
+  return { fromDate, toDate: today }
+}

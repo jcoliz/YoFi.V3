@@ -82,7 +82,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator FiltersToggleButton => Page!.GetByTestId("filters-toggle-button");
 
     /// <summary>
-    /// Date range filters card (collapsed by default)
+    /// Advanced filters card (collapsed by default)
     /// </summary>
     public ILocator FilterPane => Page!.GetByTestId("date-range-filters");
 
@@ -97,9 +97,39 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator ToDateInput => FilterPane.Locator("#toDate");
 
     /// <summary>
-    /// Clear Filters button
+    /// Payee filter input.
     /// </summary>
-    public ILocator ClearFiltersButton => FilterPane.GetByTestId("clear-filters-button");
+    public ILocator PayeeFilterInput => FilterPane.GetByTestId("payee-filter");
+
+    /// <summary>
+    /// Category filter input.
+    /// </summary>
+    public ILocator CategoryFilterInput => FilterPane.GetByTestId("category-filter");
+
+    /// <summary>
+    /// Memo filter input.
+    /// </summary>
+    public ILocator MemoFilterInput => FilterPane.GetByTestId("memo-filter");
+
+    /// <summary>
+    /// Amount filter input.
+    /// </summary>
+    public ILocator AmountFilterInput => FilterPane.GetByTestId("amount-filter");
+
+    /// <summary>
+    /// Uncategorized-only checkbox.
+    /// </summary>
+    public ILocator UncategorizedOnlyCheckbox => FilterPane.GetByTestId("uncategorized-filter");
+
+    /// <summary>
+    /// Clear All button (legacy test hook retained for compatibility)
+    /// </summary>
+    public ILocator ClearAllButton => FilterPane.GetByTestId("clear-filters-button");
+
+    /// <summary>
+    /// Legacy accessor for the Clear All button.
+    /// </summary>
+    public ILocator ClearFiltersButton => ClearAllButton;
 
     #endregion
 
@@ -1041,7 +1071,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     {
         await ExpandFiltersAsync();
         await FromDateInput.FillAsync(date);
-        // Don't need to wait here. Nothing happens when we modify filters
+        // The filter commits when the date input changes.
     }
 
     /// <summary>
@@ -1052,7 +1082,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     {
         await ExpandFiltersAsync();
         await ToDateInput.FillAsync(date);
-        // Don't need to wait here. Nothing happens when we modify filters
+        // The filter commits when the date input changes.
     }
 
     /// <summary>
@@ -1065,18 +1095,28 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         await ExpandFiltersAsync();
         await FromDateInput.FillAsync(fromDate);
         await ToDateInput.FillAsync(toDate);
-        // Don't need to wait here. Nothing happens when we modify filters
+        // The final date change commits the complete range.
     }
 
     /// <summary>
-    /// Clears all date filters
+    /// Clears quick search and all advanced filters
     /// </summary>
     public async Task ClearFiltersAsync()
     {
-        await ExpandFiltersAsync();
-        await ClearFiltersButton.ClickAsync();
+        await ClearAllAsync();
+    }
 
-        // Don't need to wait here. Nothing happens when we modify filters
+    /// <summary>
+    /// Clears quick search and all advanced filters, then waits for results.
+    /// </summary>
+    public async Task ClearAllAsync()
+    {
+        await ExpandFiltersAsync();
+        await ClearAllButton.ClickAsync();
+        await Page!.GetByTestId("transaction-result-count").WaitForAsync(new()
+        {
+            State = WaitForSelectorState.Visible
+        });
     }
 
     #endregion
