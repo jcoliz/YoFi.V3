@@ -89,18 +89,67 @@ public class PayeeMatchingRuleFeature(
     /// </summary>
     /// <param name="ruleDto">The rule data to add. MUST be validated before calling this method.
     /// See <see cref="YoFi.V3.Application.Validation.PayeeMatchingRuleEditDtoValidator"/> for validation rules.</param>
-    /// <returns>The created rule with generated Key.</returns>
-    public async Task<PayeeMatchingRuleResultDto> CreateRuleAsync(PayeeMatchingRuleEditDto ruleDto)
+    /// <param name="applyToUncategorizedTransactions">Whether to apply only the new rule to existing
+    /// single-split uncategorized transactions in this tenant.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>The created rule with generated Key and number of transactions categorized.</returns>
+    public async Task<PayeeMatchingRuleCreateResultDto> CreateRuleAsync(
+        PayeeMatchingRuleEditDto ruleDto,
+        bool applyToUncategorizedTransactions = false,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var newRule = ImportModelFactory.Rule(ruleDto, _currentTenant.Id, timeProvider.GetUtcNow());
 
+        var transactionsCategorized = applyToUncategorizedTransactions
+            ? await ApplyNewRuleAsync(newRule, cancellationToken)
+            : 0;
+
+        if (transactionsCategorized > 0)
+        {
+            newRule.MatchCount = 1;
+            newRule.LastUsedAt = timeProvider.GetUtcNow();
+        }
+
         dataProvider.Add(newRule);
-        await dataProvider.SaveChangesAsync();
+        await dataProvider.SaveChangesAsync(cancellationToken);
 
         // Invalidate cache
         InvalidateCache();
 
-        return ToResultDto(newRule);
+        return new PayeeMatchingRuleCreateResultDto(
+            newRule.Key, newRule.PayeePattern, newRule.PayeeIsRegex, newRule.Category,
+            newRule.CreatedAt, newRule.ModifiedAt, newRule.LastUsedAt, newRule.MatchCount,
+            transactionsCategorized);
+    }
+
+    private async Task<int> ApplyNewRuleAsync(PayeeMatchingRule rule, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(rule.Category))
+        {
+            throw new ValidationException(nameof(rule.Category),
+                "Category must contain at least one non-empty term.");
+        }
+
+        var query = dataProvider.GetIncluding((Transaction t) => t.Splits)
+            .Where(t => t.TenantId == _currentTenant.Id
+                && t.Splits.Count == 1
+                && t.Splits.Any(s => s.Category == string.Empty));
+        var candidates = await dataProvider.ToListAsync(query);
+        IReadOnlyCollection<PayeeMatchingRule> rules = [rule];
+        var count = 0;
+
+        foreach (var transaction in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (PayeeMatchingHelper.FindBestMatch(transaction.Payee, rules) != null)
+            {
+                transaction.Splits.Single().Category = rule.Category;
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>

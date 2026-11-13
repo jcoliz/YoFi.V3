@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -627,6 +628,175 @@ public class PayeeMatchingRulesControllerTests : AuthenticatedTestBase
     #endregion
 
     #region Serialization Tests
+
+    [TestCase(null)]
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task CreateRule_ApplicationOption_PreservesLegacyContractAndReturnsCount(bool? apply)
+    {
+        SwitchToEditor();
+        var pattern = $"Scenario2281-{Guid.NewGuid():N}";
+        var transactionResponse = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions",
+            new TransactionEditDto(DateOnly.FromDateTime(DateTime.UtcNow), -10m, pattern, null, null, null, ""));
+        Assert.That(transactionResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var transaction = await transactionResponse.Content.ReadFromJsonAsync<TransactionDetailDto>();
+
+        var rule = new PayeeMatchingRuleEditDto(pattern, false, " shopping : online ");
+        var response = apply.HasValue
+            ? await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+                new PayeeMatchingRuleCreateDto(rule.PayeePattern, rule.PayeeIsRegex, rule.Category, apply.Value))
+            : await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules", rule);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var content = await response.Content.ReadAsStringAsync();
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var created = JsonSerializer.Deserialize<PayeeMatchingRuleCreateResultDto>(content, options);
+        var legacy = JsonSerializer.Deserialize<PayeeMatchingRuleResultDto>(content, options);
+        Assert.That(created, Is.Not.Null);
+        Assert.That(legacy, Is.Not.Null);
+        var ruleResponse = await _client.GetAsync(response.Headers.Location);
+        var queried = await ruleResponse.Content.ReadFromJsonAsync<PayeeMatchingRuleResultDto>();
+        var persistedTransaction = await _client.GetFromJsonAsync<TransactionDetailDto>(
+            $"/api/tenant/{_testTenantKey}/transactions/{transaction!.Key}");
+        using var json = JsonDocument.Parse(content);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(created!.TransactionsCategorized, Is.EqualTo(apply == true ? 1 : 0));
+            Assert.That(legacy!.Key, Is.EqualTo(created.Key));
+            Assert.That(legacy.PayeePattern, Is.EqualTo(pattern));
+            Assert.That(legacy.Category, Is.EqualTo("Shopping:Online"));
+            Assert.That(legacy.PayeeIsRegex, Is.False);
+            Assert.That(legacy.CreatedAt, Is.Not.Default);
+            Assert.That(legacy.ModifiedAt, Is.Not.Default);
+            Assert.That(legacy.MatchCount, Is.EqualTo(apply == true ? 1 : 0));
+            Assert.That(queried!.Key, Is.EqualTo(legacy.Key));
+            Assert.That(queried.PayeePattern, Is.EqualTo(legacy.PayeePattern));
+            Assert.That(queried.PayeeIsRegex, Is.EqualTo(legacy.PayeeIsRegex));
+            Assert.That(queried.Category, Is.EqualTo(legacy.Category));
+            Assert.That(queried.MatchCount, Is.EqualTo(legacy.MatchCount));
+            Assert.That(queried.CreatedAt, Is.EqualTo(legacy.CreatedAt).Within(TimeSpan.FromTicks(10)));
+            Assert.That(queried.ModifiedAt, Is.EqualTo(legacy.ModifiedAt).Within(TimeSpan.FromTicks(10)));
+            Assert.That(queried.LastUsedAt, Is.EqualTo(legacy.LastUsedAt).Within(TimeSpan.FromTicks(10)));
+            Assert.That(ruleResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(response.Headers.Location!.ToString(), Does.EndWith($"/payee-rules/{created.Key}"));
+            Assert.That(persistedTransaction!.Category, Is.EqualTo(apply == true ? "Shopping:Online" : ""));
+            Assert.That(json.RootElement.GetProperty("transactionsCategorized").GetInt32(),
+                Is.EqualTo(created.TransactionsCategorized));
+            Assert.That(json.RootElement.TryGetProperty("rule", out _), Is.False, "Rule fields must remain top-level.");
+        }
+    }
+
+    [TestCase("", false, "Shopping")]
+    [TestCase("Amazon", false, "")]
+    [TestCase("Amazon", false, "   ")]
+    [TestCase("Amazon", false, " : : ")]
+    [TestCase("(?<invalid", true, "Shopping")]
+    [TestCase("(?=Amazon)", true, "Shopping")]
+    public async Task CreateRule_WithApplication_UsesExistingValidation(string pattern, bool regex, string category)
+    {
+        SwitchToEditor();
+        var rule = new PayeeMatchingRuleCreateDto(pattern, regex, category, true);
+
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules", rule);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.That(problem!.Errors, Is.Not.Empty);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task CreateRule_WithApplication_EnforcesRuleFieldLength(bool longPattern)
+    {
+        SwitchToEditor();
+        var rule = new PayeeMatchingRuleCreateDto(
+            longPattern ? new string('A', 201) : "Amazon",
+            false,
+            longPattern ? "Shopping" : new string('A', 201),
+            true);
+
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules", rule);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task CreateRule_WithApplication_AsOwner_Returns201()
+    {
+        SwitchToOwner();
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleCreateDto("Owner", false, "Shopping", true));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+    }
+
+    [Test]
+    public async Task CreateRule_WithApplication_AsViewer_Returns403()
+    {
+        SwitchToViewer();
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleCreateDto("Viewer", false, "Shopping", true));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task CreateRule_WithApplication_Unauthenticated_Returns403()
+    {
+        using var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync($"/api/tenant/{_testTenantKey}/payee-rules",
+            new PayeeMatchingRuleCreateDto("Anonymous", false, "Shopping", true));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task CreateRule_WithApplication_WithoutTenantAccess_Returns403()
+    {
+        SwitchToEditor();
+        var otherTenant = await CreateTestTenantAsync("Other workspace");
+        var response = await _client.PostAsJsonAsync($"/api/tenant/{otherTenant}/payee-rules",
+            new PayeeMatchingRuleCreateDto("Other workspace", false, "Shopping", true));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task OpenApi_DescribesAdditiveCreateContractWithoutChangingUpdate()
+    {
+        var response = await _client.GetAsync("/openapi/v1.json");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var paths = root.GetProperty("paths");
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        var post = paths.GetProperty("/api/tenant/{tenantKey}/payee-rules").GetProperty("post");
+        var put = paths.GetProperty("/api/tenant/{tenantKey}/payee-rules/{key}").GetProperty("put");
+        var createSchema = schemas.GetProperty(nameof(PayeeMatchingRuleCreateDto));
+        var resultSchema = schemas.GetProperty(nameof(PayeeMatchingRuleCreateResultDto));
+        var editSchema = schemas.GetProperty(nameof(PayeeMatchingRuleEditDto));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(post.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString(), Does.EndWith(nameof(PayeeMatchingRuleCreateDto)));
+            Assert.That(post.GetProperty("responses").GetProperty("201").GetProperty("content")
+                .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString(),
+                Does.EndWith(nameof(PayeeMatchingRuleCreateResultDto)));
+            Assert.That(createSchema.GetProperty("properties").TryGetProperty("applyToUncategorizedTransactions", out _),
+                Is.True);
+            Assert.That(createSchema.GetProperty("required").EnumerateArray().Select(p => p.GetString()),
+                Does.Not.Contain("applyToUncategorizedTransactions"));
+            Assert.That(resultSchema.GetProperty("properties").TryGetProperty("transactionsCategorized", out _), Is.True);
+            Assert.That(resultSchema.GetProperty("properties").TryGetProperty("key", out _), Is.True);
+            Assert.That(editSchema.GetProperty("properties").TryGetProperty("applyToUncategorizedTransactions", out _),
+                Is.False);
+            Assert.That(put.GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString(), Does.EndWith(nameof(PayeeMatchingRuleEditDto)));
+        }
+    }
 
     [Test]
     public async Task GetRules_ReturnsValidJson()

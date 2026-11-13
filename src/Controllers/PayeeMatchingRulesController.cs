@@ -76,16 +76,21 @@ public partial class PayeeMatchingRulesController(
     /// Creates a new payee matching rule in the tenant workspace.
     /// </summary>
     /// <param name="tenantKey">The unique identifier of the tenant (from route).</param>
-    /// <param name="rule">The rule data including payee pattern, regex flag, and category.</param>
+    /// <param name="rule">Rule data and optional application to existing uncategorized transactions.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
     [HttpPost()]
     [RequireTenantRole(TenantRole.Editor)]
-    [ProducesResponseType(typeof(PayeeMatchingRuleResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PayeeMatchingRuleCreateResultDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateRule([FromRoute] Guid tenantKey, [FromBody] PayeeMatchingRuleEditDto rule)
+    public async Task<IActionResult> CreateRule(
+        [FromRoute] Guid tenantKey,
+        [FromBody] PayeeMatchingRuleCreateDto rule,
+        CancellationToken cancellationToken)
     {
         LogStarting();
 
-        var created = await payeeMatchingRuleFeature.CreateRuleAsync(rule);
+        var created = await payeeMatchingRuleFeature.CreateRuleAsync(
+            rule, rule.ApplyToUncategorizedTransactions, cancellationToken);
 
         LogOkKey(created.Key);
         return CreatedAtAction(nameof(GetRuleById), new { tenantKey, key = created.Key }, created);

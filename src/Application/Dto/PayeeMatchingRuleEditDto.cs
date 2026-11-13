@@ -9,6 +9,7 @@ namespace YoFi.V3.Application.Dto;
 /// <remarks>
 /// This DTO is validated by <see cref="YoFi.V3.Application.Validation.PayeeMatchingRuleEditDtoValidator"/>
 /// at the controller boundary. For query results, see <see cref="PayeeMatchingRuleResultDto"/>.
+/// For creation with optional application to existing transactions, see <see cref="PayeeMatchingRuleCreateDto"/>.
 ///
 /// All validation rules are enforced by FluentValidation - see PayeeMatchingRuleEditDtoValidator for:
 /// - PayeePattern required and max length 200

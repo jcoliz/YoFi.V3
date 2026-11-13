@@ -1202,7 +1202,7 @@ Require Editor role using the existing tenant authorization pattern. Return **20
 
 Keep the controller thin: delegate to an Application Feature operation and log only at the API boundary using `[LoggerMessage]` partial methods. Do not log payee patterns, categories, transaction contents, or other sensitive user data.
 
-Existing POST callers retain the same route, top-level rule fields, default create-only behavior, and response rule fields; the application option and categorized count are additive. PUT and GET contracts remain unchanged. Regenerate the TypeScript API client through the existing generation workflow after updating the POST DTOs.
+Existing POST callers retain the same route, top-level rule fields, default create-only behavior, and response rule fields; the application option and categorized count are additive. PUT and GET contracts remain unchanged. The backend-only delivery leaves the existing frontend and generated API client unchanged. Regenerate the TypeScript API client through the existing generation workflow when implementing the checkbox and frontend save sequence.
 
 ### Application Logic and Persistence
 
@@ -1210,11 +1210,11 @@ Extend the existing create operation in [`PayeeMatchingRuleFeature`](../../../sr
 
 **Processing sequence:**
 
-1. Build the new rule from the validated final input using the existing rule creation factory. Use its sanitized category for every category assignment.
+1. Build the new rule from the validated final input using the existing rule creation factory. Use its sanitized category for every category assignment. When application is requested, reject a category that sanitizes to empty (such as colon-only input) before making changes, rather than reporting uncategorized transactions as categorized.
 2. If the checkbox is ON, query transactions by current TenantId. Load their splits and select only transactions with exactly one split whose category is empty. An empty category is the persisted uncategorized representation; do not infer eligibility from the list DTO's category, which is also empty for multi-split transactions. There is no source-specific inclusion or exclusion.
 3. Match candidate payees with the existing [`PayeeMatchingHelper`](../../../src/Application/Helpers/PayeeMatchingHelper.cs), supplying a collection containing **only the new rule**. Preserve existing case-insensitive substring and regex semantics and regex validation protections.
 4. Set the sole split's category on matching candidates. Do not change payee, amount, date, source, memo, split amount, split order, or split structure. Do not create or collapse splits; transactions without a split are not eligible.
-5. Record usage only for the new rule when it actually matches an eligible transaction, following the existing usage-statistics convention. Retain the known rule identity; do not infer it by searching for another rule with the same category. The separate Quick Edit request does not record rule usage.
+5. Record usage only for the new rule when it actually matches an eligible transaction, following the existing usage-statistics convention: increment `MatchCount` once for the application operation if any transactions match, and set `LastUsedAt` from `TimeProvider`. `TransactionsCategorized` separately counts every transaction updated, including repeated payees. Retain the known rule identity; do not infer it by searching for another rule with the same category. The separate Quick Edit request does not record rule usage.
 6. Stage the new rule and changed split entities through `IDataProvider`, then persist with a single `SaveChangesAsync`. Invalidate the current tenant's rule cache only after successful persistence, and return the created rule fields and categorized-transaction count.
 
 **Atomicity and failure handling:**
