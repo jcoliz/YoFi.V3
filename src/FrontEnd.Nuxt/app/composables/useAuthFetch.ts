@@ -51,6 +51,12 @@ function isRequestTimeout(error: unknown): boolean {
   )
 }
 
+function getRefreshTokenGuid(): string {
+  const cookies = document.cookie.split(';').map((c) => c.trim())
+  const refreshTokenCookie = cookies.find((c) => c.startsWith('auth.refresh-token='))
+  return refreshTokenCookie?.split('=')[1]?.split('.')[0] ?? 'none'
+}
+
 /**
  * Composable to create an auth-aware fetch wrapper for NSwag-generated API clients
  *
@@ -88,18 +94,29 @@ export function useAuthFetch(useTokenCheck = true) {
       return
     }
 
+    // extract the logging-safe GUID from the refresh token cookie for logging purposes
+    const refreshT0kenGuid = getRefreshTokenGuid()
+
+    logger.debug('Refreshing access token proactively before API call', { url, refreshT0kenGuid })
+
     refreshPromise = refresh()
       .then(() => {
-        logger.debug('Access token refreshed OK')
+        const newRefreshT0kenGuid = getRefreshTokenGuid()
+        logger.debug('Access token refreshed OK', {
+          old: refreshT0kenGuid,
+          new: newRefreshT0kenGuid,
+        })
       })
-      .catch(() => {
-        logger.warn('Proactive token refresh failed; proceeding with current token')
+      .catch((err: unknown) => {
+        logger.warn('Proactive token refresh failed; proceeding with current token', {
+          err,
+          refreshT0kenGuid,
+        })
       })
       .finally(() => {
         refreshPromise = null
       })
 
-    logger.debug('Refreshing access token proactively before API call', { url })
     await refreshPromise
   }
 
