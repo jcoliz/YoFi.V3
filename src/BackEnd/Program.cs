@@ -34,7 +34,8 @@ try
     builder.Configuration.AddTomlFile("config.toml", optional: true, reloadOnChange: true);
 
     // Configure application logging
-    builder.Logging.AddTerseConsoleLogFormatter(options => options.IncludeScopes = false);
+    // TODO: Would be better to get the logging configuration from the app settings rather than hardcoding here
+    builder.Logging.AddTerseConsoleLogFormatter(options => { options.IncludeScopes = false; options.IncludeTraceId = true; });
 
     // Add service defaults & Aspire client integrations.
     builder.AddServiceDefaults(logger);
