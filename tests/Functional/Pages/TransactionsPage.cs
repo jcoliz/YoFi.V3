@@ -311,6 +311,40 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     #region Search Operations
 
     /// <summary>
+    /// Creates a rule from a transaction, leaving application enabled unless explicitly disabled.
+    /// </summary>
+    public async Task CreateRuleFromTransactionAsync(
+        string payee, string pattern, string category, bool applyNow)
+    {
+        await GetTransactionRowLocatorByPayee(payee).GetByTestId("create-rule-button").ClickAsync();
+        var dialog = Page.GetByTestId("rule-create-dialog");
+        var applyCheckbox = dialog.GetByTestId("apply-rule-now-checkbox");
+        await Assertions.Expect(applyCheckbox).ToBeCheckedAsync();
+        await dialog.GetByTestId("payee-pattern-input").FillAsync(pattern);
+        await dialog.GetByTestId("category-input").FillAsync(category);
+        if (!applyNow)
+        {
+            await applyCheckbox.UncheckAsync();
+        }
+
+        await dialog.GetByTestId("save-button").ClickAsync();
+        await Assertions.Expect(dialog).ToBeHiddenAsync();
+        await Assertions.Expect(Page.GetByTestId("apply-rule-result")).ToBeVisibleAsync();
+        await Assertions.Expect(TransactionsCard).ToHaveAttributeAsync("aria-busy", "false");
+        _cachedTableData = null;
+    }
+
+    /// <summary>
+    /// Checks the reported outcome of creating a rule and applying it to existing transactions.
+    /// </summary>
+    public Task ExpectRuleCreationSuccessAsync()
+        => Assertions.Expect(Page.GetByTestId("apply-rule-result")).ToBeVisibleAsync();
+
+    public Task ExpectRuleApplicationCountAsync(int count)
+        => Assertions.Expect(Page.GetByTestId("apply-rule-result")
+            .GetByTestId("rule-application-count")).ToHaveTextAsync(count.ToString());
+
+    /// <summary>
     /// Enters the search term, applies it, and waits for the filtered list to load.
     /// </summary>
     public async Task SearchAsync(string term)

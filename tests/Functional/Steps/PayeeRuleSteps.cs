@@ -109,6 +109,19 @@ public class PayeeRuleSteps(ITestContext _context)
     #region WHEN
 
     /// <summary>
+    /// Creates a rule using the Transactions page's source transaction and application checkbox.
+    /// </summary>
+    [When("I create a rule from transaction {payee}:")]
+    public async Task ICreateARuleFromTransaction(string payee, DataTable table)
+    {
+        var row = table.Rows.Single();
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        await page.CreateRuleFromTransactionAsync(
+            payee, row.GetRequired("Payee"), row.GetRequired("Category"),
+            row.GetOptional<bool>("ApplyNow") ?? true);
+    }
+
+    /// <summary>
     /// When I create a payee rule:
     /// </summary>
     /// <remarks>
@@ -214,6 +227,17 @@ public class PayeeRuleSteps(ITestContext _context)
     #endregion
 
     #region THEN
+
+    /// <summary>
+    /// Checks the success indicator without depending on its wording.
+    /// </summary>
+    [Then("the rule should be created successfully")]
+    public Task TheRuleShouldBeCreatedSuccessfully()
+        => _context.GetOrCreatePage<TransactionsPage>().ExpectRuleCreationSuccessAsync();
+
+    [Then("the additional categorized transaction count should be {count}")]
+    public Task TheRuleShouldReportAdditionalTransactionsCategorized(int count)
+        => _context.GetOrCreatePage<TransactionsPage>().ExpectRuleApplicationCountAsync(count);
 
     /// <summary>
     /// Then the following rules should be shown:

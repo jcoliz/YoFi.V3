@@ -11,6 +11,7 @@ import {
   TransactionsClient,
   PayeeMatchingRulesClient,
   TransactionQuickEditDto,
+  PayeeMatchingRuleCreateDto,
   type PayeeMatchingRuleEditDto,
   TenantRole,
   type PaginatedResultDtoOfTransactionResultDto,
@@ -89,6 +90,9 @@ const showEditModal = ref(false)
  * Whether the create rule dialog is visible.
  */
 const showCreateRuleModal = ref(false)
+const savingRule = ref(false)
+const ruleError = ref<IProblemDetails | undefined>(undefined)
+const ruleResult = ref<{ transactionsCategorized?: number } | null>(null)
 
 /**
  * Currently selected transaction for edit or rule creation.
@@ -157,6 +161,10 @@ watch(currentTenantKey, async (newKey) => {
   error.value = undefined
   showError.value = false
   loading.value = false
+  showCreateRuleModal.value = false
+  selectedTransaction.value = null
+  ruleError.value = undefined
+  ruleResult.value = null
   filterPanel.value?.resetDraft()
   currentPage.value = 1
   if (newKey) {
@@ -190,7 +198,10 @@ async function afterMounted() {
  *
  * @param pageNumber - The page number to load (defaults to the retained current page)
  */
-async function loadTransactions(pageNumber: number = currentPage.value) {
+async function loadTransactions(
+  pageNumber: number = currentPage.value,
+  failureDetail = 'Failed to load transactions',
+) {
   const tenantKey = currentTenantKey.value
   if (!tenantKey) return
 
@@ -220,7 +231,7 @@ async function loadTransactions(pageNumber: number = currentPage.value) {
     currentPage.value = pageNumber
   } catch (err) {
     if (requestId !== requestVersion) return
-    error.value = handleApiError(err, 'Load Failed', 'Failed to load transactions')
+    error.value = handleApiError(err, 'Load Failed', failureDetail)
     showError.value = true
   } finally {
     if (requestId === requestVersion) loading.value = false
@@ -320,7 +331,10 @@ function openEditModal(transaction: TransactionResultDto) {
  * @param transaction - The transaction to create a rule from
  */
 function openCreateRuleModal(transaction: TransactionResultDto) {
+  if (savingRule.value) return
   selectedTransaction.value = transaction
+  ruleError.value = undefined
+  ruleResult.value = null
   showCreateRuleModal.value = true
 }
 
@@ -350,45 +364,113 @@ function formatCurrency(amount: number | undefined): string {
 
 /**
  * Creates a payee matching rule from a transaction.
- * If the rule has a category, also updates the source transaction unless it has multiple splits.
+ * Updates the source category first unless it has multiple splits.
  * Reloads transactions on success and closes the dialog.
  *
  * @param rule - The payee matching rule data to create
+ * @param applyToUncategorizedTransactions - Whether to apply only the new rule across the workspace
  */
-async function createRuleFromTransaction(rule: PayeeMatchingRuleEditDto) {
-  if (!currentTenantKey.value) return
+async function createRuleFromTransaction(
+  rule: PayeeMatchingRuleEditDto,
+  applyToUncategorizedTransactions: boolean,
+) {
+  if (savingRule.value) return
+  const tenantKey = currentTenantKey.value
+  const transaction = selectedTransaction.value
+  if (!tenantKey || !transaction?.key) {
+    ruleError.value = handleApiError(
+      new Error('No transaction selected'),
+      'Create Rule Failed',
+      'Select a transaction in the current workspace before creating a rule',
+    )
+    return
+  }
 
-  loading.value = true
-  error.value = undefined
-  showError.value = false
-
+  savingRule.value = true
+  ruleError.value = undefined
+  ruleResult.value = null
+  let sourceUpdated = false
   try {
-    await payeeRulesClient.createRule(currentTenantKey.value, rule)
-
-    // If category was provided/modified, also update the source transaction
-    if (!selectedTransaction.value?.hasMultipleSplits && rule.category && rule.category.trim()) {
-      if (selectedTransaction.value?.key) {
-        const updateDto = new TransactionQuickEditDto({
-          payee: selectedTransaction.value.payee || '',
-          memo: selectedTransaction.value.memo,
-          category: rule.category.trim(),
-        })
-
+    if (!transaction.hasMultipleSplits) {
+      try {
         await transactionsClient.quickEditTransaction(
-          selectedTransaction.value.key,
-          currentTenantKey.value,
-          updateDto,
+          transaction.key,
+          tenantKey,
+          new TransactionQuickEditDto({
+            payee: transaction.payee,
+            memo: transaction.memo,
+            category: rule.category.trim(),
+          }),
         )
+        sourceUpdated = true
+      } catch (err) {
+        if (currentTenantKey.value === tenantKey) {
+          ruleError.value = handleApiError(
+            err,
+            'Source Update Failed',
+            'The selected transaction could not be updated. No rule was created',
+          )
+        }
+        return
       }
     }
 
-    await loadTransactions()
-    showCreateRuleModal.value = false
-  } catch (err) {
-    error.value = handleApiError(err, 'Create Rule Failed', 'Failed to create payee matching rule')
-    showError.value = true
+    try {
+      const created = await payeeRulesClient.createRule(
+        tenantKey,
+        PayeeMatchingRuleCreateDto.fromJS({
+          payeePattern: rule.payeePattern,
+          payeeIsRegex: rule.payeeIsRegex,
+          category: rule.category,
+          applyToUncategorizedTransactions,
+        }),
+      )
+      if (currentTenantKey.value !== tenantKey) return
+      showCreateRuleModal.value = false
+
+      const count = created.transactionsCategorized
+      if (
+        applyToUncategorizedTransactions &&
+        (!Number.isInteger(count) || count === undefined || count < 0)
+      ) {
+        await loadTransactions(
+          currentPage.value,
+          'The rule was created, but refreshing the transaction list failed. Do not create the rule again',
+        )
+        if (currentTenantKey.value !== tenantKey) return
+        error.value = handleApiError(
+          new Error('Invalid categorized transaction count'),
+          'Rule Created',
+          'The rule was created, but the server did not return a valid categorized transaction count. Do not create the rule again',
+        )
+        showError.value = true
+        return
+      }
+      ruleResult.value = applyToUncategorizedTransactions ? { transactionsCategorized: count } : {}
+    } catch (err) {
+      if (currentTenantKey.value !== tenantKey) return
+      ruleError.value = handleApiError(
+        err,
+        'Create Rule Failed',
+        sourceUpdated
+          ? 'The source transaction was updated, but the rule could not be created'
+          : 'Failed to create payee matching rule',
+      )
+      if (sourceUpdated) {
+        await loadTransactions(
+          currentPage.value,
+          'The source transaction was updated, but refreshing the transaction list failed',
+        )
+      }
+      return
+    }
+
+    await loadTransactions(
+      currentPage.value,
+      'The rule was created, but refreshing the transaction list failed. Do not create the rule again',
+    )
   } finally {
-    loading.value = false
+    savingRule.value = false
   }
 }
 
@@ -446,6 +528,30 @@ function retryLoadTransactions() {
       />
 
       <!-- Search Bar -->
+      <div
+        v-if="ruleResult"
+        class="alert alert-success"
+        role="status"
+        data-test-id="apply-rule-result"
+      >
+        Rule created.
+        <template v-if="ruleResult.transactionsCategorized !== undefined">
+          <span
+            v-if="ruleResult.transactionsCategorized === 0"
+            data-test-id="rule-application-no-matches"
+          >
+            No additional uncategorized transactions matched.
+          </span>
+          <template v-else>
+            Categorized
+            <span data-test-id="rule-application-count">{{
+              ruleResult.transactionsCategorized
+            }}</span>
+            additional transaction{{ ruleResult.transactionsCategorized === 1 ? '' : 's' }}.
+          </template>
+        </template>
+      </div>
+
       <SearchFilterBar
         v-if="hasWorkspace"
         v-model="searchDraft"
@@ -729,7 +835,9 @@ function retryLoadTransactions() {
     <PayeeRulesDialog
       v-model:show="showCreateRuleModal"
       mode="create"
-      :loading="loading"
+      :loading="savingRule"
+      :from-transaction="true"
+      :problem="ruleError"
       :initial-payee-pattern="selectedTransaction?.payee || ''"
       :initial-category="selectedTransaction?.category || ''"
       :initial-is-regex="false"

@@ -6,7 +6,7 @@
  * Used by both the Payee Rules management page and the Transactions page.
  */
 
-import { PayeeMatchingRuleEditDto } from '~/utils/apiclient'
+import { PayeeMatchingRuleEditDto, type IProblemDetails } from '~/utils/apiclient'
 
 /**
  * Component props for PayeeRuleDialog.
@@ -32,6 +32,12 @@ interface Props {
 
   /** Unique identifier of the rule being edited (used in edit mode) */
   ruleKey?: string
+
+  /** Show workspace application options when creating from a transaction */
+  fromTransaction?: boolean
+
+  /** API failure to display without discarding the user's input */
+  problem?: IProblemDetails
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -40,6 +46,8 @@ const props = withDefaults(defineProps<Props>(), {
   initialCategory: '',
   initialIsRegex: false,
   ruleKey: undefined,
+  fromTransaction: false,
+  problem: undefined,
 })
 
 /**
@@ -50,7 +58,7 @@ const emit = defineEmits<{
   'update:show': [value: boolean]
 
   /** Emitted when user saves the rule */
-  save: [rule: PayeeMatchingRuleEditDto]
+  save: [rule: PayeeMatchingRuleEditDto, applyToUncategorizedTransactions: boolean]
 
   /** Emitted when user cancels the dialog */
   cancel: []
@@ -64,6 +72,7 @@ const formData = ref({
   payeeIsRegex: false,
   category: '',
 })
+const applyToUncategorizedTransactions = ref(true)
 
 /**
  * Form validation error messages.
@@ -93,8 +102,10 @@ watch(
         category: '',
         regex: '',
       }
+      applyToUncategorizedTransactions.value = true
     }
   },
+  { immediate: true },
 )
 
 /**
@@ -134,7 +145,7 @@ function validateForm(): boolean {
  * Validates the form and emits the save event with rule data.
  */
 function handleSave() {
-  if (!validateForm()) return
+  if (props.loading || !validateForm()) return
 
   const rule = new PayeeMatchingRuleEditDto({
     payeePattern: formData.value.payeePattern.trim(),
@@ -142,7 +153,11 @@ function handleSave() {
     category: formData.value.category.trim(),
   })
 
-  emit('save', rule)
+  emit(
+    'save',
+    rule,
+    props.fromTransaction && props.mode === 'create' && applyToUncategorizedTransactions.value,
+  )
 }
 
 /**
@@ -150,8 +165,13 @@ function handleSave() {
  * Emits cancel event and closes the dialog.
  */
 function handleCancel() {
+  if (props.loading) return
   emit('cancel')
   emit('update:show', false)
+}
+
+function handleVisibilityChange(show: boolean) {
+  if (!props.loading) emit('update:show', show)
 }
 
 /**
@@ -187,8 +207,12 @@ const primaryButtonText = computed(() => {
     :test-id="mode === 'create' ? 'rule-create-dialog' : 'rule-edit-dialog'"
     @primary="handleSave"
     @secondary="handleCancel"
-    @update:show="$emit('update:show', $event)"
+    @update:show="handleVisibilityChange"
   >
+    <ErrorDisplay
+      :show="!!problem"
+      :problem="problem"
+    />
     <!-- Validation Error Summary -->
     <div
       v-if="formErrors.payeePattern || formErrors.category || formErrors.regex"
@@ -217,6 +241,7 @@ const primaryButtonText = computed(() => {
         :class="{ 'is-invalid': formErrors.payeePattern }"
         placeholder="e.g., Amazon or ^AMZN.*"
         maxlength="200"
+        :disabled="loading"
         data-test-id="payee-pattern-input"
         @keydown.enter="handleSave"
       />
@@ -239,6 +264,7 @@ const primaryButtonText = computed(() => {
         type="checkbox"
         class="form-check-input"
         data-test-id="regex-checkbox"
+        :disabled="loading"
       />
       <label
         class="form-check-label"
@@ -268,6 +294,7 @@ const primaryButtonText = computed(() => {
         :class="{ 'is-invalid': formErrors.category }"
         placeholder="e.g., Shopping, Groceries, Utilities"
         maxlength="200"
+        :disabled="loading"
         data-test-id="category-input"
         @keydown.enter="handleSave"
       />
@@ -278,6 +305,35 @@ const primaryButtonText = computed(() => {
       >
         {{ formErrors.category }}
       </div>
+    </div>
+
+    <div
+      v-if="fromTransaction && mode === 'create'"
+      class="mb-3 form-check"
+    >
+      <input
+        id="applyRuleNow"
+        v-model="applyToUncategorizedTransactions"
+        type="checkbox"
+        class="form-check-input"
+        :disabled="loading"
+        aria-describedby="applyRuleNowHelp"
+        data-test-id="apply-rule-now-checkbox"
+      />
+      <label
+        class="form-check-label"
+        for="applyRuleNow"
+      >
+        Apply this rule to existing uncategorized transactions
+      </label>
+      <small
+        id="applyRuleNowHelp"
+        class="form-text d-block"
+      >
+        Applies only this rule across the entire workspace, regardless of filters or pagination.
+        Transactions with multiple splits are skipped. The selected transaction's category is
+        updated separately, even when this option is off, unless it has multiple splits.
+      </small>
     </div>
   </ModalDialog>
 </template>

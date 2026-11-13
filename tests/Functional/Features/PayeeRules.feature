@@ -76,7 +76,53 @@ Feature: Payee Matching Rules
       Then I should see an error message containing "Category is required"
       And the rule should not be created
 
-    @category:story-2212
+  @category:story-2211
+  @category:scenario-2281
+  Rule: A newly created rule can categorize existing uncategorized transactions
+
+    @pri:1
+    @id:40
+    Scenario: User applies a new rule beyond the current transaction search by default
+      Given I have a payee rule:
+        | Payee  | Category |
+        | Coffee | Cafe     |
+      And I have a workspace with the following transactions:
+        | Payee          | Category |
+        | Amazon Source  | Old      |
+        | Amazon Other   |          |
+        | Amazon Keep    | Existing |
+        | Coffee         |          |
+      And I have searched for transactions matching "Amazon Source"
+      When I create a rule from transaction "Amazon Source":
+        | Payee  | Category |
+        | Amazon | Shopping |
+      And I clear the search
+      Then the additional categorized transaction count should be 1
+      And the following transactions should be shown:
+        | Payee          | Category |
+        | Amazon Source  | Shopping |
+        | Amazon Other   | Shopping |
+        | Amazon Keep    | Existing |
+        | Coffee         |          |
+
+    @pri:2
+    @id:41
+    Scenario: User opts out of applying a new rule while still categorizing the source
+      Given I have a workspace with the following transactions:
+        | Payee          | Category |
+        | Amazon Source  |          |
+        | Amazon Other   |          |
+      And I am on the transactions page
+      When I create a rule from transaction "Amazon Source":
+        | Payee  | Category | ApplyNow |
+        | Amazon | Shopping | false    |
+      Then the rule should be created successfully
+      And the following transactions should be shown:
+        | Payee          | Category |
+        | Amazon Source  | Shopping |
+        | Amazon Other   |          |
+
+  @category:story-2212
   Rule: Transactions are automatically categorized on bank import
 
     @pri:1

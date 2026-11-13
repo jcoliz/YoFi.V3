@@ -1202,7 +1202,7 @@ Require Editor role using the existing tenant authorization pattern. Return **20
 
 Keep the controller thin: delegate to an Application Feature operation and log only at the API boundary using `[LoggerMessage]` partial methods. Do not log payee patterns, categories, transaction contents, or other sensitive user data.
 
-Existing POST callers retain the same route, top-level rule fields, default create-only behavior, and response rule fields; the application option and categorized count are additive. PUT and GET contracts remain unchanged. The backend-only delivery leaves the existing frontend and generated API client unchanged. Regenerate the TypeScript API client through the existing generation workflow when implementing the checkbox and frontend save sequence.
+Existing POST callers retain the same route, top-level rule fields, default create-only behavior, and response rule fields; the application option and categorized count are additive. PUT and GET contracts remain unchanged. The Transactions page uses the regenerated API client to send the explicit application option and display the returned count. Initialize the derived create DTO with the client's `fromJS` factory so its application option survives generated class-field initialization. Ordinary rule creation continues to omit the option.
 
 ### Application Logic and Persistence
 

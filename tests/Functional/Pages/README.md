@@ -15,6 +15,13 @@ Rows are matched by the dedicated payee-pattern text span and presence or absenc
 not the combined cell text. List assertions can also check the rule count and regex badges. Other rule operations are
 intentionally not implemented yet.
 
+[`TransactionsPage`](TransactionsPage.cs) supports creating a rule from a selected transaction,
+checking the default-ON application option, opting out, and waiting for the reported result and
+refreshed list. Scenario 2281 coverage verifies application beyond the current search, preservation
+of existing categories, source-first categorization, opt-out, and zero additional matches.
+Success assertions use `apply-rule-result`; numeric counts use the `rule-application-count` span
+rather than matching the surrounding notification text.
+
 See [writing page objects](../docs/writing-pages.md) for the authoring guide and
 [the Nuxt hydration pattern](../docs/NUXT-SSR-TESTING-PATTERN.md) for client-readiness requirements.
 

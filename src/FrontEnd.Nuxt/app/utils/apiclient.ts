@@ -1153,9 +1153,9 @@ export class PayeeMatchingRulesClient {
     /**
      * Creates a new payee matching rule in the tenant workspace.
      * @param tenantKey The unique identifier of the tenant (from route).
-     * @param rule The rule data including payee pattern, regex flag, and category.
+     * @param rule Rule data and optional application to existing uncategorized transactions.
      */
-    createRule(tenantKey: string, rule: PayeeMatchingRuleEditDto): Promise<PayeeMatchingRuleResultDto> {
+    createRule(tenantKey: string, rule: PayeeMatchingRuleCreateDto): Promise<PayeeMatchingRuleCreateResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/payee-rules";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
@@ -1178,14 +1178,14 @@ export class PayeeMatchingRulesClient {
         });
     }
 
-    protected processCreateRule(response: Response): Promise<PayeeMatchingRuleResultDto> {
+    protected processCreateRule(response: Response): Promise<PayeeMatchingRuleCreateResultDto> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 201) {
             return response.text().then((_responseText) => {
             let result201: any = null;
             let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result201 = PayeeMatchingRuleResultDto.fromJS(resultData201);
+            result201 = PayeeMatchingRuleCreateResultDto.fromJS(resultData201);
             return result201;
             });
         } else if (status === 400) {
@@ -1221,7 +1221,7 @@ export class PayeeMatchingRulesClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<PayeeMatchingRuleResultDto>(null as any);
+        return Promise.resolve<PayeeMatchingRuleCreateResultDto>(null as any);
     }
 
     /**
@@ -5957,6 +5957,39 @@ export enum PayeeRuleSortBy {
     NumberOfMatches = 3,
 }
 
+export class PayeeMatchingRuleCreateResultDto extends PayeeMatchingRuleResultDto implements IPayeeMatchingRuleCreateResultDto {
+    transactionsCategorized?: number;
+
+    constructor(data?: IPayeeMatchingRuleCreateResultDto) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.transactionsCategorized = _data["transactionsCategorized"];
+        }
+    }
+
+    static override fromJS(data: any): PayeeMatchingRuleCreateResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PayeeMatchingRuleCreateResultDto();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transactionsCategorized"] = this.transactionsCategorized;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPayeeMatchingRuleCreateResultDto extends IPayeeMatchingRuleResultDto {
+    transactionsCategorized?: number;
+}
+
 export class PayeeMatchingRuleEditDto implements IPayeeMatchingRuleEditDto {
     payeePattern?: string;
     payeeIsRegex?: boolean;
@@ -5999,6 +6032,39 @@ export interface IPayeeMatchingRuleEditDto {
     payeePattern?: string;
     payeeIsRegex?: boolean;
     category?: string;
+}
+
+export class PayeeMatchingRuleCreateDto extends PayeeMatchingRuleEditDto implements IPayeeMatchingRuleCreateDto {
+    applyToUncategorizedTransactions?: boolean;
+
+    constructor(data?: IPayeeMatchingRuleCreateDto) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.applyToUncategorizedTransactions = _data["applyToUncategorizedTransactions"];
+        }
+    }
+
+    static override fromJS(data: any): PayeeMatchingRuleCreateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PayeeMatchingRuleCreateDto();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["applyToUncategorizedTransactions"] = this.applyToUncategorizedTransactions;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IPayeeMatchingRuleCreateDto extends IPayeeMatchingRuleEditDto {
+    applyToUncategorizedTransactions?: boolean;
 }
 
 export class ReportDefinitionDto implements IReportDefinitionDto {
