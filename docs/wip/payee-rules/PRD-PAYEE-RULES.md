@@ -64,6 +64,18 @@ to what transactions.
 - [ ] User with editor role on containing tenant can take any actions listed here
 - [ ] User with viewer role on containing tenant can only view, list, or search. Cannot create, edit, or delete.
 
+#### Scenario 2281: Apply a newly created payee rule to existing uncategorized transactions
+
+**Acceptance Criteria**:
+
+- [ ] When creating a payee rule from a transaction, user can select "Apply this rule to existing uncategorized transactions."
+- [ ] The checkbox defaults to ON.
+- [ ] When selected, saving the rule applies ONLY the newly created rule, using the final payee pattern and category reviewed and saved by the user. Other rules are not re-evaluated.
+- [ ] The rule applies to all transactions in the current workspace which match the rule and do not already have a category, regardless of the current Transactions page filters or pagination.
+- [ ] Existing categories remain unchanged.
+- [ ] When the checkbox is not selected, saving the rule does not bulk-update existing transactions.
+- [ ] User receives confirmation of how many transactions were categorized, including when no transactions were updated, or an explicit error if application fails.
+
 ### Story 2212: User - Have transactions automatically categorized on bank import
 
 **As a** User
@@ -99,7 +111,7 @@ to what transactions.
 
 **Limitations**:
 
-- [ ] Manual matching is for a specific transaction only. In future we can consider a bulk re-match, but I haven't found that super useful.
+- [ ] Manually triggering rule matching in this story applies the rule set to a specific transaction only. Scenario 2281 under Story 2211 separately allows applying only a newly created rule to matching uncategorized transactions across the current workspace when saving that rule. A general-purpose bulk re-match using the full rule set remains out of scope.
 
 Regarding splits, if user wants to remove splits and apply rule matching, this is something of a corner case. They can use existing tools
 for this. They can edit the transaction, remove the splits, and then trigger manual matching.
