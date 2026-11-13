@@ -17,6 +17,8 @@ This document provides the detailed technical design for implementing Stories 1 
 - **Story 1:** User - Establish payee matching rules (CRUD operations, validation)
 - **Story 2:** User - Sees transactions automatically categorized on bank import
 
+The [Scenario 2281 design addendum](#scenario-2281-apply-a-new-rule-to-existing-uncategorized-transactions) collects the changes to Story 2211's create-from-transaction workflow in one place.
+
 ## Overview
 
 The Payee Matching Rules feature enables users to automatically categorize transactions based on payee name patterns. Users create rules that match transaction payees (via substring or regex) and assign categories. During bank import, these rules are applied to set the category on imported transactions before review.
@@ -707,6 +709,8 @@ All interactive elements and status displays must include `data-test-id` attribu
 
 ### Create Rule from Transaction (Transactions Page Integration)
 
+**Scenario 2281:** The [design addendum](#scenario-2281-apply-a-new-rule-to-existing-uncategorized-transactions) extends this baseline workflow and supersedes its API integration and save sequence. The existing source-transaction category update is preserved.
+
 **Location:** Transactions page (existing component)
 
 **Purpose:** Allow users to quickly create payee matching rules based on existing transactions
@@ -1119,6 +1123,145 @@ Not required - feature is net-new, no existing functionality to replace
 **Story 4:** Advanced matching - Source pattern, amount matching, multiple criteria
 **Story 5:** Rule cleanup - Usage tracking (LastUsedAt, MatchCount), bulk delete operations
 **Stories 6-7:** Transaction splits - Loan amortization rules, amount-based split rules
+
+## Scenario 2281: Apply a New Rule to Existing Uncategorized Transactions
+
+### Scope and Confirmed Behavior
+
+This addendum extends **Story 2211: Establish payee matching rules**, as specified in [PRD Scenario 2281](PRD-PAYEE-RULES.md#scenario-2281-apply-a-newly-created-payee-rule-to-existing-uncategorized-transactions). All Scenario 2281-specific design changes are collected here; earlier sections describe the baseline unless explicitly superseded below.
+
+- Show "Apply this rule to existing uncategorized transactions" when creating a rule from a transaction.
+- Default the checkbox to **ON each time the dialog opens**.
+- Apply **only the newly created rule**, using its final validated pattern, regex flag, and sanitized category. Do not evaluate the tenant's other rules or invoke full-rule-set precedence resolution.
+- Search all eligible persisted transactions in the current workspace, independent of the visible page, search, date range, or other filters. Pending import-review records are not included.
+- Never overwrite existing categories on additional workspace transactions.
+- Exclude transactions with multiple splits, even if some or all split categories are empty.
+- Preserve the existing source-transaction behavior separately: assign the final entered category to the source transaction if it has a single split, even if it already has a category or no longer matches the edited pattern. Complete this update before creating the rule, whether the checkbox is ON or OFF.
+- With the checkbox OFF, update the source and create the rule without applying it to other transactions.
+- Do not add this checkbox to ordinary rule creation or editing on the Payee Rules page. Import matching and Story 2266's single-transaction manual matching remain unchanged.
+
+The source update remains a separate Quick Edit request before rule creation and optional workspace application. Stop if that update fails. If it succeeds but rule creation fails, retain the source category change. The create endpoint does not receive a source transaction key: the source already has a category and is therefore ineligible for workspace application. A multi-split source skips Quick Edit and is also ineligible for workspace application. General-purpose bulk re-matching using the full rule set remains out of scope.
+
+### User Interface and Save Flow
+
+**Existing implementation surfaces:**
+
+- Shared dialog: [`Dialog.vue`](../../../src/FrontEnd.Nuxt/app/components/payee-rules/Dialog.vue)
+- Transactions page: [`index.vue`](../../../src/FrontEnd.Nuxt/app/pages/transactions/index.vue)
+
+Extend the shared dialog with an opt-in create-from-transaction context prop. Render the checkbox only in that context and create mode; do not persist its value as a property of the rule. Include concise help text explaining that additional matching uncategorized transactions across the workspace will be updated, transactions with multiple splits will be skipped, and the source transaction's category is assigned separately regardless of this checkbox.
+
+Keep the existing typed rule save payload and add the checkbox value as a separate typed save-event argument. Existing rule-management callers continue to use only the rule payload. Initialize the checkbox to true whenever the dialog opens, and disable it along with Save while the request is in progress.
+
+**Save sequence:**
+
+1. User opens "Create Rule" from a transaction and reviews or edits the pre-populated rule fields.
+2. User leaves the checkbox ON or turns it OFF.
+3. After client-side form validation, the frontend performs the separate Quick Edit request for a single-split source transaction using the final entered category. The existing Quick Edit backend sanitizes the category. Skip this request for a multi-split source.
+4. If Quick Edit fails, stop without submitting rule creation. Retain the dialog values and checkbox state and display the source-update error.
+5. After Quick Edit succeeds (or is skipped for a multi-split source), submit the final rule and checkbox value to the existing rule-creation endpoint. No source transaction key is sent.
+6. Backend validates and saves the rule, optional workspace transaction updates, and usage statistics as one atomic operation.
+7. On success, close the create dialog, reload the current Transactions query, and report the creation result and categorized count. Reload even when the checkbox is OFF.
+8. If creation fails, retain the dialog values and checkbox state and display the API error without a success notification. If Quick Edit already succeeded, explicitly report "The source transaction was updated, but the rule could not be created." Refresh the list to reflect that committed category change; do not roll it back. A retry may repeat Quick Edit with the current entered category before retrying creation.
+
+Example success messages:
+
+- ON: "Rule created. Categorized 12 transactions."
+- ON, no matches: "Rule created. No uncategorized transactions matched."
+- OFF: "Rule created."
+
+The count covers transactions actually categorized by the checkbox-controlled application. It excludes the source: a single-split source was categorized first, and a multi-split source is ineligible. It excludes changes made by the separate Quick Edit request and counts transactions rather than candidate rows or distinct payee strings. A list reload failure after a successful save must be reported as a refresh failure, not a failed rule creation; do not invite resubmitting an already committed save.
+
+**Automation hooks:**
+
+- Checkbox: `data-test-id="apply-rule-now-checkbox"`
+- Application result notification: `data-test-id="apply-rule-result"`
+- Retain the existing dialog, field, Save, Cancel, and error test IDs.
+
+### API Contract
+
+Reuse the existing create endpoint in [`PayeeMatchingRulesController`](../../../src/Controllers/PayeeMatchingRulesController.cs); do not add a create-from-transaction route:
+
+| Method | Path | Request | Response |
+| ------ | ---- | ------- | -------- |
+| POST | `/api/tenant/{tenantKey:guid}/payee-rules` | `PayeeMatchingRuleCreateDto` | `PayeeMatchingRuleCreateResultDto` |
+
+**Request fields:**
+
+- `PayeePattern`, `PayeeIsRegex`, and `Category`: the same top-level rule fields and validation as the existing `PayeeMatchingRuleEditDto`. Reuse rule validation rather than duplicating it.
+- `ApplyToUncategorizedTransactions`: optional boolean, default **false** at the API boundary. The Transactions dialog sends its checkbox value explicitly. The ON default is dialog behavior, not an implicit bulk action for existing callers.
+
+Use the create-specific DTO for POST only. Keep `PayeeMatchingRuleEditDto` for PUT, without application options. Ordinary rule creation omits the option or sends false. Do not introduce a nested `Rule` request property or a source transaction key.
+
+**Response fields:**
+
+- Retain the existing top-level `PayeeMatchingRuleResultDto` fields for the created rule.
+- Add `TransactionsCategorized`: integer count, zero when the checkbox is OFF or no eligible transactions matched.
+
+Require Editor role using the existing tenant authorization pattern. Return **201 Created**, with Location pointing to the existing GET-by-rule-key endpoint. Return standard ProblemDetails for validation errors (400), unauthenticated access (401), insufficient role (403), and unexpected failures (500). Source lookup and update errors remain the responsibility of the separate Quick Edit endpoint.
+
+Keep the controller thin: delegate to an Application Feature operation and log only at the API boundary using `[LoggerMessage]` partial methods. Do not log payee patterns, categories, transaction contents, or other sensitive user data.
+
+Existing POST callers retain the same route, top-level rule fields, default create-only behavior, and response rule fields; the application option and categorized count are additive. PUT and GET contracts remain unchanged. Regenerate the TypeScript API client through the existing generation workflow after updating the POST DTOs.
+
+### Application Logic and Persistence
+
+Extend the existing create operation in [`PayeeMatchingRuleFeature`](../../../src/Application/Features/PayeeMatchingRuleFeature.cs) with optional workspace application, using its current tenant, `IDataProvider`, category sanitization, rule factory, cache invalidation, and `TimeProvider` patterns. Do not add transaction-query logic to the controller or frontend. The frontend retains only the existing separate source Quick Edit orchestration.
+
+**Processing sequence:**
+
+1. Build the new rule from the validated final input using the existing rule creation factory. Use its sanitized category for every category assignment.
+2. If the checkbox is ON, query transactions by current TenantId. Load their splits and select only transactions with exactly one split whose category is empty. An empty category is the persisted uncategorized representation; do not infer eligibility from the list DTO's category, which is also empty for multi-split transactions. There is no source-specific inclusion or exclusion.
+3. Match candidate payees with the existing [`PayeeMatchingHelper`](../../../src/Application/Helpers/PayeeMatchingHelper.cs), supplying a collection containing **only the new rule**. Preserve existing case-insensitive substring and regex semantics and regex validation protections.
+4. Set the sole split's category on matching candidates. Do not change payee, amount, date, source, memo, split amount, split order, or split structure. Do not create or collapse splits; transactions without a split are not eligible.
+5. Record usage only for the new rule when it actually matches an eligible transaction, following the existing usage-statistics convention. Retain the known rule identity; do not infer it by searching for another rule with the same category. The separate Quick Edit request does not record rule usage.
+6. Stage the new rule and changed split entities through `IDataProvider`, then persist with a single `SaveChangesAsync`. Invalidate the current tenant's rule cache only after successful persistence, and return the created rule fields and categorized-transaction count.
+
+**Atomicity and failure handling:**
+
+- Extend `CreateRuleAsync` so optional workspace application is staged before its save, rather than saving the rule first and then applying it.
+- Retain ordinary-create behavior when the option is omitted or false.
+- Keep the Transactions page's separate Quick Edit HTTP call and run it first. A failed Quick Edit prevents the create request; a failed create request does not roll back an already committed source update.
+- Ensure writes within the create request use one unit of work with no intermediate saves or immediately executed bulk updates. Relational EF Core applies a single save atomically; see [default transaction behavior](https://learn.microsoft.com/en-us/ef/core/saving/transactions#default-transaction-behavior). Verify this through the actual data-provider implementation and integration tests.
+- A failed create request must leave no new rule, workspace category changes, or usage-statistics changes persisted. Propagate errors through the existing exception handler; do not swallow matching or persistence failures or return a success-shaped zero count.
+
+**Query and performance constraints:**
+
+- Tenant scope must be enforced in every transaction query and any split update through its parent transaction.
+- Do not use the paginated Transactions listing as the source of candidates or pass visible transaction keys from the browser.
+- Filter candidate eligibility in the database, load candidates and splits together, and avoid per-transaction queries or saves.
+- Keep matching in Application code so substring and regex behavior stays identical to existing matching. Do not introduce provider-specific SQL regex matching or a silent transaction-count cap.
+- No schema migration, new table, persisted checkbox preference, or extension of the bank-import matching interface is required.
+
+### Verification
+
+**Application integration tests (primary):**
+
+- ON applies the final edited rule to every eligible matching transaction in the tenant, including repeated payees and transactions beyond one list page.
+- OFF or an omitted option creates the rule without changing any transactions in the create request.
+- Existing categories, nonmatching transactions, pending import-review records, and another tenant's transactions remain unchanged.
+- Multi-split additional transactions are excluded whether fully uncategorized, partially categorized, or fully categorized. A multi-split source remains unchanged but does not prevent rule creation.
+- A conflicting existing rule, even a higher-precedence regex rule, is never applied. Rules sharing the new rule's category do not receive its usage statistics.
+- Substring and regex rules retain existing matching semantics; assigned categories are sanitized.
+- The result counts actual workspace updates, reports zero accurately, and counts repeated payees per transaction. A transaction already categorized by Quick Edit is ineligible without needing a source key or special exclusion.
+- Validation, matching, or persistence failures leave rule creation and its workspace updates uncommitted.
+- Successful persistence invalidates the rule cache; usage statistics follow the existing convention and refer only to the actual new rule.
+
+**Controller integration tests:**
+
+- Verify Editor/Owner access, Viewer denial, unauthenticated denial, tenant isolation, input validation, 201 response shape, Location header, and standard error responses.
+- Verify POST accepts existing top-level rule fields with the application option omitted, retains the existing response rule fields, and adds the categorized count. Verify PUT and GET contracts remain unchanged.
+
+**Frontend and functional coverage:**
+
+- Checkbox is visible and checked whenever create-from-transaction opens, resets on reopening, and is absent from ordinary create/edit dialogs.
+- Save first performs the separate source Quick Edit call for a single-split source, then submits the final rule and explicit checkbox value once to the existing POST endpoint without a source key. Multi-split sources skip Quick Edit.
+- Default ON updates eligible transactions beyond active filters and pagination while preserving existing categories and multi-split transactions.
+- OFF preserves the source update without applying to additional transactions.
+- The separate source update still occurs with an existing source category or an edited pattern that no longer matches the source.
+- Success displays the returned count, including zero, excludes the source from that count, and refreshes the list.
+- Source-update failure retains inputs and prevents rule creation. Creation failure retains inputs, reports any already committed source update, and refreshes the list without rolling back that update. Refresh failure is distinguished from either save failure.
+- Read the functional-test README and applicable guides before implementing functional tests. Keep all Gherkin action steps before assertions and run functional coverage against the containerized app using the documented workflow, not the Aspire development environment.
 
 ## References
 
