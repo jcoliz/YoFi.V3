@@ -195,9 +195,8 @@ function navigateToDetails() {
         aria-describedby="editCategoryHelp"
         data-test-id="edit-transaction-category"
       />
-      <small
+      <HelpText
         id="editCategoryHelp"
-        class="form-text text-muted"
         data-test-id="edit-transaction-category-help"
       >
         {{
@@ -205,7 +204,7 @@ function navigateToDetails() {
             ? 'This transaction is split across multiple categories. Category cannot be changed in Quick Edit.'
             : 'Optional category for this transaction'
         }}
-      </small>
+      </HelpText>
       <div
         v-if="formErrors.category"
         class="invalid-feedback"

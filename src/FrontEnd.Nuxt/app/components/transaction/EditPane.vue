@@ -11,6 +11,7 @@ import {
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
 import { fromDateInputValue, toDateInputValue } from '~/utils/dateOnly'
+import HelpText from '../HelpText.vue';
 
 const props = defineProps<{
   transaction: TransactionDetailDto
@@ -301,7 +302,7 @@ async function saveTransaction() {
               maxlength="100"
               data-test-id="edit-category"
             />
-            <small class="form-text text-muted">Optional category for this transaction</small>
+            <HelpText>Optional category for this transaction</HelpText>
             <div
               v-if="formErrors.category"
               class="invalid-feedback"
@@ -325,7 +326,7 @@ async function saveTransaction() {
               maxlength="200"
               data-test-id="edit-source"
             />
-            <small class="form-text text-muted">Bank account (optional)</small>
+            <HelpText>Bank account (optional)</HelpText>
             <div
               v-if="formErrors.source"
               class="invalid-feedback"
@@ -349,7 +350,7 @@ async function saveTransaction() {
               maxlength="100"
               data-test-id="edit-external-id"
             />
-            <small class="form-text text-muted">Bank's unique identifier (optional)</small>
+            <HelpText>Bank's unique identifier (optional)</HelpText>
             <div
               v-if="formErrors.externalId"
               class="invalid-feedback"

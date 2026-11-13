@@ -270,13 +270,12 @@ const primaryButtonText = computed(() => {
         class="form-check-label"
         for="payeeIsRegex"
       >
-        Use regex pattern (case-insensitive)
+        Use regex pattern
       </label>
-      <!-- Keeping this around in case I want it later -->
-      <small class="form-text text-muted d-none">
+      <HelpText>
         If checked, the pattern will be treated as a regular expression. If unchecked, it will be
         treated as a simple substring match.
-      </small>
+      </HelpText>
     </div>
 
     <!-- Category Field -->
@@ -326,14 +325,11 @@ const primaryButtonText = computed(() => {
       >
         Apply this rule to existing uncategorized transactions
       </label>
-      <small
-        id="applyRuleNowHelp"
-        class="form-text d-block"
-      >
+      <HelpText id="applyRuleNowHelp">
         Applies only this rule across the entire workspace, regardless of filters or pagination.
         Transactions with multiple splits are skipped. The selected transaction's category is
         updated separately, even when this option is off, unless it has multiple splits.
-      </small>
+      </HelpText>
     </div>
   </ModalDialog>
 </template>
