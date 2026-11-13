@@ -28,6 +28,8 @@ services:
       service: backend
     environment:
       STARTUP__ALLOWEDCORSORIGINS__0: http://localhost:5100
+      IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD:
+      JWT__LIFESPAN: 00:02:30
     ports: !override
       - '5101:8080'
 
