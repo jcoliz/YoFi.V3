@@ -206,9 +206,41 @@ only the backend container is replaced.
 
 ### Persist Data with Volumes
 
-For durable data, replace the `db` service's `tmpfs` mount with a named volume
-mounted at `/var/lib/postgresql/data`, or connect to an external PostgreSQL server.
-Mounting a data directory in the backend container does not persist PostgreSQL data.
+For a persistent local environment, use
+[`docker-compose-persistent.yml`](docker-compose-persistent.yml). From the repository
+root, with Docker Compose 2.24.4 or newer:
+
+```powershell
+docker compose -f .\docker\docker-compose-persistent.yml up -d --build --wait
+```
+
+This is a separate Compose project named `yofi-v3-persistent`, with its own network
+and containers. It extends the CI service definitions, but replaces PostgreSQL's
+`tmpfs` mount with the project-scoped named volume
+`yofi-v3-persistent_postgres-data`. Database contents survive container restarts
+and recreation. It starts with a new database; existing CI data is not copied.
+Do not delete the volume or use `down --volumes` if you want to retain the data.
+
+The persistent and CI projects can run concurrently:
+
+| Service | Persistent URL | CI URL |
+|---------|----------------|--------|
+| Frontend | http://localhost:5100 | http://localhost:5000 |
+| Backend API | http://localhost:5101 | http://localhost:5001 |
+| Aspire Dashboard | http://localhost:18810 | http://localhost:18800 |
+
+The persistent frontend uses the same Dockerfile but a separate
+`yofi-v3-frontend-persistent` image because the backend URL is embedded at build
+time. Its API URL and the backend's allowed CORS origin match the persistent
+ports. Backend, PostgreSQL, and dashboard images are shared with CI.
+`REGISTRY_PREFIX`, `SOLUTION_VERSION`, and the other CI Compose environment
+variables still apply. The existing container scripts continue to target only
+the CI project.
+
+This configuration retains the development/testing defaults and is intended
+for local use, not production deployment. Only PostgreSQL data is persisted;
+dashboard telemetry remains transient. Mounting a data directory in the backend
+container does not persist PostgreSQL data.
 
 ## Health Checks
 

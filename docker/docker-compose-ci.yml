@@ -3,7 +3,7 @@ services:
   dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13
     ports:
-      - '18788:18888'  # Dashboard UI
+      - '18800:18888'  # Dashboard UI
     environment:
       - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
     restart: unless-stopped

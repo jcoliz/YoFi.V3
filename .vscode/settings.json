@@ -1,4 +1,8 @@
 {
+    "yaml.customTags": [
+        "!override sequence",
+        "!reset sequence"
+    ],
     "cSpell.words": [
         "actuals",
         "Alexinea",
