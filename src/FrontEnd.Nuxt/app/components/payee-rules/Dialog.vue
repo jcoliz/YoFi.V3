@@ -174,6 +174,17 @@ function handleVisibilityChange(show: boolean) {
   if (!props.loading) emit('update:show', show)
 }
 
+function handleKeydown(event: KeyboardEvent) {
+  if (!props.show || event.defaultPrevented || event.isComposing || event.key !== 'Escape') return
+
+  event.preventDefault()
+  event.stopPropagation()
+  if (!event.repeat) handleCancel()
+}
+
+onMounted(() => document.addEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
+
 /**
  * Computes the dialog title based on the current mode.
  *
@@ -209,128 +220,159 @@ const primaryButtonText = computed(() => {
     @secondary="handleCancel"
     @update:show="handleVisibilityChange"
   >
-    <ErrorDisplay
-      :show="!!problem"
-      :problem="problem"
-    />
-    <!-- Validation Error Summary -->
-    <div
-      v-if="formErrors.payeePattern || formErrors.category || formErrors.regex"
-      class="alert alert-danger"
-      data-test-id="validation-error"
+    <form
+      id="payee-rule-form"
+      @submit.prevent="handleSave"
     >
-      <ul class="mb-0">
-        <li v-if="formErrors.payeePattern">{{ formErrors.payeePattern }}</li>
-        <li v-if="formErrors.category">{{ formErrors.category }}</li>
-        <li v-if="formErrors.regex">{{ formErrors.regex }}</li>
-      </ul>
-    </div>
-
-    <!-- Payee Pattern Field -->
-    <div class="mb-3">
-      <label
-        for="payeePattern"
-        class="form-label"
-        >Payee Pattern</label
-      >
-      <input
-        id="payeePattern"
-        v-model="formData.payeePattern"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.payeePattern }"
-        placeholder="e.g., Amazon or ^AMZN.*"
-        maxlength="200"
-        :disabled="loading"
-        data-test-id="payee-pattern-input"
-        @keydown.enter="handleSave"
+      <ErrorDisplay
+        :show="!!problem"
+        :problem="problem"
       />
-      <small class="form-text text-muted">
-        {{ formData.payeePattern.length }} / 200 characters
-      </small>
+      <!-- Validation Error Summary -->
       <div
-        v-if="formErrors.payeePattern"
-        class="invalid-feedback"
+        v-if="formErrors.payeePattern || formErrors.category || formErrors.regex"
+        class="alert alert-danger"
+        data-test-id="validation-error"
       >
-        {{ formErrors.payeePattern }}
+        <ul class="mb-0">
+          <li v-if="formErrors.payeePattern">{{ formErrors.payeePattern }}</li>
+          <li v-if="formErrors.category">{{ formErrors.category }}</li>
+          <li v-if="formErrors.regex">{{ formErrors.regex }}</li>
+        </ul>
       </div>
-    </div>
 
-    <!-- Regex Checkbox -->
-    <div class="mb-3 form-check">
-      <input
-        id="payeeIsRegex"
-        v-model="formData.payeeIsRegex"
-        type="checkbox"
-        class="form-check-input"
-        data-test-id="regex-checkbox"
-        :disabled="loading"
-      />
-      <label
-        class="form-check-label"
-        for="payeeIsRegex"
-      >
-        Use regex pattern
-      </label>
-      <HelpText>
-        If checked, the pattern will be treated as a regular expression. If unchecked, it will be
-        treated as a simple substring match.
-      </HelpText>
-    </div>
+      <!-- Payee Pattern Field -->
+      <div class="mb-3">
+        <label
+          for="payeePattern"
+          class="form-label"
+          >Payee Pattern</label
+        >
+        <input
+          id="payeePattern"
+          v-model="formData.payeePattern"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.payeePattern }"
+          placeholder="e.g., Amazon or ^AMZN.*"
+          maxlength="200"
+          :disabled="loading"
+          data-test-id="payee-pattern-input"
+        />
+        <small class="form-text text-muted">
+          {{ formData.payeePattern.length }} / 200 characters
+        </small>
+        <div
+          v-if="formErrors.payeePattern"
+          class="invalid-feedback"
+        >
+          {{ formErrors.payeePattern }}
+        </div>
+      </div>
 
-    <!-- Category Field -->
-    <div class="mb-3">
-      <label
-        for="category"
-        class="form-label"
-        >Category</label
-      >
-      <input
-        id="category"
-        v-model="formData.category"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.category }"
-        placeholder="e.g., Shopping, Groceries, Utilities"
-        maxlength="200"
-        :disabled="loading"
-        data-test-id="category-input"
-        @keydown.enter="handleSave"
-      />
-      <small class="form-text text-muted"> {{ formData.category.length }} / 200 characters </small>
+      <!-- Regex Checkbox -->
+      <div class="mb-3 form-check">
+        <input
+          id="payeeIsRegex"
+          v-model="formData.payeeIsRegex"
+          type="checkbox"
+          class="form-check-input"
+          data-test-id="regex-checkbox"
+          :disabled="loading"
+        />
+        <label
+          class="form-check-label"
+          for="payeeIsRegex"
+        >
+          Use regex pattern
+        </label>
+        <HelpText>
+          If checked, the pattern will be treated as a regular expression. If unchecked, it will be
+          treated as a simple substring match.
+        </HelpText>
+      </div>
+
+      <!-- Category Field -->
+      <div class="mb-3">
+        <label
+          for="category"
+          class="form-label"
+          >Category</label
+        >
+        <input
+          id="category"
+          v-model="formData.category"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.category }"
+          placeholder="e.g., Shopping, Groceries, Utilities"
+          maxlength="200"
+          :disabled="loading"
+          data-test-id="category-input"
+        />
+        <small class="form-text text-muted">
+          {{ formData.category.length }} / 200 characters
+        </small>
+        <div
+          v-if="formErrors.category"
+          class="invalid-feedback"
+        >
+          {{ formErrors.category }}
+        </div>
+      </div>
+
       <div
-        v-if="formErrors.category"
-        class="invalid-feedback"
+        v-if="fromTransaction && mode === 'create'"
+        class="mb-3 form-check"
       >
-        {{ formErrors.category }}
+        <input
+          id="applyRuleNow"
+          v-model="applyToUncategorizedTransactions"
+          type="checkbox"
+          class="form-check-input"
+          :disabled="loading"
+          aria-describedby="applyRuleNowHelp"
+          data-test-id="apply-rule-now-checkbox"
+        />
+        <label
+          class="form-check-label"
+          for="applyRuleNow"
+        >
+          Apply this rule to existing uncategorized transactions
+        </label>
+        <HelpText id="applyRuleNowHelp">
+          Applies only this rule across the entire workspace, regardless of filters or pagination.
+          Transactions with multiple splits are skipped. The selected transaction's category is
+          updated separately, even when this option is off, unless it has multiple splits.
+        </HelpText>
       </div>
-    </div>
+    </form>
 
-    <div
-      v-if="fromTransaction && mode === 'create'"
-      class="mb-3 form-check"
-    >
-      <input
-        id="applyRuleNow"
-        v-model="applyToUncategorizedTransactions"
-        type="checkbox"
-        class="form-check-input"
+    <template #footer>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-test-id="cancel-button"
         :disabled="loading"
-        aria-describedby="applyRuleNowHelp"
-        data-test-id="apply-rule-now-checkbox"
-      />
-      <label
-        class="form-check-label"
-        for="applyRuleNow"
+        @click="handleCancel"
       >
-        Apply this rule to existing uncategorized transactions
-      </label>
-      <HelpText id="applyRuleNowHelp">
-        Applies only this rule across the entire workspace, regardless of filters or pagination.
-        Transactions with multiple splits are skipped. The selected transaction's category is
-        updated separately, even when this option is off, unless it has multiple splits.
-      </HelpText>
-    </div>
+        Cancel
+      </button>
+      <button
+        type="submit"
+        form="payee-rule-form"
+        class="btn btn-primary"
+        data-test-id="save-button"
+        :disabled="loading"
+      >
+        <BaseSpinner
+          v-if="loading"
+          size="sm"
+          class="me-1"
+        />
+        {{ primaryButtonText }}
+      </button>
+    </template>
   </ModalDialog>
 </template>
 

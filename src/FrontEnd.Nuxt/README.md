@@ -2,14 +2,6 @@
 
 This project implements the application user interface (Front End).
 
-## Quick-edit keyboard shortcuts
-
-In the transaction Quick Edit dialog, Enter in the payee or category field submits
-the edits and Escape cancels without saving. Enter in the memo inserts a newline.
-Focused buttons retain
-their normal Enter activation. While an update is in progress, keyboard shortcuts
-cannot submit another update or cancel the dialog.
-
 ## Development server troubleshooting
 
 If `pnpm run dev` fails with `options.hostname.toLowerCase is not a function`,
