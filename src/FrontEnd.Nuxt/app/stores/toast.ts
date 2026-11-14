@@ -21,6 +21,7 @@ export interface AppToast {
   message: string
   variant: ToastVariant
   duration: number
+  testId?: string
 }
 
 /**
@@ -31,6 +32,7 @@ export interface ToastOptions {
   message: string
   variant?: ToastVariant
   duration?: number
+  testId?: string
 }
 
 /**
@@ -54,6 +56,7 @@ export const useToastStore = defineStore('toast', () => {
       message: options.message,
       variant: options.variant ?? 'info',
       duration: options.duration ?? 5000,
+      testId: options.testId,
     })
 
     return id
@@ -64,10 +67,11 @@ export const useToastStore = defineStore('toast', () => {
    *
    * @param message The notification body.
    * @param title The notification title.
+   * @param testId Optional test hook placed on the toast body.
    * @returns The identifier of the added notification.
    */
-  function success(message: string, title = 'Success'): number {
-    return add({ title, message, variant: 'success' })
+  function success(message: string, title = 'Success', testId?: string): number {
+    return add({ title, message, variant: 'success', testId })
   }
 
   /**

@@ -455,7 +455,11 @@ async function createRuleFromTransaction(
           ? 'No additional uncategorized transactions matched.'
           : `Categorized ${count} additional transaction${count === 1 ? '' : 's'}.`
         : 'The payee matching rule was created.'
-      toastStore.success(message, 'Rule created')
+      toastStore.success(
+        message,
+        'Rule created',
+        applyToUncategorizedTransactions ? `rule-categorized-${count}` : 'rule-created',
+      )
     } catch (err) {
       if (currentTenantKey.value !== tenantKey) return
       ruleError.value = handleApiError(

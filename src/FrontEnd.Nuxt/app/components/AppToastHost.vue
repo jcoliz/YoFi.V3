@@ -88,7 +88,12 @@ onBeforeUnmount(() => {
             @click="dismiss(toast.id)"
           />
         </div>
-        <div class="toast-body">{{ toast.message }}</div>
+        <div
+          class="toast-body"
+          :data-test-id="toast.testId"
+        >
+          {{ toast.message }}
+        </div>
       </div>
     </TransitionGroup>
   </div>

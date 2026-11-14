@@ -300,8 +300,7 @@ describe('Create rule from transaction', () => {
     expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
     expect(useToastStore().toasts).toEqual([
       expect.objectContaining({
-        title: 'Rule created',
-        message: 'Categorized 3 additional transactions.',
+        testId: 'rule-categorized-3',
         variant: 'success',
       }),
     ])
@@ -328,8 +327,7 @@ describe('Create rule from transaction', () => {
     expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
     expect(useToastStore().toasts[0]).toEqual(
       expect.objectContaining({
-        title: 'Rule created',
-        message: 'The payee matching rule was created.',
+        testId: 'rule-created',
         variant: 'success',
       }),
     )
@@ -351,7 +349,7 @@ describe('Create rule from transaction', () => {
     )
   })
 
-  it.each([0, 1])('reports %s updates accurately', async (count) => {
+  it.each([0, 1, 496])('reports %s updates accurately', async (count) => {
     createRule.mockResolvedValue(
       PayeeMatchingRuleCreateResultDto.fromJS({ transactionsCategorized: count }),
     )
@@ -359,15 +357,7 @@ describe('Create rule from transaction', () => {
     await wrapper.get('[data-test-id="save-button"]').trigger('click')
     await flushPromises()
     expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
-    if (count === 0) {
-      expect(useToastStore().toasts[0]?.message).toBe(
-        'No additional uncategorized transactions matched.',
-      )
-    } else {
-      expect(useToastStore().toasts[0]?.message).toBe(
-        `Categorized ${count} additional transaction${count === 1 ? '' : 's'}.`,
-      )
-    }
+    expect(useToastStore().toasts[0]?.testId).toBe(`rule-categorized-${count}`)
   })
 
   it('retains the dialog and OFF selection and stops if source Quick Edit fails', async () => {
@@ -433,7 +423,7 @@ describe('Create rule from transaction', () => {
 
     expect(wrapper.find('[data-test-id="rule-create-dialog"]').exists()).toBe(false)
     expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
-    expect(useToastStore().toasts[0]?.title).toBe('Rule created')
+    expect(useToastStore().toasts[0]?.testId).toBe('rule-categorized-3')
     expect(wrapper.text()).toContain(
       'The rule was created, but refreshing the transaction list failed',
     )

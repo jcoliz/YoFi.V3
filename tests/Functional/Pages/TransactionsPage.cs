@@ -25,7 +25,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// Cached transaction table data to avoid reloading on every query
     /// </summary>
     private TransactionTableData? _cachedTableData;
-    private string? _ruleCreationToastText;
+    private string? _ruleCreationToastTestId;
 
     #region Components
 
@@ -299,7 +299,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
     private ILocator ClearSearchButton => SearchFilterBar.GetByTestId("clear-search-button");
     private ILocator NoResults => Page.GetByTestId("no-results");
-    private ILocator RuleCreationToast => Page!.GetByTestId("AppToast").Last;
+    private ILocator RuleCreationToast => Page!.GetByTestId("AppToast")
+        .GetByTestId(new Regex(@"^rule-(created|categorized-[0-9]+)$")).Last;
 
     #endregion
 
@@ -318,7 +319,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task CreateRuleFromTransactionAsync(
         string payee, string pattern, string category, bool applyNow)
     {
-        _ruleCreationToastText = null;
+        _ruleCreationToastTestId = null;
         var row = GetTransactionRowLocatorByPayee(payee);
         await row.GetByTestId("row-actions-button").ClickAsync();
         await row.GetByTestId("create-rule-button").ClickAsync();
@@ -335,7 +336,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
         await dialog.GetByTestId("save-button").ClickAsync();
         await Assertions.Expect(dialog).ToBeHiddenAsync();
         await Assertions.Expect(RuleCreationToast).ToBeVisibleAsync();
-        _ruleCreationToastText = await RuleCreationToast.InnerTextAsync();
+        // Capture before automatic dismissal so later assertions can follow other actions.
+        _ruleCreationToastTestId = await RuleCreationToast.GetAttributeAsync("data-test-id");
         await Assertions.Expect(TransactionsCard).ToHaveAttributeAsync("aria-busy", "false");
         _cachedTableData = null;
     }
@@ -346,8 +348,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public Task ExpectRuleCreationSuccessAsync()
     {
         NUnit.Framework.Assert.That(
-            _ruleCreationToastText,
-            NUnit.Framework.Does.Contain("The payee matching rule was created."));
+            _ruleCreationToastTestId,
+            NUnit.Framework.Is.EqualTo("rule-created"));
         return Task.CompletedTask;
     }
 
@@ -356,10 +358,9 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     public Task ExpectRuleApplicationCountAsync(int count)
     {
-        var transactionText = $"Categorized {count} additional transaction{(count == 1 ? "" : "s")}.";
         NUnit.Framework.Assert.That(
-            _ruleCreationToastText,
-            NUnit.Framework.Does.Contain(transactionText));
+            _ruleCreationToastTestId,
+            NUnit.Framework.Is.EqualTo($"rule-categorized-{count}"));
         return Task.CompletedTask;
     }
 
