@@ -7,7 +7,10 @@
  * based on meta.order property.
  */
 
+import { isNavigationActive } from '~/utils/navigation'
+
 const appConfig = useAppConfig()
+const currentRoute = useRoute()
 const displayRoutes = useRouter()
   .getRoutes()
   .filter((x) => x.meta.order)
@@ -36,6 +39,7 @@ const displayRoutes = useRouter()
             v-for="route of displayRoutes"
             :key="route.meta.order as number"
             class="nav-link"
+            :class="{ active: isNavigationActive(currentRoute, route.path) }"
             :to="route.path"
             >{{ route.meta.title }}</NuxtLink
           >

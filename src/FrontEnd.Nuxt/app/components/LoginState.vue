@@ -6,15 +6,11 @@
  * and navigation to profile page.
  */
 
+import { isNavigationActive } from '~/utils/navigation'
+
 const { data, status, signOut } = useAuth()
 const route = useRoute()
-const isProfileRoute = computed(
-  () =>
-    route.path === '/profile' ||
-    route.path.startsWith('/profile/') ||
-    route.path === '/identity/tokens' ||
-    route.path.startsWith('/identity/tokens/'),
-)
+const isProfileRoute = computed(() => isNavigationActive(route, '/profile'))
 
 const { clearPreferences } = useUserPreferencesStore()
 const { reset: resetTransactionSearch } = useTransactionSearchStore()

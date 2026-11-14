@@ -2,6 +2,27 @@
 
 This project implements the application user interface (Front End).
 
+## Navigation sections and breadcrumbs
+
+Navigation links use [`isNavigationActive`](app/utils/navigation.ts) to highlight
+their section on the section's own route, nested routes, and pages whose
+`definePageMeta` breadcrumbs link to that section. The main navigation pills and
+the Profile and Workspaces dropdown links share this behavior.
+
+For a child page outside its section's URL hierarchy (such as `/identity/tokens`
+under Profile), add a breadcrumb pointing to the section:
+
+```typescript
+definePageMeta({
+  title: 'Tokens',
+  breadcrumbs: [{ title: 'Profile', to: '/profile' }],
+})
+```
+
+Breadcrumb destinations are exact section paths; titles are display-only.
+All listed ancestors can be highlighted. No separate navigation-parent metadata
+or page-specific matching logic is needed.
+
 ## Development server troubleshooting
 
 If `pnpm run dev` fails with `options.hostname.toLowerCase is not a function`,

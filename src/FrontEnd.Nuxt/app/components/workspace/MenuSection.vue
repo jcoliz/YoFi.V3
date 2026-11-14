@@ -8,12 +8,11 @@
 
 import { TenantClient, type TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { isNavigationActive } from '~/utils/navigation'
 
 const userPreferencesStore = useUserPreferencesStore()
 const route = useRoute()
-const isWorkspacesRoute = computed(
-  () => route.path === '/workspaces' || route.path.startsWith('/workspaces/'),
-)
+const isWorkspacesRoute = computed(() => isNavigationActive(route, '/workspaces'))
 const workspaces = ref<TenantRoleResultDto[]>([])
 const loading = ref(false)
 

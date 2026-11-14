@@ -13,12 +13,7 @@
 
 const route = useRoute()
 
-interface BreadcrumbItem {
-  title: string
-  to: string
-}
-
-const breadcrumbs = computed(() => (route.meta.breadcrumbs as BreadcrumbItem[]) ?? [])
+const breadcrumbs = computed(() => route.meta.breadcrumbs ?? [])
 const currentTitle = computed(() => (route.meta.title as string) ?? '')
 </script>
 <template>

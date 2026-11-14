@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { reactive, ref } from 'vue'
+import type { RouteMeta } from 'vue-router'
 import LoginState from '~/components/LoginState.vue'
 
 enableAutoUnmount(afterEach)
 
-const route = reactive({ path: '/profile' })
+const route = reactive({ path: '/profile', meta: {} as RouteMeta })
 const status = ref('authenticated')
 vi.stubGlobal('useRoute', () => route)
 vi.stubGlobal('useAuth', () => ({
@@ -35,6 +36,9 @@ describe('Login state profile navigation', () => {
 
     for (const path of ['/profile', '/identity/tokens', '/identity/tokens/']) {
       route.path = path
+      route.meta = path.startsWith('/identity/')
+        ? { breadcrumbs: [{ title: 'Profile', to: '/profile' }] }
+        : {}
       await wrapper.vm.$nextTick()
       expect(profile.classes(), path).toContain('active')
       expect(profile.attributes('href')).toBe('/profile')
@@ -42,8 +46,22 @@ describe('Login state profile navigation', () => {
 
     for (const path of ['/workspaces/example', '/identity/tokens-other', '/transactions']) {
       route.path = path
+      route.meta = {}
       await wrapper.vm.$nextTick()
       expect(profile.classes(), path).not.toContain('active')
     }
+  })
+
+  it('uses breadcrumb ancestry for new Profile child pages', async () => {
+    route.path = '/account/settings'
+    route.meta = { breadcrumbs: [{ title: 'Profile', to: '/profile' }] }
+    const wrapper = mountLoginState()
+    const profile = wrapper.get('[data-test-id="Profile"]')
+
+    expect(profile.classes()).toContain('active')
+
+    route.meta = {}
+    await wrapper.vm.$nextTick()
+    expect(profile.classes()).not.toContain('active')
   })
 })
