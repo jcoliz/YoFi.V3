@@ -20,6 +20,7 @@
       "generatePrepareRequestAndProcessResponseAsAsyncMethods": true,
       "useBaseUrl": false,
       "dateTimeType": "System.DateTime",
+      "dateType": "System.DateOnly",
       "jsonLibrary": "SystemTextJson",
       "output": "$(OutputFile)",
       "newLineBehavior": "Auto"

@@ -47,7 +47,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
         var transactions = table.Rows.Select(row => new TransactionEditDto
         {
             ExternalId = row.GetRequired("ExternalId"),
-            Date = row.GetRequired<DateTimeOffset>("Date"),
+            Date = DateOnly.ParseExact(row.GetRequired("Date"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
             Payee = row.GetRequired("Payee"),
             Amount = row.GetOptional<decimal>("Amount") ?? 100.00m,
             Memo = string.Empty,
@@ -93,6 +93,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     /// | Coffee Shop | 5.50   | Beverages | Morning coffee |            | 3        |
     /// | Book Store  | 12.00  | Books     |                | 2024-01-05 |          |
     /// Date takes precedence when both Date and Days Ago are supplied.
+    /// Days Ago is relative to the test runner's local calendar date; omitted dates default to today.
     /// </remarks>
     [Given("I have a workspace with a transaction:")]
     [Given("I have a workspace with the following transactions:")]
@@ -107,27 +108,7 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     public async Task GivenIHaveAWorkspaceWithATransaction(DataTable transactionTable)
     {
         // Given: Parse transaction data from the table (one transaction per row)
-        var transactions = transactionTable.Rows.Select(row =>
-        {
-            string? GetValue(string column) =>
-                row.TryGetValue(column, out var value) ? value : null;
-
-            var amountValue = GetValue("Amount");
-            var dateValue = row.GetOptional<DateTimeOffset>("Date");
-            var daysAgo = row.GetOptional<int>("Days Ago");
-            return new TransactionEditDto
-            {
-                Payee = row.GetRequired("Payee"),
-                Amount = row.GetOptional<decimal>("Amount") ?? 100.00m,
-                Memo = row.GetOptional("Memo"),
-                Source = row.GetOptional("Source"),
-                ExternalId = row.GetOptional("ExternalId"),
-                Category = row.GetOptional("Category") ?? string.Empty,
-                Date = dateValue ?? (daysAgo.HasValue
-                    ? DateTimeOffset.UtcNow.AddDays(-daysAgo.Value)
-                    : DateTimeOffset.UtcNow)
-            };
-        }).ToArray();
+        var transactions = ParseTransactions(transactionTable, DateOnly.FromDateTime(DateTime.Now));
 
         Assert.That(transactions, Is.Not.Empty, "At least one transaction row is required.");
 
@@ -175,6 +156,27 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
 
         // And: Store the transaction key for later reference
         _context.ObjectStore.Add(ObjectStoreKeys.TransactionKey, seededTransaction.Key.ToString());
+    }
+
+    internal static TransactionEditDto[] ParseTransactions(DataTable transactionTable, DateOnly today)
+    {
+        return transactionTable.Rows.Select(row =>
+        {
+            var dateValue = row.GetOptional("Date");
+            var daysAgo = row.GetOptional<int>("Days Ago");
+            return new TransactionEditDto
+            {
+                Payee = row.GetRequired("Payee"),
+                Amount = row.GetOptional<decimal>("Amount") ?? 100.00m,
+                Memo = row.GetOptional("Memo"),
+                Source = row.GetOptional("Source"),
+                ExternalId = row.GetOptional("ExternalId"),
+                Category = row.GetOptional("Category") ?? string.Empty,
+                Date = string.IsNullOrWhiteSpace(dateValue)
+                    ? today.AddDays(-(daysAgo ?? 0))
+                    : DateOnly.ParseExact(dateValue, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+            };
+        }).ToArray();
     }
 
     /// <summary>

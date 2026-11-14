@@ -127,7 +127,7 @@ public class BankImportUploadSteps(ITestContext context) : BankImportStepsBase(c
         var transactions = table.Rows.Select(row => new TransactionResultDto
         {
             Key = Guid.NewGuid(),
-            Date = DateTimeOffset.ParseExact(row.GetRequired("Date"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            Date = DateOnly.ParseExact(row.GetRequired("Date"), "yyyy-MM-dd", CultureInfo.InvariantCulture),
             Amount = decimal.Parse(row.GetRequired("Amount"), CultureInfo.InvariantCulture),
             Payee = row.GetRequired("Payee"),
             Memo = string.Empty,

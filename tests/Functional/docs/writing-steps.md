@@ -33,8 +33,10 @@ page, Test Control client, object store, credentials, workspaces, and page-objec
 Use backend test-control operations for setup that does not need to be exercised through the UI.
 Create test users/workspaces with the existing helpers, then create transaction fixtures through
 `TestControl_SeedTransactionsPreciseAsync` using the scenario's exact values. The common single-
-transaction step sets the date to the current UTC time; when a test depends on a specific date, use
-the exact-date setup step or add a step that passes the date through. Avoid random/generated
+transaction step defaults to the test runner's local calendar date. `Days Ago` subtracts calendar
+days from today (`0` means today); an explicit `Date` in `yyyy-MM-dd` format takes precedence.
+The generated C# client uses `DateOnly` for OpenAPI date fields, without time-zone conversion.
+When a test depends on a specific date, use the exact-date setup step or pass `Date` in the table. Avoid random/generated
 transaction values when the test depends on a particular amount, external ID, payee, or date.
 
 The established transaction setup steps live in

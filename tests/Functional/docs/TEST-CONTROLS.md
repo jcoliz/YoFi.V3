@@ -41,7 +41,10 @@ POST /testcontrol/users/{username}/workspaces/{tenantKey}/transactions/seed-prec
 
 `TransactionDataSteps.GivenIHaveAWorkspaceWithATransaction` accepts one transaction per table row
 and uses the precise seed endpoint to seed them in one request. `Payee` is required; `Amount`
-defaults to `100.00`, and `Date` is set to the current UTC time. The step stores the first returned
+defaults to `100.00`, and `Date` defaults to the test runner's local calendar date. `Days Ago`
+subtracts calendar days from today (`0` means today). An explicit `Date` in `yyyy-MM-dd` format
+takes precedence over `Days Ago`. Dates use `DateOnly` in the generated C# client and are sent as
+`yyyy-MM-dd`, without a time or time-zone offset. The step stores the first returned
 transaction's values and key for later steps that verify or navigate to one transaction.
 
 ```gherkin
