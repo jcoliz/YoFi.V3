@@ -24,6 +24,11 @@ public class BasePage(IPage _page): PageObjectModel(_page)
     /// </summary>
     public ILocator Header => Page.Locator("h1");
 
+    /// <summary>
+    /// App-level toast notifications available on every page.
+    /// </summary>
+    public ILocator AppToast => Page.GetByTestId("app-toast");
+
     #endregion
 
     #region Navigation

@@ -15,7 +15,8 @@ renames or removes a test hook can break page objects even when the visible UI s
 ## Toasts
 
 Toast publishers can pass an optional `testId` through the toast store. The host renders it
-on the toast body inside the existing `AppToast` container; omitted IDs add no attribute.
+on the toast body inside the `app-toast` container; omitted IDs add no attribute.
+Page objects can use the shared `BasePage.AppToast` locator to scope toast assertions.
 Use these hooks rather than notification wording in functional assertions. Rule creation uses
 `rule-created` when workspace application is disabled and `rule-categorized-{count}` when enabled,
 including `rule-categorized-0` for no matches. Capture the hook while the toast is visible if a

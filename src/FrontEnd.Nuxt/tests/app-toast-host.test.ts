@@ -13,13 +13,13 @@ beforeEach(() => {
 })
 
 describe('App toast test hooks', () => {
-  it('renders an optional test ID on the body inside AppToast without depending on wording', async () => {
+  it('renders an optional test ID on the body inside app-toast without depending on wording', async () => {
     const store = useToastStore()
     const wrapper = mount(AppToastHost)
     store.success('Any notification wording', 'Any title', 'rule-categorized-496')
     await nextTick()
 
-    const toast = wrapper.get('[data-test-id="AppToast"]')
+    const toast = wrapper.get('[data-test-id="app-toast"]')
     expect(toast.get('[data-test-id="rule-categorized-496"]').classes()).toContain('toast-body')
     await toast.get('[data-test-id="DismissToast"]').trigger('click')
     expect(store.toasts).toHaveLength(0)
@@ -32,7 +32,7 @@ describe('App toast test hooks', () => {
     store.success('Existing success call')
     await nextTick()
 
-    const toasts = wrapper.findAll('[data-test-id="AppToast"]')
+    const toasts = wrapper.findAll('[data-test-id="app-toast"]')
     expect(toasts[0]!.get('.toast-body').attributes('data-test-id')).toBe('custom-toast')
     expect(toasts[1]!.get('.toast-body').attributes('data-test-id')).toBeUndefined()
     expect(store.toasts[1]).toEqual(

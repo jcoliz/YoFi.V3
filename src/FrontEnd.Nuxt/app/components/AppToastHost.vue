@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
         class="toast show"
         :class="`text-bg-${toast.variant}`"
         role="status"
-        data-test-id="AppToast"
+        data-test-id="app-toast"
       >
         <div class="toast-header">
           <strong class="me-auto">{{ toast.title }}</strong>

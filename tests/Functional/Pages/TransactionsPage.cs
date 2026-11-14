@@ -299,7 +299,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
     private ILocator ClearSearchButton => SearchFilterBar.GetByTestId("clear-search-button");
     private ILocator NoResults => Page.GetByTestId("no-results");
-    private ILocator RuleCreationToast => Page!.GetByTestId("AppToast")
+    private ILocator RuleCreationToast => AppToast
         .GetByTestId(new Regex(@"^rule-(created|categorized-[0-9]+)$")).Last;
 
     #endregion
