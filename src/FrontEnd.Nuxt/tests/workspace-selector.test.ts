@@ -145,10 +145,18 @@ describe('workspace/Selector', () => {
     // but currentTenant is undefined
     const store = reactive({
       currentTenant: undefined as (typeof tenants)[0] | undefined,
-      get getCurrentTenantKey() { return undefined },
-      get hasTenant() { return true }, // prevents auto-select in loadTenants
-      setCurrentTenant(tenant: (typeof tenants)[0]) { this.currentTenant = tenant },
-      clearPreferences() { this.currentTenant = undefined },
+      get getCurrentTenantKey() {
+        return undefined
+      },
+      get hasTenant() {
+        return true
+      }, // prevents auto-select in loadTenants
+      setCurrentTenant(tenant: (typeof tenants)[0]) {
+        this.currentTenant = tenant
+      },
+      clearPreferences() {
+        this.currentTenant = undefined
+      },
       loadFromStorage() {},
     })
 
@@ -187,14 +195,22 @@ describe('workspace/Selector', () => {
     expect(wrapper.find('[data-test-id="manage-current-workspace-button"]').exists()).toBe(true)
 
     // When: current workspace role changes to editor
-    store.setCurrentTenant({ key: 'owner-workspace', name: 'Owner Workspace', role: TenantRole.Editor })
+    store.setCurrentTenant({
+      key: 'owner-workspace',
+      name: 'Owner Workspace',
+      role: TenantRole.Editor,
+    })
     await nextTick()
 
     // Then: manage link is hidden for editor
     expect(wrapper.find('[data-test-id="manage-current-workspace-button"]').exists()).toBe(false)
 
     // When: current workspace role changes to viewer
-    store.setCurrentTenant({ key: 'owner-workspace', name: 'Owner Workspace', role: TenantRole.Viewer })
+    store.setCurrentTenant({
+      key: 'owner-workspace',
+      name: 'Owner Workspace',
+      role: TenantRole.Viewer,
+    })
     await nextTick()
 
     // Then: manage link is hidden for viewer

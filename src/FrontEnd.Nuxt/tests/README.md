@@ -22,8 +22,8 @@ What unit tests should **not** do:
 
 ### The Brittleness Test
 
-Before writing an assertion, ask: *"Would this break if I changed the layout without changing the
-behavior?"* If yes, don't write it. A test that breaks when you change `mb-0` to `mb-1` is not
+Before writing an assertion, ask: _"Would this break if I changed the layout without changing the
+behavior?"_ If yes, don't write it. A test that breaks when you change `mb-0` to `mb-1` is not
 finding bugs — it is creating churn.
 
 ## Test Runner
@@ -183,23 +183,31 @@ useApiClientMock.mockReturnValue({ getItems: vi.fn().mockResolvedValue([]) })
 import { h } from 'vue'
 
 const ModalDialogStub = {
-  props: ['show', 'testId', 'primaryButtonTestId', 'secondaryButtonTestId', 'loading', 'primaryButtonDisabled'],
+  props: [
+    'show',
+    'testId',
+    'primaryButtonTestId',
+    'secondaryButtonTestId',
+    'loading',
+    'primaryButtonDisabled',
+  ],
   emits: ['primary', 'update:show'],
   setup(props: any, { slots, emit }: any) {
-    return () => props.show
-      ? h('div', { 'data-test-id': props.testId }, [
-          slots.default?.(),
-          h('button', {
-            'data-test-id': props.primaryButtonTestId,
-            disabled: (props.loading || props.primaryButtonDisabled) ? true : undefined,
-            onClick: () => emit('primary'),
-          }),
-          h('button', {
-            'data-test-id': props.secondaryButtonTestId,
-            onClick: () => emit('update:show', false),
-          }),
-        ])
-      : null
+    return () =>
+      props.show
+        ? h('div', { 'data-test-id': props.testId }, [
+            slots.default?.(),
+            h('button', {
+              'data-test-id': props.primaryButtonTestId,
+              disabled: props.loading || props.primaryButtonDisabled ? true : undefined,
+              onClick: () => emit('primary'),
+            }),
+            h('button', {
+              'data-test-id': props.secondaryButtonTestId,
+              onClick: () => emit('update:show', false),
+            }),
+          ])
+        : null
   },
 }
 ```
@@ -230,14 +238,14 @@ Functional Tests (tests/Functional/)
 
 The two layers are complementary. When deciding where to test something:
 
-| Question | Answer |
-| --- | --- |
-| Is it a pure TypeScript function with real logic? | Unit test here |
-| Does it involve timezone-sensitive date handling? | Unit test here |
-| Is it a component behavior that's hard to trigger in a browser? | Unit test here |
-| Is it a complete user workflow? | Functional test |
-| Is it already covered by a functional test? | Don't duplicate it |
-| Does it test HTML structure or CSS classes? | Don't test it at all |
+| Question                                                        | Answer               |
+| --------------------------------------------------------------- | -------------------- |
+| Is it a pure TypeScript function with real logic?               | Unit test here       |
+| Does it involve timezone-sensitive date handling?               | Unit test here       |
+| Is it a component behavior that's hard to trigger in a browser? | Unit test here       |
+| Is it a complete user workflow?                                 | Functional test      |
+| Is it already covered by a functional test?                     | Don't duplicate it   |
+| Does it test HTML structure or CSS classes?                     | Don't test it at all |
 
 ## Prohibited Patterns
 

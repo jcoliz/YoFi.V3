@@ -159,14 +159,32 @@ const tenantKey = 'your-tenant-key'
 
 // Get the first page of unfiltered transactions
 const transactions = await client.getTransactions(
-  1, undefined, undefined, undefined, undefined, undefined, undefined, undefined, false, tenantKey,
+  1,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  false,
+  tenantKey,
 )
 
 // Search transactions with date and advanced filters
 const fromDate = new Date('2024-01-01')
 const toDate = new Date('2024-12-31')
 const filtered = await client.getTransactions(
-  1, fromDate, toDate, 'coffee', 'Cafe', 'Food', 'trip', '+42', true, tenantKey,
+  1,
+  fromDate,
+  toDate,
+  'coffee',
+  'Cafe',
+  'Food',
+  'trip',
+  '+42',
+  true,
+  tenantKey,
 )
 
 // Create transaction

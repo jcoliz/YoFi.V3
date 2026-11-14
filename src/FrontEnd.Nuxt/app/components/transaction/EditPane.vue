@@ -11,7 +11,7 @@ import {
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
 import { fromDateInputValue, toDateInputValue } from '~/utils/dateOnly'
-import HelpText from '../HelpText.vue';
+import HelpText from '../HelpText.vue'
 
 const props = defineProps<{
   transaction: TransactionDetailDto

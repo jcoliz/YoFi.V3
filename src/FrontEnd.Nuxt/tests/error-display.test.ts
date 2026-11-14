@@ -234,7 +234,10 @@ describe('ProblemDetailsViewer', () => {
 
   it('shows the problem when one is set', async () => {
     // Given: an active problem
-    const problem = ref<object | undefined>({ title: 'Global failure', errors: { Name: ['Required.'] } })
+    const problem = ref<object | undefined>({
+      title: 'Global failure',
+      errors: { Name: ['Required.'] },
+    })
     useProblemDetailsMock.mockReturnValue({
       problem,
       clearError: vi.fn(),

@@ -57,7 +57,7 @@ const ModalDialogStub = {
             slots.default?.(),
             h('button', {
               'data-test-id': props.primaryButtonTestId,
-              disabled: (props.loading || props.primaryButtonDisabled) ? true : undefined,
+              disabled: props.loading || props.primaryButtonDisabled ? true : undefined,
               onClick: () => emit('primary'),
             }),
             h('button', {
@@ -100,7 +100,9 @@ describe('DeleteModal – workspace scope', () => {
       },
     }
     useApiClientMock.mockReturnValue({ deleteTenant })
-    vi.mocked(useUserPreferencesStore).mockReturnValue(store as unknown as ReturnType<typeof useUserPreferencesStore>)
+    vi.mocked(useUserPreferencesStore).mockReturnValue(
+      store as unknown as ReturnType<typeof useUserPreferencesStore>,
+    )
   })
 
   it('submit button is disabled until the exact workspace name is typed', async () => {
@@ -111,7 +113,9 @@ describe('DeleteModal – workspace scope', () => {
     })
 
     // Then: submit is disabled initially
-    expect(wrapper.find('[data-test-id="delete-submit-button"]').attributes('disabled')).toBeDefined()
+    expect(
+      wrapper.find('[data-test-id="delete-submit-button"]').attributes('disabled'),
+    ).toBeDefined()
 
     // When: wrong names are typed
     for (const wrong of ['second workspace', 'Second Workspace ', 'Second']) {
@@ -126,7 +130,9 @@ describe('DeleteModal – workspace scope', () => {
     await wrapper.find('[data-test-id="confirmation-name-input"]').setValue('Second Workspace')
 
     // Then: submit is enabled
-    expect(wrapper.find('[data-test-id="delete-submit-button"]').attributes('disabled')).toBeUndefined()
+    expect(
+      wrapper.find('[data-test-id="delete-submit-button"]').attributes('disabled'),
+    ).toBeUndefined()
   })
 
   it('deletes the workspace and clears preferences when confirmed', async () => {
