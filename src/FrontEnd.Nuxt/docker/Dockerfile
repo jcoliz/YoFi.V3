@@ -9,6 +9,9 @@ WORKDIR /app
 # Copy package files including pnpm lockfile
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
+# Copy the local sidebase-nuxt-auth package for installation (For AB#2277)
+COPY sidebase-nuxt-auth-1.4.0.tgz ./
+
 # Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile
 

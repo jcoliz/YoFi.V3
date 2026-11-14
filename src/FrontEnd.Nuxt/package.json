@@ -20,7 +20,7 @@
     "@coliz/vue-base-controls": "^0.0.15",
     "@microsoft/applicationinsights-web": "^3.4.6",
     "@pinia/nuxt": "^1.0.3",
-    "@sidebase/nuxt-auth": "^1.4.0",
+    "@sidebase/nuxt-auth": "file:sidebase-nuxt-auth-1.4.0.tgz",
     "@types/bootstrap": "^5.2.11",
     "bootstrap": "^5.3.8",
     "feather-icons": "^4.29.2",
