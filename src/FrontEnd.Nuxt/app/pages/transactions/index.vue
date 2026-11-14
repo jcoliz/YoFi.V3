@@ -405,7 +405,7 @@ async function createRuleFromTransaction(
           new TransactionQuickEditDto({
             payee: transaction.payee,
             memo: transaction.memo,
-            category: rule.category.trim(),
+            category: rule.category?.trim(),
           }),
         )
         sourceUpdated = true

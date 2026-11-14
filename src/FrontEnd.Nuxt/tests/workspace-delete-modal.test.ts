@@ -16,6 +16,8 @@ import DeleteModal from '~/components/workspace/DeleteModal.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
 import type { TenantRoleResultDto } from '~/utils/apiclient'
 
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+
 // useUserPreferencesStore is explicitly imported in DeleteModal from this path.
 // Mock the module so Pinia is never initialized.
 vi.mock('~/stores/userPreferences', () => ({
@@ -27,8 +29,6 @@ vi.mock('~/stores/userPreferences', () => ({
 const useApiClientMock = vi.fn()
 vi.stubGlobal('useApiClient', useApiClientMock)
 vi.stubGlobal('handleApiError', (err: unknown) => err)
-
-import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 // Stub child components not under test
 const FeatherIcon = { template: '<i />' }

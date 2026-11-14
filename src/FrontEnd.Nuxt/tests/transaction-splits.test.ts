@@ -18,6 +18,8 @@ import EditModal from '~/components/transaction/EditModal.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
 import type { TransactionResultDto } from '~/utils/apiclient'
 
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+
 // useUserPreferencesStore is explicitly imported in EditModal from this path.
 vi.mock('~/stores/userPreferences', () => ({
   useUserPreferencesStore: vi.fn(),
@@ -32,14 +34,12 @@ vi.stubGlobal('handleApiError', (err: unknown, title: string, detail: string) =>
 }))
 vi.stubGlobal('navigateTo', vi.fn())
 
-import { useUserPreferencesStore } from '~/stores/userPreferences'
-
 // Stub child components not under test
 const FeatherIcon = { template: '<i />' }
 const BaseSpinner = { template: '<span />' }
 
 /** Stub for ModalDialog — renders slots inline, no Teleport */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const ModalDialogStub = {
   props: ['show', 'testId', 'primaryButtonTestId', 'secondaryButtonTestId', 'loading'],
   emits: ['primary', 'update:show'],

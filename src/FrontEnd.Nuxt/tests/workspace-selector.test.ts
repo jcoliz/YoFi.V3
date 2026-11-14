@@ -14,6 +14,8 @@ import { reactive, nextTick } from 'vue'
 import Selector from '~/components/workspace/Selector.vue'
 import { TenantRole } from '~/utils/apiclient'
 
+import { useUserPreferencesStore } from '~/stores/userPreferences'
+
 // useUserPreferencesStore is explicitly imported in Selector from this path.
 vi.mock('~/stores/userPreferences', () => ({
   useUserPreferencesStore: vi.fn(),
@@ -25,8 +27,6 @@ const useRouteMock = vi.fn()
 vi.stubGlobal('useApiClient', useApiClientMock)
 vi.stubGlobal('useRoute', useRouteMock)
 vi.stubGlobal('navigateTo', vi.fn())
-
-import { useUserPreferencesStore } from '~/stores/userPreferences'
 
 // Stub child components not under test.
 // NuxtLink must use inheritAttrs: false and pass $attrs through so that
