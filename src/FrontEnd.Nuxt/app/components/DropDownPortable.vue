@@ -6,11 +6,20 @@
  * then on server, we show only the trigger, but do not set up the
  * interactive logic.
  */
+defineProps<{
+  /**
+   * Opts into Popper's fixed positioning strategy for menus inside scrollable containers.
+   * Positions the menu relative to the viewport rather than a positioned ancestor, allowing
+   * it to escape table overflow clipping when no ancestor establishes a fixed containing block.
+   * Defaults to Bootstrap's normal positioning when omitted.
+   */
+  fixed?: boolean
+}>()
 </script>
 <template>
   <div>
     <ClientOnly>
-      <DropDownClientOnly>
+      <DropDownClientOnly :fixed="fixed">
         <template #trigger>
           <slot name="trigger" />
         </template>

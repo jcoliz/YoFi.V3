@@ -348,6 +348,12 @@ function navigateToDetails(key: string | undefined) {
   navigateTo(`/transactions/${key}`)
 }
 
+function handleRowClick(event: MouseEvent, key: string | undefined) {
+  // Let Bootstrap's document-level handlers receive menu clicks without navigating the row.
+  if (event.target instanceof Element && event.target.closest('[data-row-actions]')) return
+  navigateToDetails(key)
+}
+
 /**
  * Formats a number as USD currency.
  *
@@ -740,10 +746,10 @@ function retryLoadTransactions() {
                   <th data-test-id="memo">Memo</th>
                   <th
                     v-if="canEditTransactions"
-                    class="text-end"
+                    class="text-end row-actions"
                     data-test-id="actions"
                   >
-                    Actions
+                    <span class="visually-hidden">Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -753,7 +759,7 @@ function retryLoadTransactions() {
                   :key="transaction.key"
                   :data-test-id="`row-${transaction.key}`"
                   class="clickable-row"
-                  @click="navigateToDetails(transaction.key)"
+                  @click="handleRowClick($event, transaction.key)"
                 >
                   <td>{{ formatDateOnly(transaction.date) }}</td>
                   <td>{{ transaction.payee }}</td>
@@ -777,30 +783,63 @@ function retryLoadTransactions() {
                   </td>
                   <td
                     v-if="canEditTransactions"
-                    class="text-end"
+                    class="text-end row-actions"
+                    data-row-actions
+                    data-test-id="transaction-actions"
                   >
-                    <button
-                      class="btn btn-sm btn-outline-primary me-1"
-                      title="Quick Edit"
-                      data-test-id="edit-transaction-button"
-                      @click.stop="openEditModal(transaction)"
-                    >
-                      <FeatherIcon
-                        icon="edit"
-                        size="14"
-                      />
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-success ms-1"
-                      title="Create Rule"
-                      data-test-id="create-rule-button"
-                      @click.stop="openCreateRuleModal(transaction)"
-                    >
-                      <FeatherIcon
-                        icon="zap"
-                        size="14"
-                      />
-                    </button>
+                    <DropDownPortable fixed>
+                      <template #trigger>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary border-0 row-actions-trigger"
+                          :aria-label="`Actions for ${transaction.payee}`"
+                          title="Actions"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          data-test-id="row-actions-button"
+                        >
+                          <FeatherIcon
+                            icon="more-horizontal"
+                            size="18"
+                          />
+                        </button>
+                      </template>
+                      <ul
+                        class="dropdown-menu dropdown-menu-end"
+                        data-test-id="row-actions-menu"
+                      >
+                        <li>
+                          <button
+                            type="button"
+                            class="dropdown-item"
+                            data-test-id="edit-transaction-button"
+                            @click="openEditModal(transaction)"
+                          >
+                            <FeatherIcon
+                              icon="edit"
+                              size="14"
+                              class="me-2"
+                            />
+                            Quick Edit
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            class="dropdown-item"
+                            data-test-id="create-rule-button"
+                            @click="openCreateRuleModal(transaction)"
+                          >
+                            <FeatherIcon
+                              icon="zap"
+                              size="14"
+                              class="me-2"
+                            />
+                            Create Rule
+                          </button>
+                        </li>
+                      </ul>
+                    </DropDownPortable>
                   </td>
                 </tr>
               </tbody>
@@ -868,6 +907,20 @@ function retryLoadTransactions() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.row-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.row-actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
 }
 
 .clickable-row {

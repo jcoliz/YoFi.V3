@@ -505,10 +505,10 @@ function formatDate(date: Date | undefined): string {
                   </th>
                   <th
                     v-if="canEditRules"
-                    class="text-end"
+                    class="text-end row-actions"
                     data-test-id="actions"
                   >
-                    Actions
+                    <span class="visually-hidden">Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -532,30 +532,61 @@ function formatDate(date: Date | undefined): string {
                   <td class="text-end">{{ rule.matchCount || 0 }}</td>
                   <td
                     v-if="canEditRules"
-                    class="text-end"
+                    class="text-end row-actions"
                   >
-                    <button
-                      class="btn btn-sm btn-outline-primary me-1"
-                      title="Edit"
-                      data-test-id="edit-button"
-                      @click="openEditDialog(rule)"
-                    >
-                      <FeatherIcon
-                        icon="edit"
-                        size="14"
-                      />
-                    </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      title="Delete"
-                      data-test-id="delete-button"
-                      @click="openDeleteDialog(rule)"
-                    >
-                      <FeatherIcon
-                        icon="trash-2"
-                        size="14"
-                      />
-                    </button>
+                    <DropDownPortable fixed>
+                      <template #trigger>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary border-0 row-actions-trigger"
+                          :aria-label="`Actions for ${rule.payeePattern}`"
+                          title="Actions"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          data-test-id="row-actions-button"
+                        >
+                          <FeatherIcon
+                            icon="more-horizontal"
+                            size="18"
+                          />
+                        </button>
+                      </template>
+                      <ul
+                        class="dropdown-menu dropdown-menu-end"
+                        data-test-id="row-actions-menu"
+                      >
+                        <li>
+                          <button
+                            type="button"
+                            class="dropdown-item"
+                            data-test-id="edit-button"
+                            @click="openEditDialog(rule)"
+                          >
+                            <FeatherIcon
+                              icon="edit"
+                              size="14"
+                              class="me-2"
+                            />
+                            Edit
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
+                            class="dropdown-item text-danger"
+                            data-test-id="delete-button"
+                            @click="openDeleteDialog(rule)"
+                          >
+                            <FeatherIcon
+                              icon="trash-2"
+                              size="14"
+                              class="me-2"
+                            />
+                            Delete
+                          </button>
+                        </li>
+                      </ul>
+                    </DropDownPortable>
                   </td>
                 </tr>
               </tbody>
@@ -620,6 +651,20 @@ function formatDate(date: Date | undefined): string {
 </template>
 
 <style scoped>
+.row-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.row-actions-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
 .workspace-selector-container {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;

@@ -13,7 +13,16 @@
  */
 
 import { Dropdown } from 'bootstrap'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+
+const props = defineProps<{
+  /**
+   * Uses Popper's fixed strategy so menus can escape scrollable table overflow.
+   * Positioning is viewport-relative unless an ancestor establishes a fixed containing block
+   * (for example, via a transform). Omitted or false preserves Bootstrap's default strategy.
+   */
+  fixed?: boolean
+}>()
 
 const { logger } = useDebugLog('DropDownClientOnly', { minimumLevel: 'info' })
 
@@ -34,10 +43,21 @@ onMounted(() => {
     }
 
     if (!Dropdown.getInstance(el)) {
-      dropdown.value = new Dropdown(el)
+      dropdown.value = new Dropdown(
+        el,
+        props.fixed
+          ? {
+              popperConfig: { strategy: 'fixed' },
+            }
+          : {},
+      )
       logger.debug('OK')
     }
   })
+})
+
+onBeforeUnmount(() => {
+  dropdown.value?.dispose()
 })
 </script>
 <template>

@@ -75,6 +75,7 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     /// </summary>
     public async Task EditRuleAsync(string payee, string category)
     {
+        await RulesTable.GetByTestId("row-actions-button").ClickAsync();
         await EditButton.ClickAsync();
         await EditPayeePatternInput.FillAsync(payee);
         await EditCategoryInput.FillAsync(category);
@@ -88,6 +89,7 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     /// </summary>
     public async Task DeleteRuleAsync(string payee)
     {
+        await GetRuleRow(payee).GetByTestId("row-actions-button").ClickAsync();
         await GetRuleRow(payee).Locator(DeleteButtons).ClickAsync();
         await DeleteDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await DeleteSubmitButton.ClickAsync();

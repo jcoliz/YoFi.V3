@@ -316,7 +316,9 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task CreateRuleFromTransactionAsync(
         string payee, string pattern, string category, bool applyNow)
     {
-        await GetTransactionRowLocatorByPayee(payee).GetByTestId("create-rule-button").ClickAsync();
+        var row = GetTransactionRowLocatorByPayee(payee);
+        await row.GetByTestId("row-actions-button").ClickAsync();
+        await row.GetByTestId("create-rule-button").ClickAsync();
         var dialog = Page.GetByTestId("rule-create-dialog");
         var applyCheckbox = dialog.GetByTestId("apply-rule-now-checkbox");
         await Assertions.Expect(applyCheckbox).ToBeCheckedAsync();
@@ -898,6 +900,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task OpenEditModalAsync(string payeeName)
     {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        await row.GetByTestId("row-actions-button").ClickAsync();
         var editButton = await GetEditButton(payeeName);
         await editButton.ClickAsync();
         await EditModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
@@ -1539,8 +1543,17 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </remarks>
     public async Task<bool> IsEditAvailableAsync(string payeeName)
     {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        var actionsButton = row.GetByTestId("row-actions-button");
+        if (!await IsAvailableAsync(actionsButton))
+        {
+            return false;
+        }
+        await actionsButton.ClickAsync();
         var editButton = await GetEditButton(payeeName);
-        return await IsAvailableAsync(editButton);
+        var available = await IsAvailableAsync(editButton);
+        await actionsButton.PressAsync("Escape");
+        return available;
     }
 
     /// <summary>
