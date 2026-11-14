@@ -170,7 +170,7 @@ describe('transaction/EditModal – split category protection', () => {
 
     // When: payee is updated and form is submitted
     await wrapper.find('[data-test-id="edit-transaction-payee"]').setValue('Updated Store')
-    await wrapper.find('[data-test-id="edit-submit-button"]').trigger('click')
+    await wrapper.find('form').trigger('submit')
     await wrapper.vm.$nextTick()
 
     // Then: API was called without a category
@@ -197,7 +197,7 @@ describe('transaction/EditModal – split category protection', () => {
 
     // When: category is updated and form is submitted
     await wrapper.find('[data-test-id="edit-transaction-category"]').setValue('Groceries')
-    await wrapper.find('[data-test-id="edit-submit-button"]').trigger('click')
+    await wrapper.find('form').trigger('submit')
     await wrapper.vm.$nextTick()
 
     // Then: API was called with the updated category

@@ -356,12 +356,7 @@ defineExpose({ validateAndCommit, resetDraft })
                   @keyup.enter.prevent="commitImmediately"
                   @blur="commitOnBlur"
                 />
-                <div
-                  id="memo-filter-help"
-                  class="form-text"
-                >
-                  Searches transaction and split memos.
-                </div>
+                <HelpText> Searches transaction and split memos. </HelpText>
               </div>
               <div class="col-12 col-md-6">
                 <label
@@ -384,12 +379,12 @@ defineExpose({ validateAndCommit, resetDraft })
                   @keyup.enter.prevent="commitImmediately"
                   @blur="commitOnBlur"
                 />
-                <div
+                <HelpText
                   id="amount-filter-help"
                   class="form-text"
                 >
                   Unsigned amounts match either sign; use + or - to restrict the sign.
-                </div>
+                </HelpText>
                 <div
                   v-if="errors.amount"
                   id="amount-filter-error"
@@ -415,7 +410,7 @@ defineExpose({ validateAndCommit, resetDraft })
                   >
                     Uncategorized only
                   </label>
-                  <div class="form-text">Includes transactions with any blank split category.</div>
+                  <HelpText>Includes transactions with any blank split category.</HelpText>
                 </div>
               </div>
             </div>

@@ -136,6 +136,19 @@ function navigateToDetails() {
   if (!props.transaction?.key) return
   navigateTo(`/transactions/${props.transaction.key}`)
 }
+
+function handleKeydown(event: KeyboardEvent) {
+  if (!props.show || event.defaultPrevented || event.isComposing) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!loading.value && !event.repeat) emit('update:show', false)
+  }
+}
+
+onMounted(() => document.addEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
 </script>
 
 <template>
@@ -150,92 +163,97 @@ function navigateToDetails() {
     @primary="updateTransaction"
     @update:show="emit('update:show', $event)"
   >
-    <ErrorDisplay
-      v-model:show="showError"
-      :problem="error"
-      class="mb-3"
-    />
-    <div class="mb-3">
-      <label
-        for="editPayee"
-        class="form-label"
-        >Payee</label
-      >
-      <input
-        id="editPayee"
-        v-model="formData.payee"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.payee }"
-        placeholder="Enter payee name"
-        data-test-id="edit-transaction-payee"
+    <form
+      id="edit-transaction-form"
+      @submit.prevent="updateTransaction"
+    >
+      <ErrorDisplay
+        v-model:show="showError"
+        :problem="error"
+        class="mb-3"
       />
-      <div
-        v-if="formErrors.payee"
-        class="invalid-feedback"
-      >
-        {{ formErrors.payee }}
+      <div class="mb-3">
+        <label
+          for="editPayee"
+          class="form-label"
+          >Payee</label
+        >
+        <input
+          id="editPayee"
+          v-model="formData.payee"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.payee }"
+          placeholder="Enter payee name"
+          data-test-id="edit-transaction-payee"
+        />
+        <div
+          v-if="formErrors.payee"
+          class="invalid-feedback"
+        >
+          {{ formErrors.payee }}
+        </div>
       </div>
-    </div>
-    <div class="mb-3">
-      <label
-        for="editCategory"
-        class="form-label"
-        >Category</label
-      >
-      <input
-        id="editCategory"
-        v-model="formData.category"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.category }"
-        placeholder="Category (optional)"
-        maxlength="100"
-        :disabled="hasMultipleSplits"
-        aria-describedby="editCategoryHelp"
-        data-test-id="edit-transaction-category"
-      />
-      <HelpText
-        id="editCategoryHelp"
-        data-test-id="edit-transaction-category-help"
-      >
-        {{
-          hasMultipleSplits
-            ? 'This transaction is split across multiple categories. Category cannot be changed in Quick Edit.'
-            : 'Optional category for this transaction'
-        }}
-      </HelpText>
-      <div
-        v-if="formErrors.category"
-        class="invalid-feedback"
-      >
-        {{ formErrors.category }}
+      <div class="mb-3">
+        <label
+          for="editCategory"
+          class="form-label"
+          >Category</label
+        >
+        <input
+          id="editCategory"
+          v-model="formData.category"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.category }"
+          placeholder="Category (optional)"
+          maxlength="100"
+          :disabled="hasMultipleSplits"
+          aria-describedby="editCategoryHelp"
+          data-test-id="edit-transaction-category"
+        />
+        <HelpText
+          id="editCategoryHelp"
+          data-test-id="edit-transaction-category-help"
+        >
+          {{
+            hasMultipleSplits
+              ? 'This transaction is split across multiple categories. Category cannot be changed in Quick Edit.'
+              : 'Optional category for this transaction'
+          }}
+        </HelpText>
+        <div
+          v-if="formErrors.category"
+          class="invalid-feedback"
+        >
+          {{ formErrors.category }}
+        </div>
       </div>
-    </div>
-    <div class="mb-3">
-      <label
-        for="editMemo"
-        class="form-label"
-        >Memo</label
-      >
-      <textarea
-        id="editMemo"
-        v-model="formData.memo"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.memo }"
-        placeholder="Add notes about this transaction..."
-        rows="3"
-        maxlength="1000"
-        data-test-id="edit-transaction-memo"
-      ></textarea>
-      <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
-      <div
-        v-if="formErrors.memo"
-        class="invalid-feedback"
-      >
-        {{ formErrors.memo }}
+      <div class="mb-3">
+        <label
+          for="editMemo"
+          class="form-label"
+          >Memo</label
+        >
+        <textarea
+          id="editMemo"
+          v-model="formData.memo"
+          class="form-control"
+          :class="{ 'is-invalid': formErrors.memo }"
+          placeholder="Add notes about this transaction..."
+          rows="3"
+          maxlength="1000"
+          data-test-id="edit-transaction-memo"
+        ></textarea>
+        <small class="form-text text-muted">{{ formData.memo.length }} / 1000 characters</small>
+        <div
+          v-if="formErrors.memo"
+          class="invalid-feedback"
+        >
+          {{ formErrors.memo }}
+        </div>
       </div>
-    </div>
+    </form>
 
     <template #footer>
       <button
@@ -262,11 +280,11 @@ function navigateToDetails() {
         Cancel
       </button>
       <button
-        type="button"
+        type="submit"
+        form="edit-transaction-form"
         class="btn btn-primary"
         data-test-id="edit-submit-button"
         :disabled="loading"
-        @click="updateTransaction"
       >
         <BaseSpinner
           v-if="loading"
