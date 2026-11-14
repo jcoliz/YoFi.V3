@@ -536,6 +536,12 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Waits until exactly the expected number of splits is displayed.
+    /// </summary>
+    public Task ExpectSplitCountAsync(int expectedCount) =>
+        Assertions.Expect(SplitRows).ToHaveCountAsync(expectedCount);
+
+    /// <summary>
     /// Checks if the page is in display mode
     /// </summary>
     /// <returns>True if in display mode, false if in edit mode</returns>

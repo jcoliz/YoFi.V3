@@ -46,10 +46,12 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
             Memo = row.GetOptional("Memo") ?? string.Empty
         }).ToArray();
 
+        // First ensure the expected number of splits is displayed
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
-        var actualSplits = await detailsPage.GetDisplayedSplitsAsync();
+        await detailsPage.ExpectSplitCountAsync(expectedSplits.Length);
 
-        Assert.That(actualSplits, Has.Count.EqualTo(expectedSplits.Length), "Displayed split count differs from the expected count.");
+        // Now loop through each one and check versus the expected splits
+        var actualSplits = await detailsPage.GetDisplayedSplitsAsync();
         for (var index = 0; index < expectedSplits.Length; index++)
         {
             var expected = expectedSplits[index];
