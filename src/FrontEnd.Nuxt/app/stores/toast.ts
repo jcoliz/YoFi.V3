@@ -1,3 +1,5 @@
+import { defineStore } from 'pinia'
+
 /**
  * App-level notifications are published by unrelated pages and components.
  * A transient store avoids passing notification events through layouts while

@@ -20,6 +20,7 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
+import { useToastStore } from '~/stores/toast'
 import { handleApiError } from '~/utils/errorHandler'
 import { formatDateOnly, fromDateInputValue } from '~/utils/dateOnly'
 import type { TransactionAdvancedFilters } from '~/types/transactionFilters'
@@ -35,6 +36,7 @@ definePageMeta({
  * User preferences store for managing current workspace selection.
  */
 const userPreferencesStore = useUserPreferencesStore()
+const toastStore = useToastStore()
 
 /**
  * API client for transactions endpoint.
@@ -92,7 +94,6 @@ const showEditModal = ref(false)
 const showCreateRuleModal = ref(false)
 const savingRule = ref(false)
 const ruleError = ref<IProblemDetails | undefined>(undefined)
-const ruleResult = ref<{ transactionsCategorized?: number } | null>(null)
 
 /**
  * Currently selected transaction for edit or rule creation.
@@ -164,7 +165,6 @@ watch(currentTenantKey, async (newKey) => {
   showCreateRuleModal.value = false
   selectedTransaction.value = null
   ruleError.value = undefined
-  ruleResult.value = null
   filterPanel.value?.resetDraft()
   currentPage.value = 1
   if (newKey) {
@@ -334,7 +334,6 @@ function openCreateRuleModal(transaction: TransactionResultDto) {
   if (savingRule.value) return
   selectedTransaction.value = transaction
   ruleError.value = undefined
-  ruleResult.value = null
   showCreateRuleModal.value = true
 }
 
@@ -394,7 +393,6 @@ async function createRuleFromTransaction(
 
   savingRule.value = true
   ruleError.value = undefined
-  ruleResult.value = null
   let sourceUpdated = false
   try {
     if (!transaction.hasMultipleSplits) {
@@ -452,7 +450,12 @@ async function createRuleFromTransaction(
         showError.value = true
         return
       }
-      ruleResult.value = applyToUncategorizedTransactions ? { transactionsCategorized: count } : {}
+      const message = applyToUncategorizedTransactions
+        ? count === 0
+          ? 'No additional uncategorized transactions matched.'
+          : `Categorized ${count} additional transaction${count === 1 ? '' : 's'}.`
+        : 'The payee matching rule was created.'
+      toastStore.success(message, 'Rule created')
     } catch (err) {
       if (currentTenantKey.value !== tenantKey) return
       ruleError.value = handleApiError(
@@ -534,30 +537,6 @@ function retryLoadTransactions() {
       />
 
       <!-- Search Bar -->
-      <div
-        v-if="ruleResult"
-        class="alert alert-success"
-        role="status"
-        data-test-id="apply-rule-result"
-      >
-        Rule created.
-        <template v-if="ruleResult.transactionsCategorized !== undefined">
-          <span
-            v-if="ruleResult.transactionsCategorized === 0"
-            data-test-id="rule-application-no-matches"
-          >
-            No additional uncategorized transactions matched.
-          </span>
-          <template v-else>
-            Categorized
-            <span data-test-id="rule-application-count">{{
-              ruleResult.transactionsCategorized
-            }}</span>
-            additional transaction{{ ruleResult.transactionsCategorized === 1 ? '' : 's' }}.
-          </template>
-        </template>
-      </div>
-
       <SearchFilterBar
         v-if="hasWorkspace"
         v-model="searchDraft"

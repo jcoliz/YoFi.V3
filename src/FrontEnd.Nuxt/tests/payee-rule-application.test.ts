@@ -17,6 +17,7 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
+import { useToastStore } from '~/stores/toast'
 
 enableAutoUnmount(afterEach)
 vi.stubGlobal('definePageMeta', vi.fn())
@@ -296,7 +297,14 @@ describe('Create rule from transaction', () => {
       applyToUncategorizedTransactions: true,
     })
     expect(wrapper.find('[data-test-id="rule-create-dialog"]').exists()).toBe(false)
-    expect(wrapper.get('[data-test-id="rule-application-count"]').text()).toBe('3')
+    expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
+    expect(useToastStore().toasts).toEqual([
+      expect.objectContaining({
+        title: 'Rule created',
+        message: 'Categorized 3 additional transactions.',
+        variant: 'success',
+      }),
+    ])
     expect(getTransactions).toHaveBeenCalledTimes(2)
   })
 
@@ -317,9 +325,14 @@ describe('Create rule from transaction', () => {
         applyToUncategorizedTransactions: false,
       }),
     )
-    expect(wrapper.get('[data-test-id="apply-rule-result"]').isVisible()).toBe(true)
-    expect(wrapper.find('[data-test-id="rule-application-count"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test-id="rule-application-no-matches"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
+    expect(useToastStore().toasts[0]).toEqual(
+      expect.objectContaining({
+        title: 'Rule created',
+        message: 'The payee matching rule was created.',
+        variant: 'success',
+      }),
+    )
   })
 
   it('skips source Quick Edit for multi-split transactions but still applies the new rule', async () => {
@@ -345,11 +358,15 @@ describe('Create rule from transaction', () => {
     const { wrapper } = await setupPage()
     await wrapper.get('[data-test-id="save-button"]').trigger('click')
     await flushPromises()
-    expect(wrapper.get('[data-test-id="apply-rule-result"]').isVisible()).toBe(true)
+    expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
     if (count === 0) {
-      expect(wrapper.get('[data-test-id="rule-application-no-matches"]').isVisible()).toBe(true)
+      expect(useToastStore().toasts[0]?.message).toBe(
+        'No additional uncategorized transactions matched.',
+      )
     } else {
-      expect(wrapper.get('[data-test-id="rule-application-count"]').text()).toBe(String(count))
+      expect(useToastStore().toasts[0]?.message).toBe(
+        `Categorized ${count} additional transaction${count === 1 ? '' : 's'}.`,
+      )
     }
   })
 
@@ -415,7 +432,8 @@ describe('Create rule from transaction', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-test-id="rule-create-dialog"]').exists()).toBe(false)
-    expect(wrapper.get('[data-test-id="apply-rule-result"]').isVisible()).toBe(true)
+    expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
+    expect(useToastStore().toasts[0]?.title).toBe('Rule created')
     expect(wrapper.text()).toContain(
       'The rule was created, but refreshing the transaction list failed',
     )

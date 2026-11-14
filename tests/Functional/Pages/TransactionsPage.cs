@@ -25,6 +25,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// Cached transaction table data to avoid reloading on every query
     /// </summary>
     private TransactionTableData? _cachedTableData;
+    private string? _ruleCreationToastText;
 
     #region Components
 
@@ -298,6 +299,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     private ILocator SearchButton => SearchFilterBar.GetByTestId("search-button");
     private ILocator ClearSearchButton => SearchFilterBar.GetByTestId("clear-search-button");
     private ILocator NoResults => Page.GetByTestId("no-results");
+    private ILocator RuleCreationToast => Page!.GetByTestId("AppToast").Last;
 
     #endregion
 
@@ -316,6 +318,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task CreateRuleFromTransactionAsync(
         string payee, string pattern, string category, bool applyNow)
     {
+        _ruleCreationToastText = null;
         var row = GetTransactionRowLocatorByPayee(payee);
         await row.GetByTestId("row-actions-button").ClickAsync();
         await row.GetByTestId("create-rule-button").ClickAsync();
@@ -331,20 +334,34 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 
         await dialog.GetByTestId("save-button").ClickAsync();
         await Assertions.Expect(dialog).ToBeHiddenAsync();
-        await Assertions.Expect(Page.GetByTestId("apply-rule-result")).ToBeVisibleAsync();
+        await Assertions.Expect(RuleCreationToast).ToBeVisibleAsync();
+        _ruleCreationToastText = await RuleCreationToast.InnerTextAsync();
         await Assertions.Expect(TransactionsCard).ToHaveAttributeAsync("aria-busy", "false");
         _cachedTableData = null;
     }
 
     /// <summary>
-    /// Checks the reported outcome of creating a rule and applying it to existing transactions.
+    /// Checks the reported outcome of creating a rule without applying it to existing transactions.
     /// </summary>
     public Task ExpectRuleCreationSuccessAsync()
-        => Assertions.Expect(Page.GetByTestId("apply-rule-result")).ToBeVisibleAsync();
+    {
+        NUnit.Framework.Assert.That(
+            _ruleCreationToastText,
+            NUnit.Framework.Does.Contain("The payee matching rule was created."));
+        return Task.CompletedTask;
+    }
 
+    /// <summary>
+    /// Checks the count reported by the success toast captured when the rule was created.
+    /// </summary>
     public Task ExpectRuleApplicationCountAsync(int count)
-        => Assertions.Expect(Page.GetByTestId("apply-rule-result")
-            .GetByTestId("rule-application-count")).ToHaveTextAsync(count.ToString());
+    {
+        var transactionText = $"Categorized {count} additional transaction{(count == 1 ? "" : "s")}.";
+        NUnit.Framework.Assert.That(
+            _ruleCreationToastText,
+            NUnit.Framework.Does.Contain(transactionText));
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Enters the search term, applies it, and waits for the filtered list to load.
