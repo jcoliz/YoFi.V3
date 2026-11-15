@@ -14,9 +14,10 @@ Add a workspace-wide year-discovery endpoint and a year selector to the existing
 Reports page. Reuse the report endpoint's existing `year` parameter; report
 aggregation and response formatting do not change.
 
-Persist the year per report and workspace in browser localStorage. Start a
-report-settings object that can later hold the rest of Story 2249's settings,
-without implementing depth, month-display, chart controls, or Reset now.
+Persist one year per workspace in browser localStorage, shared across every
+report. Users investigate a year by moving between reports without having to
+reselect it. Other Story 2249 display settings remain per-report; depth,
+month-display, chart controls, and Reset are not implemented here.
 
 ## Year availability and default
 
@@ -90,8 +91,8 @@ Update [`reports.vue`](../../../src/FrontEnd.Nuxt/app/pages/reports.vue):
 
 1. On workspace load, clear the previous report and year state. Fetch report
    definitions and year availability in parallel, once per workspace load.
-2. Restore the selected report using the existing behavior. Resolve its year
-   from its saved settings, falling back to `defaultYear`.
+2. Restore the selected report using the existing behavior. Resolve the workspace
+   year from its saved settings, falling back to `defaultYear`.
 3. Render a labeled native **Year** select beside the existing **Report** select
    on wide screens and stacked on narrow screens. Use numeric values and
    `data-test-id="report-year-selector"`. Keep it visible for an empty workspace's
@@ -99,8 +100,8 @@ Update [`reports.vue`](../../../src/FrontEnd.Nuxt/app/pages/reports.vue):
 4. Persist the resolved settings and load the report with an explicit year:
    the generated client's existing `getReport(id, year, tenantKey)` call.
 5. On a year change, save immediately and reload the selected report. On a
-   report change, restore that report's own saved year, or the backend default;
-   do not carry the previous report's year into an unconfigured report.
+   report change, retain the selected year. Only a workspace change restores a
+   different saved year (or the backend default for that workspace).
 
 Keep the existing report heading, which already includes the returned year,
 and the table's no-data state. Clear old report data while reloading so it is
@@ -123,10 +124,10 @@ Extend
 with a typed `ReportSettings` object, initially containing only optional `year`,
 and report-settings read/update helpers.
 
-Use one JSON object per workspace/report:
+Use one JSON object per workspace, shared by all reports:
 
 ```text
-userPreferences:tenant:{tenantKey}:reports:{reportId}:settings
+userPreferences:tenant:{tenantKey}:reports:settings
 ```
 
 Example value:
@@ -135,8 +136,11 @@ Example value:
 { "year": 2024 }
 ```
 
-Keep the existing `reports:selectedId` preference unchanged. No migration is
-needed because there are no existing saved report settings.
+Keep the existing `reports:selectedId` preference unchanged. Ignore the previous
+per-report settings keys when resolving the workspace year: conflicting report
+years do not identify a single workspace preference. On the first visit after
+this change, use the backend default unless a workspace year has already been
+saved. Leave legacy keys untouched; they must never override the workspace year.
 
 - Persist automatically on selection and when resolving an absent or obsolete
   saved year to the backend default. Save independently of report-request success.
@@ -147,10 +151,11 @@ needed because there are no existing saved report settings.
   logging convention before recovering to the default. Storage-access/write
   failures must surface a persistence error; do not claim the setting was saved.
 - Merge year updates into the settings object rather than replacing it with a
-  year-only object. Later Story 2249 work can add fields using the same key and
-  helpers without losing other settings. Do not add speculative fields now.
-- A future Reset will remove this report's settings key and resolve defaults
-  again; implementing that control remains outside this scenario.
+  year-only object. This object holds workspace-wide report preferences only.
+  Later Story 2249 display settings require separate per-report storage and
+  must not change the workspace year. Do not add speculative fields now.
+- A future per-report Reset will clear only that report's display settings,
+  leaving the workspace year unchanged; implementing it remains outside this scenario.
 
 ## Implementation and verification
 
@@ -166,9 +171,9 @@ needed because there are no existing saved report settings.
 | Application unit | Fixed `TimeProvider`; current-year inclusion/default; no duplicates; descending order with future years; gaps preserved; empty workspace. |
 | Application integration | Real data-provider translation of distinct date years; tenant isolation; January 1/December 31 boundaries; multiple transactions in a year. |
 | Controller integration | Viewer access; unauthenticated/unauthorized access; exact response shape; literal `/years` route reaches discovery rather than report lookup. |
-| Frontend/preferences | Explicit year passed to report call; backend default used even when not first or different from browser year; selector changes results; per-report/per-workspace restoration after remount; obsolete/malformed settings; settings merge; storage failure visibility. |
+| Frontend/preferences | Explicit year passed to report call; backend default used even when not first or different from browser year; selector changes results; year retained across reports and restored per-workspace after remount; legacy per-report years ignored; obsolete/malformed settings; settings merge; storage failure visibility. |
 | Frontend async/error | No workspace means no requests; discovery/report errors and retry; empty report for a valid year; stale discovery/report responses after year/report/workspace changes and unmount. |
-| Functional | Seed distinct totals in two years, select a historical year, and reload; verify selected year and report totals are restored. Keep all `When` actions before `Then` assertions. |
+| Functional | Seed distinct totals in two years, select a historical year, switch to another report, and reload; verify the year is retained and the new report's year-specific totals are restored. Keep all `When` actions before `Then` assertions. |
 
 Extend the existing report test files rather than introducing a new test harness.
 For functional coverage, follow the
@@ -197,7 +202,7 @@ errors.
 
 The Reports page now loads year availability alongside the report catalog and
 displays responsive Report and Year selectors. It sends an explicit year with
-each report request, restores independent workspace/report settings, and retries
+each report request, shares the year across reports within each workspace, and retries
 report failures without rediscovering years or resetting the selection.
 
 The preference store validates saved settings, diagnoses malformed data, and
@@ -207,11 +212,12 @@ as well as report/workspace changes and unmounting.
 
 Verification:
 
-- All 58 focused report component/preference tests pass.
+- All 59 focused report component/preference tests pass, covering shared-year
+  selection, independent workspace restoration, and ignored legacy per-report years.
 - Targeted ESLint checks and the application Vue TypeScript check pass. The
   latter used a temporary `vue-tsc` invocation because the repository does not
   install a Vue type checker; no dependency manifests were changed.
 - The containerized frontend/backend build and health checks pass.
 - All seven report functional cases pass, including new historical-year
-  selection and per-report year restoration after switching reports and reload.
+  selection and shared workspace-year restoration after switching reports and reload.
   Application containers were left running.

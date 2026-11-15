@@ -111,19 +111,20 @@ Feature: Reports
     @pri:2
     @id:5
     @category:scenario-2228
-    Scenario: Remember each report year after switching reports and reloading
+    Scenario: Keep the workspace year when switching reports and reloading
       Given I have a workspace with the following transactions:
-        | Date       | Payee             | Amount | Category      |
-        | 2023-12-31 | Previous Employer | 75.00  | Income:Salary |
-        | 2024-01-01 | Employer January  | 100.00 | Income:Salary |
-        | 2024-12-31 | Employer December | 25.00  | Income:Salary |
+        | Date       | Payee             | Amount | Category       |
+        | 2023-12-31 | Previous Employer | 75.00  | Income:Salary  |
+        | 2024-01-01 | Employer January  | 100.00 | Income:Salary  |
+        | 2024-12-31 | Employer December | 25.00  | Income:Salary  |
+        | 2024-06-15 | Historical Store  | -10.00 | Food:Groceries |
       When user visits the "Reports" page
       And I select the "Income" report
       And I select report year 2023
       And I select report year 2024
       And I select the "Expenses Detail" report
-      And I select the "Income" report
+      And I select the "All Detail" report
       And I reload the reports page
-      Then the selected report should be "Income"
+      Then the selected report should be "All Detail"
       And the report year should be 2024
-      And the report grand total should be 125.00
+      And the report grand total should be 115.00

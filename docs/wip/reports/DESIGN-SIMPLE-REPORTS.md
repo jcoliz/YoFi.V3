@@ -61,9 +61,10 @@ order defines the default; valid saved selections still take precedence.
 
 With no matching splits, show the table's column headers and a clear no-data
 message; do not manufacture category rows. This story persists only the selected
-report ID. Per-report year, depth, and display settings are added by Story 2249
-and should use the same workspace-scoped browser preference mechanism, keyed by
-report ID, so returning to a report restores its settings as well.
+report ID. Story 2249 adds a shared year per workspace (see
+[Select Report Year](DESIGN-REPORT-YEAR.md)) and per-report depth/display
+settings. Switching reports must retain the workspace year; display settings
+remain keyed by report ID within each workspace.
 
 For reports with month columns, the table is ordered as Category, January through
 December, Total, and % of report total. For reports without month columns, it is
@@ -245,8 +246,8 @@ indexes based on the measured plan rather than adding speculative infrastructure
 ## Follow-on integration points
 
 - **Story 2249:** The query already takes a year; later add selected year, depth,
-  and month-display options and persist per-report preferences as that story
-  requires. Original YoFi supports at most four displayed levels because deeper
+  and month-display options. Persist the year once per workspace and other display
+  preferences per report as that story requires. Original YoFi supports at most four displayed levels because deeper
   formatting becomes difficult to interpret. For a four-level report, level four
   is normal weight, level three is bold, level two is highlighted, and level one
   is highlighted more strongly. Preserve that guidance when adding configurable

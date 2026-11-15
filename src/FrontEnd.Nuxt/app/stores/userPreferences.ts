@@ -75,11 +75,9 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     localStorage.setItem(`userPreferences:tenant:${tenantKey}:reports:selectedId`, reportId)
   }
 
-  function getReportSettings(tenantKey: string, reportId: string): ReportSettings {
+  function getReportSettings(tenantKey: string): ReportSettings {
     if (typeof window === 'undefined') return {}
-    const stored = localStorage.getItem(
-      `userPreferences:tenant:${tenantKey}:reports:${reportId}:settings`,
-    )
+    const stored = localStorage.getItem(`userPreferences:tenant:${tenantKey}:reports:settings`)
     if (stored === null) return {}
 
     try {
@@ -101,11 +99,11 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     }
   }
 
-  function updateReportSettings(tenantKey: string, reportId: string, settings: ReportSettings) {
+  function updateReportSettings(tenantKey: string, settings: ReportSettings) {
     if (typeof window === 'undefined') return
-    const existing = getReportSettings(tenantKey, reportId)
+    const existing = getReportSettings(tenantKey)
     localStorage.setItem(
-      `userPreferences:tenant:${tenantKey}:reports:${reportId}:settings`,
+      `userPreferences:tenant:${tenantKey}:reports:settings`,
       JSON.stringify({ ...existing, ...settings }),
     )
   }

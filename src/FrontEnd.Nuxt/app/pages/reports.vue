@@ -99,7 +99,7 @@ async function loadWorkspace() {
     selectedReportId.value = available.some((definition) => definition.id === savedId)
       ? savedId!
       : defaultId
-    await loadSelectedReport(true)
+    await loadSelectedReport()
   } catch (err) {
     if (version !== requestVersion) return
     error.value = handleApiError(err, 'Load Failed', 'Failed to load reports')
@@ -109,7 +109,7 @@ async function loadWorkspace() {
   }
 }
 
-async function loadSelectedReport(restoreYear = false) {
+async function loadSelectedReport() {
   const version = ++requestVersion
   const key = tenantKey.value
   const id = selectedReportId.value
@@ -119,14 +119,13 @@ async function loadSelectedReport(restoreYear = false) {
   if (!key || !id) return
   loading.value = true
   try {
-    if (restoreYear || selectedYear.value === undefined) {
-      selectedYear.value = undefined
-      const saved = preferences.getReportSettings(key, id).year
+    if (selectedYear.value === undefined) {
+      const saved = preferences.getReportSettings(key).year
       selectedYear.value =
         saved !== undefined && years.value.includes(saved) ? saved : defaultYear.value
     }
     preferences.setSelectedReportId(key, id)
-    preferences.updateReportSettings(key, id, { year: selectedYear.value })
+    preferences.updateReportSettings(key, { year: selectedYear.value })
   } catch (err) {
     error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
     showError.value = true
@@ -194,7 +193,7 @@ function retry() {
               v-model="selectedReportId"
               class="form-select"
               data-test-id="report-selector"
-              @change="loadSelectedReport(true)"
+              @change="loadSelectedReport()"
             >
               <option
                 v-for="definition in definitions"

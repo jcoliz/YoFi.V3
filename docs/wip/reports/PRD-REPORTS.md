@@ -123,7 +123,8 @@ Following are the standard income/expense reports
 - [ ] User can choose whether to show independent month values with a row total, or show whole year only. The default is an aspect of report definition.
 - [ ] User can choose how many levels deep of categories to show. The default level is an aspect of the report definition.
 - [ ] Settings auto-save whenever changed
-- [ ] User can click "Reset" to clear localStorage for that specific report and restore definition defaults
+- [ ] Display settings (depth and chart/table view) are persisted per-report, per-tenant in browser localStorage
+- [ ] User can click "Reset" to clear display settings for that specific report and restore definition defaults, without changing the workspace's selected year
 
 #### Scenario 2228: User can select report year
 
@@ -131,7 +132,9 @@ Following are the standard income/expense reports
 
 **Acceptance Criteria**:
 
-- [ ] Settings are persisted per-report, per-tenant in browser localStorage (each report remembers its own year, depth, and chart/table view)
+- [ ] The selected year applies to all reports within the selected workspace; switching reports does not change it
+- [ ] The selected year auto-saves per-tenant in browser localStorage and is restored after reload or returning to that workspace; workspaces remember independent years
+- [ ] When no valid saved year is available, use the backend-provided current-year default
 - [ ] User can choose which year to display. Except as otherwise described later, reports are always in the context of a single calendar year
 
 ### Story 3: User - Views a report in chart form

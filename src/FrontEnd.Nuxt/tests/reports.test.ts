@@ -180,23 +180,24 @@ describe('Reports table', () => {
 })
 
 describe('Reports page', () => {
-  it('saves year changes immediately and restores independent report years after remount', async () => {
+  it('shares year changes across reports and restores the workspace year after remount', async () => {
     const { wrapper, store } = setupPage()
     await flushPromises()
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2035')
     await flushPromises()
     expect(getReport).toHaveBeenLastCalledWith('income', 2035, 'first')
     expect(wrapper.find('#report-heading').text()).toContain('2035')
-    expect(store.getReportSettings('first', 'income')).toEqual({ year: 2035 })
+    expect(store.getReportSettings('first')).toEqual({ year: 2035 })
 
     await wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 'first')
+    expect(wrapper.find('#report-heading').text()).toContain('2035')
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2042')
     await flushPromises()
     await wrapper.find('[data-test-id="report-selector"]').setValue('income')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2042, 'first')
     expect(getAvailableYears).toHaveBeenCalledOnce()
     expect(getAvailableReports).toHaveBeenCalledOnce()
 
@@ -207,7 +208,7 @@ describe('Reports page', () => {
     expect(
       returned.wrapper.find<HTMLSelectElement>('[data-test-id="report-year-selector"]').element
         .value,
-    ).toBe('2035')
+    ).toBe('2042')
     await returned.wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
     expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2042, 'first')
@@ -215,8 +216,8 @@ describe('Reports page', () => {
 
   it('restores independent workspace years and resets availability on workspace changes', async () => {
     const { wrapper, store } = setupPage()
-    store.updateReportSettings('first', 'income', { year: 2035 })
-    store.updateReportSettings('second', 'income', { year: 2042 })
+    store.updateReportSettings('first', { year: 2035 })
+    store.updateReportSettings('second', { year: 2042 })
     await flushPromises()
     store.currentTenant = new TenantRoleResultDto({ key: 'second' })
     await nextTick()
@@ -230,11 +231,31 @@ describe('Reports page', () => {
   })
 
   it('replaces an unavailable saved year with the backend default', async () => {
-    useUserPreferencesStore().updateReportSettings('first', 'income', { year: 2020 })
+    useUserPreferencesStore().updateReportSettings('first', { year: 2020 })
     const { store } = setupPage()
     await flushPromises()
     expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
-    expect(store.getReportSettings('first', 'income')).toEqual({ year: 2040 })
+    expect(store.getReportSettings('first')).toEqual({ year: 2040 })
+  })
+
+  it('does not restore conflicting legacy per-report years when switching reports', async () => {
+    localStorage.setItem(
+      'userPreferences:tenant:first:reports:income:settings',
+      JSON.stringify({ year: 2035 }),
+    )
+    localStorage.setItem(
+      'userPreferences:tenant:first:reports:expenses-detail:settings',
+      JSON.stringify({ year: 2042 }),
+    )
+    const { wrapper, store } = setupPage()
+    await flushPromises()
+    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+    await wrapper.find('[data-test-id="report-year-selector"]').setValue('2035')
+    await flushPromises()
+    await wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
+    await flushPromises()
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 'first')
+    expect(store.getReportSettings('first')).toEqual({ year: 2035 })
   })
 
   it('keeps the year selector for an empty workspace and displays the empty report', async () => {
@@ -275,7 +296,7 @@ describe('Reports page', () => {
     getReport.mockRejectedValueOnce(new Error('Unavailable'))
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2035')
     await flushPromises()
-    expect(store.getReportSettings('first', 'income')).toEqual({ year: 2035 })
+    expect(store.getReportSettings('first')).toEqual({ year: 2035 })
     expect(wrapper.find('[data-test-id="report-table"]').exists()).toBe(false)
     await wrapper.find('button').trigger('click')
     await flushPromises()
@@ -319,7 +340,7 @@ describe('Reports page', () => {
     await flushPromises()
     expect(wrapper.find('#report-heading').text()).toContain('2042')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    expect(store.getReportSettings('first', 'income')).toEqual({ year: 2042 })
+    expect(store.getReportSettings('first')).toEqual({ year: 2042 })
   })
 
   it.each(['workspace', 'unmount'])('ignores pending year discovery after %s', async (action) => {
@@ -334,7 +355,7 @@ describe('Reports page', () => {
     pending.resolve({ years: [2000], defaultYear: 2000 })
     await flushPromises()
     expect(store.getSelectedReportId('first')).toBeNull()
-    expect(store.getReportSettings('first', 'income')).toEqual({})
+    expect(store.getReportSettings('first')).toEqual({})
     expect(getReport).toHaveBeenCalledTimes(action === 'workspace' ? 1 : 0)
     if (action === 'workspace') expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'second')
   })
@@ -358,12 +379,12 @@ describe('Reports page', () => {
   })
 
   describe('Report settings preferences', () => {
-    const key = 'userPreferences:tenant:first:reports:income:settings'
+    const key = 'userPreferences:tenant:first:reports:settings'
 
     it('merges year changes without discarding other report settings', () => {
       localStorage.setItem(key, JSON.stringify({ year: 2035, depth: 2 }))
       const store = useUserPreferencesStore()
-      store.updateReportSettings('first', 'income', { year: 2040 })
+      store.updateReportSettings('first', { year: 2040 })
       expect(JSON.parse(localStorage.getItem(key)!)).toEqual({ year: 2040, depth: 2 })
     })
 
@@ -388,7 +409,7 @@ describe('Reports page', () => {
       vi.spyOn(localStorage, method).mockImplementation(() => {
         throw new Error('Storage unavailable')
       })
-      expect(() => store.updateReportSettings('first', 'income', { year: 2040 })).toThrow(
+      expect(() => store.updateReportSettings('first', { year: 2040 })).toThrow(
         'Storage unavailable',
       )
     })
@@ -401,7 +422,7 @@ describe('Reports page', () => {
     expect(getAvailableReports).toHaveBeenCalledWith('first')
     expect(getAvailableYears).toHaveBeenCalledWith('first')
     expect(getReport).toHaveBeenCalledWith('income', 2040, 'first')
-    expect(store.getReportSettings('first', 'income')).toEqual({ year: 2040 })
+    expect(store.getReportSettings('first')).toEqual({ year: 2040 })
     expect(
       wrapper
         .findAll('[data-test-id="report-year-selector"] option')
