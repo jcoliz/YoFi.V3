@@ -10,6 +10,7 @@ namespace YoFi.V3.Tests.Functional.Pages;
 public class ReportsPage(IPage page) : BasePage(page)
 {
     private ILocator ReportSelector => Page.GetByTestId("report-selector");
+    private ILocator YearSelector => Page.GetByTestId("report-year-selector");
     private ILocator ReportResult => Page.GetByTestId("report-result");
     private ILocator ReportTable => ReportResult.GetByTestId("report-table");
     private ILocator SelectedReport => ReportSelector.Locator("option:checked");
@@ -36,6 +37,26 @@ public class ReportsPage(IPage page) : BasePage(page)
         await ReportTable.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await ReportSelector.SelectOptionAsync(new SelectOptionValue { Label = name });
         await ExpectDisplayedReportAsync(name);
+    }
+
+    /// <summary>
+    /// Selects a calendar year and waits for the matching report result.
+    /// </summary>
+    public async Task SelectYearAsync(int year)
+    {
+        await ReportTable.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await YearSelector.SelectOptionAsync(year.ToString(CultureInfo.InvariantCulture));
+        await ExpectYearAsync(year);
+    }
+
+    /// <summary>
+    /// Verifies the selected year and the loaded report's year.
+    /// </summary>
+    public async Task ExpectYearAsync(int year)
+    {
+        await Assertions.Expect(YearSelector).ToHaveValueAsync(year.ToString(CultureInfo.InvariantCulture));
+        await Assertions.Expect(ReportHeading).ToHaveTextAsync(new Regex($@"\u2014\s+{year}$"));
+        await Assertions.Expect(ReportTable).ToBeVisibleAsync();
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
-@category:2207
+@category:feature-2207
+@category:reports
 @explicit:wip
 Feature: Reports
   As a YoFi user
@@ -22,7 +23,7 @@ Feature: Reports
       | Savings Deposit | -200.00 | Savings:Emergency:Bank  |
       | Retirement      | -300.00 | Savings:Retirement:Fund |
 
-  @category:2248
+  @category:story-2248
   Rule: Users can run built-in reports
 
     @pri:1
@@ -88,3 +89,41 @@ Feature: Reports
         | Retirement |
       And the report grand total should be 350.00
       And the report should show monthly amounts
+
+  @category:story-2249
+  Rule: [User Can] Configure report display
+
+    @pri:1
+    @id:4
+    @category:scenario-2228
+    Scenario: Select a historical report year
+      Given I have a workspace with the following transactions:
+        | Date       | Payee             | Amount | Category      |
+        | 2023-12-31 | Previous Employer | 75.00  | Income:Salary |
+        | 2024-01-01 | Employer January  | 100.00 | Income:Salary |
+        | 2024-12-31 | Employer December | 25.00  | Income:Salary |
+      When user visits the "Reports" page
+      And I select the "Income" report
+      And I select report year 2024
+      Then the report year should be 2024
+      And the report grand total should be 125.00
+
+    @pri:2
+    @id:5
+    @category:scenario-2228
+    Scenario: Remember each report year after switching reports and reloading
+      Given I have a workspace with the following transactions:
+        | Date       | Payee             | Amount | Category      |
+        | 2023-12-31 | Previous Employer | 75.00  | Income:Salary |
+        | 2024-01-01 | Employer January  | 100.00 | Income:Salary |
+        | 2024-12-31 | Employer December | 25.00  | Income:Salary |
+      When user visits the "Reports" page
+      And I select the "Income" report
+      And I select report year 2023
+      And I select report year 2024
+      And I select the "Expenses Detail" report
+      And I select the "Income" report
+      And I reload the reports page
+      Then the selected report should be "Income"
+      And the report year should be 2024
+      And the report grand total should be 125.00

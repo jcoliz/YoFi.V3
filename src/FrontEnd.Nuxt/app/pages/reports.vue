@@ -21,6 +21,9 @@ const ready = ref(false)
 const loading = ref(false)
 const definitions = ref<ReportDefinitionDto[]>([])
 const selectedReportId = ref('')
+const years = ref<number[]>([])
+const defaultYear = ref<number>()
+const selectedYear = ref<number>()
 const report = ref<ReportResultDto>()
 const error = ref<IProblemDetails>()
 const showError = ref(false)
@@ -35,15 +38,22 @@ useAuthenticationGuard().requireAuthenticatedUser(async () => {
   ready.value = true
 })
 
-watch([ready, tenantKey], () => {
-  if (ready.value) loadWorkspace()
-})
+watch(
+  [ready, tenantKey],
+  () => {
+    if (ready.value) loadWorkspace()
+  },
+  { flush: 'sync' },
+)
 
 async function loadWorkspace() {
   const version = ++requestVersion
   const key = tenantKey.value
   definitions.value = []
   selectedReportId.value = ''
+  years.value = []
+  defaultYear.value = undefined
+  selectedYear.value = undefined
   report.value = undefined
   error.value = undefined
   showError.value = false
@@ -51,18 +61,45 @@ async function loadWorkspace() {
   if (!key) return
 
   try {
-    const available = await reportsClient.getAvailableReports(key)
+    const [available, availability] = await Promise.all([
+      reportsClient.getAvailableReports(key),
+      reportsClient.getAvailableYears(key),
+    ])
     if (version !== requestVersion) return
     const defaultId = available[0]?.id
     if (!defaultId || available.some((definition) => !definition.id)) {
       throw new Error('The report catalog has no valid default report.')
     }
+    if (
+      !availability ||
+      !Array.isArray(availability.years) ||
+      !availability.years.length ||
+      availability.years.some(
+        (year, index, list) =>
+          !Number.isInteger(year) ||
+          year < 1 ||
+          year > 9999 ||
+          (index > 0 && year >= list[index - 1]!),
+      ) ||
+      !availability.years.includes(availability.defaultYear)
+    ) {
+      throw new Error('The report year list has no valid default year.')
+    }
     definitions.value = available
-    const savedId = preferences.getSelectedReportId(key)
+    years.value = availability.years
+    defaultYear.value = availability.defaultYear
+    let savedId: string | null
+    try {
+      savedId = preferences.getSelectedReportId(key)
+    } catch (err) {
+      error.value = handleApiError(err, 'Persistence Failed', 'Failed to read report preferences')
+      showError.value = true
+      return
+    }
     selectedReportId.value = available.some((definition) => definition.id === savedId)
       ? savedId!
       : defaultId
-    await loadSelectedReport()
+    await loadSelectedReport(true)
   } catch (err) {
     if (version !== requestVersion) return
     error.value = handleApiError(err, 'Load Failed', 'Failed to load reports')
@@ -72,7 +109,7 @@ async function loadWorkspace() {
   }
 }
 
-async function loadSelectedReport() {
+async function loadSelectedReport(restoreYear = false) {
   const version = ++requestVersion
   const key = tenantKey.value
   const id = selectedReportId.value
@@ -82,8 +119,22 @@ async function loadSelectedReport() {
   if (!key || !id) return
   loading.value = true
   try {
+    if (restoreYear || selectedYear.value === undefined) {
+      selectedYear.value = undefined
+      const saved = preferences.getReportSettings(key, id).year
+      selectedYear.value =
+        saved !== undefined && years.value.includes(saved) ? saved : defaultYear.value
+    }
     preferences.setSelectedReportId(key, id)
-    const result = await reportsClient.getReport(id, undefined, key)
+    preferences.updateReportSettings(key, id, { year: selectedYear.value })
+  } catch (err) {
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
+    showError.value = true
+    loading.value = false
+    return
+  }
+  try {
+    const result = await reportsClient.getReport(id, selectedYear.value, key)
     if (version === requestVersion) report.value = result
   } catch (err) {
     if (version !== requestVersion) return
@@ -91,6 +142,14 @@ async function loadSelectedReport() {
     showError.value = true
   } finally {
     if (version === requestVersion) loading.value = false
+  }
+}
+
+function retry() {
+  if (selectedReportId.value && defaultYear.value !== undefined) {
+    loadSelectedReport()
+  } else {
+    loadWorkspace()
   }
 }
 </script>
@@ -121,29 +180,53 @@ async function loadSelectedReport() {
       />
       <template v-if="ready && tenantKey">
         <div
-          v-if="definitions.length"
-          class="mb-4"
+          v-if="definitions.length && selectedReportId"
+          class="row g-3 mb-4"
         >
-          <label
-            for="report-selection"
-            class="form-label"
-            >Report</label
-          >
-          <select
-            id="report-selection"
-            v-model="selectedReportId"
-            class="form-select"
-            data-test-id="report-selector"
-            @change="loadSelectedReport"
-          >
-            <option
-              v-for="definition in definitions"
-              :key="definition.id"
-              :value="definition.id"
+          <div class="col-md-9">
+            <label
+              for="report-selection"
+              class="form-label"
+              >Report</label
             >
-              {{ definition.name }}
-            </option>
-          </select>
+            <select
+              id="report-selection"
+              v-model="selectedReportId"
+              class="form-select"
+              data-test-id="report-selector"
+              @change="loadSelectedReport(true)"
+            >
+              <option
+                v-for="definition in definitions"
+                :key="definition.id"
+                :value="definition.id"
+              >
+                {{ definition.name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label
+              for="report-year-selection"
+              class="form-label"
+              >Year</label
+            >
+            <select
+              id="report-year-selection"
+              v-model.number="selectedYear"
+              class="form-select"
+              data-test-id="report-year-selector"
+              @change="loadSelectedReport()"
+            >
+              <option
+                v-for="year in years"
+                :key="year"
+                :value="year"
+              >
+                {{ year }}
+              </option>
+            </select>
+          </div>
         </div>
         <div
           v-if="loading"
@@ -177,7 +260,7 @@ async function loadSelectedReport() {
         <button
           v-else-if="showError"
           class="btn btn-secondary"
-          @click="loadWorkspace"
+          @click="retry"
         >
           Retry
         </button>

@@ -193,4 +193,25 @@ Viewer/Editor/Owner access, and unauthenticated/unauthorized requests. Existing
 report tests continue to pass. Client generation builds without warnings or
 errors.
 
-The year selector and per-report preference persistence remain to be implemented.
+## Frontend implementation
+
+The Reports page now loads year availability alongside the report catalog and
+displays responsive Report and Year selectors. It sends an explicit year with
+each report request, restores independent workspace/report settings, and retries
+report failures without rediscovering years or resetting the selection.
+
+The preference store validates saved settings, diagnoses malformed data, and
+merges year updates without discarding other fields. Storage failures surface
+through the page's error display. Latest-request protection covers year changes
+as well as report/workspace changes and unmounting.
+
+Verification:
+
+- All 58 focused report component/preference tests pass.
+- Targeted ESLint checks and the application Vue TypeScript check pass. The
+  latter used a temporary `vue-tsc` invocation because the repository does not
+  install a Vue type checker; no dependency manifests were changed.
+- The containerized frontend/backend build and health checks pass.
+- All seven report functional cases pass, including new historical-year
+  selection and per-report year restoration after switching reports and reload.
+  Application containers were left running.

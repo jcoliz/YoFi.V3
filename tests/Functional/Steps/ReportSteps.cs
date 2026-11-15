@@ -25,6 +25,16 @@ public class ReportSteps(ITestContext _context)
     }
 
     /// <summary>
+    /// When I select report year {Year}
+    /// </summary>
+    [When("I select report year {Year}")]
+    public async Task ISelectReportYear(int Year)
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.SelectYearAsync(Year);
+    }
+
+    /// <summary>
     /// When I reload the reports page
     /// </summary>
     [When("I reload the reports page")]
@@ -37,6 +47,16 @@ public class ReportSteps(ITestContext _context)
     #endregion
 
     #region THEN
+
+    /// <summary>
+    /// Then the report year should be {Year}
+    /// </summary>
+    [Then("the report year should be {Year}")]
+    public async Task TheReportYearShouldBe(int Year)
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.ExpectYearAsync(Year);
+    }
 
     /// <summary>
     /// Then the selected report should be {string1}

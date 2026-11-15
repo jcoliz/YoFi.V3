@@ -32,7 +32,8 @@ workbook, previewing it, confirming the import, and waiting for the visible impo
 persistence scenarios: selecting and reloading a report, checking the selected
 and displayed report, finding categories, reading the annual grand total, and
 checking monthly-column visibility. Multi-category steps reuse the single-category
-assertion.
+assertion. It also selects calendar years and waits for the matching report year
+and table, including after report changes and reloads.
 
 [`ImportPage`](ImportPage.cs) provides retrying assertions for a single imported transaction's
 category text and read-only state, including the absence of category editing controls.

@@ -8,6 +8,10 @@
 import { defineStore } from 'pinia'
 import type { TenantRoleResultDto } from '~/utils/apiclient'
 
+export interface ReportSettings {
+  year?: number
+}
+
 export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // State
   const currentTenant = ref<TenantRoleResultDto | undefined>(undefined)
@@ -71,6 +75,41 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     localStorage.setItem(`userPreferences:tenant:${tenantKey}:reports:selectedId`, reportId)
   }
 
+  function getReportSettings(tenantKey: string, reportId: string): ReportSettings {
+    if (typeof window === 'undefined') return {}
+    const stored = localStorage.getItem(
+      `userPreferences:tenant:${tenantKey}:reports:${reportId}:settings`,
+    )
+    if (stored === null) return {}
+
+    try {
+      const settings: unknown = JSON.parse(stored)
+      if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+        throw new Error('Report settings must be an object.')
+      }
+      const year = 'year' in settings ? settings.year : undefined
+      if (
+        year !== undefined &&
+        (typeof year !== 'number' || !Number.isInteger(year) || year < 1 || year > 9999)
+      ) {
+        throw new Error('Report year must be an integer between 1 and 9999.')
+      }
+      return { ...settings, year }
+    } catch (error) {
+      console.error('Failed to parse stored report settings:', error)
+      return {}
+    }
+  }
+
+  function updateReportSettings(tenantKey: string, reportId: string, settings: ReportSettings) {
+    if (typeof window === 'undefined') return
+    const existing = getReportSettings(tenantKey, reportId)
+    localStorage.setItem(
+      `userPreferences:tenant:${tenantKey}:reports:${reportId}:settings`,
+      JSON.stringify({ ...existing, ...settings }),
+    )
+  }
+
   return {
     // State
     currentTenant,
@@ -84,5 +123,7 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     clearPreferences,
     getSelectedReportId,
     setSelectedReportId,
+    getReportSettings,
+    updateReportSettings,
   }
 })
