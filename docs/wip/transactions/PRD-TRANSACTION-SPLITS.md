@@ -3,6 +3,7 @@ status: Implemented (Alpha-1)
 target_release: Beta 2
 ado: "[Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits"
 references:
+  - DESIGN-EDIT-SPLIT.md
   - TRANSACTION-SPLIT-DESIGN.md
   - TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
   - TRANSACTION-SPLITS-ALPHA1-SUMMARY.md
@@ -10,7 +11,7 @@ references:
 
 # Product Requirements Document: Transaction Splits
 
-> **Note**: See [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) for guidance on PRD scope. Implementation details are in [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md).
+> **Note**: See [`PRD-GUIDANCE.md`](../PRD-GUIDANCE.md) for guidance on PRD scope. Implementation details are in [`TRANSACTION-SPLIT-DESIGN.md`](TRANSACTION-SPLIT-DESIGN.md). The split-edit workflow is specified in [`DESIGN-EDIT-SPLIT.md`](DESIGN-EDIT-SPLIT.md).
 
 ## Problem Statement
 
@@ -22,7 +23,7 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 ### Goals
 
-- [ ] Enable transactions to be split across multiple categories with individual amounts
+- [x] Enable transactions to be split across multiple categories with individual amounts
 - [x] Maintain simple UX for the common case (single category per transaction) - **Alpha-1 Complete**
 - [x] Support category-based reporting (primary use case for personal finance) - **Alpha-1 Complete**
 - [x] Preserve imported transaction amount as authoritative source of truth - **Alpha-1 Complete**
@@ -110,11 +111,17 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 - [ ] User can add a single split to an existing single-category transaction, and the transaction will be automatically balanced
 
-**Acceptance Criteria: Scenario 2251: Modify**
+**Acceptance Criteria: Scenario 2251: Edit**
 
 - [ ] Splits can be edited individually (amount, category, memo)
+- [ ] Transaction will be automatically balanced by updating the first split,
+      or the next split when the first split is being edited
+
+**Acceptance Criteria: Scenario 2289: Delete**
+
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
 - [ ] Category cannot be edited on a transaction with multiple splits
+- [ ] Transaction will be automatically balanced by updating the first split
 
 **Acceptance Criteria: Scenario 2228 Sample data includes multiple splits**
 
