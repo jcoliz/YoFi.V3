@@ -117,14 +117,22 @@ Following are the standard income/expense reports
 **I want** customize how the report is shown to me
 **So that** I can drill into a certain area to understand more **or** zoom out to view the data at a higher conceptual level
 
+
 **Acceptance Criteria**:
 
-- [ ] User can choose which year to display. Unless otherwise described later, reports are always in the context of a single calendar year
 - [ ] User can choose whether to show independent month values with a row total, or show whole year only. The default is an aspect of report definition.
 - [ ] User can choose how many levels deep of categories to show. The default level is an aspect of the report definition.
-- [ ] Settings are persisted per-report in browser localStorage (each report remembers its own year, depth, and chart/table view)
 - [ ] Settings auto-save whenever changed
 - [ ] User can click "Reset" to clear localStorage for that specific report and restore definition defaults
+
+#### Scenario 2228: User can select report year
+
+**Detailed Design:** [DESIGN-REPORT-YEAR.md](DESIGN-REPORT-YEAR.md)
+
+**Acceptance Criteria**:
+
+- [ ] Settings are persisted per-report, per-tenant in browser localStorage (each report remembers its own year, depth, and chart/table view)
+- [ ] User can choose which year to display. Except as otherwise described later, reports are always in the context of a single calendar year
 
 ### Story 3: User - Views a report in chart form
 
