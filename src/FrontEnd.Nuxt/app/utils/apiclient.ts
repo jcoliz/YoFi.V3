@@ -1528,6 +1528,67 @@ export class ReportsClient {
     }
 
     /**
+     * Lists the tenant's transaction years plus the current UTC year, which is the default.
+     */
+    getAvailableYears(tenantKey: string): Promise<ReportYearsDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/reports/years";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAvailableYears(_response);
+        });
+    }
+
+    protected processGetAvailableYears(response: Response): Promise<ReportYearsDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReportYearsDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReportYearsDto>(null as any);
+    }
+
+    /**
      * Gets the selected built-in report for a calendar year.
      * @param reportId Stable identifier of a built-in report.
      * @param year (optional) Calendar year to report, defaulting to the current UTC year.
@@ -6117,6 +6178,57 @@ export interface IReportDefinitionDto {
     defaultDepth?: number;
     hasMonthColumns?: boolean;
     includesUncategorized?: boolean;
+}
+
+export class ReportYearsDto implements IReportYearsDto {
+    years!: number[];
+    defaultYear!: number;
+
+    constructor(data?: IReportYearsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+        if (!data) {
+            this.years = [];
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["years"])) {
+                this.years = [] as any;
+                for (let item of _data["years"])
+                    this.years!.push(item);
+            }
+            this.defaultYear = _data["defaultYear"];
+        }
+    }
+
+    static fromJS(data: any): ReportYearsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReportYearsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.years)) {
+            data["years"] = [];
+            for (let item of this.years)
+                data["years"].push(item);
+        }
+        data["defaultYear"] = this.defaultYear;
+        return data;
+    }
+}
+
+export interface IReportYearsDto {
+    years: number[];
+    defaultYear: number;
 }
 
 export class ReportResultDto implements IReportResultDto {

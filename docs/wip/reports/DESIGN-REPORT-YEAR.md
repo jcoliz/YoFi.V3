@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: In Progress
 target_release: V3.0
 ado: Scenario 2228
 parent: Story 2249 User - Configures report display
@@ -178,3 +178,19 @@ guides. Run against the containerized app, not Aspire; leave app containers runn
 This design adds one small metadata request per workspace load. It leaves report
 query performance, aggregation, authorization, catalog order, and existing
 selected-report persistence unchanged.
+
+## Backend implementation
+
+The backend endpoint, Application query, and required `ReportYearsDto` contract
+are implemented. The generated `ReportsClient` exposes
+`getAvailableYears(tenantKey)` for the frontend work, and
+[`YoFi.V3.ApiService.http`](../../../src/BackEnd/YoFi.V3.ApiService.http) includes
+an authenticated discovery request.
+
+Focused report tests cover the year rules and query failure propagation,
+PostgreSQL query translation and tenant isolation, response shape and routing,
+Viewer/Editor/Owner access, and unauthenticated/unauthorized requests. Existing
+report tests continue to pass. Client generation builds without warnings or
+errors.
+
+The year selector and per-report preference persistence remain to be implemented.

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,54 @@ namespace YoFi.V3.Tests.Integration.Controller;
 [TestFixture]
 public class ReportsControllerTests : AuthenticatedTestBase
 {
+    [TestCase(TenantRole.Viewer)]
+    [TestCase(TenantRole.Editor)]
+    [TestCase(TenantRole.Owner)]
+    public async Task GetAvailableYears_WithTenantAccess_ReturnsYearDiscoveryContract(TenantRole role)
+    {
+        var tenantKey = await CreateTestTenantAsync("Report years contract");
+        using var client = CreateMultiTenantClient((tenantKey, role));
+        var yearBeforeRequest = DateTimeOffset.UtcNow.Year;
+
+        var response = await client.GetAsync($"/api/tenant/{tenantKey}/reports/years");
+        var content = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(content);
+        var result = JsonSerializer.Deserialize<ReportYearsDto>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+            Assert.That(document.RootElement.EnumerateObject().Select(property => property.Name),
+                Is.EquivalentTo(new[] { "years", "defaultYear" }));
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.DefaultYear, Is.InRange(yearBeforeRequest, DateTimeOffset.UtcNow.Year));
+            Assert.That(result.Years, Is.EqualTo(new[] { result.DefaultYear }));
+        }
+    }
+
+    [Test]
+    public async Task GetAvailableYears_WithoutAuthentication_ReturnsUnauthorized()
+    {
+        using var factory = new BaseTestWebApplicationFactory(useTestAuthentication: false);
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/tenant/{_testTenantKey}/reports/years");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task GetAvailableYears_WithoutTenantAccess_ReturnsForbidden()
+    {
+        var unrelatedTenantKey = await CreateTestTenantAsync("Unrelated years tenant");
+        using var client = CreateMultiTenantClient((unrelatedTenantKey, TenantRole.Viewer));
+
+        var response = await client.GetAsync($"/api/tenant/{_testTenantKey}/reports/years");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
     [Test]
     public async Task GetAvailableReports_AsViewer_ReturnsBuiltInCatalog()
     {

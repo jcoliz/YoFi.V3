@@ -10,6 +10,54 @@ namespace YoFi.V3.Tests.Integration.Application;
 public class ReportsFeatureTests : FeatureTestBase
 {
     [Test]
+    public async Task GetAvailableYearsAsync_QueriesDistinctTenantDateYearsIncludingCalendarBoundaries()
+    {
+        var currentTenant = await CreateTenantAsync("Report years tenant");
+        var otherTenant = await CreateTenantAsync("Other years tenant");
+        var feature = new ReportsFeature(
+            new FixedTenantProvider(currentTenant),
+            _dataProvider,
+            new FixedTimeProvider());
+        _context.Transactions.AddRange(
+            CreateTransaction(currentTenant.Id, new DateOnly(2035, 1, 1), ("Income:Salary", 10m)),
+            CreateTransaction(currentTenant.Id, new DateOnly(2035, 12, 31), ("Home:Food", -5m)),
+            CreateTransaction(currentTenant.Id, new DateOnly(2038, 12, 31), ("", 0m)),
+            CreateTransaction(currentTenant.Id, new DateOnly(2042, 1, 1), ("Transfer:Internal", 20m)),
+            CreateTransaction(otherTenant.Id, new DateOnly(2039, 6, 15), ("Home:OtherTenant", 100m)));
+        await _context.SaveChangesAsync();
+
+        var result = await feature.GetAvailableYearsAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Years, Is.EqualTo(new[] { 2042, 2040, 2038, 2035 }));
+            Assert.That(result.DefaultYear, Is.EqualTo(2040));
+        }
+    }
+
+    [Test]
+    public async Task GetAvailableYearsAsync_EmptyTenantReturnsCurrentYearEvenWhenOtherTenantHasData()
+    {
+        var currentTenant = await CreateTenantAsync("Empty report years tenant");
+        var otherTenant = await CreateTenantAsync("Populated years tenant");
+        var feature = new ReportsFeature(
+            new FixedTenantProvider(currentTenant),
+            _dataProvider,
+            new FixedTimeProvider());
+        _context.Transactions.Add(
+            CreateTransaction(otherTenant.Id, new DateOnly(2035, 1, 1), ("Income:Salary", 10m)));
+        await _context.SaveChangesAsync();
+
+        var result = await feature.GetAvailableYearsAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Years, Is.EqualTo(new[] { 2040 }));
+            Assert.That(result.DefaultYear, Is.EqualTo(2040));
+        }
+    }
+
+    [Test]
     public async Task GetReportAsync_FiltersByTenantAndIncludesBothCalendarYearBoundariesAndAllSplits()
     {
         var currentTenant = await CreateTenantAsync("Report tenant");
@@ -74,5 +122,11 @@ public class ReportsFeatureTests : FeatureTestBase
     private sealed class FixedTenantProvider(Tenant currentTenant) : ITenantProvider
     {
         public Tenant CurrentTenant { get; } = currentTenant;
+    }
+
+    private sealed class FixedTimeProvider : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow()
+            => new(2040, 7, 1, 0, 0, 0, TimeSpan.Zero);
     }
 }

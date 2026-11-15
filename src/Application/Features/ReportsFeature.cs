@@ -48,6 +48,28 @@ public class ReportsFeature(
             .ToArray();
 
     /// <summary>
+    /// Gets the current tenant's transaction years plus the current UTC year as the default.
+    /// </summary>
+    /// <returns>Unique calendar years sorted newest first, always including the default year.</returns>
+    public async Task<ReportYearsDto> GetAvailableYearsAsync()
+    {
+        var currentYear = timeProvider.GetUtcNow().Year;
+        var query = dataProvider.Get<Transaction>()
+            .Where(transaction => transaction.TenantId == tenantProvider.CurrentTenant.Id)
+            .Select(transaction => transaction.Date.Year)
+            .Distinct();
+
+        var transactionYears = await dataProvider.ToListAsync(query);
+        var years = transactionYears
+            .Append(currentYear)
+            .Distinct()
+            .OrderDescending()
+            .ToArray();
+
+        return new ReportYearsDto(years, currentYear);
+    }
+
+    /// <summary>
     /// Gets the current tenant's report data for a calendar year.
     /// </summary>
     /// <param name="reportId">Stable ID of a built-in report.</param>

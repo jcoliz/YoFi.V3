@@ -30,6 +30,8 @@ public class ReportsFeatureTests
         _dataProvider.Setup(data =>
                 data.ToListNoTrackingAsync(It.IsAny<IQueryable<ReportSplitAmount>>()))
             .Returns((IQueryable<ReportSplitAmount> query) => Task.FromResult(query.ToList()));
+        _dataProvider.Setup(data => data.ToListAsync(It.IsAny<IQueryable<int>>()))
+            .Returns((IQueryable<int> query) => Task.FromResult(query.ToList()));
         _feature = new ReportsFeature(_tenantProvider, _dataProvider.Object, _timeProvider.Object);
     }
 
@@ -50,6 +52,57 @@ public class ReportsFeatureTests
             Is.EqualTo(new[] { false, false, false, false, false, true, true, true, false, false, true }));
         Assert.That(reports.Select(report => report.IncludesUncategorized),
             Is.EqualTo(new[] { true, false, false, false, false, false, false, true, false, true, true }));
+    }
+
+    [Test]
+    public async Task GetAvailableYearsAsync_EmptyWorkspaceReturnsOnlyCurrentUtcYear()
+    {
+        var result = await _feature.GetAvailableYearsAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Years, Is.EqualTo(new[] { 2040 }));
+            Assert.That(result.DefaultYear, Is.EqualTo(2040));
+        }
+        _timeProvider.Verify(time => time.GetUtcNow(), Times.Once);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task GetAvailableYearsAsync_ReturnsDistinctTenantYearsWithGapsAndCurrentYearDefault(
+        bool hasCurrentYearTransactions)
+    {
+        AddTransaction(2035, 1, ("Income:Salary", 10m));
+        AddTransaction(2035, 12, ("Home:Food", -5m));
+        AddTransaction(2038, 6, ("", 0m));
+        AddTransaction(2042, 1, ("Transfer:Internal", 20m));
+        if (hasCurrentYearTransactions)
+        {
+            AddTransaction(2040, 7, ("Savings:Emergency", 30m));
+        }
+        _transactions.Add(new Transaction
+        {
+            TenantId = _tenantProvider.CurrentTenant.Id + 1,
+            Date = new DateOnly(2039, 1, 1)
+        });
+
+        var result = await _feature.GetAvailableYearsAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Years, Is.EqualTo(new[] { 2042, 2040, 2038, 2035 }));
+            Assert.That(result.DefaultYear, Is.EqualTo(2040));
+        }
+        _timeProvider.Verify(time => time.GetUtcNow(), Times.Once);
+    }
+
+    [Test]
+    public async Task GetAvailableYearsAsync_QueryFailurePropagates()
+    {
+        _dataProvider.Setup(data => data.ToListAsync(It.IsAny<IQueryable<int>>()))
+            .ThrowsAsync(new InvalidOperationException("Query failed."));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _feature.GetAvailableYearsAsync());
     }
 
     [Test]

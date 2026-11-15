@@ -41,6 +41,22 @@ public partial class ReportsController(
     }
 
     /// <summary>
+    /// Lists the tenant's transaction years plus the current UTC year, which is the default.
+    /// </summary>
+    [HttpGet("years")]
+    [RequireTenantRole(TenantRole.Viewer)]
+    [ProducesResponseType(typeof(ReportYearsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableYears()
+    {
+        LogStarting();
+
+        var result = await reportsFeature.GetAvailableYearsAsync();
+
+        LogOkCount(result.Years.Count);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Gets the selected built-in report for a calendar year.
     /// </summary>
     /// <param name="reportId">Stable identifier of a built-in report.</param>

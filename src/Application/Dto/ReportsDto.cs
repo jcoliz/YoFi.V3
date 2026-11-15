@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace YoFi.V3.Application.Dto;
@@ -11,6 +12,15 @@ public record ReportDefinitionDto(
     int DefaultDepth,
     bool HasMonthColumns,
     bool IncludesUncategorized);
+
+/// <summary>
+/// Available calendar years for the current tenant's reports and the backend-selected default.
+/// </summary>
+/// <param name="Years">Distinct transaction years plus the current UTC year, sorted newest first.</param>
+/// <param name="DefaultYear">The current UTC year, always included in <paramref name="Years"/>.</param>
+public sealed record ReportYearsDto(
+    [property: Required] IReadOnlyList<int> Years,
+    [property: Required] int DefaultYear);
 
 /// <summary>
 /// Annual report data with category rows and explicit report totals.
