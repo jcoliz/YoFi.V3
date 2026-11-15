@@ -42,7 +42,7 @@ public class TransactionsFeatureTests : FeatureTestBase
         _tenantProvider = new TestTenantProvider { CurrentTenant = _testTenant };
 
         // Create feature with real dependencies
-        _feature = new TransactionsFeature(_tenantProvider, _dataProvider);
+        _feature = new TransactionsFeature(_tenantProvider, _dataProvider, _context);
     }
 
     [Test]

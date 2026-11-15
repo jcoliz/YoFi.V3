@@ -1,3 +1,4 @@
+using System.Data;
 using System.Linq.Expressions;
 using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
@@ -14,7 +15,11 @@ namespace YoFi.V3.Application.Features;
 /// </summary>
 /// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
 /// <param name="dataProvider">Provider for data access operations.</param>
-public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider dataProvider)
+/// <param name="tenantRepository">Repository providing atomic tenant-scoped transactions.</param>
+public class TransactionsFeature(
+    ITenantProvider tenantProvider,
+    IDataProvider dataProvider,
+    ITenantRepository tenantRepository)
 {
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
@@ -127,40 +132,85 @@ public class TransactionsFeature(ITenantProvider tenantProvider, IDataProvider d
     /// </summary>
     /// <param name="transactionKey">The unique identifier of the transaction.</param>
     /// <param name="split">The split data to add. MUST be validated before calling this method.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>The updated transaction with all splits in display order.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
     /// <exception cref="ValidationException">Thrown when the transaction has no existing split.</exception>
-    public async Task<TransactionDetailDto> AddSplitAsync(Guid transactionKey, SplitEditDto split)
-    {
-        var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
-        var existingSplits = transaction.Splits.OrderBy(s => s.Order).ToList();
-
-        if (existingSplits.Count == 0)
+    /// <exception cref="DataConflictException">A concurrent change prevented the addition.</exception>
+    public Task<TransactionDetailDto> AddSplitAsync(
+        Guid transactionKey, SplitEditDto split, CancellationToken cancellationToken = default)
+        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
         {
-            throw new ValidationException(
-                nameof(transactionKey),
-                "A split cannot be added to a transaction without an existing split.");
-        }
+            token.ThrowIfCancellationRequested();
+            var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+            var existingSplits = transaction.Splits.OrderBy(s => s.Order).ToList();
 
-        var firstSplit = existingSplits[0];
-        var otherSplitTotal = existingSplits.Skip(1).Sum(s => s.Amount);
-        firstSplit.Amount = transaction.Amount - otherSplitTotal - split.Amount;
+            if (existingSplits.Count == 0)
+            {
+                throw new ValidationException(
+                    nameof(transactionKey),
+                    "A split cannot be added to a transaction without an existing split.");
+            }
 
-        var newSplit = new Split
+            var firstSplit = existingSplits[0];
+            var otherSplitTotal = existingSplits.Skip(1).Sum(s => s.Amount);
+            firstSplit.Amount = transaction.Amount - otherSplitTotal - split.Amount;
+
+            var newSplit = new Split
+            {
+                TransactionId = transaction.Id,
+                Amount = split.Amount,
+                Category = CategoryHelper.SanitizeCategory(split.Category),
+                Memo = split.Memo,
+                Order = checked(existingSplits[^1].Order + 1)
+            };
+
+            transaction.Splits.Add(newSplit);
+            dataProvider.Add(newSplit);
+            await dataProvider.SaveChangesAsync(token);
+
+            return ToDetailDto(transaction);
+        }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
+
+    /// <summary>
+    /// Updates a split and adjusts the first other split to balance the transaction.
+    /// </summary>
+    /// <param name="transactionKey">The unique identifier of the transaction.</param>
+    /// <param name="splitKey">The unique identifier of the split to update.</param>
+    /// <param name="split">The split data. MUST be validated before calling this method.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>The updated transaction with all splits in display order.</returns>
+    /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
+    /// <exception cref="SplitNotFoundException">The split is not found in the transaction.</exception>
+    /// <exception cref="ValidationException">The transaction has no distinct balancing split.</exception>
+    /// <exception cref="DataConflictException">A concurrent change prevented the update.</exception>
+    public Task<TransactionDetailDto> UpdateSplitAsync(
+        Guid transactionKey,
+        Guid splitKey,
+        SplitEditDto split,
+        CancellationToken cancellationToken = default)
+        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
         {
-            TransactionId = transaction.Id,
-            Amount = split.Amount,
-            Category = CategoryHelper.SanitizeCategory(split.Category),
-            Memo = split.Memo,
-            Order = checked(existingSplits[^1].Order + 1)
-        };
+            token.ThrowIfCancellationRequested();
+            var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+            var existingSplits = transaction.Splits.OrderBy(s => s.Order).ToList();
+            var editedSplit = existingSplits.SingleOrDefault(s => s.Key == splitKey)
+                ?? throw new SplitNotFoundException(splitKey);
+            var balancingSplit = existingSplits.FirstOrDefault(s => s.Key != splitKey)
+                ?? throw new ValidationException(nameof(splitKey),
+                    "A split can only be edited on a transaction with multiple splits.");
 
-        transaction.Splits.Add(newSplit);
-        dataProvider.Add(newSplit);
-        await dataProvider.SaveChangesAsync();
+            var otherSplitTotal = existingSplits
+                .Where(s => s.Key != splitKey && s.Key != balancingSplit.Key)
+                .Sum(s => s.Amount);
+            balancingSplit.Amount = transaction.Amount - otherSplitTotal - split.Amount;
+            editedSplit.Amount = split.Amount;
+            editedSplit.Category = CategoryHelper.SanitizeCategory(split.Category);
+            editedSplit.Memo = split.Memo;
 
-        return ToDetailDto(transaction);
-    }
+            await dataProvider.SaveChangesAsync(token);
+            return ToDetailDto(transaction);
+        }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
 
     /// <summary>
     /// Updates an existing transaction.

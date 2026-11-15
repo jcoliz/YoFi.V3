@@ -14,6 +14,10 @@ public class SplitEditDtoValidator : AbstractValidator<SplitEditDto>
             .InclusiveBetween(-999999999m, 999999999m)
             .WithMessage("Split amount must be a valid value");
 
+        RuleFor(split => split.Amount)
+            .Must(amount => decimal.Round(amount, 2) == amount)
+            .WithMessage("Split amount cannot have more than two decimal places");
+
         RuleFor(split => split.Category)
             .MaximumLength(200)
             .WithMessage("Category cannot exceed 200 characters")

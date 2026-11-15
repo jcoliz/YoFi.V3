@@ -106,19 +106,45 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
     /// <param name="split">The split data to add.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <exception cref="YoFi.V3.Entities.Exceptions.TransactionNotFoundException">Thrown when the transaction is not found in the tenant.</exception>
     [HttpPost("{key:guid}/splits")]
     [RequireTenantRole(TenantRole.Editor)]
     [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AddSplit(Guid key, [FromBody] SplitEditDto split)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddSplit(Guid key, [FromBody] SplitEditDto split, CancellationToken cancellationToken)
     {
         LogStartingKey(key);
 
-        var updated = await transactionsFeature.AddSplitAsync(key, split);
+        var updated = await transactionsFeature.AddSplitAsync(key, split, cancellationToken);
 
         LogOkKey(key);
+        return Ok(updated);
+    }
+
+    /// <summary>
+    /// Updates a split and balances the transaction by adjusting the first other split.
+    /// </summary>
+    /// <param name="key">The unique identifier of the transaction.</param>
+    /// <param name="splitKey">The unique identifier of the split within the transaction.</param>
+    /// <param name="split">The updated amount, category, and memo.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    [HttpPut("{key:guid}/splits/{splitKey:guid}")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSplit(
+        Guid key, Guid splitKey, [FromBody] SplitEditDto split, CancellationToken cancellationToken)
+    {
+        LogStartingKeys(key, splitKey);
+
+        var updated = await transactionsFeature.UpdateSplitAsync(key, splitKey, split, cancellationToken);
+
+        LogOkKeys(key, splitKey);
         return Ok(updated);
     }
 
@@ -197,4 +223,10 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 
     [LoggerMessage(5, LogLevel.Information, "{Location}: OK {Count} items")]
     private partial void LogOkCount(int count, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(6, LogLevel.Debug, "{Location}: Starting {TransactionKey} {SplitKey}")]
+    private partial void LogStartingKeys(Guid transactionKey, Guid splitKey, [CallerMemberName] string? location = null);
+
+    [LoggerMessage(7, LogLevel.Information, "{Location}: OK {TransactionKey} {SplitKey}")]
+    private partial void LogOkKeys(Guid transactionKey, Guid splitKey, [CallerMemberName] string? location = null);
 }

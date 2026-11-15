@@ -129,6 +129,44 @@ belong in the controller or browser. Reuse the split request validator and
 standard category sanitization. Validation failures return `400 Bad Request`;
 missing tenant-scoped transactions or splits return `404 Not Found`.
 
+### Backend implementation
+
+The backend operation is implemented by `TransactionsController.UpdateSplit`
+and `TransactionsFeature.UpdateSplitAsync`. A direct request to edit the sole
+remaining split returns `400 Bad Request`, since no distinct balancing split
+exists.
+
+The shared `SplitEditDto` validator accepts the existing signed amount range,
+category length of 200, and memo length of 500. Amounts must be representable
+in cents (trailing decimal zeros are allowed). This applies to both adding and
+editing an individual split and prevents database rounding from changing an
+allocation or introducing an imbalance.
+
+The feature reuses `ITenantRepository.ExecuteTenantTransactionAsync`, with an
+optional isolation-level argument set to `Serializable` for split edits.
+Existing callers that omit this argument retain the provider's default
+isolation. This transaction helper remains on the tenant repository pending
+its intended move to `IDataProvider`; no parallel transaction abstraction is
+introduced.
+
+The transaction includes the database read, calculation, single save, and
+commit. PostgreSQL serialization failures and deadlocks are translated to
+`DataConflictException`, which the API maps to `409 Conflict` with
+ProblemDetails asking the caller to reload and retry. The operation does not
+silently retry a stale calculation.
+
+The existing single-split addition uses the same serializable boundary without
+changing its allocation rule. Both read-modify-write workflows must participate
+so that a concurrent addition cannot commit an old balance calculation after
+an edit succeeds.
+
+Backend coverage is in
+[`TransactionSplitUpdateTests.cs`](../../../tests/Integration.Application/TransactionSplitUpdateTests.cs)
+and
+[`TransactionSplitUpdateControllerTests.cs`](../../../tests/Integration.Controller/TransactionSplitUpdateControllerTests.cs),
+including persisted allocations, rollback on save failure, competing edits,
+authorization, tenant/transaction scope, and request validation.
+
 ## Frontend integration
 
 - Add a separately rendered split-edit dialog component in

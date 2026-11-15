@@ -1,9 +1,11 @@
+using System.Data;
 using DotNetNuxt.Abstractions;
 using DotNetNuxt.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NuxtIdentity.Core.Models;
 using NuxtIdentity.EntityFrameworkCore.Extensions;
+using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -355,12 +357,39 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// <inheritdoc />
     async Task<TResult> ITenantRepository.ExecuteTenantTransactionAsync<TResult>(
         Func<CancellationToken, Task<TResult>> operation,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IsolationLevel? isolationLevel)
     {
-        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
-        var result = await operation(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        return result;
+        await using var transaction = isolationLevel.HasValue
+            ? await Database.BeginTransactionAsync(isolationLevel.Value, cancellationToken)
+            : await Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var result = await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected
+            })
+        {
+            throw new DataConflictException(exception);
+        }
+        catch (PostgresException exception) when (
+            exception.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
+        {
+            throw new DataConflictException(exception);
+        }
+        catch (InvalidOperationException exception) when (
+            exception.GetBaseException() is PostgresException
+            {
+                SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected
+            })
+        {
+            throw new DataConflictException(exception);
+        }
     }
 
     /// <inheritdoc />

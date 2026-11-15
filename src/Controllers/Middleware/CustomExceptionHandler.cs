@@ -23,6 +23,7 @@ namespace YoFi.V3.Controllers.Middleware;
 /// <item><description>ResourceNotFoundException → 404 Not Found</description></item>
 /// <item><description>KeyNotFoundException → 404 Not Found (legacy)</description></item>
 /// <item><description>ValidationException → 400 Bad Request</description></item>
+/// <item><description>DataConflictException → 409 Conflict</description></item>
 /// </list>
 /// Unhandled exceptions are passed to the next exception handler in the pipeline.
 /// </remarks>
@@ -62,6 +63,8 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             // 400 Bad Request - ValidationException (input validation errors)
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
                 httpContext, validationException, cancellationToken),
+
+            DataConflictException => await HandleDataConflictAsync(httpContext, cancellationToken),
 
             // If no match, let other handlers process it
             _ => false
@@ -119,6 +122,25 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         problemDetails.Extensions["resourceType"] = exception.ResourceType;
         problemDetails.Extensions["resourceKey"] = exception.ResourceKey;
 
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
+        return true;
+    }
+
+    private static async ValueTask<bool> HandleDataConflictAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+        var problemDetails = CreateProblemDetails(
+            httpContext,
+            StatusCodes.Status409Conflict,
+            "Data conflict",
+            "The data changed during this operation. Reload and try again.");
         await httpContext.Response.WriteAsJsonAsync(
             problemDetails,
             problemDetails.GetType(),

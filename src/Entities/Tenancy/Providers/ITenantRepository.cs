@@ -1,3 +1,4 @@
+using System.Data;
 using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Entities.Tenancy.Providers;
@@ -14,10 +15,15 @@ public interface ITenantRepository
     /// <typeparam name="TResult">The operation result.</typeparam>
     /// <param name="operation">Operation to execute within the transaction.</param>
     /// <param name="cancellationToken">Token checked when starting and committing the transaction.</param>
+    /// <param name="isolationLevel">Optional isolation level; omitted to use the provider default.</param>
     /// <returns>The operation result after its transaction commits.</returns>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.DataConflictException">
+    /// A concurrent operation prevented the transaction from committing.
+    /// </exception>
     Task<TResult> ExecuteTenantTransactionAsync<TResult>(
         Func<CancellationToken, Task<TResult>> operation,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IsolationLevel? isolationLevel = null);
 
     /// <summary>
     /// Adds a new tenant to the repository.
