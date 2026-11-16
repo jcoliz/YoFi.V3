@@ -2521,7 +2521,7 @@ export class TransactionsClient {
     }
 
     /**
-     * Updates an existing transaction in the tenant workspace.
+     * Updates an existing transaction and adjusts its first split to keep it balanced.
      * @param key The unique identifier of the transaction to update.
      * @param transaction The updated transaction data including date, amount, and payee.
      */
@@ -2588,6 +2588,13 @@ export class TransactionsClient {
             let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result404 = ProblemDetails.fromJS(resultData404);
             return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
             });
         } else if (status === 500) {
             return response.text().then((_responseText) => {

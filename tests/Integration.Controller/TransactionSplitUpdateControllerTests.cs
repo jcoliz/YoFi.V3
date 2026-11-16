@@ -14,6 +14,31 @@ namespace YoFi.V3.Tests.Integration.Controller;
 [TestFixture]
 public class TransactionSplitUpdateControllerTests : AuthenticatedTestBase
 {
+    [TestCase(-10001)]
+    [TestCase(-9999)]
+    public async Task UpdateTransaction_WithNewAmount_ReturnsAndPersistsBalancedSplits(int amountCents)
+    {
+        var original = await CreateSplitTransactionAsync();
+        var url = $"/api/tenant/{_testTenantKey}/transactions/{original.Key}";
+        var amount = amountCents / 100m;
+        var expectedSplits = original.Splits.Select((split, index) => index == 0
+            ? split with { Amount = amount - original.Splits.Skip(1).Sum(s => s.Amount) }
+            : split).ToArray();
+
+        var response = await _client.PutAsJsonAsync(url, new TransactionEditDto(
+            original.Date, amount, original.Payee, original.Memo,
+            original.Source, original.ExternalId, null));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var updated = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(updated!.Amount, Is.EqualTo(amount));
+        Assert.That(updated.Splits, Is.EqualTo(expectedSplits));
+        Assert.That(updated.Splits.Sum(split => split.Amount), Is.EqualTo(amount));
+        var persisted = await _client.GetFromJsonAsync<TransactionDetailDto>(url);
+        Assert.That(persisted!.Amount, Is.EqualTo(amount));
+        Assert.That(persisted.Splits, Is.EqualTo(expectedSplits));
+    }
+
     [TestCase("")]
     [TestCase(" ")]
     [TestCase("Groceries")]

@@ -220,44 +220,45 @@ public class TransactionsFeature(
     /// See <see cref="YoFi.V3.Application.Validation.TransactionEditDtoValidator"/> for validation rules.</param>
     /// <returns>The updated transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <exception cref="ValidationException">A category was supplied for a multi-split transaction.</exception>
+    /// <exception cref="DataConflictException">A concurrent change prevented the update.</exception>
     /// <remarks>
-    /// Synchronizes amount and category only for a single-split transaction.
-    /// Multi-split allocations remain unchanged, even if the new amount leaves them unbalanced.
+    /// Balances the transaction by adjusting the first split by Order, preserving the other splits.
+    /// Category is updated only for a single-split transaction.
     /// </remarks>
-    public async Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
-    {
-        var existingTransaction = await GetTransactionByKeyInternalAsync(key);
-
-        if (existingTransaction.Splits.Count > 1 && transaction.Category != null)
+    public Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
+        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
         {
-            throw new ValidationException(nameof(transaction.Category),
-                "Category cannot be changed for a transaction with multiple splits.");
-        }
+            var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
-        // Alpha-1: Sanitize category
-        var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
+            if (existingTransaction.Splits.Count > 1 && transaction.Category != null)
+            {
+                throw new ValidationException(nameof(transaction.Category),
+                    "Category cannot be changed for a transaction with multiple splits.");
+            }
 
-        // Update all properties (all fields are editable per Story 3)
-        existingTransaction.Date = transaction.Date;
-        existingTransaction.Amount = transaction.Amount;
-        existingTransaction.Payee = transaction.Payee;
-        existingTransaction.Memo = transaction.Memo;
-        existingTransaction.Source = transaction.Source;
-        existingTransaction.ExternalId = transaction.ExternalId;
+            existingTransaction.Date = transaction.Date;
+            existingTransaction.Amount = transaction.Amount;
+            existingTransaction.Payee = transaction.Payee;
+            existingTransaction.Memo = transaction.Memo;
+            existingTransaction.Source = transaction.Source;
+            existingTransaction.ExternalId = transaction.ExternalId;
 
-        // Only single-split transactions mirror the transaction amount and category.
-        var split = existingTransaction.Splits.FirstOrDefault(s => s.Order == 0);
-        if (split != null && existingTransaction.Splits.Count == 1)
-        {
-            split.Amount = transaction.Amount;
-            split.Category = sanitizedCategory;
-        }
+            var splits = existingTransaction.Splits.OrderBy(s => s.Order).ToList();
+            if (splits.Count > 0)
+            {
+                splits[0].Amount = transaction.Amount - splits.Skip(1).Sum(s => s.Amount);
+                if (splits.Count == 1)
+                {
+                    splits[0].Category = CategoryHelper.SanitizeCategory(transaction.Category);
+                }
+            }
 
-        dataProvider.UpdateRange([existingTransaction]);
-        await dataProvider.SaveChangesAsync();
+            dataProvider.UpdateRange([existingTransaction]);
+            await dataProvider.SaveChangesAsync(token);
 
-        return ToDetailDto(existingTransaction);
-    }
+            return ToDetailDto(existingTransaction);
+        }, isolationLevel: IsolationLevel.Serializable);
 
     /// <summary>
     /// Quick edit: updates only payee, memo, and category, preserving all other transaction fields.

@@ -390,13 +390,16 @@ public class TransactionsFeatureTests : FeatureTestBase
         Assert.That(result.Splits, Is.Empty);
     }
 
-    [TestCase(-10001, null)]
-    [TestCase(-9999, null)]
-    [TestCase(-10000, null)]
-    [TestCase(10001, null)]
-    [TestCase(9999, null)]
-    public async Task UpdateTransactionAsync_WithMultipleSplits_PreservesAllocations(
-        int newAmountCents, string? category)
+    [TestCase(-10001, 0, false)]
+    [TestCase(-9999, 0, false)]
+    [TestCase(-10000, 0, false)]
+    [TestCase(10001, 0, false)]
+    [TestCase(9999, 0, false)]
+    [TestCase(-10001, 4, false)]
+    [TestCase(-10001, 4, true)]
+    [TestCase(-10000, 4, true)]
+    public async Task UpdateTransactionAsync_WithMultipleSplits_RebalancesFirstAndPreservesFields(
+        int newAmountCents, int firstOrder, bool initiallyUnbalanced)
     {
         var originalAmount = newAmountCents < 0 ? -100m : 100m;
         var transaction = new Transaction
@@ -412,17 +415,24 @@ public class TransactionsFeatureTests : FeatureTestBase
             [
                 new Split
                 {
-                    Amount = originalAmount * 0.6m,
+                    Amount = originalAmount * (initiallyUnbalanced ? 0.5m : 0.6m),
                     Category = "Groceries",
                     Memo = "First split memo",
-                    Order = 0
+                    Order = firstOrder
                 },
                 new Split
                 {
-                    Amount = originalAmount * 0.4m,
+                    Amount = originalAmount * 0.3m,
                     Category = "Household",
                     Memo = "Second split memo",
-                    Order = 1
+                    Order = firstOrder + 4
+                },
+                new Split
+                {
+                    Amount = originalAmount * 0.1m,
+                    Category = "Supplies",
+                    Memo = "Third split memo",
+                    Order = firstOrder + 8
                 }
             ]
         };
@@ -433,21 +443,24 @@ public class TransactionsFeatureTests : FeatureTestBase
         var newAmount = newAmountCents / 100m;
         var updateDto = new TransactionEditDto(
             original.Date, newAmount, original.Payee, original.Memo,
-            original.Source, original.ExternalId, category);
+            original.Source, original.ExternalId, null);
+        var expectedSplits = original.Splits.Select((split, index) => index == 0
+            ? split with { Amount = newAmount - original.Splits.Skip(1).Sum(s => s.Amount) }
+            : split).ToArray();
 
         var result = await _feature.UpdateTransactionAsync(transaction.Key, updateDto);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Splits, Is.EqualTo(original.Splits));
+            Assert.That(result.Splits, Is.EqualTo(expectedSplits));
             Assert.That(result with { Splits = original.Splits },
                 Is.EqualTo(original with { Amount = newAmount }));
-            Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(originalAmount));
+            Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(newAmount));
         }
 
         _context.ChangeTracker.Clear();
         var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
-        Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
+        Assert.That(persisted.Splits, Is.EqualTo(expectedSplits));
         Assert.That(persisted with { Splits = original.Splits },
             Is.EqualTo(original with { Amount = newAmount }));
     }

@@ -188,9 +188,10 @@ public class TransactionSplitUpdateTests : FeatureTestBase
         Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task UpdateSplitAsync_WithCompetingSplitOperation_RejectsStaleCalculation(bool addSplit)
+    [TestCase("Edit")]
+    [TestCase("Add")]
+    [TestCase("Transaction")]
+    public async Task UpdateSplitAsync_WithCompetingSplitOperation_RejectsStaleCalculation(string operation)
     {
         var transaction = await CreateTransactionAsync();
         var firstKey = transaction.Splits.Single(split => split.Order == 4).Key;
@@ -210,9 +211,15 @@ public class TransactionSplitUpdateTests : FeatureTestBase
         var concurrentFeature = new TransactionsFeature(_tenantProvider, concurrentContext, concurrentContext);
 
         var input = new SplitEditDto(-40m, "Stale", null);
-        var staleUpdate = addSplit
-            ? concurrentFeature.AddSplitAsync(transaction.Key, input, timeout.Token)
-            : concurrentFeature.UpdateSplitAsync(transaction.Key, lastKey, input, timeout.Token);
+        var staleUpdate = operation switch
+        {
+            "Add" => concurrentFeature.AddSplitAsync(transaction.Key, input, timeout.Token),
+            "Edit" => concurrentFeature.UpdateSplitAsync(transaction.Key, lastKey, input, timeout.Token),
+            "Transaction" => concurrentFeature.UpdateTransactionAsync(transaction.Key,
+                new TransactionEditDto(transaction.Date, -100.01m, "Stale", transaction.Memo,
+                    transaction.Source, transaction.ExternalId, null)),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
         TransactionDetailDto committed;
         try
         {
@@ -230,6 +237,23 @@ public class TransactionSplitUpdateTests : FeatureTestBase
         var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
         Assert.That(persisted.Splits, Is.EqualTo(committed.Splits));
         Assert.That(persisted.Splits.Sum(split => split.Amount), Is.EqualTo(persisted.Amount));
+    }
+
+    [Test]
+    public async Task UpdateTransactionAsync_WhenSavingFails_RollsBackAmountAndFirstSplit()
+    {
+        var transaction = await CreateTransactionAsync();
+        var original = await _feature.GetTransactionByKeyAsync(transaction.Key);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            _feature.UpdateTransactionAsync(transaction.Key, new TransactionEditDto(
+                original.Date, -100.01m, new string('x', 201), original.Memo,
+                original.Source, original.ExternalId, null)));
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
+        Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
+        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(original));
     }
 
     [Test]

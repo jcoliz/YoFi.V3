@@ -149,7 +149,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     /// <summary>
-    /// Updates an existing transaction in the tenant workspace.
+    /// Updates an existing transaction and adjusts its first split to keep it balanced.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>
     /// <param name="transaction">The updated transaction data including date, amount, and payee.</param>
@@ -159,6 +159,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateTransaction(Guid key, [FromBody] TransactionEditDto transaction)
     {
         LogStartingKey(key);

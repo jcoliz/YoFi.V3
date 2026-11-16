@@ -160,6 +160,13 @@ changing its allocation rule. Both read-modify-write workflows must participate
 so that a concurrent addition cannot commit an old balance calculation after
 an edit succeeds.
 
+Full transaction updates use the same serializable boundary. They balance the
+first split by `Order` against the requested transaction amount and the sum of
+all other splits. For multi-split transactions, every split's category and memo
+and all other split amounts remain unchanged; transaction-level category
+updates are rejected. This also repairs an existing imbalance rather than
+preserving it.
+
 Backend coverage is in
 [`TransactionSplitUpdateTests.cs`](../../../tests/Integration.Application/TransactionSplitUpdateTests.cs)
 and

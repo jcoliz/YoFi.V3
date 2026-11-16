@@ -21,7 +21,7 @@ Transaction CRUD operations within tenant workspaces.
 - `getTransactions(pageNumber?, fromDate?, toDate?, search?, payee?, category?, memo?, amount?, uncategorizedOnly?, tenantKey): Promise<PaginatedResultDtoOfTransactionResultDto>` - Retrieves a tenant's paginated transactions with optional quick search, date bounds, and advanced filters. Amount remains a string so an explicit `+` or `-` sign is preserved.
 - `createTransaction(tenantKey, transaction: TransactionEditDto): Promise<TransactionResultDto>` - Creates a new transaction in the tenant workspace
 - `getTransactionById(key, tenantKey): Promise<TransactionResultDto>` - Retrieves a specific transaction by its unique key
-- `updateTransaction(key, tenantKey, transaction: TransactionEditDto): Promise<void>` - Updates an existing transaction in the tenant workspace
+- `updateTransaction(key, tenantKey, transaction: TransactionEditDto): Promise<TransactionDetailDto>` - Updates a transaction and rebalances its first split by order, preserving other split amounts and multi-split categories/memos. Omit category for multi-split updates; supplying it returns `400 Bad Request`. Competing changes return `409 Conflict`.
 - `deleteTransaction(key, tenantKey): Promise<void>` - Deletes a transaction from the tenant workspace
 - `addSplit(key, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Adds a split and rebalances the first allocation
 - `updateSplit(key, splitKey, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Edits an individual split and rebalances the first other allocation; competing changes return `409 Conflict`
