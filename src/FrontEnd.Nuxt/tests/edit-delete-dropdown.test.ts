@@ -8,7 +8,7 @@ enableAutoUnmount(afterEach)
 function mountMenu(disabled = false) {
   return mount(EditDeleteDropdown, {
     attachTo: document.body,
-    props: { ariaLabel: 'Actions for Groceries', disabled },
+    props: { triggerLabel: 'Actions for Groceries', disabled },
     global: {
       stubs: {
         FeatherIcon: true,
@@ -21,6 +21,27 @@ function mountMenu(disabled = false) {
 }
 
 describe('shared edit/delete dropdown', () => {
+  it('passes the template prop to the trigger', () => {
+    const wrapper = mount(
+      {
+        components: { EditDeleteDropdown },
+        template: '<EditDeleteDropdown :trigger-label="label" />',
+        setup: () => ({ label: 'Actions for Groceries' }),
+      },
+      {
+        global: {
+          stubs: {
+            FeatherIcon: true,
+            DropDownPortable: { template: '<div><slot name="trigger" /><slot /></div>' },
+          },
+        },
+      },
+    )
+    expect(wrapper.get('[data-test-id="row-actions-button"]').attributes('aria-label')).toBe(
+      'Actions for Groceries',
+    )
+  })
+
   it('labels the trigger and delegates opening to Bootstrap', () => {
     const wrapper = mountMenu()
     const trigger = wrapper.get('[data-test-id="row-actions-button"]')

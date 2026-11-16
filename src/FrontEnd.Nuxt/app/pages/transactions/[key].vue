@@ -583,7 +583,7 @@ function formatCurrency(amount: number | undefined): string {
                     class="text-end row-actions"
                   >
                     <EditDeleteDropdown
-                      :aria-label="`Actions for split ${split.category || 'Uncategorized'}, ${formatCurrency(split.amount)}`"
+                      :trigger-label="`Actions for split ${split.category || 'Uncategorized'}, ${formatCurrency(split.amount)}`"
                       :disabled="splitOperationActive"
                       @edit="openEditSplit(split)"
                       @delete="openDeleteSplit(split)"

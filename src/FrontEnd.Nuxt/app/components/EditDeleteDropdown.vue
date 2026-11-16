@@ -5,7 +5,7 @@
  */
 const props = defineProps<{
   /** Accessible trigger label identifying the row. */
-  ariaLabel: string
+  triggerLabel: string
   /** Disables the trigger and both actions while the parent is busy. */
   disabled?: boolean
 }>()
@@ -35,7 +35,7 @@ function choose(action: 'edit' | 'delete') {
           ref="trigger"
           type="button"
           class="btn btn-sm btn-outline-secondary border-0 row-actions-trigger"
-          :aria-label="ariaLabel"
+          :aria-label="triggerLabel"
           :disabled="disabled"
           title="Actions"
           data-bs-toggle="dropdown"

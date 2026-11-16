@@ -535,7 +535,7 @@ function formatDate(date: Date | undefined): string {
                     class="text-end row-actions"
                   >
                     <EditDeleteDropdown
-                      :aria-label="`Actions for ${rule.payeePattern}`"
+                      :trigger-label="`Actions for ${rule.payeePattern}`"
                       :disabled="loading"
                       @edit="openEditDialog(rule)"
                       @delete="openDeleteDialog(rule)"
