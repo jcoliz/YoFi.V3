@@ -231,7 +231,12 @@ public class SampleDataControllerTests : AuthenticatedTestBase
             Assert.That(bearerScheme.GetProperty("type").GetString(), Is.EqualTo("http"));
             Assert.That(bearerScheme.GetProperty("scheme").GetString(), Is.EqualTo("bearer"));
             Assert.That(paths.GetProperty($"{prefix}/scenarios").GetProperty("get").GetProperty("summary").GetString(),
-                Does.Contain("Lists bundled scenarios"));
+                Is.EqualTo("GetScenarios — Lists bundled scenarios, their revisions, and supported entity types."));
+            Assert.That(paths.GetProperty("/api/tenant/{tenantKey}/admin/export/options").GetProperty("get")
+                .GetProperty("summary").GetString(),
+                Is.EqualTo("GetExportOptions — Lists exportable workspace data types and transaction years containing data."));
+            Assert.That(paths.GetProperty($"{prefix}/load").GetProperty("post").GetProperty("description").GetString(),
+                Does.Contain("This command returns a summary, not a separately addressable resource."));
         }
 
         foreach (var (suffix, method) in new[] { ("scenarios", "get"), ("preview", "post"), ("load", "post"), ("ofx", "post") })

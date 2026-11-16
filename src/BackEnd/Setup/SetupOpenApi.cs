@@ -47,6 +47,14 @@ public static class SetupOpenApi
 
             options.AddOperationTransformer((operation, context, _) =>
             {
+                if (context.Description.ActionDescriptor is ControllerActionDescriptor controllerAction)
+                {
+                    var name = controllerAction.MethodInfo.Name;
+                    operation.Summary = string.IsNullOrWhiteSpace(operation.Summary)
+                        ? name
+                        : $"{name} — {operation.Summary}";
+                }
+
                 var endpointMetadata = context.Description.ActionDescriptor.EndpointMetadata;
                 if (endpointMetadata.OfType<IAuthorizeData>().Any() &&
                     !endpointMetadata.OfType<IAllowAnonymous>().Any())

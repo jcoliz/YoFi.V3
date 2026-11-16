@@ -34,6 +34,9 @@ After setup completes, start the development environment:
 
 ## Interactive API reference
 
+Controller operation titles in the OpenAPI document start with the action method
+name, followed by its XML summary. Scalar displays these titles in its navigation.
+
 Open `/scalar/v1` on the backend, select **ScalarLogin** in **Authentication**,
 enter an existing YoFi username and password, and click **Authorize**. Scalar
 uses the token automatically for protected requests. The **Bearer** scheme
