@@ -524,9 +524,10 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         for (var index = 0; index < count; index++)
         {
             var cells = await SplitRows.Nth(index).Locator("td").AllInnerTextsAsync();
-            if (cells.Count != 3)
+            const int expectedCellCount = 4;
+            if (cells.Count != expectedCellCount)
             {
-                throw new InvalidOperationException($"Expected three cells in split row {index}, found {cells.Count}.");
+                throw new InvalidOperationException($"Expected {expectedCellCount} cells in split row {index}, found {cells.Count}.");
             }
 
             splits.Add((cells[0].Trim(), cells[1].Trim(), cells[2].Trim()));
