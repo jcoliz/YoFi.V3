@@ -116,7 +116,7 @@ Transactions have a special relationship with Splits (one-to-many):
 
 ## User Stories
 
-### Story 2220: User - Export Data with Flexible Selection
+### Story 2220: User - Export Data with Flexible Selection (data-export)
 
 **As a** YoFi user
 **I want** to export any combination of my entity types with flexible filtering
@@ -147,14 +147,15 @@ see [Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md).
   - Year selector dropdown (showing years with data, plus "All Years")
   - Optional: Custom date range with Start Date and End Date
   - Date filter applies only to date-based entities (transactions, budget transactions, etc.)
-  - Non-date-based entities (payees, categories) ignore date filter
+  - Non-date-based entities (payees, reports (in future)) ignore date filter
 - [ ] "Select All" and "Clear All" buttons for entity type selection
 - [ ] Export button displays count: "Export Data (N types selected)"
-- [ ] Quick action: "Export All Data (GDPR / Backup)" button for one-click complete export:
+- [ ] Quick action: "Export All Data" button for one-click complete export:
   - Exports ALL entity types for current tenant with ALL date ranges (no filtering)
   - File downloads as `yofi-complete-export-{date}.xlsx`
   - Primary path for GDPR data portability compliance
 - [ ] File downloads with descriptive filename indicating selection and date range
+- [ ] File downloads with metadata sheet identifying the data as a native YoFi.V3 export (as opposed to legacy original YoFi)
 
 ### Story 2221: User - Import Data with Automatic Detection
 
