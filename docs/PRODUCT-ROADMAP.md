@@ -167,6 +167,16 @@ TBD. Enough that I can use it for my personal finances. Probably needs at least 
 
 #### System readiness Beta 1
 
+Currently I am just running locally with the persistent container environment. That is enough
+to use for personal finances, certainly for testing. So I am deferring prod-level system readiness
+to Beta 2.
+
+### Beta 2: Household usable
+
+Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
+
+#### System readiness Beta 2
+
 Actual financial data now here, so production security needs to be tighter.
 
 - Deploy to prod
@@ -175,10 +185,6 @@ Actual financial data now here, so production security needs to be tighter.
 - Invitations MVP
 - No registration without invitation. Perhaps make test control API generate invitations.
 - Log redaction for financial data
-
-### Beta 2: Household usable
-
-Complete pathway for common household usage. Asking for additional beta testers at this point. Not recommending for primary use. Recommend users use YoFi V1 and V3 side-by-side and report issues.
 
 ### Beta 3: Household active
 
@@ -224,9 +230,9 @@ My general practice is to break release miletones down into iterations as it app
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
 | Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
 | Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
-| **Feature 1983: Transaction Filtering**         |           |           | 🎨 Design Complete   |
+| **Feature 1983: Transaction Filtering**         |           |           | 🚧 In Progress   |
 | Story 2213 - Quick Text Search                  | A1        | 2         | ✅ Implemented       |
-| Story 2214 - Find Uncategorized                 | B1        |           | 🎨 Design Complete   |
+| Story 2214 - Find Uncategorized                 | B1        |           | ✅ Implemented       |
 | Story 2215 - Default Date Range                 | V3.0      |           | 🎨 Design Complete   |
 | Story 2216 - Advanced Filtering                 | B1        |           | ✅ Implemented       |
 | Story 2217 - Filter by Balance Status           | V3.1      |           | 💡 Future            |
@@ -253,7 +259,7 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2249 - Configure Report Display           | B1        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
-| Story 5 - View Budget Reports                   | B3        |           | ✔️ Approved          |
+| Story 5 - View Budget Reports                   | B2        |           | ✔️ Approved          |
 | Story 6 - View Complete History Over Time       | B3        |           | ✔️ Approved          |
 | Story 7 - Investigate Underlying Transactions   | V3.1      |           | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
@@ -263,14 +269,14 @@ My general practice is to break release miletones down into iterations as it app
 | Story 3 - Secure API Key Management             | B2        |           | 🎨 Design Complete   |
 | Story 4 - Discover Available Reports            | Post V3   |           | 🎨 Design Complete   |
 | **Feature 2209: Transaction Receipts**          |           |           | ✔️ Approved          |
-| Story 1 - Direct Receipt Upload                 | B2        |           | ✔️ Approved          |
+| Story 1 - Direct Receipt Upload                 | B3        |           | ✔️ Approved          |
 | Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
 | Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
 | Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
 | **Feature 2210: Budgets**                       |           |           | ✔️ Approved          |
-| Story 1 - Create/Edit Budget                    | B3        |           | ✔️ Approved          |
-| Story 2 - View Budget Status                    | B3        |           | ✔️ Approved          |
-| Story 3 - Allocate Budget at Any Category Level | B3        |           | ✔️ Approved          |
+| Story 1 - Create/Edit Budget                    | B2        |           | ✔️ Approved          |
+| Story 2 - View Budget Status                    | B2        |           | ✔️ Approved          |
+| Story 3 - Allocate Budget at Any Category Level | B2        |           | ✔️ Approved          |
 | Story 4 - Create Budget from Historical Data    | Post V3   |           | ✔️ Approved          |
 | Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | ✔️ Approved          |
 
