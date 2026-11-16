@@ -391,10 +391,10 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [TestCase(-10001, null)]
-    [TestCase(-9999, "")]
-    [TestCase(-10000, "Replacement")]
+    [TestCase(-9999, null)]
+    [TestCase(-10000, null)]
     [TestCase(10001, null)]
-    [TestCase(9999, "Replacement")]
+    [TestCase(9999, null)]
     public async Task UpdateTransactionAsync_WithMultipleSplits_PreservesAllocations(
         int newAmountCents, string? category)
     {
@@ -450,6 +450,31 @@ public class TransactionsFeatureTests : FeatureTestBase
         Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
         Assert.That(persisted with { Splits = original.Splits },
             Is.EqualTo(original with { Amount = newAmount }));
+    }
+
+    [TestCase("")]
+    [TestCase(" ")]
+    [TestCase("Groceries")]
+    [TestCase("Replacement")]
+    public async Task UpdateTransactionAsync_WithMultipleSplitsAndCategory_RejectsWithoutChanges(string category)
+    {
+        var created = await _feature.AddTransactionAsync(new TransactionEditDto(
+            new DateOnly(2026, 1, 1), -100m, "Original payee", "Original memo", null, null, "Groceries"));
+        var original = await _feature.AddSplitAsync(created.Key, new SplitEditDto(-40m, "Household", "Split memo"));
+        _context.ChangeTracker.Clear();
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
+            _feature.UpdateTransactionAsync(original.Key, new TransactionEditDto(
+                original.Date, -100.01m, "Changed payee", "Changed memo", null, null, category)));
+
+        Assert.That(exception!.Message, Does.Contain("Category cannot be changed"));
+        var tracked = await _feature.GetTransactionByKeyAsync(original.Key);
+        Assert.That(tracked with { Splits = original.Splits }, Is.EqualTo(original));
+        Assert.That(tracked.Splits, Is.EqualTo(original.Splits));
+        _context.ChangeTracker.Clear();
+        var persisted = await _feature.GetTransactionByKeyAsync(original.Key);
+        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(original));
+        Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
     }
 
     [Test]

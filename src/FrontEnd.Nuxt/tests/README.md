@@ -75,6 +75,8 @@ calls are made and these events are emitted. Use `@vue/test-utils` `mount()` wit
   protect their category field in the quick-edit modal.
 - [`transaction-edit-split.test.ts`](transaction-edit-split.test.ts) — Verifies the standalone
   split editor's API and event contracts, validation, draft lifecycle, and save/cancel guards.
+- [`transaction-edit-pane.test.ts`](transaction-edit-pane.test.ts) — Verifies that full transaction
+  editing hides and omits the category for multi-split transactions while preserving single-split editing.
 
 ### ❌ What does NOT belong here
 

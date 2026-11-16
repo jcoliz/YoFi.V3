@@ -24,6 +24,7 @@ const emit = defineEmits<{
 
 const userPreferencesStore = useUserPreferencesStore()
 const transactionsClient = useApiClient(TransactionsClient)
+const hasMultipleSplits = computed(() => (props.transaction.splits?.length ?? 0) > 1)
 
 const saving = ref(false)
 const error = ref<IProblemDetails | undefined>(undefined)
@@ -56,7 +57,7 @@ watch(
       amount: transaction.amount || 0,
       payee: transaction.payee || '',
       memo: transaction.memo || '',
-      category: transaction.category || '',
+      category: (transaction.splits?.length ?? 0) > 1 ? '' : transaction.category || '',
       source: transaction.source || '',
       externalId: transaction.externalId || '',
     }
@@ -154,7 +155,7 @@ async function saveTransaction() {
       amount: editData.value.amount,
       payee: editData.value.payee.trim(),
       memo: editData.value.memo.trim() || undefined,
-      category: editData.value.category.trim() || undefined,
+      category: hasMultipleSplits.value ? undefined : editData.value.category.trim() || undefined,
       source: editData.value.source.trim() || undefined,
       externalId: editData.value.externalId.trim() || undefined,
     })
@@ -286,7 +287,10 @@ async function saveTransaction() {
             </div>
           </div>
 
-          <div class="col-12 mb-3">
+          <div
+            v-if="!hasMultipleSplits"
+            class="col-12 mb-3"
+          >
             <label
               for="editCategory"
               class="form-label"

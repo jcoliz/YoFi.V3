@@ -25,8 +25,8 @@ namespace YoFi.V3.Application.Dto;
 /// - Category max length 200
 ///
 /// For single-split transactions, amount and category update the single split (Order = 0).
-/// For multi-split transactions, updates preserve all splits and ignore Category;
-/// changing Amount may leave the transaction unbalanced.
+/// For multi-split transactions, updates preserve all splits and Category must be null;
+/// a supplied category is rejected. Changing Amount may leave the transaction unbalanced.
 /// </remarks>
 public record TransactionEditDto(
     DateOnly Date,

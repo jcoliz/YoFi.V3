@@ -228,6 +228,12 @@ public class TransactionsFeature(
     {
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 
+        if (existingTransaction.Splits.Count > 1 && transaction.Category != null)
+        {
+            throw new ValidationException(nameof(transaction.Category),
+                "Category cannot be changed for a transaction with multiple splits.");
+        }
+
         // Alpha-1: Sanitize category
         var sanitizedCategory = CategoryHelper.SanitizeCategory(transaction.Category);
 

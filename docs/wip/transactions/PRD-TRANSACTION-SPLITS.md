@@ -121,6 +121,9 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
 - [ ] Category cannot be edited on a transaction with multiple splits
+- Transaction-level category updates on multi-split transactions are rejected,
+  including blank categories. The detail page hides the transaction category
+  and its edit field; categories are edited on individual splits instead.
 - [ ] Transaction will be automatically balanced by updating the first split
 
 **Acceptance Criteria: Scenario 2228 Sample data includes multiple splits**

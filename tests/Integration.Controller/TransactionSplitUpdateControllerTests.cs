@@ -14,6 +14,27 @@ namespace YoFi.V3.Tests.Integration.Controller;
 [TestFixture]
 public class TransactionSplitUpdateControllerTests : AuthenticatedTestBase
 {
+    [TestCase("")]
+    [TestCase(" ")]
+    [TestCase("Groceries")]
+    [TestCase("Replacement")]
+    public async Task UpdateTransaction_WithMultipleSplitsAndCategory_ReturnsBadRequestWithoutChanges(string category)
+    {
+        var original = await CreateSplitTransactionAsync();
+        var url = $"/api/tenant/{_testTenantKey}/transactions/{original.Key}";
+
+        var response = await _client.PutAsJsonAsync(url, new TransactionEditDto(
+            original.Date, -100.01m, "Changed payee", "Changed memo",
+            original.Source, original.ExternalId, category));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.That(problem!.Errors, Does.ContainKey("Category"));
+        var persisted = await _client.GetFromJsonAsync<TransactionDetailDto>(url);
+        Assert.That(persisted!.Splits, Is.EqualTo(original.Splits));
+        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(original));
+    }
+
     [TestCase(TenantRole.Editor, 0, -70, -70, -30)]
     [TestCase(TenantRole.Owner, 1, -50, -50, -50)]
     public async Task UpdateSplit_AsWriter_ReturnsAndPersistsBalancedDetail(

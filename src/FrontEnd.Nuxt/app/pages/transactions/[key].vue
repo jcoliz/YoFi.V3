@@ -364,7 +364,10 @@ function formatCurrency(amount: number | undefined): string {
               </div>
             </div>
 
-            <div class="col-md-6 mb-3">
+            <div
+              v-if="!hasMultipleSplits"
+              class="col-md-6 mb-3"
+            >
               <label class="text-muted small">Category</label>
               <div data-test-id="transaction-category">
                 {{ transaction.category || '(none)' }}
