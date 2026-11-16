@@ -13,6 +13,7 @@ namespace YoFi.V3.Controllers;
 /// <summary>Imports and deletes tenant data for a workspace Owner.</summary>
 /// <param name="tenantDataAdminFeature">Feature coordinating workspace-data deletion.</param>
 /// <param name="tenantDataImportFeature">Feature coordinating workbook import preview and execution.</param>
+/// <param name="tenantDataExportFeature">Feature coordinating workspace-data export.</param>
 /// <param name="logger">Logger for operation outcomes and committed counts.</param>
 [Route("api/tenant/{tenantKey:guid}/admin")]
 [ApiController]
@@ -25,9 +26,74 @@ namespace YoFi.V3.Controllers;
 public partial class TenantDataAdminController(
     TenantDataAdminFeature tenantDataAdminFeature,
     TenantDataImportFeature tenantDataImportFeature,
+    TenantDataExportFeature tenantDataExportFeature,
     ILogger<TenantDataAdminController> logger) : ControllerBase
 {
     private const long MaxWorkbookSizeBytes = 50 * 1024 * 1024;
+    private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    /// <summary>Lists exportable workspace data types and transaction years containing data.</summary>
+    /// <param name="tenantKey">Route key identifying the authorized target workspace.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <returns>Exportable types and years available for transaction filtering.</returns>
+    [HttpGet("export/options")]
+    [ProducesResponseType(typeof(TenantDataExportOptionsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetExportOptions(
+        [FromRoute] Guid tenantKey,
+        CancellationToken cancellationToken)
+    {
+        LogExportOptionsStarting();
+        var options = await tenantDataExportFeature.GetOptionsAsync(cancellationToken);
+        LogExportOptionsOk(options.DataTypes.Count, options.Years.Count);
+        return Ok(options);
+    }
+
+    /// <summary>Downloads a native YoFi.V3 workbook for selected workspace data types.</summary>
+    /// <param name="tenantKey">Route key identifying the authorized target workspace.</param>
+    /// <param name="types">Selected data type identifiers. Repeat the parameter to select multiple types.
+    /// Use <paramref name="allData"/> to export all types without date filtering.</param>
+    /// <param name="year">Optional calendar year applied to date-based data types.</param>
+    /// <param name="startDate">Optional inclusive custom-range start; requires <paramref name="endDate"/>.</param>
+    /// <param name="endDate">Optional inclusive custom-range end; requires <paramref name="startDate"/>.</param>
+    /// <param name="allData">When true, exports all registered types without date filtering.</param>
+    /// <param name="cancellationToken">Request cancellation token.</param>
+    /// <returns>An XLSX attachment and an export-count response header.</returns>
+    [HttpGet("export")]
+    [Produces(XlsxContentType)]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, XlsxContentType)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ExportData(
+        [FromRoute] Guid tenantKey,
+        [FromQuery(Name = "types")] string[]? types,
+        [FromQuery] int? year,
+        [FromQuery] DateOnly? startDate,
+        [FromQuery] DateOnly? endDate,
+        [FromQuery] bool allData,
+        CancellationToken cancellationToken)
+    {
+        LogExportStarting();
+        var succeeded = false;
+        try
+        {
+            var result = await tenantDataExportFeature.ExportAsync(
+                new TenantDataExportRequest(types ?? [], year, startDate, endDate, allData),
+                cancellationToken);
+            Response.Headers["X-YoFi-Export-Counts"] = System.Text.Json.JsonSerializer.Serialize(result.Counts);
+            LogExportOk(
+                result.Counts.Count,
+                result.Counts.Sum(count => count.RecordCount),
+                string.Join(",", result.Counts.Select(count => count.DataType)));
+            succeeded = true;
+            return File(result.Content, XlsxContentType, result.FileName);
+        }
+        finally
+        {
+            if (!succeeded)
+            {
+                LogExportFailed();
+            }
+        }
+    }
 
     /// <summary>Previews the supported data and validation issues in an uploaded XLSX workbook.</summary>
     /// <param name="tenantKey">Route key identifying the authorized target workspace.</param>
@@ -189,4 +255,26 @@ public partial class TenantDataAdminController(
 
     [LoggerMessage(7, LogLevel.Warning, "{Location}: Import failed")]
     private partial void LogImportFailed([CallerMemberName] string? location = null);
+
+    [LoggerMessage(8, LogLevel.Debug, "{Location}: Starting export options")]
+    private partial void LogExportOptionsStarting([CallerMemberName] string? location = null);
+
+    [LoggerMessage(9, LogLevel.Information, "{Location}: Export options DataTypes={DataTypes} Years={Years}")]
+    private partial void LogExportOptionsOk(
+        int dataTypes,
+        int years,
+        [CallerMemberName] string? location = null);
+
+    [LoggerMessage(10, LogLevel.Debug, "{Location}: Starting export")]
+    private partial void LogExportStarting([CallerMemberName] string? location = null);
+
+    [LoggerMessage(11, LogLevel.Information, "{Location}: Exported Worksheets={Worksheets} Records={Records} Types={Types}")]
+    private partial void LogExportOk(
+        int worksheets,
+        int records,
+        string types,
+        [CallerMemberName] string? location = null);
+
+    [LoggerMessage(12, LogLevel.Warning, "{Location}: Export failed")]
+    private partial void LogExportFailed([CallerMemberName] string? location = null);
 }

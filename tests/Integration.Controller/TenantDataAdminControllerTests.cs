@@ -18,6 +18,8 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
 {
     protected override TenantRole DefaultRole => TenantRole.Owner;
     private string DataUrl => $"/api/tenant/{_testTenantKey}/admin/data";
+    private string ExportOptionsUrl => $"/api/tenant/{_testTenantKey}/admin/export/options";
+    private string ExportUrl => $"/api/tenant/{_testTenantKey}/admin/export";
     private string ImportPreviewUrl => $"/api/tenant/{_testTenantKey}/admin/import/preview";
     private string ImportUrl => $"/api/tenant/{_testTenantKey}/admin/import";
 
@@ -108,6 +110,162 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
                 DROP TRIGGER reject_tenant_data_transaction_delete ON "Transactions";
                 DROP FUNCTION reject_tenant_data_transaction_delete();
                 """);
+        }
+    }
+
+    [Test]
+    public async Task GetExportOptions_AsOwner_ReturnsAvailableTypesAndCurrentTenantYears()
+    {
+        var (tenantId, otherTenantId) = await SeedDataAsync();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Transactions.Where(item => item.TenantId == tenantId)
+            .ExecuteUpdateAsync(updates => updates.SetProperty(item => item.Date, new DateOnly(2024, 1, 1)));
+        await db.Transactions.Where(item => item.TenantId == otherTenantId)
+            .ExecuteUpdateAsync(updates => updates.SetProperty(item => item.Date, new DateOnly(2026, 1, 1)));
+        db.Transactions.Add(new Transaction
+        {
+            TenantId = tenantId,
+            Date = new DateOnly(2025, 6, 15),
+            Payee = "Second target transaction"
+        });
+        await db.SaveChangesAsync();
+
+        var response = await _client.GetAsync(ExportOptionsUrl);
+        var options = await response.Content.ReadFromJsonAsync<TenantDataExportOptionsDto>();
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(options!.DataTypes.Select(type => type.DataType),
+                Is.EqualTo(new[] { "PayeeMatchingRules", "Transactions" }));
+            Assert.That(options.DataTypes.Single(type => type.DataType == "Transactions").SupportsDateFilter, Is.True);
+            Assert.That(options.DataTypes.Single(type => type.DataType == "PayeeMatchingRules").SupportsDateFilter, Is.False);
+            Assert.That(options.Years, Is.EqualTo(new[] { 2025, 2024 }));
+        }
+    }
+
+    [Test]
+    public async Task Export_AsOwner_ReturnsSelectedNativeWorkbookWithFilteredTenantDataAndCounts()
+    {
+        var (tenantId, otherTenantId) = await SeedDataAsync();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Transactions.Where(item => item.TenantId == tenantId)
+            .ExecuteUpdateAsync(updates => updates.SetProperty(item => item.Date, new DateOnly(2024, 1, 1)));
+        await db.Transactions.Where(item => item.TenantId == otherTenantId)
+            .ExecuteUpdateAsync(updates => updates.SetProperty(item => item.Date, new DateOnly(2025, 3, 1)));
+        var selectedTransaction = new Transaction
+        {
+            TenantId = tenantId,
+            Date = new DateOnly(2025, 6, 15),
+            Payee = "Selected target transaction",
+            Amount = 25m,
+            Splits = [new Split { Amount = 25m, Category = "Selected category", Order = 0 }]
+        };
+        db.Transactions.Add(selectedTransaction);
+        await db.SaveChangesAsync();
+
+        var response = await _client.GetAsync($"{ExportUrl}?types=Transactions&types=PayeeMatchingRules&year=2025");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(response.Content.Headers.ContentType?.MediaType,
+            Is.EqualTo("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        Assert.That(response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName, Does.Contain("yofi-"));
+        Assert.That(response.Headers.TryGetValues("X-YoFi-Export-Counts", out var countHeaders), Is.True);
+
+        using var stream = new MemoryStream(await response.Content.ReadAsByteArrayAsync());
+        using var workbook = new XLWorkbook(stream);
+        var counts = JsonSerializer.Deserialize<TenantDataExportCountDto[]>(countHeaders!.Single());
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(workbook.Worksheets.Select(sheet => sheet.Name),
+                Is.EqualTo(new[] { "Metadata", "PayeeMatchingRules", "Transactions", "Splits" }));
+            Assert.That(workbook.Worksheet("Metadata").Cell(2, 2).GetString(), Is.EqualTo("YoFi.V3"));
+            Assert.That(workbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(workbook.Worksheet("Transactions").Cell(2, 1).GetString(),
+                Is.EqualTo(selectedTransaction.Key.ToString("D")));
+            Assert.That(workbook.Worksheet("Splits").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(workbook.Worksheet("PayeeMatchingRules").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(counts, Is.EqualTo(new[]
+            {
+                new TenantDataExportCountDto("PayeeMatchingRules", 1),
+                new TenantDataExportCountDto("Transactions", 1),
+                new TenantDataExportCountDto("Splits", 1)
+            }));
+        }
+    }
+
+    [Test]
+    public async Task Export_AllData_IgnoresSelectionAndYearFilter()
+    {
+        var (tenantId, _) = await SeedDataAsync();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var transactions = await db.Transactions.Where(item => item.TenantId == tenantId).ToListAsync();
+        transactions[0].Date = new DateOnly(2024, 1, 1);
+        db.Transactions.Add(new Transaction
+        {
+            TenantId = tenantId,
+            Date = new DateOnly(2025, 1, 1),
+            Payee = "Second target transaction"
+        });
+        await db.SaveChangesAsync();
+
+        var response = await _client.GetAsync($"{ExportUrl}?allData=true&year=1900");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var stream = new MemoryStream(await response.Content.ReadAsByteArrayAsync());
+        using var workbook = new XLWorkbook(stream);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(response.Content.Headers.ContentDisposition?.FileNameStar
+                ?? response.Content.Headers.ContentDisposition?.FileName, Does.Contain("yofi-complete-export-"));
+            Assert.That(workbook.Worksheets.Select(sheet => sheet.Name),
+                Is.EqualTo(new[] { "Metadata", "PayeeMatchingRules", "Transactions", "Splits" }));
+            Assert.That(workbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(3));
+        }
+    }
+
+    [Test]
+    public async Task Export_WithUnknownType_ReturnsProblemDetails()
+    {
+        var response = await _client.GetAsync($"{ExportUrl}?types=Unknown");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));
+    }
+
+    [Test]
+    public async Task Export_AsEditor_ReturnsForbidden()
+    {
+        SwitchToEditor();
+
+        var response = await _client.GetAsync(ExportOptionsUrl);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task OpenApi_DescribesExportAsBinaryAttachment()
+    {
+        var response = await _client.GetAsync("/openapi/v1.json");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var binarySchema = document.RootElement.GetProperty("paths")
+            .GetProperty("/api/tenant/{tenantKey}/admin/export")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            .GetProperty("schema");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(binarySchema.GetProperty("type").GetString(), Is.EqualTo("string"));
+            Assert.That(binarySchema.GetProperty("format").GetString(), Is.EqualTo("binary"));
         }
     }
 

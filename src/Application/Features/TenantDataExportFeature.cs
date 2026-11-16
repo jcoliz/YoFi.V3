@@ -104,7 +104,7 @@ public sealed class TenantDataExportFeature(
         if (dataTypes is null || dataTypes.Count == 0)
         {
             throw new ValidationException(nameof(TenantDataExportRequest.DataTypes),
-                "Select at least one data type or request a complete export.");
+                "Select at least one data type, or set allData=true to request a complete export.");
         }
 
         var selected = new List<IExportWorksheetWriter>(dataTypes.Count);

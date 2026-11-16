@@ -84,6 +84,24 @@ public static class SetupOpenApi
                     content["application/x-ofx"] = binaryContent;
                 }
 
+                if (context.Description.ActionDescriptor is ControllerActionDescriptor exportAction &&
+                    exportAction.ControllerTypeInfo.AsType() == typeof(Controllers.TenantDataAdminController) &&
+                    exportAction.MethodInfo.Name == nameof(Controllers.TenantDataAdminController.ExportData) &&
+                    operation.Responses is { } exportResponses &&
+                    exportResponses.TryGetValue("200", out var exportResponse) &&
+                    exportResponse is not null &&
+                    exportResponse.Content is { } exportContent &&
+                    exportContent.TryGetValue(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        out var xlsxContent))
+                {
+                    xlsxContent.Schema = new OpenApiSchema
+                    {
+                        Type = JsonSchemaType.String,
+                        Format = "binary"
+                    };
+                }
+
                 return Task.CompletedTask;
             });
         });
