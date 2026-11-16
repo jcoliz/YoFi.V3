@@ -243,8 +243,11 @@ function formatCurrency(amount: number | undefined): string {
 
     <!-- Main Content -->
     <div class="container py-4">
-      <!-- Breadcrumbs and Actions -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <!-- Page Controls -->
+      <div
+        class="d-flex justify-content-between align-items-center mb-4"
+        data-test-id="page-controls"
+      >
         <PageBreadcrumb />
 
         <div v-if="!isEditing && canEditTransactions && transaction">

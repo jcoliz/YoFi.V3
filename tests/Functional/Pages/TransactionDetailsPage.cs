@@ -40,29 +40,34 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     #region Page Elements
 
     /// <summary>
+    /// Container for the page action buttons (Edit, Delete)
+    /// </summary>
+    public ILocator PageControls => Page!.GetByTestId("page-controls");
+
+    /// <summary>
     /// Transactions breadcrumb link
     /// </summary>
-    public ILocator BackButton => Page!.Locator("nav[aria-label='breadcrumb'] a");
+    public ILocator BackButton => PageControls!.Locator("nav[aria-label='breadcrumb'] a");
 
     /// <summary>
     /// Edit button (display mode)
     /// </summary>
-    public ILocator EditButton => Page!.GetByTestId("edit-button");
+    public ILocator EditButton => PageControls!.GetByTestId("edit-button");
 
     /// <summary>
     /// Delete button (display mode)
     /// </summary>
-    public ILocator DeleteButton => Page!.GetByTestId("delete-button");
+    public ILocator DeleteButton => PageControls!.GetByTestId("delete-button");
 
     /// <summary>
     /// Save button (edit mode)
     /// </summary>
-    public ILocator SaveButton => Page!.GetByTestId("save-button");
+    public ILocator SaveButton => PageControls!.GetByTestId("save-button");
 
     /// <summary>
     /// Cancel Edit button (edit mode)
     /// </summary>
-    public ILocator CancelEditButton => Page!.GetByTestId("cancel-edit-button");
+    public ILocator CancelEditButton => PageControls!.GetByTestId("cancel-edit-button");
 
     /// <summary>
     /// Warning message when no workspace is selected
