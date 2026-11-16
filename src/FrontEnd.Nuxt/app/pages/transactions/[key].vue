@@ -43,6 +43,7 @@ const showError = ref(false)
 const showDeleteModal = ref(false)
 const showAddSplit = ref(false)
 const showEditSplit = ref(false)
+const showDeleteSplit = ref(false)
 const selectedSplit = ref<TransactionSplitDto | null>(null)
 const splitSaving = ref(false)
 const splitError = ref<IProblemDetails | undefined>(undefined)
@@ -61,6 +62,9 @@ const transactionKey = computed(() => route.params.key as string)
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
 const hasMultipleSplits = computed(() => (transaction.value?.splits?.length ?? 0) > 1)
+const splitOperationActive = computed(
+  () => splitSaving.value || showEditSplit.value || showDeleteSplit.value,
+)
 
 // TODO: This doesn't belong in the front-end. This should be computed on the
 // server and returned as part of the split results.
@@ -127,6 +131,7 @@ function cancelEditing() {
 }
 
 function openAddSplit() {
+  if (splitOperationActive.value) return
   splitForm.value = { category: '', amount: '', memo: '' }
   splitError.value = undefined
   showSplitError.value = false
@@ -140,18 +145,31 @@ function cancelAddSplit() {
 }
 
 function openEditSplit(split: TransactionSplitDto) {
+  if (splitOperationActive.value) return
+  cancelAddSplit()
   selectedSplit.value = split
   showEditSplit.value = true
 }
 
+function openDeleteSplit(split: TransactionSplitDto) {
+  if (splitOperationActive.value) return
+  cancelAddSplit()
+  selectedSplit.value = split
+  showDeleteSplit.value = true
+}
+
 watch([currentTenantKey, transactionKey], () => {
   showEditSplit.value = false
+  showDeleteSplit.value = false
+  cancelAddSplit()
   selectedSplit.value = null
 })
 
 async function addSplit() {
-  if (!transaction.value?.key || !currentTenantKey.value) return
+  if (!transaction.value?.key || !currentTenantKey.value || splitOperationActive.value) return
 
+  const tenantKey = currentTenantKey.value
+  const key = transactionKey.value
   splitSaving.value = true
   splitError.value = undefined
   showSplitError.value = false
@@ -166,8 +184,10 @@ async function addSplit() {
         memo: splitForm.value.memo.trim() || undefined,
       }),
     )
-    transaction.value = updatedTransaction
-    showAddSplit.value = false
+    if (tenantKey === currentTenantKey.value && key === transactionKey.value) {
+      transaction.value = updatedTransaction
+      showAddSplit.value = false
+    }
   } catch (err) {
     splitError.value = handleApiError(err, 'Add Split Failed', 'Failed to add split')
     showSplitError.value = true
@@ -231,7 +251,7 @@ function formatCurrency(amount: number | undefined): string {
           <button
             class="btn btn-primary me-2"
             data-test-id="edit-button"
-            :disabled="loading || !ready"
+            :disabled="loading || !ready || splitOperationActive"
             @click="startEditing"
           >
             <FeatherIcon
@@ -244,7 +264,7 @@ function formatCurrency(amount: number | undefined): string {
           <button
             class="btn btn-outline-danger"
             data-test-id="delete-button"
-            :disabled="loading"
+            :disabled="loading || splitOperationActive"
             @click="openDeleteModal"
           >
             <FeatherIcon
@@ -409,7 +429,7 @@ function formatCurrency(amount: number | undefined): string {
               class="btn btn-sm btn-outline-primary"
               type="button"
               data-test-id="add-split-button"
-              :disabled="splitSaving"
+              :disabled="splitOperationActive"
               @click="openAddSplit"
             >
               <FeatherIcon
@@ -560,22 +580,14 @@ function formatCurrency(amount: number | undefined): string {
                   <td style="white-space: pre-wrap">{{ split.memo || '' }}</td>
                   <td
                     v-if="canEditTransactions"
-                    class="text-end"
+                    class="text-end row-actions"
                   >
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-secondary border-0"
-                      aria-label="Edit split"
-                      title="Edit split"
-                      :disabled="splitSaving"
-                      :data-test-id="`edit-split-${split.key}`"
-                      @click="openEditSplit(split)"
-                    >
-                      <FeatherIcon
-                        icon="edit"
-                        size="18"
-                      />
-                    </button>
+                    <EditDeleteDropdown
+                      :aria-label="`Actions for split ${split.category || 'Uncategorized'}, ${formatCurrency(split.amount)}`"
+                      :disabled="splitOperationActive"
+                      @edit="openEditSplit(split)"
+                      @delete="openDeleteSplit(split)"
+                    />
                   </td>
                 </tr>
               </tbody>
@@ -597,6 +609,16 @@ function formatCurrency(amount: number | undefined): string {
       v-if="transaction?.key && currentTenantKey && showEditSplit"
       :key="`${currentTenantKey}:${transaction.key}`"
       v-model:show="showEditSplit"
+      :tenant-key="currentTenantKey"
+      :transaction-key="transaction.key"
+      :split="selectedSplit"
+      @updated="handleTransactionUpdated"
+    />
+
+    <TransactionDeleteSplitDialog
+      v-if="transaction?.key && currentTenantKey && showDeleteSplit"
+      :key="`${currentTenantKey}:${transaction.key}`"
+      v-model:show="showDeleteSplit"
       :tenant-key="currentTenantKey"
       :transaction-key="transaction.key"
       :split="selectedSplit"
@@ -630,6 +652,11 @@ function formatCurrency(amount: number | undefined): string {
 </template>
 
 <style scoped>
+.row-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .workspace-selector-container {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;

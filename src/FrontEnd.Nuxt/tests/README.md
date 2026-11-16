@@ -77,6 +77,10 @@ calls are made and these events are emitted. Use `@vue/test-utils` `mount()` wit
   split editor's API and event contracts, validation, draft lifecycle, and save/cancel guards.
 - [`transaction-edit-pane.test.ts`](transaction-edit-pane.test.ts) — Verifies that full transaction
   editing hides and omits the category for multi-split transactions while preserving single-split editing.
+- [`transaction-delete-split.test.ts`](transaction-delete-split.test.ts) — Verifies deletion
+  confirmation, request/result contracts, error/retry behavior, pending guards, and stale responses.
+- [`edit-delete-dropdown.test.ts`](edit-delete-dropdown.test.ts) — Verifies shared row action events,
+  accessible labels, disabled controls, and delegation to the dropdown lifecycle.
 
 ### ❌ What does NOT belong here
 

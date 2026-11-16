@@ -42,6 +42,7 @@ const showError = ref(false)
 const categoryInput = ref<HTMLInputElement | null>(null)
 const formData = ref({ amount: '', category: '', memo: '' })
 const validationErrors = ref<Partial<Record<'Amount' | 'Category' | 'Memo', string[]>>>({})
+let active = true
 
 watch(
   () => [props.show, props.split] as const,
@@ -109,6 +110,9 @@ async function save() {
   if (!validateForm()) return
 
   loading.value = true
+  const tenantKey = props.tenantKey
+  const transactionKey = props.transactionKey
+  const splitKey = props.split.key
   try {
     const updated = await transactionsClient.updateSplit(
       props.transactionKey,
@@ -120,6 +124,14 @@ async function save() {
         memo: formData.value.memo || undefined,
       }),
     )
+    if (
+      !active ||
+      props.tenantKey !== tenantKey ||
+      props.transactionKey !== transactionKey ||
+      props.split?.key !== splitKey ||
+      !props.show
+    )
+      return
     emit('updated', updated)
     emit('update:show', false)
   } catch (err) {
@@ -138,7 +150,10 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 onMounted(() => document.addEventListener('keydown', handleKeydown))
-onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => {
+  active = false
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>

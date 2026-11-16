@@ -250,8 +250,26 @@ Coverage is in
 [`TransactionSplitDeleteTests.cs`](../../../tests/Integration.Application/TransactionSplitDeleteTests.cs)
 and
 [`TransactionSplitDeleteControllerTests.cs`](../../../tests/Integration.Controller/TransactionSplitDeleteControllerTests.cs).
-The generated TypeScript client exposes `deleteSplit`; frontend menu and
-confirmation-dialog implementation remain separate work.
+The generated TypeScript client exposes `deleteSplit`.
+
+### Frontend implementation
+
+[`EditDeleteDropdown.vue`](../../../src/FrontEnd.Nuxt/app/components/EditDeleteDropdown.vue)
+now supplies the shared borderless action menu for Payee Rules and split rows.
+Menu clicks retain Bootstrap's event delegation so choosing an action,
+opening another menu, or clicking outside closes the previous menu.
+
+[`DeleteSplitDialog.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/DeleteSplitDialog.vue)
+owns confirmation, the generated delete request, loading guards, and errors.
+It initially focuses Cancel and ignores responses after unmount or a context
+change. The transaction page replaces detail from the server result and
+automatically restores single-category display after a two-to-one deletion.
+Split operation controls exclude overlapping additions, edits, and deletions.
+
+Component coverage is in
+[`transaction-delete-split.test.ts`](../../../src/FrontEnd.Nuxt/tests/transaction-delete-split.test.ts)
+and
+[`edit-delete-dropdown.test.ts`](../../../src/FrontEnd.Nuxt/tests/edit-delete-dropdown.test.ts).
 
 ### Application integration
 
