@@ -1,839 +1,500 @@
-# Detailed Design: Reports Export API
+---
+status: In Review (Revised)
+target_release: Beta 2
+ado: Feature 2208
+prd: PRD-EXPORT-API.md
+---
 
-**Status:** Design Document
-**Date:** 2025-12-23
-**Related:** [`PRD-EXPORT-API.md`](PRD-EXPORT-API.md)
+# Design: Reports Export API
 
 ## Overview
 
-This document provides the detailed technical design for the Reports Export API feature, which enables Excel users to connect directly to YoFi's API to retrieve report data using API key authentication.
+Enable desktop Excel users to refresh YoFi's existing built-in reports using
+user-scoped, read-only API keys and a provided Power Query template. The normal
+reports controller and report aggregation already exist. Add one API-key-only
+export action to that controller; do not introduce a second report engine, a
+flat-data response, or change the web UI's existing endpoints.
 
-**Key Design Decisions:**
-- User-scoped API keys (one key for all workspaces)
-- Custom authentication scheme (not middleware)
-- Reports endpoints follow tenant-scoped URL pattern: `/api/tenant/{key}/reports/*`
-- Array-of-objects JSON format for Excel compatibility
+The [export PRD](PRD-EXPORT-API.md) defines the product requirements. This
+revised design replaces the earlier proposal for `/spending/by-category`,
+arbitrary date ranges, and root-level flat JSON.
 
----
+## Existing implementation
 
-## Architecture
+[`ReportsController`](../../../src/Controllers/ReportsController.cs) has:
 
-### System Context
+| Method and route | Existing response | Purpose |
+| --- | --- | --- |
+| `GET /api/tenant/{tenantKey}/reports/available` | Array of `ReportDefinitionDto` | Built-in catalog |
+| `GET /api/tenant/{tenantKey}/reports/years` | `ReportYearsDto` object | Workspace years and default year |
+| `GET /api/tenant/{tenantKey}/reports/{reportId}?year=2026` | `ReportResultDto` object | One report for a calendar year |
 
-```mermaid
-graph TB
-    Excel[Excel Power Query] -->|Bearer: api_key| ReportAPI[Reports Controller]
-    ReportAPI -->|Authenticates| AuthHandler[API Key Auth Handler]
-    AuthHandler -->|Sets Claims| AuthZ[TenantRoleHandler]
-    AuthZ -->|Authorizes| TenantMW[Tenant Context Middleware]
-    TenantMW --> Controller[Controller Action]
-    Controller --> ReportsFeature[Reports Feature]
-    ReportsFeature --> Data[Data Layer]
+These are already protected by the Viewer tenant-role policy. `year` is
+optional and defaults to the current UTC year; the supported range is 1 through
+9999. Unknown report IDs return 404, and invalid years return 400. Discovery
+returns IDs, names, and display settings, not descriptions or example URLs.
+The [DTO definitions](../../../src/Application/Dto/ReportsDto.cs) and
+[`ReportsFeature`](../../../src/Application/Features/ReportsFeature.cs) are
+the source of truth.
 
-    User[User] -->|Manages via UI| ApiKeysController[API Keys Controller]
-    ApiKeysController -->|CRUD| ApiKeyService[API Key Service]
-    ApiKeyService -->|Hash/Validate| Database[(Database)]
-    AuthHandler -->|Validates| ApiKeyService
+Report results have `id`, `name`, `categoryRoot`, `year`, `hasMonthColumns`,
+`rows`, and `totals`. Each row includes `categoryPath`, `categoryName`, `depth`,
+`isSubtotal`, `annualTotal`, and `percentage`. Detail reports also include a
+12-element `monthlyAmounts` array, January first; it is omitted when month
+columns are hidden. The same applies to monthly totals. Percentage is a signed
+fraction of the report total, and is null when that total is zero.
 
-    style ReportAPI fill:#90EE90
-    style AuthHandler fill:#FFD700
-    style ApiKeysController fill:#87CEEB
-```
+Rows mirror the built-in report, not individual transactions. Parent subtotal
+rows include descendants, so summing every row can double-count. Use the
+separately computed `totals` object for the report total. Direct amounts
+assigned to a parent category do not get a separate child row; see the known
+parity gap in [PRD-REPORTS.md](PRD-REPORTS.md). Additionally, amounts assigned
+directly to a report's category root are included in totals but have no
+displayed row. Export must not claim to correct either behavior.
 
-### Request Flow
+For example, a non-detail response can look like:
 
-1. **Excel sends request** with `Authorization: Bearer yofi_user_xxx`
-2. **ApiKeyAuthenticationHandler** validates key, creates claims principal
-3. **Authorization** runs - TenantRoleHandler checks user has access to tenant in URL
-4. **TenantContextMiddleware** sets current tenant context
-5. **ReportsController** action executes
-6. **ReportsFeature** generates report data
-7. **Response** returns JSON array optimized for Excel
-
----
-
-## Data Model
-
-### API Key Entity
-
-```csharp
-namespace YoFi.V3.Entities.Models;
-
-/// <summary>
-/// API key for programmatic access to reports.
-/// </summary>
-public record ApiKey : BaseModel
+```json
 {
-    /// <summary>
-    /// User-friendly name for the key (e.g., "Excel - Home Computer").
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// SHA-256 hash of the API key (never store plaintext).
-    /// </summary>
-    public string KeyHash { get; set; } = string.Empty;
-
-    /// <summary>
-    /// First 8 characters of key for display purposes (e.g., "yofi_use").
-    /// </summary>
-    public string KeyPrefix { get; set; } = string.Empty;
-
-    /// <summary>
-    /// User who owns this API key.
-    /// </summary>
-    public Guid UserId { get; set; }
-
-    /// <summary>
-    /// Scope of access granted by this key.
-    /// </summary>
-    public ApiKeyScope Scope { get; set; }
-
-    /// <summary>
-    /// When the key was created.
-    /// </summary>
-    public DateTimeOffset CreatedAt { get; set; }
-
-    /// <summary>
-    /// Last time the key was used (updated on each request).
-    /// </summary>
-    public DateTimeOffset? LastUsedAt { get; set; }
-
-    /// <summary>
-    /// Whether the key is active (soft delete via this flag).
-    /// </summary>
-    public bool IsActive { get; set; } = true;
-}
-
-/// <summary>
-/// Access scope for API keys.
-/// </summary>
-public enum ApiKeyScope
-{
-    /// <summary>
-    /// Read-only access to report endpoints only.
-    /// </summary>
-    ReadOnlyReports = 1
-}
-```
-
-**Design Notes:**
-- User-scoped (no TenantId field) - one key works for all user's tenants
-- SHA-256 hash only (no salt needed - keys have 128+ bits entropy)
-- Soft delete via IsActive flag (preserves audit history)
-- LastUsedAt updated asynchronously (fire-and-forget, don't block request)
-
-### Database Migration
-
-```sql
-CREATE TABLE ApiKeys (
-    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Key TEXT NOT NULL UNIQUE,
-    Name TEXT NOT NULL,
-    KeyHash TEXT NOT NULL,
-    KeyPrefix TEXT NOT NULL,
-    UserId TEXT NOT NULL,
-    Scope INTEGER NOT NULL DEFAULT 1,
-    CreatedAt TEXT NOT NULL,
-    LastUsedAt TEXT,
-    IsActive INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id) ON DELETE CASCADE
-);
-
-CREATE INDEX IX_ApiKeys_UserId ON ApiKeys(UserId);
-CREATE INDEX IX_ApiKeys_KeyHash ON ApiKeys(KeyHash) WHERE IsActive = 1;
-```
-
----
-
-## Authentication Implementation
-
-### API Key Format
-
-**Format:** `yofi_user_{32_hex_chars}`
-
-**Example:** `yofi_user_9f8e7d6c5b4a3210fedcba9876543210abcdef12`
-
-**Generation:**
-```csharp
-public static string GenerateApiKey()
-{
-    var randomBytes = new byte[16]; // 128 bits
-    using (var rng = RandomNumberGenerator.Create())
+  "id": "income",
+  "name": "Income",
+  "categoryRoot": "Income",
+  "year": 2026,
+  "hasMonthColumns": false,
+  "rows": [
     {
-        rng.GetBytes(randomBytes);
+      "categoryPath": "Income:Salary",
+      "categoryName": "Salary",
+      "depth": 1,
+      "isSubtotal": false,
+      "annualTotal": 1000,
+      "percentage": 1
     }
-    var randomHex = Convert.ToHexString(randomBytes).ToLowerInvariant();
-    return $"yofi_user_{randomHex}";
+  ],
+  "totals": { "annualTotal": 1000 }
 }
 ```
 
-**Hash Storage:**
+## Excel experience
+
+1. A signed-in user creates a named API key in user settings and copies it
+   immediately; it is shown in full only once.
+2. The user copies the workspace key from the existing Workspaces UI and
+   chooses a report ID from the supplied setup guide and a calendar year.
+   The signed-in Reports UI can help identify reports and available years;
+   it does not currently display the report IDs. Neither report nor workspace
+   discovery is accessible using an API key.
+3. The user configures the supplied Power Query template with the server URL,
+   workspace key, report ID, and year. In Excel's Basic authentication dialog,
+   they enter their YoFi username and the API key as the password, not their
+   YoFi account password.
+4. Excel loads a table and refreshes it using the export endpoint.
+   The same key can be used in a separate query for another accessible workspace.
+
+Power Query can consume nested JSON; Microsoft's [JSON connector
+documentation](https://learn.microsoft.com/en-us/power-query/connectors/json)
+describes flattening, and
+[`Table.FromRecords`](https://learn.microsoft.com/en-us/powerquery-m/table-fromrecords)
+converts a list of records into a table. Automatic detection is not a guarantee
+of the desired layout. The provided query must explicitly:
+
+- Extract `rows` and convert it to a table with a stable schema, including for
+  an empty list.
+- Keep category path, category name, depth, subtotal flag, signed annual total,
+  and nullable percentage, with suitable types. Format percentage as a fraction,
+  not a value already multiplied by 100.
+- For reports with months, map the 12 array positions to January through
+  December, preserving numeric types. Handle omitted monthly fields for
+  reports without months; do not treat absent values as zero. Specify and test
+  the resulting column schema consistently in the template.
+- Preserve the report's row order and subtotal flags. Explain why rows must not
+  simply be summed. Offer a separate way to load the authoritative totals and
+  metadata without inserting a fake row into the data table.
+- Refresh the same query, including empty reports and zero-total percentages,
+  without silently suppressing errors or changing its schema.
+
+An illustrative template is a deliverable, not yet an implemented or validated
+workbook. Test it against actual Excel desktop versions and the live API before
+claiming a no-code connection, automatic typing, or unattended refresh.
+
+## Authentication and authorization
+
+### Credential and lifecycle
+
+- Any authenticated user can create, list, and revoke their own named keys.
+  Keys belong to users, not workspaces. Viewer, Editor, and Owner roles govern
+  report access independently in each workspace.
+- Store only a cryptographic hash of a randomly generated, high-entropy secret;
+  return the full secret once on creation. Never put secrets in URLs, logs, or
+  example workbooks. Use TLS. Allow manual revocation without an expiry in
+  Phase 1; a revoked key fails the next request.
+- Store a non-secret identifier, name, owner, creation time, status, and last-used
+  time for management. If a display prefix is used, it must not reveal enough
+  secret material to weaken the key. Restrict key management to normal signed-in
+  authentication; API keys cannot manage keys.
+- Last-used tracking must not use a fire-and-forget task with request-scoped
+  dependencies. Choose a safe, observable update strategy and document its
+  performance and failure semantics during implementation.
+
+### Components to create
+
+The following names and responsibilities are the intended implementation, not
+existing classes. Use HTTP Basic authentication with the username and API key
+for Excel, subject to the validation described below.
+
+| Component | Layer | Responsibility |
+| --- | --- | --- |
+| `ApiKeyAuthenticationHandler` | Controllers authentication | ASP.NET Core authentication handler for the `ApiKey` scheme. Extract Basic credentials, authenticate the key and its owner, obtain current tenant claims, and construct one authenticated principal. |
+| `ApiKeyAuthenticationOptions` | Controllers authentication | Scheme options for the handler, including any Basic challenge configuration. |
+| `ApiKeyFeature` | Application features | Use `IDataProvider` to create, list, revoke, and validate keys. Generate secrets securely, hash and look up presented secrets, enforce key status and ownership, and return a non-secret key ID and owner ID for a valid key. |
+| `ApiKey` | Entities models | Persisted key record with owner ID, secret hash, scope, status, timestamps, and non-secret management data. |
+| `ApiKeyScope` | Entities models | Identify the reports-only scope. Check this scope before accepting a key for report access. |
+| `ApiKeysController` | Controllers | Expose signed-in-user key management, delegate to `ApiKeyFeature`, and return the secret only in the creation response. Never accept API-key authentication on these actions. |
+| `CreateApiKeyDto`, `ApiKeyResultDto`, `ApiKeyCreatedDto` | Application DTOs | Define the create request, secret-free list result, and one-time creation result, respectively. |
+
+Use the existing ASP.NET Core Identity `UserManager<IdentityUser>` in
+`ApiKeyAuthenticationHandler` to load the owner by ID after key validation.
+Reject a missing or ineligible owner. Determine and test what account
+disablement means in this application; do not assume that `IdentityUser` has a
+generic disabled flag. Use the existing
+[`IClaimsEnricher`](../../../src/Controllers/Tenancy/Authorization/IClaimsEnricher.cs)
+and [`TenantClaimsEnricher`](../../../src/Controllers/Tenancy/Authorization/TenantClaimsEnricher.cs)
+to obtain current tenant-role claims for that owner. They query the tenant
+repository and already produce the format required by the role handler.
+
+### Export action and authentication
+
+Register the handler as a named `ApiKey` scheme without changing global
+authentication defaults. Registration belongs in backend setup after the
+existing Identity/NuxtIdentity registration:
+
 ```csharp
-public static string HashApiKey(string apiKey)
-{
-    using var sha256 = SHA256.Create();
-    var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(apiKey));
-    return Convert.ToHexString(hashBytes).ToLowerInvariant();
-}
-```
-
-### Authentication Handler
-
-Register as custom authentication scheme:
-
-```csharp
-// Program.cs
-builder.Services.AddAuthentication()
+services.AddAuthentication()
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
-        "ApiKey",
-        options => { }
-    );
+        "ApiKey", _ => { });
 ```
 
-**Implementation:**
+The existing three report actions remain unchanged and use their existing
+normal web authentication. Add **one** action to `ReportsController`:
 
 ```csharp
-namespace YoFi.V3.Controllers.Authentication;
-
-/// <summary>
-/// Authentication handler for API key Bearer tokens.
-/// </summary>
-public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
-{
-    private readonly IApiKeyService _apiKeyService;
-
-    public ApiKeyAuthenticationHandler(
-        IOptionsMonitor<ApiKeyAuthenticationOptions> options,
-        ILoggerFactory logger,
-        UrlEncoder encoder,
-        IApiKeyService apiKeyService)
-        : base(options, logger, encoder)
-    {
-        _apiKeyService = apiKeyService;
-    }
-
-    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
-        // Extract Authorization header
-        if (!Request.Headers.TryGetValue("Authorization", out var authHeader))
-        {
-            return AuthenticateResult.NoResult();
-        }
-
-        var headerValue = authHeader.ToString();
-        if (!headerValue.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            return AuthenticateResult.NoResult();
-        }
-
-        var apiKey = headerValue.Substring("Bearer ".Length).Trim();
-
-        // Validate API key
-        var keyInfo = await _apiKeyService.ValidateKeyAsync(apiKey);
-        if (keyInfo == null || !keyInfo.IsActive)
-        {
-            return AuthenticateResult.Fail("Invalid or revoked API key");
-        }
-
-        // Create claims principal
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, keyInfo.UserId.ToString()),
-            new Claim("api_key_id", keyInfo.KeyId.ToString()),
-            new Claim("api_key_scope", keyInfo.Scope.ToString())
-        };
-
-        var identity = new ClaimsIdentity(claims, Scheme.Name);
-        var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, Scheme.Name);
-
-        // Track usage (fire-and-forget)
-        _ = _apiKeyService.UpdateLastUsedAsync(keyInfo.KeyId);
-
-        return AuthenticateResult.Success(ticket);
-    }
-}
-
-public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
-{
-    // No custom options needed for Phase 1
-}
-```
-
-### API Key Service
-
-```csharp
-namespace YoFi.V3.Application.Features;
-
-public interface IApiKeyService
-{
-    Task<ApiKeyValidationResult?> ValidateKeyAsync(string apiKey);
-    Task UpdateLastUsedAsync(Guid keyId);
-    Task<ApiKeyCreatedDto> CreateApiKeyAsync(Guid userId, string name, ApiKeyScope scope);
-    Task<IReadOnlyCollection<ApiKeyResultDto>> GetApiKeysForUserAsync(Guid userId);
-    Task RevokeApiKeyAsync(Guid keyId, Guid userId);
-}
-
-public record ApiKeyValidationResult(
-    Guid KeyId,
-    Guid UserId,
-    ApiKeyScope Scope,
-    bool IsActive
-);
-```
-
-**Implementation highlights:**
-- `ValidateKeyAsync` - Hash input key, lookup in database by hash
-- `UpdateLastUsedAsync` - Fire-and-forget update (don't await in request path)
-- `CreateApiKeyAsync` - Generate key, hash it, store hash + prefix, return full key ONCE
-- Authorization check in RevokeApiKeyAsync - only key owner can revoke
-
----
-
-## Authorization
-
-### Reuse Existing TenantRoleHandler
-
-The existing [`TenantRoleHandler`](../../src/Controllers/Tenancy/Authorization/TenantRoleHandler.cs) already supports both JWT and API key authentication because it reads user ID from claims:
-
-```csharp
-// From existing TenantRoleHandler.cs - NO CHANGES NEEDED
-protected override async Task HandleRequirementAsync(
-    AuthorizationHandlerContext context,
-    TenantRoleRequirement requirement)
-{
-    // Works for JWT OR API key - both set ClaimTypes.NameIdentifier
-    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (userId == null)
-    {
-        context.Fail();
-        return;
-    }
-
-    // Extract tenant from route
-    var tenantKey = (Guid?)httpContext.GetRouteData().Values["tenantKey"];
-
-    // Check user's role in this tenant
-    var userRole = await _tenantRepository.GetUserRoleInTenantAsync(userId, tenantKey);
-
-    if (userRole == null || userRole < requirement.MinimumRole)
-    {
-        context.Fail(); // Returns 403
-        return;
-    }
-
-    // Success - set context for downstream middleware
-    httpContext.Items["TenantKey"] = tenantKey;
-    httpContext.Items["TenantRole"] = userRole;
-    context.Succeed(requirement);
-}
-```
-
-**Key Point:** API key authentication sets same claims as JWT authentication, so authorization "just works" with no code changes.
-
----
-
-## API Endpoints
-
-### Reports Controller
-
-```csharp
-namespace YoFi.V3.Controllers;
-
-/// <summary>
-/// Provides read-only access to report data for Excel integration.
-/// </summary>
-/// <param name="reportsFeature">Reports feature service.</param>
-/// <param name="logger">Logger for diagnostic output.</param>
-[Route("api/tenant/{tenantKey:guid}/reports")]
-[ApiController]
+[HttpGet("{reportId}/export")]
 [Authorize(AuthenticationSchemes = "ApiKey")]
 [RequireTenantRole(TenantRole.Viewer)]
-public partial class ReportsController(
-    IReportsFeature reportsFeature,
-    ILogger<ReportsController> logger) : ControllerBase
+public async Task<IActionResult> ExportReport(
+    string reportId,
+    [FromQuery] int? year = null)
 {
-    /// <summary>
-    /// Get spending summary grouped by category.
-    /// </summary>
-    /// <param name="tenantKey">Tenant identifier from route.</param>
-    /// <param name="fromDate">Start date for report (inclusive).</param>
-    /// <param name="toDate">End date for report (inclusive).</param>
-    /// <returns>Array of category spending summaries.</returns>
-    [HttpGet("spending/by-category")]
-    [ProducesResponseType(typeof(IReadOnlyCollection<CategorySummaryDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetSpendingByCategory(
-        [FromRoute] Guid tenantKey,
-        [FromQuery] DateOnly fromDate,
-        [FromQuery] DateOnly toDate)
-    {
-        LogStarting();
-
-        // ReportsFeature uses ITenantProvider to access current tenant
-        var report = await reportsFeature.GetSpendingByCategoryAsync(fromDate, toDate);
-
-        LogOk();
-        return Ok(report);
-    }
-
-    /// <summary>
-    /// Get list of available report types for discovery.
-    /// </summary>
-    [HttpGet("available")]
-    [ProducesResponseType(typeof(IReadOnlyCollection<ReportMetadataDto>), StatusCodes.Status200OK)]
-    public IActionResult GetAvailableReports([FromRoute] Guid tenantKey)
-    {
-        LogStarting();
-
-        var reports = reportsFeature.GetAvailableReportTypes();
-
-        LogOk();
-        return Ok(reports);
-    }
-
-    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
-    private partial void LogStarting([CallerMemberName] string? location = null);
-
-    [LoggerMessage(2, LogLevel.Information, "{Location}: OK")]
-    private partial void LogOk([CallerMemberName] string? location = null);
+    LogStartingReport(reportId);
+    var result = await reportsFeature.GetReportAsync(reportId, year);
+    LogOkReport(reportId, result.Rows.Count);
+    return Ok(result);
 }
 ```
 
-### API Keys Management Controller
+The new route is `GET /api/tenant/{tenantKey}/reports/{reportId}/export?year=2026`.
+It returns the same `ReportResultDto`, with the same optional year default,
+validation, 400/404 errors, and report semantics as the existing report action.
+Add equivalent response metadata, logging, and tests. The action has no
+discovery or special data transformation logic.
 
-```csharp
-namespace YoFi.V3.Controllers;
+`[Authorize]` selects only the `ApiKey` scheme and adds an authenticated-user
+requirement; `[RequireTenantRole]` adds the Viewer requirement. Neither normal
+JWTs nor cookies can authorize this endpoint. API keys do not authorize any of
+the existing report actions. Verify this with real-handler tests because
+ASP.NET Core combines authorization metadata and may run other schemes if
+they are added to the resulting policy. The handler returns no result for
+missing or non-Basic credentials and fails malformed, invalid, or revoked
+Basic credentials, including duplicate or combined authorization headers.
+Provide the appropriate 401 challenge and 403 forbid behavior. Preserve the
+authorization-before-tenancy middleware order.
 
-/// <summary>
-/// Manages API keys for programmatic access to reports.
-/// </summary>
-/// <param name="apiKeyFeature">API key feature service.</param>
-/// <param name="logger">Logger for diagnostic output.</param>
-[Route("api/user/apikeys")]
-[ApiController]
-[Authorize] // JWT authentication only (not API key)
-public partial class ApiKeysController(
-    IApiKeyFeature apiKeyFeature,
-    ILogger<ApiKeysController> logger) : ControllerBase
-{
-    /// <summary>
-    /// List all API keys for current user.
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyCollection<ApiKeyResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetApiKeys()
-    {
-        LogStarting();
+### API-key request flow
 
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var keys = await apiKeyFeature.GetApiKeysAsync(userId);
+1. `ApiKeyAuthenticationHandler` parses a Basic authorization
+   header as username and API-key password. Missing credentials produce no
+   authentication result; malformed or invalid credentials fail authentication.
+   `ApiKeyFeature` hashes the presented API key, looks it up using
+   `IDataProvider`, and checks that it is active and has the reports-only
+   scope. It returns the key ID and owner ID, never the stored hash or secret.
+2. The handler uses `UserManager<IdentityUser>` to retrieve the key's owner and
+   checks account eligibility. Compare the supplied username against that owner's
+   username using the application's Identity username normalization rules;
+   reject a mismatch. Do not authenticate an account password here. It asks
+   `IClaimsEnricher` for the owner's current tenant-role claims and builds a
+   single principal containing those claims, `ClaimTypes.NameIdentifier`, and
+   non-secret key ID and scope claims. Membership is loaded on every request,
+   not when the key is created.
+3. Authorization executes the existing Viewer policy. `TenantRoleHandler`
+   compares the URL's `tenantKey` with this principal's `tenant_role` claims.
+   It does not look up the user, key, or memberships. On success it records
+   the tenant key and role in `HttpContext.Items`.
+4. `TenantContextMiddleware` uses the authorized tenant key to establish the
+   tenant context; `ReportsController` then calls the existing `ReportsFeature`.
+   A failed credential is 401; a valid owner without the required role is 403.
 
-        LogOk();
-        return Ok(keys);
-    }
+The key record and account checks are distinct from membership lookup: owning
+an active key identifies a user but does not confer access to any workspace.
+Data access errors must not be interpreted as valid credentials or an empty
+membership list; fail the request observably without exposing secrets.
 
-    /// <summary>
-    /// Create new API key.
-    /// </summary>
-    /// <remarks>
-    /// The full API key is returned ONLY in this response. User must save it immediately.
-    /// </remarks>
-    [HttpPost]
-    [ProducesResponseType(typeof(ApiKeyCreatedDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateApiKey([FromBody] CreateApiKeyDto dto)
-    {
-        LogStarting();
+### API-key entity and database schema
 
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await apiKeyFeature.CreateApiKeyAsync(userId, dto.Name, dto.Scope);
+Create `ApiKey` as an Entities model derived from
+[`BaseModel`](../../../src/Entities/Models/BaseModel.cs). It is user-scoped:
+there is no tenant ID, and the key's owner gains access only through current
+workspace memberships. The proposed `ApiKeys` table has these fields:
 
-        LogOkKey(result.Key);
-        return CreatedAtAction(nameof(GetApiKeys), new { }, result);
-    }
+| Field | Type | Constraints and purpose |
+| --- | --- | --- |
+| `Id` | `int` | Internal primary key, inherited from `BaseModel`. |
+| `Key` | `Guid` | Required, unique, non-secret public record identifier, inherited from `BaseModel`. Used for management and diagnostics; it is **not** the API secret. |
+| `UserId` | `string` | Required foreign key to ASP.NET Identity's user ID; use the same representation as existing `UserTenantRoleAssignment.UserId`. |
+| `Name` | `string` | Required user-facing label; reject whitespace-only names and limit to 128 characters. |
+| `KeyHash` | `string` | Required, unique 64-character lowercase hexadecimal SHA-256 digest of the complete secret. Never store the secret itself. |
+| `Scope` | `ApiKeyScope` | Required; `ReadOnlyReports = 1` is the only supported value initially. Reject unknown values rather than granting access. |
+| `CreatedAt` | `DateTimeOffset` | Required UTC creation timestamp. |
+| `LastUsedAt` | `DateTimeOffset?` | Nullable UTC timestamp; null until usage is recorded. Update strategy and freshness are operational decisions below. |
+| `IsActive` | `bool` | Required; true at creation and false after revocation. |
 
-    /// <summary>
-    /// Revoke API key (soft delete).
-    /// </summary>
-    [HttpDelete("{keyId:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RevokeApiKey(Guid keyId)
-    {
-        LogStartingKey(keyId);
+Generate each secret with a cryptographically secure random number generator:
+32 random bytes encoded as lowercase hexadecimal, preceded by the fixed
+`yofi_user_` marker. Hash the entire UTF-8 encoded secret including the marker
+with SHA-256. These randomly generated keys have sufficient entropy for a fast
+digest; do not use this scheme for user-chosen passwords. Validate the marker,
+length, and encoding before lookup. Handle a unique-hash collision by generating
+a new secret, never by overwriting an existing key.
 
-        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        await apiKeyFeature.RevokeApiKeyAsync(keyId, userId);
+Do not store or display any part of the random secret as a prefix. The fixed
+marker is the same for every key and cannot distinguish them. Use the
+non-secret `Key` identifier and the user-provided name in the management UI.
+The full secret is returned only at creation; list and revoke responses must
+not include `KeyHash` or the secret.
 
-        LogOkKey(keyId);
-        return NoContent();
-    }
+Configure these constraints in **both** the SQLite and PostgreSQL data contexts
+and generate their normal provider-specific migrations:
 
-    [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
-    private partial void LogStarting([CallerMemberName] string? location = null);
+- Unique indexes on `Key` and `KeyHash`, including revoked keys; an index on
+  `UserId` supports owner-scoped listing and management. Validate that hash
+  comparison and uniqueness behave consistently across both providers.
+- Required owner foreign key to `AspNetUsers.Id`, with cascade deletion when
+  the owner is deleted. This removes the user's key records as well; soft
+  revocation preserves records only while the owner exists.
+- Require the appropriate non-null fields and configure the name and hash
+  lengths. Enforce input and enum validation in the application as well as
+  applicable database constraints; do not rely on provider-specific length
+  enforcement alone.
+- Revocation sets `IsActive` to false rather than deleting the record.
+  Validation reads current status on each request; no cache may delay the
+  next-request revocation guarantee.
 
-    [LoggerMessage(2, LogLevel.Debug, "{Location}: Starting {Key}")]
-    private partial void LogStartingKey(Guid key, [CallerMemberName] string? location = null);
+`LastUsedAt` is informational, not the authority for access or revocation.
+Key creation and revocation must be persisted before returning success. Add
+integration tests for both database providers covering schema constraints,
+owner-scoped access, key hash lookup, revocation, and owner deletion.
 
-    [LoggerMessage(3, LogLevel.Information, "{Location}: OK")]
-    private partial void LogOk([CallerMemberName] string? location = null);
+### Excel Basic authentication: validation gate
 
-    [LoggerMessage(4, LogLevel.Information, "{Location}: OK {Key}")]
-    private partial void LogOkKey(Guid key, [CallerMemberName] string? location = null);
-}
-```
+Use the [Power Query Web connector's Basic
+authentication](https://learn.microsoft.com/en-us/power-query/connectors/web/web),
+with the YoFi username as the username and the personal API key as the password.
+The key is a credential, not the user's YoFi account password. Basic encodes
+credentials but does not encrypt them; require HTTPS end-to-end and do not
+expose a Basic challenge or accept a credential over plain HTTP. Never record
+the authorization header, username and key pair, or key in URLs or logs.
 
----
+Do not use the Web API option for this design: Microsoft's
+[`Web.Contents` documentation](https://learn.microsoft.com/en-us/powerquery-m/web-contents)
+describes `ApiKeyName` as sending the key in a URL query parameter, contrary to
+the no-secrets-in-URLs requirement.
 
-## DTOs
+Validate the chosen flow in supported desktop Excel versions: create the query,
+set Basic credentials, refresh after reopening, rotate/revoke the key, and
+inspect where credentials are stored and how their data-source scope applies to
+multiple workspaces. Confirm the secret is not embedded in a shareable
+workbook or M query. Record platform/version results and limitations. The
+user's experience with another service supports the approach, but does not
+verify YoFi's implementation. If the tests fail, revisit the approach rather
+than silently weakening secret handling.
 
-### Report DTOs
+### Endpoint and tenant access
 
-```csharp
-namespace YoFi.V3.Application.Dto;
+- Preserve normal web authentication on the existing report actions. API keys
+  authenticate only the new read-only export action, with an explicit
+  reports-only scope. The existing catalog, years, and report actions,
+  `GET /api/tenant`, key management, writes, and other endpoints do not accept
+  API keys.
+- Do not set the API key scheme as a global default or replace existing normal
+  authentication. Apply the API-key scheme to the export action only and
+  verify normal JWT and API-key requests through the real pipeline.
+- The existing
+  [`TenantRoleHandler`](../../../src/Controllers/Tenancy/Authorization/TenantRoleHandler.cs)
+  checks `tenant_role` claims of the form `{tenantKey}:{role}` and sets the
+  validated context; it does **not** look up membership using the user ID.
+  The API key principal carries the authenticated owner's current tenant-role
+  claims, obtained through `IClaimsEnricher` on each request. Setting only
+  `NameIdentifier` is insufficient. Do not copy stale claims at key creation.
+  Preserve normal JWT behavior and the authorization-before-tenancy pipeline.
+- An invalid, missing, or revoked key must be rejected with 401; an authenticated
+  key whose owner lacks Viewer access to the requested workspace must receive
+  403. Removing or changing the owner's membership affects the next key request.
+  Avoid allowing one identity's key and another identity's role claims to combine.
+- User and key revocation/disablement checks must use current authoritative
+  state. Any cache must preserve the next-request revocation guarantees.
 
-/// <summary>
-/// Category spending summary for Excel reports.
-/// </summary>
-public record CategorySummaryDto(
-    string Category,
-    decimal Amount,
-    decimal PercentTotal,
-    int TransactionCount
-);
+## API-key management and persistence
 
-/// <summary>
-/// Metadata about available reports for discovery.
-/// </summary>
-public record ReportMetadataDto(
-    string Id,
-    string Name,
-    string Description,
-    string ExampleUrl
-);
-```
+Add a user-level key-management API and UI following the existing controller,
+feature, data-provider, and identity patterns. Validate names and impose
+reasonable key-count bounds. Persist schema changes via the project's normal
+migrations, rather than a database-specific SQL sketch.
 
-### API Key Management DTOs
+`ApiKeyFeature` queries `ApiKey` records through `IDataProvider`, filtering by
+owner for management operations and by hash for authentication. It adds and
+updates records and saves changes using the existing provider pattern. Register
+the entity in both data contexts; no dedicated key repository is needed.
 
-```csharp
-namespace YoFi.V3.Application.Dto;
+### `ApiKeysController` contract
 
-/// <summary>
-/// API key information (excludes actual key).
-/// </summary>
-public record ApiKeyResultDto(
-    Guid Key,
-    string Name,
-    string KeyPrefix,
-    ApiKeyScope Scope,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? LastUsedAt,
-    bool IsActive
-);
+The proposed controller route is `api/user/apikeys`, as in the earlier design.
+It is **not yet implemented**. Every action requires normal signed-in
+authentication, never Basic API-key authentication. It obtains the user ID from
+the authenticated principal, not the request body or URL. Any authenticated
+user may manage their own keys; no workspace or workspace-owner role is
+required. The controller delegates to `ApiKeyFeature`, which applies the owner
+filter to every operation.
 
-/// <summary>
-/// Response when API key is created (includes full key).
-/// </summary>
-/// <remarks>
-/// The ApiKey field contains the full key and is returned ONLY ONCE.
-/// </remarks>
-public record ApiKeyCreatedDto(
-    Guid Key,
-    string Name,
-    string ApiKey,
-    ApiKeyScope Scope,
-    DateTimeOffset CreatedAt
-);
+| Method and route | Action | Success |
+| --- | --- | --- |
+| `GET /api/user/apikeys` | List the current user's keys, including revoked keys. | `200 OK`, array of `ApiKeyResultDto` |
+| `POST /api/user/apikeys` | Create a named, reports-only key for the current user. | `201 Created`, `ApiKeyCreatedDto` with the one-time secret |
+| `DELETE /api/user/apikeys/{key:guid}` | Revoke the current user's key identified by its non-secret public `Key`. | `204 No Content` |
 
-/// <summary>
-/// Request to create new API key.
-/// </summary>
-public record CreateApiKeyDto(
-    [NotWhiteSpace] string Name,
-    ApiKeyScope Scope = ApiKeyScope.ReadOnlyReports
-);
-```
+#### List keys
 
----
+`GET /api/user/apikeys` returns an empty array when the user has no keys. Each
+`ApiKeyResultDto` contains `key`, `name`, `scope`, `createdAt`, nullable
+`lastUsedAt`, and `isActive`. `key` is the record's public GUID, not the secret.
+The response contains neither the secret nor `keyHash`. Including inactive keys
+lets the UI show their revoked status.
 
-## Security
-
-### Rate Limiting
-
-**Configuration:**
-```csharp
-// Program.cs
-builder.Services.AddRateLimiter(options =>
-{
-    options.AddFixedWindowLimiter("ApiKeyPolicy", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 100;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0; // No queueing
-    });
-});
-```
-
-**Application:**
-```csharp
-[EnableRateLimiting("ApiKeyPolicy")]
-public class ReportsController : ControllerBase
-{
-    // All endpoints rate-limited
-}
-```
-
-### Audit Logging
-
-**What to Log:**
-- API key usage (key ID, user ID, endpoint, timestamp, IP address, status code)
-- API key lifecycle events (created, revoked)
-- Authentication failures
-
-**Implementation:**
-```csharp
-// In ApiKeyAuthenticationHandler.HandleAuthenticateAsync
-Logger.LogInformation(
-    "API key {KeyId} used by user {UserId} from {IpAddress} for {Path}",
-    keyInfo.KeyId,
-    keyInfo.UserId,
-    httpContext.Connection.RemoteIpAddress,
-    httpContext.Request.Path
-);
-```
-
-### Scope Enforcement
-
-**Authorization Policy:**
-```csharp
-// Program.cs
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("ReadOnlyReports", policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireClaim("api_key_scope", ApiKeyScope.ReadOnlyReports.ToString());
-    });
-});
-```
-
-**Future Enhancement:** Create authorization handler that checks scope matches endpoint type.
-
----
-
-## Testing Strategy
-
-### Unit Tests
-
-**`ApiKeyServiceTests`:**
-- `GenerateApiKey_ReturnsValidFormat()` - Validates format `yofi_user_{32hex}`
-- `HashApiKey_ProducesSameHashForSameInput()` - Deterministic hashing
-- `ValidateKey_InvalidKey_ReturnsNull()` - Handles bad keys gracefully
-- `ValidateKey_RevokedKey_ReturnsInactive()` - Soft delete check
-
-### Integration Tests
-
-**`ApiKeyAuthenticationTests`:**
-- `Authenticate_ValidKey_SetsUserClaims()` - Claims principal created correctly
-- `Authenticate_InvalidKey_Returns401()` - Authentication fails
-- `Authenticate_RevokedKey_Returns401()` - Inactive keys rejected
-- `Authenticate_MissingBearer_ReturnsNoResult()` - Allows fallback to JWT
-
-**`ReportsControllerTests`:**
-- `GetSpendingByCategory_ValidApiKey_ReturnsData()` - End-to-end with API key
-- `GetSpendingByCategory_WrongTenant_Returns403()` - Tenant isolation
-- `GetSpendingByCategory_ViewerRole_Succeeds()` - Role-based access
-- `GetSpendingByCategory_NoApiKey_Returns401()` - Authentication required
-
-### Functional Tests
-
-**`ExcelIntegrationTests.feature`:**
-```gherkin
-Scenario: User creates API key and accesses report from Excel
-  Given a user is authenticated in YoFi web UI
-  When they navigate to User Settings → API Keys
-  And they click "Generate New API Key"
-  And they provide name "Excel Test"
-  Then they see the full API key displayed once
-  And they can copy the API key
-
-  When they make HTTP GET request to "/api/tenant/{tenantKey}/reports/spending/by-category"
-  And they provide Authorization header with Bearer token
-  And they provide fromDate and toDate query parameters
-  Then they receive 200 OK response
-  And response contains JSON array of category summaries
-  And each item has category, amount, percentTotal, transactionCount fields
-```
-
----
-
-## Data Format Specification
-
-### Excel-Optimized JSON
-
-**Format:** Array of flat objects (no nesting)
-
-**Example Response:**
 ```json
 [
   {
-    "category": "Groceries",
-    "amount": 1234.56,
-    "percentTotal": 23.45,
-    "transactionCount": 42
-  },
-  {
-    "category": "Utilities",
-    "amount": 456.78,
-    "percentTotal": 8.67,
-    "transactionCount": 12
+    "key": "4b89ea80-621c-44c8-9d6f-76b0a95efcc7",
+    "name": "Excel - Home Computer",
+    "scope": 1,
+    "createdAt": "2026-01-15T10:30:00Z",
+    "lastUsedAt": null,
+    "isActive": true
   }
 ]
 ```
 
-**Requirements:**
-- ✅ Array at root level (no wrapper object)
-- ✅ Flat objects (no nested properties)
-- ✅ camelCase property names
-- ✅ Numeric types for numbers (not strings)
-- ✅ ISO 8601 dates: `"2024-01-15"` or `"2024-01-15T10:30:00Z"`
+#### Create a key
 
-**What Excel Does:**
-1. Loads JSON array
-2. Creates table with columns from object keys
-3. Auto-detects types (string, decimal, date)
-4. User can sort, filter, pivot, chart immediately
+`POST /api/user/apikeys` accepts `CreateApiKeyDto` with a required `name`.
+Reject null, whitespace-only, and over-128-character names with `400` and the
+API's normal validation response. The initial scope is always
+`ReadOnlyReports` (`1`); the client does not choose or expand the scope.
+Enforce the eventual key-count limit before creating a record.
 
----
+```json
+{ "name": "Excel - Home Computer" }
+```
 
-## Configuration
+After persisting the key record, return `201 Created` with
+`ApiKeyCreatedDto`: `key`, `name`, `scope`, `createdAt`, and `apiKey`. The
+`apiKey` property contains the generated secret **only in this response**;
+the illustrative placeholder below is not a valid key.
 
-### Service Registration
-
-```csharp
-// Program.cs
-
-// Authentication
-builder.Services.AddAuthentication()
-    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>("ApiKey", options => { });
-
-// Services
-builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
-builder.Services.AddScoped<IApiKeyFeature, ApiKeyFeature>();
-
-// Rate limiting
-builder.Services.AddRateLimiter(options =>
+```json
 {
-    options.AddFixedWindowLimiter("ApiKeyPolicy", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 100;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-    });
-});
-
-// Middleware pipeline order
-app.UseAuthentication();     // JWT + API Key
-app.UseAuthorization();      // TenantRoleHandler
-app.UseTenancy();            // TenantContextMiddleware
-app.UseRateLimiter();
-app.MapControllers();
+  "key": "4b89ea80-621c-44c8-9d6f-76b0a95efcc7",
+  "name": "Excel - Home Computer",
+  "scope": 1,
+  "createdAt": "2026-01-15T10:30:00Z",
+  "apiKey": "<one-time-secret>"
+}
 ```
 
----
+Set `Location` to the collection URL `/api/user/apikeys`: no individual
+key-read endpoint is proposed. Send `Cache-Control: no-store` on the creation
+response. The UI shows the secret once and warns the user to copy it; if it is
+lost, create another key. Never log the body or secret.
 
-## Excel User Documentation
+#### Revoke a key
 
-### Setup Guide
+`DELETE /api/user/apikeys/{key:guid}` changes `IsActive` to false and returns
+`204` only after the change is persisted. Repeating the request for an already
+revoked key owned by the caller also returns `204`. A nonexistent key or one
+owned by another user returns `404`, without disclosing which case occurred.
+Revocation immediately prevents use on the next API-key request; it does not
+revoke normal web sessions or other keys.
 
-**Step 1: Generate API Key**
-1. Log into YoFi web UI
-2. Navigate to User Settings → API Keys
-3. Click "Generate New API Key"
-4. Name: "Excel Integration"
-5. Copy the key immediately (shown only once)
+All three endpoints return `401` without normal authentication and `500` for
+unexpected server errors, following existing API error conventions. The create
+action also returns `400` for invalid input or an exceeded key-count limit.
+Specify that limit before implementation rather than silently choosing one.
+Integration tests must cover owner isolation, response shapes and status codes,
+one-time secret exposure, repeated revocation, and rejection of API keys for
+all management actions.
 
-**Step 2: Configure Excel**
-1. Excel → Data tab → Get Data → From Web
-2. URL: `https://api.yofi.app/api/tenant/{WORKSPACE-ID}/reports/spending/by-category?fromDate=2024-01-01&toDate=2024-12-31`
-3. Choose Advanced
-4. Add HTTP header:
-   - Name: `Authorization`
-   - Value: `Bearer {YOUR-API-KEY}`
-5. Click OK
+Keep application logic dependent on Entities abstractions; infrastructure
+implements persistence and hashing dependencies as appropriate. Do not log
+secrets or sensitive user data. API-boundary diagnostics must follow
+[LOGGING-POLICY.md](../../LOGGING-POLICY.md) and use `LoggerMessage` methods.
 
-**Step 3: Refresh Data**
-- Excel remembers your API key
-- Click "Refresh All" to update
-- Set up automatic refresh schedule if desired
+## Rate limiting and operational behavior
 
-**Finding Workspace ID:**
-```
-GET https://api.yofi.app/api/user/tenants
-Authorization: Bearer {YOUR-API-KEY}
+Apply the PRD targets of 100 requests per minute and 1,000 per hour **per API
+key**, enforcing both limits. Return 429 when exceeded, with a useful retry
+indication. A single unpartitioned fixed-window policy would not satisfy the
+per-key requirement. Rate-limit only the intended API key requests without
+changing normal web report traffic. Determine placement after authentication
+and before report execution; test 401, 403, 429, and tenant context behavior
+with the actual middleware pipeline. An in-memory implementation is per
+instance, not a deployment-wide guarantee; select and validate a shared store
+if multiple instances must enforce the limits globally.
 
-Returns:
-[
-  { "key": "abc-123", "name": "Personal", "role": "Owner" },
-  { "key": "xyz-789", "name": "Business", "role": "Editor" }
-]
-```
+## Testing and rollout
 
-Use the `key` field in your report URLs.
+1. **Excel feasibility:** validate Basic credential storage, connection, reopen
+   and refresh in the supported desktop versions before release. Verify
+   template conversion with detail and non-detail reports, empty rows, nullable
+   percentages, monthly order, metadata, and authoritative totals.
+2. **Key lifecycle:** test generation, hashing, one-time secret display, owner
+   isolation, invalid and revoked keys, account disablement, and persistence.
+3. **Authentication and authorization:** run integration tests using real JWT
+   and API key handlers, not only test authentication. Cover the export action
+   for Viewer/Editor/Owner, unrelated workspaces, membership changes and
+   removal, identity mixing, mismatched usernames, account passwords,
+   malformed Basic headers, invalid credentials, and 401 versus 403. Assert
+   API keys are rejected by the existing report, catalog and years actions,
+   `GET /api/tenant`, transaction endpoints, key management, and writes.
+   Assert JWT and cookie credentials alone cannot access export, including a
+   different authenticated cookie alongside an invalid Basic credential.
+4. **Report contract:** verify API-key export responses match normal JWT
+   report responses for the same workspace, report ID, and year, including
+   default and invalid years and unknown IDs. Preserve the existing controller
+   tests and frontend behavior.
+5. **Limits and workflow:** test both per-key rate windows, isolation between
+   keys, 429 behavior, and normal web access. Add functional coverage for key
+   management and report access; perform a documented desktop Excel smoke test
+   because HTTP tests alone cannot establish connector behavior.
 
----
+## Open implementation questions
 
-## Implementation Checklist
+- Does Basic authentication pass the Excel validation gate, including safe
+  storage and refresh on every supported version?
+- What key-management UI placement, quotas, and audit retention fit the existing
+  application?
+- Does the deployment require shared rate-limit state across instances?
+- What safe last-used update strategy meets the desired freshness and load?
 
-### Phase 1: Core Infrastructure
-- [ ] Create ApiKey entity and database migration
-- [ ] Implement ApiKeyService (generate, validate, hash)
-- [ ] Implement ApiKeyAuthenticationHandler
-- [ ] Register authentication scheme in Program.cs
-- [ ] Create ApiKeysController (CRUD for key management)
-- [ ] Add API key management UI in frontend
-- [ ] Unit tests for ApiKeyService
-- [ ] Integration tests for authentication
+## References
 
-### Phase 2: Reports Integration
-- [ ] Create ReportsController with `/spending/by-category` endpoint
-- [ ] Ensure ReportsFeature returns `IReadOnlyCollection<CategorySummaryDto>`
-- [ ] Verify DTOs use array-of-objects format
-- [ ] Add `/available` endpoint for report discovery
-- [ ] Integration tests for ReportsController with API keys
-- [ ] Verify tenant isolation with API keys
-
-### Phase 3: Security & Observability
-- [ ] Add rate limiting to ReportsController
-- [ ] Implement audit logging for API key usage
-- [ ] Add LastUsedAt tracking (fire-and-forget)
-- [ ] Create API key usage dashboard (future)
-- [ ] Functional tests for Excel integration workflow
-
-### Phase 4: Documentation & Support
-- [ ] Write Excel setup guide for users
-- [ ] Create FAQ for common issues
-- [ ] Provide Excel template files with pre-configured queries (optional)
-- [ ] Add troubleshooting guide
-
----
-
-## Open Design Questions (For Implementation)
-
-1. **API Key Index Optimization** - Should we add composite index on (KeyHash, IsActive)?
-2. **Rate Limit Storage** - Use in-memory or Redis for distributed rate limiting?
-3. **Audit Log Destination** - Application Insights only or separate audit table?
-4. **Frontend UI Location** - User Settings or Workspace Settings for API key management?
-
----
-
-## Related Documents
-
-- [`PRD-EXPORT-API.md`](PRD-EXPORT-API.md) - Product requirements (WHAT and WHY)
-- [`PRD-REPORTS.md`](PRD-REPORTS.md) - Prerequisite Reports feature specification
-- [`src/Controllers/Tenancy/Authorization/TenantRoleHandler.cs`](../../src/Controllers/Tenancy/Authorization/TenantRoleHandler.cs) - Existing authorization logic (reused)
-- [`docs/TENANCY.md`](../../docs/TENANCY.md) - Multi-tenancy architecture overview
+- [Export PRD](PRD-EXPORT-API.md)
+- [Built-in reports design](DESIGN-SIMPLE-REPORTS.md)
+- [Report year design](DESIGN-REPORT-YEAR.md)
+- [Microsoft Power Query Web connector](https://learn.microsoft.com/en-us/power-query/connectors/web/web)
