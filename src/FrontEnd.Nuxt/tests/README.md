@@ -73,6 +73,8 @@ calls are made and these events are emitted. Use `@vue/test-utils` `mount()` wit
   guard before deletion and the data-deletion flow.
 - [`transaction-splits.test.ts`](transaction-splits.test.ts) — Verifies that split transactions
   protect their category field in the quick-edit modal.
+- [`transaction-edit-split.test.ts`](transaction-edit-split.test.ts) — Verifies the standalone
+  split editor's API and event contracts, validation, draft lifecycle, and save/cancel guards.
 
 ### ❌ What does NOT belong here
 

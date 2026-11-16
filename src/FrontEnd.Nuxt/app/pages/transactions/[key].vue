@@ -10,6 +10,7 @@ import {
   TransactionsClient,
   TenantRole,
   type TransactionDetailDto,
+  type TransactionSplitDto,
   type IProblemDetails,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
@@ -41,6 +42,8 @@ const error = ref<IProblemDetails | undefined>(undefined)
 const showError = ref(false)
 const showDeleteModal = ref(false)
 const showAddSplit = ref(false)
+const showEditSplit = ref(false)
+const selectedSplit = ref<TransactionSplitDto | null>(null)
 const splitSaving = ref(false)
 const splitError = ref<IProblemDetails | undefined>(undefined)
 const showSplitError = ref(false)
@@ -57,6 +60,17 @@ const isEditing = ref(false)
 const transactionKey = computed(() => route.params.key as string)
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
+const hasMultipleSplits = computed(() => (transaction.value?.splits?.length ?? 0) > 1)
+const splitsTotal = computed(
+  () =>
+    (transaction.value?.splits ?? []).reduce(
+      (total, split) => total + Math.round((split.amount ?? 0) * 100),
+      0,
+    ) / 100,
+)
+const isBalanced = computed(
+  () => Math.round(splitsTotal.value * 100) === Math.round((transaction.value?.amount ?? 0) * 100),
+)
 const canEditTransactions = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
   if (!currentTenant?.role) return false
@@ -120,6 +134,16 @@ function cancelAddSplit() {
   splitError.value = undefined
   showSplitError.value = false
 }
+
+function openEditSplit(split: TransactionSplitDto) {
+  selectedSplit.value = split
+  showEditSplit.value = true
+}
+
+watch([currentTenantKey, transactionKey], () => {
+  showEditSplit.value = false
+  selectedSplit.value = null
+})
 
 async function addSplit() {
   if (!transaction.value?.key || !currentTenantKey.value) return
@@ -483,7 +507,7 @@ function formatCurrency(amount: number | undefined): string {
           </div>
 
           <div
-            v-else
+            v-else-if="hasMultipleSplits"
             class="table-responsive"
           >
             <table
@@ -501,6 +525,12 @@ function formatCurrency(amount: number | undefined): string {
                     Amount
                   </th>
                   <th scope="col">Memo</th>
+                  <th
+                    v-if="canEditTransactions"
+                    scope="col"
+                  >
+                    <span class="visually-hidden">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -512,9 +542,38 @@ function formatCurrency(amount: number | undefined): string {
                   <td>{{ split.category || '(none)' }}</td>
                   <td class="text-end">{{ formatCurrency(split.amount) }}</td>
                   <td style="white-space: pre-wrap">{{ split.memo || '' }}</td>
+                  <td
+                    v-if="canEditTransactions"
+                    class="text-end"
+                  >
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary border-0"
+                      aria-label="Edit split"
+                      title="Edit split"
+                      :disabled="splitSaving"
+                      :data-test-id="`edit-split-${split.key}`"
+                      @click="openEditSplit(split)"
+                    >
+                      <FeatherIcon
+                        icon="edit"
+                        size="18"
+                      />
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div
+            v-if="hasMultipleSplits"
+            class="mt-3"
+            :class="isBalanced ? 'text-muted' : 'alert alert-warning'"
+            data-test-id="transaction-split-balance"
+            role="status"
+          >
+            Splits total: {{ formatCurrency(splitsTotal) }}.
+            {{ isBalanced ? 'Balanced' : 'Splits do not match the transaction amount.' }}
           </div>
         </div>
       </div>
@@ -527,6 +586,16 @@ function formatCurrency(amount: number | undefined): string {
         @saving="editSaving = $event"
       />
     </div>
+
+    <TransactionEditSplitDialog
+      v-if="transaction?.key && currentTenantKey && showEditSplit"
+      :key="`${currentTenantKey}:${transaction.key}`"
+      v-model:show="showEditSplit"
+      :tenant-key="currentTenantKey"
+      :transaction-key="transaction.key"
+      :split="selectedSplit"
+      @updated="handleTransactionUpdated"
+    />
 
     <!-- Delete Modal -->
     <ModalDialog

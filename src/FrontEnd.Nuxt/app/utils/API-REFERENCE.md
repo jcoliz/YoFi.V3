@@ -23,6 +23,8 @@ Transaction CRUD operations within tenant workspaces.
 - `getTransactionById(key, tenantKey): Promise<TransactionResultDto>` - Retrieves a specific transaction by its unique key
 - `updateTransaction(key, tenantKey, transaction: TransactionEditDto): Promise<void>` - Updates an existing transaction in the tenant workspace
 - `deleteTransaction(key, tenantKey): Promise<void>` - Deletes a transaction from the tenant workspace
+- `addSplit(key, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Adds a split and rebalances the first allocation
+- `updateSplit(key, splitKey, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Edits an individual split and rebalances the first other allocation; competing changes return `409 Conflict`
 
 ### TenantClient
 

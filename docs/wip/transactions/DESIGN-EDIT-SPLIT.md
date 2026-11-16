@@ -180,6 +180,32 @@ authorization, tenant/transaction scope, and request validation.
   details.
 - Preserve the existing Add Split workflow and its allocation behavior.
 
+### Frontend implementation
+
+[`EditSplitDialog.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/EditSplitDialog.vue)
+accepts `show`, `tenantKey`, `transactionKey`, and `split` props. It emits
+`update:show` for visibility changes and `updated` with the server-returned
+`TransactionDetailDto` after a successful save. The component owns a local
+draft and calls the generated `TransactionsClient.updateSplit` operation;
+it does not depend on the transaction page or workspace store.
+
+The dialog validates signed currency amounts with cents, category length,
+and memo length before submitting. API errors, including conflicts, keep
+the draft open for correction or retry. Enter submits through the form,
+memo supports newlines, and Cancel or Escape dismisses without saving.
+Dismissal and duplicate submissions are blocked while a save is pending.
+
+The detail page renders row-level Edit actions only for Editors and Owners
+on multi-split transactions. It replaces its transaction detail with the
+successful response and computes the displayed split total and balance in
+integer cents. Changing the workspace or transaction clears the selected
+split and closes the dialog. The existing Add Split form remains separate.
+
+Component contract coverage is in
+[`transaction-edit-split.test.ts`](../../../src/FrontEnd.Nuxt/tests/transaction-edit-split.test.ts),
+including request and event payloads, validation boundaries, error/retry
+behavior, draft resets, keyboard handling, and pending-save guards.
+
 ## Functional test cases
 
 ```gherkin
