@@ -24,7 +24,9 @@ namespace YoFi.V3.Application.Dto;
 /// - ExternalId max length 100
 /// - Category max length 200
 ///
-/// Alpha-1 (Stories 3 &amp; 5): Category edits the single split (Order = 0). User never sees split complexity.
+/// For single-split transactions, amount and category update the single split (Order = 0).
+/// For multi-split transactions, updates preserve all splits and ignore Category;
+/// changing Amount may leave the transaction unbalanced.
 /// </remarks>
 public record TransactionEditDto(
     DateOnly Date,

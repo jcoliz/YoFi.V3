@@ -150,6 +150,8 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 - [x] Creating a transaction automatically creates a single split (user doesn't see split complexity)
 - [x] Editing single-category transaction amount updates the single split automatically
+- [x] Editing a multi-split transaction's amount preserves every split's amount,
+      category, memo, and order; the transaction may become unbalanced
 - [x] UI hides split complexity for transactions with only one split
 - [x] Can optionally provide category on transaction creation (flows to the split)
 - [x] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)

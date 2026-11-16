@@ -390,6 +390,68 @@ public class TransactionsFeatureTests : FeatureTestBase
         Assert.That(result.Splits, Is.Empty);
     }
 
+    [TestCase(-10001, null)]
+    [TestCase(-9999, "")]
+    [TestCase(-10000, "Replacement")]
+    [TestCase(10001, null)]
+    [TestCase(9999, "Replacement")]
+    public async Task UpdateTransactionAsync_WithMultipleSplits_PreservesAllocations(
+        int newAmountCents, string? category)
+    {
+        var originalAmount = newAmountCents < 0 ? -100m : 100m;
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Split transaction",
+            Amount = originalAmount,
+            Memo = "Transaction memo",
+            Source = "Imported account",
+            ExternalId = "bank-transaction-2290",
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split
+                {
+                    Amount = originalAmount * 0.6m,
+                    Category = "Groceries",
+                    Memo = "First split memo",
+                    Order = 0
+                },
+                new Split
+                {
+                    Amount = originalAmount * 0.4m,
+                    Category = "Household",
+                    Memo = "Second split memo",
+                    Order = 1
+                }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+        var original = await _feature.GetTransactionByKeyAsync(transaction.Key);
+        var newAmount = newAmountCents / 100m;
+        var updateDto = new TransactionEditDto(
+            original.Date, newAmount, original.Payee, original.Memo,
+            original.Source, original.ExternalId, category);
+
+        var result = await _feature.UpdateTransactionAsync(transaction.Key, updateDto);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits, Is.EqualTo(original.Splits));
+            Assert.That(result with { Splits = original.Splits },
+                Is.EqualTo(original with { Amount = newAmount }));
+            Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(originalAmount));
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
+        Assert.That(persisted.Splits, Is.EqualTo(original.Splits));
+        Assert.That(persisted with { Splits = original.Splits },
+            Is.EqualTo(original with { Amount = newAmount }));
+    }
+
     [Test]
     public async Task UpdateTransactionAsync_WithSplits_LoadsSplitsForUpdate()
     {

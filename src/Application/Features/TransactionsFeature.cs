@@ -220,6 +220,10 @@ public class TransactionsFeature(
     /// See <see cref="YoFi.V3.Application.Validation.TransactionEditDtoValidator"/> for validation rules.</param>
     /// <returns>The updated transaction with all fields.</returns>
     /// <exception cref="TransactionNotFoundException">Thrown when the transaction is not found.</exception>
+    /// <remarks>
+    /// Synchronizes amount and category only for a single-split transaction.
+    /// Multi-split allocations remain unchanged, even if the new amount leaves them unbalanced.
+    /// </remarks>
     public async Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
     {
         var existingTransaction = await GetTransactionByKeyInternalAsync(key);
@@ -235,9 +239,9 @@ public class TransactionsFeature(
         existingTransaction.Source = transaction.Source;
         existingTransaction.ExternalId = transaction.ExternalId;
 
-        // Alpha-1: Update single split (Order = 0) - sync amount and category
+        // Only single-split transactions mirror the transaction amount and category.
         var split = existingTransaction.Splits.FirstOrDefault(s => s.Order == 0);
-        if (split != null)
+        if (split != null && existingTransaction.Splits.Count == 1)
         {
             split.Amount = transaction.Amount;
             split.Category = sanitizedCategory;
