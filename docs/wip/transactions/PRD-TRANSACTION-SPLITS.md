@@ -4,6 +4,7 @@ target_release: Beta 2
 ado: "[Feature 1982](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1982): Transaction Splits"
 references:
   - DESIGN-EDIT-SPLIT.md
+  - DESIGN-DELETE-SPLIT.md
   - TRANSACTION-SPLIT-DESIGN.md
   - TRANSACTION-SPLITS-FUNCTIONAL-TEST-PLAN.md
   - TRANSACTION-SPLITS-ALPHA1-SUMMARY.md
@@ -104,36 +105,39 @@ Personal finance tracking requires categorizing transactions across multiple cat
 
 **Acceptance Criteria: Scenario 2250: Viewing**
 
-- [ ] Entire list of splits are displayed when viewing the details of a transaction.
-- [ ] Transactions list shows a split indicator in place of the category for transactions with multiple splits
+- [x] Entire list of splits are displayed when viewing the details of a transaction.
+- [x] Transactions list shows a split indicator in place of the category for transactions with multiple splits
 
 **Acceptance Criteria: Scenario 2252: Add a single split to a new transaction**
 
-- [ ] User can add a single split to an existing single-category transaction, and the transaction will be automatically balanced
+- [x] User can add a single split to an existing single-category transaction, and the transaction will be automatically balanced
 
 **Acceptance Criteria: Scenario 2251: Edit**
 
-- [ ] Splits can be edited individually (amount, category, memo)
-- [ ] Transaction will be automatically balanced by updating the first split,
+- [x] Splits can be edited individually (amount, category, memo)
+- [x] Transaction will be automatically balanced by updating the first split,
       or the next split when the first split is being edited
+- [x] Category cannot be edited on a transaction with multiple splits
+    - Transaction-level category updates on multi-split transactions are rejected,
+      including blank categories. The detail page hides the transaction category
+      and its edit field; categories are edited on individual splits instead.
 
 **Acceptance Criteria: Scenario 2289: Delete**
 
+See [`DESIGN-DELETE-SPLIT.md`](DESIGN-DELETE-SPLIT.md) for the deletion workflow,
+balancing rule, and shared Edit/Delete action-menu design.
+
 - [ ] Splits can be deleted (except the last one - transactions must have at least one split)
-- [ ] Category cannot be edited on a transaction with multiple splits
-- Transaction-level category updates on multi-split transactions are rejected,
-  including blank categories. The detail page hides the transaction category
-  and its edit field; categories are edited on individual splits instead.
 - [ ] Transaction will be automatically balanced by updating the first split
 
 **Acceptance Criteria: Scenario 2228 Sample data includes multiple splits**
 
-- [ ] Sample data includes at least one split transaction
+- [x] Sample data includes at least one split transaction
 
 **Acceptance Criteria: Scenario 2226 Transaction Quick Search**
 
-- [ ] Transaction Quick Search includes the transaction in results if at least one split matches the category.
-- [ ] Transaction Quick Search **does not** consider the amount of an individual split. It only concerns the full transaction amount.
+- [x] Transaction Quick Search includes the transaction in results if at least one split matches the category.
+- [x] Transaction Quick Search **does not** consider the amount of an individual split. It only concerns the full transaction amount.
 
 ### Story 2: User - View Category Reports [SUPERSEDED]
 
