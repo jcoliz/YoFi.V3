@@ -124,14 +124,19 @@ Their columns, in stable order, are:
 
 | Worksheet | Columns |
 |-----------|---------|
-| `Transactions` | `Key`, `Date`, `Payee`, `Amount`, `Source`, `ExternalId`, `Memo` |
+| `Transactions` | `Key`, `Date`, `Payee`, `Amount`, `Source`, `ExternalId`, `Memo`, `Category` |
 | `Splits` | `Key`, `TransactionKey`, `Amount`, `Category`, `Memo`, `Order` |
 
 Keys are canonical `D`-format GUID text. `TransactionKey` links each split to
-its exported parent without exposing persistence IDs. A selected date range
-filters transactions and only the splits belonging to those transactions.
-Both worksheets include their headers when the workspace has no matching
-records.
+its exported parent without exposing persistence IDs. When a transaction has
+one split, `Category` in its Transactions row contains that split's category,
+and no row for it is written to Splits. When it has multiple splits, the
+Transactions `Category` cell contains `SPLIT`, and all its split rows are
+written to Splits. On reload, a `SPLIT` transaction is reconstructed from all
+Splits rows matching its TransactionKey. A transaction with no splits has an
+empty `Category`. A selected date range filters transactions and only their
+multiple-split rows. Both worksheets include their headers when the workspace
+has no matching records.
 
 ## User Flow
 

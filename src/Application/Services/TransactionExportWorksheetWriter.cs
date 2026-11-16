@@ -56,12 +56,37 @@ public sealed class TransactionExportWorksheetWriter(IDataProvider dataProvider)
                 transaction.Memo)));
         cancellationToken.ThrowIfCancellationRequested();
 
+        var transactionKeysById = transactions.ToDictionary(transaction => transaction.Id, transaction => transaction.Key);
+        var splitsByTransactionId = new Dictionary<int, IReadOnlyCollection<SplitExportRow>>();
+        if (transactionKeysById.Count > 0)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var transactionIds = transactionKeysById.Keys.ToArray();
+            var splits = await dataProvider.ToListNoTrackingAsync(dataProvider.Get<Split>()
+                .Where(split => transactionIds.Contains(split.TransactionId))
+                .OrderBy(split => split.TransactionId)
+                .ThenBy(split => split.Order)
+                .ThenBy(split => split.Key)
+                .Select(split => new SplitExportRow(
+                    split.Key,
+                    split.TransactionId,
+                    split.Amount,
+                    split.Category,
+                    split.Memo,
+                    split.Order)));
+            splitsByTransactionId = splits
+                .GroupBy(split => split.TransactionId)
+                .ToDictionary(group => group.Key, group => (IReadOnlyCollection<SplitExportRow>)group.ToArray());
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
         var transactionWorksheet = workbook.Worksheets.Add(WorksheetName);
-        SetHeaders(transactionWorksheet, "Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo");
+        SetHeaders(transactionWorksheet, "Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category");
         for (var index = 0; index < transactions.Count; index++)
         {
             var row = index + 2;
             var transaction = transactions[index];
+            var transactionSplits = splitsByTransactionId.GetValueOrDefault(transaction.Id, []);
             transactionWorksheet.Cell(row, 1).Value = transaction.Key.ToString("D");
             transactionWorksheet.Cell(row, 2).Value = transaction.Date.ToDateTime(TimeOnly.MinValue);
             transactionWorksheet.Cell(row, 3).Value = transaction.Payee;
@@ -69,40 +94,24 @@ public sealed class TransactionExportWorksheetWriter(IDataProvider dataProvider)
             transactionWorksheet.Cell(row, 5).Value = transaction.Source ?? string.Empty;
             transactionWorksheet.Cell(row, 6).Value = transaction.ExternalId ?? string.Empty;
             transactionWorksheet.Cell(row, 7).Value = transaction.Memo ?? string.Empty;
+            transactionWorksheet.Cell(row, 8).Value = transactionSplits.Count switch
+            {
+                0 => string.Empty,
+                1 => transactionSplits.Single().Category,
+                _ => "SPLIT"
+            };
         }
 
-        var transactionKeysById = transactions.ToDictionary(transaction => transaction.Id, transaction => transaction.Key);
         var splitsWorksheet = workbook.Worksheets.Add("Splits");
         SetHeaders(splitsWorksheet, "Key", "TransactionKey", "Amount", "Category", "Memo", "Order");
-        if (transactionKeysById.Count == 0)
-        {
-            return
-            [
-                new TenantDataExportCountDto(DataType, 0),
-                new TenantDataExportCountDto("Splits", 0)
-            ];
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        var transactionIds = transactionKeysById.Keys.ToArray();
-        var splits = await dataProvider.ToListNoTrackingAsync(dataProvider.Get<Split>()
-            .Where(split => transactionIds.Contains(split.TransactionId))
-            .OrderBy(split => split.TransactionId)
-            .ThenBy(split => split.Order)
-            .ThenBy(split => split.Key)
-            .Select(split => new SplitExportRow(
-                split.Key,
-                split.TransactionId,
-                split.Amount,
-                split.Category,
-                split.Memo,
-                split.Order)));
-        cancellationToken.ThrowIfCancellationRequested();
-
-        for (var index = 0; index < splits.Count; index++)
+        var exportedSplits = splitsByTransactionId.Values
+            .Where(transactionSplits => transactionSplits.Count > 1)
+            .SelectMany(transactionSplits => transactionSplits)
+            .ToArray();
+        for (var index = 0; index < exportedSplits.Length; index++)
         {
             var row = index + 2;
-            var split = splits[index];
+            var split = exportedSplits[index];
             splitsWorksheet.Cell(row, 1).Value = split.Key.ToString("D");
             splitsWorksheet.Cell(row, 2).Value = transactionKeysById[split.TransactionId].ToString("D");
             splitsWorksheet.Cell(row, 3).Value = split.Amount;
@@ -114,7 +123,7 @@ public sealed class TransactionExportWorksheetWriter(IDataProvider dataProvider)
         return
         [
             new TenantDataExportCountDto(DataType, transactions.Count),
-            new TenantDataExportCountDto("Splits", splits.Count)
+            new TenantDataExportCountDto("Splits", exportedSplits.Length)
         ];
     }
 

@@ -110,6 +110,9 @@ Transactions have a special relationship with Splits (one-to-many):
 - **Splits always exported with Transactions** - User doesn't select them separately
 - **Two worksheets in XLSX** - "Transactions" and "Splits" worksheets
 - **TransactionKey foreign key** - Splits reference parent transaction via Key
+- **Single-split display** - Put the sole split's Category in the Transactions row; do not add it to the Splits worksheet
+- **Multiple-split display** - Put `SPLIT` in the Transactions Category cell and include all of that transaction's splits in the Splits worksheet
+- **Import relationship** - When reloading a `SPLIT` transaction, find its split rows by TransactionKey in the Splits worksheet
 - **Referential integrity validation** - Warn if splits reference non-existent transactions
 
 ---

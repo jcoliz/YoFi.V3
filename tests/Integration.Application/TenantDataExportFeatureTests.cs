@@ -73,18 +73,23 @@ public class TenantDataExportFeatureTests : FeatureTestBase
             new DateOnly(2024, 12, 31),
             "Old",
             new Split { Amount = 5m, Category = "Old" });
+        var singleSplit = Transaction(
+            _targetTenant,
+            new DateOnly(2025, 1, 2),
+            "Single split",
+            new Split { Amount = 12m, Category = "Inline category" });
         var excludedByTenant = Transaction(
             _otherTenant,
             new DateOnly(2025, 6, 1),
             "Other tenant",
             new Split { Amount = 7m, Category = "Other" });
-        _context.Transactions.AddRange(included, excludedByDate, excludedByTenant);
+        _context.Transactions.AddRange(included, excludedByDate, singleSplit, excludedByTenant);
         await _context.SaveChangesAsync();
 
         var result = await _feature.ExportAsync(new TenantDataExportRequest(
             ["Transactions"],
             StartDate: new DateOnly(2025, 1, 1),
-            EndDate: new DateOnly(2025, 1, 1)));
+            EndDate: new DateOnly(2025, 1, 2)));
 
         using var stream = new MemoryStream(result.Content);
         using var workbook = new XLWorkbook(stream);
@@ -95,21 +100,25 @@ public class TenantDataExportFeatureTests : FeatureTestBase
             Assert.That(workbook.Worksheets.Select(sheet => sheet.Name),
                 Is.EqualTo(new[] { "Metadata", "Transactions", "Splits" }));
             Assert.That(transactions.Row(1).CellsUsed().Select(cell => cell.GetString()),
-                Is.EqualTo(new[] { "Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo" }));
+                Is.EqualTo(new[] { "Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category" }));
             Assert.That(transactions.Row(2).Cell(1).GetString(), Is.EqualTo(included.Key.ToString("D")));
             Assert.That(transactions.Row(2).Cell(2).GetDateTime(), Is.EqualTo(new DateTime(2025, 1, 1)));
             Assert.That(transactions.Row(2).Cell(3).GetString(), Is.EqualTo("Included"));
+            Assert.That(transactions.Row(2).Cell(8).GetString(), Is.EqualTo("SPLIT"));
+            Assert.That(transactions.Row(3).Cell(1).GetString(), Is.EqualTo(singleSplit.Key.ToString("D")));
+            Assert.That(transactions.Row(3).Cell(8).GetString(), Is.EqualTo("Inline category"));
             Assert.That(transactions.Row(1).CellsUsed().Select(cell => cell.GetString()), Does.Not.Contain("Id"));
             Assert.That(splits.Row(1).CellsUsed().Select(cell => cell.GetString()),
                 Is.EqualTo(new[] { "Key", "TransactionKey", "Amount", "Category", "Memo", "Order" }));
             Assert.That(splits.Row(2).Cell(2).GetString(), Is.EqualTo(included.Key.ToString("D")));
             Assert.That(splits.Row(3).Cell(2).GetString(), Is.EqualTo(included.Key.ToString("D")));
+            Assert.That(splits.LastRowUsed()!.RowNumber(), Is.EqualTo(3));
             Assert.That(result.Counts, Is.EqualTo(new[]
             {
-                new TenantDataExportCountDto("Transactions", 1),
+                new TenantDataExportCountDto("Transactions", 2),
                 new TenantDataExportCountDto("Splits", 2)
             }));
-            Assert.That(result.FileName, Is.EqualTo("yofi-transactions-2025-01-01-to-2025-01-01-2040-07-01.xlsx"));
+            Assert.That(result.FileName, Is.EqualTo("yofi-transactions-2025-01-01-to-2025-01-02-2040-07-01.xlsx"));
         }
     }
 

@@ -186,13 +186,14 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
             Assert.That(workbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
             Assert.That(workbook.Worksheet("Transactions").Cell(2, 1).GetString(),
                 Is.EqualTo(selectedTransaction.Key.ToString("D")));
-            Assert.That(workbook.Worksheet("Splits").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(workbook.Worksheet("Transactions").Cell(2, 8).GetString(), Is.EqualTo("Selected category"));
+            Assert.That(workbook.Worksheet("Splits").LastRowUsed()!.RowNumber(), Is.EqualTo(1));
             Assert.That(workbook.Worksheet("PayeeMatchingRules").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
             Assert.That(counts, Is.EqualTo(new[]
             {
                 new TenantDataExportCountDto("PayeeMatchingRules", 1),
                 new TenantDataExportCountDto("Transactions", 1),
-                new TenantDataExportCountDto("Splits", 1)
+                new TenantDataExportCountDto("Splits", 0)
             }));
         }
     }
