@@ -26,6 +26,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DataImportService>();
         services.AddScoped<IWorkbookImportFormatDetector, OriginalYoFiWorkbookFormatDetector>();
         services.AddScoped<IImportWorksheetHandler, OriginalYoFiPayeeWorksheetHandler>();
+        services.AddScoped<IExportWorksheetWriter, TransactionExportWorksheetWriter>();
+        services.AddScoped<IExportWorksheetWriter, PayeeMatchingRuleExportWorksheetWriter>();
 
         // Register memory cache for features that need caching (e.g., PayeeMatchingRuleFeature)
         services.AddMemoryCache();

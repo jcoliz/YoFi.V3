@@ -14,9 +14,9 @@ ado: Story 2220, Scenario 2278; Story 2221, Scenario 2279
 
 This design combines **Scenario 2278 (export native payees)** and
 **Scenario 2279 (import native payees)** into one delivery, tracked as Scenario
-2279. The export produces the native YoFi.V3 workbook that the import accepts,
-so both directions share one documented worksheet schema and one format
-identifier.
+2279. The native YoFi.V3 workbook format is shared with the flexible export
+capability in Story 2220. Export selection includes transactions and payee
+matching rules; importing transactions remains out of scope.
 
 The feature operates on V3 payee matching rules, the application's native
 representation of payees. It is an Owner-only action in the Data Administration
@@ -27,8 +27,13 @@ the separate original YoFi Payee import described in
 
 ### In Scope
 
-- Export all payee matching rules for the current workspace to a native XLSX
-  workbook.
+- Export the currently supported tenant data types (Transactions and Payee
+  Matching Rules) to a native XLSX workbook; selecting Transactions includes
+  the related Splits worksheet.
+- Filter date-based transaction and split data by calendar year or inclusive
+  custom range. Payee Matching Rules ignore date filtering.
+- Export all registered types without date filtering for complete data
+  portability.
 - Import a native workbook's payee matching rules after preview and explicit
   confirmation.
 - Support Key-based update/create behavior, preserving unrelated existing rules.
@@ -37,9 +42,9 @@ the separate original YoFi Payee import described in
 
 ### Out of Scope
 
-- Exporting or importing transactions, splits, budgets, or other data types.
+- Importing transactions, splits, budgets, or other data types.
+- Exporting data types not currently registered as supported tenant exports.
 - Importing original YoFi payees (covered by Scenario 2233).
-- Export date/year filtering; payee rules are not date-based.
 - Deleting rules omitted from an import workbook.
 - Importing tenant ownership, internal database IDs, audit state, or usage state.
 - Changing bank import, payee matching behavior, or the payee-rule management UI.
@@ -49,11 +54,12 @@ the separate original YoFi Payee import described in
 | Area | Decision |
 |------|----------|
 | Workspace UI | Data Administration on Manage Workspace |
-| Export type | Payee Matching Rules only in this delivery |
-| Export selection | One selectable `Payee Matching Rules` type; no unsupported entity types are shown as available |
-| Export scope | All rules in the current workspace, with no date filter |
+| Selectable export types | `Transactions` and `PayeeMatchingRules`; `Splits` are included with Transactions rather than selected independently |
+| Transaction export scope | Current-workspace transactions and their splits, optionally filtered by year or inclusive custom date range |
+| Payee-rule export scope | All rules in the current workspace; date filters do not apply |
+| Complete export | All registered types and date ranges, named `yofi-complete-export-{date}.xlsx` |
 | Native format ID | `YoFi.V3`, identified by the reserved `Metadata` worksheet |
-| Data worksheet | `PayeeMatchingRules` |
+| Payee-rule worksheet | `PayeeMatchingRules` |
 | Writable fields | `Key`, `PayeePattern`, `PayeeIsRegex`, and `Category` |
 | Managed fields | Exported for reference but ignored on import: `CreatedAt`, `ModifiedAt`, `LastUsedAt`, and `MatchCount` |
 | Tenant/internal fields | Never exported or accepted from a workbook |
@@ -111,19 +117,38 @@ The workbook may contain other sheets. They are listed as ignored in preview
 and never implicitly imported. A native workbook without a supported
 `PayeeMatchingRules` sheet has no importable data and cannot be confirmed.
 
+### Transaction and Split Worksheets
+
+Selecting `Transactions` writes both `Transactions` and `Splits` worksheets.
+Their columns, in stable order, are:
+
+| Worksheet | Columns |
+|-----------|---------|
+| `Transactions` | `Key`, `Date`, `Payee`, `Amount`, `Source`, `ExternalId`, `Memo` |
+| `Splits` | `Key`, `TransactionKey`, `Amount`, `Category`, `Memo`, `Order` |
+
+Keys are canonical `D`-format GUID text. `TransactionKey` links each split to
+its exported parent without exposing persistence IDs. A selected date range
+filters transactions and only the splits belonging to those transactions.
+Both worksheets include their headers when the workspace has no matching
+records.
+
 ## User Flow
 
 ### Export
 
 1. An Owner opens Manage Workspace for the intended workspace.
-2. In Data Administration, the Owner selects `Payee Matching Rules` and
-   activates Export. With only one supported type in this delivery, the
-   selection UI remains consistent with the broader type-selection design
-   without presenting unsupported types.
-3. The server queries all rules scoped to the authorized workspace, writes the
-   `Metadata` and `PayeeMatchingRules` sheets, and returns an XLSX attachment.
-4. The filename is `yofi-payee-matching-rules-{date}.xlsx`.
-5. On success, the page shows a confirmation with the exported record count.
+2. In Data Administration, the Owner selects any available combination of
+   `Transactions` and `Payee Matching Rules`, or chooses complete export.
+3. The Owner may filter transaction data by a year or custom date range.
+4. The server writes the selected tenant-scoped worksheets and the `Metadata`
+   marker, returning one XLSX attachment. Transaction selection also writes
+   related splits; rule rows are never date-filtered.
+5. A rules-only export is named `yofi-payee-matching-rules-{date}.xlsx`.
+   Other selection filenames describe the selected types and date range;
+   complete export is named `yofi-complete-export-{date}.xlsx`.
+6. On success, the page shows a confirmation with the exported record count
+   for each worksheet.
    On failure, it shows an explicit error and does not report a successful
    download.
 
@@ -162,14 +187,16 @@ only source of workspace identity.
 
 | Method | Route | Responsibility |
 |--------|-------|----------------|
-| `GET` | `/export?types=PayeeMatchingRules` | Return the native XLSX attachment for the selected supported type |
+| `GET` | `/export?types=Transactions,PayeeMatchingRules&year=2025` | Return the native XLSX attachment for selected types and optional date filter |
 | `POST` | `/import/preview` | Detect format and validate the uploaded workbook without writing |
 | `POST` | `/import` | Verify the preview digest, revalidate, and apply the confirmed import |
 
 The export endpoint returns the XLSX content type and a safe `Content-Disposition`
-filename. It queries only the current workspace and returns all matching rules.
-The endpoint should compose with the future shared export selection contract;
-this delivery need not implement other entity exporters or date filters.
+filename. It queries only the current workspace. A request selects one or more
+registered types and may specify either `year` or both `startDate` and `endDate`.
+An explicit complete-export selection includes all registered types and bypasses
+date filters. Options expose registered types and years containing transaction
+data.
 
 Import registers a native format detector and a `PayeeMatchingRules`
 worksheet handler with the existing `TenantDataImportFeature`. Keep mapping,
@@ -223,6 +250,10 @@ tenant's payee-rule cache only after commit.
   worksheet with the documented stable columns.
 - Export contains every rule from the selected workspace and no rules from a
   different workspace.
+- Selecting Transactions exports transaction rows and only their related
+  splits, with inclusive year/custom-range filtering and no cross-tenant rows.
+- Payee Matching Rules are exported regardless of transaction date filters.
+- Complete export contains all registered types and ignores date filtering.
 - Empty workspaces export a valid workbook with the worksheet headers and
   report a count of zero.
 - GUID Keys, booleans, categories, and managed fields are represented as
