@@ -218,7 +218,7 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2 - Add Additional Information            | A1        | 2         | ✅ Implemented       |
 | Story 3 - Manage Transactions                   | A1        | 3         | ✅ Implemented       |
 | **Feature 1982: Transaction Splits**            |           |           | 🚧 In Progress       |
-| Story 1 - Split Single Transaction              | B2        |           | 🎨 Design Complete   |
+| Story 1 - Split Single Transaction              | B1        |           | 🚧 In Progress       |
 | Story 2 - View Category Reports                 | -         |           | 🚫 Superseded        |
 | Story 3 - Simple Single-Category Workflow       | A1        | 1         | ✅ Implemented       |
 | Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
@@ -228,7 +228,7 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2213 - Quick Text Search                  | A1        | 2         | ✅ Implemented       |
 | Story 2214 - Find Uncategorized                 | B1        |           | 🎨 Design Complete   |
 | Story 2215 - Default Date Range                 | V3.0      |           | 🎨 Design Complete   |
-| Story 2216 - Advanced Filtering                 | B1        |           | 🎨 Design Complete   |
+| Story 2216 - Advanced Filtering                 | B1        |           | ✅ Implemented       |
 | Story 2217 - Filter by Balance Status           | V3.1      |           | 💡 Future            |
 | Story 2218 - Reports Integration                | V3.1      |           | 💡 Future            |
 | **Feature 2204: Bank Import**                   |           |           | ✅ Implemented       |
@@ -243,14 +243,14 @@ My general practice is to break release miletones down into iterations as it app
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
-| Story 2220 - Export with Selection              | V3.0      |           | ✔️ Approved          |
+| Story 2220 - Export with Selection              | B1        |           | ✔️ Approved          |
 | Story 2221 - Import with Detection              | B1        |           | ✔️ Approved          |
 | Story 2222 - Delete All Data                    | V3.0      |           | ✅ Implemented       |
 | Story 2223 - Load Sample Data                   | A1        | 2         | ✅ Implemented       |
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
 | Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
-| Story 2249 - Configure Report Display           | B2        |           | ✔️ Approved          |
+| Story 2249 - Configure Report Display           | B1        |           | ✔️ Approved          |
 | Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
 | Story 5 - View Budget Reports                   | B3        |           | ✔️ Approved          |
