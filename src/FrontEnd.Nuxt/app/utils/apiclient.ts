@@ -2016,6 +2016,175 @@ export class TenantDataAdminClient {
     }
 
     /**
+     * Lists exportable workspace data types and transaction years containing data.
+     * @param tenantKey Route key identifying the authorized target workspace.
+     * @return Exportable types and years available for transaction filtering.
+     */
+    getExportOptions(tenantKey: string): Promise<TenantDataExportOptionsDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/export/options";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetExportOptions(_response);
+        });
+    }
+
+    protected processGetExportOptions(response: Response): Promise<TenantDataExportOptionsDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = TenantDataExportOptionsDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<TenantDataExportOptionsDto>(null as any);
+    }
+
+    /**
+     * Downloads a native YoFi.V3 workbook for selected workspace data types.
+     * @param tenantKey Route key identifying the authorized target workspace.
+     * @param types (optional) Selected data type identifiers. Repeat the parameter to select multiple types.
+                Use allData to export all types without date filtering.
+     * @param year (optional) Optional calendar year applied to date-based data types.
+     * @param startDate (optional) Optional inclusive custom-range start; requires endDate.
+     * @param endDate (optional) Optional inclusive custom-range end; requires startDate.
+     * @param allData (optional) When true, exports all registered types without date filtering.
+     * @return An XLSX attachment and an export-count response header.
+     */
+    exportData(tenantKey: string, types: string[] | null | undefined, year: number | null | undefined, startDate: Date | null | undefined, endDate: Date | null | undefined, allData: boolean | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/export?";
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        if (types !== undefined && types !== null)
+            types && types.forEach(item => { url_ += "types=" + encodeURIComponent("" + item) + "&"; });
+        if (year !== undefined && year !== null)
+            url_ += "year=" + encodeURIComponent("" + year) + "&";
+        if (startDate !== undefined && startDate !== null)
+            url_ += "startDate=" + encodeURIComponent(startDate ? formatDate(startDate) : "") + "&";
+        if (endDate !== undefined && endDate !== null)
+            url_ += "endDate=" + encodeURIComponent(endDate ? formatDate(endDate) : "") + "&";
+        if (allData === null)
+            throw new globalThis.Error("The parameter 'allData' cannot be null.");
+        else if (allData !== undefined)
+            url_ += "allData=" + encodeURIComponent("" + allData) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExportData(_response);
+        });
+    }
+
+    protected processExportData(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    /**
      * Previews the supported data and validation issues in an uploaded XLSX workbook.
      * @param tenantKey Route key identifying the authorized target workspace.
      * @param file (optional) 
@@ -6852,6 +7021,106 @@ export interface ISampleDataLoadResultDto {
     inputs?: SampleDataRequest;
     created?: SampleDataCounts;
     updated?: SampleDataCounts;
+}
+
+export class TenantDataExportOptionsDto implements ITenantDataExportOptionsDto {
+    dataTypes?: TenantDataExportTypeDto[];
+    years?: number[];
+
+    constructor(data?: ITenantDataExportOptionsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["dataTypes"])) {
+                this.dataTypes = [] as any;
+                for (let item of _data["dataTypes"])
+                    this.dataTypes!.push(TenantDataExportTypeDto.fromJS(item));
+            }
+            if (Array.isArray(_data["years"])) {
+                this.years = [] as any;
+                for (let item of _data["years"])
+                    this.years!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): TenantDataExportOptionsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataExportOptionsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.dataTypes)) {
+            data["dataTypes"] = [];
+            for (let item of this.dataTypes)
+                data["dataTypes"].push(item ? item.toJSON() : undefined as any);
+        }
+        if (Array.isArray(this.years)) {
+            data["years"] = [];
+            for (let item of this.years)
+                data["years"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ITenantDataExportOptionsDto {
+    dataTypes?: TenantDataExportTypeDto[];
+    years?: number[];
+}
+
+export class TenantDataExportTypeDto implements ITenantDataExportTypeDto {
+    dataType?: string;
+    worksheetName?: string;
+    supportsDateFilter?: boolean;
+
+    constructor(data?: ITenantDataExportTypeDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.dataType = _data["dataType"];
+            this.worksheetName = _data["worksheetName"];
+            this.supportsDateFilter = _data["supportsDateFilter"];
+        }
+    }
+
+    static fromJS(data: any): TenantDataExportTypeDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TenantDataExportTypeDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["dataType"] = this.dataType;
+        data["worksheetName"] = this.worksheetName;
+        data["supportsDateFilter"] = this.supportsDateFilter;
+        return data;
+    }
+}
+
+export interface ITenantDataExportTypeDto {
+    dataType?: string;
+    worksheetName?: string;
+    supportsDateFilter?: boolean;
 }
 
 export class TenantDataImportPreviewDto implements ITenantDataImportPreviewDto {
