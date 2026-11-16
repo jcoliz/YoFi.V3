@@ -61,6 +61,10 @@ const transactionKey = computed(() => route.params.key as string)
 const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey)
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
 const hasMultipleSplits = computed(() => (transaction.value?.splits?.length ?? 0) > 1)
+
+// TODO: This doesn't belong in the front-end. This should be computed on the
+// server and returned as part of the split results.
+// ALSO: When adding a split it should default to an amount that balances the transaction.
 const splitsTotal = computed(
   () =>
     (transaction.value?.splits ?? []).reduce(
@@ -498,6 +502,15 @@ function formatCurrency(amount: number | undefined): string {
             </div>
           </form>
 
+          <BaseAlert
+            v-if="hasMultipleSplits && !isBalanced"
+            variant="danger"
+            data-test-id="transaction-split-balance"
+          >
+            Splits do not match the transaction amount.
+            <template #detail> Splits total: {{ formatCurrency(splitsTotal) }}. </template>
+          </BaseAlert>
+
           <div
             v-if="!transaction.splits?.length"
             class="text-muted small"
@@ -564,16 +577,6 @@ function formatCurrency(amount: number | undefined): string {
                 </tr>
               </tbody>
             </table>
-          </div>
-          <div
-            v-if="hasMultipleSplits"
-            class="mt-3"
-            :class="isBalanced ? 'text-muted' : 'alert alert-warning'"
-            data-test-id="transaction-split-balance"
-            role="status"
-          >
-            Splits total: {{ formatCurrency(splitsTotal) }}.
-            {{ isBalanced ? 'Balanced' : 'Splits do not match the transaction amount.' }}
           </div>
         </div>
       </div>

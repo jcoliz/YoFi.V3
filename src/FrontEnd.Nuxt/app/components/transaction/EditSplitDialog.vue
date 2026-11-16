@@ -39,7 +39,7 @@ const transactionsClient = useApiClient(TransactionsClient)
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>()
 const showError = ref(false)
-const amountInput = ref<HTMLInputElement | null>(null)
+const categoryInput = ref<HTMLInputElement | null>(null)
 const formData = ref({ amount: '', category: '', memo: '' })
 const validationErrors = ref<Partial<Record<'Amount' | 'Category' | 'Memo', string[]>>>({})
 
@@ -57,7 +57,7 @@ watch(
     error.value = undefined
     showError.value = false
     await nextTick()
-    amountInput.value?.focus()
+    categoryInput.value?.focus()
   },
   { immediate: true },
 )
@@ -159,30 +159,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
         :problem="error"
         class="mb-3"
       />
-      <p class="text-muted small">
-        Another split will be adjusted automatically to keep the transaction balanced. The
-        transaction amount will not change.
-      </p>
       <fieldset :disabled="loading">
-        <div class="mb-3">
-          <label
-            for="edit-split-amount"
-            class="form-label"
-            >Amount</label
-          >
-          <input
-            id="edit-split-amount"
-            ref="amountInput"
-            v-model="formData.amount"
-            type="text"
-            inputmode="decimal"
-            class="form-control"
-            :class="{ 'is-invalid': validationErrors.Amount }"
-            :aria-invalid="!!validationErrors.Amount"
-            required
-            data-test-id="edit-split-amount"
-          />
-        </div>
         <div class="mb-3">
           <label
             for="edit-split-category"
@@ -191,6 +168,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           >
           <input
             id="edit-split-category"
+            ref="categoryInput"
             v-model="formData.category"
             type="text"
             class="form-control"
@@ -200,6 +178,28 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
             placeholder="Category (optional)"
             data-test-id="edit-split-category"
           />
+        </div>
+        <div class="mb-3">
+          <label
+            for="edit-split-amount"
+            class="form-label"
+            >Amount</label
+          >
+          <input
+            id="edit-split-amount"
+            v-model="formData.amount"
+            type="text"
+            inputmode="decimal"
+            class="form-control"
+            :class="{ 'is-invalid': validationErrors.Amount }"
+            :aria-invalid="!!validationErrors.Amount"
+            required
+            data-test-id="edit-split-amount"
+          />
+          <HelpText>
+            Another split will be adjusted automatically to keep the transaction balanced. The
+            transaction amount will not change.
+          </HelpText>
         </div>
         <div class="mb-3">
           <label

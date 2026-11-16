@@ -198,7 +198,9 @@ Dismissal and duplicate submissions are blocked while a save is pending.
 The detail page renders row-level Edit actions only for Editors and Owners
 on multi-split transactions. It replaces its transaction detail with the
 successful response and computes the displayed split total and balance in
-integer cents. Changing the workspace or transaction clears the selected
+integer cents. A danger alert above the splits list appears only when the
+splits are unbalanced; balanced transactions show no balance message.
+Changing the workspace or transaction clears the selected
 split and closes the dialog. The existing Add Split form remains separate.
 
 Component contract coverage is in
