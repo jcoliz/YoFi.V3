@@ -149,6 +149,28 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     }
 
     /// <summary>
+    /// Deletes a split and balances the transaction by adjusting the first surviving split.
+    /// </summary>
+    /// <param name="key">The unique identifier of the transaction.</param>
+    /// <param name="splitKey">The unique identifier of the split within the transaction.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    [HttpDelete("{key:guid}/splits/{splitKey:guid}")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteSplit(Guid key, Guid splitKey, CancellationToken cancellationToken)
+    {
+        LogStartingKeys(key, splitKey);
+
+        var updated = await transactionsFeature.DeleteSplitAsync(key, splitKey, cancellationToken);
+
+        LogOkKeys(key, splitKey);
+        return Ok(updated);
+    }
+
+    /// <summary>
     /// Updates an existing transaction and adjusts its first split to keep it balanced.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>

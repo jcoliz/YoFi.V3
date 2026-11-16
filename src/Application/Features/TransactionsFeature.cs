@@ -213,6 +213,45 @@ public class TransactionsFeature(
         }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
 
     /// <summary>
+    /// Deletes a split and balances the first surviving split, preserving categories and memos.
+    /// </summary>
+    /// <param name="transactionKey">The unique identifier of the transaction.</param>
+    /// <param name="splitKey">The unique identifier of the split to delete.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>The updated transaction with surviving splits in normalized display order.</returns>
+    /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
+    /// <exception cref="SplitNotFoundException">The split is not found in the transaction.</exception>
+    /// <exception cref="ValidationException">The requested split is the last allocation.</exception>
+    /// <exception cref="DataConflictException">A concurrent change prevented the deletion.</exception>
+    public Task<TransactionDetailDto> DeleteSplitAsync(
+        Guid transactionKey, Guid splitKey, CancellationToken cancellationToken = default)
+        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        {
+            token.ThrowIfCancellationRequested();
+            var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+            var splits = transaction.Splits.OrderBy(s => s.Order).ToList();
+            var deletedSplit = splits.SingleOrDefault(s => s.Key == splitKey)
+                ?? throw new SplitNotFoundException(splitKey);
+            if (splits.Count == 1)
+            {
+                throw new ValidationException(nameof(splitKey),
+                    "The last split cannot be deleted. A transaction must have at least one split.");
+            }
+
+            splits.Remove(deletedSplit);
+            dataProvider.Remove(deletedSplit);
+            transaction.Splits.Remove(deletedSplit);
+            splits[0].Amount = transaction.Amount - splits.Skip(1).Sum(s => s.Amount);
+            for (var order = 0; order < splits.Count; order++)
+            {
+                splits[order].Order = order;
+            }
+
+            await dataProvider.SaveChangesAsync(token);
+            return ToDetailDto(transaction);
+        }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
+
+    /// <summary>
     /// Updates an existing transaction.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction to update.</param>

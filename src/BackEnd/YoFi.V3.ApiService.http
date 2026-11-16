@@ -22,3 +22,21 @@ POST {{ApiService_HostAddress}}/api/auth/token
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials
+
+### Delete an allocation and return balanced transaction detail (Editor or Owner)
+# Set tenantKey, transactionKey, splitKey, and accessToken to values from your local session.
+# Use a transaction with at least two splits. The response is 200 with TransactionDetailDto.
+DELETE {{ApiService_HostAddress}}/api/tenant/{{tenantKey}}/transactions/{{transactionKey}}/splits/{{splitKey}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Deleting the final allocation returns 400 validation ProblemDetails
+# After reducing a transaction to one split, use that surviving allocation's key.
+DELETE {{ApiService_HostAddress}}/api/tenant/{{tenantKey}}/transactions/{{transactionKey}}/splits/{{remainingSplitKey}}
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Missing allocation returns 404 ProblemDetails
+DELETE {{ApiService_HostAddress}}/api/tenant/{{tenantKey}}/transactions/{{transactionKey}}/splits/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+Accept: application/json

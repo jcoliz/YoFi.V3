@@ -237,6 +237,22 @@ TypeScript API client, and update API reference and HTTP request examples.
 
 ## Verification plan
 
+### Backend implementation
+
+The backend is implemented by `TransactionsController.DeleteSplit` and
+`TransactionsFeature.DeleteSplitAsync`. It uses the existing serializable
+tenant transaction helper, removes the entity and navigation entry, balances
+the first survivor, normalizes orders, and saves once. The endpoint returns
+the committed detail with the existing validation, not-found, and conflict
+responses. No schema changes are required.
+
+Coverage is in
+[`TransactionSplitDeleteTests.cs`](../../../tests/Integration.Application/TransactionSplitDeleteTests.cs)
+and
+[`TransactionSplitDeleteControllerTests.cs`](../../../tests/Integration.Controller/TransactionSplitDeleteControllerTests.cs).
+The generated TypeScript client exposes `deleteSplit`; frontend menu and
+confirmation-dialog implementation remain separate work.
+
 ### Application integration
 
 - Delete first, middle, and last allocations; verify exact persisted

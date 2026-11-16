@@ -25,6 +25,7 @@ Transaction CRUD operations within tenant workspaces.
 - `deleteTransaction(key, tenantKey): Promise<void>` - Deletes a transaction from the tenant workspace
 - `addSplit(key, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Adds a split and rebalances the first allocation
 - `updateSplit(key, splitKey, tenantKey, split: SplitEditDto): Promise<TransactionDetailDto>` - Edits an individual split and rebalances the first other allocation; competing changes return `409 Conflict`
+- `deleteSplit(key, splitKey, tenantKey): Promise<TransactionDetailDto>` - Deletes an allocation, rebalances the first survivor, and normalizes split order. The last split cannot be deleted (`400`); missing transaction/split returns `404`, competing changes return `409`. A single survivor is returned as the transaction category with an empty `splits` collection.
 
 ### TenantClient
 
