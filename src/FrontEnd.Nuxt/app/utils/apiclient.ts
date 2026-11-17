@@ -2090,21 +2090,18 @@ export class TenantDataAdminClient {
      * @param tenantKey Route key identifying the authorized target workspace.
      * @param types (optional) Selected data type identifiers. Repeat the parameter to select multiple types.
                 Use allData to export all types without date filtering.
-     * @param year (optional) Optional calendar year applied to date-based data types.
-     * @param startDate (optional) Optional inclusive custom-range start; requires endDate.
-     * @param endDate (optional) Optional inclusive custom-range end; requires startDate.
+     * @param startDate (optional) Optional inclusive lower date bound for date-based data types.
+     * @param endDate (optional) Optional inclusive upper date bound for date-based data types.
      * @param allData (optional) When true, exports all registered types without date filtering.
      * @return An XLSX attachment and an export-count response header.
      */
-    exportData(tenantKey: string, types: string[] | null | undefined, year: number | null | undefined, startDate: Date | null | undefined, endDate: Date | null | undefined, allData: boolean | undefined): Promise<FileResponse> {
+    exportData(tenantKey: string, types: string[] | null | undefined, startDate: Date | null | undefined, endDate: Date | null | undefined, allData: boolean | undefined): Promise<FileResponse> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/admin/export?";
         if (tenantKey === undefined || tenantKey === null)
             throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         if (types !== undefined && types !== null)
             types && types.forEach(item => { url_ += "types=" + encodeURIComponent("" + item) + "&"; });
-        if (year !== undefined && year !== null)
-            url_ += "year=" + encodeURIComponent("" + year) + "&";
         if (startDate !== undefined && startDate !== null)
             url_ += "startDate=" + encodeURIComponent(startDate ? formatDate(startDate) : "") + "&";
         if (endDate !== undefined && endDate !== null)

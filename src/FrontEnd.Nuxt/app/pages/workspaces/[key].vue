@@ -24,13 +24,14 @@ const authenticated = ref(false)
 
 const workspace = ref<TenantRoleResultDto>()
 const loading = ref(true)
-/** Pending-write flags reported by child panes; any pending write blocks navigation. */
+/** Pending-operation flags reported by child panes; any active operation blocks navigation. */
 const busyFlags = reactive({
   edit: false,
   deleteWorkspace: false,
   deleteData: false,
   sample: false,
   importData: false,
+  exportData: false,
 })
 const busy = computed(() => Object.values(busyFlags).some(Boolean))
 const editing = ref(false)
@@ -311,6 +312,13 @@ function handleDataImported() {
       >
         Data Administration
       </h2>
+      <div class="mb-4">
+        <WorkspaceExportDataPane
+          :key="workspace.key"
+          :workspace="workspace"
+          @update:busy="busyFlags.exportData = $event"
+        />
+      </div>
       <div class="row g-4">
         <div class="col-lg-8">
           <section
