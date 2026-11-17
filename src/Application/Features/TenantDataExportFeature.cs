@@ -132,22 +132,6 @@ public sealed class TenantDataExportFeature(
 
     private static (DateOnly? StartDate, DateOnly? EndDate) ResolveDateRange(TenantDataExportRequest request)
     {
-        if (request.Year is { } year)
-        {
-            if (year < 1 || year > 9999)
-            {
-                throw new ValidationException(nameof(request.Year), "Year must be between 1 and 9999.");
-            }
-
-            if (request.StartDate is not null || request.EndDate is not null)
-            {
-                throw new ValidationException(nameof(request.Year),
-                    "Choose a year or a custom date range, not both.");
-            }
-
-            return (new DateOnly(year, 1, 1), new DateOnly(year, 12, 31));
-        }
-
         if (request.StartDate is { } start && request.EndDate is { } end)
         {
             if (start > end)

@@ -166,7 +166,8 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
         db.Transactions.Add(selectedTransaction);
         await db.SaveChangesAsync();
 
-        var response = await _client.GetAsync($"{ExportUrl}?types=Transactions&types=PayeeMatchingRules&year=2025");
+        var response = await _client.GetAsync(
+            $"{ExportUrl}?types=Transactions&types=PayeeMatchingRules&startDate=2025-01-01&endDate=2025-12-31");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(response.Content.Headers.ContentType?.MediaType,
@@ -214,7 +215,8 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
         });
         await db.SaveChangesAsync();
 
-        var response = await _client.GetAsync($"{ExportUrl}?allData=true&year=1900");
+        var response = await _client.GetAsync(
+            $"{ExportUrl}?allData=true&startDate=1900-01-01&endDate=1900-12-31");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         using var stream = new MemoryStream(await response.Content.ReadAsByteArrayAsync());

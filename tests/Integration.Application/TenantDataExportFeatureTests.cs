@@ -132,7 +132,8 @@ public class TenantDataExportFeatureTests : FeatureTestBase
 
         var result = await _feature.ExportAsync(new TenantDataExportRequest(
             ["PayeeMatchingRules"],
-            Year: 2020));
+            StartDate: new DateOnly(2020, 1, 1),
+            EndDate: new DateOnly(2020, 12, 31)));
 
         using var stream = new MemoryStream(result.Content);
         using var workbook = new XLWorkbook(stream);
@@ -169,7 +170,6 @@ public class TenantDataExportFeatureTests : FeatureTestBase
 
         var result = await _feature.ExportAsync(new TenantDataExportRequest(
             ["Transactions"],
-            Year: 2025,
             ExportAllData: true));
 
         using var stream = new MemoryStream(result.Content);
@@ -229,20 +229,12 @@ public class TenantDataExportFeatureTests : FeatureTestBase
                 ["Transactions"],
                 StartDate: new DateOnly(2025, 2, 1),
                 EndDate: new DateOnly(2025, 1, 1))));
-        var mixedFilters = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest(
-                ["Transactions"],
-                Year: 2025,
-                StartDate: new DateOnly(2025, 1, 1),
-                EndDate: new DateOnly(2025, 12, 31))));
-
         using (Assert.EnterMultipleScope())
         {
             Assert.That(empty!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
             Assert.That(unknown!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
             Assert.That(duplicate!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
             Assert.That(reversedRange!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.StartDate)));
-            Assert.That(mixedFilters!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.Year)));
         }
     }
 

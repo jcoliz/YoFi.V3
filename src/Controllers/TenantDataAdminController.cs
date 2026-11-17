@@ -52,9 +52,8 @@ public partial class TenantDataAdminController(
     /// <param name="tenantKey">Route key identifying the authorized target workspace.</param>
     /// <param name="types">Selected data type identifiers. Repeat the parameter to select multiple types.
     /// Use <paramref name="allData"/> to export all types without date filtering.</param>
-    /// <param name="year">Optional calendar year applied to date-based data types.</param>
-    /// <param name="startDate">Optional inclusive custom-range start; requires <paramref name="endDate"/>.</param>
-    /// <param name="endDate">Optional inclusive custom-range end; requires <paramref name="startDate"/>.</param>
+    /// <param name="startDate">Optional inclusive lower date bound for date-based data types.</param>
+    /// <param name="endDate">Optional inclusive upper date bound for date-based data types.</param>
     /// <param name="allData">When true, exports all registered types without date filtering.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
     /// <returns>An XLSX attachment and an export-count response header.</returns>
@@ -65,7 +64,6 @@ public partial class TenantDataAdminController(
     public async Task<IActionResult> ExportData(
         [FromRoute] Guid tenantKey,
         [FromQuery(Name = "types")] string[]? types,
-        [FromQuery] int? year,
         [FromQuery] DateOnly? startDate,
         [FromQuery] DateOnly? endDate,
         [FromQuery] bool allData,
@@ -76,7 +74,7 @@ public partial class TenantDataAdminController(
         try
         {
             var result = await tenantDataExportFeature.ExportAsync(
-                new TenantDataExportRequest(types ?? [], year, startDate, endDate, allData),
+                new TenantDataExportRequest(types ?? [], startDate, endDate, allData),
                 cancellationToken);
             Response.Headers["X-YoFi-Export-Counts"] = System.Text.Json.JsonSerializer.Serialize(result.Counts);
             LogExportOk(

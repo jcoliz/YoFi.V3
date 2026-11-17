@@ -193,14 +193,15 @@ only source of workspace identity.
 
 | Method | Route | Responsibility |
 |--------|-------|----------------|
-| `GET` | `/export?types=Transactions,PayeeMatchingRules&year=2025` | Return the native XLSX attachment for selected types and optional date filter |
+| `GET` | `/export?types=Transactions&startDate=2025-01-01&endDate=2025-12-31` | Return the native XLSX attachment for selected types and optional date filter |
 | `POST` | `/import/preview` | Detect format and validate the uploaded workbook without writing |
 | `POST` | `/import` | Verify the preview digest, revalidate, and apply the confirmed import |
 
 The export endpoint returns the XLSX content type and a safe `Content-Disposition`
 filename. It queries only the current workspace. A request selects one or more
-registered types and may specify either `year` or `startDate`, `endDate`, or
-both. When both custom endpoints are provided, start must not be after end.
+registered types and may specify `startDate`, `endDate`, or both. The client
+converts a selected calendar year to its first and last dates. When both custom
+endpoints are provided, start must not be after end.
 An explicit complete-export selection includes all registered types and bypasses
 date filters. Options expose registered types and years containing transaction
 data.
