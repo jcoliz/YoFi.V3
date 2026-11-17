@@ -161,7 +161,7 @@ see [Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md).
 - [ ] File downloads with descriptive filename indicating selection and date range
 - [ ] File downloads with metadata sheet identifying the data as a native YoFi.V3 export (as opposed to legacy original YoFi)
 
-### Story 2221: User - Import Data with Automatic Detection
+### Story 2221: User - Import Data with Automatic Detection (data-import)
 
 **As a** YoFi user
 **I want** to import an XLSX file and have the system automatically detect what entity types it contains
@@ -207,6 +207,7 @@ native payees. The above criteria apply, plus:
   - Splits always imported after Transactions
 - [ ] System validates referential integrity (e.g., splits reference valid transaction Keys)
 - [ ] If referential integrity fails, system shows warning but allows proceeding
+- [ ] System accepts native YoFi transactions format.
 
 ### Story 2222: User - Delete All Tenant Data
 
