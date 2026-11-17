@@ -40,8 +40,6 @@ const loading = ref(true)
 const exporting = ref(false)
 const error = ref<IProblemDetails>()
 const showError = ref(false)
-const exportCounts = ref<ExportCount[]>()
-const exportFileName = ref('')
 
 const rangeError = computed(() => {
   if (
@@ -175,8 +173,6 @@ async function exportData(allData = false) {
   emit('update:busy', true)
   error.value = undefined
   showError.value = false
-  exportCounts.value = undefined
-  exportFileName.value = ''
 
   try {
     const bounds = allData ? {} : getDateBounds()
@@ -187,17 +183,17 @@ async function exportData(allData = false) {
       bounds.endDate,
       allData,
     )
-    exportCounts.value = readCounts(response.headers)
-    exportFileName.value = response.fileName ?? ''
+    const exportCounts = readCounts(response.headers)
     downloadFile(response.fileName, response.data)
     const countSummary =
-      exportCounts.value
+      exportCounts
         .map((count) => {
           const type = dataTypes.value.find((item) => item.dataType === count.dataType)
           return `${type ? typeLabel(type) : count.dataType}: ${count.recordCount}`
         })
         .join('; ') || 'Record counts are unavailable.'
-    toastStore.success(countSummary, 'Export complete', 'workspace-export-complete')
+    const fileName = response.fileName ? `Downloaded ${response.fileName}. ` : 'Export downloaded. '
+    toastStore.success(`${fileName}${countSummary}`, 'Export complete', 'workspace-export-complete')
   } catch (err) {
     showProblem(
       handleApiError(
@@ -403,26 +399,6 @@ onMounted(loadOptions)
             </button>
           </div>
         </template>
-
-        <div
-          v-if="exportCounts"
-          class="alert alert-success mt-3 mb-0"
-          role="status"
-          data-test-id="export-result"
-        >
-          <p class="mb-1">
-            Export downloaded<span v-if="exportFileName"> as {{ exportFileName }}</span
-            >.
-          </p>
-          <ul class="mb-0">
-            <li
-              v-for="count in exportCounts"
-              :key="count.dataType"
-            >
-              {{ count.dataType }}: {{ count.recordCount }} records
-            </li>
-          </ul>
-        </div>
       </template>
     </div>
   </section>

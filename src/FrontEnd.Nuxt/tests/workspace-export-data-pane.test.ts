@@ -168,10 +168,8 @@ describe('Workspace ExportDataPane', () => {
     expect(exportData).toHaveBeenCalledWith('workspace-key', [], undefined, undefined, true)
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export')
-    expect(wrapper.find('[data-test-id="export-result"]').text()).toContain('2 records')
-    expect(wrapper.find('[data-test-id="export-result"]').text()).toContain('4 records')
     expect(toastSuccess).toHaveBeenCalledWith(
-      'Transactions: 2; Payee Matching Rules: 4',
+      'Downloaded yofi-export.xlsx. Transactions: 2; Payee Matching Rules: 4',
       'Export complete',
       'workspace-export-complete',
     )
