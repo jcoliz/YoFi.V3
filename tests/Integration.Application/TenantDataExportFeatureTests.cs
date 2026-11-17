@@ -186,6 +186,36 @@ public class TenantDataExportFeatureTests : FeatureTestBase
     }
 
     [Test]
+    public async Task Export_AllowsOpenEndedDateRanges()
+    {
+        _context.Transactions.AddRange(
+            Transaction(_targetTenant, new DateOnly(2024, 12, 31), "Earlier"),
+            Transaction(_targetTenant, new DateOnly(2025, 1, 1), "Later"));
+        await _context.SaveChangesAsync();
+
+        var after = await _feature.ExportAsync(new TenantDataExportRequest(
+            ["Transactions"],
+            StartDate: new DateOnly(2025, 1, 1)));
+        var before = await _feature.ExportAsync(new TenantDataExportRequest(
+            ["Transactions"],
+            EndDate: new DateOnly(2024, 12, 31)));
+
+        using var afterStream = new MemoryStream(after.Content);
+        using var afterWorkbook = new XLWorkbook(afterStream);
+        using var beforeStream = new MemoryStream(before.Content);
+        using var beforeWorkbook = new XLWorkbook(beforeStream);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(afterWorkbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(afterWorkbook.Worksheet("Transactions").Cell(2, 3).GetString(), Is.EqualTo("Later"));
+            Assert.That(after.FileName, Is.EqualTo("yofi-transactions-from-2025-01-01-2040-07-01.xlsx"));
+            Assert.That(beforeWorkbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
+            Assert.That(beforeWorkbook.Worksheet("Transactions").Cell(2, 3).GetString(), Is.EqualTo("Earlier"));
+            Assert.That(before.FileName, Is.EqualTo("yofi-transactions-through-2024-12-31-2040-07-01.xlsx"));
+        }
+    }
+
+    [Test]
     public async Task Export_RejectsEmptyUnknownDuplicateAndInvalidDateSelections()
     {
         var empty = await Assert.ThrowsAsync<ValidationException>(() =>
@@ -194,8 +224,6 @@ public class TenantDataExportFeatureTests : FeatureTestBase
             _feature.ExportAsync(new TenantDataExportRequest(["Unknown"])));
         var duplicate = await Assert.ThrowsAsync<ValidationException>(() =>
             _feature.ExportAsync(new TenantDataExportRequest(["Transactions", "transactions"])));
-        var partialRange = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest(["Transactions"], StartDate: new DateOnly(2025, 1, 1))));
         var reversedRange = await Assert.ThrowsAsync<ValidationException>(() =>
             _feature.ExportAsync(new TenantDataExportRequest(
                 ["Transactions"],
@@ -213,7 +241,6 @@ public class TenantDataExportFeatureTests : FeatureTestBase
             Assert.That(empty!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
             Assert.That(unknown!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
             Assert.That(duplicate!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
-            Assert.That(partialRange!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.StartDate)));
             Assert.That(reversedRange!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.StartDate)));
             Assert.That(mixedFilters!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.Year)));
         }

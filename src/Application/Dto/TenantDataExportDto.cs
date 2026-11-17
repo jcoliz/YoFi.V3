@@ -16,8 +16,8 @@ public record TenantDataExportOptionsDto(
 /// <summary>Selection and optional transaction-date filtering for an export.</summary>
 /// <param name="DataTypes">Stable identifiers for the selected types.</param>
 /// <param name="Year">Optional calendar year filter.</param>
-/// <param name="StartDate">Optional inclusive custom range start.</param>
-/// <param name="EndDate">Optional inclusive custom range end.</param>
+/// <param name="StartDate">Optional inclusive custom range start; omit for an open start.</param>
+/// <param name="EndDate">Optional inclusive custom range end; omit for an open end.</param>
 /// <param name="ExportAllData">Exports every registered type without date filtering.</param>
 public record TenantDataExportRequest(
     IReadOnlyCollection<string> DataTypes,

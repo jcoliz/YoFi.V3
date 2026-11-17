@@ -148,12 +148,6 @@ public sealed class TenantDataExportFeature(
             return (new DateOnly(year, 1, 1), new DateOnly(year, 12, 31));
         }
 
-        if (request.StartDate.HasValue != request.EndDate.HasValue)
-        {
-            throw new ValidationException(nameof(request.StartDate),
-                "A custom date range must include both a start date and an end date.");
-        }
-
         if (request.StartDate is { } start && request.EndDate is { } end)
         {
             if (start > end)
@@ -165,7 +159,7 @@ public sealed class TenantDataExportFeature(
             return (start, end);
         }
 
-        return (null, null);
+        return (request.StartDate, request.EndDate);
     }
 
     private string CreateFileName(
@@ -186,7 +180,11 @@ public sealed class TenantDataExportFeature(
             ? string.Empty
             : startDate is { } start && endDate is { } end
                 ? $"-{start:yyyy-MM-dd}-to-{end:yyyy-MM-dd}"
-                : "-all-years";
+                : startDate is { } startOnly
+                    ? $"-from-{startOnly:yyyy-MM-dd}"
+                    : endDate is { } endOnly
+                        ? $"-through-{endOnly:yyyy-MM-dd}"
+                        : "-all-years";
         return $"yofi-{typePart}{datePart}-{date}.xlsx";
     }
 

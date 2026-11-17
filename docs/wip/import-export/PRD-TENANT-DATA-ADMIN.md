@@ -148,7 +148,8 @@ see [Native Payee Export and Import](DESIGN-NATIVE-PAYEE-EXPORT-IMPORT.md).
 - [ ] User can select any combination of entity types (one, some, or all)
 - [ ] User can specify date range filter:
   - Year selector dropdown (showing years with data, plus "All Years")
-  - Optional: Custom date range with Start Date and End Date
+  - Optional: Custom date range with inclusive Start Date and/or End Date; either endpoint may be omitted for an open-ended range
+  - Year selection and custom date endpoints are mutually exclusive
   - Date filter applies only to date-based entities (transactions, budget transactions, etc.)
   - Non-date-based entities (payees, reports (in future)) ignore date filter
 - [ ] "Select All" and "Clear All" buttons for entity type selection

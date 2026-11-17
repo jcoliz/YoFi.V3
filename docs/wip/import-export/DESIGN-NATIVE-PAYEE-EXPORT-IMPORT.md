@@ -31,7 +31,8 @@ the separate original YoFi Payee import described in
   Matching Rules) to a native XLSX workbook; selecting Transactions includes
   the related Splits worksheet.
 - Filter date-based transaction and split data by calendar year or inclusive
-  custom range. Payee Matching Rules ignore date filtering.
+  custom range with either or both endpoints. Payee Matching Rules ignore date
+  filtering.
 - Export all registered types without date filtering for complete data
   portability.
 - Import a native workbook's payee matching rules after preview and explicit
@@ -55,7 +56,7 @@ the separate original YoFi Payee import described in
 |------|----------|
 | Workspace UI | Data Administration on Manage Workspace |
 | Selectable export types | `Transactions` and `PayeeMatchingRules`; `Splits` are included with Transactions rather than selected independently |
-| Transaction export scope | Current-workspace transactions and their splits, optionally filtered by year or inclusive custom date range |
+| Transaction export scope | Current-workspace transactions and their splits, optionally filtered by year or inclusive custom date range with open endpoints |
 | Payee-rule export scope | All rules in the current workspace; date filters do not apply |
 | Complete export | All registered types and date ranges, named `yofi-complete-export-{date}.xlsx` |
 | Native format ID | `YoFi.V3`, identified by the reserved `Metadata` worksheet |
@@ -198,7 +199,8 @@ only source of workspace identity.
 
 The export endpoint returns the XLSX content type and a safe `Content-Disposition`
 filename. It queries only the current workspace. A request selects one or more
-registered types and may specify either `year` or both `startDate` and `endDate`.
+registered types and may specify either `year` or `startDate`, `endDate`, or
+both. When both custom endpoints are provided, start must not be after end.
 An explicit complete-export selection includes all registered types and bypasses
 date filters. Options expose registered types and years containing transaction
 data.
@@ -256,7 +258,8 @@ tenant's payee-rule cache only after commit.
 - Export contains every rule from the selected workspace and no rules from a
   different workspace.
 - Selecting Transactions exports transaction rows and only their related
-  splits, with inclusive year/custom-range filtering and no cross-tenant rows.
+  splits, with inclusive year/custom-range filtering (including open-ended
+  ranges) and no cross-tenant rows.
 - Payee Matching Rules are exported regardless of transaction date filters.
 - Complete export contains all registered types and ignores date filtering.
 - Empty workspaces export a valid workbook with the worksheet headers and
