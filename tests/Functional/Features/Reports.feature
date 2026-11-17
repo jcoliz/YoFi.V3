@@ -28,6 +28,7 @@ Feature: Reports
 
     @pri:1
     @id:1
+    @category:smoke
     Scenario Outline: View a representative financial report
       When user visits the "Reports" page
       Then page heading is "Reports"

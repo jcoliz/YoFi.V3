@@ -10,6 +10,7 @@ Background:
 Rule: User Registration
     Users can create new accounts with valid credentials
 
+    @category:smoke
     Scenario: User registers for a new account
         Given I am on the registration page
         When I enter valid registration details
@@ -44,6 +45,7 @@ Rule: User Registration
 Rule: User Login and Logout
     Users can authenticate and end their sessions
 
+    @category:smoke
     Scenario: User logs into an existing account
         Given I have an existing account
         And I am on the login page
@@ -78,6 +80,7 @@ Rule: User Login and Logout
 Rule: Account Management
     Authenticated users can view their profile
 
+    @category:smoke
     Scenario: User views their account details
         Given I am logged in
         And I am on any page in the application

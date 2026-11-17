@@ -16,6 +16,7 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:1
+    @category:smoke
     Scenario: User creates a basic payee matching rule with category
       When I create a payee rule:
         | Payee     | Category |
@@ -82,6 +83,7 @@ Feature: Payee Matching Rules
 
     @pri:1
     @id:40
+    @category:smoke
     Scenario: User applies a new rule beyond the current transaction search by default
       Given I have a payee rule:
         | Payee  | Category |

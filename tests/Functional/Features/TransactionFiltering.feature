@@ -17,6 +17,7 @@ Feature: Transaction Filtering
   Rule: Users can quickly find transactions by searching text
 
     @id:1
+    @category:smoke
     Scenario: User searches across payee, memo, and category
       Given I have a workspace with a transaction:
         | Payee            | Amount | Category    | Memo           |

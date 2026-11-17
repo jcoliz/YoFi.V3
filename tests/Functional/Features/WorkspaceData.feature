@@ -12,6 +12,7 @@ Feature: Workspace Data Administration
   Rule: Sample Data
 
     @id:1
+    @category:smoke
     Scenario: Explore a workspace with realistic sample data
       When I load the "Personal Finance" sample data
       Then I see confirmation of the transactions and rules added

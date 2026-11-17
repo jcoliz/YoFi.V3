@@ -16,6 +16,7 @@ Feature: Transaction Splits
     @category:add-splits
     Rule: Add a single split to an existing transaction
 
+        @category:smoke
         Scenario: Add a single split to an existing transaction with one split
             Given I have a workspace with a transaction:
                 | Payee            | Amount  | Category |

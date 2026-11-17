@@ -35,6 +35,7 @@ Feature: Transaction Record Fields
             Then the modal should close
             And I should see the updated memo in the transaction list
 
+        @category:smoke
         Scenario: User edits category via quick edit and sees it in list
             Given I have a workspace with a transaction:
                 | Payee      | Amount | Category |
@@ -59,6 +60,7 @@ Feature: Transaction Record Fields
             Then I should navigate to the transaction details page
             And I should see all the expected transaction fields displayed
 
+        @category:smoke
         Scenario: User navigates from transaction list to details page
             Given I have a workspace with a transaction:
                 | Payee    | Amount | Memo    | Source         | ExternalId |
