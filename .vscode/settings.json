@@ -20,5 +20,6 @@
     ],
     "cSpell.ignoreWords": [
         "GKHF"
-    ]
+    ],
+    "aspire.enableSettingsFileCreationPromptOnStartup": false
 }

@@ -10,6 +10,11 @@
 
 This project tracks Epics, Features, Stories, Scenarios, and Bugs as work items in the [YoFiV3 Azure DevOps project](https://dev.azure.com/jcoliz/YoFiV3). Do not look for these work items in GitHub Issues. The source code is hosted on GitHub.
 
+- Use the Azure CLI (`az`) and the `azure-devops` extension to interact with Azure DevOps; do not require or depend on an Azure DevOps MCP server.
+- Use the organization `https://dev.azure.com/jcoliz` and project `YoFiV3`. Configure them with `az devops configure --defaults organization=https://dev.azure.com/jcoliz project=YoFiV3` if needed.
+- Use `az boards` for work items and queries and `az pipelines` for builds and pipeline runs.
+- Read Azure DevOps data when needed, but mutate work items or pipelines only when the user explicitly requests or confirms the operation.
+
 CI and deployment use Azure Pipelines; see [`.azure/pipelines/ci.yaml`](.azure/pipelines/ci.yaml). The GitHub repository also has a basic Actions workflow, but it is not the primary build or deployment system.
 
 ## Logging
