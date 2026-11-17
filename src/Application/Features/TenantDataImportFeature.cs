@@ -45,7 +45,8 @@ public sealed class TenantDataImportFeature(
             }
             else
             {
-                handler.SetWorkbookContext(workbook);
+                if (handler is IWorkbookImportContextHandler contextHandler)
+                    contextHandler.SetWorkbookContext(workbook);
                 previews.Add(handler.Preview(worksheet));
             }
         }
@@ -93,6 +94,8 @@ public sealed class TenantDataImportFeature(
                 }
 
                 handlers.Add(handler);
+                if (handler is IWorkbookImportContextHandler contextHandler)
+                    contextHandler.SetWorkbookContext(workbook);
                 previews.Add(handler.Preview(worksheet));
             }
         }
@@ -137,7 +140,8 @@ public sealed class TenantDataImportFeature(
                 }
             }
 
-            item.Handler.SetWorkbookContext(workbook);
+            if (item.Handler is IWorkbookImportContextHandler contextHandler)
+                contextHandler.SetWorkbookContext(workbook);
             var worksheet = workbook.Worksheet(item.Preview.WorksheetName);
             results.Add(await item.Handler.ImportAsync(worksheet, cancellationToken));
             completedWorksheetNames.Add(item.Preview.WorksheetName);

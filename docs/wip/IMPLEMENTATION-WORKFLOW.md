@@ -246,13 +246,13 @@ This is the primary test layer.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
 - [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Integration`
 
-**Commit:** `test(integration): add [feature] application tests`
+**Commit:** `tests(integration): add [feature] application tests`
 
 **Checkpoint:** core business logic is verified against the database before any HTTP or UI work.
 
 ---
 
-## Phase 6: Controllers & API
+## Phase 6: Controllers
 
 **Read first:** the Controllers section of the design;
 [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs);

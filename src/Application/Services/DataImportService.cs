@@ -315,7 +315,7 @@ public sealed class DataImportService(
                     .Select(split => split.Key!.Value).ToHashSet();
 
                 foreach (var existingSplit in transaction.Splits
-                    .Where(split => !representedKeys.Contains(split.Key)).ToArray())
+                    .Where(split => transactionSplits.Length > 0 && !representedKeys.Contains(split.Key)).ToArray())
                 {
                     transaction.Splits.Remove(existingSplit);
                     dataProvider.Remove(existingSplit);

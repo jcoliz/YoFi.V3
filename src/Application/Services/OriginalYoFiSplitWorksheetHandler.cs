@@ -7,7 +7,7 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps original YoFi legacy split worksheet rows to split allocations.</summary>
-public sealed class OriginalYoFiSplitWorksheetHandler : IImportWorksheetHandler
+public sealed class OriginalYoFiSplitWorksheetHandler : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
     public string FormatId => "original-yofi";
@@ -16,7 +16,7 @@ public sealed class OriginalYoFiSplitWorksheetHandler : IImportWorksheetHandler
     public int DependencyOrder => 300;
     public IReadOnlyCollection<string> RequiresWorksheetNames => ["Transaction"];
 
-    public void SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
+    void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 

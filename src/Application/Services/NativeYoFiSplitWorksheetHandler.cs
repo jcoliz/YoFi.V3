@@ -7,7 +7,7 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps native YoFi.V3 split worksheet rows to native split import DTOs.</summary>
-public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImportService) : IImportWorksheetHandler
+public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImportService) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
     public string FormatId => "yofi.v3";
@@ -16,7 +16,7 @@ public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImport
     public int DependencyOrder => 300;
     public IReadOnlyCollection<string> RequiresWorksheetNames => ["Transactions"];
 
-    public void SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
+    void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
@@ -113,6 +113,35 @@ public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImport
             }
         }
 
+        if (_workbook is not null && _workbook.TryGetWorksheet("Transactions", out var contextTransactionsWorksheet))
+        {
+            var transactionHeaders = ReadHeaders(contextTransactionsWorksheet);
+            var validTransactionKeys = new HashSet<Guid>();
+            if (transactionHeaders.Columns.TryGetValue("Key", out var transactionKeyColumn))
+            {
+                var lastTransactionRow = contextTransactionsWorksheet.LastRowUsed()?.RowNumber() ?? 1;
+                for (var row = 2; row <= lastTransactionRow; row++)
+                    if (Guid.TryParse(contextTransactionsWorksheet.Cell(row, transactionKeyColumn).GetString().Trim(), out var key)
+                        && validTransactionKeys.Add(key)) { }
+            }
+            foreach (var split in splits)
+            {
+                if (!validTransactionKeys.Contains(split.TransactionKey))
+                    errors.Add(new DataImportIssueDto(2, "TransactionKey", "transaction_key_mismatch",
+                        "TransactionKey must reference a row in Transactions."));
+
+                var transactionRow = transactionHeaders.Columns.TryGetValue("Key", out var splitLookupKeyColumn)
+                    ? contextTransactionsWorksheet.RowsUsed().Skip(1).FirstOrDefault(row =>
+                        Guid.TryParse(row.Cell(splitLookupKeyColumn).GetString().Trim(), out var key)
+                        && key == split.TransactionKey)
+                    : null;
+                if (transactionRow is not null
+                    && transactionHeaders.Columns.TryGetValue("Category", out var transactionCategoryColumn)
+                    && !string.Equals(transactionRow.Cell(transactionCategoryColumn).GetString().Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase))
+                    errors.Add(new DataImportIssueDto(2, "TransactionKey", "non_split_transaction",
+                        "Split rows may only reference transactions marked SPLIT."));
+            }
+        }
         return new Analysis(splits.ToImmutable(), ignored, errors.ToImmutable(), []);
     }
 

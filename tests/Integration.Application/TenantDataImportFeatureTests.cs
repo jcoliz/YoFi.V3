@@ -36,8 +36,15 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         _timeProvider = new TestTimeProvider();
         var dataImport = new DataImportService(tenantProvider, _dataProvider, _cache, regex, _timeProvider);
         _service = new TenantDataImportFeature(
-            [new OriginalYoFiWorkbookFormatDetector()],
-            [new OriginalYoFiPayeeWorksheetHandler(dataImport, regex)]);
+            [new OriginalYoFiWorkbookFormatDetector(), new NativeYoFiV3WorkbookFormatDetector()],
+            [
+                new OriginalYoFiPayeeWorksheetHandler(dataImport, regex),
+                new OriginalYoFiTransactionWorksheetHandler(dataImport, _timeProvider),
+                new OriginalYoFiSplitWorksheetHandler(),
+                new NativeYoFiPayeeWorksheetHandler(dataImport, regex),
+                new NativeYoFiTransactionWorksheetHandler(dataImport, _timeProvider),
+                new NativeYoFiSplitWorksheetHandler(dataImport)
+            ]);
         _rulesFeature = new PayeeMatchingRuleFeature(tenantProvider, _dataProvider, _cache, _timeProvider);
     }
 
@@ -149,6 +156,169 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         _context.ChangeTracker.Clear();
 
         Assert.That(await _context.PayeeMatchingRules.CountAsync(), Is.Zero);
+    }
+
+    [Test]
+    public async Task Import_NativeWorkbookUpdatesTenantTransactionAndReconcilesSplits()
+    {
+        // Given: a native transaction and its existing split graph in the target tenant
+        var transactionKey = Guid.NewGuid();
+        var firstSplitKey = Guid.NewGuid();
+        var transaction = new Transaction
+        {
+            Key = transactionKey,
+            TenantId = _targetTenant.Id,
+            Date = new DateOnly(2026, 1, 1),
+            Payee = "Old Payee",
+            Amount = 25m,
+            Source = "Old Source"
+        };
+        transaction.Splits.Add(new Split
+        {
+            Key = firstSplitKey,
+            Amount = 25m,
+            Category = "Old Category",
+            Memo = null,
+            Order = 0
+        });
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        var secondSplitKey = Guid.NewGuid();
+        var file = NamedWorkbook(
+            ("Metadata", ["Name", "Value"], [["Format", "YoFi.V3"]]),
+            ("Transactions", ["Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category"],
+                [[transactionKey.ToString("D"), "2026-02-03", "Updated Payee", 25m, "Checking", "EXT-1", "Updated memo", " split "]]),
+            ("Splits", ["Key", "TransactionKey", "Amount", "Category", "Memo", "Order"],
+                [[firstSplitKey.ToString("D"), transactionKey.ToString("D"), 10m, " shopping : food ", "Food memo", 0],
+                 [secondSplitKey.ToString("D"), transactionKey.ToString("D"), 15m, "home   and garden", "Garden memo", 1]]));
+
+        // When: previewed and imported
+        var preview = _service.Preview(file);
+        var result = await _service.ImportAsync(file, preview.Sha256);
+        _context.ChangeTracker.Clear();
+
+        // Then: native format and both worksheet results are applied tenant-safely
+        var imported = await _context.Transactions
+            .Where(item => item.TenantId == _targetTenant.Id)
+            .Include(item => item.Splits)
+            .SingleAsync();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(preview.FormatId, Is.EqualTo("yofi.v3"));
+            Assert.That(preview.Worksheets.Select(item => item.WorksheetName), Is.EquivalentTo(["Transactions", "Splits"]));
+            Assert.That(result.Worksheets.Single(item => item.WorksheetName == "Transactions").Updated, Is.EqualTo(1));
+            Assert.That(result.Worksheets.Single(item => item.WorksheetName == "Splits").Updated, Is.EqualTo(1));
+            Assert.That(imported.Payee, Is.EqualTo("Updated Payee"));
+            Assert.That(imported.Source, Is.EqualTo("Checking"));
+            Assert.That(imported.ExternalId, Is.EqualTo("EXT-1"));
+            Assert.That(imported.Splits, Has.Count.EqualTo(2));
+            Assert.That(imported.Splits.Select(split => split.Category), Is.EquivalentTo(["Shopping:Food", "Home And Garden"]));
+            Assert.That(imported.Splits.Select(split => split.Key), Is.EquivalentTo([firstSplitKey, secondSplitKey]));
+        }
+    }
+
+    [Test]
+    public async Task Import_NativeDuplicateKeysBlockWorksheetAndPersistNothing()
+    {
+        // Given: a native transaction worksheet with duplicate GUIDs
+        var duplicateKey = Guid.NewGuid();
+        var file = NamedWorkbook(
+            ("Metadata", ["Name", "Value"], [["Format", "YoFi.V3"]]),
+            ("Transactions", ["Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category"],
+                [[duplicateKey.ToString("D"), "2026-02-03", "First", 10m, "", "", "", ""],
+                 [duplicateKey.ToString("D"), "2026-02-04", "Second", 20m, "", "", "", ""]]));
+
+        // When
+        var preview = _service.Preview(file);
+
+        // Then
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(preview.CanImport, Is.False);
+            Assert.That(preview.Worksheets.Single().Errors.Any(issue => issue.Code == "duplicate_key"), Is.True);
+        }
+        await Assert.ThrowsAsync<YoFi.V3.Application.Exceptions.TenantDataImportValidationException>(
+            () => _service.ImportAsync(file, preview.Sha256));
+        Assert.That(await _context.Transactions.CountAsync(), Is.Zero);
+    }
+
+    [Test]
+    public async Task Import_OriginalTransactionAndSplitWorkbookCreatesTenantGraph()
+    {
+        // Given: original transaction and split worksheets
+        var file = NamedWorkbook(
+            ("Transaction", ["ID", "Timestamp", "Payee", "Amount", "Category", "Memo", "BankReference", "ReceiptUrl"],
+                [[101, "2026-02-03 10:30", "Coffee Shop", 12.50m, " food : drinks ", "Morning", "BANK-101", "ignored"]]),
+            ("Split", ["ID", "Amount", "Category", "Memo", "TransactionID"],
+                [[1, 7.50m, " food : dining ", "Breakfast", 101],
+                 [2, 5.00m, " work   travel ", "Coffee", 101]]));
+
+        // When
+        var preview = _service.Preview(file);
+        var result = await _service.ImportAsync(file, preview.Sha256);
+        _context.ChangeTracker.Clear();
+
+        // Then
+        var imported = await _context.Transactions
+            .Where(item => item.TenantId == _targetTenant.Id)
+            .Include(item => item.Splits)
+            .SingleAsync();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(preview.FormatId, Is.EqualTo("original-yofi"));
+            Assert.That(result.Worksheets.Single(item => item.WorksheetName == "Transaction").Created, Is.EqualTo(1));
+            Assert.That(imported.ExternalId, Is.EqualTo("BANK-101"));
+            Assert.That(imported.Splits, Has.Count.EqualTo(2));
+            Assert.That(imported.Splits.Select(split => split.Category), Is.EquivalentTo(["Food:Dining", "Work Travel"]));
+            Assert.That(imported.Id, Is.Not.EqualTo(101));
+        }
+    }
+
+    [Test]
+    public async Task Import_NativeAndOriginalWorkbooksRemainTenantScoped()
+    {
+        // Given: records in both tenants
+        var otherTransaction = new Transaction
+        {
+            TenantId = _otherTenant.Id,
+            Date = new DateOnly(2026, 1, 1),
+            Payee = "Other",
+            Amount = 99m
+        };
+        otherTransaction.Splits.Add(new Split { Amount = 99m, Category = "Other", Order = 0 });
+        _context.Transactions.Add(otherTransaction);
+        await _context.SaveChangesAsync();
+
+        var file = NamedWorkbook(
+            ("Metadata", ["Name", "Value"], [["Format", "YoFi.V3"]]),
+            ("Transactions", ["Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category"],
+                [[Guid.NewGuid().ToString("D"), "2026-02-03", "Target", 10m, "", "", "", "Restaurants"]]));
+
+        // When
+        var preview = _service.Preview(file);
+        await _service.ImportAsync(file, preview.Sha256);
+        _context.ChangeTracker.Clear();
+
+        // Then
+        Assert.That(await _context.Transactions.CountAsync(item => item.TenantId == _targetTenant.Id), Is.EqualTo(1));
+        Assert.That(await _context.Transactions.CountAsync(item => item.TenantId == _otherTenant.Id), Is.EqualTo(1));
+        Assert.That((await _context.Transactions.SingleAsync(item => item.TenantId == _otherTenant.Id)).Payee, Is.EqualTo("Other"));
+    }
+
+    private static byte[] NamedWorkbook(params (string Name, string[] Headers, object[][] Rows)[] worksheets)
+    {
+        using var workbook = new XLWorkbook();
+        foreach (var worksheet in worksheets)
+        {
+            var sheet = workbook.Worksheets.Add(worksheet.Name);
+            SetRow(sheet, 1, worksheet.Headers);
+            for (var index = 0; index < worksheet.Rows.Length; index++)
+                SetRow(sheet, index + 2, worksheet.Rows[index].Select(value => value?.ToString() ?? string.Empty).ToArray());
+        }
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
     }
 
     private static byte[] Workbook(string[] headers, string[][] rows)

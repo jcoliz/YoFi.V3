@@ -27,7 +27,22 @@ public interface IImportWorksheetHandler
     /// <summary>Revalidates and commits this worksheet as one persistence unit.</summary>
     Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken);
 
-    /// <summary>Provides the containing workbook for worksheet-wide validation. Optional for independent handlers.</summary>
-    /// <param name="workbook">The workbook currently being previewed or imported.</param>
-    void SetWorkbookContext(XLWorkbook workbook) { }
+}
+
+/// <summary>
+/// Provides workbook-level context to worksheet handlers that validate relationships across multiple sheets.
+/// </summary>
+/// <remarks>
+/// This is an internal coordinator capability, not part of the public worksheet-handler contract. The
+/// <see cref="YoFi.V3.Application.Features.TenantDataImportFeature"/> sets the current workbook before preview and import operations so
+/// handlers can validate references between dependency-related worksheets, such as native splits against
+/// transactions or original splits against transaction IDs.
+/// </remarks>
+internal interface IWorkbookImportContextHandler
+{
+    /// <summary>
+    /// Sets the workbook containing the worksheet currently being previewed or imported.
+    /// </summary>
+    /// <param name="workbook">The open workbook, valid for the duration of the preview or import call.</param>
+    void SetWorkbookContext(XLWorkbook workbook);
 }

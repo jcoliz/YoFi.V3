@@ -7,13 +7,16 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps native YoFi.V3 transaction worksheet rows to transaction import DTOs.</summary>
-public sealed class NativeYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler
+public sealed class NativeYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
+    private XLWorkbook? _workbook;
     public string FormatId => "yofi.v3";
     public string WorksheetName => "Transactions";
     public string DataType => "Transactions";
     public int DependencyOrder => 200;
     public IReadOnlyCollection<string> RequiresWorksheetNames => [];
+
+    void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 

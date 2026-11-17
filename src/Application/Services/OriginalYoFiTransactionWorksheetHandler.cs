@@ -7,13 +7,16 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps original YoFi legacy transaction worksheet rows to append-only transaction imports.</summary>
-public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler
+public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
+    private XLWorkbook? _workbook;
     public string FormatId => "original-yofi";
     public string WorksheetName => "Transaction";
     public string DataType => "Transactions";
     public int DependencyOrder => 200;
     public IReadOnlyCollection<string> RequiresWorksheetNames => [];
+
+    void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
@@ -66,8 +69,40 @@ public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService da
                     foreach (var failure in validation.Errors) errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
                     continue;
                 }
-                var split = new OriginalSplitImportDto(amount, category, null);
-                transactions.Add(new OriginalTransactionImportDto(date, amount, payee.Trim(), Blank(memo), bankReference, [split]));
+                var splitRows = new List<OriginalSplitImportDto>();
+                if (_workbook is not null
+                    && _workbook.TryGetWorksheet("Split", out var splitWorksheet)
+                    && headers.Columns.TryGetValue("ID", out var legacyIdColumn)
+                    && long.TryParse(worksheet.Cell(row, legacyIdColumn).GetString().Trim(), out var legacyId))
+                {
+                    var splitHeaders = ReadHeaders(splitWorksheet);
+                    if (splitHeaders.Columns.TryGetValue("TransactionID", out var splitLinkColumn)
+                        && splitHeaders.Columns.TryGetValue("Amount", out var splitAmountColumn)
+                        && splitHeaders.Columns.TryGetValue("Category", out var splitCategoryColumn))
+                    {
+                        var lastSplitRow = splitWorksheet.LastRowUsed()?.RowNumber() ?? 1;
+                        for (var splitRow = 2; splitRow <= lastSplitRow; splitRow++)
+                        {
+                            if (!long.TryParse(splitWorksheet.Cell(splitRow, splitLinkColumn).GetString().Trim(), out var linkedId)
+                                || linkedId != legacyId) continue;
+                            if (!splitWorksheet.Cell(splitRow, splitAmountColumn).TryGetValue(out decimal splitAmount)) continue;
+                            var splitCategory = CategoryHelper.SanitizeCategory(splitWorksheet.Cell(splitRow, splitCategoryColumn).GetString());
+                            var splitMemo = splitHeaders.Columns.TryGetValue("Memo", out var splitMemoColumn)
+                                ? splitWorksheet.Cell(splitRow, splitMemoColumn).GetString().Trim() : string.Empty;
+                            splitRows.Add(new OriginalSplitImportDto(splitAmount, splitCategory,
+                                string.IsNullOrWhiteSpace(splitMemo) ? null : splitMemo));
+                        }
+                    }
+                }
+                if (splitRows.Count == 0)
+                    splitRows.Add(new OriginalSplitImportDto(amount, category, null));
+                if (splitRows.Sum(splitRow => splitRow.Amount) != amount)
+                {
+                    errors.Add(new DataImportIssueDto(row, "Split", "split_sum_mismatch",
+                        "Split amounts must sum to the transaction amount."));
+                    continue;
+                }
+                transactions.Add(new OriginalTransactionImportDto(date, amount, payee.Trim(), Blank(memo), bankReference, splitRows));
             }
         }
         return new Analysis(transactions.ToImmutable(), ignored, errors.ToImmutable(), skipped.ToImmutable());
@@ -84,7 +119,11 @@ public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService da
         if (!headers.Columns.TryGetValue("Timestamp", out var col)) return false;
         var cell = worksheet.Cell(row, col);
         if (cell.DataType == XLDataType.DateTime && cell.TryGetValue(out DateTime dateTime)) { value = DateOnly.FromDateTime(dateTime); return true; }
-        return DateOnly.TryParse(cell.GetString().Trim(), out value);
+        var text = cell.GetString().Trim();
+        if (DateTime.TryParse(text, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AllowWhiteSpaces, out var dateTimeValue))
+        { value = DateOnly.FromDateTime(dateTimeValue); return true; }
+        return DateOnly.TryParse(text, out value);
     }
     private static HeaderMap ReadHeaders(IXLWorksheet worksheet)
     { var dict = new Dictionary<string,int>(StringComparer.OrdinalIgnoreCase); var names = new List<string>(); foreach (var cell in worksheet.Row(1).CellsUsed()) { var name = cell.GetString().Trim(); if (name.Length > 0) { dict.TryAdd(name, cell.Address.ColumnNumber); names.Add(name); } } return new HeaderMap(dict,names); }
