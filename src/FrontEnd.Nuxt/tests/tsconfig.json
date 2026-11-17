@@ -1,21 +1,10 @@
 {
   // TypeScript configuration for frontend component tests.
-  // This file provides path alias resolution for the IDE when editing test files.
-  // Vitest resolves aliases via vitest.config.ts; this file is for IDE IntelliSense only.
+  // Used by the IDE and the typecheck script, with Nuxt aliases and auto-import types.
+  "extends": "../.nuxt/tsconfig.app.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
-    "jsx": "preserve",
-    "lib": ["ESNext", "DOM"],
-    "types": ["vitest/globals"],
-    "ignoreDeprecations": "6.0",
-    "paths": {
-      "~/*": ["../app/*"],
-      "@/*": ["../app/*"]
-    },
-    "baseUrl": "."
+    "noUncheckedIndexedAccess": false,
+    "types": ["vitest/globals"]
   },
-  "include": ["./**/*.ts"]
+  "include": ["../.nuxt/nuxt.d.ts", "./**/*.ts"]
 }

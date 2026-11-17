@@ -32,6 +32,9 @@ Tests use **[Vitest](https://vitest.dev/)** with **[`@vue/test-utils`](https://t
 for component mounting.
 
 ```bash
+# Typecheck the Nuxt application and frontend unit tests
+pnpm typecheck
+
 # Run all frontend unit tests
 pnpm test:components
 
@@ -41,6 +44,11 @@ pnpm test:components --watch
 # Run a specific file
 pnpm test:components date-only
 ```
+
+Run these commands from the frontend project directory. `pnpm typecheck` runs Nuxt's typecheck
+followed by `vue-tsc --noEmit -p tests/tsconfig.json`, using the Nuxt-generated aliases and
+auto-import declarations. Vitest transpiles tests without typechecking them, so passing tests
+do not replace this check.
 
 ## What Belongs Here
 
