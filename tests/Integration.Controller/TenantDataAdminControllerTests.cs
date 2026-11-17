@@ -232,6 +232,21 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task Export_AllAvailableTypesWithoutDateFilter_UsesCompleteExportFileName()
+    {
+        await SeedDataAsync();
+
+        var response = await _client.GetAsync(
+            $"{ExportUrl}?types=PayeeMatchingRules&types=Transactions");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(
+            response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName,
+            Does.Contain("yofi-complete-export-"));
+    }
+
+    [Test]
     public async Task Export_WithUnknownType_ReturnsProblemDetails()
     {
         var response = await _client.GetAsync($"{ExportUrl}?types=Unknown");

@@ -56,6 +56,10 @@ public sealed class TenantDataExportFeature(
         var (startDate, endDate) = request.ExportAllData
             ? (null, null)
             : ResolveDateRange(request);
+        var isCompleteExport = request.ExportAllData
+            || (startDate is null
+                && endDate is null
+                && selectedWriters.Length == writers.Length);
 
         using var workbook = new XLWorkbook();
         WriteMetadata(workbook);
@@ -77,7 +81,7 @@ public sealed class TenantDataExportFeature(
         workbook.SaveAs(stream);
         return new TenantDataExportResultDto(
             stream.ToArray(),
-            CreateFileName(selectedWriters, request, startDate, endDate),
+            CreateFileName(selectedWriters, isCompleteExport, startDate, endDate),
             counts);
     }
 
@@ -148,12 +152,12 @@ public sealed class TenantDataExportFeature(
 
     private string CreateFileName(
         IReadOnlyCollection<IExportWorksheetWriter> selectedWriters,
-        TenantDataExportRequest request,
+        bool isCompleteExport,
         DateOnly? startDate,
         DateOnly? endDate)
     {
         var date = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (request.ExportAllData)
+        if (isCompleteExport)
         {
             return $"yofi-complete-export-{date}.xlsx";
         }

@@ -113,6 +113,24 @@ describe('Workspace ExportDataPane', () => {
     ).toBeUndefined()
   })
 
+  it('sends the selected types and lets the backend decide whether this is a complete export', async () => {
+    const wrapper = await mountPane()
+    await wrapper.find('[data-test-id="clear-export-types"]').trigger('click')
+    for (const checkbox of wrapper.findAll<HTMLInputElement>('[data-test-id="export-type"]')) {
+      await checkbox.setValue(true)
+    }
+    await wrapper.find('[data-test-id="export-selected-button"]').trigger('click')
+    await flushPromises()
+
+    expect(exportData).toHaveBeenCalledWith(
+      'workspace-key',
+      ['Transactions', 'PayeeMatchingRules'],
+      undefined,
+      undefined,
+      false,
+    )
+  })
+
   it('converts a selected year to inclusive start and end dates', async () => {
     const wrapper = await mountPane()
     await wrapper.find('[data-test-id="export-date-selection"]').setValue('year:2023')

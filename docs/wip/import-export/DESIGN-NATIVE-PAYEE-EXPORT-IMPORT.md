@@ -204,7 +204,9 @@ converts a selected calendar year to its first and last dates. When both custom
 endpoints are provided, start must not be after end.
 An explicit complete-export selection includes all registered types and bypasses
 date filters. Options expose registered types and years containing transaction
-data.
+data. The backend also treats a request containing every registered type with no
+date bounds as a complete export, so it receives the complete-export filename;
+this selection inference is performed by the backend, not the frontend.
 
 Import registers a native format detector and a `PayeeMatchingRules`
 worksheet handler with the existing `TenantDataImportFeature`. Keep mapping,

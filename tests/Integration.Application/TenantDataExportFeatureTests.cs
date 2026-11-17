@@ -186,6 +186,26 @@ public class TenantDataExportFeatureTests : FeatureTestBase
     }
 
     [Test]
+    public async Task Export_AllRegisteredTypesWithoutDateFilter_UsesCompleteExportFileName()
+    {
+        var result = await _feature.ExportAsync(new TenantDataExportRequest(
+            ["Transactions", "PayeeMatchingRules"]));
+
+        Assert.That(result.FileName, Is.EqualTo("yofi-complete-export-2040-07-01.xlsx"));
+    }
+
+    [Test]
+    public async Task Export_AllRegisteredTypesWithDateFilter_UsesSelectedExportFileName()
+    {
+        var result = await _feature.ExportAsync(new TenantDataExportRequest(
+            ["Transactions", "PayeeMatchingRules"],
+            StartDate: new DateOnly(2025, 1, 1)));
+
+        Assert.That(result.FileName,
+            Is.EqualTo("yofi-payee-matching-rules-transactions-from-2025-01-01-2040-07-01.xlsx"));
+    }
+
+    [Test]
     public async Task Export_AllowsOpenEndedDateRanges()
     {
         _context.Transactions.AddRange(
