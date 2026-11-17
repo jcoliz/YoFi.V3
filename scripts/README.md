@@ -39,6 +39,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 | [`Build-Container.ps1`](Build-Container.ps1) | Builds the Docker CI containers locally for testing |
 | [`Push-Containers.ps1`](Push-Containers.ps1) | Builds and pushes Docker CI containers to Docker Hub, optionally publishing the Compose project |
 | [`Start-Container.ps1`](Start-Container.ps1) | Starts the Docker CI containers locally and opens the application in browser |
+| [`Refresh-Container.ps1`](Refresh-Container.ps1) | Rebuilds and starts the Docker CI containers without opening browser windows |
 | [`Stop-Container.ps1`](Stop-Container.ps1) | Stops the Docker CI containers locally |
 
 ### Azure Deployment
@@ -134,6 +135,9 @@ separate from the application containers.
 
 # Start containers
 .\Start-Container.ps1
+
+# Rebuild and start containers without opening browser windows
+.\Refresh-Container.ps1
 
 # Stop containers
 .\Stop-Container.ps1
