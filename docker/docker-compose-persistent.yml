@@ -26,6 +26,10 @@ services:
     extends:
       file: docker-compose-ci.yml
       service: backend
+    image: ${REGISTRY_PREFIX:-}yofi-v3-backend-persistent:${SOLUTION_VERSION:-local}
+    build:
+      tags: !override
+        - ${REGISTRY_PREFIX:-}yofi-v3-backend-persistent:latest
     environment:
       STARTUP__ALLOWEDCORSORIGINS__0: http://localhost:5100
       IDENTITYSEEDER__ENVIRONMENT__USERS__0__PASSWORD:

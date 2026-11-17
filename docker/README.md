@@ -232,7 +232,9 @@ The persistent and CI projects can run concurrently:
 The persistent frontend uses the same Dockerfile but a separate
 `yofi-v3-frontend-persistent` image because the backend URL is embedded at build
 time. Its API URL and the backend's allowed CORS origin match the persistent
-ports. Backend, PostgreSQL, and dashboard images are shared with CI.
+ports. The persistent backend also has a separate `yofi-v3-backend-persistent`
+image, so rebuilding either project does not replace the other's backend tags.
+PostgreSQL and dashboard images are shared with CI.
 `REGISTRY_PREFIX`, `SOLUTION_VERSION`, and the other CI Compose environment
 variables still apply. The existing container scripts continue to target only
 the CI project.
