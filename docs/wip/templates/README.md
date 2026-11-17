@@ -8,9 +8,16 @@ The main workflow document provides high-level orchestration instructions, while
 
 ## Templates
 
-### [FUNCTIONAL-TEST-PLAN-TEMPLATE.md](FUNCTIONAL-TEST-PLAN-TEMPLATE.md)
+> **Deprecated.** Both templates below are superseded by the Functional Tests section of
+> [`DESIGN-TEMPLATE.md`](../DESIGN-TEMPLATE.md). Gherkin scenarios are now written directly in the
+> design document, and agents implement functional tests one scenario at a time from that design
+> without a separate test plan or implementation plan (see Phase 9 of the
+> [Implementation Workflow](../IMPLEMENTATION-WORKFLOW.md)). The files are retained for reference
+> by older feature documents that link to them.
 
-**Used in:** Step 10.5 of Implementation Workflow
+### [FUNCTIONAL-TEST-PLAN-TEMPLATE.md](FUNCTIONAL-TEST-PLAN-TEMPLATE.md) (deprecated)
+
+**Used in:** Formerly Step 10.5 of Implementation Workflow
 
 **Mode:** Architect
 
@@ -23,9 +30,9 @@ The main workflow document provides high-level orchestration instructions, while
 - Single-responsibility principle
 - Example test plans
 
-### [FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md](FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md)
+### [FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md](FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md) (deprecated)
 
-**Used in:** Step 10.6 of Implementation Workflow
+**Used in:** Formerly Step 10.6 of Implementation Workflow
 
 **Mode:** Architect
 
@@ -97,5 +104,5 @@ When workflow steps become too complex (>20 lines, >3 levels of nesting):
 
 - [`docs/wip/IMPLEMENTATION-WORKFLOW.md`](../IMPLEMENTATION-WORKFLOW.md) - Main orchestration workflow
 - [`docs/TESTING-STRATEGY.md`](../../TESTING-STRATEGY.md) - Test layer selection guidance
-- [`tests/Functional/INSTRUCTIONS.md`](../../../tests/Functional/INSTRUCTIONS.md) - Functional test mechanics
+- [`tests/Functional/README.md`](../../../tests/Functional/README.md) - Functional test mechanics
 - [`.roorules`](../../../.roorules) - Project-wide patterns and conventions

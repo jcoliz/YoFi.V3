@@ -1,499 +1,496 @@
 # Implementation Workflow
 
-**Purpose:** Systematic approach for implementing PRD stories from design through deployment.
+**Purpose:** Systematic approach for implementing PRD stories from planning through merge and confirmation.
 
-**Target Audience:** Orchestrator agents coordinating implementation work across multiple layers.
+**Target audience:** Any agent (or human) executing or coordinating implementation work. The primary
+responsibility for development remains with the human developer; agents execute the parts they are able
+to and report the rest.
 
-**Philosophy:** Incremental progress with **user-controlled commits after each major step**. Always run tests after changes.
-
-**Commit Cadence:** After completing each major step below, **pause and present work to user for review and commit**. Each step represents a logical unit of work that should be committed to source control. The orchestrator should NOT commit directly - the user maintains control over git commits.
+**Philosophy:** Incremental progress in phases, with **user-controlled commits after each phase**. Always
+run the relevant tests after changes. Never claim a step was done without direct evidence.
 
 ---
 
-## Testing Philosophy
+## Agent Ground Rules
 
-**Test Execution Pattern:** Always run tests after creating or modifying them to verify they pass. Use `./scripts/Run-Tests.ps1` for all unit and integration tests. Fix failures immediately before proceeding. See [`.roorules`](../../.roorules) "Test Execution Pattern" for details.
+1. **Do what you can, report what you cannot.** If you lack access to Azure DevOps, cannot create a branch,
+   or cannot commit, say so and continue with the parts you can perform. Draft the branch name or commit
+   message and ask the user to perform the action. Never imply a branch, commit, or work-item change
+   happened unless you have direct evidence.
+2. **The user commits.** After each phase, present a summary and a drafted commit message (under 100 words,
+   following [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)), then wait for the user to commit
+   before starting the next phase. Do not commit directly.
+3. **Read before writing.** Each phase names the documents to read first. Read them. Do not design or
+   implement from memory of what the code "probably" looks like; open the neighboring implementation.
+4. **Implement only what the current phase and scenario require.** Over-implementation (extra steps, page
+   objects, endpoints, DTO fields) causes rework. If something seems missing from the design, raise it;
+   do not invent it.
+5. **Never stop or tear down the application containers.** Refreshing them is fine; stopping is not.
+   See [`AGENTS.md`](../../AGENTS.md).
 
-**Test Distribution Target:**
-- **60-70% Controller Integration tests** - API contracts, authorization, HTTP behavior (PRIMARY test layer)
-- **19-25% Unit tests** - Business logic, algorithms, validation (40% for algorithm-heavy features)
-- **10-15% Functional tests** - Critical user workflows, UI-dependent only
+---
 
-See [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) for detailed guidance on test layer selection.
+## Phases and Exit Criteria
 
-**Key Principle:** Default to Controller Integration tests. Reserve Functional tests for critical paths. Use Unit tests for algorithmic complexity.
+Feature development goes through these phases. Not every feature touches every layer, but when it does,
+this is the order. A phase is not complete until its exit criterion is met and the output is committed.
+
+| # | Phase | Exit criterion |
+| --- | --- | --- |
+| 1 | Planning | Work item Active, branch created, PRD and Design both `status: Approved`, scope agreed |
+| 2 | Entities | Domain model compiles in `src/Entities` |
+| 3 | Data & Migrations | DbContext configured, migration generated and reviewed, data integration tests from the design pass |
+| 4 | Application Features & Unit Tests | Features implemented, unit tests pass, coverage of modified paths meets threshold |
+| 5 | Application Integration Tests | Tests listed in the design pass against the real database |
+| 6 | Controllers & API | Endpoints implemented, auth rules validated, controller integration tests pass |
+| 7 | Back End Validation | Existing functional tests still pass against the new backend with the unchanged frontend |
+| 8 | Front End | TypeScript client regenerated; UI implemented with `data-test-id`s from the design; format, lint, typecheck, and component tests pass |
+| 9 | Functional Tests | Each scenario from the design passes individually against the containers |
+| 10 | Merge & Confirm | Branch merged to `main`, CI passes, documents and work item updated |
+
+Commit scope conventions: use the PRD feature slug (for example `payee-rules`) as the scope for
+non-test commits. Test commits use layer scopes: `test(unit)`, `test(integration)`, `test(functional)`,
+`test(frontend)`.
+
+---
+
+## Testing Strategy Summary
+
+See [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md) for the full decision framework.
+
+**Primary layer: Application Integration tests.** Most of the application's work is the interaction
+between Application Features and the database, so that boundary is tested directly in
+`tests/Integration.Application/`.
+
+| Layer | Use when | Location |
+| --- | --- | --- |
+| Unit | Pure logic with no data involvement: validation, calculations, algorithms, DTO mapping | `tests/Unit/` |
+| Application Integration | Feature behavior that depends on real queries: filtering, ordering, tenant isolation, navigation loading, multi-entity operations | `tests/Integration.Application/` |
+| Data Integration | As required: new schema, indexes, constraints, conversions, or data-provider capabilities | `tests/Integration.Data/` |
+| Controller Integration | As required: new routes, authorization policies, status-code mapping, HTTP-specific behavior | `tests/Integration.Controller/` |
+| Frontend Component | Component contracts (props in, events out, API calls), timezone-sensitive logic | `src/FrontEnd.Nuxt/tests/` |
+| Functional | Critical user workflows where browser behavior must be verified | `tests/Functional/` |
+
+The design document lists the Data Integration, Application Integration, Component, and Functional tests
+to write. Unit and Controller Integration tests are usually self-explanatory from the code and are not
+listed in the design.
+
+**Run tests with the project scripts**, never `dotnet test` at the solution root:
+
+```powershell
+.\scripts\Run-Tests.ps1                                  # unit + frontend component (default)
+.\scripts\Run-Tests.ps1 -Unit -Integration               # unit + all three integration projects
+.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~MyFeature"
+.\scripts\Run-Tests.ps1 -FrontEnd
+.\scripts\Run-Tests.ps1 -Functional -Filter "FullyQualifiedName~ScenarioName"
+```
+
+Integration and functional tests require Docker. Integration tests manage their own PostgreSQL
+Testcontainers. Functional tests require the application containers to be running.
 
 ---
 
 ## Reference Implementations
 
-For implementation patterns, refer to existing features:
+Use these as the pattern for new code. Open and read them; do not rely on memory.
 
 **Backend:**
-- Transaction CRUD: [`src/Controllers/TransactionsController.cs`](../../src/Controllers/TransactionsController.cs), [`src/Application/Features/TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
-- Tenancy Pattern: [`src/Entities/Models/BaseTenantModel.cs`](../../src/Entities/Models/BaseTenantModel.cs)
+
+- Transaction CRUD: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs), [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs)
+- Tenancy: [`BaseTenantModel.cs`](../../src/Entities/Models/BaseTenantModel.cs)
 - Logging: [`docs/LOGGING-POLICY.md`](../LOGGING-POLICY.md)
+- Validation: [`docs/VALIDATION-POLICY.md`](../VALIDATION-POLICY.md)
 
 **Testing:**
-- Controller Integration: [`tests/Integration.Controller/TransactionsControllerTests.cs`](../../tests/Integration.Controller/TransactionsControllerTests.cs)
-- Test Strategy: [`docs/TESTING-STRATEGY.md`](../TESTING-STRATEGY.md)
+
+- Application Integration: [`TransactionsFeatureTests.cs`](../../tests/Integration.Application/TransactionsFeatureTests.cs) and [`tests/Integration.Application/README.md`](../../tests/Integration.Application/README.md)
+- Data Integration: [`TransactionTests.cs`](../../tests/Integration.Data/TransactionTests.cs) and [`tests/Integration.Data/README.md`](../../tests/Integration.Data/README.md)
+- Controller Integration: [`TransactionsControllerTests.cs`](../../tests/Integration.Controller/TransactionsControllerTests.cs)
+- Frontend Component: [`src/FrontEnd.Nuxt/tests/README.md`](../../src/FrontEnd.Nuxt/tests/README.md)
+- Functional: [`tests/Functional/README.md`](../../tests/Functional/README.md)
 
 **Frontend:**
-- Vue Pages: [`src/FrontEnd.Nuxt/app/pages/transactions.vue`](../../src/FrontEnd.Nuxt/app/pages/transactions.vue)
-- Frontend Rules: [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules)
+
+- Pages: [`transactions.vue`](../../src/FrontEnd.Nuxt/app/pages/transactions.vue)
+- Rules: [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules)
 
 ---
 
-## Commit Checkpoints & User Review
+## Phase 1: Planning
 
-**IMPORTANT:** After completing each major step below, **pause and ask the user to review and commit** the changes. The orchestrator should NOT commit directly - the user maintains control over git commits.
+**Read first:** [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md), the ADRs in [`docs/adr`](../adr/README.md),
+[`PRD-GUIDANCE.md`](PRD-GUIDANCE.md), [`DESIGN-TEMPLATE.md`](DESIGN-TEMPLATE.md).
 
-**After Each Step:**
-1. Verify all tests pass (if applicable to that step)
-2. Review changes for completeness
-3. **Present summary of changes to user**
-4. **Create a commit message for the work** using conventional commit format (see [`docs/COMMIT-CONVENTIONS.md`](../COMMIT-CONVENTIONS.md)). ALWAYS keep commit messages under 100 words
-5. **Ask user to review and commit**
-6. Wait for user confirmation before proceeding to next step
+### 1.1 Work item and branch
 
-**Suggested Commit Messages by Step (for user's reference):**
+- [ ] Identify the ADO work item (Feature, Story, or Scenario) in the
+      [YoFiV3 project](https://dev.azure.com/jcoliz/YoFiV3). Create one if it does not exist.
+- [ ] Set the work item to **Active**. If you cannot, ask the user to do it.
+- [ ] Create a branch named `{type}/{number}-{slug}`, for example `story/2225-transaction-splits`.
+      `{type}` is `feature`, `story`, `scenario`, or `bug`. If you cannot create the branch, draft the
+      name and ask the user.
 
-**IMPORTANT:** Use the PRD feature slug (e.g., `transaction-record`, `payee-rules`) in the scope for all non-test commits. Test commits always use layer scopes (`test(unit)`, `test(integration)`, `test(functional)`).
+### 1.2 Document conventions
 
-- **Step 3 (Entities):** `feat([feature-slug]): add [EntityName] entity`
-- **Step 4 (Data Layer):** `feat([feature-slug]): add [EntityName] EF Core configuration`
-- **Step 5 (Data Integration Tests):** `test(integration): add [EntityName] data tests`
-- **Step 6 (Application Layer):** `feat([feature-slug]): implement business logic`
-- **Step 7 (Unit Tests):** `test(unit): add [feature] validation and logic tests`
-- **Step 8 (Controllers):** `feat([feature-slug]): add API endpoints`
-- **Step 8.5 (API Client):** `build([feature-slug]): regenerate API client`
-- **Step 9 (Controller Integration Tests):** `test(integration): add API endpoint tests`
-- **Step 10 (Frontend):** `feat([feature-slug]): implement UI`
-- **Step 10.4 (Verify Existing Functional Tests):** `fix([feature-slug]): resolve functional test failures`
-- **Step 10.5 (Functional Tests Plan):** `test(functional): add [feature] test plan`
-- **Step 10.6 (Functional Test Implementation Plan):** `test(functional): add [feature] implementation plan`
-- **Step 11.X (Functional Tests):** `test(functional): implement [feature] - [scenario name]` (one commit per scenario)
-- **Step 11.5 (Documentation):** `docs([feature-slug]): update documentation`
-- **Step 12 (Wrap-up):** `feat([feature-slug]): complete implementation`
+- [ ] Documents are named `{DOC-TYPE}-{SLUG}.md`, for example `PRD-PAYEE-RULES.md`,
+      `DESIGN-PAYEE-RULES.md`, and live in `docs/wip/{feature-area}/`.
+- [ ] Every document that corresponds to an ADO item records that item in its YAML front matter (`ado:`).
+- [ ] When multiple documents exist for one feature, each links to the others in its front matter
+      (`prd_document:`, `design_document:`).
+- [ ] Metadata goes in YAML front matter only, never in the document body.
+- [ ] Check documents in each time they change status. Iterate each document to `Approved` before
+      starting the next, and before leaving Planning.
 
----
+### 1.3 PRD
 
-## Implementation Steps
+- [ ] Locate the PRD in `docs/wip/{feature-area}/`. If none exists, create one from
+      [`PRD-TEMPLATE.md`](PRD-TEMPLATE.md).
+- [ ] Confirm the PRD is `status: Approved`.
+- [ ] Agree with the user exactly which stories or scenarios are in scope for this pass. PRDs are often
+      implemented in stages.
 
-### [ ] 1. Establish Scope & Entry Readiness
+### 1.4 Design
 
-**Orchestrator Checklist:**
-- [ ] Identify exact PRD in `docs/wip/{feature-area}/`
-- [ ] Verify PRD exists (if not, advise user to create using [`PRD-TEMPLATE.md`](PRD-TEMPLATE.md))
-- [ ] Verify PRD YAML has `status: Approved`
-- [ ] Check for linked design document in PRD
-- [ ] Clarify which stories are in scope
-- [ ] Clarify if implementing full stories or partial
+- [ ] Locate the design document in the same directory as the PRD, or create one from
+      [`DESIGN-TEMPLATE.md`](DESIGN-TEMPLATE.md). Follow the template's author instructions exactly:
+      every section present, no "work remaining" lists, open questions resolved, Gherkin written,
+      `data-test-id` table complete.
+- [ ] Confirm the design is `status: Approved` and the PRD links to it.
+- [ ] The design is the contract for every phase below. If implementation reveals a gap, update the
+      design and get it re-approved rather than improvising.
 
-**No commit for this step - planning only.**
+**No commit of code for this phase.** Commit documents as they change status:
+`docs([feature-slug]): add design for [stories]`.
 
 ---
 
-### [ ] 2. Detailed Design
+## Phase 2: Entities
 
-**Orchestrator Checklist:**
-- [ ] Find existing design document OR delegate creation to Architect mode
-- [ ] Verify design document location: same directory as PRD
-- [ ] Verify design YAML has `status: Approved`
-- [ ] Ensure PRD links to design document
+**Read first:** the Entities section of the design; [`BaseTenantModel.cs`](../../src/Entities/Models/BaseTenantModel.cs)
+or [`BaseModel.cs`](../../src/Entities/Models/BaseModel.cs); the XML Documentation pattern in
+[`.roorules`](../../.roorules).
 
-**Checkpoint:** Confirm design approval with user before proceeding to implementation.
+- [ ] Implement entity classes in `src/Entities` exactly as specified in the design (names, types,
+      nullability, length limits, validation attributes, navigation properties).
+- [ ] Add XML documentation to every class and public member.
+- [ ] Build: `dotnet build src/Entities`
+- [ ] Run unit tests: `.\scripts\Run-Tests.ps1 -Unit`
+
+**Commit:** `feat([feature-slug]): add [EntityName] entity`
+
+Skip this phase if the design states no entity changes.
 
 ---
 
-### [ ] 3. Entities
+## Phase 3: Data & Migrations
 
-**Orchestrator Instructions for Code Mode:**
+**Read first:** the Data and Data Integration Tests sections of the design;
+[`tests/Integration.Data/README.md`](../../tests/Integration.Data/README.md).
 
-> Implement entities per design document. Follow patterns in [`src/Entities/Models/BaseTenantModel.cs`](../../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel.cs`](../../src/Entities/Models/BaseModel.cs). Build project and run unit tests.
+### 3.1 Configuration and migration
 
-**Code Mode Checklist:**
-- [ ] Implement entity classes per design
-- [ ] Inherit from BaseTenantModel or BaseModel
-- [ ] Add XML documentation to all classes
+- [ ] Add `DbSet`s and `OnModelCreating` configuration (indexes, foreign keys, delete behavior,
+      conversions) in the PostgreSQL data project under `src/Data/`, exactly as designed.
+- [ ] Add or change `IDataProvider` capabilities only if the design calls for them.
 - [ ] Build: `dotnet build`
-- [ ] Run unit tests: `dotnet test tests/Unit`
+- [ ] Create the migration: `.\scripts\Add-Migration.ps1 -Name "<MigrationNameFromDesign>"`
+- [ ] Review the generated migration: confirm it matches the intended schema change and nothing else.
 
-**Commit Template:** `feat([feature-slug]): add [EntityName] entity`
+### 3.2 Data integration tests
+
+- [ ] Implement every test listed in the design's Data Integration Tests section, in
+      `tests/Integration.Data/`, using Given/When/Then comments.
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
+- [ ] Iterate until all pass.
+
+**Commits:** `feat([feature-slug]): add [EntityName] EF Core configuration` then
+`test(integration): add [EntityName] data tests`
+
+Skip this phase if the design states no data changes.
 
 ---
 
-### [ ] 4. Data Layer
+## Phase 4: Application Features & Unit Tests
 
-**Orchestrator Instructions for Code Mode:**
+**Read first:** the Application Features section of the design;
+[`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs);
+[`docs/VALIDATION-POLICY.md`](../VALIDATION-POLICY.md); the Application Layer Change pattern in
+[`.roorules`](../../.roorules).
 
-> Add entities to DbContext, configure EF Core relationships/indexes, create migration, verify with data integration tests.
-
-**Code Mode Checklist:**
-- [ ] Add DbSet to [`ApplicationDbContext.cs`](../../src/Data/Sqlite/ApplicationDbContext.cs)
-- [ ] Add EF Core configurations in OnModelCreating
-- [ ] Add indexes as designed
+- [ ] Add DTOs, validators, and exceptions in `src/Application` with the exact names and signatures
+      from the design.
+- [ ] Implement Feature methods. Use `IReadOnlyCollection<T>` for collections. Apply tenant scoping to
+      every query. No logging in this layer.
+- [ ] Add XML documentation to every class and public member.
 - [ ] Build: `dotnet build`
-- [ ] Create migration: `.\scripts\Add-Migration.ps1 -Name "Add{FeatureName}"`
-- [ ] Review migration for correctness
-- [ ] Run data tests: `dotnet test tests/Integration.Data`
-- [ ] Iterate until tests pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
+- [ ] Write unit tests in `tests/Unit/` covering normal, boundary, and error paths for logic that does
+      not require a database. Update existing unit tests affected by signature changes.
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Unit`; iterate until all pass.
+- [ ] Run `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
 
-**Commit Template:** `feat([feature-slug]): add [EntityName] EF Core configuration`
-
----
-
-### [ ] 5. Data Integration Tests
-
-**Orchestrator Instructions for Code Mode:**
-
-> Review [`TESTING-STRATEGY.md`](docs\TESTING-STRATEGY.md) to identify acceptance criteria for data integration tests. Focus on EF configurations, relationships, queries, data integrity.
-
-**Code Mode Checklist:**
-- [ ] Review TESTING-STRATEGY.md Decision Framework
-- [ ] Create test file in `tests/Integration.Data/`
-- [ ] Implement data integration tests (target: ~10-15% of total)
-- [ ] Run tests: `dotnet test tests/Integration.Data`
-- [ ] Iterate until all pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
-
-**Commit Template:** `test(integration): add [EntityName] data tests for [feature-slug]`
+**Commits:** `feat([feature-slug]): implement business logic` then
+`test(unit): add [feature] validation and logic tests`
 
 ---
 
-### [ ] 6. Application Layer
+## Phase 5: Application Integration Tests
 
-**Orchestrator Instructions for Code Mode:**
+**Read first:** the Application Integration Tests section of the design;
+[`tests/Integration.Application/README.md`](../../tests/Integration.Application/README.md).
 
-> Implement business logic in Application Features following [`TransactionsFeature.cs`](src/Application/Features/TransactionsFeature.cs) pattern. Update existing tests to build/pass.
+This is the primary test layer.
 
-**Code Mode Checklist:**
-- [ ] Implement Feature class in `src/Application/Features/`
-- [ ] Add XML documentation (class + methods)
-- [ ] Follow existing patterns (dependency injection, async/await)
+- [ ] Implement every test listed in the design, in `tests/Integration.Application/`, extending the
+      fixture the design names. Use `FeatureTestBase` and Given/When/Then comments.
+- [ ] Cover tenant isolation for every query the feature adds.
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
+- [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Integration`
+
+**Commit:** `test(integration): add [feature] application tests`
+
+**Checkpoint:** core business logic is verified against the database before any HTTP or UI work.
+
+---
+
+## Phase 6: Controllers & API
+
+**Read first:** the Controllers section of the design;
+[`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs);
+[`docs/LOGGING-POLICY.md`](../LOGGING-POLICY.md).
+
+Do **not** regenerate the TypeScript API client in this phase. Regenerating it changes
+[`apiclient.ts`](../../src/FrontEnd.Nuxt/app/utils/apiclient.ts), which is frontend code and may require
+frontend changes to compile. That happens in Phase 8, after Phase 7 has proven the new backend works with
+the unchanged frontend.
+
+### 6.1 Endpoints
+
+- [ ] Implement each endpoint with the route, tenant role, request/response types, and
+      `[ProducesResponseType]` attributes from the design. Keep controllers thin: delegate to the Feature.
+- [ ] Add `[LoggerMessage]` methods with explicit sequential event IDs and `[CallerMemberName]`.
+- [ ] Add middleware, filters, authorization policies, or exception-to-status mappings if the design
+      lists them.
+- [ ] Add XML documentation to the controller and every action.
+- [ ] Preserve backward compatibility with the currently deployed frontend. Any breaking change must
+      already be itemized in the design.
 - [ ] Build: `dotnet build`
-- [ ] Run unit tests: `dotnet test tests/Unit`
-- [ ] Iterate until all pass
-- [ ] Run all tests: `pwsh -File ./scripts/Run-Tests.ps1`
-- [ ] Iterate until all pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
 
-**Checkpoint:** Confirm core business logic is correct before UI work.
+### 6.2 Controller integration tests
 
-**Commit Template:** `feat([feature-slug]): implement business logic`
+- [ ] Add tests in `tests/Integration.Controller/` for each new endpoint: success, 400 validation,
+      404 not-in-tenant, unauthorized, forbidden role, and tenant isolation.
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
+- [ ] Iterate until all pass.
 
----
-
-### [ ] 7. Unit Tests
-
-**Orchestrator Instructions for Code Mode:**
-
-> Implement Unit tests for this feature. Review [`TESTING-STRATEGY.md`](docs/TESTING-STRATEGY.md) to identify acceptance criteria for unit tests. Focus on validation, calculations, algorithms, DTO transformations. Target: 19-25% of tests.
-
-**Code Mode Checklist:**
-- [ ] Review TESTING-STRATEGY.md Decision Framework
-- [ ] Create test file in `tests/Unit/`
-- [ ] Implement unit tests with comprehensive coverage
-- [ ] Run tests: `dotnet test tests/Unit`
-- [ ] Iterate until all pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
-
-**Commit Template:** `test(unit): add [feature] validation and logic tests`
+**Commits:** `feat([feature-slug]): add API endpoints` then
+`test(integration): add [feature] API endpoint tests`
 
 ---
 
-### [ ] 8. Controllers & Supporting Infrastructure
+## Phase 7: Back End Validation
 
-**Orchestrator Instructions for Code Mode:**
+The backend deploys before the frontend, so the previous frontend must keep working against the new
+backend. Verify this before starting UI work. At this point the frontend, including `apiclient.ts`, is
+unchanged from `main`, which is exactly the production condition being simulated.
 
-> Implement controller following [`TransactionsController.cs`](src/Controllers/TransactionsController.cs) pattern. Add XML docs, logging ([`LoggerMessage`] per [`LOGGING-POLICY.md`](../LOGGING-POLICY.md)), ASP.NET components as needed.
+- [ ] Rebuild and start the containers: `.\scripts\Refresh-Container.ps1`
+- [ ] Run the existing functional suite: `.\scripts\Run-Tests.ps1 -Functional`
+- [ ] If anything fails, fix the backend (not the tests) until the existing suite is green.
+- [ ] Do not stop the containers.
 
-**Code Mode Checklist:**
-- [ ] Implement controller in `src/Controllers/`
-- [ ] Add XML documentation (class + all public methods)
-- [ ] Add logging following project conventions, e.g. LogStarting(), LogOk(), explicit event IDs, [CallerMemberName]
-- [ ] Implement middleware/filters/authorization policies if needed
-- [ ] Implement additional exceptions in exception handling middleware if needed
-- [ ] Build: `dotnet build`
-- [ ] Verify no compilation errors
-- [ ] Do not add new tests, that will come later
-- [ ] Run existing tests: `dotnet test tests/Integration.Controller`
-- [ ] Iterate until all pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
-
-**Commit Template:** `feat([feature-slug]): add API endpoints`
+**Commit (only if fixes were needed):** `fix([feature-slug]): preserve compatibility with current frontend`
 
 ---
 
-### [ ] 8.5. API Client Generation & Frontend Compatibility
+## Phase 8: Front End
 
-**Orchestrator Instructions for Code Mode:**
+**Read first:** the Front End and Component Tests sections of the design;
+[`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules);
+[`tests/Functional/docs/frontend-contract.md`](../../tests/Functional/docs/frontend-contract.md);
+[`src/FrontEnd.Nuxt/tests/README.md`](../../src/FrontEnd.Nuxt/tests/README.md); the API Client
+Generation pattern in [`.roorules`](../../.roorules).
 
-> Regenerate TypeScript API client, fix frontend breaking changes, verify app functionality. See detailed checklist below.
+### 8.1 API client
 
-**Code Mode Checklist:**
-- [ ] Regenerate TypeScript client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
-- [ ] Verify new endpoints/DTOs in [`apiclient.ts`](../../src/FrontEnd.Nuxt/app/utils/apiclient.ts)
-- [ ] Fix frontend breaking changes from API updates
-- [ ] Build frontend: `pnpm run build` (from FrontEnd.Nuxt/)
-- [ ] **Ask user** to run: `.\scripts\Start-LocalDev.ps1`
-- [ ] **Wait for confirmation** app is running
-- [ ] Run functional tests: `dotnet test tests/Functional`
-- [ ] Fix failures OR ask user to verify UI if no functional tests exist
+Run from the repository root.
 
-**If generation fails:** Verify [HttpGet]/[HttpPost] and [ProducesResponseType] attributes on controller methods.
+- [ ] Regenerate the TypeScript client: `pwsh -File ./scripts/Generate-ApiClient.ps1`
+- [ ] Verify the new methods and DTOs named in the design's Controllers section appear in
+      [`apiclient.ts`](../../src/FrontEnd.Nuxt/app/utils/apiclient.ts). Never hand-edit this file.
+- [ ] Confirm the only generated-file change in `git diff` is `apiclient.ts`.
+- [ ] From `src/FrontEnd.Nuxt/`, run `pnpm typecheck`. Fix any existing frontend code broken by the
+      regenerated client (renamed methods, changed DTO shapes) before adding new UI.
+- [ ] The same script also refreshes `tests/Functional/Infrastructure/TestControl/openapi-test-control.json`;
+      the C# Test Control client regenerates from it when `tests/Functional` builds.
 
-**Commit Template:** `build([feature-slug]): regenerate API client`
+**Commit:** `build([feature-slug]): regenerate API client`
 
----
+Run all remaining commands in this phase from `src/FrontEnd.Nuxt/`.
 
-### [ ] 9. Controller Integration Tests
+### 8.2 Implementation
 
-**Orchestrator Instructions for Code Mode:**
+- [ ] Implement the pages, components, composables, stores, and utils named in the design, with the
+      documented props and emits.
+- [ ] Prefer small components. Extract discrete sections into components even when used once.
+- [ ] Apply **every** `data-test-id` from the design's Test IDs table, exactly as named. Add
+      `data-test-id` to every interactive element and every element whose content changes materially
+      from user action. Follow the frontend contract (naming, uniqueness, page-root-id, readiness).
+- [ ] Handle loading, empty, success, and each error status the design lists.
+- [ ] Add JSDoc to new or changed files.
 
-> Implement Controller Integration tests. This is the PRIMARY test layer (60-70% of acceptance criteria). Follow [`TransactionsControllerTests.cs`](../../tests/Integration.Controller/TransactionsControllerTests.cs) pattern. Test API contracts, authorization variants, HTTP behavior.
+### 8.3 Component tests
 
-**Code Mode Checklist:**
-- [ ] Review TESTING-STRATEGY.md - Controller Integration is sweet spot
-- [ ] Create test file in `tests/Integration.Controller/`
-- [ ] Implement tests for all endpoints
-- [ ] Include authorization variants: Success, Forbidden, Unauthorized, Tenant isolation
-- [ ] Run tests: `dotnet test tests/Integration.Controller`
-- [ ] Iterate until all pass
-- [ ] Create a commit message for these changes, under 100 words. Take the feature slug from the PRD document name, e.g. PRD-{FEATURE-SLUG}
+- [ ] Implement every test listed in the design's Component Tests section in `src/FrontEnd.Nuxt/tests/`.
+      Test behavior contracts, not markup.
 
-**Why Controller Integration:**
-- Tests complete API contract (request → response)
-- Includes database (in-memory, fast ~100-200ms)
-- Validates auth/authz
-- Low maintenance (no UI coupling)
+### 8.4 Checks
 
-**Commit Template:** `test(integration): add API endpoint tests`
+- [ ] `pnpm run format`
+- [ ] `pnpm run lint`
+- [ ] `pnpm typecheck`
+- [ ] `pnpm test:components`
+- [ ] From the repository root, rebuild and start the containers: `.\scripts\Refresh-Container.ps1`.
+      The container build runs `pnpm generate`; it must complete without errors. This also leaves the
+      containers ready for Phase 9.
 
----
-
-### [ ] 10. Front End
-
-**Orchestrator Instructions for Code Mode:**
-
-> Read [`src/FrontEnd.Nuxt/.roorules`](../../src/FrontEnd.Nuxt/.roorules) before implementing. Implement Vue pages/components, add `data-test-id` attributes for functional tests. Follow detailed checklist.
-
-**Code Mode Checklist:**
-- [ ] Review FrontEnd.Nuxt/.roorules for patterns
-- [ ] Verify API client up-to-date (regenerate if needed)
-- [ ] Implement Vue pages in `src/FrontEnd.Nuxt/app/pages/`
-- [ ] Look for reusable component opportunities
-- [ ] **Add `data-test-id` to ALL interactive elements** (buttons, inputs, links)
-- [ ] Use composables for shared logic
-- [ ] Format: `pnpm format` (from FrontEnd.Nuxt/)
-- [ ] Lint: `pnpm lint` (from FrontEnd.Nuxt/)
-- [ ] Build: `pnpm run build` (from FrontEnd.Nuxt/)
-
-**data-test-id Format:** `data-test-id="descriptive-action-name"` (kebab-case)
-
-**Commit Template:** `feat([feature-slug]): implement UI`
+**Commits:** `feat([feature-slug]): implement UI` then `test(frontend): add [feature] component tests`
 
 ---
 
-### [ ] 10.4. Verify Existing Functional Tests
+## Phase 9: Functional Tests
 
-**Orchestrator Instructions for Code Mode:**
+**Read first, before any functional test work:** [`tests/Functional/README.md`](../../tests/Functional/README.md)
+and every guide it links, especially
+[`WRITING-TESTS.md`](../../tests/Functional/docs/WRITING-TESTS.md),
+[`writing-features.md`](../../tests/Functional/docs/writing-features.md),
+[`writing-steps.md`](../../tests/Functional/docs/writing-steps.md),
+[`writing-pages.md`](../../tests/Functional/docs/writing-pages.md), and
+[`TEST-CONTROLS.md`](../../tests/Functional/docs/TEST-CONTROLS.md).
+Also read the Functional Tests section of the design, which contains the Gherkin scenarios to implement
+in priority order.
 
-> Ensure new frontend doesn't break existing functionality before planning new tests.
+### 9.1 Environment
 
-**Code Mode Checklist:**
-- [ ] **Ask user** to run: `.\scripts\Start-LocalDev.ps1`
-- [ ] **Wait for confirmation** app is running
-- [ ] Run existing tests: `dotnet test tests/Functional`
-- [ ] **If all pass:** Proceed to Step 10.5
-- [ ] **If failures:** Fix frontend breaking changes immediately
-- [ ] Re-run tests until all pass
-- [ ] **DO NOT proceed** until all existing tests green
+- [ ] Confirm the containers are running the current frontend (Phase 8.4 refreshed them). If anything
+      has changed since, run `.\scripts\Refresh-Container.ps1` again. Agents may run this at any time
+      without asking; run it after every backend or frontend change.
+- [ ] Run the existing functional suite once: `.\scripts\Run-Tests.ps1 -Functional`. Fix any regression
+      caused by the new frontend before adding scenarios.
+- [ ] Never run `Stop-Container.ps1` or a compose-down command.
 
-**Why this matters:** Catches breaking changes early before planning new tests.
+### 9.2 One scenario at a time
 
-**Commit Template (if fixes needed):** `fix([feature-slug]): resolve functional test failures`
+Work through the design's scenarios in priority order. For each scenario, implement, pass, present a
+commit, and wait for the user before starting the next one.
 
----
+- [ ] Copy the scenario's Gherkin from the design into the appropriate file in `tests/Functional/Features/`.
+      Keep all `When` steps before `Then` steps. Reuse step wording from the Step Catalog
+      (`tests/Functional/bin/Debug/net10.0/YoFi.V3.Tests.Functional.StepCatalog.md`).
+- [ ] Build the test project: `dotnet build tests/Functional`. Watch the output for warnings about
+      unbound steps; those are the step definitions you need.
+- [ ] Implement **only** the step definitions, page/component object members, and Test Control
+      endpoints this scenario needs. Do not pre-build steps or page objects for later scenarios.
+- [ ] If a Test Control endpoint was added to
+      [`TestControlController.cs`](../../src/Controllers/TestControlController.cs):
+      1. From the repository root, run `pwsh -File ./scripts/Generate-ApiClient.ps1`. This refreshes
+         `tests/Functional/Infrastructure/TestControl/openapi-test-control.json` (and `apiclient.ts`).
+      2. Rebuild `tests/Functional`; the MSBuild target regenerates the C# Test Control client from that
+         spec.
+      3. Refresh the containers so the backend serves the new endpoint: `.\scripts\Refresh-Container.ps1`
+- [ ] Run only this scenario:
+      `.\scripts\Run-Tests.ps1 -Functional -Filter "FullyQualifiedName~<GeneratedScenarioName>"`
+      The generated name is in `tests/Functional/obj/GeneratedFiles/.../<Feature>.feature.g.cs`.
+- [ ] Iterate until this scenario passes. It is not necessary to re-run the full fixture or suite after
+      every scenario.
+- [ ] Present the commit message and wait for the user.
 
-### [ ] 10.5. Functional Tests Plan
+**Commit per scenario:**
 
-**Mode Assignment:** Delegate to **Architect** agent.
-
-**Orchestrator Instructions for Architect Mode:**
-
-> Create functional test plan identifying critical UI-dependent workflows (10-15% target). Review [`TESTING-STRATEGY.md`](../TESTING-STRATEGY.md). Focus on single-responsibility scenarios. Use detailed guidance in template below.
-
-**Architect Mode:** See [`FUNCTIONAL-TEST-PLAN-TEMPLATE.md`](templates/FUNCTIONAL-TEST-PLAN-TEMPLATE.md) for complete instructions.
-
-**Key Requirements:**
-- Each scenario tests ONE workflow/acceptance criterion
-- Justify each scenario (risk, why not covered by other layers)
-- State risk category (business logic OR UI contract) and language tier (Tier 1 OR Tier 2)
-- Use Gherkin Rule keyword to group related scenarios
-- Target: 10-15% of total tests
-- NO C# code at this stage
-
-**Commit Template:** `test(functional): add [feature] test plan`
-
----
-
-### [ ] 10.6. Functional Test Implementation Plan
-
-**Mode Assignment:** Delegate to **Architect** agent.
-
-**Orchestrator Instructions for Architect Mode:**
-
-> Create detailed implementation plan bridging Gherkin to C# code. Read [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md) before starting. Analyze POMs, step definitions, test control endpoints, test data for ALL scenarios.
-
-**Architect Mode:** See [`FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md`](templates/FUNCTIONAL-TEST-IMPLEMENTATION-PLAN-TEMPLATE.md) for complete instructions.
-
-**Key Requirements:**
-- Review functional test plan (must be `status: Approved`)
-- Analyze: Page Object Models, Step Definitions, Test Control Endpoints, Test Data
-- Create plan document in same directory as PRD
-- Update PRD YAML with implementation plan link
-
-**Why this matters:** Identifies technical gaps before coding starts, prevents mid-implementation surprises.
-
-**Commit Template:** `test(functional): add [feature] implementation plan`
-
----
-
-### [ ] 11. Functional Tests (ONE SCENARIO AT A TIME)
-
-**ORCHESTRATOR WORKFLOW:**
-
-This step requires creating **ONE SUBTASK PER SCENARIO** and waiting for user approval after each completes.
-
-1. **Read functional test implementation plan** to identify all scenarios
-2. **Create subtask for Scenario 1** with instructions below
-3. **Wait for subtask completion** and user commit approval
-4. **Create subtask for Scenario 2** with instructions below
-5. **Wait for subtask completion** and user commit approval
-6. **Repeat** until all scenarios complete
-7. **After all scenarios:** Ask user to run container verification
-
-**ORCHESTRATOR INSTRUCTIONS FOR EACH CODE MODE SUBTASK:**
-
-> Implement functional test for [Scenario N of Y]: "[Scenario Name from implementation plan]"
->
-> Read functional test implementation plan section for this scenario. Follow checklist below. Implement ONLY this scenario - do NOT implement other scenarios.
->
-> CRITICAL: Implement → Test → Pass → Present commit → Return to Orchestrator
-
-**CODE MODE CHECKLIST (For Each Scenario Subtask):**
-
-**Setup (First scenario only):**
-- [ ] Locate functional test implementation plan (`status: Approved`)
-- [ ] Read [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md)
-- [ ] Read [`tests/Functional/.roorules`](../../tests/Functional/.roorules)
-- [ ] **Ask user** to run: `.\scripts\Start-LocalDev.ps1`
-- [ ] **Wait for confirmation** app is running
-
-**Implementation (Every scenario):**
-- [ ] Review implementation plan section for THIS scenario
-- [ ] Write Gherkin scenario in `tests/Functional/Features/` (THIS scenario only)
-- [ ] Update Page Object Models in `tests/Functional/Pages/` (only selectors needed for THIS scenario)
-- [ ] Write step definitions in `tests/Functional/Steps/` (ONLY steps for THIS scenario)
-- [ ] If needed: Add test control endpoints + regenerate API client
-- [ ] Manually regenerate test file per [`tests/Functional/INSTRUCTIONS.md`](../../tests/Functional/INSTRUCTIONS.md)
-- [ ] Run ONLY this scenario: `dotnet test tests/Functional --filter "DisplayName~ScenarioName"`
-- [ ] Iterate until THIS scenario passes
-- [ ] Verify no regressions in existing scenarios
-
-**Completion (Every scenario):**
-- [ ] Update status in implementation plan (mark scenario complete)
-- [ ] **Present commit message to user** (see template below)
-- [ ] **Return to Orchestrator** for user approval and next scenario
-
-**Key Principles:**
-- One scenario per subtask
-- One subtask per commit
-- User approval required between scenarios
-- App stays running across all scenarios (ask to start only once for first scenario)
-
-**Commit Template Per Scenario:**
-```
+```text
 test(functional): implement [feature] - [scenario name]
 
-Implements: "[Full Scenario Name from feature file]"
-- POMs: [list changes]
-- Steps: [list new methods]
-- Test Control: [list additions if any]
+Implements: "[Full scenario name from feature file]"
+- Pages: [changes]
+- Steps: [new methods]
+- Test Control: [additions, if any]
 
 Status: [X of Y scenarios complete]
 ```
 
----
+### 9.3 Full suite
 
-### [ ] 11.5. Documentation Updates
+After the last scenario:
 
-**Orchestrator Instructions for Code Mode:**
-
-> Verify XML docs on all new code, update README files if new patterns introduced.
-
-**Code Mode Checklist:**
-- [ ] Verify XML docs on all public classes/methods (Controllers, Features, Records)
-- [ ] Update README files if new patterns: Frontend, Test projects, Scripts
-- [ ] Consider ADR in `docs/adr/` for significant design decisions
-- [ ] Build to verify 0 documentation warnings
-
-**Reference:** XML Documentation Comments Pattern in [`.roorules`](../../.roorules)
-
-**Commit Template:** `docs([feature-slug]): update documentation`
+- [ ] Run the complete functional suite against the containers: `.\scripts\Run-Tests.ps1 -Functional`
+- [ ] Fix any failures. Do not proceed to merge with a red suite.
 
 ---
 
-### [ ] 12. Wrap-up & Final Testing
+## Phase 10: Merge & Confirm
 
-**Orchestrator Instructions for Code Mode:**
+### 10.1 Documentation
 
-> Run full test suite, verify distribution, update PRD/design/roadmap, create implementation summary.
+- [ ] Verify XML docs exist on every new public class and member (build with 0 documentation warnings).
+- [ ] Update README files if a new pattern was introduced (frontend, test projects, scripts).
+- [ ] Add an ADR in [`docs/adr`](../adr/README.md) if the design introduced a significant architectural
+      decision.
+- [ ] Run the full non-functional suite once more: `.\scripts\Run-Tests.ps1 -Unit -Integration -FrontEnd`
 
-**Code Mode Checklist:**
-- [ ] Run all tests: `pwsh -File ./scripts/Run-Tests.ps1`
-- [ ] Fix any failures before proceeding
-- [ ] Calculate test distribution by layer
-- [ ] Verify distribution aligns with targets (60-70% Controller, 19-25% Unit, 10-15% Functional)
-- [ ] Review uncompleted acceptance criteria (propose coverage)
-- [ ] Update PRD: Check off acceptance criteria, mark stories "Implemented", update YAML to `status: Implemented`
-- [ ] Update design document: Add implementation summary, update YAML to `status: Implemented`
-- [ ] Update [`docs/PRODUCT-ROADMAP.md`](../PRODUCT-ROADMAP.md)
-- [ ] Create implementation summary document
+**Commit:** `docs([feature-slug]): update documentation`
 
-**Final Commit Template:**
-```
-feat([feature-slug]): complete implementation
+### 10.2 Merge
 
-*** IMPLEMENTATION COMPLETE ***
-Stories implemented: [list story numbers/names]
-- Feature 1 description
-- Feature 2 description
+The agent typically cannot perform these; draft the commands and ask the user.
 
-Test coverage: X tests ([breakdown by layer])
-```
+- [ ] Rebase the feature branch onto `main`.
+- [ ] Merge into `main` with `--ff-only`.
+- [ ] Push.
+- [ ] Confirm the Azure Pipelines CI run ([`.azure/pipelines/ci.yaml`](../../.azure/pipelines/ci.yaml))
+      succeeds. Iterate until it does.
+
+### 10.3 Status updates
+
+Document lifecycle: `Draft -> In Review -> Approved -> Implemented`.
+ADO lifecycle: `New -> Active -> Resolved -> Closed`.
+
+Once CI is green on `main`:
+
+- [ ] PRD: check off the acceptance criteria that were implemented. If every story in the PRD is done,
+      set `status: Implemented`; otherwise leave it `Approved` and note which stories remain.
+- [ ] Design: set `status: Implemented`.
+- [ ] Update [`docs/PRODUCT-ROADMAP.md`](../PRODUCT-ROADMAP.md).
+- [ ] Set the ADO work item to **Resolved**. If you cannot, ask the user.
+
+**Commit:** `docs([feature-slug]): mark [stories] implemented`
+
+### 10.4 Validation
+
+Performed by a human after deployment to a cloud environment (UAT or Release). Features may be
+validated individually or batched per deployment.
+
+- [ ] Manually validate the feature in the deployed environment.
+- [ ] Set the ADO work item to **Closed**.
+- [ ] Documents stay `Implemented`; there is no "Closed" document status.
 
 ---
 
-## Common Issues & Solutions
+## Common Issues
 
-**Tests fail after data layer changes:**
-- Check EF Core configurations in DbContext
-- Verify migration applied correctly
-- Check tenant isolation violations
+**Tests fail after data layer changes:** check `OnModelCreating` configuration, confirm the migration was
+generated and applied, look for tenant isolation violations.
 
-**Functional tests cannot find elements:**
-- Review Page Object Model selectors
-- Verify frontend running (local or container)
-- Check timing issues (use DOM waits, not explicit delays)
+**Functional tests cannot find elements:** confirm the containers were refreshed after the last frontend
+change; compare page-object selectors with the design's Test IDs table; use deterministic waits, never
+fixed delays.
 
-**API client missing new endpoints:**
-- Rebuild WireApiHost: `dotnet build src/WireApiHost`
-- Verify [HttpGet]/[HttpPost] and [ProducesResponseType] attributes
+**Gherkin steps report as unbound at build time:** the step wording does not match any definition. Check
+the Step Catalog for the existing phrase, or implement the definition.
 
-**Authorization tests fail:**
-- Verify [RequireTenantRole] attributes on controller methods
-- Check TestAuthenticationHandler configuration
-- Ensure tenant context set in test setup
+**API client missing new endpoints:** rebuild `src/WireApiHost` or rerun `Generate-ApiClient.ps1`; verify
+`[HttpGet]`/`[HttpPost]` and `[ProducesResponseType]` attributes on the action.
+
+**Authorization tests fail:** verify `[RequireTenantRole]` on the action, check the test authentication
+handler configuration, ensure tenant context is set in test setup.
+
+**Functional tests fail after backend-only changes (Phase 7):** this is the compatibility check working.
+Fix the backend to keep the deployed frontend working; do not change the tests.
