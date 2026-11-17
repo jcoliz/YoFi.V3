@@ -2,6 +2,7 @@
 status: Draft # Draft | In Review | Approved | Implemented
 target_release: [Release Milestone when predominance of work is expected]
 design_document: [Link to design document]
+parent: [Link to parent ADO Item]
 ado: [Link to ADO Item]
 ---
 
