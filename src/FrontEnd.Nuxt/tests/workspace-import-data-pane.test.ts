@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { h } from 'vue'
+import { h, type Slots } from 'vue'
 import ImportDataPane from '~/components/workspace/ImportDataPane.vue'
 import { TenantDataAdminClient, type TenantRoleResultDto } from '~/utils/apiclient'
 
@@ -43,7 +43,7 @@ const ModalDialogStub = {
   emits: ['primary', 'update:show'],
   setup(
     props: { show: boolean; testId: string; primaryButtonTestId: string },
-    { slots, emit }: { slots: { default?: () => unknown }; emit: (event: string) => void },
+    { slots, emit }: { slots: Slots; emit: (event: string) => void },
   ) {
     return () =>
       props.show
