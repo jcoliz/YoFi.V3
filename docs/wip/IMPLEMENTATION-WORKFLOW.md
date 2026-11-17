@@ -222,14 +222,14 @@ Skip this phase if the design states no data changes.
 - [ ] Implement Feature methods. Use `IReadOnlyCollection<T>` for collections. Apply tenant scoping to
       every query. No logging in this layer.
 - [ ] Add XML documentation to every class and public member.
-- [ ] Build: `dotnet build`
+- [ ] Build: `dotnet build src/Backend`
 - [ ] Write unit tests in `tests/Unit/` covering normal, boundary, and error paths for logic that does
       not require a database. Update existing unit tests affected by signature changes.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Unit`; iterate until all pass.
 - [ ] Run `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
 
-**Commits:** `feat([feature-slug]): implement business logic` then
-`test(unit): add [feature] validation and logic tests`
+**Commits:** `feat([feature-slug]): implement application layer`. If unit tests are written separately, they can be committed with
+`test(unit): add [feature] validation and logic tests`. If they're all together, include them with the `feat` commit.
 
 ---
 

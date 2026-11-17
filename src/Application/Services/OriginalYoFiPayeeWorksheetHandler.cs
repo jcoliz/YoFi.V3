@@ -23,6 +23,12 @@ public sealed class OriginalYoFiPayeeWorksheetHandler(
     public string DataType => "PayeeMatchingRules";
 
     /// <inheritdoc />
+    public int DependencyOrder => 100;
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<string> RequiresWorksheetNames => [];
+
+    /// <inheritdoc />
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet)
     {
         var analysis = Analyze(worksheet);

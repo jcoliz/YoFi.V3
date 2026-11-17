@@ -15,9 +15,19 @@ public interface IImportWorksheetHandler
     /// <summary>V3 data type receiving the imported records.</summary>
     string DataType { get; }
 
+    /// <summary>Explicit worksheet dependency order; lower values execute first.</summary>
+    int DependencyOrder { get; }
+
+    /// <summary>Worksheet names that must be present and successfully committed first.</summary>
+    IReadOnlyCollection<string> RequiresWorksheetNames { get; }
+
     /// <summary>Validates worksheet data without writing.</summary>
     ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet);
 
     /// <summary>Revalidates and commits this worksheet as one persistence unit.</summary>
     Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken);
+
+    /// <summary>Provides the containing workbook for worksheet-wide validation. Optional for independent handlers.</summary>
+    /// <param name="workbook">The workbook currently being previewed or imported.</param>
+    void SetWorkbookContext(XLWorkbook workbook) { }
 }

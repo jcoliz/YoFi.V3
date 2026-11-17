@@ -45,6 +45,7 @@ public sealed class TenantDataImportFeature(
             }
             else
             {
+                handler.SetWorkbookContext(workbook);
                 previews.Add(handler.Preview(worksheet));
             }
         }
@@ -102,12 +103,44 @@ public sealed class TenantDataImportFeature(
             throw new TenantDataImportValidationException(preview);
         }
 
-        var results = new List<ImportWorksheetResultDto>(handlers.Count);
-        for (var index = 0; index < handlers.Count; index++)
+        var ordered = handlers
+            .Select((handler, index) => new { Handler = handler, Preview = previews[index] })
+            .OrderBy(item => item.Handler.DependencyOrder)
+            .ThenBy(item => item.Preview.WorksheetName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var completedWorksheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var workbookWorksheetNames = workbook.Worksheets
+            .Select(worksheet => worksheet.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var results = new List<ImportWorksheetResultDto>(ordered.Length);
+        foreach (var item in ordered)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var worksheet = workbook.Worksheet(previews[index].WorksheetName);
-            results.Add(await handlers[index].ImportAsync(worksheet, cancellationToken));
+            foreach (var requiredName in item.Handler.RequiresWorksheetNames)
+            {
+                if (!workbookWorksheetNames.Contains(requiredName))
+                {
+                    throw new TenantDataImportValidationException(new TenantDataImportPreviewDto(
+                        detected,
+                        previews,
+                        ignored,
+                        sha256));
+                }
+                if (!completedWorksheetNames.Contains(requiredName))
+                {
+                    throw new TenantDataImportValidationException(new TenantDataImportPreviewDto(
+                        detected,
+                        previews,
+                        ignored,
+                        sha256));
+                }
+            }
+
+            item.Handler.SetWorkbookContext(workbook);
+            var worksheet = workbook.Worksheet(item.Preview.WorksheetName);
+            results.Add(await item.Handler.ImportAsync(worksheet, cancellationToken));
+            completedWorksheetNames.Add(item.Preview.WorksheetName);
         }
 
         return new TenantDataImportResultDto(results);

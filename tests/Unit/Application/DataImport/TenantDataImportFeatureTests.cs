@@ -284,8 +284,11 @@ public class TenantDataImportFeatureTests
         using var scope = provider.CreateScope();
 
         Assert.That(scope.ServiceProvider.GetRequiredService<TenantDataImportFeature>(), Is.Not.Null);
-        Assert.That(scope.ServiceProvider.GetRequiredService<IEnumerable<IImportWorksheetHandler>>().Single(),
-            Is.TypeOf<OriginalYoFiPayeeWorksheetHandler>());
+        var handlers = scope.ServiceProvider.GetRequiredService<IEnumerable<IImportWorksheetHandler>>().ToArray();
+        Assert.That(handlers, Has.Some.TypeOf<OriginalYoFiPayeeWorksheetHandler>());
+        Assert.That(handlers, Has.Some.TypeOf<NativeYoFiPayeeWorksheetHandler>());
+        Assert.That(handlers, Has.Some.TypeOf<NativeYoFiTransactionWorksheetHandler>());
+        Assert.That(handlers, Has.Some.TypeOf<NativeYoFiSplitWorksheetHandler>());
     }
 
     private static byte[] Workbook(

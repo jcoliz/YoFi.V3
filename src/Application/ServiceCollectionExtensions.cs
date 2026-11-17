@@ -25,7 +25,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SampleDataGenerator>();
         services.AddScoped<DataImportService>();
         services.AddScoped<IWorkbookImportFormatDetector, OriginalYoFiWorkbookFormatDetector>();
+        services.AddScoped<IWorkbookImportFormatDetector, NativeYoFiV3WorkbookFormatDetector>();
         services.AddScoped<IImportWorksheetHandler, OriginalYoFiPayeeWorksheetHandler>();
+        services.AddScoped<IImportWorksheetHandler, OriginalYoFiTransactionWorksheetHandler>();
+        services.AddScoped<IImportWorksheetHandler, OriginalYoFiSplitWorksheetHandler>();
+        services.AddScoped<IImportWorksheetHandler, NativeYoFiPayeeWorksheetHandler>();
+        services.AddScoped<IImportWorksheetHandler, NativeYoFiTransactionWorksheetHandler>();
+        services.AddScoped<IImportWorksheetHandler, NativeYoFiSplitWorksheetHandler>();
         services.AddScoped<IExportWorksheetWriter, TransactionExportWorksheetWriter>();
         services.AddScoped<IExportWorksheetWriter, PayeeMatchingRuleExportWorksheetWriter>();
 
