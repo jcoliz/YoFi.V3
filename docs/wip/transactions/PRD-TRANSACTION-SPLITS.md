@@ -165,7 +165,7 @@ balancing rule, and shared Edit/Delete action-menu design.
 - [x] Can optionally provide category on transaction creation (flows to the split)
 - [x] Non-compliant categories are automatically sanitized before saving to database (see Category Sanitization rules)
 
-### Story 4: User - Detect Unbalanced Transactions
+### Story 2308: User - Detect Unbalanced Transactions (unbalanced-splits)
 
 **As a** detail-oriented user
 **I want** to be warned when my splits don't match the transaction amount
@@ -174,10 +174,11 @@ balancing rule, and shared Edit/Delete action-menu design.
 **Acceptance Criteria**:
 
 - [ ] List view shows visual indicator for unbalanced transactions
-- [ ] Detail view shows transaction amount, splits total, and balance status
+- [ ] Detail view shows a warning alert for an unbalanced transaction.
 - [ ] Warning is prominent but doesn't block saving (user's choice to fix later)
-- [ ] After editing split amount, balance status updates immediately
-- [ ] User is offered an option to add a balancing split, which follows the "new split" workflow, but sets the initial amount such that it would balance the transaction.
+- [ ] After editing any split amount, balance status updates immediately
+- [ ] After editing the transaction amount, balance status updates immediately
+- [ ] Adding a split when the transaction is already unbalanced will follow the usual "new split" workflow, but sets the initial amount such that it would balance the transaction.
 
 ### Story 5: User - Import Transactions with Splits ✅ Alpha-1 Complete
 
@@ -202,18 +203,21 @@ balancing rule, and shared Edit/Delete action-menu design.
 
 **Acceptance Criteria**:
 
-- [ ] User can upload a spreadsheet (Excel .xlsx) containing split data, from the "transaction detail" page.
+- [ ] User can upload a workbook (Excel .xlsx) containing split data, from the "transaction detail" page.
+- [ ] Only the first worksheet is considered in this process, the others are ignored.
 - [ ] Required columns: Category, Amount (optional columns: Memo). Column headers are required.
 - [ ] Additional columns. If uploaded sheet has needless columns, they are ignored in this process.
 - [ ] Invalid input cancels entire import, with an error message displayed to user.
 - [ ] Uploaded splits append to any existing splits for the transaction
 - [ ] Validation errors are shown clearly before committing changes
 - [ ] User can include any categories (see Transactions Record PRD for discussion of ad-hoc categories). Categories will be silently cleaned up to ensure valid category is saved (even if blank)
-- [ ] If sum of uploaded splits does not equal transaction amount, will show balance warning.
+- [ ] Transaction is automatically balanced by adjusting the first split so that the transaction balances.
+- [ ] If the first split is adjusted to zero amount, it is removed.
+- [ ] Splits with zero amounts are ignored.
 - [ ] UI provides a downloadable template file showing expected format
 - [ ] Order is assigned automatically based on row sequence in file
 - [ ] Upload results are committed immediately, and UI updated. User cannot preview the import, as with bank importing.
-- [ ] User cannot upload any other format that Excel .xlsx
+- [ ] User cannot upload any other format than Excel .xlsx
 
 **Performance Characteristics**
 Limits and constraints will be set during performance testing, as these constraints are functions of the system, not the feature.
