@@ -59,6 +59,16 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     }
 
     /// <summary>
+    /// Then the splits list is empty
+    /// </summary>
+    [Then("the splits list is empty")]
+    public async Task TheSplitsListIsEmpty()
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.ExpectSplitsListToBeEmptyAsync();
+    }
+
+    /// <summary>
     /// Then the following splits are displayed:
     /// </summary>
     [Then("the following splits are displayed:")]

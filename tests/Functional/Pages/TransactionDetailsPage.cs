@@ -134,6 +134,7 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     public ILocator ExternalIdDisplay => Page!.GetByTestId("transaction-external-id");
 
     #endregion
+
     #region Transaction Splits Elements
 
     /// <summary>
@@ -215,6 +216,11 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// Confirm button in the delete-split dialog
     /// </summary>
     public ILocator ConfirmDeleteSplitButton => DeleteSplitDialog.GetByTestId("delete-split-confirm-button");
+
+    /// <summary>
+    /// Message displayed when there are no splits for the transaction.
+    /// </summary>
+    public ILocator SplitsEmptyMessage => SplitsPane.GetByTestId("transaction-no-splits");
 
     #endregion
 
@@ -539,6 +545,15 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         }, TransactionApiRegex());
 
         await DeleteSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Expects that the splits list is empty by checking for the presence of the empty message.
+    /// </summary>
+    /// <returns></returns>
+    public async Task ExpectSplitsListToBeEmptyAsync()
+    {
+        await Assertions.Expect(SplitsEmptyMessage).ToBeVisibleAsync();
     }
 
     #endregion

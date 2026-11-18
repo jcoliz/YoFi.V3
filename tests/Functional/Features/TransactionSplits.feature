@@ -131,7 +131,7 @@ Feature: Transaction Splits
     Rule: Delete splits
 
         @id:1
-        Scenario: Delete a non-first allocation
+        Scenario: Delete a non-first split
             Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
                 | Amount | Category  | Memo |
                 | -60.00 | Groceries |      |
@@ -147,7 +147,7 @@ Feature: Transaction Splits
             And the transaction is balanced
 
         @id:2
-        Scenario: Delete the first allocation
+        Scenario: Delete the first split
             Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
                 | Amount | Category  | Memo |
                 | -60.00 | Groceries |      |
@@ -162,3 +162,18 @@ Feature: Transaction Splits
             And the transaction amount remains -110.00
             And the transaction is balanced
 
+        @id:3
+        Scenario: Delete the second of two splits, leaving only one split
+            Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
+                | Amount | Category  | Memo |
+                | -60.00 | Groceries |      |
+                | -40.00 | Household |      |
+            And I am on the transactions detail page for that transaction
+            When I delete the "Household" split
+            Then the splits list is empty
+            And the transaction amount remains -100.00
+
+            # This is implemented currently by totalling the splits. Since there are none,
+            # it won't be balanced. In the future we will have an "is balanced" indicator
+            # and we can check for the absence of that.
+            #And the transaction is balanced
