@@ -104,6 +104,20 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public Task ExpectWorksheetPreviewAsync(string dataType) =>
         Assertions.Expect(GetWorksheetPreview(dataType)).ToBeVisibleAsync();
 
+    public async Task PreviewImportAsync()
+    {
+        await PreviewImportButton.ClickAsync();
+        await ImportPreview.WaitForAsync();
+    }
+
+    public async Task ConfirmImportAsync()
+    {
+        await ImportDataButton.ClickAsync();
+        await ImportConfirmModal.WaitForAsync();
+        await ImportConfirmButton.ClickAsync();
+        await ImportResult.WaitForAsync();
+    }
+
     public async Task PreviewAndConfirmImportAsync()
     {
         await PreviewImportButton.ClickAsync();

@@ -75,10 +75,9 @@ Feature: Workspace Data Administration
       When I upload a file containing 15 rules in native YoFi format
       Then I should see the detected format "YoFi.V3"
       And I should see the Payee worksheet preview
-      Then I should see 15 payee matching rules on the rules page
+      And I should see 15 payee matching rules on the rules page
 
     @id:3
-    @explicit:wip
     Scenario: Import native transactions and their splits
       When I upload a file containing 10 transactions and 1 split transaction in native YoFi format
       Then I should see the detected format "YoFi.V3"

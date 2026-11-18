@@ -385,6 +385,8 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
         await workspacesPage.OpenManagementAsync(currentName);
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
         await managementPage.UploadImportWorkbookAsync("native-yofi-rules.xlsx", stream.ToArray());
+        await managementPage.PreviewImportAsync();
+        await managementPage.ConfirmImportAsync();
     }
 
     /// <summary>
@@ -429,11 +431,12 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
         splits.Cell(1, 4).Value = "Category";
         splits.Cell(1, 5).Value = "Memo";
         splits.Cell(1, 6).Value = "Order";
-        for (var index = 0; index < count2; index++)
+        var splitRowCount = count2 > 0 ? count2 + 1 : 0;
+        for (var index = 0; index < splitRowCount; index++)
         {
             var row = index + 2;
             splits.Cell(row, 2).Value = splitTransactionKey.ToString("D");
-            splits.Cell(row, 3).Value = 100m / count2;
+            splits.Cell(row, 3).Value = 100m / splitRowCount;
             splits.Cell(row, 4).Value = "Shopping";
             splits.Cell(row, 5).Value = $"Split {index + 1}";
             splits.Cell(row, 6).Value = index;
@@ -448,6 +451,8 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
         await workspacesPage.OpenManagementAsync(currentName);
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
         await managementPage.UploadImportWorkbookAsync("native-yofi-transactions.xlsx", stream.ToArray());
+        await managementPage.PreviewImportAsync();
+        await managementPage.ConfirmImportAsync();
     }
 
     /// <summary>
@@ -468,7 +473,6 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     public async Task IShouldSeeTheDetectedFormat(string string1)
     {
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
-        await managementPage.PreviewAndConfirmImportAsync();
         await managementPage.ExpectDetectedFormatAsync(string1);
     }
 

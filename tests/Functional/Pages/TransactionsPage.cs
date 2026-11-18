@@ -164,6 +164,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator EmptyState => Page!.GetByTestId("empty-state");
 
     /// <summary>
+    /// Split indicators shown on transactions that contain multiple splits.
+    /// </summary>
+    public ILocator SplitTransactionBadges => Page!.GetByTestId("transaction-split-badge");
+
+    /// <summary>
     /// Create first transaction button in empty state
     /// </summary>
     public ILocator EmptyStateCreateButton => Page!.GetByTestId("empty-state-create-button");
@@ -418,7 +423,8 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     /// </summary>
     internal async Task ExpectSplitTransactionCountAsync(int expectedCount)
     {
-        throw new NotImplementedException();
+        await NavigateAsync();
+        await Assertions.Expect(SplitTransactionBadges).ToHaveCountAsync(expectedCount);
     }
 
     /// <summary>
@@ -1390,7 +1396,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task<string?> GetTransactionCategoryAsync(string payeeName)
     {
         var categoryCell = await TransactionsTableCell(payeeName, "category");
-        if (await categoryCell.GetByTestId("transaction-split-badge").CountAsync() > 0)
+        if (await categoryCell.Locator(SplitTransactionBadges).CountAsync() > 0)
         {
             return string.Empty;
         }
@@ -1406,7 +1412,7 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public async Task<string> GetTransactionSplitIndicatorAsync(string payeeName)
     {
         var row = await GetTransactionRowByPayeeAsync(payeeName);
-        return await row.GetByTestId("transaction-split-badge").CountAsync() > 0 ? "Yes" : "No";
+        return await row.Locator(SplitTransactionBadges).CountAsync() > 0 ? "Yes" : "No";
     }
 
     /// <summary>
