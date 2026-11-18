@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
- * Import the Payee worksheet from an original YoFi XLSX export into a workspace.
+ * Previews and confirms automatic tenant-data imports from original or native YoFi workbooks.
  */
 import {
   TenantDataAdminClient,
-  type DataImportIssueDto,
   type IProblemDetails,
   type TenantDataImportPreviewDto,
   type TenantDataImportResultDto,
@@ -35,23 +34,64 @@ const confirmError = ref<IProblemDetails>()
 const showConfirmError = ref(false)
 
 const busy = computed(() => previewing.value || importing.value)
-const payeeWorksheet = computed(() =>
-  preview.value?.worksheets?.find(
-    (worksheet) => worksheet.worksheetName?.trim().toLowerCase() === 'payee',
+const worksheets = computed(() => preview.value?.worksheets ?? [])
+const formatLabel = computed(() => {
+  switch (preview.value?.formatId) {
+    case 'yofi.v3':
+      return 'YoFi.V3'
+    case 'original-yofi':
+      return 'Original YoFi'
+    default:
+      return 'Unknown format'
+  }
+})
+const isNative = computed(() => preview.value?.formatId === 'yofi.v3')
+const hasNativeSplit = computed(() =>
+  worksheets.value.some((worksheet) => worksheet.dataType === 'Splits'),
+)
+const hasNativeTransaction = computed(() =>
+  worksheets.value.some((worksheet) => worksheet.dataType === 'Transactions'),
+)
+const issues = computed(() =>
+  worksheets.value.flatMap((worksheet) =>
+    [...(worksheet.errors ?? []), ...(worksheet.skippedRows ?? [])].map((issue) => ({
+      worksheetName: worksheet.worksheetName ?? 'Unknown worksheet',
+      issue,
+    })),
   ),
 )
-const issues = computed(() => [
-  ...(payeeWorksheet.value?.errors ?? []),
-  ...(payeeWorksheet.value?.skippedRows ?? []),
-])
 const canImport = computed(
   () =>
     !!selectedFile.value &&
     !!preview.value?.sha256 &&
     preview.value.canImport === true &&
-    payeeWorksheet.value?.canImport === true &&
+    worksheets.value.length > 0 &&
+    (!hasNativeSplit.value || (isNative.value && hasNativeTransaction.value)) &&
     !busy.value,
 )
+
+function worksheetTestId(worksheet: { dataType?: string }): string {
+  const slug = (worksheet.dataType ?? 'worksheet')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+  return `import-worksheet-preview-${slug}`
+}
+
+function worksheetLabel(worksheet: { dataType?: string; worksheetName?: string }): string {
+  if (worksheet.dataType === 'PayeeMatchingRules') return 'Payee matching rules'
+  if (worksheet.dataType === 'Transactions') return 'Transactions'
+  if (worksheet.dataType === 'Splits') return 'Splits'
+  return worksheet.worksheetName ?? 'Worksheet'
+}
+
+function payeeWarning(worksheet: { dataType?: string }): string {
+  if (worksheet.dataType !== 'PayeeMatchingRules') return ''
+  return isNative.value
+    ? 'Native payee matching rules use matching Keys: existing matching Keys are updated, blank or unknown Keys create rules, and omitted rules remain unchanged.'
+    : 'Original payees are added as create-only rules. Importing this workbook again creates duplicate rules; existing rules are not changed.'
+}
 
 function showProblem(problem: IProblemDetails) {
   error.value = problem
@@ -73,7 +113,7 @@ function selectFile(file?: File) {
     selectedFile.value = undefined
     showProblem({
       title: 'Unsupported file',
-      detail: 'Select an original YoFi .xlsx workbook.',
+      detail: 'Choose a YoFi .xlsx workbook.',
     })
     return
   }
@@ -125,7 +165,7 @@ function openConfirm() {
   showConfirm.value = true
 }
 
-async function importPayees() {
+async function importData() {
   const file = selectedFile.value
   const sha256 = preview.value?.sha256
   const workspaceKey = props.workspace.key
@@ -146,7 +186,7 @@ async function importPayees() {
     showConfirm.value = false
     emit('imported', importResult)
   } catch (err) {
-    const problem = handleApiError(err, 'Import Failed', 'Failed to import payees')
+    const problem = handleApiError(err, 'Import Failed', 'Failed to import workbook')
     if (problem.status === 400) {
       preview.value = undefined
       showConfirm.value = false
@@ -175,8 +215,8 @@ function downloadErrorReport() {
 
   const rows = [
     ['Worksheet', 'Row Number', 'Field', 'Error Code', 'Message'],
-    ...issues.value.map((issue: DataImportIssueDto) => [
-      payeeWorksheet.value?.worksheetName ?? 'Payee',
+    ...issues.value.map(({ worksheetName, issue }) => [
+      worksheetName,
       issue.rowNumber,
       issue.field,
       issue.code,
@@ -187,7 +227,7 @@ function downloadErrorReport() {
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = 'payee-import-errors.csv'
+  link.download = 'import-errors.csv'
   document.body.appendChild(link)
   link.click()
   link.remove()
@@ -207,7 +247,7 @@ function downloadErrorReport() {
         data-test-id="import-data-title"
         class="mb-3"
         title="Import Data"
-        subtitle="Import payee matching rules from an original YoFi workbook."
+        subtitle="Import supported data from an original or native YoFi workbook."
       />
 
       <ErrorDisplay
@@ -228,7 +268,7 @@ function downloadErrorReport() {
           for="workspace-import-file"
           class="form-label"
         >
-          Choose an original YoFi workbook (.xlsx), or drop it here.
+          Choose a YoFi .xlsx workbook, or drop it here.
         </label>
         <input
           id="workspace-import-file"
@@ -269,63 +309,89 @@ function downloadErrorReport() {
         class="mt-3"
         data-test-id="import-preview"
       >
-        <template v-if="payeeWorksheet">
-          <p>
-            <strong>Payee worksheet:</strong>
-            {{ payeeWorksheet.validRecordCount ?? 0 }} valid rules,
-            {{ payeeWorksheet.skippedRecordCount ?? 0 }} skipped,
-            {{ payeeWorksheet.errors?.length ?? 0 }} errors.
-          </p>
-          <p
-            v-if="payeeWorksheet.ignoredColumns?.length"
-            class="small text-muted"
-            data-test-id="import-ignored-columns"
+        <p>
+          <strong>Detected format:</strong>
+          <span data-test-id="import-format">{{ formatLabel }}</span>
+        </p>
+
+        <div
+          v-if="worksheets.length"
+          class="mb-3"
+          data-test-id="import-worksheet-preview-list"
+        >
+          <section
+            v-for="worksheet in worksheets"
+            :key="`${worksheet.worksheetName}-${worksheet.dataType}`"
+            class="border rounded p-2 mb-2"
+            :data-test-id="worksheetTestId(worksheet)"
           >
-            Ignored columns: {{ payeeWorksheet.ignoredColumns.join(', ') }}.
-          </p>
-          <div
-            v-if="issues.length"
-            class="mb-3"
-            data-test-id="import-row-issues"
-          >
-            <h6>Rows needing attention</h6>
-            <ul class="small ps-3 mb-2">
-              <li
-                v-for="(issue, index) in issues"
-                :key="`${issue.rowNumber}-${issue.field}-${issue.code}-${index}`"
-              >
-                Row {{ issue.rowNumber }}<span v-if="issue.field">, {{ issue.field }}</span
-                >:
-                {{ issue.message }}
-                <span v-if="payeeWorksheet.errors?.includes(issue)">(error)</span>
-                <span v-else>(skipped)</span>
-              </li>
-            </ul>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              data-test-id="download-import-errors-button"
-              @click="downloadErrorReport"
+            <strong>{{ worksheet.worksheetName }}</strong>
+            <span class="text-muted"> ({{ worksheetLabel(worksheet) }})</span>
+            <p class="mb-1">
+              {{ worksheet.validRecordCount ?? 0 }} valid,
+              {{ worksheet.skippedRecordCount ?? 0 }} skipped,
+              {{ worksheet.errors?.length ?? 0 }} errors.
+            </p>
+            <p
+              v-if="payeeWarning(worksheet)"
+              class="small mb-1"
             >
-              Download CSV report
-            </button>
-          </div>
-        </template>
+              {{ payeeWarning(worksheet) }}
+            </p>
+            <p
+              v-if="worksheet.dataType === 'Splits'"
+              class="small text-muted mb-1"
+            >
+              Native and original split previews are applied with their transaction worksheet.
+            </p>
+            <p
+              v-if="worksheet.ignoredColumns?.length"
+              class="small text-muted mb-0"
+              data-test-id="import-ignored-columns"
+            >
+              Ignored columns: {{ worksheet.ignoredColumns.join(', ') }}.
+            </p>
+          </section>
+        </div>
         <p
           v-else
           class="text-warning"
-          data-test-id="import-no-payee-sheet"
         >
-          No Payee worksheet was found. This workbook cannot be imported.
+          No supported worksheet was found. This workbook cannot be imported.
         </p>
+
+        <div
+          v-if="issues.length"
+          class="mb-3"
+          data-test-id="import-row-issues"
+        >
+          <h6>Rows needing attention</h6>
+          <ul class="small ps-3 mb-2">
+            <li
+              v-for="(entry, index) in issues"
+              :key="`${entry.worksheetName}-${index}`"
+            >
+              {{ entry.worksheetName }}: Row {{ entry.issue.rowNumber
+              }}<span v-if="entry.issue.field">, {{ entry.issue.field }}</span
+              >: {{ entry.issue.message }}
+            </li>
+          </ul>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            data-test-id="download-import-errors-button"
+            @click="downloadErrorReport"
+          >
+            Download CSV report
+          </button>
+        </div>
 
         <p
           v-if="preview.ignoredWorksheets?.length"
           class="small text-muted"
           data-test-id="import-ignored-worksheets"
         >
-          Other worksheets will not be imported:
-          {{ preview.ignoredWorksheets.join(', ') }}.
+          Other worksheets will not be imported: {{ preview.ignoredWorksheets.join(', ') }}.
         </p>
 
         <div
@@ -348,23 +414,23 @@ function downloadErrorReport() {
           type="button"
           class="btn btn-primary mt-2"
           :disabled="!canImport"
-          data-test-id="import-payees-button"
+          data-test-id="import-data-button"
           @click="openConfirm"
         >
-          Import Payees
+          Import Data
         </button>
       </div>
     </div>
 
     <ModalDialog
       :show="showConfirm"
-      title="Import Payees"
+      title="Confirm Data Import"
       :loading="importing"
-      :primary-button-text="importing ? 'Importing...' : 'Import Payees'"
-      primary-button-test-id="import-payees-confirm-button"
-      secondary-button-test-id="import-payees-cancel-button"
-      test-id="import-payees-confirm-modal"
-      @primary="importPayees"
+      :primary-button-text="importing ? 'Importing...' : 'Import Data'"
+      primary-button-test-id="import-data-confirm-button"
+      secondary-button-test-id="import-data-cancel-button"
+      test-id="import-data-confirm-modal"
+      @primary="importData"
       @update:show="showConfirm = $event"
     >
       <ErrorDisplay
@@ -373,15 +439,32 @@ function downloadErrorReport() {
         class="mb-3"
       />
       <p>
-        This will add
-        <strong>{{ payeeWorksheet?.validRecordCount ?? 0 }}</strong>
-        payee matching rules to
+        Import the supported worksheets from <strong>{{ selectedFile?.name }}</strong> into
         <strong>{{ workspace.name }}</strong
-        >. Existing rules will not be changed.
+        >.
       </p>
-      <p class="text-muted mb-0">
-        Importing this workbook again creates duplicate rules. Confirm only if you want to add these
-        rules now.
+      <ul>
+        <li
+          v-for="worksheet in worksheets"
+          :key="worksheet.worksheetName"
+        >
+          {{ worksheet.worksheetName }}: {{ worksheet.validRecordCount ?? 0 }} records will be
+          considered, {{ worksheet.skippedRecordCount ?? 0 }} skipped.
+        </li>
+      </ul>
+      <p
+        v-if="isNative"
+        class="text-muted mb-0"
+      >
+        Native payee and transaction matching Keys will be updated when present; missing or unknown
+        Keys create new records. Omitted native payee and rule records remain unchanged.
+      </p>
+      <p
+        v-else
+        class="text-muted mb-0"
+      >
+        Original payee rules are create-only and may create duplicates. Original transactions are
+        skipped when their legacy external reference already exists.
       </p>
     </ModalDialog>
   </section>

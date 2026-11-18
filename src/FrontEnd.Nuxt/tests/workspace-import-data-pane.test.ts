@@ -21,12 +21,14 @@ vi.stubGlobal('useApiClient', useApiClientMock)
 
 const workspace = { key: 'workspace-key', name: 'Test Workspace' } as TenantRoleResultDto
 const preview = {
+  formatId: 'original-yofi',
   canImport: true,
   sha256: 'preview-digest',
   ignoredWorksheets: ['Transaction'],
   worksheets: [
     {
       worksheetName: 'Payee',
+      dataType: 'PayeeMatchingRules',
       validRecordCount: 2,
       skippedRecordCount: 1,
       canImport: true,
@@ -110,14 +112,14 @@ describe('Workspace ImportDataPane', () => {
       data: file,
       fileName: 'legacy.xlsx',
     })
-    expect(wrapper.text()).toContain('2 valid rules')
+    expect(wrapper.text()).toContain('2 valid')
     expect(wrapper.text()).toContain('Other worksheets will not be imported: Transaction')
 
-    await wrapper.find('[data-test-id="import-payees-button"]').trigger('click')
-    expect(wrapper.find('[data-test-id="import-payees-confirm-modal"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Importing this workbook again creates duplicate rules')
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    expect(wrapper.find('[data-test-id="import-data-confirm-modal"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Original payee rules are create-only')
 
-    await wrapper.find('[data-test-id="import-payees-confirm-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-confirm-button"]').trigger('click')
     await flushPromises()
 
     expect(importData).toHaveBeenCalledWith(
@@ -138,7 +140,7 @@ describe('Workspace ImportDataPane', () => {
     await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
     await flushPromises()
     expect(
-      wrapper.find('[data-test-id="import-payees-button"]').attributes('disabled'),
+      wrapper.find('[data-test-id="import-data-button"]').attributes('disabled'),
     ).toBeUndefined()
 
     const replacement = new File(['another workbook'], 'replacement.xlsx')
@@ -147,7 +149,7 @@ describe('Workspace ImportDataPane', () => {
     await input.trigger('change')
 
     expect(wrapper.find('[data-test-id="import-preview"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test-id="import-payees-button"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="import-data-button"]').exists()).toBe(false)
   })
 
   it('shows row validation issues and blocks importing invalid workbooks', async () => {
@@ -174,9 +176,7 @@ describe('Workspace ImportDataPane', () => {
       'Pattern is invalid',
     )
     expect(wrapper.find('[data-test-id="download-import-errors-button"]').exists()).toBe(true)
-    expect(
-      wrapper.find('[data-test-id="import-payees-button"]').attributes('disabled'),
-    ).toBeDefined()
+    expect(wrapper.find('[data-test-id="import-data-button"]').attributes('disabled')).toBeDefined()
   })
 
   it('requires a new preview after the import endpoint rejects the workbook', async () => {
@@ -188,14 +188,14 @@ describe('Workspace ImportDataPane', () => {
     await selectWorkbook(wrapper)
     await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
     await flushPromises()
-    await wrapper.find('[data-test-id="import-payees-button"]').trigger('click')
-    await wrapper.find('[data-test-id="import-payees-confirm-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-confirm-button"]').trigger('click')
     await flushPromises()
 
     expect(importData).toHaveBeenCalledOnce()
     expect(wrapper.find('[data-test-id="import-preview"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test-id="import-payees-confirm-modal"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test-id="import-payees-button"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="import-data-confirm-modal"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="import-data-button"]').exists()).toBe(false)
     expect(wrapper.find('[data-test-id="preview-import-button"]').exists()).toBe(true)
   })
 
@@ -229,8 +229,8 @@ describe('Workspace ImportDataPane', () => {
     const previewForm = fetch.mock.calls[0]![1].body as FormData
     expect(previewForm.get('file')).toEqual(file)
 
-    await wrapper.find('[data-test-id="import-payees-button"]').trigger('click')
-    await wrapper.find('[data-test-id="import-payees-confirm-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-confirm-button"]').trigger('click')
     await flushPromises()
 
     expect(fetch).toHaveBeenNthCalledWith(
