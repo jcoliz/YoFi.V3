@@ -351,6 +351,24 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     }
 
     /// <summary>
+    /// When I upload a file containing {count} rules in native YoFi format
+    /// </summary>
+    [When("I upload a file containing {count} rules in native YoFi format")]
+    public async Task IUploadAFileContainingRulesInNativeYoFiFormat(int count)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// When I upload a file containing {count1} transactions and {count2} split transaction in native YoFi format
+    /// </summary>
+    [When("I upload a file containing {count1} transactions and {count2} split transaction in native YoFi format")]
+    public async Task IUploadAFileContainingTransactionsAndSplitTransactionInNativeYoFiFormat(int count1, int count2)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
     /// When I preview and confirm the upload
     /// </summary>
     [When("I preview and confirm the upload")]
@@ -358,6 +376,26 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     {
         var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
         await managementPage.PreviewAndConfirmImportAsync();
+    }
+
+    /// <summary>
+    /// Then I should see the detected format {string1}
+    /// </summary>
+    /// <param name="string1">The detected format string (currently expected to be "YoFi.V3")</param>
+    [Then("I should see the detected format {string1}")]
+    public async Task IShouldSeeTheDetectedFormat(string string1)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Then I should see the {dataType} worksheet preview
+    /// </summary>
+    /// <param name="dataType">The type of worksheet to preview (Payees, Transactions, or Splits)</param>
+    [Then("I should see the {dataType} worksheet preview")]
+    public async Task IShouldSeeTheDataTypeWorksheetPreview(string dataType)
+    {
+        throw new NotImplementedException();
     }
 
     #endregion

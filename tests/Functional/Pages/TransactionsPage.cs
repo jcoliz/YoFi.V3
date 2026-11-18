@@ -412,6 +412,15 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public Task ExpectTransactionCountAsync(int expectedCount) =>
         Assertions.Expect(TransactionRows).ToHaveCountAsync(expectedCount);
 
+
+    /// <summary>
+    /// Waits until exactly the expected number of split transactions is displayed.
+    /// </summary>
+    internal async Task ExpectSplitTransactionCountAsync(int expectedCount)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Waits until at least one transaction result is visible.
     /// </summary>

@@ -358,6 +358,21 @@ public class PayeeRuleSteps(ITestContext _context)
             "Expected to see many rules, but total items count is not greater than 10");
     }
 
+    /// <summary>
+    /// Then I can see {count} payee matching rules on the rules page
+    /// </summary>
+    [Then("I should see {count} payee matching rules on the rules page")]
+    public async Task IShouldSeePayeeMatchingRulesOnTheRulesPage(int count)
+    {
+        var page = _context.GetOrCreatePage<PayeeRulesPage>();
+        await page.NavigateAsync();
+
+        // TODO: Move to an Expect assertion
+        var totalItems = await page.GetTotalItemsAsync();
+        Assert.That(totalItems, Is.EqualTo(count),
+            $"Expected to see {count} payee matching rules, but found {totalItems}");
+    }
+
     [Then("the payee matching rules are empty")]
     public async Task ThePayeeMatchingRulesAreIsEmpty()
     {

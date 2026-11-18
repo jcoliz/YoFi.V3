@@ -179,6 +179,28 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
         await transactionsPage.ExpectTransactionCountAsync(expectedCount);
     }
+    /// <summary>
+    /// Then I should see exactly {expectedCount} transactions on the transactions page
+    /// </summary>
+    [Then("I should see exactly {expectedCount} transactions on the transactions page")]
+    [Then("I should see {expectedCount} transactions on the transactions page")]
+    public async Task ICanSeeTransactionsOnTheTransactionsPage(int expectedCount)
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.NavigateAsync();
+        await ThenIShouldSeeExactlyTransactions(expectedCount);
+    }
+
+    /// <summary>
+    /// Then I can see {expectedCount} transaction with a split indicator
+    /// </summary>
+    [Then("I should see {expectedCount} transaction with a split indicator")]
+    [Then("I should see {expectedCount} transactions with a split indicator")]
+    public async Task IShouldSeeTransactionWithASplitIndicator(int expectedCount)
+    {
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.ExpectSplitTransactionCountAsync(expectedCount);
+    }
 
     /// <summary>
     /// Verifies that at least some transactions are visible.

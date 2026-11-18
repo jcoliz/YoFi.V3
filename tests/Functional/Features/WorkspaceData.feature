@@ -61,7 +61,29 @@ Feature: Workspace Data Administration
   Rule: Import data into workspace
 
     @category:scenario-2233
+    @id:1
     Scenario: Import original YoFi Payees into workspace
       When I upload a file containing original YoFi Payees
       And I preview and confirm the upload
       Then I can see many payee matching rules
+
+  @category:story-2221
+  @explicit:wip
+  Rule: Native YoFi workbooks are detected automatically
+
+    @id:2
+    Scenario: Import native payee matching rules
+      When I upload a file containing 15 rules in native YoFi format
+      Then I should see the detected format "YoFi.V3"
+      And I should see the Payee worksheet preview
+      Then I should see 15 payee matching rules on the rules page
+
+    @id:3
+    Scenario: Import native transactions and their splits
+      When I upload a file containing 10 transactions and 1 split transaction in native YoFi format
+      Then I should see the detected format "YoFi.V3"
+      And I should see the Transactions worksheet preview
+      And I should see the Splits worksheet preview
+      And I should see 10 transactions on the transactions page
+      And I should see 1 transaction with a split indicator
+
