@@ -1469,20 +1469,25 @@
       },
       "TenantResultDto": {
         "type": "object",
+        "description": "Data transfer object representing a tenant in API responses.",
         "additionalProperties": false,
         "properties": {
           "key": {
             "type": "string",
+            "description": "The unique identifier for the tenant.",
             "format": "guid"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the tenant."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "A description of the tenant."
           },
           "createdAt": {
             "type": "string",
+            "description": "The timestamp when the tenant was created.",
             "format": "date-time"
           }
         }
@@ -1519,32 +1524,40 @@
       },
       "TransactionResultDto": {
         "type": "object",
+        "description": "Transaction data returned from queries (output-only).",
         "additionalProperties": false,
         "properties": {
           "key": {
             "type": "string",
+            "description": "Unique identifier for the transaction",
             "format": "guid"
           },
           "date": {
             "type": "string",
+            "description": "Date the transaction occurred",
             "format": "date"
           },
           "amount": {
             "type": "number",
+            "description": "Transaction amount (can be negative for credits/refunds)",
             "format": "decimal"
           },
           "payee": {
-            "type": "string"
+            "type": "string",
+            "description": "Recipient or payee of the transaction (max 200 chars)"
           },
           "memo": {
             "type": "string",
+            "description": "Optional memo for additional context",
             "nullable": true
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "description": "Category from the single split, or empty for multiple splits or no category"
           },
           "hasMultipleSplits": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the transaction has more than one split"
           }
         }
       },
@@ -1586,10 +1599,12 @@
       },
       "CollectionRequestOfTransactionEditDto": {
         "type": "object",
+        "description": "Generic wrapper for collection requests that require validation of each item.",
         "additionalProperties": false,
         "properties": {
           "items": {
             "type": "array",
+            "description": "The collection of items to validate.",
             "items": {
               "$ref": "#/components/schemas/TransactionEditDto"
             }
@@ -1598,73 +1613,91 @@
       },
       "TransactionEditDto": {
         "type": "object",
+        "description": "Transaction data for creating or updating transactions (input DTO).",
         "additionalProperties": false,
         "properties": {
           "date": {
             "type": "string",
+            "description": "Date the transaction occurred",
             "format": "date"
           },
           "amount": {
             "type": "number",
+            "description": "Transaction amount (can be negative for credits/refunds)",
             "format": "decimal"
           },
           "payee": {
-            "type": "string"
+            "type": "string",
+            "description": "Recipient or payee of the transaction"
           },
           "memo": {
             "type": "string",
+            "description": "Optional memo for additional context",
             "nullable": true
           },
           "source": {
             "type": "string",
+            "description": "Source of the transaction (optional, typically from importer)",
             "nullable": true
           },
           "externalId": {
             "type": "string",
+            "description": "Bank's unique identifier (optional, for duplicate detection)",
             "nullable": true
           },
           "category": {
             "type": "string",
+            "description": "Category for the single split (optional, auto-sanitized)",
             "nullable": true
           }
         }
       },
       "TransactionDetailDto": {
         "type": "object",
+        "description": "Complete transaction data including all fields (output-only).",
         "additionalProperties": false,
         "properties": {
           "key": {
             "type": "string",
+            "description": "Unique identifier for the transaction",
             "format": "guid"
           },
           "date": {
             "type": "string",
+            "description": "Date the transaction occurred",
             "format": "date"
           },
           "amount": {
             "type": "number",
+            "description": "Transaction amount (can be negative for credits/refunds)",
             "format": "decimal"
           },
           "payee": {
-            "type": "string"
+            "type": "string",
+            "description": "Recipient or payee of the transaction"
           },
           "memo": {
             "type": "string",
+            "description": "Optional memo for additional context",
             "nullable": true
           },
           "source": {
             "type": "string",
+            "description": "Source of the transaction (e.g., \"Chase Checking 1234\")",
             "nullable": true
           },
           "externalId": {
             "type": "string",
+            "description": "Bank's unique identifier for duplicate detection",
             "nullable": true
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "description": "Category from the single split, or empty when there are multiple splits or no category"
           },
           "splits": {
             "type": "array",
+            "description": "Gets allocations in display order for multi-split transactions; otherwise empty.",
             "items": {
               "$ref": "#/components/schemas/TransactionSplitDto"
             }
@@ -1673,25 +1706,31 @@
       },
       "TransactionSplitDto": {
         "type": "object",
+        "description": "A transaction's category allocation returned for display.",
         "additionalProperties": false,
         "properties": {
           "key": {
             "type": "string",
+            "description": "Unique identifier for the split.",
             "format": "guid"
           },
           "amount": {
             "type": "number",
+            "description": "Signed amount allocated to this split.",
             "format": "decimal"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "description": "Category assigned to this split."
           },
           "memo": {
             "type": "string",
+            "description": "Optional split-specific memo.",
             "nullable": true
           },
           "order": {
             "type": "integer",
+            "description": "Zero-based display order.",
             "format": "int32"
           }
         }
@@ -1716,64 +1755,79 @@
       },
       "SplitEditDto": {
         "type": "object",
+        "description": "Data for adding or updating a transaction split.",
         "additionalProperties": false,
         "properties": {
           "amount": {
             "type": "number",
+            "description": "Signed amount allocated to this split.",
             "format": "decimal"
           },
           "category": {
             "type": "string",
+            "description": "Optional category; an empty or missing value means uncategorized.",
             "nullable": true
           },
           "memo": {
             "type": "string",
+            "description": "Optional split-specific memo.",
             "nullable": true
           }
         }
       },
       "PayeeMatchingRuleResultDto": {
         "type": "object",
+        "description": "Payee matching rule data returned from queries (output DTO).",
         "additionalProperties": false,
         "properties": {
           "key": {
             "type": "string",
+            "description": "Unique identifier for the rule",
             "format": "guid"
           },
           "payeePattern": {
-            "type": "string"
+            "type": "string",
+            "description": "Pattern to match against transaction payee (substring or regex)"
           },
           "payeeIsRegex": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "If true, PayeePattern is treated as regex; if false, as substring"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "description": "Category to assign when rule matches (already sanitized)"
           },
           "createdAt": {
             "type": "string",
+            "description": "When the rule was created",
             "format": "date-time"
           },
           "modifiedAt": {
             "type": "string",
+            "description": "When the rule was last modified (used for conflict resolution)",
             "format": "date-time"
           },
           "lastUsedAt": {
             "type": "string",
+            "description": "When the rule last matched a transaction (null if never used)",
             "format": "date-time",
             "nullable": true
           },
           "matchCount": {
             "type": "integer",
+            "description": "Number of times this rule has matched transactions",
             "format": "int32"
           }
         }
       },
       "CollectionRequestOfPayeeMatchingRuleEditDto": {
         "type": "object",
+        "description": "Generic wrapper for collection requests that require validation of each item.",
         "additionalProperties": false,
         "properties": {
           "items": {
             "type": "array",
+            "description": "The collection of items to validate.",
             "items": {
               "$ref": "#/components/schemas/PayeeMatchingRuleEditDto"
             }
@@ -1782,16 +1836,20 @@
       },
       "PayeeMatchingRuleEditDto": {
         "type": "object",
+        "description": "Payee matching rule data for creating or updating rules (input DTO).",
         "additionalProperties": false,
         "properties": {
           "payeePattern": {
-            "type": "string"
+            "type": "string",
+            "description": "Pattern to match against transaction payee (substring or regex)"
           },
           "payeeIsRegex": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "If true, PayeePattern is treated as regex; if false, as substring"
           },
           "category": {
-            "type": "string"
+            "type": "string",
+            "description": "Category to assign when rule matches"
           }
         }
       },
@@ -1851,51 +1909,67 @@
       },
       "PaginatedResultDtoOfString": {
         "type": "object",
+        "description": "Generic paginated result container for API responses.",
         "additionalProperties": false,
         "properties": {
           "items": {
             "type": "array",
+            "description": "The collection of items for the current page.",
             "items": {
               "type": "string"
             }
           },
           "metadata": {
-            "$ref": "#/components/schemas/PaginationMetadata"
+            "description": "Pagination metadata including page numbers, counts, and navigation flags.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetadata"
+              }
+            ]
           }
         }
       },
       "PaginationMetadata": {
         "type": "object",
+        "description": "Contains all calculated pagination metadata values.",
         "additionalProperties": false,
         "properties": {
           "pageNumber": {
             "type": "integer",
+            "description": "The current page number (1-based).",
             "format": "int32"
           },
           "pageSize": {
             "type": "integer",
+            "description": "The number of items per page.",
             "format": "int32"
           },
           "totalCount": {
             "type": "integer",
+            "description": "The total number of items across all pages.",
             "format": "int32"
           },
           "totalPages": {
             "type": "integer",
+            "description": "The total number of pages available.",
             "format": "int32"
           },
           "hasPreviousPage": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether a previous page exists."
           },
           "hasNextPage": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Indicates whether a next page exists."
           },
           "firstItem": {
             "type": "integer",
+            "description": "The index of the first item on the current page (1-based), or 0 if no items exist.",
             "format": "int32"
           },
           "lastItem": {
             "type": "integer",
+            "description": "The index of the last item on the current page (1-based), or 0 if no items exist.",
             "format": "int32"
           }
         }

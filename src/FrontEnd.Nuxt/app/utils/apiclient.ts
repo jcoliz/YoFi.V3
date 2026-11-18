@@ -5838,11 +5838,17 @@ export interface IChangePasswordRequest {
     newPassword?: string;
 }
 
+/** Result of an OFX file import operation, to be shown to the user. */
 export class ImportReviewUploadDto implements IImportReviewUploadDto {
+    /** Number of transactions successfully imported and stored for review. */
     importedCount?: number;
+    /** Number of new transactions (no duplicates detected). */
     newCount?: number;
+    /** Number of exact duplicate transactions detected. */
     exactDuplicateCount?: number;
+    /** Number of potential duplicate transactions detected. */
     potentialDuplicateCount?: number;
+    /** Collection of errors encountered during OFX parsing. */
     errors?: OfxParsingError[];
 
     constructor(data?: IImportReviewUploadDto) {
@@ -5890,17 +5896,27 @@ export class ImportReviewUploadDto implements IImportReviewUploadDto {
     }
 }
 
+/** Result of an OFX file import operation, to be shown to the user. */
 export interface IImportReviewUploadDto {
+    /** Number of transactions successfully imported and stored for review. */
     importedCount?: number;
+    /** Number of new transactions (no duplicates detected). */
     newCount?: number;
+    /** Number of exact duplicate transactions detected. */
     exactDuplicateCount?: number;
+    /** Number of potential duplicate transactions detected. */
     potentialDuplicateCount?: number;
+    /** Collection of errors encountered during OFX parsing. */
     errors?: OfxParsingError[];
 }
 
+/** Error encountered during OFX parsing. */
 export class OfxParsingError implements IOfxParsingError {
+    /** Error message. */
     message!: string;
+    /** Error code or type. */
     code?: string | undefined;
+    /** Name of the file where the error occurred. */
     fileName?: string | undefined;
 
     constructor(data?: IOfxParsingError) {
@@ -5936,14 +5952,21 @@ export class OfxParsingError implements IOfxParsingError {
     }
 }
 
+/** Error encountered during OFX parsing. */
 export interface IOfxParsingError {
+    /** Error message. */
     message: string;
+    /** Error code or type. */
     code?: string | undefined;
+    /** Name of the file where the error occurred. */
     fileName?: string | undefined;
 }
 
+/** Generic paginated result container for API responses. */
 export class PaginatedResultDtoOfImportReviewTransactionDto implements IPaginatedResultDtoOfImportReviewTransactionDto {
+    /** The collection of items for the current page. */
     items?: ImportReviewTransactionDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 
     constructor(data?: IPaginatedResultDtoOfImportReviewTransactionDto) {
@@ -5985,19 +6008,31 @@ export class PaginatedResultDtoOfImportReviewTransactionDto implements IPaginate
     }
 }
 
+/** Generic paginated result container for API responses. */
 export interface IPaginatedResultDtoOfImportReviewTransactionDto {
+    /** The collection of items for the current page. */
     items?: ImportReviewTransactionDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 }
 
+/** Presents information about an imported transaction for user review. */
 export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
+    /** The unique identifier for the import review transaction. */
     key?: string;
+    /** Transaction date as reported by the bank. */
     date?: Date;
+    /** Payee or merchant name for the transaction. */
     payee?: string;
+    /** Matched category (placeholder for future Payee Matching rules feature, empty for now). */
     category?: string;
+    /** Transaction amount (positive for deposits, negative for withdrawals). */
     amount?: number;
+    /** Status indicating whether this transaction is new or a duplicate. */
     duplicateStatus?: DuplicateStatus;
+    /** Key of the existing transaction if this is detected as a duplicate. */
     duplicateOfKey?: string | undefined;
+    /** Indicates whether this transaction is selected for import. */
     isSelected?: boolean;
 
     constructor(data?: IImportReviewTransactionDto) {
@@ -6043,14 +6078,23 @@ export class ImportReviewTransactionDto implements IImportReviewTransactionDto {
     }
 }
 
+/** Presents information about an imported transaction for user review. */
 export interface IImportReviewTransactionDto {
+    /** The unique identifier for the import review transaction. */
     key?: string;
+    /** Transaction date as reported by the bank. */
     date?: Date;
+    /** Payee or merchant name for the transaction. */
     payee?: string;
+    /** Matched category (placeholder for future Payee Matching rules feature, empty for now). */
     category?: string;
+    /** Transaction amount (positive for deposits, negative for withdrawals). */
     amount?: number;
+    /** Status indicating whether this transaction is new or a duplicate. */
     duplicateStatus?: DuplicateStatus;
+    /** Key of the existing transaction if this is detected as a duplicate. */
     duplicateOfKey?: string | undefined;
+    /** Indicates whether this transaction is selected for import. */
     isSelected?: boolean;
 }
 
@@ -6060,14 +6104,23 @@ export enum DuplicateStatus {
     PotentialDuplicate = 2,
 }
 
+/** Contains all calculated pagination metadata values. */
 export class PaginationMetadata implements IPaginationMetadata {
+    /** The current page number (1-based). */
     pageNumber?: number;
+    /** The number of items per page. */
     pageSize?: number;
+    /** The total number of items across all pages. */
     totalCount?: number;
+    /** The total number of pages available. */
     totalPages?: number;
+    /** Indicates whether a previous page exists. */
     hasPreviousPage?: boolean;
+    /** Indicates whether a next page exists. */
     hasNextPage?: boolean;
+    /** The index of the first item on the current page (1-based), or 0 if no items exist. */
     firstItem?: number;
+    /** The index of the last item on the current page (1-based), or 0 if no items exist. */
     lastItem?: number;
 
     constructor(data?: IPaginationMetadata) {
@@ -6113,19 +6166,31 @@ export class PaginationMetadata implements IPaginationMetadata {
     }
 }
 
+/** Contains all calculated pagination metadata values. */
 export interface IPaginationMetadata {
+    /** The current page number (1-based). */
     pageNumber?: number;
+    /** The number of items per page. */
     pageSize?: number;
+    /** The total number of items across all pages. */
     totalCount?: number;
+    /** The total number of pages available. */
     totalPages?: number;
+    /** Indicates whether a previous page exists. */
     hasPreviousPage?: boolean;
+    /** Indicates whether a next page exists. */
     hasNextPage?: boolean;
+    /** The index of the first item on the current page (1-based), or 0 if no items exist. */
     firstItem?: number;
+    /** The index of the last item on the current page (1-based), or 0 if no items exist. */
     lastItem?: number;
 }
 
+/** Result of completing the import review workflow. */
 export class ImportReviewCompleteDto implements IImportReviewCompleteDto {
+    /** Number of transactions successfully accepted and copied to the main transaction table. */
     acceptedCount?: number;
+    /** Number of transactions rejected (not selected for import). */
     rejectedCount?: number;
 
     constructor(data?: IImportReviewCompleteDto) {
@@ -6159,13 +6224,19 @@ export class ImportReviewCompleteDto implements IImportReviewCompleteDto {
     }
 }
 
+/** Result of completing the import review workflow. */
 export interface IImportReviewCompleteDto {
+    /** Number of transactions successfully accepted and copied to the main transaction table. */
     acceptedCount?: number;
+    /** Number of transactions rejected (not selected for import). */
     rejectedCount?: number;
 }
 
+/** Request to set the selection state for specific import review transactions. */
 export class SetSelectionRequest implements ISetSelectionRequest {
+    /** Collection of transaction keys to update. */
     keys?: string[];
+    /** The desired selection state (true = selected, false = deselected). */
     isSelected?: boolean;
 
     constructor(data?: ISetSelectionRequest) {
@@ -6207,16 +6278,25 @@ export class SetSelectionRequest implements ISetSelectionRequest {
     }
 }
 
+/** Request to set the selection state for specific import review transactions. */
 export interface ISetSelectionRequest {
+    /** Collection of transaction keys to update. */
     keys?: string[];
+    /** The desired selection state (true = selected, false = deselected). */
     isSelected?: boolean;
 }
 
+/** Provides summary statistics for pending import review transactions. */
 export class ImportReviewSummaryDto implements IImportReviewSummaryDto {
+    /** Total number of pending import review transactions. */
     totalCount?: number;
+    /** Number of transactions selected for import (IsSelected = true). */
     selectedCount?: number;
+    /** Number of new transactions (not duplicates). */
     newCount?: number;
+    /** Number of exact duplicate transactions. */
     exactDuplicateCount?: number;
+    /** Number of potential duplicate transactions. */
     potentialDuplicateCount?: number;
 
     constructor(data?: IImportReviewSummaryDto) {
@@ -6256,16 +6336,25 @@ export class ImportReviewSummaryDto implements IImportReviewSummaryDto {
     }
 }
 
+/** Provides summary statistics for pending import review transactions. */
 export interface IImportReviewSummaryDto {
+    /** Total number of pending import review transactions. */
     totalCount?: number;
+    /** Number of transactions selected for import (IsSelected = true). */
     selectedCount?: number;
+    /** Number of new transactions (not duplicates). */
     newCount?: number;
+    /** Number of exact duplicate transactions. */
     exactDuplicateCount?: number;
+    /** Number of potential duplicate transactions. */
     potentialDuplicateCount?: number;
 }
 
+/** Generic paginated result container for API responses. */
 export class PaginatedResultDtoOfPayeeMatchingRuleResultDto implements IPaginatedResultDtoOfPayeeMatchingRuleResultDto {
+    /** The collection of items for the current page. */
     items?: PayeeMatchingRuleResultDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 
     constructor(data?: IPaginatedResultDtoOfPayeeMatchingRuleResultDto) {
@@ -6307,19 +6396,31 @@ export class PaginatedResultDtoOfPayeeMatchingRuleResultDto implements IPaginate
     }
 }
 
+/** Generic paginated result container for API responses. */
 export interface IPaginatedResultDtoOfPayeeMatchingRuleResultDto {
+    /** The collection of items for the current page. */
     items?: PayeeMatchingRuleResultDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 }
 
+/** Payee matching rule data returned from queries (output DTO). */
 export class PayeeMatchingRuleResultDto implements IPayeeMatchingRuleResultDto {
+    /** Unique identifier for the rule */
     key?: string;
+    /** Pattern to match against transaction payee (substring or regex) */
     payeePattern?: string;
+    /** If true, PayeePattern is treated as regex; if false, as substring */
     payeeIsRegex?: boolean;
+    /** Category to assign when rule matches (already sanitized) */
     category?: string;
+    /** When the rule was created */
     createdAt?: Date;
+    /** When the rule was last modified (used for conflict resolution) */
     modifiedAt?: Date;
+    /** When the rule last matched a transaction (null if never used) */
     lastUsedAt?: Date | undefined;
+    /** Number of times this rule has matched transactions */
     matchCount?: number;
 
     constructor(data?: IPayeeMatchingRuleResultDto) {
@@ -6365,17 +6466,27 @@ export class PayeeMatchingRuleResultDto implements IPayeeMatchingRuleResultDto {
     }
 }
 
+/** Payee matching rule data returned from queries (output DTO). */
 export interface IPayeeMatchingRuleResultDto {
+    /** Unique identifier for the rule */
     key?: string;
+    /** Pattern to match against transaction payee (substring or regex) */
     payeePattern?: string;
+    /** If true, PayeePattern is treated as regex; if false, as substring */
     payeeIsRegex?: boolean;
+    /** Category to assign when rule matches (already sanitized) */
     category?: string;
+    /** When the rule was created */
     createdAt?: Date;
+    /** When the rule was last modified (used for conflict resolution) */
     modifiedAt?: Date;
+    /** When the rule last matched a transaction (null if never used) */
     lastUsedAt?: Date | undefined;
+    /** Number of times this rule has matched transactions */
     matchCount?: number;
 }
 
+/** Sort options for payee matching rules. */
 export enum PayeeRuleSortBy {
     PayeePattern = 0,
     Category = 1,
@@ -6383,7 +6494,9 @@ export enum PayeeRuleSortBy {
     NumberOfMatches = 3,
 }
 
+/** Created rule with the number of existing transactions categorized during creation. Retains all existing top-level rule fields for compatibility with existing clients. */
 export class PayeeMatchingRuleCreateResultDto extends PayeeMatchingRuleResultDto implements IPayeeMatchingRuleCreateResultDto {
+    /** Number of transactions categorized by this create operation. */
     transactionsCategorized?: number;
 
     constructor(data?: IPayeeMatchingRuleCreateResultDto) {
@@ -6412,13 +6525,19 @@ export class PayeeMatchingRuleCreateResultDto extends PayeeMatchingRuleResultDto
     }
 }
 
+/** Created rule with the number of existing transactions categorized during creation. Retains all existing top-level rule fields for compatibility with existing clients. */
 export interface IPayeeMatchingRuleCreateResultDto extends IPayeeMatchingRuleResultDto {
+    /** Number of transactions categorized by this create operation. */
     transactionsCategorized?: number;
 }
 
+/** Payee matching rule data for creating or updating rules (input DTO). */
 export class PayeeMatchingRuleEditDto implements IPayeeMatchingRuleEditDto {
+    /** Pattern to match against transaction payee (substring or regex) */
     payeePattern?: string;
+    /** If true, PayeePattern is treated as regex; if false, as substring */
     payeeIsRegex?: boolean;
+    /** Category to assign when rule matches */
     category?: string;
 
     constructor(data?: IPayeeMatchingRuleEditDto) {
@@ -6454,13 +6573,20 @@ export class PayeeMatchingRuleEditDto implements IPayeeMatchingRuleEditDto {
     }
 }
 
+/** Payee matching rule data for creating or updating rules (input DTO). */
 export interface IPayeeMatchingRuleEditDto {
+    /** Pattern to match against transaction payee (substring or regex) */
     payeePattern?: string;
+    /** If true, PayeePattern is treated as regex; if false, as substring */
     payeeIsRegex?: boolean;
+    /** Category to assign when rule matches */
     category?: string;
 }
 
+/** Input for creating a rule, optionally categorizing existing uncategorized transactions. */
 export class PayeeMatchingRuleCreateDto extends PayeeMatchingRuleEditDto implements IPayeeMatchingRuleCreateDto {
+    /** Apply only this rule to eligible transactions in the workspace.
+            Defaults to false to preserve create-only behavior for existing clients. */
     applyToUncategorizedTransactions?: boolean;
 
     constructor(data?: IPayeeMatchingRuleCreateDto) {
@@ -6489,10 +6615,14 @@ export class PayeeMatchingRuleCreateDto extends PayeeMatchingRuleEditDto impleme
     }
 }
 
+/** Input for creating a rule, optionally categorizing existing uncategorized transactions. */
 export interface IPayeeMatchingRuleCreateDto extends IPayeeMatchingRuleEditDto {
+    /** Apply only this rule to eligible transactions in the workspace.
+            Defaults to false to preserve create-only behavior for existing clients. */
     applyToUncategorizedTransactions?: boolean;
 }
 
+/** Built-in report metadata used to populate the report selector. */
 export class ReportDefinitionDto implements IReportDefinitionDto {
     id?: string;
     name?: string;
@@ -6537,6 +6667,7 @@ export class ReportDefinitionDto implements IReportDefinitionDto {
     }
 }
 
+/** Built-in report metadata used to populate the report selector. */
 export interface IReportDefinitionDto {
     id?: string;
     name?: string;
@@ -6545,8 +6676,11 @@ export interface IReportDefinitionDto {
     includesUncategorized?: boolean;
 }
 
+/** Available calendar years for the current tenant's reports and the backend-selected default. */
 export class ReportYearsDto implements IReportYearsDto {
+    /** Distinct transaction years plus the current UTC year, sorted newest first. */
     years!: number[];
+    /** The current UTC year, always included in Years. */
     defaultYear!: number;
 
     constructor(data?: IReportYearsDto) {
@@ -6591,18 +6725,29 @@ export class ReportYearsDto implements IReportYearsDto {
     }
 }
 
+/** Available calendar years for the current tenant's reports and the backend-selected default. */
 export interface IReportYearsDto {
+    /** Distinct transaction years plus the current UTC year, sorted newest first. */
     years: number[];
+    /** The current UTC year, always included in Years. */
     defaultYear: number;
 }
 
+/** Annual report data with category rows and explicit report totals. */
 export class ReportResultDto implements IReportResultDto {
+    /** Stable report identifier. */
     id?: string;
+    /** Display name of the report. */
     name?: string;
+    /** Category filter root used as the category-column header, or null for reports spanning roots. */
     categoryRoot?: string | undefined;
+    /** Calendar year represented by the report. */
     year?: number;
+    /** Whether monthly amount columns are included. */
     hasMonthColumns?: boolean;
+    /** Category rows included in the report. */
     rows?: ReportRowDto[];
+    /** Overall and category totals for the report. */
     totals?: ReportTotalsDto;
 
     constructor(data?: IReportResultDto) {
@@ -6654,23 +6799,39 @@ export class ReportResultDto implements IReportResultDto {
     }
 }
 
+/** Annual report data with category rows and explicit report totals. */
 export interface IReportResultDto {
+    /** Stable report identifier. */
     id?: string;
+    /** Display name of the report. */
     name?: string;
+    /** Category filter root used as the category-column header, or null for reports spanning roots. */
     categoryRoot?: string | undefined;
+    /** Calendar year represented by the report. */
     year?: number;
+    /** Whether monthly amount columns are included. */
     hasMonthColumns?: boolean;
+    /** Category rows included in the report. */
     rows?: ReportRowDto[];
+    /** Overall and category totals for the report. */
     totals?: ReportTotalsDto;
 }
 
+/** One category's annual amount and optional January-to-December amounts. */
 export class ReportRowDto implements IReportRowDto {
+    /** Full category path; uncategorized splits use "Uncategorized". */
     categoryPath?: string;
+    /** Local category name for display; ancestor names are provided by parent rows or the report. */
     categoryName?: string;
+    /** Displayed depth below the report filter root. */
     depth?: number;
+    /** Whether this row includes amounts from descendant categories. */
     isSubtotal?: boolean;
+    /** Amounts indexed January through December, or null when months are hidden. */
     monthlyAmounts?: number[] | undefined;
+    /** Signed annual row amount including descendants. */
     annualTotal?: number;
+    /** Signed share of the report annual total, or null when that total is zero. */
     percentage?: number | undefined;
 
     constructor(data?: IReportRowDto) {
@@ -6722,18 +6883,29 @@ export class ReportRowDto implements IReportRowDto {
     }
 }
 
+/** One category's annual amount and optional January-to-December amounts. */
 export interface IReportRowDto {
+    /** Full category path; uncategorized splits use "Uncategorized". */
     categoryPath?: string;
+    /** Local category name for display; ancestor names are provided by parent rows or the report. */
     categoryName?: string;
+    /** Displayed depth below the report filter root. */
     depth?: number;
+    /** Whether this row includes amounts from descendant categories. */
     isSubtotal?: boolean;
+    /** Amounts indexed January through December, or null when months are hidden. */
     monthlyAmounts?: number[] | undefined;
+    /** Signed annual row amount including descendants. */
     annualTotal?: number;
+    /** Signed share of the report annual total, or null when that total is zero. */
     percentage?: number | undefined;
 }
 
+/** Grand totals computed from included split amounts, without summing overlapping category rows. */
 export class ReportTotalsDto implements IReportTotalsDto {
+    /** Grand totals indexed January through December, or null when months are hidden. */
     monthlyAmounts?: number[] | undefined;
+    /** Signed annual report total. */
     annualTotal?: number;
 
     constructor(data?: IReportTotalsDto) {
@@ -6775,16 +6947,25 @@ export class ReportTotalsDto implements IReportTotalsDto {
     }
 }
 
+/** Grand totals computed from included split amounts, without summing overlapping category rows. */
 export interface IReportTotalsDto {
+    /** Grand totals indexed January through December, or null when months are hidden. */
     monthlyAmounts?: number[] | undefined;
+    /** Signed annual report total. */
     annualTotal?: number;
 }
 
+/** Display metadata and supported entity types for a bundled sample scenario. */
 export class SampleScenarioDto implements ISampleScenarioDto {
+    /** Stable scenario identifier used in generation requests. */
     id?: string;
+    /** Current revision required by generation requests. */
     revision?: number;
+    /** User-facing scenario name. */
     name?: string;
+    /** User-facing description of the scenario's contents. */
     description?: string;
+    /** Entity type names loaded together; internal splits are not separate types. */
     entityTypes?: string[];
 
     constructor(data?: ISampleScenarioDto) {
@@ -6832,17 +7013,27 @@ export class SampleScenarioDto implements ISampleScenarioDto {
     }
 }
 
+/** Display metadata and supported entity types for a bundled sample scenario. */
 export interface ISampleScenarioDto {
+    /** Stable scenario identifier used in generation requests. */
     id?: string;
+    /** Current revision required by generation requests. */
     revision?: number;
+    /** User-facing scenario name. */
     name?: string;
+    /** User-facing description of the scenario's contents. */
     description?: string;
+    /** Entity type names loaded together; internal splits are not separate types. */
     entityTypes?: string[];
 }
 
+/** Exact generation counts and the current tenant's existing transaction count, without writes. */
 export class SampleDataPreviewDto implements ISampleDataPreviewDto {
+    /** Validated scenario, revision, and date range used to generate the preview. */
     inputs?: SampleDataRequest;
+    /** Exact counts for the complete dataset that loading would create. */
     counts?: SampleDataCounts;
+    /** Unfiltered current-tenant transaction count when previewed, not a deletion confirmation. */
     existingTransactionCount?: number;
 
     constructor(data?: ISampleDataPreviewDto) {
@@ -6878,16 +7069,25 @@ export class SampleDataPreviewDto implements ISampleDataPreviewDto {
     }
 }
 
+/** Exact generation counts and the current tenant's existing transaction count, without writes. */
 export interface ISampleDataPreviewDto {
+    /** Validated scenario, revision, and date range used to generate the preview. */
     inputs?: SampleDataRequest;
+    /** Exact counts for the complete dataset that loading would create. */
     counts?: SampleDataCounts;
+    /** Unfiltered current-tenant transaction count when previewed, not a deletion confirmation. */
     existingTransactionCount?: number;
 }
 
+/** Explicit generation inputs shared by preview, load, and OFX download operations. */
 export class SampleDataRequest implements ISampleDataRequest {
+    /** Stable ID from the bundled scenario catalog, not a file path. */
     scenarioId?: string;
+    /** Catalog revision accepted by the caller; stale revisions are rejected. */
     revision?: number;
+    /** Inclusive calendar start date. Null is rejected rather than defaulted. */
     startDate?: Date | undefined;
+    /** Inclusive calendar end date. Null is rejected rather than defaulted. */
     endDate?: Date | undefined;
 
     constructor(data?: ISampleDataRequest) {
@@ -6925,16 +7125,25 @@ export class SampleDataRequest implements ISampleDataRequest {
     }
 }
 
+/** Explicit generation inputs shared by preview, load, and OFX download operations. */
 export interface ISampleDataRequest {
+    /** Stable ID from the bundled scenario catalog, not a file path. */
     scenarioId?: string;
+    /** Catalog revision accepted by the caller; stale revisions are rejected. */
     revision?: number;
+    /** Inclusive calendar start date. Null is rejected rather than defaulted. */
     startDate?: Date | undefined;
+    /** Inclusive calendar end date. Null is rejected rather than defaulted. */
     endDate?: Date | undefined;
 }
 
+/** Per-type record counts, excluding internal transaction splits. */
 export class SampleDataCounts implements ISampleDataCounts {
+    /** Number of transaction records. */
     transactions?: number;
+    /** Number of payee matching rule records. */
     payeeMatchingRules?: number;
+    /** Gets the combined number of transactions and payee matching rules. */
     total?: number;
 
     constructor(data?: ISampleDataCounts) {
@@ -6970,15 +7179,23 @@ export class SampleDataCounts implements ISampleDataCounts {
     }
 }
 
+/** Per-type record counts, excluding internal transaction splits. */
 export interface ISampleDataCounts {
+    /** Number of transaction records. */
     transactions?: number;
+    /** Number of payee matching rule records. */
     payeeMatchingRules?: number;
+    /** Gets the combined number of transactions and payee matching rules. */
     total?: number;
 }
 
+/** Counts returned only after the complete sample dataset has been committed. */
 export class SampleDataLoadResultDto implements ISampleDataLoadResultDto {
+    /** Validated scenario, revision, and date range used for loading. */
     inputs?: SampleDataRequest;
+    /** Committed created counts for each entity type. */
     created?: SampleDataCounts;
+    /** Updated counts; always zero because sample loading is create-only. */
     updated?: SampleDataCounts;
 
     constructor(data?: ISampleDataLoadResultDto) {
@@ -7014,14 +7231,21 @@ export class SampleDataLoadResultDto implements ISampleDataLoadResultDto {
     }
 }
 
+/** Counts returned only after the complete sample dataset has been committed. */
 export interface ISampleDataLoadResultDto {
+    /** Validated scenario, revision, and date range used for loading. */
     inputs?: SampleDataRequest;
+    /** Committed created counts for each entity type. */
     created?: SampleDataCounts;
+    /** Updated counts; always zero because sample loading is create-only. */
     updated?: SampleDataCounts;
 }
 
+/** Selectable data types and transaction years available to export. */
 export class TenantDataExportOptionsDto implements ITenantDataExportOptionsDto {
+    /** Registered data types that can be exported. */
     dataTypes?: TenantDataExportTypeDto[];
+    /** Years with transaction data, sorted newest first. */
     years?: number[];
 
     constructor(data?: ITenantDataExportOptionsDto) {
@@ -7071,14 +7295,21 @@ export class TenantDataExportOptionsDto implements ITenantDataExportOptionsDto {
     }
 }
 
+/** Selectable data types and transaction years available to export. */
 export interface ITenantDataExportOptionsDto {
+    /** Registered data types that can be exported. */
     dataTypes?: TenantDataExportTypeDto[];
+    /** Years with transaction data, sorted newest first. */
     years?: number[];
 }
 
+/** One selectable tenant data type for export. */
 export class TenantDataExportTypeDto implements ITenantDataExportTypeDto {
+    /** Stable data type identifier accepted by an export request. */
     dataType?: string;
+    /** Worksheet written for the selected type. */
     worksheetName?: string;
+    /** Whether the export supports transaction-date filtering. */
     supportsDateFilter?: boolean;
 
     constructor(data?: ITenantDataExportTypeDto) {
@@ -7114,17 +7345,27 @@ export class TenantDataExportTypeDto implements ITenantDataExportTypeDto {
     }
 }
 
+/** One selectable tenant data type for export. */
 export interface ITenantDataExportTypeDto {
+    /** Stable data type identifier accepted by an export request. */
     dataType?: string;
+    /** Worksheet written for the selected type. */
     worksheetName?: string;
+    /** Whether the export supports transaction-date filtering. */
     supportsDateFilter?: boolean;
 }
 
+/** Format-neutral preview of the supported content in an uploaded workbook. */
 export class TenantDataImportPreviewDto implements ITenantDataImportPreviewDto {
+    /** Detected source format identifier, or null when no format was detected. */
     formatId?: string | undefined;
+    /** Recognized worksheet previews. */
     worksheets?: ImportWorksheetPreviewDto[];
+    /** Worksheets that have no registered import handler. */
     ignoredWorksheets?: string[];
+    /** Uppercase SHA-256 digest of the exact uploaded bytes. */
     sha256?: string;
+    /** Whether the detected workbook has supported worksheets and all validate. */
     canImport?: boolean;
 
     constructor(data?: ITenantDataImportPreviewDto) {
@@ -7180,22 +7421,37 @@ export class TenantDataImportPreviewDto implements ITenantDataImportPreviewDto {
     }
 }
 
+/** Format-neutral preview of the supported content in an uploaded workbook. */
 export interface ITenantDataImportPreviewDto {
+    /** Detected source format identifier, or null when no format was detected. */
     formatId?: string | undefined;
+    /** Recognized worksheet previews. */
     worksheets?: ImportWorksheetPreviewDto[];
+    /** Worksheets that have no registered import handler. */
     ignoredWorksheets?: string[];
+    /** Uppercase SHA-256 digest of the exact uploaded bytes. */
     sha256?: string;
+    /** Whether the detected workbook has supported worksheets and all validate. */
     canImport?: boolean;
 }
 
+/** Validation and detection summary for one recognized worksheet. */
 export class ImportWorksheetPreviewDto implements IImportWorksheetPreviewDto {
+    /** Source worksheet name. */
     worksheetName?: string;
+    /** V3 data type that the worksheet maps to. */
     dataType?: string;
+    /** Number of valid records ready to import. */
     validRecordCount?: number;
+    /** Number of rows intentionally skipped. */
     skippedRecordCount?: number;
+    /** Unrecognized columns in the worksheet. */
     ignoredColumns?: string[];
+    /** Blocking row or worksheet validation errors. */
     errors?: DataImportIssueDto[];
+    /** Rows skipped with a non-blocking reason. */
     skippedRows?: DataImportIssueDto[];
+    /** Whether this worksheet can be imported without blocking validation errors. */
     canImport?: boolean;
 
     constructor(data?: IImportWorksheetPreviewDto) {
@@ -7265,21 +7521,35 @@ export class ImportWorksheetPreviewDto implements IImportWorksheetPreviewDto {
     }
 }
 
+/** Validation and detection summary for one recognized worksheet. */
 export interface IImportWorksheetPreviewDto {
+    /** Source worksheet name. */
     worksheetName?: string;
+    /** V3 data type that the worksheet maps to. */
     dataType?: string;
+    /** Number of valid records ready to import. */
     validRecordCount?: number;
+    /** Number of rows intentionally skipped. */
     skippedRecordCount?: number;
+    /** Unrecognized columns in the worksheet. */
     ignoredColumns?: string[];
+    /** Blocking row or worksheet validation errors. */
     errors?: DataImportIssueDto[];
+    /** Rows skipped with a non-blocking reason. */
     skippedRows?: DataImportIssueDto[];
+    /** Whether this worksheet can be imported without blocking validation errors. */
     canImport?: boolean;
 }
 
+/** A row-level validation or skip message from an imported worksheet. */
 export class DataImportIssueDto implements IDataImportIssueDto {
+    /** One-based spreadsheet row number. */
     rowNumber?: number;
+    /** Source worksheet field associated with the message. */
     field?: string;
+    /** Stable machine-readable issue code. */
     code?: string;
+    /** User-readable explanation. */
     message?: string;
 
     constructor(data?: IDataImportIssueDto) {
@@ -7317,14 +7587,21 @@ export class DataImportIssueDto implements IDataImportIssueDto {
     }
 }
 
+/** A row-level validation or skip message from an imported worksheet. */
 export interface IDataImportIssueDto {
+    /** One-based spreadsheet row number. */
     rowNumber?: number;
+    /** Source worksheet field associated with the message. */
     field?: string;
+    /** Stable machine-readable issue code. */
     code?: string;
+    /** User-readable explanation. */
     message?: string;
 }
 
+/** Committed results for all worksheets in a confirmed import. */
 export class TenantDataImportResultDto implements ITenantDataImportResultDto {
+    /** Per-worksheet/data-type import results. */
     worksheets?: ImportWorksheetResultDto[];
 
     constructor(data?: ITenantDataImportResultDto) {
@@ -7364,16 +7641,25 @@ export class TenantDataImportResultDto implements ITenantDataImportResultDto {
     }
 }
 
+/** Committed results for all worksheets in a confirmed import. */
 export interface ITenantDataImportResultDto {
+    /** Per-worksheet/data-type import results. */
     worksheets?: ImportWorksheetResultDto[];
 }
 
+/** Committed result for one imported worksheet/data type. */
 export class ImportWorksheetResultDto implements IImportWorksheetResultDto {
+    /** Source worksheet name. */
     worksheetName?: string;
+    /** V3 data type that received the records. */
     dataType?: string;
+    /** Number of new records committed. */
     created?: number;
+    /** Number of source rows intentionally skipped. */
     skipped?: number;
+    /** Number of existing records updated. */
     updated?: number;
+    /** Always zero on success; a failed worksheet throws. */
     failed?: number;
 
     constructor(data?: IImportWorksheetResultDto) {
@@ -7415,16 +7701,25 @@ export class ImportWorksheetResultDto implements IImportWorksheetResultDto {
     }
 }
 
+/** Committed result for one imported worksheet/data type. */
 export interface IImportWorksheetResultDto {
+    /** Source worksheet name. */
     worksheetName?: string;
+    /** V3 data type that received the records. */
     dataType?: string;
+    /** Number of new records committed. */
     created?: number;
+    /** Number of source rows intentionally skipped. */
     skipped?: number;
+    /** Number of existing records updated. */
     updated?: number;
+    /** Always zero on success; a failed worksheet throws. */
     failed?: number;
 }
 
+/** Result returned after all workspace data deletion commits successfully. */
 export class TenantDataDeletionResultDto implements ITenantDataDeletionResultDto {
+    /** Committed per-type deletion counts. */
     deleted?: TenantDataDeletionCountsDto;
 
     constructor(data?: ITenantDataDeletionResultDto) {
@@ -7456,14 +7751,21 @@ export class TenantDataDeletionResultDto implements ITenantDataDeletionResultDto
     }
 }
 
+/** Result returned after all workspace data deletion commits successfully. */
 export interface ITenantDataDeletionResultDto {
+    /** Committed per-type deletion counts. */
     deleted?: TenantDataDeletionCountsDto;
 }
 
+/** Committed deletion counts for each tenant-scoped data type. */
 export class TenantDataDeletionCountsDto implements ITenantDataDeletionCountsDto {
+    /** Deleted transactions. */
     transactions?: number;
+    /** Deleted transaction splits. */
     splits?: number;
+    /** Deleted payee matching rules. */
     payeeMatchingRules?: number;
+    /** Deleted pending bank-import reviews. */
     importReviewTransactions?: number;
 
     constructor(data?: ITenantDataDeletionCountsDto) {
@@ -7501,14 +7803,21 @@ export class TenantDataDeletionCountsDto implements ITenantDataDeletionCountsDto
     }
 }
 
+/** Committed deletion counts for each tenant-scoped data type. */
 export interface ITenantDataDeletionCountsDto {
+    /** Deleted transactions. */
     transactions?: number;
+    /** Deleted transaction splits. */
     splits?: number;
+    /** Deleted payee matching rules. */
     payeeMatchingRules?: number;
+    /** Deleted pending bank-import reviews. */
     importReviewTransactions?: number;
 }
 
+/** Workspace name required to authorize deletion of all workspace data. */
 export class TenantDataDeletionRequest implements ITenantDataDeletionRequest {
+    /** The exact current workspace name. */
     confirmationWorkspaceName?: string;
 
     constructor(data?: ITenantDataDeletionRequest) {
@@ -7540,12 +7849,17 @@ export class TenantDataDeletionRequest implements ITenantDataDeletionRequest {
     }
 }
 
+/** Workspace name required to authorize deletion of all workspace data. */
 export interface ITenantDataDeletionRequest {
+    /** The exact current workspace name. */
     confirmationWorkspaceName?: string;
 }
 
+/** Generic paginated result container for API responses. */
 export class PaginatedResultDtoOfTransactionResultDto implements IPaginatedResultDtoOfTransactionResultDto {
+    /** The collection of items for the current page. */
     items?: TransactionResultDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 
     constructor(data?: IPaginatedResultDtoOfTransactionResultDto) {
@@ -7587,18 +7901,29 @@ export class PaginatedResultDtoOfTransactionResultDto implements IPaginatedResul
     }
 }
 
+/** Generic paginated result container for API responses. */
 export interface IPaginatedResultDtoOfTransactionResultDto {
+    /** The collection of items for the current page. */
     items?: TransactionResultDto[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 }
 
+/** Transaction data returned from queries (output-only). */
 export class TransactionResultDto implements ITransactionResultDto {
+    /** Unique identifier for the transaction */
     key?: string;
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction (max 200 chars) */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Category from the single split, or empty for multiple splits or no category */
     category?: string;
+    /** Whether the transaction has more than one split */
     hasMultipleSplits?: boolean;
 
     constructor(data?: ITransactionResultDto) {
@@ -7642,25 +7967,43 @@ export class TransactionResultDto implements ITransactionResultDto {
     }
 }
 
+/** Transaction data returned from queries (output-only). */
 export interface ITransactionResultDto {
+    /** Unique identifier for the transaction */
     key?: string;
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction (max 200 chars) */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Category from the single split, or empty for multiple splits or no category */
     category?: string;
+    /** Whether the transaction has more than one split */
     hasMultipleSplits?: boolean;
 }
 
+/** Complete transaction data including all fields (output-only). */
 export class TransactionDetailDto implements ITransactionDetailDto {
+    /** Unique identifier for the transaction */
     key?: string;
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Source of the transaction (e.g., "Chase Checking 1234") */
     source?: string | undefined;
+    /** Bank's unique identifier for duplicate detection */
     externalId?: string | undefined;
+    /** Category from the single split, or empty when there are multiple splits or no category */
     category?: string;
+    /** Gets allocations in display order for multi-split transactions; otherwise empty. */
     splits?: TransactionSplitDto[];
 
     constructor(data?: ITransactionDetailDto) {
@@ -7716,23 +8059,39 @@ export class TransactionDetailDto implements ITransactionDetailDto {
     }
 }
 
+/** Complete transaction data including all fields (output-only). */
 export interface ITransactionDetailDto {
+    /** Unique identifier for the transaction */
     key?: string;
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Source of the transaction (e.g., "Chase Checking 1234") */
     source?: string | undefined;
+    /** Bank's unique identifier for duplicate detection */
     externalId?: string | undefined;
+    /** Category from the single split, or empty when there are multiple splits or no category */
     category?: string;
+    /** Gets allocations in display order for multi-split transactions; otherwise empty. */
     splits?: TransactionSplitDto[];
 }
 
+/** A transaction's category allocation returned for display. */
 export class TransactionSplitDto implements ITransactionSplitDto {
+    /** Unique identifier for the split. */
     key?: string;
+    /** Signed amount allocated to this split. */
     amount?: number;
+    /** Category assigned to this split. */
     category?: string;
+    /** Optional split-specific memo. */
     memo?: string | undefined;
+    /** Zero-based display order. */
     order?: number;
 
     constructor(data?: ITransactionSplitDto) {
@@ -7772,21 +8131,35 @@ export class TransactionSplitDto implements ITransactionSplitDto {
     }
 }
 
+/** A transaction's category allocation returned for display. */
 export interface ITransactionSplitDto {
+    /** Unique identifier for the split. */
     key?: string;
+    /** Signed amount allocated to this split. */
     amount?: number;
+    /** Category assigned to this split. */
     category?: string;
+    /** Optional split-specific memo. */
     memo?: string | undefined;
+    /** Zero-based display order. */
     order?: number;
 }
 
+/** Transaction data for creating or updating transactions (input DTO). */
 export class TransactionEditDto implements ITransactionEditDto {
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Source of the transaction (optional, typically from importer) */
     source?: string | undefined;
+    /** Bank's unique identifier (optional, for duplicate detection) */
     externalId?: string | undefined;
+    /** Category for the single split (optional, auto-sanitized) */
     category?: string | undefined;
 
     constructor(data?: ITransactionEditDto) {
@@ -7830,19 +8203,31 @@ export class TransactionEditDto implements ITransactionEditDto {
     }
 }
 
+/** Transaction data for creating or updating transactions (input DTO). */
 export interface ITransactionEditDto {
+    /** Date the transaction occurred */
     date?: Date;
+    /** Transaction amount (can be negative for credits/refunds) */
     amount?: number;
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Source of the transaction (optional, typically from importer) */
     source?: string | undefined;
+    /** Bank's unique identifier (optional, for duplicate detection) */
     externalId?: string | undefined;
+    /** Category for the single split (optional, auto-sanitized) */
     category?: string | undefined;
 }
 
+/** Data for adding or updating a transaction split. */
 export class SplitEditDto implements ISplitEditDto {
+    /** Signed amount allocated to this split. */
     amount?: number;
+    /** Optional category; an empty or missing value means uncategorized. */
     category?: string | undefined;
+    /** Optional split-specific memo. */
     memo?: string | undefined;
 
     constructor(data?: ISplitEditDto) {
@@ -7878,15 +8263,23 @@ export class SplitEditDto implements ISplitEditDto {
     }
 }
 
+/** Data for adding or updating a transaction split. */
 export interface ISplitEditDto {
+    /** Signed amount allocated to this split. */
     amount?: number;
+    /** Optional category; an empty or missing value means uncategorized. */
     category?: string | undefined;
+    /** Optional split-specific memo. */
     memo?: string | undefined;
 }
 
+/** Transaction data for quick editing from list view (payee, memo, and category). */
 export class TransactionQuickEditDto implements ITransactionQuickEditDto {
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Category for the single split (optional, auto-sanitized). Must be null for multi-split transactions. */
     category?: string | undefined;
 
     constructor(data?: ITransactionQuickEditDto) {
@@ -7922,9 +8315,13 @@ export class TransactionQuickEditDto implements ITransactionQuickEditDto {
     }
 }
 
+/** Transaction data for quick editing from list view (payee, memo, and category). */
 export interface ITransactionQuickEditDto {
+    /** Recipient or payee of the transaction */
     payee?: string;
+    /** Optional memo for additional context */
     memo?: string | undefined;
+    /** Category for the single split (optional, auto-sanitized). Must be null for multi-split transactions. */
     category?: string | undefined;
 }
 
@@ -8013,11 +8410,17 @@ export interface IWeatherForecast extends IBaseModel {
     temperatureF?: number;
 }
 
+/** Data transfer object representing a tenant with the user's role assignment. */
 export class TenantRoleResultDto implements ITenantRoleResultDto {
+    /** The unique identifier for the tenant. */
     key?: string;
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
+    /** The user's role within this tenant. */
     role?: TenantRole;
+    /** The timestamp when the tenant was created. */
     createdAt?: Date;
 
     constructor(data?: ITenantRoleResultDto) {
@@ -8057,11 +8460,17 @@ export class TenantRoleResultDto implements ITenantRoleResultDto {
     }
 }
 
+/** Data transfer object representing a tenant with the user's role assignment. */
 export interface ITenantRoleResultDto {
+    /** The unique identifier for the tenant. */
     key?: string;
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
+    /** The user's role within this tenant. */
     role?: TenantRole;
+    /** The timestamp when the tenant was created. */
     createdAt?: Date;
 }
 
@@ -8071,10 +8480,15 @@ export enum TenantRole {
     Owner = 3,
 }
 
+/** Data transfer object representing a tenant in API responses. */
 export class TenantResultDto implements ITenantResultDto {
+    /** The unique identifier for the tenant. */
     key?: string;
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
+    /** The timestamp when the tenant was created. */
     createdAt?: Date;
 
     constructor(data?: ITenantResultDto) {
@@ -8112,15 +8526,23 @@ export class TenantResultDto implements ITenantResultDto {
     }
 }
 
+/** Data transfer object representing a tenant in API responses. */
 export interface ITenantResultDto {
+    /** The unique identifier for the tenant. */
     key?: string;
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
+    /** The timestamp when the tenant was created. */
     createdAt?: Date;
 }
 
+/** Data transfer object for creating or editing a tenant. */
 export class TenantEditDto implements ITenantEditDto {
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
 
     constructor(data?: ITenantEditDto) {
@@ -8154,8 +8576,11 @@ export class TenantEditDto implements ITenantEditDto {
     }
 }
 
+/** Data transfer object for creating or editing a tenant. */
 export interface ITenantEditDto {
+    /** The name of the tenant. */
     name?: string;
+    /** A description of the tenant. */
     description?: string;
 }
 
@@ -8385,7 +8810,9 @@ export interface ITransactionSeedRequest {
     category?: string | undefined;
 }
 
+/** Generic wrapper for collection requests that require validation of each item. */
 export class CollectionRequestOfTransactionEditDto implements ICollectionRequestOfTransactionEditDto {
+    /** The collection of items to validate. */
     items?: TransactionEditDto[];
 
     constructor(data?: ICollectionRequestOfTransactionEditDto) {
@@ -8425,7 +8852,9 @@ export class CollectionRequestOfTransactionEditDto implements ICollectionRequest
     }
 }
 
+/** Generic wrapper for collection requests that require validation of each item. */
 export interface ICollectionRequestOfTransactionEditDto {
+    /** The collection of items to validate. */
     items?: TransactionEditDto[];
 }
 
@@ -8483,7 +8912,9 @@ export interface ITransactionSplitsSeedRequest {
     splits?: SplitEditDto[];
 }
 
+/** Generic wrapper for collection requests that require validation of each item. */
 export class CollectionRequestOfPayeeMatchingRuleEditDto implements ICollectionRequestOfPayeeMatchingRuleEditDto {
+    /** The collection of items to validate. */
     items?: PayeeMatchingRuleEditDto[];
 
     constructor(data?: ICollectionRequestOfPayeeMatchingRuleEditDto) {
@@ -8523,7 +8954,9 @@ export class CollectionRequestOfPayeeMatchingRuleEditDto implements ICollectionR
     }
 }
 
+/** Generic wrapper for collection requests that require validation of each item. */
 export interface ICollectionRequestOfPayeeMatchingRuleEditDto {
+    /** The collection of items to validate. */
     items?: PayeeMatchingRuleEditDto[];
 }
 
@@ -8677,8 +9110,11 @@ export interface IErrorCodeInfo {
     description?: string;
 }
 
+/** Generic paginated result container for API responses. */
 export class PaginatedResultDtoOfString implements IPaginatedResultDtoOfString {
+    /** The collection of items for the current page. */
     items?: string[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 
     constructor(data?: IPaginatedResultDtoOfString) {
@@ -8720,8 +9156,11 @@ export class PaginatedResultDtoOfString implements IPaginatedResultDtoOfString {
     }
 }
 
+/** Generic paginated result container for API responses. */
 export interface IPaginatedResultDtoOfString {
+    /** The collection of items for the current page. */
     items?: string[];
+    /** Pagination metadata including page numbers, counts, and navigation flags. */
     metadata?: PaginationMetadata;
 }
 
