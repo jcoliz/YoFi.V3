@@ -78,6 +78,7 @@ Feature: Workspace Data Administration
       And I should see 15 payee matching rules on the rules page
 
     @id:3
+    @category:smoke
     Scenario: Import native transactions and their splits
       When I upload a file containing 10 transactions and 1 split transaction in native YoFi format
       Then I should see the detected format "YoFi.V3"
@@ -86,3 +87,22 @@ Feature: Workspace Data Administration
       And I should see 10 transactions on the transactions page
       And I should see 1 transaction with a split indicator
 
+  @category:story-2220
+  Rule: Export workspace data
+
+    @id:1
+    @category:smoke
+    Scenario: Export workspace data
+      Given My workspace has existing data spanning multiple years
+      When I export my entire workspace data
+      Then I should receive a file containing my workspace data
+      And the exported file should include all transactions from the workspace
+      And the exported file should include all payee matching rules from the workspace
+
+    @id:2
+    Scenario: Export transactions for one year only
+      Given My workspace has existing data spanning multiple years
+      When I export transactions for one year only
+      Then I should receive a file containing only that year's transactions
+      And the exported file should not include transactions from previous years
+      And the exported file should not include any payee matching rules

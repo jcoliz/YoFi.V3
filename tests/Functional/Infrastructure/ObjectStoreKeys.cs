@@ -142,6 +142,11 @@ public static class ObjectStoreKeys
     public const string OfxFilePath = "OfxFilePath";
 
     /// <summary>
+    /// File path to an exported native YoFi workbook.
+    /// </summary>
+    public const string ExportWorkbookPath = "ExportWorkbookPath";
+
+    /// <summary>
     /// Test-owned temporary download directory to remove after file cleanup.
     /// </summary>
     public const string DownloadDirectory = "DownloadDirectory";

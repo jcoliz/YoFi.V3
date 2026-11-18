@@ -408,6 +408,22 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 }
             }
 
+            if (ObjectStore.Contains<string>(ObjectStoreKeys.ExportWorkbookPath))
+            {
+                var exportWorkbookPath = ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(exportWorkbookPath) && File.Exists(exportWorkbookPath))
+                    {
+                        File.Delete(exportWorkbookPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestContext.Out.WriteLine($"[Cleanup] Failed to delete exported workbook '{exportWorkbookPath}': {ex.Message}");
+                }
+            }
+
             // Clean up the temporary directory we created to contain downloaded files (as applicable)
             if (ObjectStore.Contains<string>(ObjectStoreKeys.DownloadDirectory))
             {

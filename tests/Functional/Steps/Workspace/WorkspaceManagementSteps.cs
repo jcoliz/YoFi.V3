@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using YoFi.V3.Tests.Functional.Infrastructure;
+using YoFi.V3.Tests.Functional.Infrastructure.TestControl;
 using YoFi.V3.Tests.Functional.Pages;
 using YoFi.V3.Tests.Functional.Steps.Transaction;
 
@@ -26,7 +27,77 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     PayeeRuleSteps payeeRuleSteps = new(context);
     TransactionListSteps transactionListSteps = new(context);
 
+    #region Steps: GIVEN
+
+    [Given("My workspace has existing data spanning multiple years")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.ExistingTransactions)]
+    [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task GivenMyWorkspaceHasExistingDataSpanningMultipleYears()
+    {
+        var transactions = new DataTable(
+            ["Payee", "Amount", "Category", "Memo", "Date"],
+            [
+                ["Export Market 2023", "25.50", "Groceries", "2023 export fixture", "2023-06-15"],
+                ["Export Store 2024", "75.25", "Shopping", "2024 export fixture", "2024-07-20"]
+            ]);
+        await transactionDataSteps.GivenIHaveAWorkspaceWithATransaction(transactions);
+
+        var rules = new DataTable(
+            ["Payee", "Category", "IsRegex"],
+            [
+                ["Export Market", "Groceries", "false"],
+                ["Export Store", "Shopping", "false"]
+            ]);
+        await payeeRuleSteps.IHaveTheFollowingPayeeRules(rules);
+    }
+
+    #endregion
+
     #region Steps: WHEN
+
+    [When("I export my entire workspace data")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.DownloadDirectory)]
+    [Provides(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task WhenIExportMyEntireWorkspaceData()
+    {
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceKey = _context.GetWorkspaceKey(workspaceName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.NavigateAsync(workspaceKey);
+
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
+
+        var filePath = await managementPage.DownloadExportAsync(directory, allData: true);
+        _context.ObjectStore.Add(ObjectStoreKeys.ExportWorkbookPath, filePath);
+    }
+
+    [When("I export transactions for one year only")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.DownloadDirectory)]
+    [Provides(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task WhenIExportTransactionsForOneYearOnly()
+    {
+        var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspaceKey = _context.GetWorkspaceKey(workspaceName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.NavigateAsync(workspaceKey);
+
+        await managementPage.ExportTypeCheckbox("PayeeMatchingRules").UncheckAsync();
+        await managementPage.ExportTypeCheckbox("Transactions").CheckAsync();
+        await managementPage.ExportDateSelection.SelectOptionAsync("year:2024");
+
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
+
+        var filePath = await managementPage.DownloadExportAsync(directory, allData: false);
+        _context.ObjectStore.Add(ObjectStoreKeys.ExportWorkbookPath, filePath);
+    }
 
     /// <summary>
     /// Creates a new workspace with specified name and optional description.
@@ -183,6 +254,83 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
 
         // Also remove this from workspace tracking, so we don't try to clean it up later
         _context.UntrackWorkspace(fullWorkspaceName);
+    }
+
+    #endregion
+
+    #region Steps: THEN
+
+    [Then("I should receive a file containing my workspace data")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task ThenIShouldReceiveAFileContainingMyWorkspaceData()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        Assert.That(filePath, Is.Not.Null.And.Not.Empty);
+        Assert.That(File.Exists(filePath), Is.True, $"Export workbook was not created at '{filePath}'");
+        using var workbook = new XLWorkbook(filePath);
+        Assert.That(workbook.Worksheets, Is.Not.Empty, "Export workbook should contain worksheets.");
+    }
+
+    [Then("the exported file should include all transactions from the workspace")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task ThenTheExportedFileShouldIncludeAllTransactionsFromTheWorkspace()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        using var workbook = new XLWorkbook(filePath);
+        var strings = workbook.Worksheet("Transactions").CellsUsed().Select(cell => cell.GetString()).ToArray();
+
+        Assert.That(strings, Does.Contain("Export Market 2023"));
+        Assert.That(strings, Does.Contain("Export Store 2024"));
+    }
+
+    [Then("the exported file should include all payee matching rules from the workspace")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
+    public async Task ThenTheExportedFileShouldIncludeAllPayeeMatchingRulesFromTheWorkspace()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var expected = _context.ObjectStore.Get<ICollection<PayeeMatchingRuleResultDto>>(ObjectStoreKeys.ExpectedPayeeRules);
+        using var workbook = new XLWorkbook(filePath);
+        var rules = workbook.Worksheet("PayeeMatchingRules");
+
+        foreach (var rule in expected)
+        {
+            Assert.That(rules.CellsUsed().Select(cell => cell.GetString()).Contains(rule.PayeePattern),
+                Is.True, $"Export should contain payee rule '{rule.PayeePattern}'.");
+        }
+    }
+
+    [Then("I should receive a file containing only that year's transactions")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task ThenIShouldReceiveAFileContainingOnlyThatYearsTransactions()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        using var workbook = new XLWorkbook(filePath);
+        var transactions = workbook.Worksheet("Transactions");
+        var strings = transactions.CellsUsed().Select(cell => cell.GetString()).ToArray();
+
+        Assert.That(strings, Does.Contain("Export Store 2024"));
+        Assert.That(strings, Does.Not.Contains("Export Market 2023"));
+    }
+
+    [Then("the exported file should not include transactions from previous years")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task ThenTheExportedFileShouldNotIncludeTransactionsFromPreviousYears()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        using var workbook = new XLWorkbook(filePath);
+        var strings = workbook.Worksheet("Transactions").CellsUsed().Select(cell => cell.GetString()).ToArray();
+        Assert.That(strings, Does.Not.Contains("Export Market 2023"));
+    }
+
+    [Then("the exported file should not include any payee matching rules")]
+    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    public async Task ThenTheExportedFileShouldNotIncludeAnyPayeeMatchingRules()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        using var workbook = new XLWorkbook(filePath);
+        Assert.That(workbook.Worksheets.Any(sheet => sheet.Name == "PayeeMatchingRules"), Is.False,
+            "A Transactions-only export should not include a PayeeMatchingRules worksheet.");
     }
 
     #endregion

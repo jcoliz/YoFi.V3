@@ -44,6 +44,40 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
 
     public ILocator DownloadSampleOFXButton => Page.GetByTestId("download-sample-ofx-button");
 
+    public ILocator ExportDataPane => Page.GetByTestId("export-data-pane");
+    public ILocator ExportAllDataButton => Page.GetByTestId("export-all-data-button");
+    public ILocator ExportSelectedButton => Page.GetByTestId("export-selected-button");
+    public ILocator ExportDateSelection => Page.GetByTestId("export-date-selection");
+
+    public ILocator ExportTypeCheckbox(string dataType) =>
+        ExportDataPane.Locator($"[data-test-id=export-type][value='{dataType}']");
+
+    public async Task<string> DownloadExportAsync(string directory, bool allData)
+    {
+        await ExportDataPane.WaitForAsync();
+        await ExportAllDataButton.WaitForAsync(new()
+        {
+            State = WaitForSelectorState.Visible
+        });
+
+        var downloadTask = Page.WaitForDownloadAsync();
+        if (allData)
+        {
+            await Assertions.Expect(ExportAllDataButton).ToBeEnabledAsync();
+            await ExportAllDataButton.ClickAsync();
+        }
+        else
+        {
+            await Assertions.Expect(ExportSelectedButton).ToBeEnabledAsync();
+            await ExportSelectedButton.ClickAsync();
+        }
+
+        var download = await downloadTask;
+        var filePath = Path.Combine(directory, download.SuggestedFilename);
+        await download.SaveAsAsync(filePath);
+        return filePath;
+    }
+
     public ILocator DeleteDataButton => Page.GetByTestId("delete-data-button");
     public ILocator ImportFileInput => Page.GetByTestId("import-file-input");
     public ILocator PreviewImportButton => Page.GetByTestId("preview-import-button");
