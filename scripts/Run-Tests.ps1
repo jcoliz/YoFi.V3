@@ -3,8 +3,10 @@
     Run selected unit, integration, functional, and frontend component tests.
 
 .DESCRIPTION
-    Runs unit and frontend component tests by default. Use -Unit, -Integration, -Functional, and -FrontEnd in any
-    combination to select test suites. Each selected .NET test project is built by
+    Runs unit and frontend component tests by default. Use -Unit, -Integration, -Application,
+    -Data, -Controller, -Functional, and -FrontEnd in any combination to select test suites.
+    Use -Integration to run all integration suites, or use a specific integration switch to run only that suite.
+    Each selected .NET test project is built by
     dotnet test; the solution is not built.
 
     Test projects included:
@@ -25,6 +27,15 @@
 
 .PARAMETER Integration
     Check Docker availability and run all three integration test projects.
+
+.PARAMETER Application
+    Check Docker availability and run only the Integration.Application test project.
+
+.PARAMETER Data
+    Check Docker availability and run only the Integration.Data test project.
+
+.PARAMETER Controller
+    Check Docker availability and run only the Integration.Controller test project.
 
 .PARAMETER Functional
     Check Docker availability and run functional tests.
@@ -52,6 +63,11 @@
     Runs matching unit and integration tests.
 
 .EXAMPLE
+    .\Run-Tests.ps1 -Application
+
+    Runs only the Integration.Application test suite.
+
+.EXAMPLE
     .\Run-Tests.ps1 -Functional
 
     Checks Docker and runs functional tests against running containers.
@@ -61,6 +77,9 @@
 param(
     [switch]$Unit,
     [switch]$Integration,
+    [switch]$Application,
+    [switch]$Data,
+    [switch]$Controller,
     [switch]$Functional,
     [switch]$FrontEnd,
     [string]$Filter
@@ -68,12 +87,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not $Unit -and -not $Integration -and -not $Functional -and -not $FrontEnd) {
+if (-not $Unit -and -not $Integration -and -not $Application -and -not $Data -and -not $Controller -and -not $Functional -and -not $FrontEnd) {
     $Unit = $true
     $FrontEnd = $true
 }
 
-if ($Integration -or $Functional) {
+if ($Integration -or $Application -or $Data -or $Controller -or $Functional) {
     Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
 }
 
@@ -92,6 +111,16 @@ try {
             @{ Name = "Data Integration"; Path = "tests\Integration.Data" }
             @{ Name = "Controller Integration"; Path = "tests\Integration.Controller" }
         )
+    } else {
+        if ($Application) {
+            $selectedSuites += @{ Name = "Application Integration"; Path = "tests\Integration.Application" }
+        }
+        if ($Data) {
+            $selectedSuites += @{ Name = "Data Integration"; Path = "tests\Integration.Data" }
+        }
+        if ($Controller) {
+            $selectedSuites += @{ Name = "Controller Integration"; Path = "tests\Integration.Controller" }
+        }
     }
     if ($Functional) {
         $selectedSuites += @{ Name = "Functional"; Path = "tests\Functional" }
@@ -146,7 +175,7 @@ try {
     }
 
     Write-Host "Running selected tests..." -ForegroundColor Cyan
-    if ($Integration -or $Functional) {
+    if ($Integration -or $Application -or $Data -or $Controller -or $Functional) {
         Write-Host "`nChecking Docker availability..." -ForegroundColor Cyan
         if (-not (Test-DockerRunning)) {
             Write-Host "ERROR Docker is not running or not available. Start Docker Desktop or the Docker daemon and try again." -ForegroundColor Red

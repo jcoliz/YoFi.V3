@@ -100,7 +100,7 @@ This project follows Clean Architecture with clear separation:
 - Write unit tests for all Application Features
 - Write application integrations tests when Application Features affect the data layer
 - Unit Tests live in `tests/Unit/`
-- Run tests: `.\scripts\Run-Tests.ps1` for unit and frontend tests. Use `-Integration` switch to run all integration tests.
+- Run tests: `.\scripts\Run-Tests.ps1` for unit and frontend tests. Use `-Integration` to run all integration tests, or `-Application`, `-Data`, or `-Controller` to run one integration suite.
 - Integration tests use PostgreSQL Testcontainers with isolated databases and real EF migrations. The script checks Docker before running any selected suites; application containers are not required.
 - Aim for high coverage of business logic
 

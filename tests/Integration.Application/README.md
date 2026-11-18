@@ -102,7 +102,7 @@ See [`WeatherFeatureTests.cs`](WeatherFeatureTests.cs) for a complete working ex
 pwsh -File .\scripts\Run-Tests.ps1 -Unit -Integration
 
 # Run only Integration.Application tests
-dotnet test .\tests\Integration.Application\YoFi.V3.Tests.Integration.Application.csproj
+pwsh -File .\scripts\Run-Tests.ps1 -Application
 
 # Run specific test class
 dotnet test --filter "FullyQualifiedName~WeatherFeatureTests"
