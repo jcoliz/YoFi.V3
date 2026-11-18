@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Approved, In Progress
 target_release: V3.0
 ado: Feature 2206
 ---
@@ -256,7 +256,7 @@ native payees. The above criteria apply, plus:
   - Default is first day of 2 months prior to today (e.g. 4/1/2026 to 6/15/2026 in the example above)
 - [ ] User is prompted to load sample data from the transactions page if there are no transactions and the user is an owner of the current workspace.
 
-### Story 2224: User - Handle Import Errors Gracefully
+### Story 2224: User - Handle Import Errors Gracefully (import-errors)
 
 **As a** YoFi user
 **I want** clear feedback when my import file has errors
