@@ -10,6 +10,7 @@ namespace YoFi.V3.Application.Dto;
 /// <param name="Memo">Optional memo for additional context</param>
 /// <param name="Category">Category from the single split, or empty for multiple splits or no category</param>
 /// <param name="HasMultipleSplits">Whether the transaction has more than one split</param>
+/// <param name="IsBalanced">Whether the split amounts sum to the transaction amount</param>
 /// <remarks>
 /// This is an output DTO for list views - data is already validated when read from the database.
 /// Includes essential fields plus user memo and category. Source and ExternalId are omitted to minimize
@@ -22,4 +23,4 @@ namespace YoFi.V3.Application.Dto;
 /// For input/editing, see <see cref="TransactionEditDto"/>.
 /// </remarks>
 public record TransactionResultDto(Guid Key, DateOnly Date, decimal Amount, string Payee, string? Memo, string Category,
-    bool HasMultipleSplits = false);
+    bool HasMultipleSplits, bool IsBalanced);

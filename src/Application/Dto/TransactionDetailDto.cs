@@ -11,6 +11,8 @@ namespace YoFi.V3.Application.Dto;
 /// <param name="Source">Source of the transaction (e.g., "Chase Checking 1234")</param>
 /// <param name="ExternalId">Bank's unique identifier for duplicate detection</param>
 /// <param name="Category">Category from the single split, or empty when there are multiple splits or no category</param>
+/// <param name="SplitsTotal">Signed sum of all persisted split amounts</param>
+/// <param name="IsBalanced">Whether the split total equals the transaction amount</param>
 /// <remarks>
 /// Complete transaction DTO including all fields. Used for detail views and editing forms.
 ///
@@ -28,7 +30,9 @@ public record TransactionDetailDto(
     string? Memo,
     string? Source,
     string? ExternalId,
-    string Category
+    string Category,
+    decimal SplitsTotal,
+    bool IsBalanced
 )
 {
     /// <summary>Gets allocations in display order for multi-split transactions; otherwise empty.</summary>

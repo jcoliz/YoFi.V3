@@ -1358,7 +1358,9 @@ public partial class TestControlController(
                 result.Amount,
                 result.Payee,
                 result.Memo,
-                result.Category
+                result.Category,
+                result.Splits.Count > 1,
+                result.IsBalanced
             ));
         }
 

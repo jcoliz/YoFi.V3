@@ -47,14 +47,19 @@ public class TransactionSplitDeleteTests : FeatureTestBase
         }).ToArray();
 
         var result = await _feature.DeleteSplitAsync(original.Key, deleted.Key);
+        var expectedDetail = original with
+        {
+            SplitsTotal = original.Amount,
+            IsBalanced = true
+        };
 
         Assert.That(result.Splits, Is.EqualTo(expected));
         Assert.That(result.Splits.Sum(s => s.Amount), Is.EqualTo(original.Amount));
-        Assert.That(result with { Splits = original.Splits }, Is.EqualTo(original));
+        Assert.That(result with { Splits = original.Splits }, Is.EqualTo(expectedDetail));
         _context.ChangeTracker.Clear();
         var persisted = await _feature.GetTransactionByKeyAsync(original.Key);
         Assert.That(persisted.Splits, Is.EqualTo(expected));
-        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(original));
+        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(expectedDetail));
         Assert.That(await _context.Splits.AnyAsync(s => s.Key == deleted.Key), Is.False);
     }
 

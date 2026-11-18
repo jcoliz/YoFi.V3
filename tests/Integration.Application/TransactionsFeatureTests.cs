@@ -162,8 +162,12 @@ public class TransactionsFeatureTests : FeatureTestBase
             transaction.Key,
             new SplitEditDto(-10m, "Parking", null));
 
-        Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -80m, -10m, -10m }));
-        Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(result.Amount));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -80m, -10m, -10m }));
+            Assert.That(result.SplitsTotal, Is.EqualTo(-100m));
+            Assert.That(result.IsBalanced, Is.True);
+        }
     }
 
     [Test]
@@ -280,6 +284,73 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
+    public async Task GetTransactionsAsync_WithUnbalancedSplits_ProjectsBalanceStatus()
+    {
+        // Given: Transactions whose split totals are balanced and off by one cent
+        var balanced = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Balanced",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits = [new Split { Amount = -100m, Category = "Groceries", Order = 0 }]
+        };
+        var unbalanced = new Transaction
+        {
+            Date = new(2026, 1, 2),
+            Payee = "Unbalanced",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -90m, Category = "Groceries", Order = 0 },
+                new Split { Amount = -9.99m, Category = "Household", Order = 1 }
+            ]
+        };
+        _context.Transactions.AddRange(balanced, unbalanced);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        // When: Getting the paginated transaction list
+        var results = (await _feature.GetTransactionsAsync()).Items;
+
+        // Then: Balance status is projected for every row
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(results.Single(result => result.Key == balanced.Key).IsBalanced, Is.True);
+            Assert.That(results.Single(result => result.Key == unbalanced.Key).IsBalanced, Is.False);
+        }
+    }
+
+    [Test]
+    public async Task GetTransactionByKeyAsync_WithUnbalancedSingleSplit_ProjectsBalanceStatus()
+    {
+        // Given: A transaction with one split whose persisted amount does not match
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Unbalanced single split",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits = [new Split { Amount = -99.99m, Category = "Groceries", Order = 0 }]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        // When: Getting transaction details
+        var result = await _feature.GetTransactionByKeyAsync(transaction.Key);
+
+        // Then: The aggregate includes the split omitted from the display collection
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits, Is.Empty);
+            Assert.That(result.SplitsTotal, Is.EqualTo(-99.99m));
+            Assert.That(result.IsBalanced, Is.False);
+        }
+    }
+
+    [Test]
     public async Task GetTransactionByKeyAsync_WithSingleSplit_LoadsSplitsCollection()
     {
         // Given: Transaction with split in database
@@ -390,6 +461,40 @@ public class TransactionsFeatureTests : FeatureTestBase
         Assert.That(result.Splits, Is.Empty);
     }
 
+    [Test]
+    public async Task UpdateTransactionAsync_WithSplitChange_ReturnsUpdatedBalanceStatus()
+    {
+        // Given: An unbalanced transaction with multiple persisted splits
+        var transaction = new Transaction
+        {
+            Date = new(2026, 1, 1),
+            Payee = "Amount change",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -80m, Category = "Groceries", Order = 0 },
+                new Split { Amount = -10m, Category = "Household", Order = 1 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        // When: Updating the authoritative transaction amount
+        var result = await _feature.UpdateTransactionAsync(
+            transaction.Key,
+            new TransactionEditDto(transaction.Date, -90m, transaction.Payee, null, null, null, null));
+
+        // Then: The committed response contains the refreshed aggregate and status
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.SplitsTotal, Is.EqualTo(-90m));
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -80m, -10m }));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+    }
+
     [TestCase(-10001, 0, false)]
     [TestCase(-9999, 0, false)]
     [TestCase(-10000, 0, false)]
@@ -449,20 +554,24 @@ public class TransactionsFeatureTests : FeatureTestBase
             : split).ToArray();
 
         var result = await _feature.UpdateTransactionAsync(transaction.Key, updateDto);
+        var expectedDetail = original with
+        {
+            Amount = newAmount,
+            SplitsTotal = newAmount,
+            IsBalanced = true
+        };
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Splits, Is.EqualTo(expectedSplits));
-            Assert.That(result with { Splits = original.Splits },
-                Is.EqualTo(original with { Amount = newAmount }));
+            Assert.That(result with { Splits = original.Splits }, Is.EqualTo(expectedDetail));
             Assert.That(result.Splits.Sum(split => split.Amount), Is.EqualTo(newAmount));
         }
 
         _context.ChangeTracker.Clear();
         var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
         Assert.That(persisted.Splits, Is.EqualTo(expectedSplits));
-        Assert.That(persisted with { Splits = original.Splits },
-            Is.EqualTo(original with { Amount = newAmount }));
+        Assert.That(persisted with { Splits = original.Splits }, Is.EqualTo(expectedDetail));
     }
 
     [TestCase("")]

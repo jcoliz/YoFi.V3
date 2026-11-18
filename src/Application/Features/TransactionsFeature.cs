@@ -380,7 +380,10 @@ public class TransactionsFeature(
     }
 
     private static TransactionDetailDto ToDetailDto(Transaction transaction)
-        => new(
+    {
+        var splitsTotal = transaction.Splits.Sum(split => split.Amount);
+
+        return new TransactionDetailDto(
             transaction.Key,
             transaction.Date,
             transaction.Amount,
@@ -389,12 +392,15 @@ public class TransactionsFeature(
             transaction.Source,
             transaction.ExternalId,
             transaction.Splits.Count > 1 ? string.Empty
-                : transaction.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty)
+                : transaction.Splits.FirstOrDefault(s => s.Order == 0)?.Category ?? string.Empty,
+            splitsTotal,
+            transaction.Amount == splitsTotal)
         {
             Splits = transaction.Splits.Count > 1 ? transaction.Splits.OrderBy(s => s.Order)
                 .Select(s => new TransactionSplitDto(s.Key, s.Amount, s.Category, s.Memo, s.Order)).ToArray()
                 : []
         };
+    }
 
     private static Expression<Func<Transaction, TransactionResultDto>> ToResultDto =>
         t => new TransactionResultDto(
@@ -405,6 +411,7 @@ public class TransactionsFeature(
             t.Memo,
             t.Splits.Count > 1 ? string.Empty
                 : t.Splits.Where(s => s.Order == 0).Select(s => s.Category).FirstOrDefault() ?? string.Empty,
-            t.Splits.Count > 1
+            t.Splits.Count > 1,
+            t.Amount == t.Splits.Sum(split => split.Amount)
         );
 }
