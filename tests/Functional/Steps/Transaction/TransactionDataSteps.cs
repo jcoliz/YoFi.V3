@@ -196,6 +196,38 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
     [Provides(ObjectStoreKeys.TransactionKey)]
     public async Task IHaveAWorkspaceWithATransactionForPayeeHavingTheseSplits(string string1, DataTable table)
     {
+        await SeedTransactionWithSplitsAsync(string1, null, table);
+    }
+
+    /// <summary>
+    /// Given I have a transaction for payee {string1} with amount {string2} and these splits:
+    /// </summary>
+    [Given("I have a transaction for payee {string1} with amount {string2} and these splits:")]
+    [Requires(ObjectStoreKeys.LoggedInAs)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    [Provides(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionAmount)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    [Provides(ObjectStoreKeys.TransactionMemo)]
+    [Provides(ObjectStoreKeys.TransactionKey)]
+    public async Task IHaveATransactionForPayeeWithAmountAndTheseSplits(string string1, string string2, DataTable table)
+    {
+        Assert.That(
+            decimal.TryParse(string2, NumberStyles.Number | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var amount),
+            Is.True,
+            $"Invalid transaction amount '{string2}'.");
+
+        await SeedTransactionWithSplitsAsync(string1, amount, table);
+    }
+
+    /// <summary>
+    /// Seeds a transaction with ordered splits and stores the returned transaction values for later steps.
+    /// </summary>
+    /// <param name="payee">The transaction payee.</param>
+    /// <param name="amount">An independent transaction amount, or null to use the split sum.</param>
+    /// <param name="table">Rows containing each split's amount, category, and optional memo.</param>
+    private async Task SeedTransactionWithSplitsAsync(string payee, decimal? amount, DataTable table)
+    {
         var splits = table.Rows.Select(row => new SplitEditDto
         {
             Amount = row.GetRequired<decimal>("Amount"),
@@ -217,8 +249,9 @@ public class TransactionDataSteps(ITestContext context) : TransactionStepsBase(c
                 workspaceKey,
                 new TransactionSplitsSeedRequest
                 {
-                    Payee = string1,
-                    Splits = splits
+                    Payee = payee,
+                    Splits = splits,
+                    Amount = amount
                 });
         }
         catch (ApiException<ProblemDetails> ex)

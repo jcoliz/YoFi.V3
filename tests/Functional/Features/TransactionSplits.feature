@@ -177,3 +177,17 @@ Feature: Transaction Splits
             # it won't be balanced. In the future we will have an "is balanced" indicator
             # and we can check for the absence of that.
             #And the transaction is balanced
+
+    @category:story-2308
+    @category:unbalanced-splits
+    Rule: Handle unbalanced transactions
+
+        @id:1
+        Scenario: List shows an indicator for an unbalanced transaction
+            Given I have a transaction for payee "Out of balance" with amount "-100.00" and these splits:
+                | Amount | Category  |
+                | -90.00 | Groceries |
+                | -5.00  | Household |
+            When I view my transactions
+            Then that transaction is shown with an unbalanced indicator
+

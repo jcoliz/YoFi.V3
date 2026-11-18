@@ -169,6 +169,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     public ILocator SplitTransactionBadges => Page!.GetByTestId("transaction-split-badge");
 
     /// <summary>
+    /// Indicators shown on transactions whose split total does not match its amount.
+    /// </summary>
+    public ILocator UnbalancedTransactionBadges => Page!.GetByTestId("transaction-unbalanced-badge");
+
+    /// <summary>
     /// Create first transaction button in empty state
     /// </summary>
     public ILocator EmptyStateCreateButton => Page!.GetByTestId("empty-state-create-button");
@@ -425,6 +430,19 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     {
         await NavigateAsync();
         await Assertions.Expect(SplitTransactionBadges).ToHaveCountAsync(expectedCount);
+    }
+
+    /// <summary>
+    /// Verifies that a transaction row displays the unbalanced indicator.
+    /// </summary>
+    /// <param name="payee">The exact payee name of the transaction.</param>
+    internal async Task ExpectUnbalancedIndicatorAsync(string payee)
+    {
+        var row = GetTransactionRowLocatorByPayee(payee);
+        await Assertions.Expect(row).ToBeVisibleAsync();
+
+        var indicator = row.Locator(UnbalancedTransactionBadges);
+        await Assertions.Expect(indicator).ToBeVisibleAsync();
     }
 
     /// <summary>

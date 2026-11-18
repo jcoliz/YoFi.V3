@@ -437,6 +437,19 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await transactionsPage.ExpectEmptyStateAsync();
     }
 
+    /// <summary>
+    /// Then that transaction is shown with an unbalanced indicator
+    /// </summary>
+    [Then("that transaction is shown with an unbalanced indicator")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    public async Task ThatTransactionIsShownWithAnUnbalancedIndicator()
+    {
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+
+        var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+        await transactionsPage.ExpectUnbalancedIndicatorAsync(payee);
+    }
+
     #endregion
 
 }
