@@ -1763,6 +1763,12 @@
             "items": {
               "$ref": "#/components/schemas/SplitEditDto"
             }
+          },
+          "amount": {
+            "type": "number",
+            "description": "Optional independent transaction amount. When omitted, the split sum is used.",
+            "format": "decimal",
+            "nullable": true
           }
         }
       },

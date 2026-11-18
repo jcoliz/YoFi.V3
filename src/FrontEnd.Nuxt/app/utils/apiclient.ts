@@ -8882,6 +8882,8 @@ export class TransactionSplitsSeedRequest implements ITransactionSplitsSeedReque
     payee?: string;
     /** The ordered split allocations to create. */
     splits?: SplitEditDto[];
+    /** Optional independent transaction amount. When omitted, the split sum is used. */
+    amount?: number | undefined;
 
     constructor(data?: ITransactionSplitsSeedRequest) {
         if (data) {
@@ -8900,6 +8902,7 @@ export class TransactionSplitsSeedRequest implements ITransactionSplitsSeedReque
                 for (let item of _data["splits"])
                     this.splits!.push(SplitEditDto.fromJS(item));
             }
+            this.amount = _data["amount"];
         }
     }
 
@@ -8918,6 +8921,7 @@ export class TransactionSplitsSeedRequest implements ITransactionSplitsSeedReque
             for (let item of this.splits)
                 data["splits"].push(item ? item.toJSON() : undefined as any);
         }
+        data["amount"] = this.amount;
         return data;
     }
 }
@@ -8928,6 +8932,8 @@ export interface ITransactionSplitsSeedRequest {
     payee?: string;
     /** The ordered split allocations to create. */
     splits?: SplitEditDto[];
+    /** Optional independent transaction amount. When omitted, the split sum is used. */
+    amount?: number | undefined;
 }
 
 /** Generic wrapper for collection requests that require validation of each item. */

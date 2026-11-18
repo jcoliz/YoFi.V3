@@ -228,6 +228,34 @@ public class TestControlControllerTests
     }
 
     [Test]
+    public async Task SeedTransactionWithSplits_IndependentAmount_PersistsUnbalancedAllocations()
+    {
+        using var factory = new FixedClockWebApplicationFactory();
+        var (username, tenantKey) = await CreateSeedWorkspaceAsync(factory);
+        using var client = CreateControlClient(factory);
+        var path = $"/TestControl/users/{username}/workspaces/{tenantKey}/transactions/seed-with-splits";
+        var request = new
+        {
+            Payee = "Out of balance",
+            Amount = -100m,
+            Splits = new[]
+            {
+                new SplitEditDto(-90m, "Groceries", null),
+                new SplitEditDto(-5m, "Household", null)
+            }
+        };
+
+        using var response = await client.PostAsJsonAsync(path, request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var transaction = await response.Content.ReadFromJsonAsync<TransactionDetailDto>();
+        Assert.That(transaction, Is.Not.Null);
+        Assert.That(transaction!.Amount, Is.EqualTo(-100m));
+        Assert.That(transaction.SplitsTotal, Is.EqualTo(-95m));
+        Assert.That(transaction.IsBalanced, Is.False);
+    }
+
+    [Test]
     public async Task SeedTransactionWithSplits_EmptySplits_ReturnsBadRequest()
     {
         using var factory = new BaseTestWebApplicationFactory();

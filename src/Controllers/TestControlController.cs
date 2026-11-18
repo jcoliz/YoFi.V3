@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Collections.Immutable;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -70,7 +69,11 @@ public record TransactionSeedRequest(
 /// </summary>
 /// <param name="Payee">The transaction payee.</param>
 /// <param name="Splits">The ordered split allocations to create.</param>
-public record TransactionSplitsSeedRequest(string Payee, IReadOnlyCollection<SplitEditDto> Splits);
+/// <param name="Amount">Optional independent transaction amount. When omitted, the split sum is used.</param>
+public record TransactionSplitsSeedRequest(
+    string Payee,
+    IReadOnlyCollection<SplitEditDto> Splits,
+    decimal? Amount = null);
 
 /// <summary>
 /// Validates a test transaction and its requested split allocations.
@@ -89,7 +92,11 @@ internal sealed class TransactionSplitsSeedRequestValidator : AbstractValidator<
             .NotEmpty()
             .WithMessage("At least one split is required")
             .Must(splits => splits.Sum(split => split.Amount) != 0)
-            .When(request => request.Splits is { Count: > 0 }, ApplyConditionTo.CurrentValidator)
+            .When(request => request.Amount is null && request.Splits is { Count: > 0 }, ApplyConditionTo.CurrentValidator)
+            .WithMessage("The transaction amount cannot be zero");
+
+        RuleFor(request => request.Amount)
+            .Must(amount => amount is null || amount.Value != 0)
             .WithMessage("The transaction amount cannot be zero");
 
         RuleForEach(request => request.Splits)
@@ -778,31 +785,27 @@ public partial class TestControlController(
         }
 
         var splitList = request.Splits.ToList();
-        var transactionAmount = splitList.Sum(split => split.Amount);
-        var externalId = $"test-control:{Guid.NewGuid():N}";
-        var transactionInput = new TransactionEditDto(
+        var transactionAmount = request.Amount ?? splitList.Sum(split => split.Amount);
+        var transactionKey = Guid.NewGuid();
+        var transactionInput = new NativeTransactionImportDto(
+            Key: transactionKey,
             Date: DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime),
             Amount: transactionAmount,
             Payee: request.Payee,
             Memo: null,
             Source: null,
-            ExternalId: externalId,
-            Category: splitList[0].Category
-        );
-        var dataset = new SampleDataSet(
-            [transactionInput],
-            [])
-        {
-            TransactionSplits = ImmutableDictionary<string, ImmutableArray<SampleSplitDto>>.Empty
-                .Add(externalId, splitList
-                    .Select(split => new SampleSplitDto(
-                        split.Amount,
-                        split.Category ?? string.Empty,
-                        split.Memo))
-                    .ToImmutableArray())
-        };
-        var createdKeys = await dataImportService.CreateAndGetTransactionKeysAsync(dataset);
-        var transaction = await transactionsFeature.GetTransactionByKeyAsync(createdKeys.Single());
+            ExternalId: $"test-control:{Guid.NewGuid():N}",
+            Category: "SPLIT");
+        var splitInputs = splitList.Select((split, order) => new NativeSplitImportDto(
+            Key: null,
+            TransactionKey: transactionKey,
+            Amount: split.Amount,
+            Category: split.Category ?? string.Empty,
+            Memo: split.Memo,
+            Order: order)).ToArray();
+
+        await dataImportService.UpsertNativeTransactionsAsync([transactionInput], splitInputs);
+        var transaction = await transactionsFeature.GetTransactionByKeyAsync(transactionKey);
 
         LogOkKey(transaction.Key);
         return CreatedAtAction(
