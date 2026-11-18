@@ -5,10 +5,11 @@ import ImportDataPane from '~/components/workspace/ImportDataPane.vue'
 import { TenantDataAdminClient, type TenantRoleResultDto } from '~/utils/apiclient'
 
 vi.mock('~/utils/errorHandler', () => ({
-  handleApiError: (_err: unknown, title = 'Error', detail?: string) => ({
+  handleApiError: (err: unknown, title = 'Error', detail?: string) => ({
     title,
     detail,
-    status: 400,
+    status:
+      err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : 400,
   }),
 }))
 
@@ -69,8 +70,12 @@ const ModalDialogStub = {
 const globalConfig = {
   components: {
     CardTitle: { template: '<h2>{{ title }}</h2>', props: ['title', 'subtitle'] },
-    ErrorDisplay: { template: '<div v-if="show" />', props: ['show', 'problem'] },
+    ErrorDisplay: {
+      template: '<div v-if="show" class="error-display">{{ problem?.detail }}</div>',
+      props: ['show', 'problem'],
+    },
     BaseSpinner: { template: '<span />' },
+    HelpText: { template: '<span><slot /></span>' },
     ModalDialog: ModalDialogStub,
   },
 }
@@ -101,6 +106,11 @@ describe('Workspace ImportDataPane', () => {
     })
     vi.spyOn(TenantDataAdminClient.prototype, 'previewImport').mockImplementation(previewImport)
     vi.spyOn(TenantDataAdminClient.prototype, 'importData').mockImplementation(importData)
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:import-errors'),
+      revokeObjectURL: vi.fn(),
+    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
   })
 
   it('previews the selected workbook and imports only after confirmation', async () => {
@@ -233,6 +243,188 @@ describe('Workspace ImportDataPane', () => {
       'Import complete',
       'import-result',
     )
+  })
+
+  it('renders native and original format labels and payee warnings accurately', async () => {
+    previewImport.mockResolvedValueOnce({
+      formatId: 'yofi.v3',
+      sha256: 'native-digest',
+      canImport: true,
+      worksheets: [
+        {
+          worksheetName: 'Transactions',
+          dataType: 'Transactions',
+          validRecordCount: 5,
+          skippedRecordCount: 1,
+          canImport: true,
+          errors: [],
+        },
+        {
+          worksheetName: 'Splits',
+          dataType: 'Splits',
+          validRecordCount: 2,
+          skippedRecordCount: 0,
+          canImport: true,
+          errors: [],
+        },
+        {
+          worksheetName: 'Payees',
+          dataType: 'PayeeMatchingRules',
+          validRecordCount: 3,
+          skippedRecordCount: 0,
+          canImport: true,
+          errors: [],
+        },
+      ],
+      ignoredWorksheets: [],
+    })
+
+    const nativeWrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(nativeWrapper)
+    await nativeWrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+
+    expect(nativeWrapper.find('[data-test-id="import-format"]').text()).toBe('YoFi.V3')
+    expect(
+      nativeWrapper.find('[data-test-id="import-worksheet-preview-transactions"]').text(),
+    ).toContain('5 valid')
+    expect(nativeWrapper.find('[data-test-id="import-worksheet-preview-splits"]').text()).toContain(
+      '2 valid',
+    )
+    expect(nativeWrapper.text()).toContain('existing matching Keys are updated')
+
+    previewImport.mockResolvedValueOnce(preview)
+    const originalWrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(originalWrapper)
+    await originalWrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+
+    expect(originalWrapper.find('[data-test-id="import-format"]').text()).toBe('Original YoFi')
+    expect(originalWrapper.text()).toContain('Original payees are added as create-only rules')
+    expect(originalWrapper.text()).not.toContain('existing matching Keys are updated')
+  })
+
+  it('requires transactions when a native split preview is present', async () => {
+    previewImport.mockResolvedValue({
+      formatId: 'yofi.v3',
+      sha256: 'split-digest',
+      canImport: true,
+      worksheets: [
+        {
+          worksheetName: 'Splits',
+          dataType: 'Splits',
+          validRecordCount: 2,
+          skippedRecordCount: 0,
+          canImport: true,
+          errors: [],
+        },
+      ],
+      ignoredWorksheets: [],
+    })
+
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test-id="import-worksheet-preview-splits"]').text()).toContain(
+      'Splits',
+    )
+    expect(wrapper.find('[data-test-id="import-data-button"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('clears preview and confirmation state when the selected file changes', async () => {
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    expect(wrapper.find('[data-test-id="import-data-confirm-modal"]').exists()).toBe(true)
+
+    const replacement = new File(['another workbook'], 'replacement.xlsx')
+    const input = wrapper.find<HTMLInputElement>('[data-test-id="import-file-input"]')
+    Object.defineProperty(input.element, 'files', { value: [replacement], configurable: true })
+    await input.trigger('change')
+
+    expect(wrapper.find('[data-test-id="import-preview"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="import-data-confirm-modal"]').exists()).toBe(false)
+  })
+
+  it('enters the preview failure state and does not show a preview', async () => {
+    previewImport.mockRejectedValue(new Error('Preview failed'))
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test-id="import-preview"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test-id="preview-import-button"]').text()).toContain(
+      'Preview Import',
+    )
+    expect(wrapper.find('.error-display').text()).toContain('Failed to preview workbook')
+  })
+
+  it('reports ignored columns and ignored worksheets', async () => {
+    previewImport.mockResolvedValue({
+      ...preview,
+      worksheets: [{ ...preview.worksheets[0], ignoredColumns: ['LegacyCategory', 'Unknown'] }],
+    })
+
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test-id="import-ignored-columns"]').text()).toContain(
+      'LegacyCategory, Unknown',
+    )
+    expect(wrapper.find('[data-test-id="import-ignored-worksheets"]').text()).toContain(
+      'Transaction',
+    )
+  })
+
+  it('downloads only preview issues and formula-sanitizes CSV values', async () => {
+    previewImport.mockResolvedValue({
+      ...preview,
+      worksheets: [
+        {
+          ...preview.worksheets[0],
+          skippedRows: [{ rowNumber: 4, field: '@Category', code: 'blank', message: '=SUM(1,2)' }],
+          ignoredColumns: [],
+        },
+      ],
+    })
+
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test-id="download-import-errors-button"]').trigger('click')
+
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:import-errors')
+    const blob = (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0]![0] as Blob
+    const csv = await blob.text()
+    expect(csv).toContain('"\'@Category"')
+    expect(csv).toContain('"\'=SUM(1,2)"')
+    expect(csv).not.toContain('Pattern is invalid')
+  })
+
+  it('keeps confirmation open and shows persistence failures without success', async () => {
+    importData.mockRejectedValue({ status: 500 })
+    const wrapper = mount(ImportDataPane, { props: { workspace }, global: globalConfig })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-confirm-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test-id="import-data-confirm-modal"]').exists()).toBe(true)
+    expect(
+      wrapper.find('[data-test-id="import-data-confirm-modal"] .error-display').text(),
+    ).toContain('Failed to import workbook')
+    expect(toastSuccess).not.toHaveBeenCalled()
   })
 
   it('uses the generated client to send multipart preview and import requests', async () => {
