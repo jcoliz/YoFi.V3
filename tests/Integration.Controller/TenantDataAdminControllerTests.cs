@@ -389,7 +389,7 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
     [Test]
     public async Task PreviewWithWorksheetErrorsSucceedsAndImportFailureReturnsProblemDetailsWithoutPreview()
     {
-        var workbook = CreatePayeeWorkbook(["Name"], ["Coffee Shop"]);
+        var workbook = CreatePayeeWorkbook(["Name", "Category"], ["", "Food"]);
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var tenant = await db.Tenants.SingleAsync(item => item.Key == _testTenantKey);
@@ -420,6 +420,64 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
 
         Assert.That(await db.PayeeMatchingRules.CountAsync(item => item.TenantId == tenant.Id),
             Is.EqualTo(initialRuleCount));
+    }
+
+    [Test]
+    public async Task PreviewImport_WithoutFile_Returns400ProblemDetails()
+    {
+        using var content = new MultipartFormDataContent();
+
+        var response = await _client.PostAsync(ImportPreviewUrl, content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problem, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Import_WithoutPreviewDigest_Returns400ProblemDetails()
+    {
+        using var content = CreateImportForm(CreatePayeeWorkbook(["Name", "Category"], ["Coffee Shop", "Food"]));
+
+        var response = await _client.PostAsync(ImportUrl, content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));
+    }
+
+    [Test]
+    public async Task PreviewImport_Unauthenticated_ReturnsForbidden()
+    {
+        using var client = _factory.CreateClient();
+        using var content = CreateImportForm(CreatePayeeWorkbook(["Name", "Category"], ["Coffee Shop", "Food"]));
+
+        var response = await client.PostAsync(ImportPreviewUrl, content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task PreviewImport_MalformedTenantKey_ReturnsNotFound()
+    {
+        using var client = _factory.CreateClient();
+        using var content = CreateImportForm(CreatePayeeWorkbook(["Name", "Category"], ["Coffee Shop", "Food"]));
+
+        var response = await client.PostAsync("/api/tenant/not-a-guid/admin/import/preview", content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Import_AsEditor_ReturnsForbidden()
+    {
+        SwitchToEditor();
+        using var content = CreateImportForm(
+            CreatePayeeWorkbook(["Name", "Category"], ["Coffee Shop", "Food"]),
+            new string('A', 64));
+
+        var response = await _client.PostAsync(ImportUrl, content);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]

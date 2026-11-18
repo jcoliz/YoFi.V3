@@ -391,7 +391,7 @@ UI behavior:
 | `import-data-confirm-button` | Confirm import | Executes import. |
 | `import-data-cancel-button` | Cancel import | Dismisses confirmation. |
 
-Existing payee-specific test IDs may remain only for compatibility, but new Gherkin-facing UI work uses the generalized names above.
+Replace old payee-specific test IDs. Refactor existing functional test page object model to use the new test IDs.
 
 ## Component Tests
 
