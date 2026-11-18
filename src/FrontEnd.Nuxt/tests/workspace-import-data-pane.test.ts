@@ -12,6 +12,11 @@ vi.mock('~/utils/errorHandler', () => ({
   }),
 }))
 
+const { toastSuccess } = vi.hoisted(() => ({ toastSuccess: vi.fn() }))
+vi.mock('~/stores/toast', () => ({
+  useToastStore: () => ({ success: toastSuccess }),
+}))
+
 const previewImport = vi.fn()
 const importData = vi.fn()
 const useApiClientMock = vi.fn(
@@ -81,6 +86,7 @@ async function selectWorkbook(wrapper: ReturnType<typeof mount>) {
 describe('Workspace ImportDataPane', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    toastSuccess.mockReset()
     previewImport.mockReset().mockResolvedValue(preview)
     importData.mockReset().mockResolvedValue({
       worksheets: [
@@ -128,7 +134,12 @@ describe('Workspace ImportDataPane', () => {
       'preview-digest',
     )
     expect(wrapper.emitted('imported')).toHaveLength(1)
-    expect(wrapper.find('[data-test-id="import-result"]').text()).toContain('2 created')
+    expect(toastSuccess).toHaveBeenCalledWith(
+      'Payee: 2 created, 1 skipped',
+      'Import complete',
+      'import-result',
+    )
+    expect(wrapper.find('[data-test-id="import-result"]').exists()).toBe(false)
   })
 
   it('requires a new preview when the selected workbook changes', async () => {
@@ -199,6 +210,31 @@ describe('Workspace ImportDataPane', () => {
     expect(wrapper.find('[data-test-id="preview-import-button"]').exists()).toBe(true)
   })
 
+  it('reports only nonzero import counts in the success toast', async () => {
+    importData.mockResolvedValue({
+      worksheets: [
+        { worksheetName: 'Transactions', created: 559, skipped: 0, updated: 0, failed: 0 },
+        { worksheetName: 'Splits', created: 0, skipped: 0, updated: 0, failed: 0 },
+      ],
+    })
+    const wrapper = mount(ImportDataPane, {
+      props: { workspace },
+      global: globalConfig,
+    })
+    await selectWorkbook(wrapper)
+    await wrapper.find('[data-test-id="preview-import-button"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test-id="import-data-button"]').trigger('click')
+    await wrapper.find('[data-test-id="import-data-confirm-button"]').trigger('click')
+    await flushPromises()
+
+    expect(toastSuccess).toHaveBeenCalledWith(
+      'Transactions: 559 created',
+      'Import complete',
+      'import-result',
+    )
+  })
+
   it('uses the generated client to send multipart preview and import requests', async () => {
     vi.restoreAllMocks()
     const fetch = vi
@@ -241,6 +277,10 @@ describe('Workspace ImportDataPane', () => {
     const importForm = fetch.mock.calls[1]![1].body as FormData
     expect(importForm.get('file')).toEqual(file)
     expect(importForm.get('expectedSha256')).toBe('preview-digest')
-    expect(wrapper.find('[data-test-id="import-result"]').text()).toContain('2 created')
+    expect(toastSuccess).toHaveBeenCalledWith(
+      'Payee: 2 created, 1 skipped',
+      'Import complete',
+      'import-result',
+    )
   })
 })

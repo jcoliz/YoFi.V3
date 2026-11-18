@@ -10,6 +10,7 @@ import {
   type TenantRoleResultDto,
 } from '~/utils/apiclient'
 import { handleApiError } from '~/utils/errorHandler'
+import { useToastStore } from '~/stores/toast'
 
 const props = defineProps<{
   workspace: TenantRoleResultDto
@@ -21,9 +22,9 @@ const emit = defineEmits<{
 }>()
 
 const tenantDataAdminClient = useApiClient(TenantDataAdminClient)
+const toastStore = useToastStore()
 const selectedFile = ref<File>()
 const preview = ref<TenantDataImportPreviewDto>()
-const result = ref<TenantDataImportResultDto>()
 const previewing = ref(false)
 const importing = ref(false)
 const showConfirm = ref(false)
@@ -102,7 +103,6 @@ function selectFile(file?: File) {
   if (busy.value) return
 
   preview.value = undefined
-  result.value = undefined
   showConfirm.value = false
   error.value = undefined
   showError.value = false
@@ -141,7 +141,6 @@ async function previewFile() {
   previewing.value = true
   emit('update:busy', true)
   preview.value = undefined
-  result.value = undefined
   error.value = undefined
   showError.value = false
 
@@ -165,6 +164,25 @@ function openConfirm() {
   showConfirm.value = true
 }
 
+function formatImportResult(result: TenantDataImportResultDto): string {
+  return (result.worksheets ?? [])
+    .map((worksheet) => {
+      const countEntries = (
+        [
+          ['created', worksheet.created],
+          ['skipped', worksheet.skipped],
+          ['updated', worksheet.updated],
+          ['failed', worksheet.failed],
+        ] as const
+      ).filter(([, count]) => (count ?? 0) > 0)
+      const counts = countEntries.map(([label, count]) => `${count} ${label}`)
+
+      return counts.length > 0 ? `${worksheet.worksheetName}: ${counts.join(', ')}` : undefined
+    })
+    .filter((summary): summary is string => !!summary)
+    .join('. ')
+}
+
 async function importData() {
   const file = selectedFile.value
   const sha256 = preview.value?.sha256
@@ -182,8 +200,9 @@ async function importData() {
       { data: file, fileName: file.name },
       sha256,
     )
-    result.value = importResult
     showConfirm.value = false
+    const message = formatImportResult(importResult)
+    toastStore.success(message || 'Workbook imported', 'Import complete', 'import-result')
     emit('imported', importResult)
   } catch (err) {
     const problem = handleApiError(err, 'Import Failed', 'Failed to import workbook')
@@ -338,12 +357,9 @@ function downloadErrorReport() {
             >
               {{ payeeWarning(worksheet) }}
             </p>
-            <p
-              v-if="worksheet.dataType === 'Splits'"
-              class="small text-muted mb-1"
-            >
+            <HelpText v-if="worksheet.dataType === 'Splits'">
               Native and original split previews are applied with their transaction worksheet.
-            </p>
+            </HelpText>
             <p
               v-if="worksheet.ignoredColumns?.length"
               class="small text-muted mb-0"
@@ -393,22 +409,6 @@ function downloadErrorReport() {
         >
           Other worksheets will not be imported: {{ preview.ignoredWorksheets.join(', ') }}.
         </p>
-
-        <div
-          v-if="result"
-          class="alert alert-success mt-3"
-          role="status"
-          data-test-id="import-result"
-        >
-          <template
-            v-for="worksheet in result.worksheets ?? []"
-            :key="worksheet.worksheetName"
-          >
-            {{ worksheet.worksheetName }}: {{ worksheet.created ?? 0 }} created,
-            {{ worksheet.skipped ?? 0 }} skipped, {{ worksheet.updated ?? 0 }} updated,
-            {{ worksheet.failed ?? 0 }} failed.
-          </template>
-        </div>
 
         <button
           type="button"
