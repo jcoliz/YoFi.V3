@@ -323,7 +323,7 @@ public sealed class DataImportService(
 
                 foreach (var splitInput in transactionSplits)
                 {
-                    Split split;
+                    Split? split;
                     if (splitInput.Key.HasValue)
                     {
                         split = transaction.Splits.FirstOrDefault(item => item.Key == splitInput.Key.Value);

@@ -77,7 +77,7 @@ public class PayeeMatchingRuleFeature(
     /// </summary>
     /// <param name="key">The unique identifier of the rule.</param>
     /// <returns>The requested rule.</returns>
-    /// <exception cref="NotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.PayeeMatchingRuleNotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
     public async Task<PayeeMatchingRuleResultDto> GetRuleByKeyAsync(Guid key)
     {
         var rule = await GetRuleByKeyInternalAsync(key);
@@ -159,7 +159,7 @@ public class PayeeMatchingRuleFeature(
     /// <param name="ruleDto">The updated rule data. MUST be validated before calling this method.
     /// See <see cref="YoFi.V3.Application.Validation.PayeeMatchingRuleEditDtoValidator"/> for validation rules.</param>
     /// <returns>The updated rule.</returns>
-    /// <exception cref="NotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.PayeeMatchingRuleNotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
     public async Task<PayeeMatchingRuleResultDto> UpdateRuleAsync(Guid key, PayeeMatchingRuleEditDto ruleDto)
     {
         var existingRule = await GetRuleByKeyInternalAsync(key);
@@ -186,7 +186,7 @@ public class PayeeMatchingRuleFeature(
     /// Deletes a payee matching rule.
     /// </summary>
     /// <param name="key">The unique identifier of the rule to delete.</param>
-    /// <exception cref="NotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.PayeeMatchingRuleNotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
     public async Task DeleteRuleAsync(Guid key)
     {
         var rule = await GetRuleByKeyInternalAsync(key);
@@ -336,7 +336,7 @@ public class PayeeMatchingRuleFeature(
     /// </summary>
     /// <param name="key">The unique identifier of the rule.</param>
     /// <returns>The rule entity.</returns>
-    /// <exception cref="NotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.PayeeMatchingRuleNotFoundException">Thrown when the rule is not found or belongs to a different tenant.</exception>
     private async Task<PayeeMatchingRule> GetRuleByKeyInternalAsync(Guid key)
     {
         var query = dataProvider.Get<PayeeMatchingRule>()
@@ -429,3 +429,4 @@ public enum PayeeRuleSortBy
     /// <summary>Sort by number of matches (most to least).</summary>
     NumberOfMatches
 }
+

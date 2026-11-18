@@ -7,19 +7,33 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps native YoFi.V3 split worksheet rows to native split import DTOs.</summary>
+/// <param name="dataImportService">Native split persistence service.</param>
 public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImportService) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
+
+    /// <inheritdoc />
     public string FormatId => "yofi.v3";
+
+    /// <inheritdoc />
     public string WorksheetName => "Splits";
+
+    /// <inheritdoc />
     public string DataType => "Splits";
+
+    /// <inheritdoc />
     public int DependencyOrder => 300;
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> RequiresWorksheetNames => ["Transactions"];
 
+    /// <inheritdoc />
     void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
+    /// <inheritdoc />
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
+    /// <inheritdoc />
     public async Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken)
     {
         var analysis = Analyze(worksheet);

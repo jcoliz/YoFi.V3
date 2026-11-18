@@ -7,7 +7,6 @@ namespace YoFi.V3.Application.Validation;
 /// Generic validator for CollectionRequest that validates each item in the collection.
 /// </summary>
 /// <typeparam name="T">The type of items in the collection.</typeparam>
-/// <param name="itemValidator">Validator for individual items of type T, injected by DI.</param>
 /// <remarks>
 /// This validator requires that a validator for type T is registered in the DI container.
 /// It will automatically apply that validator to each item in the Items collection using
@@ -26,6 +25,8 @@ namespace YoFi.V3.Application.Validation;
 /// </remarks>
 public class CollectionRequestValidator<T> : AbstractValidator<CollectionRequest<T>>
 {
+    /// <summary>Initializes a collection validator using the registered validator for item type <typeparamref name="T"/>.</summary>
+    /// <param name="itemValidator">Validator for individual items of type <typeparamref name="T" />, injected by DI.</param>
     public CollectionRequestValidator(IValidator<T> itemValidator)
     {
         RuleForEach(x => x.Items)

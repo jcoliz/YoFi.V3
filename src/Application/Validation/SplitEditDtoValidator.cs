@@ -8,6 +8,7 @@ namespace YoFi.V3.Application.Validation;
 /// </summary>
 public class SplitEditDtoValidator : AbstractValidator<SplitEditDto>
 {
+    /// <summary>Initializes split amount, category, and memo validation rules.</summary>
     public SplitEditDtoValidator()
     {
         RuleFor(split => split.Amount)

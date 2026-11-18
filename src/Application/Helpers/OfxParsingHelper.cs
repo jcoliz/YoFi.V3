@@ -301,7 +301,7 @@ public static partial class OfxParsingHelper
     /// <summary>
     /// Collapses multiple whitespace characters into single spaces.
     /// </summary>
-    /// <param name="input">The string to normalize.</param>
+    /// <remarks>This method is used by the generated whitespace normalization expression.</remarks>
     /// <returns>String with whitespace collapsed.</returns>
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespacePattern();

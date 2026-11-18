@@ -8,6 +8,10 @@ namespace YoFi.V3.Application.Validation;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public class NotWhiteSpaceAttribute : ValidationAttribute
 {
+    /// <summary>Validates that a string value is not null, empty, or whitespace.</summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="validationContext">Context information about the validation operation.</param>
+    /// <returns>A successful result, or an error describing the invalid value.</returns>
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value == null)

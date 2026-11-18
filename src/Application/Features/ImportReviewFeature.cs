@@ -159,7 +159,6 @@ public class ImportReviewFeature(
     /// Retrieves pending import review transactions for the current tenant with pagination support.
     /// </summary>
     /// <param name="pageNumber">The page number to retrieve (1-based). If null or less than 1, defaults to 1.</param>
-    /// <param name="pageSize">The number of items per page. If null or less than 1, defaults to 50. Maximum is 1000.</param>
     /// <returns>A <see cref="PaginatedResultDto{T}"/> containing transactions and pagination metadata.</returns>
     public async Task<PaginatedResultDto<ImportReviewTransactionDto>> GetPendingReviewAsync(
         int? pageNumber = null)

@@ -7,19 +7,34 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps original YoFi legacy transaction worksheet rows to append-only transaction imports.</summary>
+/// <param name="dataImportService">Original transaction persistence service.</param>
+/// <param name="timeProvider">Provider used to validate transaction dates.</param>
 public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
+
+    /// <inheritdoc />
     public string FormatId => "original-yofi";
+
+    /// <inheritdoc />
     public string WorksheetName => "Transaction";
+
+    /// <inheritdoc />
     public string DataType => "Transactions";
+
+    /// <inheritdoc />
     public int DependencyOrder => 200;
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> RequiresWorksheetNames => [];
 
+    /// <inheritdoc />
     void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
+    /// <inheritdoc />
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
+    /// <inheritdoc />
     public async Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken)
     {
         var analysis = Analyze(worksheet);

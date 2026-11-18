@@ -7,19 +7,34 @@ using YoFi.V3.Application.Validation;
 namespace YoFi.V3.Application.Services;
 
 /// <summary>Maps native YoFi.V3 transaction worksheet rows to transaction import DTOs.</summary>
+/// <param name="dataImportService">Native transaction persistence service.</param>
+/// <param name="timeProvider">Provider used to validate transaction dates.</param>
 public sealed class NativeYoFiTransactionWorksheetHandler(DataImportService dataImportService, TimeProvider timeProvider) : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
+
+    /// <inheritdoc />
     public string FormatId => "yofi.v3";
+
+    /// <inheritdoc />
     public string WorksheetName => "Transactions";
+
+    /// <inheritdoc />
     public string DataType => "Transactions";
+
+    /// <inheritdoc />
     public int DependencyOrder => 200;
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> RequiresWorksheetNames => [];
 
+    /// <inheritdoc />
     void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
+    /// <inheritdoc />
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
+    /// <inheritdoc />
     public async Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken)
     {
         var analysis = Analyze(worksheet);

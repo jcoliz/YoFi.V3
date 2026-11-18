@@ -10,16 +10,29 @@ namespace YoFi.V3.Application.Services;
 public sealed class OriginalYoFiSplitWorksheetHandler : IImportWorksheetHandler, IWorkbookImportContextHandler
 {
     private XLWorkbook? _workbook;
+
+    /// <inheritdoc />
     public string FormatId => "original-yofi";
+
+    /// <inheritdoc />
     public string WorksheetName => "Split";
+
+    /// <inheritdoc />
     public string DataType => "Splits";
+
+    /// <inheritdoc />
     public int DependencyOrder => 300;
+
+    /// <inheritdoc />
     public IReadOnlyCollection<string> RequiresWorksheetNames => ["Transaction"];
 
+    /// <inheritdoc />
     void IWorkbookImportContextHandler.SetWorkbookContext(XLWorkbook workbook) => _workbook = workbook;
 
+    /// <inheritdoc />
     public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) => Analyze(worksheet).Preview(worksheet.Name, DataType);
 
+    /// <inheritdoc />
     public Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken)
     {
         var analysis = Analyze(worksheet);

@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using YoFi.V3.Entities.Models;
 using DotNetNuxt.Abstractions;
 
+/// <summary>Provides sample weather forecast data backed by the application data provider.</summary>
+/// <param name="dataProvider">Tenant-aware persistence provider used for forecast queries and writes.</param>
 public class WeatherFeature(IDataProvider dataProvider)
 {
     private static readonly string[] Summaries = new[]

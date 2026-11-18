@@ -4,8 +4,12 @@ using YoFi.V3.Application.Services;
 
 namespace YoFi.V3.Application;
 
+/// <summary>Registers application features and application-layer services.</summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Adds features, persistence services, caches, and import/export handlers.</summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddApplicationFeatures(this IServiceCollection services)
     {
         // Auto-register all features
