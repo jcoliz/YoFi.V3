@@ -68,7 +68,7 @@ graph TB
 - Transaction CRUD with splits → [PRD: Transaction Record](wip/transactions/PRD-TRANSACTION-RECORD.md), [PRD: Transaction Splits](wip/transactions/PRD-TRANSACTION-SPLITS.md)
 - Transaction filtering and search → [PRD: Transaction Filtering](wip/transactions/PRD-TRANSACTION-FILTERING.md)
 - Transaction record validation
-- Investment transactions management
+- Investment transactions management (future) (Feature 2245)
 
 ### 🤖 Data Intelligence & Automation (Epic 2197)
 
@@ -118,11 +118,11 @@ graph TB
 
 - Category spending reports → [PRD: Reports](wip/reports/PRD-REPORTS.md)
 - Trend analysis and visualizations
-- Budget creation and tracking → [PRD: Budgets](wip/budgets/PRD-BUDGETS.md)
+- Budget creation and tracking → [PRD: Budgets](wip/reports/PRD-BUDGETS.md)
 - API access for external reporting tools (Excel integration) → [PRD: Reports Export API](wip/reports/PRD-EXPORT-API.md)
 - Custom dashboards (future)
-- Net worth tracking (balance sheet view) (future)
-- Tax planning and historical tax analysis (future)
+- Net worth tracking (balance sheet view) (future) (Feature 2243)
+- Tax planning and historical tax analysis (future) (Feature 2244)
 
 ### 📎 Document Management (Epic 2201)
 
