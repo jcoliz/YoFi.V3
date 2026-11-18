@@ -124,3 +124,41 @@ Feature: Transaction Splits
                 | -30.00 | Household |      |
             And the transaction amount remains -100.00
             And the transaction is balanced
+
+    @category:delete-splits
+    @category:story-2225
+    @category:scenario-2289
+    Rule: Delete splits
+
+        @id:1
+        Scenario: Delete a non-first allocation
+            Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
+                | Amount | Category  | Memo |
+                | -60.00 | Groceries |      |
+                | -40.00 | Household |      |
+                | -10.00 | Snacks |      |
+            And I am on the transactions detail page for that transaction
+            When I delete the "Household" split
+            Then the following splits are displayed:
+                | Amount | Category  | Memo |
+                | -100.00 | Groceries |      |
+                | -10.00 | Snacks |      |
+            And the transaction amount remains -110.00
+            And the transaction is balanced
+
+        @id:2
+        Scenario: Delete the first allocation
+            Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
+                | Amount | Category  | Memo |
+                | -60.00 | Groceries |      |
+                | -40.00 | Household |      |
+                | -10.00 | Snacks |      |
+            And I am on the transactions detail page for that transaction
+            When I delete the "Groceries" split
+            Then the following splits are displayed:
+                | Amount | Category  | Memo |
+                | -100.00 | Household |      |
+                | -10.00 | Snacks |      |
+            And the transaction amount remains -110.00
+            And the transaction is balanced
+

@@ -187,6 +187,11 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     public ILocator SplitEditButtons => SplitRows.GetByTestId("edit-button");
 
     /// <summary>
+    /// Delete buttons for displayed split row menus, in transaction order
+    /// </summary>
+    public ILocator SplitDeleteButtons => SplitRows.GetByTestId("delete-button");
+
+    /// <summary>
     /// Dialog for editing a split
     /// </summary>
     public ILocator EditSplitDialog => Page!.GetByTestId("edit-split-dialog");
@@ -200,6 +205,16 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// Save button in the edit-split dialog
     /// </summary>
     public ILocator SaveEditedSplitButton => EditSplitDialog.GetByTestId("edit-split-save-button");
+
+    /// <summary>
+    /// Dialog for deleting a split
+    /// </summary>
+    public ILocator DeleteSplitDialog => Page!.GetByTestId("delete-split-dialog");
+
+    /// <summary>
+    /// Confirm button in the delete-split dialog
+    /// </summary>
+    public ILocator ConfirmDeleteSplitButton => DeleteSplitDialog.GetByTestId("delete-split-confirm-button");
 
     #endregion
 
@@ -485,6 +500,45 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         }, TransactionApiRegex());
 
         await EditSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Deletes a split, selecting it by its displayed category.
+    /// </summary>
+    public async Task DeleteSplitAsync(string category)
+    {
+        var displayedCategory = string.IsNullOrWhiteSpace(category) ? EmptyFieldDisplay : category;
+        var matchingRow = SplitRows.Filter(new()
+        {
+            Has = Page!.GetByRole(AriaRole.Cell, new() { Name = displayedCategory, Exact = true })
+        });
+        await Assertions.Expect(matchingRow).ToHaveCountAsync(1);
+
+        var rowCount = await SplitRows.CountAsync();
+        var rowIndex = -1;
+        for (var index = 0; index < rowCount; index++)
+        {
+            var rowCategory = await SplitRows.Nth(index).GetByRole(AriaRole.Cell).First.InnerTextAsync();
+            if (rowCategory.Trim() == displayedCategory)
+            {
+                rowIndex = index;
+                break;
+            }
+        }
+
+        if (rowIndex < 0)
+            throw new InvalidOperationException($"No split has category '{displayedCategory}'.");
+
+        await SplitActionButtons.Nth(rowIndex).ClickAsync();
+        await SplitDeleteButtons.Nth(rowIndex).ClickAsync();
+        await DeleteSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        await WaitForApi(async () =>
+        {
+            await ConfirmDeleteSplitButton.ClickAsync();
+        }, TransactionApiRegex());
+
+        await DeleteSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
 
     #endregion

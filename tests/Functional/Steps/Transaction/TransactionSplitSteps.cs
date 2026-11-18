@@ -49,6 +49,16 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     }
 
     /// <summary>
+    /// When I delete the {category} split
+    /// </summary>
+    [When("I delete the {category} split")]
+    public async Task IDeleteSplit(string category)
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.DeleteSplitAsync(category);
+    }
+
+    /// <summary>
     /// Then the following splits are displayed:
     /// </summary>
     [Then("the following splits are displayed:")]
