@@ -4,6 +4,7 @@
  *
  * Displays and manages transactions for the selected workspace.
  * Supports viewing, creating, quick editing, searching, advanced filtering, and creating payee rules.
+ * Displays server-derived unbalanced status beside existing split indicators.
  * Delete functionality is restricted to the transaction details page only.
  */
 
@@ -748,15 +749,18 @@ function retryLoadTransactions() {
                   <td>{{ transaction.payee }}</td>
                   <td class="text-end">{{ formatCurrency(transaction.amount) }}</td>
                   <td>
-                    <span
-                      v-if="transaction.hasMultipleSplits"
-                      class="badge text-bg-secondary"
-                      title="Allocated across multiple splits."
-                      data-test-id="transaction-split-badge"
-                    >
-                      Split
-                    </span>
-                    <template v-else>{{ transaction.category || '' }}</template>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                      <span
+                        v-if="transaction.hasMultipleSplits"
+                        class="badge text-bg-secondary"
+                        title="Allocated across multiple categories."
+                        data-test-id="transaction-split-badge"
+                      >
+                        Split
+                      </span>
+                      <template v-else>{{ transaction.category || '' }}</template>
+                      <TransactionUnbalancedBadge v-if="transaction.isBalanced === false" />
+                    </div>
                   </td>
                   <td
                     class="memo-cell"

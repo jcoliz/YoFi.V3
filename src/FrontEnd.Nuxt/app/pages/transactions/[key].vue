@@ -2,7 +2,8 @@
 /**
  * Transaction Details Page
  *
- * Displays full details for a single transaction with inline editing capability
+ * Displays full details for a single transaction with inline editing capability.
+ * Uses server-provided balance status and split totals for warning and add-split behavior.
  */
 
 import {
@@ -66,19 +67,7 @@ const splitOperationActive = computed(
   () => splitSaving.value || showEditSplit.value || showDeleteSplit.value,
 )
 
-// TODO: This doesn't belong in the front-end. This should be computed on the
-// server and returned as part of the split results.
-// ALSO: When adding a split it should default to an amount that balances the transaction.
-const splitsTotal = computed(
-  () =>
-    (transaction.value?.splits ?? []).reduce(
-      (total, split) => total + Math.round((split.amount ?? 0) * 100),
-      0,
-    ) / 100,
-)
-const isBalanced = computed(
-  () => Math.round(splitsTotal.value * 100) === Math.round((transaction.value?.amount ?? 0) * 100),
-)
+// Balance status and totals are authoritative values returned by the server.
 const canEditTransactions = computed(() => {
   const currentTenant = userPreferencesStore.getCurrentTenant
   if (!currentTenant?.role) return false
@@ -132,7 +121,15 @@ function cancelEditing() {
 
 function openAddSplit() {
   if (splitOperationActive.value) return
-  splitForm.value = { category: '', amount: '', memo: '' }
+  const suggestedAmount =
+    transaction.value?.isBalanced === false
+      ? Number(((transaction.value.amount ?? 0) - (transaction.value.splitsTotal ?? 0)).toFixed(2))
+      : ''
+  splitForm.value = {
+    category: '',
+    amount: suggestedAmount === '' ? '' : String(suggestedAmount),
+    memo: '',
+  }
   splitError.value = undefined
   showSplitError.value = false
   showAddSplit.value = true
@@ -528,14 +525,12 @@ function formatCurrency(amount: number | undefined): string {
             </div>
           </form>
 
-          <BaseAlert
-            v-if="hasMultipleSplits && !isBalanced"
-            variant="danger"
-            data-test-id="transaction-split-balance"
-          >
-            Splits do not match the transaction amount.
-            <template #detail> Splits total: {{ formatCurrency(splitsTotal) }}. </template>
-          </BaseAlert>
+          <TransactionSplitBalanceAlert
+            v-if="transaction.isBalanced === false"
+            :transaction-amount="transaction.amount ?? 0"
+            :splits-total="transaction.splitsTotal ?? 0"
+            class="mb-3"
+          />
 
           <div
             v-if="!transaction.splits?.length"
