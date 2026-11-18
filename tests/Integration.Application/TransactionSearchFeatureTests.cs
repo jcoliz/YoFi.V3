@@ -20,7 +20,7 @@ public class TransactionSearchFeatureTests : FeatureTestBase
         _tenant = new Tenant { Name = "Search Tenant", Description = "Transactions search tests" };
         _context.Tenants.Add(_tenant);
         await _context.SaveChangesAsync();
-        _feature = new TransactionsFeature(new SearchTestTenantProvider { CurrentTenant = _tenant }, _dataProvider, _context);
+        _feature = new TransactionsFeature(new SearchTestTenantProvider { CurrentTenant = _tenant }, _dataProvider);
     }
 
     private sealed class SearchTestTenantProvider : ITenantProvider

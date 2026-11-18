@@ -46,7 +46,7 @@ public class ImportReviewFeatureTests : FeatureTestBase
         var stubPayeeMatchingService = new StubPayeeMatchingService();
 
         // Create features with real dependencies
-        _transactionsFeature = new TransactionsFeature(_tenantProvider, _dataProvider, _context);
+        _transactionsFeature = new TransactionsFeature(_tenantProvider, _dataProvider);
         _timeProvider = new TestTimeProvider();
         _feature = new ImportReviewFeature(_tenantProvider, _dataProvider, _transactionsFeature, stubPayeeMatchingService, _timeProvider);
     }

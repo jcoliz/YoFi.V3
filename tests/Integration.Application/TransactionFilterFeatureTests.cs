@@ -22,7 +22,7 @@ public class TransactionFilterFeatureTests : FeatureTestBase
         _tenant = new Tenant { Name = "Filter Tenant", Description = "Advanced transaction filter tests" };
         _context.Tenants.Add(_tenant);
         await _context.SaveChangesAsync();
-        _feature = new TransactionsFeature(new FilterTestTenantProvider { CurrentTenant = _tenant }, _dataProvider, _context);
+        _feature = new TransactionsFeature(new FilterTestTenantProvider { CurrentTenant = _tenant }, _dataProvider);
     }
 
     [Test]

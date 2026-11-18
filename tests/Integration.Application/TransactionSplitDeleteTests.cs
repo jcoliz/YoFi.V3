@@ -26,7 +26,7 @@ public class TransactionSplitDeleteTests : FeatureTestBase
         _context.Tenants.Add(_tenant);
         await _context.SaveChangesAsync();
         _tenantProvider = new DeleteTestTenantProvider { CurrentTenant = _tenant };
-        _feature = new TransactionsFeature(_tenantProvider, _dataProvider, _context);
+        _feature = new TransactionsFeature(_tenantProvider, _dataProvider);
     }
 
     [TestCase(0, -10000)]
@@ -143,7 +143,7 @@ public class TransactionSplitDeleteTests : FeatureTestBase
         _context.Tenants.Add(otherTenant);
         await _context.SaveChangesAsync();
         var otherFeature = new TransactionsFeature(
-            new DeleteTestTenantProvider { CurrentTenant = otherTenant }, _dataProvider, _context);
+            new DeleteTestTenantProvider { CurrentTenant = otherTenant }, _dataProvider);
 
         await Assert.ThrowsAsync<TransactionNotFoundException>(() =>
             otherFeature.DeleteSplitAsync(original.Key, original.Splits[0].Key));
@@ -159,7 +159,7 @@ public class TransactionSplitDeleteTests : FeatureTestBase
         var options = new DbContextOptionsBuilder<ApplicationDbContext>(_options)
             .AddInterceptors(new FailAfterSaveInterceptor()).Options;
         await using var context = new ApplicationDbContext(options);
-        var feature = new TransactionsFeature(_tenantProvider, context, context);
+        var feature = new TransactionsFeature(_tenantProvider, context);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             feature.DeleteSplitAsync(original.Key, original.Splits[0].Key));
@@ -190,7 +190,7 @@ public class TransactionSplitDeleteTests : FeatureTestBase
                 await continueSave.Task.WaitAsync(token);
             })).Options;
         await using var context = new ApplicationDbContext(options);
-        var feature = new TransactionsFeature(_tenantProvider, context, context);
+        var feature = new TransactionsFeature(_tenantProvider, context);
         var stale = operation switch
         {
             "Delete" => feature.DeleteSplitAsync(original.Key, original.Splits[^1].Key, timeout.Token),
@@ -211,7 +211,7 @@ public class TransactionSplitDeleteTests : FeatureTestBase
         {
             continueSave.TrySetResult();
         }
-        await Assert.ThrowsAsync<DataConflictException>(async () => await stale);
+        await Assert.ThrowsAsync<DotNetNuxt.Abstractions.DataConflictException>(async () => await stale);
         _context.ChangeTracker.Clear();
         var persisted = await _feature.GetTransactionByKeyAsync(original.Key);
         Assert.That(persisted.Splits, Is.EqualTo(committed.Splits));

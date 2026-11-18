@@ -26,7 +26,7 @@ public class TransactionSplitUpdateTests : FeatureTestBase
         _context.Tenants.Add(_tenant);
         await _context.SaveChangesAsync();
         _tenantProvider = new SplitTestTenantProvider { CurrentTenant = _tenant };
-        _feature = new TransactionsFeature(_tenantProvider, _dataProvider, _context);
+        _feature = new TransactionsFeature(_tenantProvider, _dataProvider);
     }
 
     [TestCase(0, -70, -70, -10, -20)]
@@ -147,7 +147,7 @@ public class TransactionSplitUpdateTests : FeatureTestBase
         _context.Tenants.Add(otherTenant);
         await _context.SaveChangesAsync();
         var otherProvider = new SplitTestTenantProvider { CurrentTenant = otherTenant };
-        var otherFeature = new TransactionsFeature(otherProvider, _dataProvider, _context);
+        var otherFeature = new TransactionsFeature(otherProvider, _dataProvider);
 
         await Assert.ThrowsAsync<TransactionNotFoundException>(() =>
             otherFeature.UpdateSplitAsync(transaction.Key, transaction.Splits.First().Key,
@@ -208,7 +208,7 @@ public class TransactionSplitUpdateTests : FeatureTestBase
             .AddInterceptors(interceptor)
             .Options;
         await using var concurrentContext = new ApplicationDbContext(options);
-        var concurrentFeature = new TransactionsFeature(_tenantProvider, concurrentContext, concurrentContext);
+        var concurrentFeature = new TransactionsFeature(_tenantProvider, concurrentContext);
 
         var input = new SplitEditDto(-40m, "Stale", null);
         var staleUpdate = operation switch
@@ -232,7 +232,7 @@ public class TransactionSplitUpdateTests : FeatureTestBase
             continueSave.TrySetResult();
         }
 
-        await Assert.ThrowsAsync<DataConflictException>(async () => await staleUpdate);
+        await Assert.ThrowsAsync<DotNetNuxt.Abstractions.DataConflictException>(async () => await staleUpdate);
         _context.ChangeTracker.Clear();
         var persisted = await _feature.GetTransactionByKeyAsync(transaction.Key);
         Assert.That(persisted.Splits, Is.EqualTo(committed.Splits));

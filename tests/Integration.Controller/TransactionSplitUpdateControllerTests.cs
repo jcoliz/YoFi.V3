@@ -194,7 +194,7 @@ public class TransactionSplitUpdateControllerTests : AuthenticatedTestBase
         context.Response.Body = body;
 
         var handled = await handler.TryHandleAsync(context,
-            new DataConflictException(new InvalidOperationException("Private database details")), CancellationToken.None);
+            new DotNetNuxt.Abstractions.DataConflictException(new InvalidOperationException("Private database details")), CancellationToken.None);
 
         Assert.That(handled, Is.True);
         Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status409Conflict));

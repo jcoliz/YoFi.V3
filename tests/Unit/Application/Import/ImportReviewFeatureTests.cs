@@ -744,8 +744,7 @@ public class ImportReviewFeatureTests
 
         var mockTransactionsFeature = new Mock<TransactionsFeature>(
             Mock.Of<ITenantProvider>(),
-            Mock.Of<IDataProvider>(),
-            Mock.Of<ITenantRepository>());
+            Mock.Of<IDataProvider>());
 
         var mockPayeeMatchingService = new Mock<YoFi.V3.Application.Services.IPayeeMatchingService>();
         mockPayeeMatchingService

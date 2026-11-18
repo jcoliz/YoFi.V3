@@ -1,3 +1,4 @@
+using System.Data;
 using System.Linq.Expressions;
 using System.Reflection;
 using DotNetNuxt.Abstractions;
@@ -232,5 +233,10 @@ public class InMemoryDataProvider : IDataProvider
         }
 
         return (PropertyInfo)memberExpression.Member;
+    }
+
+    public Task<TResult> ExecuteInTransactionAsync<TResult>(Func<CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken = default, IsolationLevel? isolationLevel = null)
+    {
+        return operation(cancellationToken);
     }
 }
