@@ -354,18 +354,100 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     /// When I upload a file containing {count} rules in native YoFi format
     /// </summary>
     [When("I upload a file containing {count} rules in native YoFi format")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IUploadAFileContainingRulesInNativeYoFiFormat(int count)
     {
-        throw new NotImplementedException();
+        using var workbook = new XLWorkbook();
+        var metadata = workbook.Worksheets.Add("Metadata");
+        metadata.Cell(1, 1).Value = "Name";
+        metadata.Cell(1, 2).Value = "Value";
+        metadata.Cell(2, 1).Value = "Format";
+        metadata.Cell(2, 2).Value = "YoFi.V3";
+
+        var worksheet = workbook.Worksheets.Add("PayeeMatchingRules");
+        worksheet.Cell(1, 1).Value = "Key";
+        worksheet.Cell(1, 2).Value = "PayeePattern";
+        worksheet.Cell(1, 3).Value = "PayeeIsRegex";
+        worksheet.Cell(1, 4).Value = "Category";
+        for (var index = 1; index <= count; index++)
+        {
+            worksheet.Cell(index + 1, 2).Value = $"Native Payee {index}";
+            worksheet.Cell(index + 1, 3).Value = false;
+            worksheet.Cell(index + 1, 4).Value = "Shopping";
+        }
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+
+        var currentName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        await workspacesPage.OpenManagementAsync(currentName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.UploadImportWorkbookAsync("native-yofi-rules.xlsx", stream.ToArray());
     }
 
     /// <summary>
     /// When I upload a file containing {count1} transactions and {count2} split transaction in native YoFi format
     /// </summary>
     [When("I upload a file containing {count1} transactions and {count2} split transaction in native YoFi format")]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
     public async Task IUploadAFileContainingTransactionsAndSplitTransactionInNativeYoFiFormat(int count1, int count2)
     {
-        throw new NotImplementedException();
+        using var workbook = new XLWorkbook();
+        var metadata = workbook.Worksheets.Add("Metadata");
+        metadata.Cell(1, 1).Value = "Name";
+        metadata.Cell(1, 2).Value = "Value";
+        metadata.Cell(2, 1).Value = "Format";
+        metadata.Cell(2, 2).Value = "YoFi.V3";
+
+        var transactions = workbook.Worksheets.Add("Transactions");
+        transactions.Cell(1, 1).Value = "Key";
+        transactions.Cell(1, 2).Value = "Date";
+        transactions.Cell(1, 3).Value = "Payee";
+        transactions.Cell(1, 4).Value = "Amount";
+        transactions.Cell(1, 5).Value = "Source";
+        transactions.Cell(1, 6).Value = "ExternalId";
+        transactions.Cell(1, 7).Value = "Memo";
+        transactions.Cell(1, 8).Value = "Category";
+
+        var splitTransactionKey = Guid.NewGuid();
+        for (var index = 1; index <= count1; index++)
+        {
+            var key = index == count1 ? splitTransactionKey : Guid.NewGuid();
+            transactions.Cell(index + 1, 1).Value = key.ToString("D");
+            transactions.Cell(index + 1, 2).Value = new DateTime(2026, 1, index);
+            transactions.Cell(index + 1, 3).Value = $"Native Transaction {index}";
+            transactions.Cell(index + 1, 4).Value = index == count1 ? 100m : -25m * index;
+            transactions.Cell(index + 1, 8).Value = index == count1 ? "SPLIT" : "Shopping";
+        }
+
+        var splits = workbook.Worksheets.Add("Splits");
+        splits.Cell(1, 1).Value = "Key";
+        splits.Cell(1, 2).Value = "TransactionKey";
+        splits.Cell(1, 3).Value = "Amount";
+        splits.Cell(1, 4).Value = "Category";
+        splits.Cell(1, 5).Value = "Memo";
+        splits.Cell(1, 6).Value = "Order";
+        for (var index = 0; index < count2; index++)
+        {
+            var row = index + 2;
+            splits.Cell(row, 2).Value = splitTransactionKey.ToString("D");
+            splits.Cell(row, 3).Value = 100m / count2;
+            splits.Cell(row, 4).Value = "Shopping";
+            splits.Cell(row, 5).Value = $"Split {index + 1}";
+            splits.Cell(row, 6).Value = index;
+        }
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+
+        var currentName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
+        var workspacesPage = _context.GetOrCreatePage<WorkspacesPage>();
+        await workspacesPage.NavigateAsync();
+        await workspacesPage.OpenManagementAsync(currentName);
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.UploadImportWorkbookAsync("native-yofi-transactions.xlsx", stream.ToArray());
     }
 
     /// <summary>
@@ -385,7 +467,9 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     [Then("I should see the detected format {string1}")]
     public async Task IShouldSeeTheDetectedFormat(string string1)
     {
-        throw new NotImplementedException();
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.PreviewAndConfirmImportAsync();
+        await managementPage.ExpectDetectedFormatAsync(string1);
     }
 
     /// <summary>
@@ -395,7 +479,9 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     [Then("I should see the {dataType} worksheet preview")]
     public async Task IShouldSeeTheDataTypeWorksheetPreview(string dataType)
     {
-        throw new NotImplementedException();
+        var managementPage = _context.GetOrCreatePage<WorkspaceManagementPage>();
+        await managementPage.ImportPreview.WaitForAsync();
+        await managementPage.ExpectWorksheetPreviewAsync(dataType);
     }
 
     #endregion

@@ -53,6 +53,38 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator ImportConfirmButton => ImportConfirmModal.GetByTestId("import-data-confirm-button");
     public ILocator ImportCancelButton => ImportConfirmModal.GetByTestId("import-data-cancel-button");
     public ILocator ImportResult => Page.GetByTestId("import-result");
+    public ILocator ImportFormat => Page.GetByTestId("import-format");
+
+    public ILocator GetWorksheetPreview(string dataType)
+    {
+        if (string.Equals(dataType.Trim(), "Payee", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(dataType.Trim(), "Payees", StringComparison.OrdinalIgnoreCase))
+        {
+            dataType = "PayeeMatchingRules";
+        }
+
+        var normalized = dataType.Trim().ToLowerInvariant();
+        var slug = normalized switch
+        {
+            "payeematchingrules" or "payee" or "payees" => "payee-matching-rules",
+            "transactions" => "transactions",
+            "splits" => "splits",
+            _ => normalized
+        };
+        var expectedWorksheetName = slug switch
+        {
+            "payee-matching-rules" => "PayeeMatchingRules",
+            "transactions" => "Transactions",
+            "splits" => "Splits",
+            _ => dataType.Trim()
+        };
+        var byTestId = Page.GetByTestId($"import-worksheet-preview-{slug}");
+        var byContent = ImportPreview.Locator("section").Filter(new()
+        {
+            HasText = expectedWorksheetName
+        });
+        return byTestId.Or(byContent);
+    }
 
     public async Task UploadImportWorkbookAsync(string fileName, byte[] contents)
     {
@@ -65,6 +97,12 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
         await PreviewImportButton.WaitForAsync();
         await Assertions.Expect(PreviewImportButton).ToBeEnabledAsync();
     }
+
+    public Task ExpectDetectedFormatAsync(string expectedFormat) =>
+        Assertions.Expect(ImportFormat).ToHaveTextAsync(expectedFormat);
+
+    public Task ExpectWorksheetPreviewAsync(string dataType) =>
+        Assertions.Expect(GetWorksheetPreview(dataType)).ToBeVisibleAsync();
 
     public async Task PreviewAndConfirmImportAsync()
     {
