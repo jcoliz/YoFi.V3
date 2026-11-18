@@ -48,9 +48,10 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     public ILocator ImportFileInput => Page.GetByTestId("import-file-input");
     public ILocator PreviewImportButton => Page.GetByTestId("preview-import-button");
     public ILocator ImportPreview => Page.GetByTestId("import-preview");
-    public ILocator ImportPayeesButton => Page.GetByTestId("import-payees-button");
-    public ILocator ImportConfirmModal => Page.GetByTestId("import-payees-confirm-modal");
-    public ILocator ImportConfirmButton => ImportConfirmModal.GetByTestId("import-payees-confirm-button");
+    public ILocator ImportDataButton => Page.GetByTestId("import-data-button");
+    public ILocator ImportConfirmModal => Page.GetByTestId("import-data-confirm-modal");
+    public ILocator ImportConfirmButton => ImportConfirmModal.GetByTestId("import-data-confirm-button");
+    public ILocator ImportCancelButton => ImportConfirmModal.GetByTestId("import-data-cancel-button");
     public ILocator ImportResult => Page.GetByTestId("import-result");
 
     public async Task UploadImportWorkbookAsync(string fileName, byte[] contents)
@@ -69,7 +70,7 @@ public class WorkspaceManagementPage(IPage page) : BasePage(page)
     {
         await PreviewImportButton.ClickAsync();
         await ImportPreview.WaitForAsync();
-        await ImportPayeesButton.ClickAsync();
+        await ImportDataButton.ClickAsync();
         await ImportConfirmModal.WaitForAsync();
         await ImportConfirmButton.ClickAsync();
         await ImportResult.WaitForAsync();
