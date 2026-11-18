@@ -25,7 +25,8 @@ CI and deployment use Azure Pipelines; see [`.azure/pipelines/ci.yaml`](.azure/p
 
 ## Testing
 
-- Run focused tests for the code changed. For end-to-end behavior, prefer the functional tests against the containerized app.
+- **NEVER run ANY tests using C# Dev Kit or `dotnet test`. ALWAYS use `Run-Tests.ps1`.**
+- Run focused tests for the code changed using `Run-Tests.ps1`. For end-to-end behavior, prefer the functional tests against the containerized app.
 - Do not create or modify functional tests—including Gherkin scenarios, step definitions, or related test support code—unless the user explicitly asks for functional tests and specifies what aspects to cover. Do not infer functional-test work from a feature or UI implementation request.
 - When Application-layer changes affect how data is queried or persisted, consider whether the Application integration tests need updates and run the relevant tests. These tests exercise Application code with the data backend; see `tests/Integration.Application/`.
 - Before working in `tests/Functional`, read [tests/Functional/README.md](tests/Functional/README.md) and the relevant guides it links to. Also check area-specific READMEs when changing that area.
