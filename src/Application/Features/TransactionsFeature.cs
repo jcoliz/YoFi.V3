@@ -15,11 +15,9 @@ namespace YoFi.V3.Application.Features;
 /// </summary>
 /// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
 /// <param name="dataProvider">Provider for data access operations.</param>
-/// <param name="tenantRepository">Repository providing atomic tenant-scoped transactions.</param>
 public class TransactionsFeature(
     ITenantProvider tenantProvider,
-    IDataProvider dataProvider,
-    ITenantRepository tenantRepository)
+    IDataProvider dataProvider)
 {
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
 
@@ -139,7 +137,7 @@ public class TransactionsFeature(
     /// <exception cref="DataConflictException">A concurrent change prevented the addition.</exception>
     public Task<TransactionDetailDto> AddSplitAsync(
         Guid transactionKey, SplitEditDto split, CancellationToken cancellationToken = default)
-        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        => dataProvider.ExecuteInTransactionAsync(async token =>
         {
             token.ThrowIfCancellationRequested();
             var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
@@ -189,7 +187,7 @@ public class TransactionsFeature(
         Guid splitKey,
         SplitEditDto split,
         CancellationToken cancellationToken = default)
-        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        => dataProvider.ExecuteInTransactionAsync(async token =>
         {
             token.ThrowIfCancellationRequested();
             var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
@@ -225,7 +223,7 @@ public class TransactionsFeature(
     /// <exception cref="DataConflictException">A concurrent change prevented the deletion.</exception>
     public Task<TransactionDetailDto> DeleteSplitAsync(
         Guid transactionKey, Guid splitKey, CancellationToken cancellationToken = default)
-        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        => dataProvider.ExecuteInTransactionAsync(async token =>
         {
             token.ThrowIfCancellationRequested();
             var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
@@ -266,7 +264,7 @@ public class TransactionsFeature(
     /// Category is updated only for a single-split transaction.
     /// </remarks>
     public Task<TransactionDetailDto> UpdateTransactionAsync(Guid key, TransactionEditDto transaction)
-        => tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        => dataProvider.ExecuteInTransactionAsync(async token =>
         {
             var existingTransaction = await GetTransactionByKeyInternalAsync(key);
 

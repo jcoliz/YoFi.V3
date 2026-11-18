@@ -64,7 +64,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
                 httpContext, validationException, cancellationToken),
 
-            DataConflictException => await HandleDataConflictAsync(httpContext, cancellationToken),
+            DotNetNuxt.Abstractions.DataConflictException => await HandleDataConflictAsync(httpContext, cancellationToken),
 
             // If no match, let other handlers process it
             _ => false

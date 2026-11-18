@@ -9,12 +9,10 @@ namespace YoFi.V3.Application.Features;
 
 /// <summary>Coordinates owner-authorized administration of existing workspace data.</summary>
 /// <param name="tenantProvider">Current tenant established by the tenant middleware.</param>
-/// <param name="tenantRepository">Tenant persistence and transaction operations.</param>
 /// <param name="dataProvider">Persistence operations for tenant data models.</param>
 /// <param name="memoryCache">Cache containing payee matching rules.</param>
 public sealed class TenantDataAdminFeature(
     ITenantProvider tenantProvider,
-    ITenantRepository tenantRepository,
     IDataProvider dataProvider,
     IMemoryCache memoryCache)
 {
@@ -35,7 +33,7 @@ public sealed class TenantDataAdminFeature(
                 "The confirmation does not match the current workspace name. No data was deleted.");
         }
 
-        var counts = await tenantRepository.ExecuteTenantTransactionAsync(async token =>
+        var counts = await dataProvider.ExecuteInTransactionAsync(async token =>
         {
             token.ThrowIfCancellationRequested();
             var importReviewTransactions = await dataProvider.BulkDeleteAsync(

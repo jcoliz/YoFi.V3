@@ -355,44 +355,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     #region ITenantRepository Implementation
 
     /// <inheritdoc />
-    async Task<TResult> ITenantRepository.ExecuteTenantTransactionAsync<TResult>(
-        Func<CancellationToken, Task<TResult>> operation,
-        CancellationToken cancellationToken,
-        IsolationLevel? isolationLevel)
-    {
-        await using var transaction = isolationLevel.HasValue
-            ? await Database.BeginTransactionAsync(isolationLevel.Value, cancellationToken)
-            : await Database.BeginTransactionAsync(cancellationToken);
-        try
-        {
-            var result = await operation(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return result;
-        }
-        catch (DbUpdateException exception) when (
-            exception.InnerException is PostgresException
-            {
-                SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected
-            })
-        {
-            throw new DataConflictException(exception);
-        }
-        catch (PostgresException exception) when (
-            exception.SqlState is PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected)
-        {
-            throw new DataConflictException(exception);
-        }
-        catch (InvalidOperationException exception) when (
-            exception.GetBaseException() is PostgresException
-            {
-                SqlState: PostgresErrorCodes.SerializationFailure or PostgresErrorCodes.DeadlockDetected
-            })
-        {
-            throw new DataConflictException(exception);
-        }
-    }
-
-    /// <inheritdoc />
     async Task<Tenant> ITenantRepository.AddTenantAsync(Tenant tenant)
     {
         Tenants.Add(tenant);
@@ -516,6 +478,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("%", "\\%", StringComparison.Ordinal)
             .Replace("_", "\\_", StringComparison.Ordinal);
+
+
+    /// <inheritdoc />
+    protected override bool IsConcurrencyException(Exception exception)
+    {
+        if (base.IsConcurrencyException(exception))
+            return true;
+
+        return exception is PostgresException
+        {
+            SqlState:
+                PostgresErrorCodes.SerializationFailure
+                or PostgresErrorCodes.DeadlockDetected
+        } || exception.InnerException is not null
+            && IsConcurrencyException(exception.InnerException);
+    }
 
     #endregion
 
