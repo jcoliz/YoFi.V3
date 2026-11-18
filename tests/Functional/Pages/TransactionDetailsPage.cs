@@ -37,7 +37,7 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Page Elements
+    #region Page Navigation and States
 
     /// <summary>
     /// Container for the page action buttons (Edit, Delete)
@@ -89,9 +89,100 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator LoadingState => Page!.GetByTestId("loading-state");
 
+
+    /// <summary>
+    /// Navigates to the transaction details page for a specific transaction
+    /// </summary>
+    /// <param name="transactionKey">The transaction key (GUID)</param>
+    /// <param name="waitForReady">Whether to wait for the page to be ready after navigation</param>
+    public async Task NavigateAsync(string transactionKey, bool waitForReady = true)
+    {
+        await WaitForApi(async () =>
+        {
+            await Page!.GotoAsync($"/transactions/{transactionKey}");
+        }, TransactionApiRegex());
+
+        if (waitForReady)
+        {
+            await WaitForPageReadyAsync();
+        }
+    }
+
+    /// <summary>
+    /// Waits for the page to be ready for interaction
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Waits for the Edit button to become enabled, indicating client hydration is complete.
+    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// </remarks>
+    public async Task WaitForPageReadyAsync(float timeout = 5000)
+    {
+        await WaitForEditButtonEnabledAsync(timeout);
+    }
+
+    /// <summary>
+    /// Waits until the Edit button becomes enabled
+    /// </summary>
+    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
+    /// <remarks>
+    /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
+    /// This ensures the Vue client has finished hydrating and the page is interactive.
+    /// </remarks>
+    public Task WaitForEditButtonEnabledAsync(float timeout = 5000)
+        => WaitForButtonToBeEnabledAsync(EditButton, timeout);
+
+    /// <summary>
+    /// Navigates back to the transactions list
+    /// </summary>
+    /// <remarks>
+    /// Uses client-side routing (NuxtLink), so checks URL change rather than waiting for navigation event.
+    /// </remarks>
+    public async Task GoBackAsync()
+    {
+        await BackButton.ClickAsync();
+        await Page!.WaitForURLAsync("**/transactions");
+    }
+
+    /// <summary>
+    /// Checks if the page is in display mode
+    /// </summary>
+    /// <returns>True if in display mode, false if in edit mode</returns>
+    public async Task<bool> IsDisplayModeAsync()
+    {
+        return await DetailsCard.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Checks if the page is in edit mode
+    /// </summary>
+    /// <returns>True if in edit mode, false if in display mode</returns>
+    public async Task<bool> IsEditModeAsync()
+    {
+        return await EditCard.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Checks if the page is in loading state
+    /// </summary>
+    /// <returns>True if loading spinner is visible, false otherwise</returns>
+    public async Task<bool> IsLoadingAsync()
+    {
+        return await LoadingSpinner.IsVisibleAsync();
+    }
+
+    /// <summary>
+    /// Checks if a workspace is currently selected
+    /// </summary>
+    /// <returns>True if no workspace warning is not visible, false otherwise</returns>
+    public async Task<bool> HasWorkspaceSelectedAsync()
+    {
+        return !(await NoWorkspaceWarning.IsVisibleAsync());
+    }
+
     #endregion
 
-    #region Display Mode Elements
+    #region Transaction Display
 
     /// <summary>
     /// Transaction details card (display mode)
@@ -133,9 +224,73 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator ExternalIdDisplay => Page!.GetByTestId("transaction-external-id");
 
+
+    /// <summary>
+    /// Gets the payee text from the details display
+    /// </summary>
+    /// <returns>The payee name</returns>
+    public async Task<string?> GetPayeeAsync()
+    {
+        return await PayeeHeading.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the date text from the details display
+    /// </summary>
+    /// <returns>The date text as displayed</returns>
+    public async Task<string?> GetDateAsync()
+    {
+        return await DateDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the amount text from the details display
+    /// </summary>
+    /// <returns>The amount text as displayed</returns>
+    public async Task<string?> GetAmountAsync()
+    {
+        return await AmountDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the memo text from the details display
+    /// </summary>
+    /// <returns>The memo text</returns>
+    public async Task<string?> GetMemoAsync()
+    {
+        return await MemoDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the category text from the details display
+    /// </summary>
+    /// <returns>The category text</returns>
+    public async Task<string?> GetCategoryAsync()
+    {
+        return await CategoryDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the source text from the details display
+    /// </summary>
+    /// <returns>The source text</returns>
+    public async Task<string?> GetSourceAsync()
+    {
+        return await SourceDisplay.TextContentAsync();
+    }
+
+    /// <summary>
+    /// Gets the external ID text from the details display
+    /// </summary>
+    /// <returns>The external ID text</returns>
+    public async Task<string?> GetExternalIdAsync()
+    {
+        return await ExternalIdDisplay.TextContentAsync();
+    }
+
     #endregion
 
-    #region Transaction Splits Elements
+    #region Transaction Splits
 
     /// <summary>
     /// Transaction splits pane container
@@ -222,235 +377,6 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator SplitsEmptyMessage => SplitsPane.GetByTestId("transaction-no-splits");
 
-    #endregion
-
-    #region Edit Mode Elements
-
-    /// <summary>
-    /// Transaction edit card (edit mode)
-    /// </summary>
-    public ILocator EditCard => Page!.GetByTestId("transaction-edit-card");
-
-    /// <summary>
-    /// Date input (edit mode)
-    /// </summary>
-    public ILocator EditDateInput => Page!.GetByTestId("edit-date");
-
-    /// <summary>
-    /// Amount input (edit mode)
-    /// </summary>
-    public ILocator EditAmountInput => Page!.GetByTestId("edit-amount");
-
-    /// <summary>
-    /// Payee input (edit mode)
-    /// </summary>
-    public ILocator EditPayeeInput => Page!.GetByTestId("edit-payee");
-
-    /// <summary>
-    /// Memo textarea (edit mode)
-    /// </summary>
-    public ILocator EditMemoInput => Page!.GetByTestId("edit-memo");
-
-    /// <summary>
-    /// Source input (edit mode)
-    /// </summary>
-    public ILocator EditSourceInput => Page!.GetByTestId("edit-source");
-
-    /// <summary>
-    /// External ID input (edit mode)
-    /// </summary>
-    public ILocator EditExternalIdInput => Page!.GetByTestId("edit-external-id");
-
-    #endregion
-
-    #region Delete Modal Elements
-
-    /// <summary>
-    /// Delete confirmation modal
-    /// </summary>
-    public ILocator DeleteModal => Page!.GetByTestId("delete-transaction-modal");
-
-    /// <summary>
-    /// Delete transaction details in modal
-    /// </summary>
-    public ILocator DeleteTransactionDetails => Page!.GetByTestId("delete-transaction-details");
-
-    /// <summary>
-    /// Delete confirm button in modal
-    /// </summary>
-    public ILocator DeleteConfirmButton => DeleteModal.GetByTestId("delete-confirm-button");
-
-    /// <summary>
-    /// Delete cancel button in modal
-    /// </summary>
-    public ILocator DeleteCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
-
-    #endregion
-
-    #region Navigation
-
-    /// <summary>
-    /// Navigates to the transaction details page for a specific transaction
-    /// </summary>
-    /// <param name="transactionKey">The transaction key (GUID)</param>
-    /// <param name="waitForReady">Whether to wait for the page to be ready after navigation</param>
-    public async Task NavigateAsync(string transactionKey, bool waitForReady = true)
-    {
-        await WaitForApi(async () =>
-        {
-            await Page!.GotoAsync($"/transactions/{transactionKey}");
-        }, TransactionApiRegex());
-
-        if (waitForReady)
-        {
-            await WaitForPageReadyAsync();
-        }
-    }
-
-    /// <summary>
-    /// Waits for the page to be ready for interaction
-    /// </summary>
-    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
-    /// <remarks>
-    /// Waits for the Edit button to become enabled, indicating client hydration is complete.
-    /// This ensures the Vue client has finished hydrating and the page is interactive.
-    /// </remarks>
-    public async Task WaitForPageReadyAsync(float timeout = 5000)
-    {
-        await WaitForEditButtonEnabledAsync(timeout);
-    }
-
-    /// <summary>
-    /// Waits until the Edit button becomes enabled
-    /// </summary>
-    /// <param name="timeout">Timeout in milliseconds (default: 5000)</param>
-    /// <remarks>
-    /// Waits for the button to transition from disabled (SSR/hydration) to enabled (client-ready).
-    /// This ensures the Vue client has finished hydrating and the page is interactive.
-    /// </remarks>
-    public Task WaitForEditButtonEnabledAsync(float timeout = 5000)
-        => WaitForButtonToBeEnabledAsync(EditButton, timeout);
-
-    /// <summary>
-    /// Navigates back to the transactions list
-    /// </summary>
-    /// <remarks>
-    /// Uses client-side routing (NuxtLink), so checks URL change rather than waiting for navigation event.
-    /// </remarks>
-    public async Task GoBackAsync()
-    {
-        await BackButton.ClickAsync();
-        await Page!.WaitForURLAsync("**/transactions");
-    }
-
-    #endregion
-
-    #region Display Mode Operations
-
-    /// <summary>
-    /// Starts editing the transaction
-    /// </summary>
-    /// <remarks>
-    /// Transitions from display mode to edit mode.
-    /// </remarks>
-    public async Task StartEditingAsync()
-    {
-        await EditButton.ClickAsync();
-        await EditCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Opens the delete confirmation modal
-    /// </summary>
-    public async Task OpenDeleteModalAsync()
-    {
-        await DeleteButton.ClickAsync();
-        await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    #endregion
-
-    #region Edit Mode Operations
-
-    /// <summary>
-    /// Fills the date field in edit mode
-    /// </summary>
-    /// <param name="date">Transaction date in YYYY-MM-DD format</param>
-    public async Task FillDateAsync(string date)
-    {
-        await EditDateInput.FillAsync(date);
-    }
-
-    /// <summary>
-    /// Fills the amount field in edit mode
-    /// </summary>
-    /// <param name="amount">Transaction amount</param>
-    public async Task FillAmountAsync(decimal amount)
-    {
-        await EditAmountInput.FillAsync(amount.ToString("F2"));
-    }
-
-    /// <summary>
-    /// Fills the payee field in edit mode
-    /// </summary>
-    /// <param name="payee">Payee name</param>
-    public async Task FillPayeeAsync(string payee)
-    {
-        await EditPayeeInput.FillAsync(payee);
-    }
-
-    /// <summary>
-    /// Fills the memo field in edit mode
-    /// </summary>
-    /// <param name="memo">Memo text</param>
-    public async Task FillMemoAsync(string memo)
-    {
-        await EditMemoInput.FillAsync(memo);
-    }
-
-    /// <summary>
-    /// Fills the source field in edit mode
-    /// </summary>
-    /// <param name="source">Source (bank account)</param>
-    public async Task FillSourceAsync(string source)
-    {
-        await EditSourceInput.FillAsync(source);
-    }
-
-    /// <summary>
-    /// Fills the external ID field in edit mode
-    /// </summary>
-    /// <param name="externalId">External ID (bank's unique identifier)</param>
-    public async Task FillExternalIdAsync(string externalId)
-    {
-        await EditExternalIdInput.FillAsync(externalId);
-    }
-
-    /// <summary>
-    /// Saves the transaction changes
-    /// </summary>
-    /// <remarks>
-    /// Submits the edit form and waits for the API call to complete.
-    /// </remarks>
-    public async Task SaveAsync()
-    {
-        await WaitForApi(async () =>
-        {
-            await SaveButton.ClickAsync();
-        }, TransactionApiRegex());
-
-        // Wait for edit mode to close and display mode to appear
-        await DetailsCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
-
-    /// <summary>
-    /// Cancels editing and returns to display mode
-    /// </summary>
-    public async Task CancelEditingAsync()
-    {
-        await CancelEditButton.ClickAsync();
-        await DetailsCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
-    }
 
     /// <summary>
     /// Adds a split using the form and waits for the update request to complete.
@@ -556,9 +482,199 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         await Assertions.Expect(SplitsEmptyMessage).ToBeVisibleAsync();
     }
 
+    /// <summary>
+    /// Gets the displayed category, amount, and memo for each split, in transaction order.
+    /// </summary>
+    public async Task<IReadOnlyList<(string Category, string Amount, string Memo)>> GetDisplayedSplitsAsync()
+    {
+        var splits = new List<(string Category, string Amount, string Memo)>();
+        var count = await SplitRows.CountAsync();
+        for (var index = 0; index < count; index++)
+        {
+            var cells = await SplitRows.Nth(index).Locator("td").AllInnerTextsAsync();
+            const int expectedCellCount = 4;
+            if (cells.Count != expectedCellCount)
+            {
+                throw new InvalidOperationException($"Expected {expectedCellCount} cells in split row {index}, found {cells.Count}.");
+            }
+
+            splits.Add((cells[0].Trim(), cells[1].Trim(), cells[2].Trim()));
+        }
+
+        return splits;
+    }
+
+    /// <summary>
+    /// Waits until exactly the expected number of splits is displayed.
+    /// </summary>
+    public Task ExpectSplitCountAsync(int expectedCount) =>
+        Assertions.Expect(SplitRows).ToHaveCountAsync(expectedCount);
+
     #endregion
 
-    #region Delete Operations
+    #region Transaction Editing
+
+    /// <summary>
+    /// Transaction edit card (edit mode)
+    /// </summary>
+    public ILocator EditCard => Page!.GetByTestId("transaction-edit-card");
+
+    /// <summary>
+    /// Date input (edit mode)
+    /// </summary>
+    public ILocator EditDateInput => Page!.GetByTestId("edit-date");
+
+    /// <summary>
+    /// Amount input (edit mode)
+    /// </summary>
+    public ILocator EditAmountInput => Page!.GetByTestId("edit-amount");
+
+    /// <summary>
+    /// Payee input (edit mode)
+    /// </summary>
+    public ILocator EditPayeeInput => Page!.GetByTestId("edit-payee");
+
+    /// <summary>
+    /// Memo textarea (edit mode)
+    /// </summary>
+    public ILocator EditMemoInput => Page!.GetByTestId("edit-memo");
+
+    /// <summary>
+    /// Source input (edit mode)
+    /// </summary>
+    public ILocator EditSourceInput => Page!.GetByTestId("edit-source");
+
+    /// <summary>
+    /// External ID input (edit mode)
+    /// </summary>
+    public ILocator EditExternalIdInput => Page!.GetByTestId("edit-external-id");
+
+
+    /// <summary>
+    /// Starts editing the transaction
+    /// </summary>
+    /// <remarks>
+    /// Transitions from display mode to edit mode.
+    /// </remarks>
+    public async Task StartEditingAsync()
+    {
+        await EditButton.ClickAsync();
+        await EditCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Fills the date field in edit mode
+    /// </summary>
+    /// <param name="date">Transaction date in YYYY-MM-DD format</param>
+    public async Task FillDateAsync(string date)
+    {
+        await EditDateInput.FillAsync(date);
+    }
+
+    /// <summary>
+    /// Fills the amount field in edit mode
+    /// </summary>
+    /// <param name="amount">Transaction amount</param>
+    public async Task FillAmountAsync(decimal amount)
+    {
+        await EditAmountInput.FillAsync(amount.ToString("F2"));
+    }
+
+    /// <summary>
+    /// Fills the payee field in edit mode
+    /// </summary>
+    /// <param name="payee">Payee name</param>
+    public async Task FillPayeeAsync(string payee)
+    {
+        await EditPayeeInput.FillAsync(payee);
+    }
+
+    /// <summary>
+    /// Fills the memo field in edit mode
+    /// </summary>
+    /// <param name="memo">Memo text</param>
+    public async Task FillMemoAsync(string memo)
+    {
+        await EditMemoInput.FillAsync(memo);
+    }
+
+    /// <summary>
+    /// Fills the source field in edit mode
+    /// </summary>
+    /// <param name="source">Source (bank account)</param>
+    public async Task FillSourceAsync(string source)
+    {
+        await EditSourceInput.FillAsync(source);
+    }
+
+    /// <summary>
+    /// Fills the external ID field in edit mode
+    /// </summary>
+    /// <param name="externalId">External ID (bank's unique identifier)</param>
+    public async Task FillExternalIdAsync(string externalId)
+    {
+        await EditExternalIdInput.FillAsync(externalId);
+    }
+
+    /// <summary>
+    /// Saves the transaction changes
+    /// </summary>
+    /// <remarks>
+    /// Submits the edit form and waits for the API call to complete.
+    /// </remarks>
+    public async Task SaveAsync()
+    {
+        await WaitForApi(async () =>
+        {
+            await SaveButton.ClickAsync();
+        }, TransactionApiRegex());
+
+        // Wait for edit mode to close and display mode to appear
+        await DetailsCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
+    /// Cancels editing and returns to display mode
+    /// </summary>
+    public async Task CancelEditingAsync()
+    {
+        await CancelEditButton.ClickAsync();
+        await DetailsCard.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    #endregion
+
+    #region Transaction Deletion
+
+    /// <summary>
+    /// Delete confirmation modal
+    /// </summary>
+    public ILocator DeleteModal => Page!.GetByTestId("delete-transaction-modal");
+
+    /// <summary>
+    /// Delete transaction details in modal
+    /// </summary>
+    public ILocator DeleteTransactionDetails => Page!.GetByTestId("delete-transaction-details");
+
+    /// <summary>
+    /// Delete confirm button in modal
+    /// </summary>
+    public ILocator DeleteConfirmButton => DeleteModal.GetByTestId("delete-confirm-button");
+
+    /// <summary>
+    /// Delete cancel button in modal
+    /// </summary>
+    public ILocator DeleteCancelButton => DeleteModal.GetByTestId("delete-cancel-button");
+
+
+    /// <summary>
+    /// Opens the delete confirmation modal
+    /// </summary>
+    public async Task OpenDeleteModalAsync()
+    {
+        await DeleteButton.ClickAsync();
+        await DeleteModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
 
     /// <summary>
     /// Confirms the deletion of the transaction
@@ -588,134 +704,13 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Query Methods
 
-    /// <summary>
-    /// Gets the payee text from the details display
-    /// </summary>
-    /// <returns>The payee name</returns>
-    public async Task<string?> GetPayeeAsync()
-    {
-        return await PayeeHeading.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the date text from the details display
-    /// </summary>
-    /// <returns>The date text as displayed</returns>
-    public async Task<string?> GetDateAsync()
-    {
-        return await DateDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the amount text from the details display
-    /// </summary>
-    /// <returns>The amount text as displayed</returns>
-    public async Task<string?> GetAmountAsync()
-    {
-        return await AmountDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the memo text from the details display
-    /// </summary>
-    /// <returns>The memo text</returns>
-    public async Task<string?> GetMemoAsync()
-    {
-        return await MemoDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the category text from the details display
-    /// </summary>
-    /// <returns>The category text</returns>
-    public async Task<string?> GetCategoryAsync()
-    {
-        return await CategoryDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the source text from the details display
-    /// </summary>
-    /// <returns>The source text</returns>
-    public async Task<string?> GetSourceAsync()
-    {
-        return await SourceDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the external ID text from the details display
-    /// </summary>
-    /// <returns>The external ID text</returns>
-    public async Task<string?> GetExternalIdAsync()
-    {
-        return await ExternalIdDisplay.TextContentAsync();
-    }
 
-    /// <summary>
-    /// Gets the displayed category, amount, and memo for each split, in transaction order.
-    /// </summary>
-    public async Task<IReadOnlyList<(string Category, string Amount, string Memo)>> GetDisplayedSplitsAsync()
-    {
-        var splits = new List<(string Category, string Amount, string Memo)>();
-        var count = await SplitRows.CountAsync();
-        for (var index = 0; index < count; index++)
-        {
-            var cells = await SplitRows.Nth(index).Locator("td").AllInnerTextsAsync();
-            const int expectedCellCount = 4;
-            if (cells.Count != expectedCellCount)
-            {
-                throw new InvalidOperationException($"Expected {expectedCellCount} cells in split row {index}, found {cells.Count}.");
-            }
 
-            splits.Add((cells[0].Trim(), cells[1].Trim(), cells[2].Trim()));
-        }
-
-        return splits;
-    }
-
-    /// <summary>
-    /// Waits until exactly the expected number of splits is displayed.
-    /// </summary>
-    public Task ExpectSplitCountAsync(int expectedCount) =>
-        Assertions.Expect(SplitRows).ToHaveCountAsync(expectedCount);
-
-    /// <summary>
-    /// Checks if the page is in display mode
-    /// </summary>
-    /// <returns>True if in display mode, false if in edit mode</returns>
-    public async Task<bool> IsDisplayModeAsync()
-    {
-        return await DetailsCard.IsVisibleAsync();
-    }
-
-    /// <summary>
-    /// Checks if the page is in edit mode
-    /// </summary>
-    /// <returns>True if in edit mode, false if in display mode</returns>
-    public async Task<bool> IsEditModeAsync()
-    {
-        return await EditCard.IsVisibleAsync();
-    }
-
-    /// <summary>
-    /// Checks if the page is in loading state
-    /// </summary>
-    /// <returns>True if loading spinner is visible, false otherwise</returns>
-    public async Task<bool> IsLoadingAsync()
-    {
-        return await LoadingSpinner.IsVisibleAsync();
-    }
-
-    /// <summary>
-    /// Checks if a workspace is currently selected
-    /// </summary>
-    /// <returns>True if no workspace warning is not visible, false otherwise</returns>
-    public async Task<bool> HasWorkspaceSelectedAsync()
-    {
-        return !(await NoWorkspaceWarning.IsVisibleAsync());
-    }
-
-    #endregion
 }
