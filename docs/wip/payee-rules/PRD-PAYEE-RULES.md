@@ -151,7 +151,7 @@ for this. They can edit the transaction, remove the splits, and then trigger man
 - [ ] User can filter and sort by these fields
 - [ ] User can bulk delete old rules. User can specify how old is "old", and 12 months will be the intelligent default.
 
-### Story 6: User - Split based on amortization [NEW] [FUTURE]
+### Story 2306: User - Split based on amortization [NEW] [FUTURE]
 
 **As an** advanced user with loan payments
 **I want** to split my loan payments transactions into principal and interest according to their amortization rules
@@ -181,7 +181,7 @@ Resulting Splits:
 - Mortgage Principal: xxx
 - Mortgage Interest: xxx
 
-### Story 7: User - Split based on amounts [NEW] [FUTURE]
+### Story 2307: User - Split based on amounts [NEW] [FUTURE]
 
 **As an** advanced user with complex recurring transactions
 **I want** to split matched transactions into different categories by amount

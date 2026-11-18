@@ -79,9 +79,9 @@ graph TB
 **Features**:
 
 - Payee matching rules (substring and regex) → [PRD: Payee Rules](wip/payee-rules/PRD-PAYEE-RULES.md)
-- Category autocomplete (future)
-- Split templates (future)
-- Bulk operations (future)
+- Category autocomplete (future) (Scenario 2235)
+- Split templates (future) (Stories 2306, 2307)
+- Bulk operations (future) (Story 2305)
 
 ### 📥 Import & Integration (Epic 2198)
 
@@ -105,8 +105,8 @@ graph TB
 
 - Multi-tenancy (workspace) foundation
 - Role-based access (Owner/Editor/Viewer)
-- User management
-- Activity auditing (future)
+- User management (future) (Feature 2231)
+- Activity auditing (future) (Feature 2246)
 
 ### 📊 Reports & Insights (Epic 2200)
 
@@ -120,9 +120,9 @@ graph TB
 - Trend analysis and visualizations
 - Budget creation and tracking → [PRD: Budgets](wip/budgets/PRD-BUDGETS.md)
 - API access for external reporting tools (Excel integration) → [PRD: Reports Export API](wip/reports/PRD-EXPORT-API.md)
-- Custom dashboards
-- Net worth tracking (balance sheet view)
-- Tax planning and historical tax analysis
+- Custom dashboards (future)
+- Net worth tracking (balance sheet view) (future)
+- Tax planning and historical tax analysis (future)
 
 ### 📎 Document Management (Epic 2201)
 
@@ -224,13 +224,13 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2 - Add Additional Information            | A1        | 2         | ✅ Implemented       |
 | Story 3 - Manage Transactions                   | A1        | 3         | ✅ Implemented       |
 | **Feature 1982: Transaction Splits**            |           |           | 🚧 In Progress       |
-| Story 1 - Split Single Transaction              | B1        |           | 🚧 In Progress       |
+| Story 1 - Split Single Transaction              | B1        | 5         | 🚧 In Progress       |
 | Story 2 - View Category Reports                 | -         |           | 🚫 Superseded        |
 | Story 3 - Simple Single-Category Workflow       | A1        | 1         | ✅ Implemented       |
-| Story 4 - Detect Unbalanced Transactions        | B2        |           | 🎨 Design Complete   |
+| Story 4 - Detect Unbalanced Transactions        | B2        | 6         | 🎨 Design Complete   |
 | Story 5 - Import Transactions with Splits       | A1        | 1         | ✅ Implemented       |
-| Story 6 - Upload Splits                         | B2        |           | 🎨 Design Complete   |
-| **Feature 1983: Transaction Filtering**         |           |           | 🚧 In Progress   |
+| Story 6 - Upload Splits                         | B2        | 6         | 🎨 Design Complete   |
+| **Feature 1983: Transaction Filtering**         |           |           | 🚧 In Progress       |
 | Story 2213 - Quick Text Search                  | A1        | 2         | ✅ Implemented       |
 | Story 2214 - Find Uncategorized                 | B1        |           | ✅ Implemented       |
 | Story 2215 - Default Date Range                 | V3.0      |           | 🎨 Design Complete   |
@@ -245,38 +245,38 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
 | Story 2211 - Establish Rules (CRUD)             | B2        |           | ✅ Implemented       |
 | Story 2212 - Auto-categorize on Import          | A1        | 3         | ✅ Implemented       |
-| Story 2266 - Manual Trigger Matching            | B3        |           | ✔️ Approved          |
+| Story 2266 - Manual Trigger Matching            | B2        | 6         | ✔️ Approved          |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
-| **Feature 2206: Tenant Data Admin**             |           |           | ✔️ Approved          |
-| Story 2220 - Export with Selection              | B1        |           | ✔️ Approved          |
-| Story 2221 - Import with Detection              | B1        |           | ✔️ Approved          |
+| **Feature 2206: Tenant Data Admin**             |           |           | 🚧 In Progress       |
+| Story 2220 - Export with Selection              | B1        | 5         | 🚧 In Progress       |
+| Story 2221 - Import with Detection              | B1        | 5         | 🚧 In Progress       |
 | Story 2222 - Delete All Data                    | V3.0      |           | ✅ Implemented       |
 | Story 2223 - Load Sample Data                   | A1        | 2         | ✅ Implemented       |
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
 | Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
-| Story 2249 - Configure Report Display           | B1        |           | ✔️ Approved          |
-| Story 3 - View Report in Chart Form             | V3.0      |           | ✔️ Approved          |
-| Story 4 - View Summary Report                   | B3        |           | ✔️ Approved          |
-| Story 5 - View Budget Reports                   | B2        |           | ✔️ Approved          |
-| Story 6 - View Complete History Over Time       | B3        |           | ✔️ Approved          |
-| Story 7 - Investigate Underlying Transactions   | V3.1      |           | ✔️ Approved          |
+| Story 2249 - Configure Report Display           | B1        | 6         | ✔️ Approved          |
+| Story 3 - View Report in Chart Form             | V3.0      | 8         | ✔️ Approved          |
+| Story 4 - View Summary Report                   | B3        | 8         | ✔️ Approved          |
+| Story 5 - View Budget Reports                   | B2        | 7         | ✔️ Approved          |
+| Story 6 - View Complete History Over Time       | B3        | 8         | ✔️ Approved          |
+| Story 7 - Investigate Underlying Transactions   | V3.1      | 8         | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
 | **Feature 2208: Reports Export API**            |           |           | 🎨 Design Complete   |
-| Story 1 - Connect Excel to YoFi Reports         | B2        |           | 🎨 Design Complete   |
-| Story 2 - Access Multiple Workspaces from Excel | B2        |           | 🎨 Design Complete   |
-| Story 3 - Secure API Key Management             | B2        |           | 🎨 Design Complete   |
+| Story 1 - Connect Excel to YoFi Reports         | B2        | 9         | 🎨 Design Complete   |
+| Story 2 - Access Multiple Workspaces from Excel | B2        | 9         | 🎨 Design Complete   |
+| Story 3 - Secure API Key Management             | B2        | 9         | 🎨 Design Complete   |
 | Story 4 - Discover Available Reports            | Post V3   |           | 🎨 Design Complete   |
 | **Feature 2209: Transaction Receipts**          |           |           | ✔️ Approved          |
-| Story 1 - Direct Receipt Upload                 | B3        |           | ✔️ Approved          |
-| Story 2 - Receipts Inbox for Bulk Upload        | B3        |           | ✔️ Approved          |
-| Story 3 - Automatic Matching Suggestions        | B3        |           | ✔️ Approved          |
-| Story 4 - Manual Match Review                   | B3        |           | ✔️ Approved          |
+| Story 1 - Direct Receipt Upload                 | B3        | 10        | ✔️ Approved          |
+| Story 2 - Receipts Inbox for Bulk Upload        | B3        | 10        | ✔️ Approved          |
+| Story 3 - Automatic Matching Suggestions        | B3        | 10        | ✔️ Approved          |
+| Story 4 - Manual Match Review                   | B3        | 10        | ✔️ Approved          |
 | **Feature 2210: Budgets**                       |           |           | ✔️ Approved          |
-| Story 1 - Create/Edit Budget                    | B2        |           | ✔️ Approved          |
-| Story 2 - View Budget Status                    | B2        |           | ✔️ Approved          |
-| Story 3 - Allocate Budget at Any Category Level | B2        |           | ✔️ Approved          |
+| Story 1 - Create/Edit Budget                    | B2        | 7         | ✔️ Approved          |
+| Story 2 - View Budget Status                    | B2        | 7         | ✔️ Approved          |
+| Story 3 - Allocate Budget at Any Category Level | B2        | 7         | ✔️ Approved          |
 | Story 4 - Create Budget from Historical Data    | Post V3   |           | ✔️ Approved          |
 | Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | ✔️ Approved          |
 

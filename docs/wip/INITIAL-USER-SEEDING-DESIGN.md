@@ -1,9 +1,13 @@
 ---
-status: Approved
+status: Superseded
 purpose: Design a scheme to seed an initial user that works across all environments (Development, Container, Production)
 ado: "[User Story 1997](https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/1997): System: Initial User Seeding"
 ---
 # Initial User Seeding Design
+
+> ![IMPORTANT]
+> This design has been superseded. NuxtIdentity provides user seeding now,
+> which completely solves this problem.
 
 ## Problem Statement
 
