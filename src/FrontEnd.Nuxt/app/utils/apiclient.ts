@@ -7925,6 +7925,8 @@ export class TransactionResultDto implements ITransactionResultDto {
     category?: string;
     /** Whether the transaction has more than one split */
     hasMultipleSplits?: boolean;
+    /** Whether the split amounts sum to the transaction amount */
+    isBalanced?: boolean;
 
     constructor(data?: ITransactionResultDto) {
         if (data) {
@@ -7944,6 +7946,7 @@ export class TransactionResultDto implements ITransactionResultDto {
             this.memo = _data["memo"];
             this.category = _data["category"];
             this.hasMultipleSplits = _data["hasMultipleSplits"];
+            this.isBalanced = _data["isBalanced"];
         }
     }
 
@@ -7963,6 +7966,7 @@ export class TransactionResultDto implements ITransactionResultDto {
         data["memo"] = this.memo;
         data["category"] = this.category;
         data["hasMultipleSplits"] = this.hasMultipleSplits;
+        data["isBalanced"] = this.isBalanced;
         return data;
     }
 }
@@ -7983,6 +7987,8 @@ export interface ITransactionResultDto {
     category?: string;
     /** Whether the transaction has more than one split */
     hasMultipleSplits?: boolean;
+    /** Whether the split amounts sum to the transaction amount */
+    isBalanced?: boolean;
 }
 
 /** Complete transaction data including all fields (output-only). */
@@ -8003,6 +8009,10 @@ export class TransactionDetailDto implements ITransactionDetailDto {
     externalId?: string | undefined;
     /** Category from the single split, or empty when there are multiple splits or no category */
     category?: string;
+    /** Signed sum of all persisted split amounts */
+    splitsTotal?: number;
+    /** Whether the split total equals the transaction amount */
+    isBalanced?: boolean;
     /** Gets allocations in display order for multi-split transactions; otherwise empty. */
     splits?: TransactionSplitDto[];
 
@@ -8025,6 +8035,8 @@ export class TransactionDetailDto implements ITransactionDetailDto {
             this.source = _data["source"];
             this.externalId = _data["externalId"];
             this.category = _data["category"];
+            this.splitsTotal = _data["splitsTotal"];
+            this.isBalanced = _data["isBalanced"];
             if (Array.isArray(_data["splits"])) {
                 this.splits = [] as any;
                 for (let item of _data["splits"])
@@ -8050,6 +8062,8 @@ export class TransactionDetailDto implements ITransactionDetailDto {
         data["source"] = this.source;
         data["externalId"] = this.externalId;
         data["category"] = this.category;
+        data["splitsTotal"] = this.splitsTotal;
+        data["isBalanced"] = this.isBalanced;
         if (Array.isArray(this.splits)) {
             data["splits"] = [];
             for (let item of this.splits)
@@ -8077,6 +8091,10 @@ export interface ITransactionDetailDto {
     externalId?: string | undefined;
     /** Category from the single split, or empty when there are multiple splits or no category */
     category?: string;
+    /** Signed sum of all persisted split amounts */
+    splitsTotal?: number;
+    /** Whether the split total equals the transaction amount */
+    isBalanced?: boolean;
     /** Gets allocations in display order for multi-split transactions; otherwise empty. */
     splits?: TransactionSplitDto[];
 }

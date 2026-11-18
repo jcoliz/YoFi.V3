@@ -1558,6 +1558,10 @@
           "hasMultipleSplits": {
             "type": "boolean",
             "description": "Whether the transaction has more than one split"
+          },
+          "isBalanced": {
+            "type": "boolean",
+            "description": "Whether the split amounts sum to the transaction amount"
           }
         }
       },
@@ -1694,6 +1698,15 @@
           "category": {
             "type": "string",
             "description": "Category from the single split, or empty when there are multiple splits or no category"
+          },
+          "splitsTotal": {
+            "type": "number",
+            "description": "Signed sum of all persisted split amounts",
+            "format": "decimal"
+          },
+          "isBalanced": {
+            "type": "boolean",
+            "description": "Whether the split total equals the transaction amount"
           },
           "splits": {
             "type": "array",
