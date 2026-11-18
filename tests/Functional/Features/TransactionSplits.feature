@@ -92,17 +92,35 @@ Feature: Transaction Splits
     @category:scenario-2251
     Rule: Edit splits
 
+        @id:1
         Scenario: Edit a non-first split amount
             Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
-                | Amount  | Category  | Memo |
-                | -60.00  | Groceries |      |
-                | -40.00  | Household |      |
+                | Amount | Category  | Memo |
+                | -60.00 | Groceries |      |
+                | -40.00 | Household |      |
             And I am on the transactions detail page for that transaction
             When I edit the "Household" split amount to -50.00
             Then the following splits are displayed:
-                | Amount  | Category  | Memo |
-                | -50.00  | Groceries |      |
-                | -50.00  | Household |      |
+                | Amount | Category  | Memo |
+                | -50.00 | Groceries |      |
+                | -50.00 | Household |      |
             And the transaction amount remains -100.00
             And the transaction is balanced
 
+        @id:2
+        Scenario: Edit the first split amount
+
+            This ensures the transaction remains balanced after editing the first split amount
+
+            Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
+                | Amount | Category  | Memo |
+                | -60.00 | Groceries |      |
+                | -40.00 | Household |      |
+            And I am on the transactions detail page for that transaction
+            When I edit the "Groceries" split amount to -70.00
+            Then the following splits are displayed:
+                | Amount | Category  | Memo |
+                | -70.00 | Groceries |      |
+                | -30.00 | Household |      |
+            And the transaction amount remains -100.00
+            And the transaction is balanced
