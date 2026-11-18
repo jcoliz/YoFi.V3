@@ -176,6 +176,31 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator SplitRows => SplitsPane.GetByTestId("transaction-splits-table").Locator("tbody tr");
 
+    /// <summary>
+    /// Action buttons for displayed split rows, in transaction order
+    /// </summary>
+    public ILocator SplitActionButtons => SplitRows.GetByTestId("row-actions-button");
+
+    /// <summary>
+    /// Edit buttons for displayed split row menus, in transaction order
+    /// </summary>
+    public ILocator SplitEditButtons => SplitRows.GetByTestId("edit-button");
+
+    /// <summary>
+    /// Dialog for editing a split
+    /// </summary>
+    public ILocator EditSplitDialog => Page!.GetByTestId("edit-split-dialog");
+
+    /// <summary>
+    /// Amount input in the edit-split dialog
+    /// </summary>
+    public ILocator EditSplitAmountInput => EditSplitDialog.GetByTestId("edit-split-amount");
+
+    /// <summary>
+    /// Save button in the edit-split dialog
+    /// </summary>
+    public ILocator SaveEditedSplitButton => EditSplitDialog.GetByTestId("edit-split-save-button");
+
     #endregion
 
     #region Edit Mode Elements
@@ -420,6 +445,46 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         {
             await SaveSplitButton.ClickAsync();
         }, TransactionApiRegex());
+    }
+
+    /// <summary>
+    /// Edits a split's amount, selecting the split by its displayed category.
+    /// </summary>
+    public async Task EditSplitAmountAsync(string category, decimal amount)
+    {
+        var displayedCategory = string.IsNullOrWhiteSpace(category) ? EmptyFieldDisplay : category;
+        var matchingRow = SplitRows.Filter(new()
+        {
+            Has = Page!.GetByRole(AriaRole.Cell, new() { Name = displayedCategory, Exact = true })
+        });
+        await Assertions.Expect(matchingRow).ToHaveCountAsync(1);
+
+        var rowCount = await SplitRows.CountAsync();
+        var rowIndex = -1;
+        for (var index = 0; index < rowCount; index++)
+        {
+            var rowCategory = await SplitRows.Nth(index).GetByRole(AriaRole.Cell).First.InnerTextAsync();
+            if (rowCategory.Trim() == displayedCategory)
+            {
+                rowIndex = index;
+                break;
+            }
+        }
+
+        if (rowIndex < 0)
+            throw new InvalidOperationException($"No split has category '{displayedCategory}'.");
+
+        await SplitActionButtons.Nth(rowIndex).ClickAsync();
+        await SplitEditButtons.Nth(rowIndex).ClickAsync();
+        await EditSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await EditSplitAmountInput.FillAsync(amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+
+        await WaitForApi(async () =>
+        {
+            await SaveEditedSplitButton.ClickAsync();
+        }, TransactionApiRegex());
+
+        await EditSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
     }
 
     #endregion

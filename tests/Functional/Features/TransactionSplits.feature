@@ -12,7 +12,8 @@ Feature: Transaction Splits
         Given the application is running
         And I am logged in as a user with "Editor" role
 
-    @category:story-2252
+    @category:story-2225
+    @category:scenario-2252
     @category:add-splits
     Rule: Add a single split to an existing transaction
 
@@ -51,7 +52,8 @@ Feature: Transaction Splits
             And the transaction amount remains -250.00
             And the transaction is balanced
 
-    @category:story-2250
+    @category:story-2225
+    @category:scenario-2250
     @category:view-splits
     Rule: View splits on list and details page
 
@@ -84,3 +86,23 @@ Feature: Transaction Splits
                 | -125.00 | Groceries                |                      |
                 | -50.00  | Supplies                 |                      |
                 | -75.00  | Healthcare:Prescriptions | Can't forget my meds |
+
+    @category:edit-splits
+    @category:story-2225
+    @category:scenario-2251
+    Rule: Edit splits
+
+        Scenario: Edit a non-first split amount
+            Given I have a workspace with a transaction for payee "Maverick Markets" having these splits:
+                | Amount  | Category  | Memo |
+                | -60.00  | Groceries |      |
+                | -40.00  | Household |      |
+            And I am on the transactions detail page for that transaction
+            When I edit the "Household" split amount to -50.00
+            Then the following splits are displayed:
+                | Amount  | Category  | Memo |
+                | -50.00  | Groceries |      |
+                | -50.00  | Household |      |
+            And the transaction amount remains -100.00
+            And the transaction is balanced
+

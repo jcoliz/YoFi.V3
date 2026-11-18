@@ -34,6 +34,21 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     }
 
     /// <summary>
+    /// When I edit the {category} split amount to {amount}
+    /// </summary>
+    /// <param name="category">The category of the split to edit.</param>
+    /// <param name="amount">The new amount for the split as a stringified decimal.</param>
+    [When("I edit the {category} split amount to {amount}")]
+    public async Task IEditTheSplitAmountTo(string category, string amount)
+    {
+        Assert.That(decimal.TryParse(amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedAmount),
+            Is.True, $"Could not parse split amount '{amount}'.");
+
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.EditSplitAmountAsync(category, parsedAmount);
+    }
+
+    /// <summary>
     /// Then the following splits are displayed:
     /// </summary>
     [Then("the following splits are displayed:")]
