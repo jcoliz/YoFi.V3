@@ -82,6 +82,13 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     }
 
     /// <summary>
+    /// Checks the success indicator without depending on its wording.
+    /// </summary>
+    [Then("the splits should be uploaded successfully")]
+    public Task TheSplitsShouldBeUploadedSuccessfully()
+        => _context.GetOrCreatePage<TransactionDetailsPage>().ExpectUploadSuccessMessageAsync();
+
+    /// <summary>
     /// Then the following splits are displayed:
     /// </summary>
     [Then("the following splits are displayed:")]

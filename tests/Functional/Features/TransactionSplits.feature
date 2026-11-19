@@ -211,7 +211,8 @@ Feature: Transaction Splits
                 | Category | Amount | Memo     |
                 | Salary   | 800.00 | Base pay |
                 | Bonus    | 200.00 | Annual   |
-            Then the following splits are displayed:
+            Then the splits should be uploaded successfully
+            And the following splits are displayed:
                 | Amount | Category | Memo     |
                 | 800.00 | Salary   | Base pay |
                 | 200.00 | Bonus    | Annual   |

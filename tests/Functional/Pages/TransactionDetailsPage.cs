@@ -402,6 +402,8 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator TransactionSplitBalanceAlert_SplitDifference => TransactionSplitBalanceAlert.GetByTestId("transaction-split-difference");
 
+    public ILocator TransactionSplitsUploadedMessage => base.AppToast.GetByTestId("transaction-splits-uploaded");
+
     /// <summary>
     /// Uploads a split workbook and waits for the dialog to close on success.
     /// </summary>
@@ -417,6 +419,16 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         });
         await UploadSplitsSubmitButton.ClickAsync();
         await UploadSplitsDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Check the toast message indicating successful upload of splits.
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    internal async Task ExpectUploadSuccessMessageAsync()
+    {
+        await Assertions.Expect(TransactionSplitsUploadedMessage).ToBeVisibleAsync();
     }
 
     /// <summary>
