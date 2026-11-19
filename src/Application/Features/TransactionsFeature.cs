@@ -2,7 +2,10 @@ using System.Data;
 using System.Linq.Expressions;
 using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
+using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Helpers;
+using YoFi.V3.Application.Services;
+using YoFi.V3.Application.Validation;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -13,13 +16,36 @@ namespace YoFi.V3.Application.Features;
 /// <summary>
 /// Provides transaction management functionality for the current tenant.
 /// </summary>
-/// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
-/// <param name="dataProvider">Provider for data access operations.</param>
-public class TransactionsFeature(
-    ITenantProvider tenantProvider,
-    IDataProvider dataProvider)
+public class TransactionsFeature
 {
-    private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
+    private readonly Tenant _currentTenant;
+    private readonly IDataProvider dataProvider;
+    private readonly TransactionSplitWorkbookService _workbookService;
+
+    /// <summary>Initializes a transactions feature with the default workbook service.</summary>
+    /// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
+    /// <param name="dataProvider">Provider for data access operations.</param>
+    public TransactionsFeature(
+        ITenantProvider tenantProvider,
+        IDataProvider dataProvider)
+        : this(tenantProvider, dataProvider, new TransactionSplitWorkbookService())
+    {
+    }
+
+    /// <summary>Initializes a transactions feature with a workbook service.</summary>
+    /// <param name="tenantProvider">Provider for accessing the current tenant context.</param>
+    /// <param name="dataProvider">Provider for data access operations.</param>
+    /// <param name="workbookService">Workbook parser and template service.</param>
+    public TransactionsFeature(
+        ITenantProvider tenantProvider,
+        IDataProvider dataProvider,
+        TransactionSplitWorkbookService workbookService)
+    {
+        ArgumentNullException.ThrowIfNull(workbookService);
+        _currentTenant = tenantProvider.CurrentTenant;
+        this.dataProvider = dataProvider;
+        _workbookService = workbookService;
+    }
 
     /// <summary>
     /// Gets paginated transactions for the current tenant, optionally filtered by date range and search term.
@@ -123,6 +149,106 @@ public class TransactionsFeature(
         var results = newTransactions.Select(ToDetailDto).ToList();
 
         return results;
+    }
+
+    /// <summary>Verifies a transaction and creates the supported split-upload workbook template.</summary>
+    /// <param name="transactionKey">Tenant-scoped transaction key.</param>
+    /// <param name="cancellationToken">Cancellation token for the lookup.</param>
+    /// <returns>Generated XLSX template bytes and filename.</returns>
+    /// <exception cref="TransactionNotFoundException">The transaction is not in the current tenant.</exception>
+    public async Task<SplitUploadTemplateResultDto> GetSplitUploadTemplateAsync(
+        Guid transactionKey,
+        CancellationToken cancellationToken = default)
+    {
+        await GetTransactionByKeyInternalAsync(transactionKey);
+        cancellationToken.ThrowIfCancellationRequested();
+        return _workbookService.CreateTemplate();
+    }
+
+    /// <summary>Validates, appends, and balances transaction splits from an uploaded XLSX workbook.</summary>
+    /// <param name="transactionKey">Tenant-scoped transaction key.</param>
+    /// <param name="workbook">Exact uploaded XLSX bytes.</param>
+    /// <param name="cancellationToken">Cancellation token for parsing and persistence.</param>
+    /// <returns>The committed, ordered transaction detail.</returns>
+    /// <exception cref="ValidationProblemsException">The workbook is invalid or imports no non-zero splits.</exception>
+    /// <exception cref="TransactionNotFoundException">The transaction is not in the current tenant.</exception>
+    /// <exception cref="ValidationException">The transaction has no split or the calculated balance is invalid.</exception>
+    /// <exception cref="DataConflictException">A concurrent change prevented the serializable update.</exception>
+    public Task<TransactionDetailDto> UploadSplitsAsync(
+        Guid transactionKey,
+        byte[] workbook,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workbook);
+        var uploadedRows = _workbookService.Parse(workbook);
+
+        return dataProvider.ExecuteInTransactionAsync(async token =>
+        {
+            token.ThrowIfCancellationRequested();
+            var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+            var existingSplits = transaction.Splits.OrderBy(split => split.Order).ToList();
+
+            if (existingSplits.Count == 0)
+            {
+                throw new ValidationException(
+                    nameof(transactionKey),
+                    "A split upload cannot be applied to a transaction without an existing split.");
+            }
+
+            var firstSplit = existingSplits[0];
+            var importedTotal = uploadedRows.Sum(row => row.Amount);
+            var balancingAmount = transaction.Amount
+                - existingSplits.Skip(1).Sum(split => split.Amount)
+                - importedTotal;
+
+            var balancingValidation = new SplitEditDtoValidator().Validate(
+                new SplitEditDto(balancingAmount, firstSplit.Category, firstSplit.Memo));
+            if (!balancingValidation.IsValid)
+            {
+                var failure = balancingValidation.Errors.First();
+                throw new ValidationException(failure.PropertyName, failure.ErrorMessage);
+            }
+
+            var maximumOrder = existingSplits.Count == 0
+                ? -1
+                : existingSplits.Max(split => split.Order);
+            var importedOrder = maximumOrder + 1;
+
+            foreach (var row in uploadedRows)
+            {
+                var newSplit = new Split
+                {
+                    TransactionId = transaction.Id,
+                    Amount = row.Amount,
+                    Category = row.Category,
+                    Memo = row.Memo,
+                    Order = importedOrder++
+                };
+                transaction.Splits.Add(newSplit);
+                dataProvider.Add(newSplit);
+            }
+
+            if (balancingAmount == 0m)
+            {
+                transaction.Splits.Remove(firstSplit);
+                dataProvider.Remove(firstSplit);
+
+                var survivingSplits = transaction.Splits
+                    .OrderBy(split => split.Order)
+                    .ToList();
+                for (var order = 0; order < survivingSplits.Count; order++)
+                {
+                    survivingSplits[order].Order = order;
+                }
+            }
+            else
+            {
+                firstSplit.Amount = balancingAmount;
+            }
+
+            await dataProvider.SaveChangesAsync(token);
+            return ToDetailDto(transaction);
+        }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
     }
 
     /// <summary>

@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IImportWorksheetHandler, NativeYoFiSplitWorksheetHandler>();
         services.AddScoped<IExportWorksheetWriter, TransactionExportWorksheetWriter>();
         services.AddScoped<IExportWorksheetWriter, PayeeMatchingRuleExportWorksheetWriter>();
+        services.AddScoped<TransactionSplitWorkbookService>();
 
         // Register memory cache for features that need caching (e.g., PayeeMatchingRuleFeature)
         services.AddMemoryCache();

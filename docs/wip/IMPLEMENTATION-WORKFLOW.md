@@ -226,10 +226,14 @@ Skip this phase if the design states no data changes.
 - [ ] Write unit tests in `tests/Unit/` covering normal, boundary, and error paths for logic that does
       not require a database. Update existing unit tests affected by signature changes.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Unit`; iterate until all pass.
-- [ ] Run `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
 
 **Commits:** `feat([feature-slug]): implement application layer`. If unit tests are written separately, they can be committed with
 `test(unit): add [feature] validation and logic tests`. If they're all together, include them with the `feat` commit.
+
+> ![NOTE]
+> Previous iterations of this guide directed developers to run the `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
+> However, this script takes too long given how long it takes the scripts to execute, and the sporadic
+> nature of our coverage, we will skip this step until we can re-think code coverage.
 
 ---
 

@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 target_release: Beta 2
 prd_document: PRD-TRANSACTION-SPLITS.md
 parent: "Feature 1982: Transaction Splits"
@@ -10,7 +10,7 @@ ado: "Story 2309: User - Upload splits (upload-splits)"
 
 ## Scope
 
-This design covers Story 6, **User - Upload splits (upload-splits)**, in
+This design covers Story 2309, **User - Upload splits (upload-splits)**, in
 [`PRD-TRANSACTION-SPLITS.md`](PRD-TRANSACTION-SPLITS.md). It covers the complete
 single-transaction workbook upload, template download, validation, atomic
 append, rebalancing, and transaction-detail UI workflow.
