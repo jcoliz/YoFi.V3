@@ -63,6 +63,7 @@ returns before the transaction is changed.
 | Add imported non-zero splits after all existing splits, then adjust the existing first split by `Order` to balance. | Replace all existing splits; balance by changing an imported split. | The PRD requires append behavior and names the existing first split as the balancing allocation. This is consistent with add/edit/delete operations. |
 | Remove the balancing split only when its calculated amount is exactly zero. | Keep zero-valued splits; remove any near-zero value. | All persisted currency values use exact decimal cents, so exact zero is deterministic and follows the invariant to ignore zero allocations. |
 | Return one `400 ValidationProblemDetails` with every row and workbook issue. | Return only the first issue; use a preview response. | The user can fix all problems in one pass, and the existing `ErrorDisplay` component already renders structured validation errors inline. |
+| Carry the validation title, detail, and grouped errors on a reusable Application exception. | Add a split-specific exception and teach the controller handler how to translate split issues. | Validation shape belongs to the failure, while the API handler should remain a generic exception-to-ProblemDetails adapter. Other Application Features can reuse the same exception without new middleware branches. |
 | Use a dedicated `UploadSplitsDialog.vue` component rather than page-local file state. | Add the form directly to the detail page. | Upload has its own file, busy, download, and error lifecycle. Encapsulation keeps the existing transaction page focused and is testable as a component. |
 | Generate the template workbook in the backend. | Commit a static binary file; generate a CSV-like workbook in the browser. | A generated XLSX stays aligned with the accepted schema and ClosedXML version, and it is downloaded through the authenticated API client. |
 
@@ -117,18 +118,18 @@ public record SplitUploadIssueDto(
     string Message);
 ```
 
-- `SplitUploadTemplateResultDto` is an output DTO summarized as **Generated XLSX
+- `SplitUploadTemplateResultDto` is an output DTO which represents **Generated XLSX
   template bytes and the download filename**.
-- `SplitUploadRowDto` is an internal application transfer shape summarized as
+- `SplitUploadRowDto` is an internal application transfer shape which represents
   **One validated, non-zero allocation from the first worksheet**. It is not
   exposed in the OpenAPI response contract.
-- `SplitUploadIssueDto` is summarized as **One workbook, header, or row
+- `SplitUploadIssueDto` represents **One workbook, header, or row
   validation issue**. `RowNumber` is one-based; workbook-level issues use `1`.
 
-### Workbook service
+### Workbook services
 
 Add
-`src/Application/Services/TransactionSplitWorkbookService.cs`, summarized as
+`src/Application/Services/TransactionSplitWorkbookService.cs`, which
 **Parses and validates transaction-split upload workbooks and creates the
 downloadable XLSX template**.
 
@@ -140,8 +141,8 @@ public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content);
 public SplitUploadTemplateResultDto CreateTemplate();
 ```
 
-`Parse` throws `SplitUploadValidationException` when one or more issues exist,
-and returns only non-zero, validated rows in source order otherwise. It applies
+`Parse` throws `ValidationProblemsException` when one or more issues exist, and
+returns only non-zero, validated rows in source order otherwise. It applies
 these rules in this order:
 
 1. Open `content` as a ClosedXML `XLWorkbook`. Invalid ZIP/OpenXML/XML, an empty
@@ -176,8 +177,18 @@ these rules in this order:
     Do not stop after the first row error.
 11. If no errors exist but no non-zero rows remain, add a row-1 `empty_import`
     issue with message `The worksheet does not contain any non-zero splits to import.`
-12. If any issues exist, throw one `SplitUploadValidationException`. Otherwise
-    return the validated rows in source order.
+12. If any issues exist, group them by `Row {RowNumber}: {Field}` into an
+    `IReadOnlyDictionary<string, string[]>`, preserve source issue order within
+    each group, and throw:
+
+    ```csharp
+    new ValidationProblemsException(
+        "The split workbook failed validation.",
+        "Correct the workbook errors and upload it again. No splits were changed.",
+        errors);
+    ```
+
+    Otherwise return the validated rows in source order.
 
 `CreateTemplate` creates one worksheet named `Splits`, with the first row
 exactly `Category`, `Amount`, and `Memo`. It adds header-cell comments explaining
@@ -190,32 +201,49 @@ downloading and re-uploading an untouched template produces `empty_import`.
 ### Validation exception
 
 Add
-`src/Application/Exceptions/SplitUploadValidationException.cs`:
+`src/Application/Exceptions/ValidationProblemsException.cs`:
 
 ```csharp
-public sealed class SplitUploadValidationException
+public sealed class ValidationProblemsException
     : YoFi.V3.Entities.Exceptions.ValidationException
 {
-    public IReadOnlyCollection<SplitUploadIssueDto> Issues { get; }
+    public string Title { get; }
+    public IReadOnlyDictionary<string, string[]> Errors { get; }
 
-    public SplitUploadValidationException(
-        IReadOnlyCollection<SplitUploadIssueDto> issues)
-        : base("Correct the workbook errors and upload it again. No splits were changed.")
+    public ValidationProblemsException(
+        string title,
+        string detail,
+        IReadOnlyDictionary<string, string[]> errors)
+        : base(detail)
     {
-        ArgumentNullException.ThrowIfNull(issues);
-        if (issues.Count == 0)
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentNullException.ThrowIfNull(errors);
+        if (errors.Count == 0 || errors.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key)
+                || entry.Value is not { Length: > 0 }
+                || entry.Value.Any(string.IsNullOrWhiteSpace)))
         {
-            throw new ArgumentException("At least one workbook issue is required.", nameof(issues));
+            throw new ArgumentException(
+                "At least one validation problem with one message is required.",
+                nameof(errors));
         }
-        Issues = issues;
+
+        Title = title;
+        Errors = errors.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value.ToArray(),
+            StringComparer.Ordinal);
     }
 }
 ```
 
-Its summary is **Identifies all workbook issues that prevent a split upload
-from being committed**. Construction requires one or more issues. Its base
-message is `Correct the workbook errors and upload it again. No splits were changed.`
-The controller exception handler maps it to `400 Bad Request` and
+This exception **Carries a user-facing title and grouped field
+problems for one failed validation**. It is not coupled to workbook uploads:
+another feature may supply a different title, detail message, and grouped
+errors. Construction requires a non-empty title, detail, and at least one
+non-empty group. The exception's base `Message` is the user-facing detail. The
+controller exception handler maps it to `400 Bad Request` and
 `ValidationProblemDetails`, as specified in [Controllers](#controllers).
 
 ### Transaction feature operations
@@ -237,7 +265,7 @@ public Task<TransactionDetailDto> UploadSplitsAsync(
     CancellationToken cancellationToken = default);
 ```
 
-`GetSplitUploadTemplateAsync` is summarized as **Verifies a transaction and
+`GetSplitUploadTemplateAsync` **Verifies a transaction and
 creates the supported split-upload workbook template**. `transactionKey`
 identifies the tenant-scoped transaction that will receive a later upload, and
 `cancellationToken` is observed during the lookup. It returns
@@ -246,7 +274,7 @@ the transaction is not found for the current tenant. The method performs the
 existing tenant-scoped `GetTransactionByKeyAsync` lookup before delegating
 template creation to the workbook service.
 
-`UploadSplitsAsync` is summarized as **Validates, appends, and balances
+`UploadSplitsAsync` **Validates, appends, and balances
 transaction splits from an uploaded XLSX workbook**. Parameters are:
 
 - `transactionKey`: the tenant-scoped transaction key;
@@ -255,7 +283,7 @@ transaction splits from an uploaded XLSX workbook**. Parameters are:
 
 It returns the committed, ordered `TransactionDetailDto`. It throws:
 
-- `SplitUploadValidationException` when the workbook is invalid or has no
+- `ValidationProblemsException` when the workbook is invalid or has no
   non-zero rows;
 - `TransactionNotFoundException` when the transaction is not found for the
   current tenant;
@@ -309,23 +337,24 @@ Extend
 [`TransactionsFeatureTests`](../../../tests/Integration.Application/TransactionsFeatureTests.cs)
 for the persistence and tenant-boundary behavior:
 
-- **`UploadSplitsAsync_ValidWorkbook_AppendsRowsAndBalances`** — Summary:
+- **`UploadSplitsAsync_ValidWorkbook_AppendsRowsAndBalances`** —
   `Verifies a validated workbook appends in row order and adjusts the first existing split.`
   Assert source workbook order, category normalization, memo trimming, unchanged
   transaction fields, persisted balance, and returned detail DTO.
 - **`UploadSplitsAsync_ImportedTotalBalancesWithoutFirstSplit_RemovesZeroAllocation`**
-  — Summary: `Verifies the zero-valued balancing split is removed and surviving orders are normalized.`
+  —  `Verifies the zero-valued balancing split is removed and surviving orders are normalized.`
   Seed one existing split, upload rows that sum to the transaction amount, and
   assert the original key is gone while all imported rows remain.
 - **`UploadSplitsAsync_ZeroRowsAndAdditionalWorksheet_ImportsOnlyFirstSheetNonZeroRows`**
-  — Summary: `Verifies zero rows and later worksheets are ignored while the first-sheet rows append.`
+  —  `Verifies zero rows and later worksheets are ignored while the first-sheet rows append.`
   Assert skipped zero rows do not consume display order.
-- **`UploadSplitsAsync_InvalidSecondRow_LeavesTransactionUnchanged`** — Summary:
+- **`UploadSplitsAsync_InvalidSecondRow_LeavesTransactionUnchanged`** —
   `Verifies workbook validation completes before any split change is staged.`
-  Assert the specialized exception contains both row issues when applicable and
-  persisted amounts/categories/memos/order remain unchanged.
+  Assert the `ValidationProblemsException` contains the split-upload title,
+  detail, and both grouped row errors when applicable, and persisted
+  amounts/categories/memos/order remain unchanged.
 - **`UploadSplitsAsync_TransactionInAnotherTenant_ThrowsNotFoundWithoutChanges`**
-  — Summary: `Verifies split upload cannot address a transaction outside the current tenant.`
+  — `Verifies split upload cannot address a transaction outside the current tenant.`
 
 Parser and arithmetic edge cases that do not need a database are covered by
 unit tests:
@@ -350,14 +379,14 @@ with these endpoints.
 | GET | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/splits/upload-template` | Viewer | None | `200 FileResult`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `401`, `403`, or `404` for an invalid tenant-scoped transaction |
 | POST | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/splits/upload` | Editor | `multipart/form-data` field `file` | `200 TransactionDetailDto` | `400` empty/wrong extension/oversize/invalid workbook/row validation; `401`; `403`; `404` transaction not found; `409` data conflict |
 
-`GetSplitUploadTemplate` is summarized as **Downloads the XLSX template for
+`GetSplitUploadTemplate` **Downloads the XLSX template for
 uploading splits to the specified transaction**. It verifies the transaction
 exists by calling `GetSplitUploadTemplateAsync(key, cancellationToken)` before returning the
 template so the route cannot imply a missing resource. The generated file has
 `Content-Disposition` attachment filename
 `yofi-transaction-splits-template.xlsx`.
 
-`UploadSplits` is summarized as **Validates and appends uploaded XLSX split rows
+`UploadSplits` **Validates and appends uploaded XLSX split rows
 to an existing transaction**. It performs HTTP concerns only:
 
 1. Reject a missing or zero-length file with `ValidationException("file",
@@ -381,24 +410,25 @@ Add one exception-handler branch in
 before the general `ValidationException` branch:
 
 ```csharp
-SplitUploadValidationException exception
-    => await HandleSplitUploadValidationExceptionAsync(...)
+ValidationProblemsException exception
+    => await HandleValidationProblemsExceptionAsync(
+        httpContext, exception, cancellationToken)
 ```
 
-`HandleSplitUploadValidationExceptionAsync` returns:
+`HandleValidationProblemsExceptionAsync` returns:
 
 - status `400`;
-- title `The split workbook failed validation.`;
-- detail `Correct the workbook errors and upload it again. No splits were changed.`;
-- one `ValidationProblemDetails.Errors` entry per issue, with keys
-  `Row {RowNumber}: {Field}`; group multiple messages for the same issue key
-  into one string array rather than discarding one;
+- `Title = exception.Title`;
+- `Detail = exception.Message`;
+- `Errors = exception.Errors`;
 - the standard request instance and `traceId`.
 
-This mapping is necessary so the frontend's existing
+The handler contains no workbook, row, field-name, or split-upload logic. Grouping
+and issue wording are the responsibility of the feature that creates the
+exception. This mapping is sufficient for the frontend's existing
 [`ErrorDisplay.vue`](../../../src/FrontEnd.Nuxt/app/components/ErrorDisplay.vue)
-renders every row issue inline. The new branch is checked before
-`ValidationException` because `SplitUploadValidationException` derives from it.
+to render every row issue inline. The new branch is checked before
+`ValidationException` because `ValidationProblemsException` derives from it.
 
 Reuse the controller's existing `[LoggerMessage]` events:
 
@@ -426,7 +456,7 @@ outside this design's test list per the project template.
 
 ### `app/components/transaction/UploadSplitsDialog.vue`
 
-Add a component summarized as **Owns XLSX selection, template download, upload,
+Add a component which **Owns XLSX selection, template download, upload,
 and validation-error display for a transaction split import**.
 
 Props:
