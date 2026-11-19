@@ -196,3 +196,23 @@ Feature: Transaction Splits
             And I am on the transactions detail page for that transaction
             Then the split balance warning is visible
             And the split balance warning shows transaction amount "-100.00" and split total "-95.00"
+
+    @category:story-2309
+    @category:upload-splits
+    Rule: Upload splits to a transaction
+
+        @id:1
+        Scenario: Upload valid split rows, append them, and remove the zero balancing split
+            Given I have a workspace with a transaction:
+                | Payee          | Amount  | Category |
+                | Paystub        | 1000.00 | Income   |
+            And I am on the transactions detail page for that transaction
+            When I upload a split workbook with these first-worksheet rows:
+                | Category | Amount | Memo     |
+                | Salary   | 800.00 | Base pay |
+                | Bonus    | 200.00 | Annual   |
+            Then the following splits are displayed:
+                | Amount | Category | Memo     |
+                | 800.00 | Salary   | Base pay |
+                | 200.00 | Bonus    | Annual   |
+            And the splits total matches the transaction amount

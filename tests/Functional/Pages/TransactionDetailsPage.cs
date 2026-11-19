@@ -307,6 +307,11 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator AddSplitButton => SplitsPane.GetByTestId("add-split-button");
 
+    private ILocator UploadSplitsButton => SplitsPane.GetByTestId("upload-splits-button");
+    private ILocator UploadSplitsDialog => Page!.GetByTestId("upload-splits-dialog");
+    private ILocator UploadSplitsFileInput => UploadSplitsDialog.GetByTestId("upload-splits-file");
+    private ILocator UploadSplitsSubmitButton => UploadSplitsDialog.GetByTestId("upload-splits-submit-button");
+
     /// <summary>
     /// Category input in the add-split form
     /// </summary>
@@ -396,6 +401,23 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// Difference displayed in the transaction split balance alert.
     /// </summary>
     public ILocator TransactionSplitBalanceAlert_SplitDifference => TransactionSplitBalanceAlert.GetByTestId("transaction-split-difference");
+
+    /// <summary>
+    /// Uploads a split workbook and waits for the dialog to close on success.
+    /// </summary>
+    public async Task UploadSplitWorkbookAsync(string fileName, byte[] contents)
+    {
+        await UploadSplitsButton.ClickAsync();
+        await UploadSplitsDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await UploadSplitsFileInput.SetInputFilesAsync(new FilePayload
+        {
+            Name = fileName,
+            MimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            Buffer = contents
+        });
+        await UploadSplitsSubmitButton.ClickAsync();
+        await UploadSplitsDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
 
     /// <summary>
     /// Adds a split using the form and waits for the update request to complete.

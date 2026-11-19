@@ -1,4 +1,5 @@
 using System.Globalization;
+using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
 
@@ -66,6 +67,18 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     {
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
         await detailsPage.ExpectSplitsListToBeEmptyAsync();
+    }
+
+    /// <summary>
+    /// When I upload a split workbook with these first-worksheet rows:
+    /// </summary>
+    /// <param name="table">The table containing the split rows to upload. Contains columns "Category", "Amount", and optionally "Memo".</param>
+    [When("I upload a split workbook with these first-worksheet rows:")]
+    public async Task IUploadASplitWorkbookWithTheseFirstWorksheetRows(DataTable table)
+    {
+        var workbook = SpreadSheetGenerator.GenerateWorkbook(table, "Splits");
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.UploadSplitWorkbookAsync("splits.xlsx", workbook);
     }
 
     /// <summary>
