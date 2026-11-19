@@ -106,7 +106,8 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     /// Checks that the displayed split amounts sum to the transaction amount.
     /// </remarks>
     [Then("the transaction is balanced")]
-    public async Task TheTransactionIsBalanced()
+    [Then("the splits total matches the transaction amount")]
+    public async Task TheTransactionAmountsMatch()
     {
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
         var transactionAmountText = await detailsPage.GetAmountAsync();
@@ -133,7 +134,17 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
     public async Task TheSplitBalanceWarningIsVisible()
     {
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
-        await detailsPage.ExpectTransactionSplitBalanceAlertAsync();
+        await detailsPage.ExpectTransactionSplitBalanceAlertAsync(true);
+    }
+
+    /// <summary>
+    /// Then no split balance warning is shown
+    /// </summary>
+    [Then("no split balance warning is shown")]
+    public async Task NoSplitBalanceWarningIsShown()
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.ExpectTransactionSplitBalanceAlertAsync(false);
     }
 
     /// <summary>

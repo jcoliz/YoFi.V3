@@ -532,9 +532,10 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// <summary>
     /// Expects that the transaction split balance alert is visible.
     /// </summary>
-    public Task ExpectTransactionSplitBalanceAlertAsync() =>
-        Assertions.Expect(TransactionSplitBalanceAlert).ToBeVisibleAsync();
-
+    public Task ExpectTransactionSplitBalanceAlertAsync(bool visible) =>
+        visible
+            ? Assertions.Expect(TransactionSplitBalanceAlert).ToBeVisibleAsync()
+            : Assertions.Expect(TransactionSplitBalanceAlert).ToBeHiddenAsync();
 
     internal async Task<string> GetTransactionSplitBalanceAlert_TransactionAmountAsync()
     {

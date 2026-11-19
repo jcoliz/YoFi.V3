@@ -31,7 +31,7 @@ Feature: Transaction Splits
                 | Fuel     | -90.00 |              |
                 | Snacks   | -10.00 | I was hungry |
             And the transaction amount remains -100.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
         Scenario: Add a single split to an existing transaction with multiple splits
             Given I have a workspace with a transaction for payee "Super Duper Mart" having these splits:
@@ -50,7 +50,7 @@ Feature: Transaction Splits
                 | -75.00  | Healthcare:Prescriptions | Can't forget my meds  |
                 | -25.00  | Dining Out               | Also had dinner there |
             And the transaction amount remains -250.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
     @category:story-2225
     @category:scenario-2250
@@ -105,7 +105,7 @@ Feature: Transaction Splits
                 | -50.00 | Groceries |      |
                 | -50.00 | Household |      |
             And the transaction amount remains -100.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
         @id:2
         Scenario: Edit the first split amount
@@ -123,7 +123,7 @@ Feature: Transaction Splits
                 | -70.00 | Groceries |      |
                 | -30.00 | Household |      |
             And the transaction amount remains -100.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
     @category:delete-splits
     @category:story-2225
@@ -144,7 +144,7 @@ Feature: Transaction Splits
                 | -100.00 | Groceries |      |
                 | -10.00 | Snacks |      |
             And the transaction amount remains -110.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
         @id:2
         Scenario: Delete the first split
@@ -160,7 +160,7 @@ Feature: Transaction Splits
                 | -100.00 | Household |      |
                 | -10.00 | Snacks |      |
             And the transaction amount remains -110.00
-            And the transaction is balanced
+            And the splits total matches the transaction amount
 
         @id:3
         Scenario: Delete the second of two splits, leaving only one split
@@ -172,11 +172,7 @@ Feature: Transaction Splits
             When I delete the "Household" split
             Then the splits list is empty
             And the transaction amount remains -100.00
-
-            # This is implemented currently by totalling the splits. Since there are none,
-            # it won't be balanced. In the future we will have an "is balanced" indicator
-            # and we can check for the absence of that.
-            #And the transaction is balanced
+            And no split balance warning is shown
 
     @category:story-2308
     @category:unbalanced-splits
