@@ -183,7 +183,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
 
     /// <summary>
     /// Handles ValidationException (input validation errors).
-    /// Returns HTTP 400 with ValidationProblemDetails.
+    /// Returns HTTP 400 with HttpValidationProblemDetails.
     /// </summary>
     private async ValueTask<bool> HandleValidationExceptionAsync(
         HttpContext httpContext,
@@ -192,7 +192,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     {
         httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-        // Create errors dictionary for ValidationProblemDetails
+        // Create errors dictionary for HttpValidationProblemDetails
         var errors = new Dictionary<string, string[]>();
         if (!string.IsNullOrEmpty(exception.ParameterName))
         {
@@ -204,7 +204,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             errors["validation"] = [exception.Message];
         }
 
-        var problemDetails = new ValidationProblemDetails(errors)
+        var problemDetails = new HttpValidationProblemDetails(errors)
         {
             Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
             Title = "The request failed validation.",
@@ -264,7 +264,7 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             entry => entry.Key,
             entry => entry.Value,
             StringComparer.Ordinal);
-        var problemDetails = new ValidationProblemDetails(errors)
+        var problemDetails = new HttpValidationProblemDetails(errors)
         {
             Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
             Title = exception.Title,

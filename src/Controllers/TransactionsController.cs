@@ -249,7 +249,7 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
     [RequestSizeLimit(SplitUploadRequestSizeBytes)]
     [RequireTenantRole(TenantRole.Editor)]
     [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UploadSplits(

@@ -11,6 +11,13 @@ you cannot effective call it, as no data source is provided.
 To generate a new client, just build this project. It will create a new [apiclient.ts](../FrontEnd.Nuxt/app/utils/apiclient.ts)
 file as part of the build output.
 
+For validation error response metadata, use `Microsoft.AspNetCore.Http.HttpValidationProblemDetails`
+in `[ProducesResponseType]`. MVC's `ValidationProblemDetails` derives from that type
+and hides its `Errors` property. NSwag generates duplicate `errors` declarations for
+that hierarchy, which fail TypeScript typechecking. The HTTP base type describes
+the same JSON response and is also used by the exception handlers. The model-state
+response factory retains MVC's type for its `ModelStateDictionary` constructor.
+
 The TypeScript generator uses the customized [Client.RequestUrl.liquid](Templates/Client.RequestUrl.liquid)
 template to serialize date-only query parameters as calendar dates. It is based on
 NSwag 14.7.1's template; review it when upgrading NSwag. The template uses the
