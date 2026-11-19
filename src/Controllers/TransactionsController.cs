@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Controllers.Tenancy.Authorization;
+using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
 
 namespace YoFi.V3.Controllers;
@@ -27,6 +28,10 @@ namespace YoFi.V3.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
 {
+    private const long MaxSplitWorkbookSizeBytes = 1 * 1024 * 1024;
+    private const long SplitUploadRequestSizeBytes = 1 * 1024 * 1024 + 64 * 1024;
+    private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     /// <summary>
     /// Retrieves paginated transactions for the tenant, optionally filtered by search, dates, and advanced criteria.
     /// </summary>
@@ -232,6 +237,83 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
         return NoContent();
     }
 
+    /// <summary>Downloads the XLSX template used to upload splits for a transaction.</summary>
+    /// <param name="key">The tenant-scoped transaction identifier.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>An XLSX workbook attachment.</returns>
+    /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
+    [HttpGet("{key:guid}/splits/upload-template")]
+    [RequireTenantRole(TenantRole.Viewer)]
+    [Produces(XlsxContentType)]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, XlsxContentType)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSplitUploadTemplate(
+        Guid key,
+        CancellationToken cancellationToken)
+    {
+        LogStartingKey(key);
+        var result = await transactionsFeature.GetSplitUploadTemplateAsync(key, cancellationToken);
+        LogOkKey(key);
+        return File(result.Content, XlsxContentType, result.FileName);
+    }
+
+    /// <summary>Uploads an XLSX workbook of splits and atomically appends them to a transaction.</summary>
+    /// <param name="key">The tenant-scoped transaction identifier.</param>
+    /// <param name="file">The uploaded XLSX workbook.</param>
+    /// <param name="cancellationToken">Cancellation token for the request.</param>
+    /// <returns>The committed transaction with ordered splits.</returns>
+    /// <exception cref="ValidationException">The multipart file or workbook upload is invalid.</exception>
+    /// <exception cref="Application.Exceptions.ValidationProblemsException">Workbook parsing or row validation failed.</exception>
+    /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
+    [HttpPost("{key:guid}/splits/upload")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(SplitUploadRequestSizeBytes)]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(TransactionDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UploadSplits(
+        Guid key,
+        IFormFile? file,
+        CancellationToken cancellationToken)
+    {
+        LogStartingKey(key);
+
+        if (file is null || file.Length == 0)
+        {
+            throw new ValidationException(
+                "file",
+                "An XLSX workbook is required and cannot be empty.");
+        }
+
+        if (!string.Equals(
+                Path.GetExtension(file.FileName),
+                ".xlsx",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ValidationException(
+                "file",
+                "Only .xlsx workbooks are supported.");
+        }
+
+        if (file.Length > MaxSplitWorkbookSizeBytes)
+        {
+            throw new ValidationException(
+                "file",
+                "The workbook must not exceed 1 MB.");
+        }
+
+        await using var stream = new MemoryStream((int)file.Length);
+        await file.CopyToAsync(stream, cancellationToken);
+        var updated = await transactionsFeature.UploadSplitsAsync(
+            key,
+            stream.ToArray(),
+            cancellationToken);
+        LogOkKey(key);
+        return Ok(updated);
+    }
+
     [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
     private partial void LogStarting([CallerMemberName] string? location = null);
 
@@ -252,4 +334,5 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 
     [LoggerMessage(7, LogLevel.Information, "{Location}: OK {TransactionKey} {SplitKey}")]
     private partial void LogOkKeys(Guid transactionKey, Guid splitKey, [CallerMemberName] string? location = null);
+
 }

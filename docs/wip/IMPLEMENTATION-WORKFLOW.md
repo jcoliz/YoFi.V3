@@ -277,7 +277,7 @@ the unchanged frontend.
 - [ ] Add XML documentation to the controller and every action.
 - [ ] Preserve backward compatibility with the currently deployed frontend. Any breaking change must
       already be itemized in the design.
-- [ ] Build: `dotnet build`
+- [ ] Build: `dotnet build src/Backend`
 
 ### 6.2 Controller integration tests
 

@@ -60,6 +60,11 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             TenantDataImportValidationException => await HandleTenantDataImportValidationExceptionAsync(
                 httpContext, cancellationToken),
 
+            // 400 Bad Request - grouped workbook validation problems
+            ValidationProblemsException validationProblemsException
+                => await HandleValidationProblemsExceptionAsync(
+                    httpContext, validationProblemsException, cancellationToken),
+
             // 400 Bad Request - ValidationException (input validation errors)
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
                 httpContext, validationException, cancellationToken),
@@ -235,6 +240,40 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             Detail = "Review the workbook preview for validation details, then try importing again."
         };
         problemDetails.Extensions["traceId"] = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            problemDetails.GetType(),
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Handles grouped application validation problems.
+    /// </summary>
+    private static async ValueTask<bool> HandleValidationProblemsExceptionAsync(
+        HttpContext httpContext,
+        ValidationProblemsException exception,
+        CancellationToken cancellationToken)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+        var errors = exception.Errors.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value,
+            StringComparer.Ordinal);
+        var problemDetails = new ValidationProblemDetails(errors)
+        {
+            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            Title = exception.Title,
+            Status = StatusCodes.Status400BadRequest,
+            Instance = httpContext.Request.Path,
+            Detail = exception.Message
+        };
+        problemDetails.Extensions["traceId"] =
+            Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
         await httpContext.Response.WriteAsJsonAsync(
             problemDetails,
