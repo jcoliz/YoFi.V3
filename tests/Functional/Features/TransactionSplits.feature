@@ -238,3 +238,13 @@ Feature: Transaction Splits
                 |  100.00 | Bonus     | Performance   |
             And the transaction is balanced
             And the splits total matches the transaction amount
+
+        @id:3
+        Scenario: Download the split upload template
+            Given I have a workspace with a transaction:
+                | Payee   | Amount | Category |
+                | Paystub | 100.00 | Income   |
+            And I am on the transactions detail page for that transaction
+            When I download the transaction split upload template
+            Then an XLSX file is downloaded
+            And the first worksheet contains only the headers "Category", "Amount", and "Memo"

@@ -408,9 +408,9 @@ public abstract partial class FunctionalTestBase : FunctionalTest, ITestContext
                 }
             }
 
-            if (ObjectStore.Contains<string>(ObjectStoreKeys.ExportWorkbookPath))
+            if (ObjectStore.Contains<string>(ObjectStoreKeys.WorkbookFilePath))
             {
-                var exportWorkbookPath = ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+                var exportWorkbookPath = ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(exportWorkbookPath) && File.Exists(exportWorkbookPath))

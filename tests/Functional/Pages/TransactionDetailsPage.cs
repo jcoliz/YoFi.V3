@@ -311,6 +311,7 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     private ILocator UploadSplitsDialog => Page!.GetByTestId("upload-splits-dialog");
     private ILocator UploadSplitsFileInput => UploadSplitsDialog.GetByTestId("upload-splits-file");
     private ILocator UploadSplitsSubmitButton => UploadSplitsDialog.GetByTestId("upload-splits-submit-button");
+    private ILocator DownloadSplitsTemplateButton => UploadSplitsDialog.GetByTestId("download-splits-template-button");
 
     /// <summary>
     /// Category input in the add-split form
@@ -419,6 +420,23 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
         });
         await UploadSplitsSubmitButton.ClickAsync();
         await UploadSplitsDialog.WaitForAsync(new() { State = WaitForSelectorState.Hidden });
+    }
+
+    /// <summary>
+    /// Downloads the transaction split upload template and saves it in the specified directory.
+    /// </summary>
+    public async Task<string> DownloadSplitTemplateAsync(string directory)
+    {
+        await UploadSplitsButton.ClickAsync();
+        await UploadSplitsDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+
+        var downloadTask = Page!.WaitForDownloadAsync();
+        await DownloadSplitsTemplateButton.ClickAsync();
+        var download = await downloadTask;
+
+        var filePath = Path.Combine(directory, download.SuggestedFilename);
+        await download.SaveAsAsync(filePath);
+        return filePath;
     }
 
     /// <summary>

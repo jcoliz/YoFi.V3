@@ -1,4 +1,5 @@
 using System.Globalization;
+using ClosedXML.Excel;
 using YoFi.V3.Tests.Functional.Helpers;
 using YoFi.V3.Tests.Functional.Infrastructure;
 using YoFi.V3.Tests.Functional.Pages;
@@ -79,6 +80,54 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
         var workbook = SpreadSheetGenerator.GenerateWorkbook(table, "Splits");
         var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
         await detailsPage.UploadSplitWorkbookAsync("splits.xlsx", workbook);
+    }
+
+    /// <summary>
+    /// When I download the transaction split upload template
+    /// </summary>
+    [When("I download the transaction split upload template")]
+    [Provides(ObjectStoreKeys.DownloadDirectory)]
+    [Provides(ObjectStoreKeys.WorkbookFilePath)]
+    public async Task IDownloadTheTransactionSplitUploadTemplate()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
+
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        var filePath = await detailsPage.DownloadSplitTemplateAsync(directory);
+        _context.ObjectStore.Add(ObjectStoreKeys.WorkbookFilePath, filePath);
+    }
+
+    /// <summary>
+    /// Then an XLSX file is downloaded
+    /// </summary>
+    [Then("an XLSX file is downloaded")]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
+    public async Task AnXLSXFileIsDownloaded()
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
+        Assert.That(File.Exists(filePath), Is.True, "Expected XLSX file to be downloaded.");
+    }
+
+    /// <summary>
+    /// Then the first worksheet contains only the headers {string1}, {string2}, and {string3}
+    /// </summary>
+    [Then("the first worksheet contains only the headers {string1}, {string2}, and {string3}")]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
+    public async Task TheFirstWorksheetContainsOnlyTheHeadersAnd(string string1, string string2, string string3)
+    {
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
+        using var workbook = new XLWorkbook(filePath);
+
+        // Check the headers of the first worksheet
+        var worksheet = workbook.Worksheet(1);
+        Assert.That(worksheet.Cell(1, 1).Value.ToString(), Is.EqualTo(string1), "Header 1 differs.");
+        Assert.That(worksheet.Cell(1, 2).Value.ToString(), Is.EqualTo(string2), "Header 2 differs.");
+        Assert.That(worksheet.Cell(1, 3).Value.ToString(), Is.EqualTo(string3), "Header 3 differs.");
+
+        // Also ensure that it has no extra rows beyond the headers
+        Assert.That(worksheet.LastRowUsed()!.RowNumber(), Is.EqualTo(1), "Expected only header row to be present.");
     }
 
     /// <summary>

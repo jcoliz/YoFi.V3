@@ -31,7 +31,8 @@ workbook, previewing it, confirming the import, and waiting for the visible impo
 [`TransactionDetailsPage`](TransactionDetailsPage.cs) uploads split workbooks through the split
 upload dialog and waits for the dialog to close after success. The upload step uses
 [`SpreadSheetGenerator`](../Helpers/SpreadSheetGenerator.cs) to write the Gherkin table into the
-workbook's first worksheet.
+workbook's first worksheet. It also downloads the split upload template to a temporary directory
+and saves the workbook path for assertions.
 
 [`ReportsPage`](ReportsPage.cs) supports the representative-report and selection
 persistence scenarios: selecting and reloading a report, checking the selected

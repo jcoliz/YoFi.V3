@@ -60,7 +60,7 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     [When("I export my entire workspace data")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.DownloadDirectory)]
-    [Provides(ObjectStoreKeys.ExportWorkbookPath)]
+    [Provides(ObjectStoreKeys.WorkbookFilePath)]
     public async Task WhenIExportMyEntireWorkspaceData()
     {
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
@@ -73,13 +73,13 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
         _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
 
         var filePath = await managementPage.DownloadExportAsync(directory, allData: true);
-        _context.ObjectStore.Add(ObjectStoreKeys.ExportWorkbookPath, filePath);
+        _context.ObjectStore.Add(ObjectStoreKeys.WorkbookFilePath, filePath);
     }
 
     [When("I export transactions for one year only")]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.DownloadDirectory)]
-    [Provides(ObjectStoreKeys.ExportWorkbookPath)]
+    [Provides(ObjectStoreKeys.WorkbookFilePath)]
     public async Task WhenIExportTransactionsForOneYearOnly()
     {
         var workspaceName = _context.ObjectStore.Get<string>(ObjectStoreKeys.CurrentWorkspace);
@@ -96,7 +96,7 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
         _context.ObjectStore.Add(ObjectStoreKeys.DownloadDirectory, directory);
 
         var filePath = await managementPage.DownloadExportAsync(directory, allData: false);
-        _context.ObjectStore.Add(ObjectStoreKeys.ExportWorkbookPath, filePath);
+        _context.ObjectStore.Add(ObjectStoreKeys.WorkbookFilePath, filePath);
     }
 
     /// <summary>
@@ -261,10 +261,10 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     #region Steps: THEN
 
     [Then("I should receive a file containing my workspace data")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     public async Task ThenIShouldReceiveAFileContainingMyWorkspaceData()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         Assert.That(filePath, Is.Not.Null.And.Not.Empty);
         Assert.That(File.Exists(filePath), Is.True, $"Export workbook was not created at '{filePath}'");
         using var workbook = new XLWorkbook(filePath);
@@ -272,10 +272,10 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     }
 
     [Then("the exported file should include all transactions from the workspace")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     public async Task ThenTheExportedFileShouldIncludeAllTransactionsFromTheWorkspace()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         using var workbook = new XLWorkbook(filePath);
         var strings = workbook.Worksheet("Transactions").CellsUsed().Select(cell => cell.GetString()).ToArray();
 
@@ -284,11 +284,11 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     }
 
     [Then("the exported file should include all payee matching rules from the workspace")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     [Requires(ObjectStoreKeys.ExpectedPayeeRules)]
     public async Task ThenTheExportedFileShouldIncludeAllPayeeMatchingRulesFromTheWorkspace()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         var expected = _context.ObjectStore.Get<ICollection<PayeeMatchingRuleResultDto>>(ObjectStoreKeys.ExpectedPayeeRules);
         using var workbook = new XLWorkbook(filePath);
         var rules = workbook.Worksheet("PayeeMatchingRules");
@@ -301,10 +301,10 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     }
 
     [Then("I should receive a file containing only that year's transactions")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     public async Task ThenIShouldReceiveAFileContainingOnlyThatYearsTransactions()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         using var workbook = new XLWorkbook(filePath);
         var transactions = workbook.Worksheet("Transactions");
         var strings = transactions.CellsUsed().Select(cell => cell.GetString()).ToArray();
@@ -314,20 +314,20 @@ public class WorkspaceManagementSteps(ITestContext context) : WorkspaceStepsBase
     }
 
     [Then("the exported file should not include transactions from previous years")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     public async Task ThenTheExportedFileShouldNotIncludeTransactionsFromPreviousYears()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         using var workbook = new XLWorkbook(filePath);
         var strings = workbook.Worksheet("Transactions").CellsUsed().Select(cell => cell.GetString()).ToArray();
         Assert.That(strings, Does.Not.Contains("Export Market 2023"));
     }
 
     [Then("the exported file should not include any payee matching rules")]
-    [Requires(ObjectStoreKeys.ExportWorkbookPath)]
+    [Requires(ObjectStoreKeys.WorkbookFilePath)]
     public async Task ThenTheExportedFileShouldNotIncludeAnyPayeeMatchingRules()
     {
-        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.ExportWorkbookPath);
+        var filePath = _context.ObjectStore.Get<string>(ObjectStoreKeys.WorkbookFilePath);
         using var workbook = new XLWorkbook(filePath);
         Assert.That(workbook.Worksheets.Any(sheet => sheet.Name == "PayeeMatchingRules"), Is.False,
             "A Transactions-only export should not include a PayeeMatchingRules worksheet.");
