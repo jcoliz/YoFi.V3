@@ -217,3 +217,24 @@ Feature: Transaction Splits
                 | 800.00 | Salary   | Base pay |
                 | 200.00 | Bonus    | Annual   |
             And the splits total matches the transaction amount
+
+        @id:2
+        Scenario: Append uploaded splits to existing allocations and preserve workbook order
+            Given I have a workspace with a transaction for payee "Paystub" having these splits:
+                | Amount | Category | Memo          |
+                | 1000.00 | Income  | Original row  |
+                |  -25.00 | Tax     | Existing item |
+            And I am on the transactions detail page for that transaction
+            When I upload a split workbook with these first-worksheet rows:
+                | Category  | Amount | Memo        |
+                | Deduction | -50.00 | Healthcare  |
+                | Bonus     | 100.00 | Performance |
+            Then the splits should be uploaded successfully
+            And the following splits are displayed:
+                | Amount  | Category  | Memo          |
+                |  950.00 | Income    | Original row  |
+                |  -25.00 | Tax       | Existing item |
+                |  -50.00 | Deduction | Healthcare    |
+                |  100.00 | Bonus     | Performance   |
+            And the transaction is balanced
+            And the splits total matches the transaction amount
