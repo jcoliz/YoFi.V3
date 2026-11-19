@@ -195,7 +195,7 @@ balancing rule, and shared Edit/Delete action-menu design.
 
 > [!NOTE]: This story covers *readiness* for importing. User cannot actually import anything until that feature is complete.
 
-### Story 6: User - Upload splits
+### Story 2309: User - Upload a spreadsheet of splits to a transaction (upload-splits)
 
 **As a** detail-oriented user
 **I want** to upload an Excel spreadsheet of split data for a single transaction
@@ -210,7 +210,7 @@ balancing rule, and shared Edit/Delete action-menu design.
 - [ ] Invalid input cancels entire import, with an error message displayed to user.
 - [ ] Uploaded splits append to any existing splits for the transaction
 - [ ] Validation errors are shown clearly before committing changes
-- [ ] User can include any categories (see Transactions Record PRD for discussion of ad-hoc categories). Categories will be silently cleaned up to ensure valid category is saved (even if blank)
+- [ ] User can include any categories (see Transactions Record PRD for discussion of ad-hoc categories). Categories will be silently normalized to ensure valid category is saved (even if blank)
 - [ ] Transaction is automatically balanced by adjusting the first split so that the transaction balances.
 - [ ] If the first split is adjusted to zero amount, it is removed.
 - [ ] Splits with zero amounts are ignored.
@@ -288,7 +288,7 @@ If user includes a `:` character in them, this signifies a hierarchy of categori
 
 > [!IMPORTANT] Invalid categories are never rejected, nor are warnings generated. They are simply cleaned up to be valid before saving.
 
-**Examples**
+**Examples:**
 
 | Input | Cleaned up version saved to storage |
 | --- | --- |
@@ -306,7 +306,7 @@ If user includes a `:` character in them, this signifies a hierarchy of categori
 | \<space\>Home | Home |
 | Home\<space\> | Home |
 
-**Expected Implementation**
+**Expected Implementation:**
 
 Best place to handle this cleanup is within the application layer (Transactions Feature or Splits Feature).
 
@@ -317,7 +317,7 @@ Best place to handle this cleanup is within the application layer (Transactions 
 - Categories are not "created" or "exist" - they are simply text values assigned to splits
 - No maximum distinct categories: If there are many categories, we'll have to handle it on the backend (e.g. most commonly used) later on as a post-implementation refinement.
 
-**Category Matching**
+**Category Matching:**
 
 - Categories match without regard for case, e.g. "FOOD" matches "Food"
 
