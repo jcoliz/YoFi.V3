@@ -250,29 +250,16 @@ controller exception handler maps it to `400 Bad Request` and
 
 Update
 [`TransactionsFeature`](../../../src/Application/Features/TransactionsFeature.cs)
-to depend on `TransactionSplitWorkbookService`.
+to depend on `TransactionSplitWorkbookService` for split upload processing.
 
 Add:
 
 ```csharp
-public Task<SplitUploadTemplateResultDto> GetSplitUploadTemplateAsync(
-    Guid transactionKey,
-    CancellationToken cancellationToken = default);
-
 public Task<TransactionDetailDto> UploadSplitsAsync(
     Guid transactionKey,
     byte[] workbook,
     CancellationToken cancellationToken = default);
 ```
-
-`GetSplitUploadTemplateAsync` **Verifies a transaction and
-creates the supported split-upload workbook template**. `transactionKey`
-identifies the tenant-scoped transaction that will receive a later upload, and
-`cancellationToken` is observed during the lookup. It returns
-`SplitUploadTemplateResultDto` and throws `TransactionNotFoundException` when
-the transaction is not found for the current tenant. The method performs the
-existing tenant-scoped `GetTransactionByKeyAsync` lookup before delegating
-template creation to the workbook service.
 
 `UploadSplitsAsync` **Validates, appends, and balances
 transaction splits from an uploaded XLSX workbook**. Parameters are:
@@ -329,7 +316,7 @@ redirect allocations to another transaction or tenant.
 
 Register `TransactionSplitWorkbookService` as a scoped service in
 [`ServiceCollectionExtensions`](../../../src/Application/ServiceCollectionExtensions.cs).
-The feature remains logging-free.
+The application feature remains logging-free.
 
 ## Application Integration Tests
 
@@ -372,17 +359,23 @@ unit tests:
 
 Update
 [`TransactionsController`](../../../src/Controllers/TransactionsController.cs)
-with these endpoints.
+with the transaction-scoped upload endpoint. Add a
+`TransactionSplitTemplateController` for the tenant-independent template
+endpoint. The latter injects `TransactionSplitWorkbookService` directly because
+template creation is already encapsulated there and does not have additional
+application-feature behavior to orchestrate. It must not inject
+`TransactionsFeature`, because that feature requires a current tenant even
+though template creation does not.
 
-| Method | Route | Tenant role | Request body | Success response | Error responses |
-| ------ | ----- | ----------- | ------------ | ---------------- | --------------- |
-| GET | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/splits/upload-template` | Viewer | None | `200 FileResult`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `401`, `403`, or `404` for an invalid tenant-scoped transaction |
+| Method | Route | Authorization | Request body | Success response | Error responses |
+| ------ | ----- | ------------- | ------------ | ---------------- | --------------- |
+| GET | `/api/transactions/splits/upload-template` | Authenticated | None | `200 FileResult`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | `401` |
 | POST | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/splits/upload` | Editor | `multipart/form-data` field `file` | `200 TransactionDetailDto` | `400` empty/wrong extension/oversize/invalid workbook/row validation; `401`; `403`; `404` transaction not found; `409` data conflict |
 
-`GetSplitUploadTemplate` **Downloads the XLSX template for
-uploading splits to the specified transaction**. It verifies the transaction
-exists by calling `GetSplitUploadTemplateAsync(key, cancellationToken)` before returning the
-template so the route cannot imply a missing resource. The generated file has
+`GetSplitUploadTemplate` **Downloads the XLSX template for uploading
+transaction splits**. It applies `[Authorize]` and calls
+`TransactionSplitWorkbookService.CreateTemplate()`. The template is reusable
+and is not associated with any tenant or transaction. The generated file has
 `Content-Disposition` attachment filename
 `yofi-transaction-splits-template.xlsx`.
 
@@ -400,8 +393,7 @@ to an existing transaction**. It performs HTTP concerns only:
    `transactionsFeature.UploadSplitsAsync`.
 5. Return `Ok(updatedTransaction)`.
 
-For the template route, call the new feature method that both verifies the
-transaction and creates the template. Do not trust a client-provided MIME type.
+Do not trust a client-provided MIME type.
 The `.xlsx` extension is an early check; ClosedXML parsing is the authoritative
 content check.
 
@@ -430,10 +422,11 @@ exception. This mapping is sufficient for the frontend's existing
 to render every row issue inline. The new branch is checked before
 `ValidationException` because `ValidationProblemsException` derives from it.
 
-Reuse the controller's existing `[LoggerMessage]` events:
+`TransactionSplitTemplateController` uses its own `[LoggerMessage]` partial
+methods for starting and successful template responses. In
+`TransactionsController`, reuse the existing:
 
-- `LogStartingKey` for either operation;
-- `LogOkKey` after a template or committed upload response.
+- `LogStartingKey` / `LogOkKey` for the upload operation.
 
 Do not log the filename, category, memo, amount, workbook bytes, or row content.
 Application and Data remain logging-free.
@@ -443,14 +436,15 @@ DTOs are unchanged. Regenerate the TypeScript client with
 [`Generate-ApiClient.ps1`](../../../scripts/Generate-ApiClient.ps1). The
 generated methods are:
 
-- `getSplitUploadTemplate(key, tenantKey)` returning `FileResponse`;
+- `getSplitUploadTemplate()` returning `FileResponse`;
 - `uploadSplits(key, tenantKey, file)` returning `TransactionDetailDto`.
 
-Controller integration tests will verify Editor/Owner authorization, Viewer
-rejection for upload, file-extension and size rejection, multipart response
-contracts, row-validation ProblemDetails, missing-transaction `404`, and
-generated-file content type. Unit and controller implementation details remain
-outside this design's test list per the project template.
+Controller integration tests will verify template authentication without a
+tenant, Editor/Owner authorization, Viewer rejection for upload, file-extension
+and size rejection, multipart response contracts, row-validation ProblemDetails,
+missing-transaction `404`, and generated-file content type. Unit and controller
+implementation details remain outside this design's test list per the project
+template.
 
 ## Front End
 
@@ -487,8 +481,9 @@ The component:
 - provides an `.xlsx` file input and shows the selected filename;
 - rejects non-`.xlsx` names and files larger than 1 MiB client-side with an
   `IProblemDetails` title of `Unsupported workbook`, without calling the API;
-- calls `TransactionsClient.getSplitUploadTemplate` from the template button
-  and downloads `response.fileName` / `response.data` with
+- calls the generated `getSplitUploadTemplate()` method from the template
+  button without a tenant argument and downloads `response.fileName` /
+  `response.data` with
   `URL.createObjectURL`;
 - calls `TransactionsClient.uploadSplits` once from the primary button and
   sends the selected file as the generated multipart file parameter;
