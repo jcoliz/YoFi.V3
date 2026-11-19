@@ -30,7 +30,6 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 {
     private const long MaxSplitWorkbookSizeBytes = 1 * 1024 * 1024;
     private const long SplitUploadRequestSizeBytes = 1 * 1024 * 1024 + 64 * 1024;
-    private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     /// <summary>
     /// Retrieves paginated transactions for the tenant, optionally filtered by search, dates, and advanced criteria.
@@ -235,26 +234,6 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 
         LogOkKey(key);
         return NoContent();
-    }
-
-    /// <summary>Downloads the XLSX template used to upload splits for a transaction.</summary>
-    /// <param name="key">The tenant-scoped transaction identifier.</param>
-    /// <param name="cancellationToken">Cancellation token for the request.</param>
-    /// <returns>An XLSX workbook attachment.</returns>
-    /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
-    [HttpGet("{key:guid}/splits/upload-template")]
-    [RequireTenantRole(TenantRole.Viewer)]
-    [Produces(XlsxContentType)]
-    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK, XlsxContentType)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSplitUploadTemplate(
-        Guid key,
-        CancellationToken cancellationToken)
-    {
-        LogStartingKey(key);
-        var result = await transactionsFeature.GetSplitUploadTemplateAsync(key, cancellationToken);
-        LogOkKey(key);
-        return File(result.Content, XlsxContentType, result.FileName);
     }
 
     /// <summary>Uploads an XLSX workbook of splits and atomically appends them to a transaction.</summary>

@@ -151,20 +151,6 @@ public class TransactionsFeature
         return results;
     }
 
-    /// <summary>Verifies a transaction and creates the supported split-upload workbook template.</summary>
-    /// <param name="transactionKey">Tenant-scoped transaction key.</param>
-    /// <param name="cancellationToken">Cancellation token for the lookup.</param>
-    /// <returns>Generated XLSX template bytes and filename.</returns>
-    /// <exception cref="TransactionNotFoundException">The transaction is not in the current tenant.</exception>
-    public async Task<SplitUploadTemplateResultDto> GetSplitUploadTemplateAsync(
-        Guid transactionKey,
-        CancellationToken cancellationToken = default)
-    {
-        await GetTransactionByKeyInternalAsync(transactionKey);
-        cancellationToken.ThrowIfCancellationRequested();
-        return _workbookService.CreateTemplate();
-    }
-
     /// <summary>Validates, appends, and balances transaction splits from an uploaded XLSX workbook.</summary>
     /// <param name="transactionKey">Tenant-scoped transaction key.</param>
     /// <param name="workbook">Exact uploaded XLSX bytes.</param>
