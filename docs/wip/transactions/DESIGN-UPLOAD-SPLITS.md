@@ -278,7 +278,7 @@ template creation to the workbook service.
 transaction splits from an uploaded XLSX workbook**. Parameters are:
 
 - `transactionKey`: the tenant-scoped transaction key;
-- `workbook`: exact uploaded bytes, limited and checked by the controller; and
+- `workbook`: exact uploaded bytes, size limits enforced by the caller; and
 - `cancellationToken`: cancellation for parsing and persistence.
 
 It returns the committed, ordered `TransactionDetailDto`. It throws:
@@ -456,8 +456,8 @@ outside this design's test list per the project template.
 
 ### `app/components/transaction/UploadSplitsDialog.vue`
 
-Add a component which **Owns XLSX selection, template download, upload,
-and validation-error display for a transaction split import**.
+Add a component which **Presents XLSX selection, template download, upload,
+and validation-error display for user to upload splits for a transaction**.
 
 Props:
 
