@@ -15,6 +15,7 @@ import {
   type IProblemDetails,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
+import { useToastStore } from '~/stores/toast'
 import { handleApiError } from '~/utils/errorHandler'
 import { formatDateOnly } from '~/utils/dateOnly'
 
@@ -27,6 +28,7 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const userPreferencesStore = useUserPreferencesStore()
+const toastStore = useToastStore()
 
 // API Client
 const transactionsClient = useApiClient(TransactionsClient)
@@ -45,6 +47,8 @@ const showDeleteModal = ref(false)
 const showAddSplit = ref(false)
 const showEditSplit = ref(false)
 const showDeleteSplit = ref(false)
+const showUploadSplits = ref(false)
+const uploadSplitsBusy = ref(false)
 const selectedSplit = ref<TransactionSplitDto | null>(null)
 const splitSaving = ref(false)
 const splitError = ref<IProblemDetails | undefined>(undefined)
@@ -64,7 +68,7 @@ const currentTenantKey = computed(() => userPreferencesStore.getCurrentTenantKey
 const hasWorkspace = computed(() => userPreferencesStore.hasTenant)
 const hasMultipleSplits = computed(() => (transaction.value?.splits?.length ?? 0) > 1)
 const splitOperationActive = computed(
-  () => splitSaving.value || showEditSplit.value || showDeleteSplit.value,
+  () => splitSaving.value || showEditSplit.value || showDeleteSplit.value || uploadSplitsBusy.value,
 )
 
 // Balance status and totals are authoritative values returned by the server.
@@ -158,9 +162,26 @@ function openDeleteSplit(split: TransactionSplitDto) {
 watch([currentTenantKey, transactionKey], () => {
   showEditSplit.value = false
   showDeleteSplit.value = false
+  showUploadSplits.value = false
+  uploadSplitsBusy.value = false
   cancelAddSplit()
   selectedSplit.value = null
 })
+
+function openUploadSplits() {
+  if (loading.value || splitOperationActive.value) return
+  showUploadSplits.value = true
+}
+
+function handleSplitsUploaded(updatedTransaction: TransactionDetailDto) {
+  transaction.value = updatedTransaction
+  showUploadSplits.value = false
+  toastStore.success(
+    'Transaction splits uploaded',
+    'Upload complete',
+    'transaction-splits-uploaded',
+  )
+}
 
 async function addSplit() {
   if (!transaction.value?.key || !currentTenantKey.value || splitOperationActive.value) return
@@ -424,21 +445,36 @@ function formatCurrency(amount: number | undefined): string {
               title="Splits"
               class="mb-0"
             />
-            <button
-              v-if="canEditTransactions"
-              class="btn btn-sm btn-outline-primary"
-              type="button"
-              data-test-id="add-split-button"
-              :disabled="splitOperationActive"
-              @click="openAddSplit"
-            >
-              <FeatherIcon
-                icon="plus"
-                size="16"
-                class="me-1"
-              />
-              Add
-            </button>
+            <div v-if="canEditTransactions">
+              <button
+                class="btn btn-sm btn-outline-primary"
+                type="button"
+                data-test-id="add-split-button"
+                :disabled="loading || splitOperationActive"
+                @click="openAddSplit"
+              >
+                <FeatherIcon
+                  icon="plus"
+                  size="16"
+                  class="me-1"
+                />
+                Add
+              </button>
+              <button
+                class="btn btn-sm btn-outline-primary ms-2"
+                type="button"
+                data-test-id="upload-splits-button"
+                :disabled="loading || splitOperationActive"
+                @click="openUploadSplits"
+              >
+                <FeatherIcon
+                  icon="upload"
+                  size="16"
+                  class="me-1"
+                />
+                Upload
+              </button>
+            </div>
           </div>
 
           <ErrorDisplay
@@ -621,6 +657,16 @@ function formatCurrency(amount: number | undefined): string {
       :transaction-key="transaction.key"
       :split="selectedSplit"
       @updated="handleTransactionUpdated"
+    />
+
+    <TransactionUploadSplitsDialog
+      v-if="transaction?.key && currentTenantKey"
+      :key="`${currentTenantKey}:${transaction.key}`"
+      v-model:show="showUploadSplits"
+      :tenant-key="currentTenantKey"
+      :transaction-key="transaction.key"
+      @update:busy="uploadSplitsBusy = $event"
+      @uploaded="handleSplitsUploaded"
     />
 
     <!-- Delete Modal -->
