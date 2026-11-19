@@ -1,5 +1,5 @@
 ---
-status: Approved
+status: Implemented
 target_release: Beta 2
 prd_document: PRD-TRANSACTION-SPLITS.md
 parent: "Feature 1982: Transaction Splits"

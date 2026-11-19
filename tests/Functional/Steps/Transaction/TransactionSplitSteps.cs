@@ -126,4 +126,36 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
         return parsed;
     }
 
+    /// <summary>
+    /// Then the split balance warning is visible
+    /// </summary>
+    [Then("the split balance warning is visible")]
+    public async Task TheSplitBalanceWarningIsVisible()
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.ExpectTransactionSplitBalanceAlertAsync();
+    }
+
+    /// <summary>
+    /// Then the split balance warning shows transaction amount {string1} and split total {string2}
+    /// </summary>
+    /// <param name="transactionAmount">The expected transaction amount as displayed (decimal)</param>
+    /// <param name="splitTotal">The expected split total as displayed (decimal)</param>
+    [Then("the split balance warning shows transaction amount {transactionAmount} and split total {splitTotal}")]
+    public async Task TheSplitBalanceWarningShowsTransactionAmountAndSplitTotal(string transactionAmount, string splitTotal)
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+
+        var transactionAmountText = await detailsPage.GetTransactionSplitBalanceAlert_TransactionAmountAsync();
+        Assert.That(transactionAmountText, Is.Not.Null.And.Not.Empty, "Transaction amount is not displayed.");
+
+        var transactionAmountDisplayed = ParseDisplayedAmount(transactionAmountText!);
+        Assert.That(transactionAmountDisplayed, Is.EqualTo(ParseDisplayedAmount(transactionAmount)), "Transaction amount does not match expected.");
+
+        var splitTotalText = await detailsPage.GetTransactionSplitBalanceAlert_SplitTotalAsync();
+        Assert.That(splitTotalText, Is.Not.Null.And.Not.Empty, "Split total is not displayed.");
+
+        var splitTotalDisplayed = ParseDisplayedAmount(splitTotalText!);
+        Assert.That(splitTotalDisplayed, Is.EqualTo(ParseDisplayedAmount(splitTotal)), "Split total does not match expected.");
+    }
 }

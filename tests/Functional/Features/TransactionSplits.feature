@@ -191,3 +191,12 @@ Feature: Transaction Splits
             When I view my transactions
             Then that transaction is shown with an unbalanced indicator
 
+        @id:2
+        Scenario: Details show transaction and split totals for an unbalanced transaction
+            Given I have a transaction for payee "Out of balance" with amount "-100.00" and these splits:
+                | Amount | Category  |
+                | -90.00 | Groceries |
+                | -5.00  | Household |
+            And I am on the transactions detail page for that transaction
+            Then the split balance warning is visible
+            And the split balance warning shows transaction amount "-100.00" and split total "-95.00"

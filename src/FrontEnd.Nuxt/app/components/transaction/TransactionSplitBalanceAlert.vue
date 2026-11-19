@@ -32,13 +32,13 @@ const formattedDifference = computed(() => {
   >
     Splits do not match the transaction amount.
     <template #detail>
-      Transaction amount: {{ formatCurrency(transactionAmount) }}.
-      <span data-test-id="transaction-split-total"
-        >Split total: {{ formatCurrency(splitsTotal) }}.</span
-      >
-      <span data-test-id="transaction-split-difference">
-        Difference: {{ formattedDifference }}.
-      </span>
+      Transaction amount:
+      <span data-test-id="transaction-amount">{{ formatCurrency(transactionAmount) }}</span
+      >. Split total:
+      <span data-test-id="transaction-split-total">{{ formatCurrency(splitsTotal) }}</span
+      >. Difference:
+      <span data-test-id="transaction-split-difference">{{ formattedDifference }}</span
+      >.
     </template>
   </BaseAlert>
 </template>

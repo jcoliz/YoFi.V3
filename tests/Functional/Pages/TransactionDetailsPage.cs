@@ -377,6 +377,25 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public ILocator SplitsEmptyMessage => SplitsPane.GetByTestId("transaction-no-splits");
 
+    /// <summary>
+    /// Alert displayed when the transaction's splits do not match the transaction amount.
+    /// </summary>
+    public ILocator TransactionSplitBalanceAlert => Page!.GetByTestId("transaction-split-balance-alert");
+
+    /// <summary>
+    /// Transaction amount displayed in the transaction split balance alert.
+    /// </summary>
+    public ILocator TransactionSplitBalanceAlert_TransactionAmount => TransactionSplitBalanceAlert.GetByTestId("transaction-amount");
+
+    /// <summary>
+    /// Split total displayed in the transaction split balance alert.
+    /// </summary>
+    public ILocator TransactionSplitBalanceAlert_SplitTotal => TransactionSplitBalanceAlert.GetByTestId("transaction-split-total");
+
+    /// <summary>
+    /// Difference displayed in the transaction split balance alert.
+    /// </summary>
+    public ILocator TransactionSplitBalanceAlert_SplitDifference => TransactionSplitBalanceAlert.GetByTestId("transaction-split-difference");
 
     /// <summary>
     /// Adds a split using the form and waits for the update request to complete.
@@ -509,6 +528,23 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     /// </summary>
     public Task ExpectSplitCountAsync(int expectedCount) =>
         Assertions.Expect(SplitRows).ToHaveCountAsync(expectedCount);
+
+    /// <summary>
+    /// Expects that the transaction split balance alert is visible.
+    /// </summary>
+    public Task ExpectTransactionSplitBalanceAlertAsync() =>
+        Assertions.Expect(TransactionSplitBalanceAlert).ToBeVisibleAsync();
+
+
+    internal async Task<string> GetTransactionSplitBalanceAlert_TransactionAmountAsync()
+    {
+        return await TransactionSplitBalanceAlert_TransactionAmount.InnerTextAsync();
+    }
+
+    internal async Task<string> GetTransactionSplitBalanceAlert_SplitTotalAsync()
+    {
+        return await TransactionSplitBalanceAlert_SplitTotal.InnerTextAsync();
+    }
 
     #endregion
 
