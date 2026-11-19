@@ -232,7 +232,7 @@ Skip this phase if the design states no data changes.
 
 > ![NOTE]
 > Previous iterations of this guide directed developers to run the `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
-> However, this script takes too long given how long it takes the scripts to execute, and the sporadic
+> However, this script takes too long given how long it takes the integration tests to execute, and the sporadic
 > nature of our coverage, we will skip this step until we can re-think code coverage.
 
 ---
@@ -247,8 +247,8 @@ This is the primary test layer.
 - [ ] Implement every test listed in the design, in `tests/Integration.Application/`, extending the
       fixture the design names. Use `FeatureTestBase` and Given/When/Then comments.
 - [ ] Cover tenant isolation for every query the feature adds.
-- [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
-- [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Integration`
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Application -Filter "FullyQualifiedName~<Fixture>"`
+- [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Application`
 
 **Commit:** `tests(integration): add [feature] application tests`
 
@@ -283,7 +283,7 @@ the unchanged frontend.
 
 - [ ] Add tests in `tests/Integration.Controller/` for each new endpoint: success, 400 validation,
       404 not-in-tenant, unauthorized, forbidden role, and tenant isolation.
-- [ ] Run: `.\scripts\Run-Tests.ps1 -Integration -Filter "FullyQualifiedName~<Fixture>"`
+- [ ] Run: `.\scripts\Run-Tests.ps1 -Controller -Filter "FullyQualifiedName~<Fixture>"`
 - [ ] Iterate until all pass.
 
 **Commits:** `feat([feature-slug]): add API endpoints` then

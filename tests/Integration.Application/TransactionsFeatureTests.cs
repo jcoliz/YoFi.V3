@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using ClosedXML.Excel;
 using YoFi.V3.Application.Dto;
+using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;
@@ -1160,6 +1162,239 @@ public class TransactionsFeatureTests : FeatureTestBase
 
     #endregion
 
+    #region Upload Splits Tests
+
+    [Test]
+    public async Task UploadSplitsAsync_ValidWorkbook_AppendsRowsAndBalances()
+    {
+        // Given: A transaction with an existing first split and stable fields
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 2, 10),
+            Payee = "Upload payee",
+            Amount = -100.25m,
+            Memo = "Transaction memo",
+            Source = "Test bank",
+            ExternalId = "upload-1",
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -60m, Category = "Existing", Memo = "Keep me", Order = 4 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var originalKey = transaction.Splits.Single().Key;
+        _context.ChangeTracker.Clear();
+
+        var workbook = SplitWorkbook(
+            ("Category", "Amount", "Memo"),
+            ("  groceries  ", "12.34", "  weekly buy  "),
+            ("Dining: OUT", "-52.59", "Lunch"));
+
+        // When: Uploading validated rows
+        var result = await _feature.UploadSplitsAsync(transaction.Key, workbook);
+
+        // Then: Rows append in source order and the first split absorbs the remainder
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Date, Is.EqualTo(transaction.Date));
+            Assert.That(result.Payee, Is.EqualTo("Upload payee"));
+            Assert.That(result.Amount, Is.EqualTo(-100.25m));
+            Assert.That(result.Memo, Is.EqualTo("Transaction memo"));
+            Assert.That(result.Source, Is.EqualTo("Test bank"));
+            Assert.That(result.ExternalId, Is.EqualTo("upload-1"));
+            Assert.That(result.Splits.Select(split => split.Amount),
+                Is.EqualTo(new[] { -60m, 12.34m, -52.59m }));
+            Assert.That(result.Splits.Select(split => split.Category),
+                Is.EqualTo(new[] { "Existing", "Groceries", "Dining:OUT" }));
+            Assert.That(result.Splits.Select(split => split.Memo),
+                Is.EqualTo(new string?[] { "Keep me", "weekly buy", "Lunch" }));
+            Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 4, 5, 6 }));
+            Assert.That(result.Splits[0].Key, Is.EqualTo(originalKey));
+            Assert.That(result.SplitsTotal, Is.EqualTo(-100.25m));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Transactions.Include(item => item.Splits)
+            .SingleAsync(item => item.Key == transaction.Key);
+        Assert.That(persisted.Splits.OrderBy(split => split.Order).Select(split => split.Amount),
+            Is.EqualTo(new[] { -60m, 12.34m, -52.59m }));
+        Assert.That(persisted.Splits.Sum(split => split.Amount), Is.EqualTo(persisted.Amount));
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_ImportedTotalBalancesWithoutFirstSplit_RemovesZeroAllocation()
+    {
+        // Given: One existing split that will be fully replaced by uploaded allocations
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 3, 1),
+            Payee = "Exact balance",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -100m, Category = "Old", Order = 7 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var originalKey = transaction.Splits.Single().Key;
+        _context.ChangeTracker.Clear();
+
+        var workbook = SplitWorkbook(
+            ("Category", "Amount", "Memo"),
+            ("Groceries", "-60", null),
+            ("Fuel", "-40", null));
+
+        // When: Uploading rows whose total equals the transaction amount
+        var result = await _feature.UploadSplitsAsync(transaction.Key, workbook);
+
+        // Then: The balancing split is removed and imported split orders are normalized
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -60m, -40m }));
+            Assert.That(result.Splits.Select(split => split.Category), Is.EqualTo(new[] { "Groceries", "Fuel" }));
+            Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 0, 1 }));
+            Assert.That(result.Splits.Select(split => split.Key), Has.None.EqualTo(originalKey));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Splits
+            .Where(split => split.TransactionId == transaction.Id)
+            .OrderBy(split => split.Order)
+            .ToListAsync();
+        Assert.That(persisted.Select(split => split.Order), Is.EqualTo(new[] { 0, 1 }));
+        Assert.That(persisted.Any(split => split.Key == originalKey), Is.False);
+        Assert.That(persisted.Count, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_ZeroRowsAndAdditionalWorksheet_ImportsOnlyFirstSheetNonZeroRows()
+    {
+        // Given: A transaction and a workbook with zero rows plus a second worksheet
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 3, 2),
+            Payee = "Mixed sheets",
+            Amount = -30m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -20m, Category = "Existing", Order = 2 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var workbook = SplitWorkbookWithSecondSheet(
+            ("Category", "Amount", "Memo"),
+            ("Ignored zero", "0", null),
+            ("Only first", "-10", "Imported"));
+
+        // When: Uploading the workbook
+        var result = await _feature.UploadSplitsAsync(transaction.Key, workbook);
+
+        // Then: Later worksheets and zero rows do not affect imported state or ordering
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -20m, -10m }));
+            Assert.That(result.Splits.Select(split => split.Category),
+                Is.EqualTo(new[] { "Existing", "Only First" }));
+            Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 2, 3 }));
+            Assert.That(result.Splits.Last().Memo, Is.EqualTo("Imported"));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_InvalidSecondRow_LeavesTransactionUnchanged()
+    {
+        // Given: A transaction and a workbook with two invalid second-row fields
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 3, 3),
+            Payee = "Invalid upload",
+            Amount = -50m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -50m, Category = "Original", Memo = "Original memo", Order = 3 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var original = await _feature.GetTransactionByKeyAsync(transaction.Key);
+        _context.ChangeTracker.Clear();
+
+        var workbook = SplitWorkbook(
+            ("Category", "Amount", "Memo"),
+            ("Valid", "10", "Valid memo"),
+            (new string('x', 201), "20", new string('m', 501)));
+
+        // When: The workbook validation encounters an invalid second row
+        var exception = await Assert.ThrowsAsync<ValidationProblemsException>(() =>
+            _feature.UploadSplitsAsync(transaction.Key, workbook));
+
+        // Then: Validation is grouped and persisted state is unchanged
+        Assert.That(exception!.Title, Is.EqualTo("The split workbook failed validation."));
+        Assert.That(exception.Message, Is.EqualTo(
+            "Correct the workbook errors and upload it again. No splits were changed."));
+        Assert.That(exception.Errors.Keys, Contains.Item("Row 3: Category"));
+        Assert.That(exception.Errors.Keys, Contains.Item("Row 3: Memo"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("Category cannot exceed"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("Memo cannot exceed"));
+
+        _context.ChangeTracker.Clear();
+        Assert.That(await _feature.GetTransactionByKeyAsync(transaction.Key), Is.EqualTo(original));
+        Assert.That(await _context.Splits.CountAsync(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_TransactionInAnotherTenant_ThrowsNotFoundWithoutChanges()
+    {
+        // Given: A transaction owned by another tenant
+        var otherTenant = new Tenant { Name = "Other tenant", Description = "Upload isolation" };
+        _context.Tenants.Add(otherTenant);
+        await _context.SaveChangesAsync();
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 3, 4),
+            Payee = "Other tenant transaction",
+            Amount = -50m,
+            TenantId = otherTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -50m, Category = "Original", Order = 0 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        var workbook = SplitWorkbook(
+            ("Category", "Amount", "Memo"),
+            ("Imported", "-25", null));
+        _context.ChangeTracker.Clear();
+
+        // When: The current tenant attempts to upload splits
+        await Assert.ThrowsAsync<TransactionNotFoundException>(() =>
+            _feature.UploadSplitsAsync(transaction.Key, workbook));
+
+        // Then: The other tenant's transaction remains unchanged
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Transactions.Include(item => item.Splits)
+            .SingleAsync(item => item.Key == transaction.Key);
+        Assert.That(persisted.Splits.Single().Amount, Is.EqualTo(-50m));
+        Assert.That(persisted.Splits.Single().Category, Is.EqualTo("Original"));
+    }
+
+    #endregion
+
     #region Batch Operations Tests
 
     [Test]
@@ -1187,6 +1422,63 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     #endregion
+
+    private static byte[] SplitWorkbook(
+        (string Category, string Amount, string? Memo) headers,
+        params (string Category, string Amount, string? Memo)[] rows)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.AddWorksheet("Splits");
+        worksheet.Cell(1, 1).Value = headers.Category;
+        worksheet.Cell(1, 2).Value = headers.Amount;
+        worksheet.Cell(1, 3).Value = headers.Memo;
+
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var rowNumber = index + 2;
+            worksheet.Cell(rowNumber, 1).Value = rows[index].Category;
+            worksheet.Cell(rowNumber, 2).Value = rows[index].Amount;
+            if (rows[index].Memo != null)
+            {
+                worksheet.Cell(rowNumber, 3).Value = rows[index].Memo;
+            }
+        }
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
+    private static byte[] SplitWorkbookWithSecondSheet(
+        (string Category, string Amount, string? Memo) headers,
+        params (string Category, string Amount, string? Memo)[] rows)
+    {
+        using var workbook = new XLWorkbook();
+        var first = workbook.AddWorksheet("Splits");
+        first.Cell(1, 1).Value = headers.Category;
+        first.Cell(1, 2).Value = headers.Amount;
+        first.Cell(1, 3).Value = headers.Memo;
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var rowNumber = index + 2;
+            first.Cell(rowNumber, 1).Value = rows[index].Category;
+            first.Cell(rowNumber, 2).Value = rows[index].Amount;
+            if (rows[index].Memo != null)
+            {
+                first.Cell(rowNumber, 3).Value = rows[index].Memo;
+            }
+        }
+
+        var second = workbook.AddWorksheet("Later");
+        second.Cell(1, 1).Value = "Category";
+        second.Cell(1, 2).Value = "Amount";
+        second.Cell(2, 1).Value = "Later sheet";
+        second.Cell(2, 2).Value = "-999";
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
 }
 
 /// <summary>
