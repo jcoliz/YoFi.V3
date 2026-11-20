@@ -152,7 +152,7 @@ Feature: Transaction Record Fields
     @category:scenario-2235
     Rule: User gets suggestions when entering categories
 
-        Scenario Outline: Category picker suggests existing values while editing
+        Scenario Outline: Category picker suggests existing values while editing transactions
             Given I have a workspace with a transaction:
                 | Payee          | Amount | Category |
                 | Restaurant XYZ | -32.50 | Dining   |
@@ -160,7 +160,7 @@ Feature: Transaction Record Fields
                 | Payee          | Amount | Category |
                 | Uncategorized  | -32.50 |          |
             And I am on the transaction <page> page
-            And I open the <surface>
+            And I open the transaction <surface>
             When I enter "d" in the category picker
             Then the "Dining" category suggestion is displayed
 
@@ -171,5 +171,19 @@ Feature: Transaction Record Fields
                 | list     | filter pane        |
                 | details  | edit pane          |
                 | details  | add split dialog   |
+                | details  | edit split dialog  |
 
-        #TODO: Implement tests for category pickers on payee-rules surfaces
+        Scenario Outline: Category picker suggests existing values while editing payee rules
+            Given I have a workspace with a transaction:
+                | Payee          | Amount | Category |
+                | Restaurant XYZ | -32.50 | Dining   |
+            And I have 1 payee matching rule in my workspace
+            And I am viewing my payee rules
+            And I open the rule <surface>
+            When I enter "d" in the category picker
+            Then the "Dining" category suggestion is displayed
+
+            Examples:
+                | surface |
+                | edit rule |
+                | add rule  |

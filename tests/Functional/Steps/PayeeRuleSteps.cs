@@ -38,6 +38,8 @@ public class PayeeRuleSteps(ITestContext _context)
     /// Synthetically creates payee rules, just to meet the desired count.
     /// </remarks>
     /// <param name="count">The number of payee matching rules to create.</param>
+    [Given("I have {count} payee matching rules in my workspace")]
+    [Given("I have {count} payee matching rule in my workspace")]
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
@@ -108,6 +110,29 @@ public class PayeeRuleSteps(ITestContext _context)
 
     #region WHEN
 
+    [Given("I open the rule {surface}")]
+    [When("I open the rule {surface}")]
+    public async Task WhenIOpenTheSurface(string surface)
+    {
+        var surfaceNormalized = surface.Trim().ToLower();
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+
+        if (surfaceNormalized == "edit rule")
+        {
+            var page = _context.GetOrCreatePage<PayeeRulesPage>();
+            await page.OpenEditModalAsync();
+        }
+        else if (surfaceNormalized == "add rule")
+        {
+            var page = _context.GetOrCreatePage<PayeeRulesPage>();
+            await page.OpenCreateDialogAsync();
+        }
+        else
+        {
+            throw new ArgumentException($"Unknown surface: {surface}");
+        }
+    }
+
     /// <summary>
     /// Creates a rule using the Transactions page's source transaction and application checkbox.
     /// </summary>
@@ -171,6 +196,7 @@ public class PayeeRuleSteps(ITestContext _context)
     /// <summary>
     /// When I view my payee rules
     /// </summary>
+    [Given("I am viewing my payee rules")]
     [When("I view my payee rules")]
     public async Task IViewMyPayeeRules()
     {

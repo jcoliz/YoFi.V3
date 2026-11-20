@@ -60,6 +60,15 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Opens the create rule dialog and waits for it to be visible.
+    /// </summary>
+    public async Task OpenCreateDialogAsync()
+    {
+        await NewRuleButton.ClickAsync();
+        await CreateDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
     /// Submits the create form without requiring the rule to be accepted.
     /// </summary>
     public async Task AttemptCreateRuleAsync(string payee, string category)
@@ -68,6 +77,16 @@ public class PayeeRulesPage(IPage page) : BasePage(page)
         await PayeePatternInput.FillAsync(payee);
         await CategoryInput.FillAsync(category);
         await SaveButton.ClickAsync();
+    }
+
+    /// <summary>
+    /// Opens the first rule in the list and waits for the refreshed list.
+    /// </summary>
+    public async Task OpenEditModalAsync()
+    {
+        await RulesTable.GetByTestId("row-actions-button").First.ClickAsync();
+        await EditButton.ClickAsync();
+        await EditDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
     /// <summary>

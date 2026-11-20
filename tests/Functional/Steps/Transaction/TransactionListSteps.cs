@@ -72,8 +72,8 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
 
     #region Steps: WHEN
 
-    [Given("I open the {surface}")]
-    [When("I open the {surface}")]
+    [Given("I open the transaction {surface}")]
+    [When("I open the transaction {surface}")]
     [Requires(ObjectStoreKeys.TransactionPayee)]
     public async Task WhenIOpenTheSurface(string surface)
     {
@@ -104,6 +104,16 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         {
             var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
             await transactionsPage.OpenCreateRuleModalAsync(payee);
+        }
+        else if (surfaceNormalized == "edit split dialog")
+        {
+            // This is complicated. First we need to ADD a split to the transaction before we can edit it.
+
+            var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+            await detailsPage.AddSplitAsync(0, "Category", "Added by WhenIOpenTheSurface");
+
+            // NOW we can edit a split (doesn't matter which)
+            await detailsPage.OpenEditSplitDialogAsync();
         }
         else
         {

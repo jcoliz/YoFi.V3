@@ -516,6 +516,17 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Opens the edit split dialog for the first split.
+    /// </summary>
+    /// <returns></returns>
+    public async Task OpenEditSplitDialogAsync()
+    {
+        await SplitActionButtons.First.ClickAsync();
+        await SplitEditButtons.First.ClickAsync();
+        await EditSplitDialog.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
     /// Deletes a split, selecting it by its displayed category.
     /// </summary>
     public async Task DeleteSplitAsync(string category)
