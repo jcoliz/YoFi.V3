@@ -1,3 +1,11 @@
+## Hypothesis
+
+Is it a problem that the apiclient.ts file is so huge?
+
+## Conclusion
+
+Ultimately, I decided to leave things alone.
+
 ## Prompt
 
 > I would like some advice on my generated TS client for backend API. Using NSwag, I generate TS clients to match my backend API. This works great to keep everything in sync.
@@ -50,3 +58,46 @@ Do not split the file. Instead, in order of value:
 3. Only if analyze shows DTO classes dominating and you care about the delta: evaluate `typeStyle: Interface`, scoping the frontend refactor it would require.
 
 Splitting the generated client (todo item 4) should remain a last resort gated on measured evidence.
+
+## Follow-up
+
+> Right, current state is just a point in time. I changed the class handling and wanted to see what came up. I can always revert. Can you do a nuxi analyze now to see the difference?
+
+I measured both versions. Switching DTOs to interfaces saves about **4–5 KB gzipped** in the browser bundle. That's roughly 1.5% of your ~294 KB gzipped client JS, so it's not worth the rename and date work for performance alone.
+
+I couldn't run a full `nuxi analyze` on your Interface version, because the build fails with 11 missing-export errors. Some files still create or import DTOs as classes, for example `new SplitEditDto`, `new TransactionQuickEditDto`, `PayeeMatchingRuleCreateDto.fromJS`, and the `ProblemDetails` import in [`errorHandler.ts`](src/FrontEnd.Nuxt/app/utils/errorHandler.ts:8). So the Interface number below comes from minifying the client file on its own, not from a real app build.
+
+## Results
+
+**Class version (current), real app build**
+
+| | Raw | Gzip |
+|---|---|---|
+| All client JS (43 files) | 905 KB | **294 KB** |
+| `entry.js` (main app chunk) | 347 KB | 121 KB |
+| `apiclient.js` (one shared chunk) | 86 KB | **7.3 KB** |
+| Largest page chunk (`transactions.js`) | 30 KB | 9 KB |
+
+**Client file minified on its own**
+
+| | Source lines | Minified | Gzip |
+|---|---|---|---|
+| Class | 9,455 | 130 KB | 10.4 KB |
+| Interface | 5,634 | 87 KB | 5.0 KB |
+
+## What this means
+
+- **Splitting the file wouldn't help.** The bundler already puts the client code into one shared chunk of 7.3 KB gzipped, downloaded once and cached. It also drops the unused parts: the full file gzips to 10.4 KB on its own, but only 7.3 KB ships. Separate files would just give you more small chunks to fetch.
+- **Interfaces would save about 3.5–5 KB gzipped**, the size of a small icon. Gzip shrinks the 9,455 lines this much because the DTO code is very repetitive.
+- **The main app chunk is what's large.** `entry.js` alone is 121 KB gzipped, about 40% of the total. If you ever want to speed up first load, look there; the API client is about 2%.
+
+## Recommendation
+
+Revert to `"typeStyle": "Class"`. For performance, there's nothing to gain from your original question or this experiment.
+
+The one reason to move to interfaces would be a cleaner design: interfaces with `dateTimeType: "String"` would make date-only fields honest `"yyyy-MM-dd"` strings and remove most of [`dateOnly.ts`](src/FrontEnd.Nuxt/app/utils/dateOnly.ts). That's worth doing on its own merits if you want it. Don't keep interfaces while leaving dates typed as `Date`: the types would be wrong at runtime, and request dates could shift by a day for users east of UTC.
+
+## Notes
+
+- To get a clean Class baseline, I stashed your changes, ran the analysis, and popped the stash. Your Interface experiment is back exactly as it was, and I deleted the temporary logs and CSV I created.
+- `.output/public/_nuxt/` still contains old files from a Nov 12 build, including a stale 98 KB copy of the client. They weren't counted above. Clear `.output` before your next measurement so the old files don't skew it.
