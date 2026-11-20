@@ -107,6 +107,103 @@ public class ReportsControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task GetReport_AsViewer_AppliesDisplayOverrides()
+    {
+        var tenantKey = await CreateTestTenantAsync("Report display override tenant");
+        using var client = CreateMultiTenantClient((tenantKey, TenantRole.Viewer));
+        await AddIncomeSplitAsync(2034, "Controller Override", 125.50m, tenantKey);
+
+        // Given: A Viewer can read reports and data exists in the selected tenant
+        // When: Requesting effective depth and annual-only display settings
+        var response = await client.GetAsync(
+            $"/api/tenant/{tenantKey}/reports/income-detail?year=2034&displayDepth=1&showMonths=false");
+        var report = await response.Content.ReadFromJsonAsync<ReportResultDto>();
+
+        // Then: The controller forwards both overrides and the effective response is returned
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(report, Is.Not.Null);
+            Assert.That(report!.DisplayDepth, Is.EqualTo(1));
+            Assert.That(report.HasMonthColumns, Is.False);
+            Assert.That(report.Rows.Select(row => row.CategoryPath),
+                Is.EqualTo(new[] { "Income:Controller Override" }));
+            Assert.That(report.Rows.All(row => row.MonthlyAmounts is null), Is.True);
+            Assert.That(report.Totals.MonthlyAmounts, Is.Null);
+            Assert.That(report.Totals.AnnualTotal, Is.EqualTo(125.50m));
+        }
+    }
+
+    [Test]
+    public async Task GetReport_DisplayDepthBelowOne_Returns400ProblemDetails()
+    {
+        SwitchToViewer();
+
+        // Given: A valid report request
+        // When: Supplying an invalid display depth
+        var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/reports/all?displayDepth=0");
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+
+        // Then: Validation is returned through the application's existing ProblemDetails mapping
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(problem, Is.Not.Null);
+            Assert.That(problem!.Errors, Does.ContainKey("displayDepth"));
+        }
+    }
+
+    [TestCase("displayDepth=not-a-depth")]
+    [TestCase("showMonths=not-a-bool")]
+    public async Task GetReport_NonNumericDisplayParameter_Returns400ProblemDetails(string query)
+    {
+        SwitchToViewer();
+
+        // Given: A valid report route
+        // When: Model binding cannot convert the display parameter
+        var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/reports/all?{query}");
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+
+        // Then: MVC model-binding validation returns 400 with the parameter in the errors
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(problem, Is.Not.Null);
+            Assert.That(problem!.Errors, Is.Not.Empty);
+        }
+    }
+
+    [Test]
+    public async Task GetReport_WithoutAuthentication_ReturnsUnauthorized()
+    {
+        using var factory = new BaseTestWebApplicationFactory(useTestAuthentication: false);
+        using var client = factory.CreateClient();
+
+        // Given: An unauthenticated request
+        // When: Reading a report
+        var response = await client.GetAsync($"/api/tenant/{_testTenantKey}/reports/all");
+
+        // Then: Authentication rejects the request
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task GetReport_WithoutTenantAccess_ReturnsForbidden()
+    {
+        var unrelatedTenantKey = await CreateTestTenantAsync("Unrelated report tenant");
+        using var client = CreateMultiTenantClient((unrelatedTenantKey, TenantRole.Viewer));
+
+        // Given: A viewer with access only to another tenant
+        // When: Reading the test tenant's report
+        var response = await client.GetAsync($"/api/tenant/{_testTenantKey}/reports/all");
+
+        // Then: Tenant authorization returns forbidden
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
     public async Task GetAvailableReports_WithoutTenantAccess_ReturnsForbidden()
     {
         var unrelatedTenantKey = await CreateTestTenantAsync("Unrelated tenant");
@@ -162,11 +259,15 @@ public class ReportsControllerTests : AuthenticatedTestBase
         }
     }
 
-    private async Task AddIncomeSplitAsync(int year, string category, decimal amount)
+    private async Task AddIncomeSplitAsync(
+        int year,
+        string category,
+        decimal amount,
+        Guid? tenantKey = null)
     {
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await dbContext.Tenants.SingleAsync(item => item.Key == _testTenantKey);
+        var tenant = await dbContext.Tenants.SingleAsync(item => item.Key == (tenantKey ?? _testTenantKey));
         dbContext.Transactions.Add(new Transaction
         {
             TenantId = tenant.Id,
