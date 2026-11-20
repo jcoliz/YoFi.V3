@@ -1108,9 +1108,10 @@ they do not currently provide editable category fields.
 
 ### Architectural Considerations
 
-Follow the existing tenant-scoped BFF pattern: a read-only Application feature
-queries persisted category values, a tenant-authorized controller exposes them,
-and a reusable Vue component owns suggestion interaction. No third-party
+Follow the existing tenant-scoped BFF pattern: the existing Transactions
+Application feature queries persisted split categories, the Transactions
+controller exposes them, and a reusable Vue component owns suggestion
+interaction. No third-party
 autocomplete or component dependency is introduced.
 
 The picker is a reusable presentation component rather than duplicated logic in
@@ -1122,47 +1123,41 @@ Category lookups can be issued on every input change, so the component debounces
 requests for 200 ms and ignores results from a superseded request. The response
 is capped at 20 suggestions. The endpoint returns only distinct non-empty values;
 it does not page results. No cache is added because recent edits must become
-visible to subsequent lookups without cache invalidation in both transaction and
-payee-rule write paths.
+visible to subsequent lookups without cache invalidation after transaction
+writes.
 
 ### Design Decisions
 
 | Decision | Alternatives considered | Rationale |
 | -------- | ----------------------- | --------- |
 | Keep suggestions free-form and select only a full existing value | Suggest an automatically created hierarchy or require selection from the list | Categories are intentionally stored as free-form text; selection must not block new categories. |
-| Read categories from both tenant transaction splits and tenant payee matching rules | Read only splits, or read only the categories visible on the current transaction page | Both stores are sources of persisted category values and are the data users expect to reuse across transaction and payee workflows. |
+| Read categories only from tenant transaction splits | Also read payee matching rules, or read only categories visible on the current transaction page | A category used by a rule but never by a transaction is too small an edge case to justify joining another persisted source. Transaction splits are the established source of categories actually used by the user. |
 | Match the sanitized whole input as a case-insensitive prefix and sort results ordinally | Case-sensitive prefix or arbitrary substring search | Prefix matching is predictable for a type-ahead picker and supports hierarchical values such as `Food:Groceries`; case-insensitive matching avoids duplicate casing choices. |
-| Use one `GET /categories` endpoint for all consumers | Add category methods to both Transactions and Payee Rules controllers | Category suggestions span both domains and belong to the tenant, not either editor's request contract. |
+| Add category suggestions to the Transactions feature and controller | Create a separate Categories feature and controller | Suggestions read transaction split data and should remain a small tenant-scoped Transactions capability. Avoiding new feature/controller types keeps the change proportional and uses the existing dependency wiring and API client. |
 | Load only after an input event with at least one sanitized character | Load all choices when the component mounts or on focus | This preserves the specified behavior for prefilled fields and avoids unnecessary requests. |
 | On lookup failure, keep the entered text and hide the suggestion list | Show a blocking form error or require retry | Suggestions are assistive. Failure of the lookup must never prevent an otherwise valid category from being saved. |
 
 ### Entities
 
-No entity changes are required. Categories remain on existing
-[`Split`](../../../src/Entities/Models/Split.cs) and
-[`PayeeMatchingRule`](../../../src/Entities/Models/PayeeMatchingRule.cs) records.
-No Category entity or relationship is introduced.
+No entity changes are required. Suggested categories are read from existing
+[`Split`](../../../src/Entities/Models/Split.cs) records. Payee matching rule
+categories are not a suggestion source. No Category entity or relationship is
+introduced.
 
 ### Data
 
 No database, `DbContext`, migration, index, or constraint changes are required.
-The existing transaction/split and payee-rule indexes are unaffected; this is a
-small, input-driven read whose result is capped after distinct values are found.
+The existing transaction/split indexes are unaffected; this is a small,
+input-driven read whose result is capped after distinct values are found.
 
-[`CategoriesFeature`](../../../src/Application/Features/) must form two
-`IQueryable<string>` projections with `IDataProvider`:
-
-1. `Split.Category` for splits whose parent `Transaction.TenantId` equals the
-   current tenant.
-2. `PayeeMatchingRule.Category` whose `TenantId` equals the current tenant.
-
-Each projection excludes empty values, matches the lower-cased sanitized input
-as a prefix, selects only the value, and applies provider-side `Distinct`. The
-feature concatenates the two materialized, no-tracking sets, performs a final
-case-insensitive de-duplication, orders with `StringComparer.OrdinalIgnoreCase`
-(and then `Ordinal` to make casing variants deterministic before the prior
-step removes them), and returns at most 20 values. Normalization for lookup must
-not alter the text returned to or persisted by the caller.
+[`TransactionsFeature`](../../../src/Application/Features/TransactionsFeature.cs)
+must form one no-tracking `IQueryable<string>` projection of `Split.Category`
+for splits whose parent `Transaction.TenantId` equals the current tenant. The
+query excludes empty values, matches the lower-cased sanitized input as a
+prefix, selects only the category, and applies provider-side `Distinct`. It then
+orders with `StringComparer.OrdinalIgnoreCase` and `Ordinal` and returns at most
+20 values. Normalization for lookup must not alter the text returned to or
+persisted by the caller.
 
 ### Data Integration Tests
 
@@ -1172,12 +1167,11 @@ integration tests below.
 
 ### Application Features
 
-Add
-[`CategoriesFeature`](../../../src/Application/Features/) with the following
-public operation:
+Add the following public operation to
+[`TransactionsFeature`](../../../src/Application/Features/TransactionsFeature.cs):
 
 ```csharp
-public Task<IReadOnlyCollection<string>> GetSuggestionsAsync(
+public Task<IReadOnlyCollection<string>> GetCategorySuggestionsAsync(
     string term,
     CancellationToken cancellationToken = default);
 ```
@@ -1188,7 +1182,7 @@ the return value is an alphabetically ordered, case-insensitively distinct
 collection of at most 20 existing category strings. The method throws
 `ArgumentException` when `term` sanitizes to an empty value and
 `OperationCanceledException` when the cancellation token is canceled. It applies
-the tenant predicates described in [Data](#data) to both source queries.
+the tenant predicate described in [Data](#data) to the split query.
 
 The operation does not invent parent category paths. A persisted
 `Food:Groceries` value is eligible when the sanitized term is, for example,
@@ -1197,18 +1191,18 @@ change is made to any create or edit DTO.
 
 ### Application Integration Tests
 
-Extend a new `CategoriesFeatureTests` fixture under
-[`tests/Integration.Application`](../../../tests/Integration.Application/) with
-these tests and Summary text:
+Extend
+[`TransactionsFeatureTests`](../../../tests/Integration.Application/TransactionsFeatureTests.cs)
+with these tests and Summary text:
 
-- `Gets suggestions from splits and rules for the current tenant only` - seeds both
-  sources in the current and another tenant, then proves the combined source set,
+- `Gets category suggestions from splits for the current tenant only` - seeds
+  splits in the current and another tenant, then proves the source set,
   non-empty filtering, ordering, and tenant isolation;
 - `Matches category prefixes case-insensitively and sanitizes the term` - proves
   normalized partial and hierarchical prefixes while excluding values that only
   contain the term later in the string;
-- `De-duplicates category suggestions case-insensitively` - proves duplicates
-  across both sources produce one value;
+- `De-duplicates category suggestions case-insensitively` - proves repeated
+  categories across transaction splits produce one value;
 - `Limits category suggestions to twenty` - proves the response is bounded after
   ordering; and
 - `Rejects a blank category search term` - proves the feature rejects blank or
@@ -1219,16 +1213,16 @@ No Application-layer logging is added.
 
 ### Controllers
 
-Add
-[`CategoriesController`](../../../src/Controllers/) with the following endpoint:
+Add the following endpoint to
+[`TransactionsController`](../../../src/Controllers/TransactionsController.cs):
 
 | Method | Route | Tenant role | Request body | Success response | Error responses |
 | ------ | ----- | ----------- | ------------ | ---------------- | --------------- |
-| `GET` | `/api/tenant/{tenantKey:guid}/categories?term={term}` | Viewer | None; required query `term` | `200 OK`, `IReadOnlyCollection<string>` | `400` blank/whitespace term or sanitized term longer than 200 characters; `401`; `403`; `500` |
+| `GET` | `/api/tenant/{tenantKey:guid}/transactions/categories?term={term}` | Viewer | None; required query `term` | `200 OK`, `IReadOnlyCollection<string>` | `400` blank/whitespace term or sanitized term longer than 200 characters; `401`; `403`; `500` |
 
-Its endpoint summary is "Gets existing category suggestions for the current
-tenant." The controller action has the signature
-`Task<IActionResult> GetSuggestions([FromQuery] string? term, CancellationToken cancellationToken)`.
+Its endpoint summary is "Gets existing transaction category suggestions for the
+current tenant." The controller action has the signature
+`Task<IActionResult> GetCategorySuggestions([FromQuery] string? term, CancellationToken cancellationToken)`.
 `term` is a required query parameter. Controller validation must reject the
 null/blank value before calling the feature and map all errors to the standard
 `ProblemDetails` response. No new exception or exception-handler mapping is
@@ -1237,7 +1231,7 @@ needed.
 Use `[LoggerMessage]`-attributed partial methods at this API boundary: a debug
 "Starting" event and an information event recording only the returned count. Do
 not log the term or category values. Add the generated client method
-`CategoriesClient.getSuggestions(term, tenantKey)` by running
+`TransactionsClient.getCategorySuggestions(term, tenantKey)` by running
 [`Generate-ApiClient.ps1`](../../../scripts/Generate-ApiClient.ps1); do not edit
 [`apiclient.ts`](../../../src/FrontEnd.Nuxt/app/utils/apiclient.ts) directly.
 
@@ -1281,7 +1275,7 @@ current string exactly and makes no sanitization change to the form value.
 On an actual `input` event, the component emits the complete value. If the value
 sanitizes to empty, it immediately clears the list, closes it, and increments the
 request generation so any late response is ignored. Otherwise it debounces for
-200 ms and calls `CategoriesClient.getSuggestions(term, tenantKey)`. A sequence
+200 ms and calls `TransactionsClient.getCategorySuggestions(term, tenantKey)`. A sequence
 number rejects stale responses; changing tenant also clears all suggestions.
 Programmatic `v-model` initialization or prop updates do not issue a request, so a
 prefilled category does not open on first render. Typing, deleting to another
