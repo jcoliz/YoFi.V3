@@ -18,11 +18,13 @@ interface Props {
   expanded: boolean
   /** Disables actions and prevents draft commits while a request is in progress. */
   disabled?: boolean
+  /** Tenant key used to scope category suggestions. */
+  tenantKey?: string
   /** Applied filters; changes replace the panel's local draft. */
   filters: TransactionAdvancedFilters
 }
 
-const props = withDefaults(defineProps<Props>(), { disabled: false })
+const props = withDefaults(defineProps<Props>(), { tenantKey: '', disabled: false })
 
 /** Date presets displayed in the panel. */
 const datePresets = [
@@ -328,13 +330,13 @@ defineExpose({ validateAndCommit, resetDraft })
                   class="form-label"
                   >Category (any split)</label
                 >
-                <input
-                  id="categoryFilter"
-                  ref="categoryInput"
+                <CategoryPicker
                   v-model="draft.category"
-                  type="text"
-                  class="form-control"
-                  data-test-id="category-filter"
+                  input-id="categoryFilter"
+                  input-test-id="category-filter"
+                  :tenant-key="tenantKey"
+                  :maxlength="200"
+                  :disabled="disabled"
                   @keyup.enter.prevent="commitImmediately"
                   @blur="commitOnBlur"
                 />

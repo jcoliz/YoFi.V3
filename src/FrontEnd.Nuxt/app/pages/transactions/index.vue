@@ -581,6 +581,7 @@ function retryLoadTransactions() {
         ref="filterPanel"
         :expanded="showFilters"
         :disabled="loading || !ready"
+        :tenant-key="currentTenantKey || ''"
         :filters="filters"
         @commit="handleFilterCommit"
         @clear-all="handleClearAll"
@@ -860,6 +861,7 @@ function retryLoadTransactions() {
     <!-- Create Rule from Transaction Dialog -->
     <PayeeRulesDialog
       v-model:show="showCreateRuleModal"
+      :tenant-key="currentTenantKey || ''"
       mode="create"
       :loading="savingRule"
       :from-transaction="true"

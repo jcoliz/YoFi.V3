@@ -39,7 +39,6 @@ const transactionsClient = useApiClient(TransactionsClient)
 const loading = ref(false)
 const error = ref<IProblemDetails | undefined>()
 const showError = ref(false)
-const categoryInput = ref<HTMLInputElement | null>(null)
 const formData = ref({ amount: '', category: '', memo: '' })
 const validationErrors = ref<Partial<Record<'Amount' | 'Category' | 'Memo', string[]>>>({})
 let active = true
@@ -57,8 +56,6 @@ watch(
     validationErrors.value = {}
     error.value = undefined
     showError.value = false
-    await nextTick()
-    categoryInput.value?.focus()
   },
   { immediate: true },
 )
@@ -181,17 +178,14 @@ onBeforeUnmount(() => {
             class="form-label"
             >Category</label
           >
-          <input
-            id="edit-split-category"
-            ref="categoryInput"
+          <CategoryPicker
             v-model="formData.category"
-            type="text"
-            class="form-control"
-            :class="{ 'is-invalid': validationErrors.Category }"
-            :aria-invalid="!!validationErrors.Category"
-            maxlength="200"
+            input-id="edit-split-category"
+            input-test-id="edit-split-category"
+            :tenant-key="tenantKey"
+            :maxlength="200"
             placeholder="Category (optional)"
-            data-test-id="edit-split-category"
+            :invalid="!!validationErrors.Category"
           />
         </div>
         <div class="mb-3">

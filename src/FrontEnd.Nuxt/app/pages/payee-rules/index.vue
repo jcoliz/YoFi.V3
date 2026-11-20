@@ -559,6 +559,7 @@ function formatDate(date: Date | undefined): string {
     <!-- Create Dialog -->
     <PayeeRulesDialog
       v-model:show="showCreateDialog"
+      :tenant-key="currentTenantKey || ''"
       mode="create"
       :loading="loading"
       @save="createRule"
@@ -568,6 +569,7 @@ function formatDate(date: Date | undefined): string {
     <PayeeRulesDialog
       v-if="selectedRule"
       v-model:show="showEditDialog"
+      :tenant-key="currentTenantKey || ''"
       mode="edit"
       :loading="loading"
       :initial-payee-pattern="selectedRule.payeePattern"

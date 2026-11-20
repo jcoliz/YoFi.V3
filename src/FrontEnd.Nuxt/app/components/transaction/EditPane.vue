@@ -296,15 +296,14 @@ async function saveTransaction() {
               class="form-label"
               >Category</label
             >
-            <input
-              id="editCategory"
+            <CategoryPicker
               v-model="editData.category"
-              type="text"
-              class="form-control"
-              :class="{ 'is-invalid': formErrors.category }"
+              input-id="editCategory"
+              input-test-id="edit-category"
+              :tenant-key="userPreferencesStore.getCurrentTenantKey || ''"
+              :maxlength="100"
               placeholder="Category (optional)"
-              maxlength="100"
-              data-test-id="edit-category"
+              :invalid="!!formErrors.category"
             />
             <HelpText>Optional category for this transaction</HelpText>
             <div

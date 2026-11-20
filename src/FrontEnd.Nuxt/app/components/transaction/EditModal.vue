@@ -200,17 +200,16 @@ onBeforeUnmount(() => document.removeEventListener('keydown', handleKeydown))
           class="form-label"
           >Category</label
         >
-        <input
-          id="editCategory"
+        <CategoryPicker
           v-model="formData.category"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.category }"
+          input-id="editCategory"
+          input-test-id="edit-transaction-category"
+          :tenant-key="userPreferencesStore.getCurrentTenantKey || ''"
+          :maxlength="100"
           placeholder="Category (optional)"
-          maxlength="100"
           :disabled="hasMultipleSplits"
-          aria-describedby="editCategoryHelp"
-          data-test-id="edit-transaction-category"
+          :invalid="!!formErrors.category"
+          described-by="editCategoryHelp"
         />
         <HelpText
           id="editCategoryHelp"

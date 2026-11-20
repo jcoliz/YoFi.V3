@@ -270,15 +270,14 @@ async function createTransaction() {
         class="form-label"
         >Category</label
       >
-      <input
-        id="createCategory"
+      <CategoryPicker
         v-model="formData.category"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': formErrors.category }"
+        input-id="createCategory"
+        input-test-id="create-transaction-category"
+        :tenant-key="userPreferencesStore.getCurrentTenantKey || ''"
+        :maxlength="100"
         placeholder="Category (optional)"
-        maxlength="100"
-        data-test-id="create-transaction-category"
+        :invalid="!!formErrors.category"
       />
       <small class="form-text text-muted">Optional category for this transaction</small>
       <div

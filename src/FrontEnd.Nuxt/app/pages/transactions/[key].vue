@@ -497,13 +497,13 @@ function formatCurrency(amount: number | undefined): string {
                 >
                   Category
                 </label>
-                <input
-                  id="split-category"
+                <CategoryPicker
                   v-model="splitForm.category"
-                  class="form-control"
-                  type="text"
-                  maxlength="200"
-                  data-test-id="add-split-category"
+                  input-id="split-category"
+                  input-test-id="add-split-category"
+                  :tenant-key="currentTenantKey || ''"
+                  :maxlength="200"
+                  placeholder="Category (optional)"
                 />
               </div>
               <div class="col-md-3">

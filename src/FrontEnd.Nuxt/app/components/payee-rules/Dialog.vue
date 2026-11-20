@@ -15,6 +15,9 @@ interface Props {
   /** Whether the dialog is visible */
   show: boolean
 
+  /** Tenant key used for category suggestions. */
+  tenantKey?: string
+
   /** Dialog mode - create new rule or edit existing rule */
   mode: 'create' | 'edit'
 
@@ -41,6 +44,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  tenantKey: '',
   loading: false,
   initialPayeePattern: '',
   initialCategory: '',
@@ -299,16 +303,15 @@ const primaryButtonText = computed(() => {
           class="form-label"
           >Category</label
         >
-        <input
-          id="category"
+        <CategoryPicker
           v-model="formData.category"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': formErrors.category }"
+          input-id="category"
+          input-test-id="category-input"
+          :tenant-key="tenantKey"
+          :maxlength="200"
           placeholder="e.g., Shopping, Groceries, Utilities"
-          maxlength="200"
           :disabled="loading"
-          data-test-id="category-input"
+          :invalid="!!formErrors.category"
         />
         <small class="form-text text-muted">
           {{ formData.category.length }} / 200 characters
