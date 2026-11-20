@@ -466,6 +466,16 @@ public partial class TransactionDetailsPage(IPage page) : BasePage(page)
     }
 
     /// <summary>
+    /// Opens the add split dialog and waits for it to become visible.
+    /// </summary>
+    /// <returns></returns>
+    public async Task OpenAddSplitDialogAsync()
+    {
+        await AddSplitButton.ClickAsync();
+        await AddSplitCategoryInput.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    /// <summary>
     /// Edits a split's amount, selecting the split by its displayed category.
     /// </summary>
     public async Task EditSplitAmountAsync(string category, decimal amount)

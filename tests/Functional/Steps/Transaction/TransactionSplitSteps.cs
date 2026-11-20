@@ -35,6 +35,13 @@ public class TransactionSplitSteps(ITestContext context) : TransactionStepsBase(
         await detailsPage.AddSplitAsync(amount, category, memo);
     }
 
+    [When("I open the add split dialog")]
+    public async Task IOpenTheAddSplitDialog()
+    {
+        var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+        await detailsPage.OpenAddSplitDialogAsync();
+    }
+
     /// <summary>
     /// When I edit the {category} split amount to {amount}
     /// </summary>

@@ -147,3 +147,28 @@ Feature: Transaction Record Fields
             And I click "Save"
             And I click on the transaction row
             Then I should see all the expected transaction fields displayed
+
+    @category:category-picker
+    @category:scenario-2235
+    Rule: User gets suggestions when entering categories
+
+        Scenario Outline: Category picker suggests existing values while editing
+            Given I have a workspace with a transaction:
+                | Payee          | Amount | Category |
+                | Restaurant XYZ | -32.50 | Dining   |
+            And I have a workspace with a transaction:
+                | Payee          | Amount | Category |
+                | Uncategorized  | -32.50 |          |
+            And I am on the transaction <page> page
+            And I open the <surface>
+            When I enter "d" in the category picker
+            Then the "Dining" category suggestion is displayed
+
+            Examples:
+                | page     | surface            |
+                | list     | quick edit pane    |
+                | list     | filter pane        |
+                | details  | edit pane          |
+                | details  | add split dialog   |
+
+        #TODO: Implement tests for category pickers on payee-rules surfaces

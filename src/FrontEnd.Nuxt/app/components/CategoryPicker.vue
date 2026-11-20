@@ -184,6 +184,7 @@ function handleFocusOut(event: FocusEvent) {
 <template>
   <div
     ref="wrapper"
+    data-test-id="category-picker"
     class="category-picker position-relative"
     @focusout="handleFocusOut"
   >

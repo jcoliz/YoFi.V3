@@ -29,6 +29,19 @@ public class BasePage(IPage _page): PageObjectModel(_page)
     /// </summary>
     public ILocator AppToast => Page.GetByTestId("app-toast");
 
+    /// <summary>
+    /// The first category picker component currently mounted by the application.
+    /// </summary>
+    /// <remarks>
+    /// Not ALL pages support the category picker, but enough do that we are generalizing its access here.
+    /// </remarks>
+    public ILocator CategoryPicker => Page.GetByTestId("category-picker").First;
+
+    /// <summary>
+    /// The open category suggestion listbox.
+    /// </summary>
+    public ILocator CategorySuggestionList => CategoryPicker.GetByTestId("suggestions");
+
     #endregion
 
     #region Navigation
@@ -59,6 +72,28 @@ public class BasePage(IPage _page): PageObjectModel(_page)
     /// </summary>
     public Task ExpectPageHeadingAsync(string text) =>
         Assertions.Expect(Header).ToHaveTextAsync(text);
+
+    /// <summary>
+    /// Finds and fills the currently visible category picker input.
+    /// </summary>
+    /// <param name="value">The category text or prefix to enter.</param>
+    public async Task EnterCategoryPickerAsync(string value)
+    {
+        await Assertions.Expect(CategoryPicker).ToBeVisibleAsync();
+        await CategoryPicker.Locator("input").FillAsync(value);
+    }
+
+    /// <summary>
+    /// Waits for an exact category suggestion to become visible in the open listbox.
+    /// </summary>
+    /// <param name="category">The exact category text expected from the suggestion lookup.</param>
+    public async Task ExpectCategorySuggestionAsync(string category)
+    {
+        await Assertions.Expect(CategorySuggestionList).ToBeVisibleAsync();
+        await Assertions.Expect(CategorySuggestionList.GetByRole(
+            AriaRole.Option,
+            new() { Name = category, Exact = true })).ToBeVisibleAsync();
+    }
 
     #endregion
 

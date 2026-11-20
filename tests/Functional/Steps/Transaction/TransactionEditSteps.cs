@@ -334,4 +334,28 @@ public class TransactionEditSteps(ITestContext context) : TransactionStepsBase(c
     }
 
     #endregion
+
+    #region Category Picker
+
+    /// <summary>
+    /// When I enter {string1} in the category picker
+    /// </summary>
+    [When("I enter {string1} in the category picker")]
+    public async Task IEnterInTheCategoryPicker(string string1)
+    {
+        var basePage = _context.GetOrCreatePage<BasePage>();
+        await basePage.EnterCategoryPickerAsync(string1);
+    }
+
+    /// <summary>
+    /// Then the {string1} category suggestion is displayed
+    /// </summary>
+    [Then("the {string1} category suggestion is displayed")]
+    public async Task TheCategorySuggestionIsDisplayed(string string1)
+    {
+        var basePage = _context.GetOrCreatePage<BasePage>();
+        await basePage.ExpectCategorySuggestionAsync(string1);
+    }
+
+    #endregion
 }

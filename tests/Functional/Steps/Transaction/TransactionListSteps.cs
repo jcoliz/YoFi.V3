@@ -51,9 +51,60 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         await detailsPage.WaitForPageReadyAsync();
     }
 
+    [Given("I am on the transaction {what} page")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.CurrentWorkspace)]
+    public async Task GivenIAmOnTransactionPage(string what)
+    {
+        var whatNormalized = what.Trim().ToLower();
+
+        if (whatNormalized == "list")
+        {
+            await INavigateToTheTransactionsPage();
+        }
+        else if (whatNormalized == "details")
+        {
+            await IAmOnTheTransactionsDetailPageForThatTransaction();
+        }
+    }
+
     #endregion
 
     #region Steps: WHEN
+
+    [Given("I open the {surface}")]
+    [When("I open the {surface}")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    public async Task WhenIOpenTheSurface(string surface)
+    {
+        var surfaceNormalized = surface.Trim().ToLower();
+
+        if (surfaceNormalized == "quick edit pane")
+        {
+            var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+            var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+            await transactionsPage.OpenEditModalAsync(payee);
+        }
+        else if (surfaceNormalized == "filter pane")
+        {
+            var page = _context.GetOrCreatePage<TransactionsPage>();
+            await page.ExpandFiltersAsync();
+        }
+        else if (surfaceNormalized == "edit pane")
+        {
+            var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+            await detailsPage.StartEditingAsync();
+        }
+        else if (surfaceNormalized == "add split dialog")
+        {
+            var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
+            await detailsPage.OpenAddSplitDialogAsync();
+        }
+        else
+        {
+            throw new ArgumentException($"Unknown surface: {surface}");
+        }
+    }
 
     [When("I view my transactions")]
     [When("I navigate to the Transactions page")]
