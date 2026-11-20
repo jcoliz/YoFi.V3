@@ -107,6 +107,93 @@ public class TransactionSplitWorkbookServiceTests
     }
 
     [Test]
+    public void Parse_MemoMatchesLaterWorksheet_ReturnsRowsFromMatchedWorksheet()
+    {
+        var workbook = CreateWorkbook();
+        var first = workbook.Worksheet("Splits");
+        first.Cell(1, 1).Value = "Memo";
+
+        var paystub = workbook.AddWorksheet(" PayStub ");
+        paystub.Cell(1, 1).Value = "Category";
+        paystub.Cell(1, 2).Value = "Amount";
+        paystub.Cell(2, 1).Value = "Salary";
+        paystub.Cell(2, 2).Value = "800";
+
+        var rows = _service.Parse(ToBytes(workbook), "  paystub  ");
+
+        Assert.That(rows, Has.Count.EqualTo(1));
+        Assert.That(rows.Single().Category, Is.EqualTo("Salary"));
+        Assert.That(rows.Single().Amount, Is.EqualTo(800m));
+    }
+
+    [Test]
+    public void Parse_DuplicateNormalizedMemoMatches_UsesFirstWorksheetInWorkbookOrder()
+    {
+        var workbook = CreateWorkbook();
+        var first = workbook.Worksheet("Splits");
+        var firstMatch = workbook.AddWorksheet(" Paystub ");
+        firstMatch.Cell(1, 1).Value = "Category";
+        firstMatch.Cell(1, 2).Value = "Amount";
+        firstMatch.Cell(2, 1).Value = "First match";
+        firstMatch.Cell(2, 2).Value = "10";
+
+        var secondMatch = workbook.AddWorksheet("paystub");
+        secondMatch.Cell(1, 1).Value = "Category";
+        secondMatch.Cell(1, 2).Value = "Amount";
+        secondMatch.Cell(2, 1).Value = "Second match";
+        secondMatch.Cell(2, 2).Value = "20";
+
+        var rows = _service.Parse(ToBytes(workbook), "PAYSTUB");
+
+        Assert.That(rows, Has.Count.EqualTo(1));
+        Assert.That(rows.Single().Category, Is.EqualTo("First Match"));
+        Assert.That(rows.Single().Amount, Is.EqualTo(10m));
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    [TestCase("Missing memo")]
+    public void Parse_BlankOrMissingMemoMatch_FallsBackToFirstWorksheet(string? transactionMemo)
+    {
+        var workbook = CreateWorkbook();
+        var first = workbook.Worksheet("Splits");
+        first.Cell(1, 1).Value = "Category";
+        first.Cell(1, 2).Value = "Amount";
+        first.Cell(2, 1).Value = "Fallback";
+        first.Cell(2, 2).Value = "30";
+
+        workbook.AddWorksheet("Other sheet").Cell(1, 1).Value = "Memo";
+
+        var rows = _service.Parse(ToBytes(workbook), transactionMemo);
+
+        Assert.That(rows, Has.Count.EqualTo(1));
+        Assert.That(rows.Single().Category, Is.EqualTo("Fallback"));
+        Assert.That(rows.Single().Amount, Is.EqualTo(30m));
+    }
+
+    [Test]
+    public void Parse_UnselectedWorksheetWithInvalidData_IsIgnored()
+    {
+        var workbook = CreateWorkbook();
+        var first = workbook.Worksheet("Splits");
+        first.Cell(1, 1).Value = "Memo";
+        first.Cell(2, 1).Value = "Invalid unselected row";
+
+        var matched = workbook.AddWorksheet("Paystub");
+        matched.Cell(1, 1).Value = "Category";
+        matched.Cell(1, 2).Value = "Amount";
+        matched.Cell(2, 1).Value = "Selected";
+        matched.Cell(2, 2).Value = "40";
+
+        var rows = _service.Parse(ToBytes(workbook), "paystub");
+
+        Assert.That(rows, Has.Count.EqualTo(1));
+        Assert.That(rows.Single().Category, Is.EqualTo("Selected"));
+        Assert.That(rows.Single().Amount, Is.EqualTo(40m));
+    }
+
+    [Test]
     public void CreateTemplate_ReturnsNamedWorkbookWithHeadersAndNoDataRows()
     {
         var result = _service.CreateTemplate();

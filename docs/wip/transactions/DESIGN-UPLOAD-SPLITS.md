@@ -830,3 +830,8 @@ Scenario: Match upload sheet based on transaction memo
 The precise step wording may be adapted to the existing functional-test DSL.
 No additional frontend component test is needed because the request and
 returned transaction contract do not change.
+
+> ![NOTE]
+> This scenario only affects back-end behavior, and the application integration tests
+> and unit tests cover it well, so we probably will not change functional tests for
+> it.

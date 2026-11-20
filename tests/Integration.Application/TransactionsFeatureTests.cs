@@ -1312,6 +1312,54 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
+    public async Task UploadSplitsAsync_MemoMatchesLaterWorksheet_ImportsOnlyMatchedSheet()
+    {
+        // Given: A transaction memo that matches a later workbook sheet
+        var transaction = new Transaction
+        {
+            Date = new DateOnly(2026, 3, 3),
+            Payee = "Memo matched upload",
+            Amount = -100m,
+            Memo = "  Paystub  ",
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -20m, Category = "Existing", Order = 1 }
+            ]
+        };
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var workbook = SplitWorkbookWithMemoSheet(
+            "  pAyStUb ",
+            ("Category", "Amount", "Memo"),
+            ("Salary", "-40", "Matched sheet"));
+
+        // When: Uploading the workbook
+        var result = await _feature.UploadSplitsAsync(transaction.Key, workbook);
+
+        // Then: Only the memo-matched sheet contributes allocations
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Memo, Is.EqualTo("  Paystub  "));
+            Assert.That(result.Splits.Select(split => split.Amount), Is.EqualTo(new[] { -60m, -40m }));
+            Assert.That(result.Splits.Select(split => split.Category),
+                Is.EqualTo(new[] { "Existing", "Salary" }));
+            Assert.That(result.Splits.Last().Memo, Is.EqualTo("Matched sheet"));
+            Assert.That(result.SplitsTotal, Is.EqualTo(-100m));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+
+        _context.ChangeTracker.Clear();
+        var persisted = await _context.Transactions.Include(item => item.Splits)
+            .SingleAsync(item => item.Key == transaction.Key);
+        Assert.That(persisted.Splits.Sum(split => split.Amount), Is.EqualTo(persisted.Amount));
+        Assert.That(persisted.Splits.Select(split => split.Category),
+            Has.None.EqualTo("Ignored"));
+    }
+
+    [Test]
     public async Task UploadSplitsAsync_InvalidSecondRow_LeavesTransactionUnchanged()
     {
         // Given: A transaction and a workbook with two invalid second-row fields
@@ -1474,6 +1522,40 @@ public class TransactionsFeatureTests : FeatureTestBase
         second.Cell(1, 2).Value = "Amount";
         second.Cell(2, 1).Value = "Later sheet";
         second.Cell(2, 2).Value = "-999";
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
+    private static byte[] SplitWorkbookWithMemoSheet(
+        string matchedSheetName,
+        (string Category, string Amount, string? Memo) headers,
+        params (string Category, string Amount, string? Memo)[] rows)
+    {
+        using var workbook = new XLWorkbook();
+        var first = workbook.AddWorksheet("Splits");
+        first.Cell(1, 1).Value = headers.Category;
+        first.Cell(1, 2).Value = headers.Amount;
+        first.Cell(1, 3).Value = headers.Memo;
+        first.Cell(2, 1).Value = "Ignored";
+        first.Cell(2, 2).Value = "-999";
+
+        var matched = workbook.AddWorksheet(matchedSheetName);
+        matched.Cell(1, 1).Value = headers.Category;
+        matched.Cell(1, 2).Value = headers.Amount;
+        matched.Cell(1, 3).Value = headers.Memo;
+
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var rowNumber = index + 2;
+            matched.Cell(rowNumber, 1).Value = rows[index].Category;
+            matched.Cell(rowNumber, 2).Value = rows[index].Amount;
+            if (rows[index].Memo != null)
+            {
+                matched.Cell(rowNumber, 3).Value = rows[index].Memo;
+            }
+        }
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);

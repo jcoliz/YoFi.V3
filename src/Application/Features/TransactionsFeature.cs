@@ -166,12 +166,12 @@ public class TransactionsFeature
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(workbook);
-        var uploadedRows = _workbookService.Parse(workbook);
 
         return dataProvider.ExecuteInTransactionAsync(async token =>
         {
             token.ThrowIfCancellationRequested();
             var transaction = await GetTransactionByKeyInternalAsync(transactionKey);
+            var uploadedRows = _workbookService.Parse(workbook, transaction.Memo);
             var existingSplits = transaction.Splits.OrderBy(split => split.Order).ToList();
 
             if (existingSplits.Count == 0)

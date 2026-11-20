@@ -13,11 +13,19 @@ public sealed class TransactionSplitWorkbookService
     private const string InvalidWorkbookMessage =
         "The uploaded file is not a readable XLSX workbook.";
 
-    /// <summary>Parses and validates split rows from the first worksheet.</summary>
+    /// <summary>Parses and validates split rows, using the first worksheet when no memo match is available.</summary>
     /// <param name="content">Exact uploaded XLSX bytes.</param>
     /// <returns>Validated, non-zero rows in source order.</returns>
     /// <exception cref="ValidationProblemsException">The workbook or one or more rows is invalid.</exception>
     public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content)
+        => Parse(content, transactionMemo: null);
+
+    /// <summary>Parses and validates split rows, preferring a worksheet matching the transaction memo.</summary>
+    /// <param name="content">Exact uploaded XLSX bytes.</param>
+    /// <param name="transactionMemo">The authoritative transaction memo used to select a worksheet.</param>
+    /// <returns>Validated, non-zero rows in source order.</returns>
+    /// <exception cref="ValidationProblemsException">The workbook or one or more rows is invalid.</exception>
+    public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content, string? transactionMemo)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -51,7 +59,7 @@ public sealed class TransactionSplitWorkbookService
 
         using (workbook)
         {
-            var worksheet = workbook.Worksheets.First();
+            var worksheet = SelectWorksheet(workbook, transactionMemo);
         var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var duplicateHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? 0;
@@ -256,6 +264,21 @@ public sealed class TransactionSplitWorkbookService
         return new SplitUploadTemplateResultDto(
             stream.ToArray(),
             "yofi-transaction-splits-template.xlsx");
+    }
+
+    private static IXLWorksheet SelectWorksheet(XLWorkbook workbook, string? transactionMemo)
+    {
+        var fallback = workbook.Worksheets.First();
+        var normalizedMemo = transactionMemo?.Trim();
+        if (string.IsNullOrEmpty(normalizedMemo))
+        {
+            return fallback;
+        }
+
+        return workbook.Worksheets
+            .FirstOrDefault(worksheet =>
+                worksheet.Name.Trim().Equals(normalizedMemo, StringComparison.OrdinalIgnoreCase))
+            ?? fallback;
     }
 
     private static ValidationProblemsException CreateInvalidWorkbookException()
