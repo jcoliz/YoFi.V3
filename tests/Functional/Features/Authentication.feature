@@ -1,3 +1,4 @@
+@category:identity
 Feature: User Authentication
     As a user of YoFi
     I want to register, login, and manage my account
@@ -7,6 +8,7 @@ Background:
     Given the application is running
     And I am not logged in
 
+@category:registration
 Rule: User Registration
     Users can create new accounts with valid credentials
 
@@ -42,6 +44,7 @@ Rule: User Registration
         And I should remain on the registration page
         And I should not be registered
 
+@category:login
 Rule: User Login and Logout
     Users can authenticate and end their sessions
 
@@ -77,6 +80,7 @@ Rule: User Login and Logout
         And I should see the login option in the navigation
         And I should not see any personal information
 
+@category:profile
 Rule: Account Management
     Authenticated users can view their profile
 
@@ -106,8 +110,6 @@ Rule: Access Control
 
         Examples:
             | page     |
-            | /weather |
-            | /counter |
             | /profile |
             | /transactions |
             | /import |
