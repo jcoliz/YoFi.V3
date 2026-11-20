@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import EditSplitDialog from '~/components/transaction/EditSplitDialog.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import CategoryPicker from '~/components/CategoryPicker.vue'
 import {
   ProblemDetails,
   SplitEditDto,
@@ -11,7 +12,8 @@ import {
 } from '~/utils/apiclient'
 
 const updateSplit = vi.fn()
-vi.stubGlobal('useApiClient', () => ({ updateSplit }))
+const getCategorySuggestions = vi.fn()
+vi.stubGlobal('useApiClient', () => ({ updateSplit, getCategorySuggestions }))
 enableAutoUnmount(afterEach)
 
 const split = new TransactionSplitDto({
@@ -35,7 +37,7 @@ function mountDialog(props: Partial<InstanceType<typeof EditSplitDialog>['$props
     attachTo: document.body,
     props: { show: true, tenantKey: 'workspace', transactionKey: 'transaction', split, ...props },
     global: {
-      components: { ModalDialog, ErrorDisplay },
+      components: { ModalDialog, ErrorDisplay, CategoryPicker },
       stubs: { teleport: true, BaseSpinner: true, FeatherIcon: true },
     },
   })
@@ -43,10 +45,13 @@ function mountDialog(props: Partial<InstanceType<typeof EditSplitDialog>['$props
 
 describe('transaction split edit dialog', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     updateSplit.mockReset().mockResolvedValue(updated)
+    getCategorySuggestions.mockReset().mockResolvedValue(['Groceries'])
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -66,6 +71,17 @@ describe('transaction split edit dialog', () => {
     await wrapper.get('[data-test-id="edit-split-amount"]').setValue('-50')
     expect(split.amount).toBe(-40.25)
     expect(updateSplit).not.toHaveBeenCalled()
+  })
+
+  it('wires a category suggestion selection into the split save DTO', async () => {
+    const wrapper = mountDialog()
+    const category = wrapper.get('[data-test-id="edit-split-category"]')
+
+    await category.setValue('Groceries')
+    await wrapper.get('[data-test-id="edit-split-save-button"]').trigger('click')
+    await flushPromises()
+
+    expect(updateSplit.mock.calls[0]![3].category).toBe('Groceries')
   })
 
   it('submits the selected keys and emits the complete server result', async () => {

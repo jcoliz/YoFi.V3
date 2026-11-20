@@ -5,6 +5,7 @@ import { createPinia, setActivePinia, storeToRefs } from 'pinia'
 import PayeeRulesDialog from '~/components/payee-rules/Dialog.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import CategoryPicker from '~/components/CategoryPicker.vue'
 import TransactionsPage from '~/pages/transactions/index.vue'
 import {
   PayeeMatchingRulesClient,
@@ -29,8 +30,11 @@ vi.stubGlobal('useAuthenticationGuard', () => ({
 const getTransactions = vi.fn()
 const quickEditTransaction = vi.fn()
 const createRule = vi.fn()
+const getCategorySuggestions = vi.fn()
 vi.stubGlobal('useApiClient', (Client: unknown) =>
-  Client === PayeeMatchingRulesClient ? { createRule } : { getTransactions, quickEditTransaction },
+  Client === PayeeMatchingRulesClient
+    ? { createRule }
+    : { getTransactions, quickEditTransaction, getCategorySuggestions },
 )
 
 const globalConfig = {
@@ -38,6 +42,7 @@ const globalConfig = {
     ModalDialog,
     ErrorDisplay,
     PayeeRulesDialog,
+    CategoryPicker,
     FeatherIcon: { template: '<i />' },
     BaseSpinner: { template: '<span />' },
     WorkspaceSelector: { template: '<div />' },
@@ -95,10 +100,12 @@ beforeEach(() => {
   createRule
     .mockReset()
     .mockResolvedValue(PayeeMatchingRuleCreateResultDto.fromJS({ transactionsCategorized: 3 }))
+  getCategorySuggestions.mockReset().mockResolvedValue(['Groceries'])
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
@@ -163,6 +170,31 @@ describe('Payee rule dialog application option', () => {
       expect(onCancel).toHaveBeenCalledOnce()
     },
   )
+
+  it('wires category suggestion selection into create and edit rule saves', async () => {
+    vi.useFakeTimers()
+    for (const mode of ['create', 'edit'] as const) {
+      const wrapper = mount(PayeeRulesDialog, {
+        attachTo: document.body,
+        props: {
+          show: true,
+          tenantKey: 'workspace',
+          mode,
+          initialPayeePattern: 'Amazon',
+          initialCategory: 'Shopping',
+        },
+        global: globalConfig,
+      })
+
+      await wrapper.get('[data-test-id="category-input"]').setValue('Groceries')
+      await wrapper.get('[data-test-id="save-button"]').trigger('click')
+
+      const rule = wrapper.emitted('save')?.at(-1)?.[0] as PayeeMatchingRuleEditDto
+      expect(rule.category).toBe('Groceries')
+      wrapper.unmount()
+    }
+
+  })
 
   it.each([
     ['create', false],

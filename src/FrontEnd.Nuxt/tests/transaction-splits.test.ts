@@ -16,6 +16,7 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import EditModal from '~/components/transaction/EditModal.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import CategoryPicker from '~/components/CategoryPicker.vue'
 import type { TransactionResultDto } from '~/utils/apiclient'
 
 import { useUserPreferencesStore } from '~/stores/userPreferences'
@@ -61,7 +62,7 @@ const ModalDialogStub = {
 }
 
 const globalConfig = {
-  components: { ModalDialog: ModalDialogStub, ErrorDisplay, FeatherIcon, BaseSpinner },
+  components: { ModalDialog: ModalDialogStub, ErrorDisplay, FeatherIcon, BaseSpinner, CategoryPicker },
 }
 
 describe('transaction/EditModal – split category protection', () => {
@@ -69,7 +70,8 @@ describe('transaction/EditModal – split category protection', () => {
 
   beforeEach(() => {
     quickEditTransaction = vi.fn().mockResolvedValue(undefined)
-    useApiClientMock.mockReturnValue({ quickEditTransaction })
+    const getCategorySuggestions = vi.fn().mockResolvedValue(['Groceries'])
+    useApiClientMock.mockReturnValue({ quickEditTransaction, getCategorySuggestions })
     vi.mocked(useUserPreferencesStore).mockReturnValue({
       getCurrentTenantKey: 'workspace',
     } as unknown as ReturnType<typeof useUserPreferencesStore>)

@@ -2,13 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import EditPane from '~/components/transaction/EditPane.vue'
 import { TransactionDetailDto, TransactionSplitDto } from '~/utils/apiclient'
+import CategoryPicker from '~/components/CategoryPicker.vue'
 
 vi.mock('~/stores/userPreferences', () => ({
   useUserPreferencesStore: () => ({ getCurrentTenantKey: 'workspace' }),
 }))
 
 const updateTransaction = vi.fn()
-vi.stubGlobal('useApiClient', () => ({ updateTransaction }))
+const getCategorySuggestions = vi.fn()
+vi.stubGlobal('useApiClient', () => ({ updateTransaction, getCategorySuggestions }))
 
 enableAutoUnmount(afterEach)
 
@@ -35,13 +37,22 @@ function transaction(splitCount: number) {
 function mountPane(splitCount: number) {
   return mount(EditPane, {
     props: { transaction: transaction(splitCount) },
-    global: { stubs: { ErrorDisplay: true, FeatherIcon: true, BaseSpinner: true } },
+    global: {
+      components: { CategoryPicker },
+      stubs: { ErrorDisplay: true, FeatherIcon: true, BaseSpinner: true },
+    },
   })
 }
 
 describe('transaction/EditPane category protection', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     updateTransaction.mockReset().mockResolvedValue(transaction(2))
+    getCategorySuggestions.mockReset().mockResolvedValue(['Groceries'])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('hides category and omits it from multi-split updates even if present in the input DTO', async () => {
@@ -68,6 +79,17 @@ describe('transaction/EditPane category protection', () => {
 
     expect(updateTransaction).toHaveBeenCalledOnce()
     expect(updateTransaction.mock.calls[0]![2].category).toBe('Updated category')
+  })
+
+  it('uses category picker selection in the value submitted by the edit pane', async () => {
+    const wrapper = mountPane(1)
+    const category = wrapper.get('[data-test-id="edit-category"]')
+
+    await category.setValue('Groceries')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTransaction.mock.calls[0]![2].category).toBe('Groceries')
   })
 
   it('updates category availability when the transaction split count changes', async () => {

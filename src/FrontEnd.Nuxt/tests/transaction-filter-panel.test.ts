@@ -1,7 +1,11 @@
 import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TransactionFilterPanel from '~/components/TransactionFilterPanel.vue'
 import type { TransactionAdvancedFilters } from '~/types/transactionFilters'
+import CategoryPicker from '~/components/CategoryPicker.vue'
+
+const getCategorySuggestions = vi.fn()
+vi.stubGlobal('useApiClient', () => ({ getCategorySuggestions }))
 
 const initialFilters: TransactionAdvancedFilters = {
   fromDate: '',
@@ -13,6 +17,22 @@ const initialFilters: TransactionAdvancedFilters = {
   uncategorizedOnly: false,
 }
 
+function mountPanel(props: {
+  expanded: boolean
+  tenantKey?: string
+  disabled?: boolean
+  filters: TransactionAdvancedFilters
+}) {
+  return mount(TransactionFilterPanel, {
+    props,
+    global: { components: { CategoryPicker } },
+  })
+}
+
+beforeEach(() => {
+  getCategorySuggestions.mockReset().mockResolvedValue(['Groceries'])
+})
+
 afterEach(() => {
   vi.useRealTimers()
 })
@@ -21,9 +41,7 @@ describe('TransactionFilterPanel', () => {
   it.each(['42', '$42', '+42', '+$42', '-42', '$-42', '1,234.56', '.5', '0'])(
     'accepts amount syntax %s without losing its sign',
     async (amount) => {
-      const wrapper = mount(TransactionFilterPanel, {
-        props: { expanded: true, filters: initialFilters },
-      })
+      const wrapper = mountPanel({ expanded: true, filters: initialFilters })
 
       await wrapper.get('[data-test-id="amount-filter"]').setValue(amount)
       await wrapper.get('[data-test-id="amount-filter"]').trigger('keyup.enter')
@@ -38,9 +56,7 @@ describe('TransactionFilterPanel', () => {
   it.each(['12,34', '$+', '$$42', '1e3', '79228162514264337593543950336'])(
     'rejects malformed or out-of-range amount %s',
     async (amount) => {
-      const wrapper = mount(TransactionFilterPanel, {
-        props: { expanded: true, filters: initialFilters },
-      })
+      const wrapper = mountPanel({ expanded: true, filters: initialFilters })
 
       await wrapper.get('[data-test-id="amount-filter"]').setValue(amount)
       await wrapper.get('[data-test-id="amount-filter"]').trigger('keyup.enter')
@@ -52,9 +68,7 @@ describe('TransactionFilterPanel', () => {
 
   it('keeps text edits as drafts until commit and suppresses Enter-plus-blur duplicates', async () => {
     vi.useFakeTimers()
-    const wrapper = mount(TransactionFilterPanel, {
-      props: { expanded: true, filters: initialFilters },
-    })
+    const wrapper = mountPanel({ expanded: true, filters: initialFilters })
     const payee = wrapper.get('[data-test-id="payee-filter"]')
 
     await payee.setValue(' Cafe ')
@@ -66,10 +80,18 @@ describe('TransactionFilterPanel', () => {
     expect(wrapper.emitted('commit')).toEqual([[{ ...initialFilters, payee: 'Cafe' }]])
   })
 
+  it('wires category suggestion selection into the committed category filter', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountPanel({ expanded: true, tenantKey: 'workspace', filters: initialFilters })
+
+    await wrapper.get('[data-test-id="category-filter"]').setValue('Groceries')
+    await wrapper.get('[data-test-id="category-filter"]').trigger('keyup.enter')
+
+    expect(wrapper.emitted('commit')).toEqual([[{ ...initialFilters, category: 'Groceries' }]])
+  })
+
   it('validates amount drafts and keeps invalid input out of committed filters', async () => {
-    const wrapper = mount(TransactionFilterPanel, {
-      props: { expanded: true, filters: initialFilters },
-    })
+    const wrapper = mountPanel({ expanded: true, filters: initialFilters })
 
     await wrapper.get('[data-test-id="amount-filter"]').setValue('not-money')
     await wrapper.get('[data-test-id="amount-filter"]').trigger('keyup.enter')
@@ -88,9 +110,7 @@ describe('TransactionFilterPanel', () => {
       category: 'Food',
       amount: '+42',
     }
-    const wrapper = mount(TransactionFilterPanel, {
-      props: { expanded: true, filters },
-    })
+    const wrapper = mountPanel({ expanded: true, filters })
 
     await wrapper.get('[data-test-id="date-preset-allTime"]').trigger('click')
 
@@ -98,9 +118,7 @@ describe('TransactionFilterPanel', () => {
   })
 
   it('emits a separate Clear All intent', async () => {
-    const wrapper = mount(TransactionFilterPanel, {
-      props: { expanded: true, filters: { ...initialFilters, amount: 'invalid' } },
-    })
+    const wrapper = mountPanel({ expanded: true, filters: { ...initialFilters, amount: 'invalid' } })
 
     await wrapper.get('[data-test-id="clear-filters-button"]').trigger('click')
 

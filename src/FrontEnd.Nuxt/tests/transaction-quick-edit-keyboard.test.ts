@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import EditModal from '~/components/transaction/EditModal.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
+import CategoryPicker from '~/components/CategoryPicker.vue'
 import { TransactionResultDto } from '~/utils/apiclient'
 
 vi.mock('~/stores/userPreferences', () => ({
@@ -10,7 +11,8 @@ vi.mock('~/stores/userPreferences', () => ({
 }))
 
 const quickEditTransaction = vi.fn()
-vi.stubGlobal('useApiClient', () => ({ quickEditTransaction }))
+const getCategorySuggestions = vi.fn()
+vi.stubGlobal('useApiClient', () => ({ quickEditTransaction, getCategorySuggestions }))
 
 enableAutoUnmount(afterEach)
 
@@ -27,7 +29,7 @@ function mountDialog(show = true) {
       }),
     },
     global: {
-      components: { ModalDialog, ErrorDisplay },
+      components: { ModalDialog, ErrorDisplay, CategoryPicker },
       stubs: {
         teleport: true,
         FeatherIcon: true,
@@ -50,7 +52,13 @@ function pressKey(target: EventTarget, key: string, options: KeyboardEventInit =
 
 describe('quick-edit keyboard shortcuts', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     quickEditTransaction.mockReset().mockResolvedValue(undefined)
+    getCategorySuggestions.mockReset().mockResolvedValue(['Groceries'])
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it.each(['payee', 'category'])('uses native form submission from the %s field', async (field) => {
@@ -71,6 +79,17 @@ describe('quick-edit keyboard shortcuts', () => {
     await flushPromises()
     expect(quickEditTransaction).toHaveBeenCalledOnce()
     expect(wrapper.emitted('updated')).toEqual([[]])
+  })
+
+  it('wires category suggestions into the quick-edit category and submitted DTO', async () => {
+    const wrapper = mountDialog()
+    const category = wrapper.get('[data-test-id="edit-transaction-category"]')
+
+    await category.setValue('Groceries')
+    await wrapper.get('[data-test-id="edit-submit-button"]').trigger('click')
+    await flushPromises()
+
+    expect(quickEditTransaction.mock.calls[0]![2].category).toBe('Groceries')
   })
 
   it('submits through the Update button', async () => {
