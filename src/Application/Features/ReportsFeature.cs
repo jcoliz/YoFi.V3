@@ -70,13 +70,19 @@ public class ReportsFeature(
     }
 
     /// <summary>
-    /// Gets the current tenant's report data for a calendar year.
+    /// Gets the current tenant's report data for a calendar year with optional display overrides.
     /// </summary>
     /// <param name="reportId">Stable ID of a built-in report.</param>
     /// <param name="year">Calendar year, or the current UTC year when omitted.</param>
+    /// <param name="displayDepth">Category levels below the report filter root, or the definition default when omitted.</param>
+    /// <param name="showMonths">Whether monthly amounts are included, or the definition default when omitted.</param>
     /// <exception cref="KeyNotFoundException">The report ID is not in the built-in catalog.</exception>
-    /// <exception cref="ValidationException">The year is outside the supported calendar range.</exception>
-    public async Task<ReportResultDto> GetReportAsync(string reportId, int? year = null)
+    /// <exception cref="ValidationException">The year or display depth is outside the supported range.</exception>
+    public async Task<ReportResultDto> GetReportAsync(
+        string reportId,
+        int? year = null,
+        int? displayDepth = null,
+        bool? showMonths = null)
     {
         var definition = Definitions.FirstOrDefault(item =>
             string.Equals(item.Id, reportId, StringComparison.Ordinal));
@@ -90,6 +96,14 @@ public class ReportsFeature(
         {
             throw new ValidationException(nameof(year), "Year must be between 1 and 9999.");
         }
+
+        if (displayDepth is < 1)
+        {
+            throw new ValidationException("displayDepth", "Display depth must be at least 1.");
+        }
+
+        var effectiveDepth = displayDepth ?? definition.DefaultDepth;
+        var effectiveShowMonths = showMonths ?? definition.HasMonthColumns;
 
         var startDate = new DateOnly(reportYear, 1, 1);
         var endDate = new DateOnly(reportYear, 12, 31);
@@ -107,7 +121,7 @@ public class ReportsFeature(
                 group.Sum(split => split.Amount)));
 
         var splits = await dataProvider.ToListNoTrackingAsync(splitQuery);
-        return BuildReport(definition, reportYear, splits);
+        return BuildReport(definition, reportYear, effectiveDepth, effectiveShowMonths, splits);
     }
 
     /// <summary>
@@ -115,13 +129,17 @@ public class ReportsFeature(
     /// The report grand total is calculated from exact categories before roll-ups so parent and
     /// child rows can never cause the same amount to be counted more than once.
     /// </summary>
-    /// <param name="definition">Catalog settings that determine filtering and display depth.</param>
+    /// <param name="definition">Catalog settings that determine filtering and display defaults.</param>
     /// <param name="year">Calendar year represented by the result.</param>
+    /// <param name="displayDepth">Effective number of category levels to emit.</param>
+    /// <param name="showMonths">Whether monthly amounts are emitted.</param>
     /// <param name="splits">Database-aggregated split amounts grouped by category and month.</param>
     /// <returns>The report rows and independently calculated month and annual totals.</returns>
     private static ReportResultDto BuildReport(
         ReportDefinition definition,
         int year,
+        int displayDepth,
+        bool showMonths,
         IEnumerable<ReportSplitAmount> splits)
     {
         var matchingSplits = splits
@@ -185,7 +203,7 @@ public class ReportsFeature(
         var rows = new List<ReportRowDto>();
         foreach (var root in OrderSiblings(roots, definition))
         {
-            AppendRows(root, 1, definition, grandTotal, rows);
+            AppendRows(root, 1, definition, displayDepth, showMonths, grandTotal, rows);
         }
 
         return new ReportResultDto(
@@ -193,10 +211,11 @@ public class ReportsFeature(
             definition.Name,
             definition.CategoryRoot,
             year,
-            definition.HasMonthColumns,
+            displayDepth,
+            showMonths,
             rows,
             new ReportTotalsDto(
-                definition.HasMonthColumns ? grandTotals : null,
+                showMonths ? grandTotals : null,
                 grandTotal));
     }
 
@@ -270,13 +289,17 @@ public class ReportsFeature(
     /// </summary>
     /// <param name="node">Category node to emit and traverse.</param>
     /// <param name="depth">Displayed depth, with report-level categories at depth one.</param>
-    /// <param name="definition">Report settings that control depth and month columns.</param>
+    /// <param name="definition">Report settings that control category ordering.</param>
+    /// <param name="displayDepth">Effective number of category levels to emit.</param>
+    /// <param name="showMonths">Whether monthly amounts are emitted.</param>
     /// <param name="grandTotal">Exact-category report total used as the percentage denominator.</param>
     /// <param name="rows">Output collection receiving rows in depth-first order.</param>
     private static void AppendRows(
         CategoryNode node,
         int depth,
         ReportDefinition definition,
+        int displayDepth,
+        bool showMonths,
         decimal grandTotal,
         ICollection<ReportRowDto> rows)
     {
@@ -284,19 +307,19 @@ public class ReportsFeature(
             node.Path,
             node.Name,
             depth,
-            depth < definition.DefaultDepth && node.Children.Count > 0,
-            definition.HasMonthColumns ? node.TotalAmounts : null,
+            depth < displayDepth && node.Children.Count > 0,
+            showMonths ? node.TotalAmounts : null,
             node.AnnualTotal,
             grandTotal == 0 ? null : node.AnnualTotal / grandTotal));
 
-        if (depth >= definition.DefaultDepth)
+        if (depth >= displayDepth)
         {
             return;
         }
 
         foreach (var child in OrderSiblings(node.Children, definition))
         {
-            AppendRows(child, depth + 1, definition, grandTotal, rows);
+            AppendRows(child, depth + 1, definition, displayDepth, showMonths, grandTotal, rows);
         }
     }
 

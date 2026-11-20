@@ -219,6 +219,80 @@ public class ReportsFeatureTests
     }
 
     [Test]
+    public async Task GetReportAsync_AppliesDisplayOverridesToRowsTotalsAndDepth()
+    {
+        AddTransaction(2024, 1, ("Home:Utilities:Electric", 10m));
+        AddTransaction(2024, 2, ("Home:Utilities:Gas", 15m));
+        AddTransaction(2024, 3, ("Home:Repairs", 5m));
+
+        var depthThree = await _feature.GetReportAsync("all-detail", 2024, 3, false);
+        var depthOne = await _feature.GetReportAsync("all-detail", 2024, 1, true);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(depthThree.DisplayDepth, Is.EqualTo(3));
+            Assert.That(depthThree.HasMonthColumns, Is.False);
+            Assert.That(depthThree.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[]
+            {
+                "Home", "Home:Repairs", "Home:Utilities",
+                "Home:Utilities:Electric", "Home:Utilities:Gas"
+            }));
+            Assert.That(depthThree.Rows.All(row => row.MonthlyAmounts is null), Is.True);
+            Assert.That(depthThree.Totals.MonthlyAmounts, Is.Null);
+            Assert.That(depthThree.Totals.AnnualTotal, Is.EqualTo(30m));
+
+            Assert.That(depthOne.DisplayDepth, Is.EqualTo(1));
+            Assert.That(depthOne.HasMonthColumns, Is.True);
+            Assert.That(depthOne.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[] { "Home" }));
+            Assert.That(depthOne.Rows[0].IsSubtotal, Is.False);
+            Assert.That(depthOne.Rows[0].MonthlyAmounts, Is.Not.Null);
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![0], Is.EqualTo(10m));
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![1], Is.EqualTo(15m));
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![2], Is.EqualTo(5m));
+            Assert.That(depthOne.Totals.AnnualTotal, Is.EqualTo(30m));
+        }
+    }
+
+    [Test]
+    public async Task GetReportAsync_DisplayDefaultsRemainDefinitionSpecific()
+    {
+        var monthlyDetail = await _feature.GetReportAsync("income-detail", 2024);
+        var annualSummary = await _feature.GetReportAsync("income", 2024);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(monthlyDetail.DisplayDepth, Is.EqualTo(2));
+            Assert.That(monthlyDetail.HasMonthColumns, Is.True);
+            Assert.That(annualSummary.DisplayDepth, Is.EqualTo(1));
+            Assert.That(annualSummary.HasMonthColumns, Is.False);
+        }
+    }
+
+    [Test]
+    public async Task GetReportAsync_LargePositiveDisplayDepthIsLimitedByRealCategoryPaths()
+    {
+        AddTransaction(2024, 1, ("Home:Utilities:Electric", 10m));
+
+        var result = await _feature.GetReportAsync("all-detail", 2024, 100, true);
+
+        Assert.That(result.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[]
+        {
+            "Home", "Home:Utilities", "Home:Utilities:Electric"
+        }));
+    }
+
+    [TestCase(0)]
+    [TestCase(-5)]
+    public async Task GetReportAsync_DisplayDepthBelowOneThrowsValidationException(int displayDepth)
+    {
+        var exception = await Assert.ThrowsAsync<YoFi.V3.Entities.Exceptions.ValidationException>(
+            () => _feature.GetReportAsync("all", 2024, displayDepth));
+
+        Assert.That(exception!.ParameterName, Is.EqualTo("displayDepth"));
+        Assert.That(exception.Message, Is.EqualTo("Display depth must be at least 1."));
+    }
+
+    [Test]
     public async Task GetReportAsync_ZeroGrandTotalReturnsNullPercentagesAndKeepsSignedValues()
     {
         AddTransaction(2024, 1, ("Income:Salary", 10m), ("Income:Refund", -10m));

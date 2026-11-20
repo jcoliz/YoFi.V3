@@ -29,6 +29,7 @@ public sealed record ReportYearsDto(
 /// <param name="Name">Display name of the report.</param>
 /// <param name="CategoryRoot">Category filter root used as the category-column header, or null for reports spanning roots.</param>
 /// <param name="Year">Calendar year represented by the report.</param>
+/// <param name="DisplayDepth">Effective number of category levels included below the report filter root.</param>
 /// <param name="HasMonthColumns">Whether monthly amount columns are included.</param>
 /// <param name="Rows">Category rows included in the report.</param>
 /// <param name="Totals">Overall and category totals for the report.</param>
@@ -37,6 +38,7 @@ public record ReportResultDto(
     string Name,
     string? CategoryRoot,
     int Year,
+    int DisplayDepth,
     bool HasMonthColumns,
     IReadOnlyList<ReportRowDto> Rows,
     ReportTotalsDto Totals);
