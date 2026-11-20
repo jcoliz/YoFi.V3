@@ -106,6 +106,61 @@ public class TransactionsControllerTests : AuthenticatedTestBase
     }
 
     [Test]
+    public async Task GetCategorySuggestions_AsViewer_ReturnsOK()
+    {
+        // Given: User has Viewer role for tenant
+        SwitchToViewer();
+
+        // When: User requests category suggestions
+        var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/categories?term=g");
+
+        // Then: 200 OK should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And: The response should be a collection
+        var suggestions = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<string>>();
+        Assert.That(suggestions, Is.Not.Null);
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    [TestCase("::")]
+    public async Task GetCategorySuggestions_WithInvalidTerm_ReturnsBadRequest(string? term)
+    {
+        // Given: A missing, blank, or sanitized-to-empty search term
+        SwitchToViewer();
+        var termQuery = term is null
+            ? string.Empty
+            : $"?term={Uri.EscapeDataString(term)}";
+
+        // When: User requests category suggestions
+        var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/categories{termQuery}");
+
+        // Then: 400 Bad Request with problem details should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
+        Assert.That(problem, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task GetCategorySuggestions_WithTermOverLimit_ReturnsBadRequest()
+    {
+        // Given: A category term longer than the 200-character limit
+        SwitchToViewer();
+        var term = Uri.EscapeDataString(new string('a', 201));
+
+        // When: User requests category suggestions
+        var response = await _client.GetAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/categories?term={term}");
+
+        // Then: 400 Bad Request should be returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
     public async Task GetTransactions_AsEditor_ReturnsOK()
     {
         // Given: User has Editor role for tenant

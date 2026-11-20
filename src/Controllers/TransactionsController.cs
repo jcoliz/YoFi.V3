@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Helpers;
 using YoFi.V3.Controllers.Tenancy.Authorization;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Tenancy.Models;
@@ -65,6 +66,43 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
 
         LogOkCount(result.Items.Count);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets existing transaction category suggestions for the current tenant.
+    /// </summary>
+    /// <param name="term">The category prefix to match.</param>
+    /// <param name="cancellationToken">Token to cancel the lookup.</param>
+    /// <returns>Up to 20 matching category values.</returns>
+    [HttpGet("categories")]
+    [RequireTenantRole(TenantRole.Viewer)]
+    [ProducesResponseType(typeof(IReadOnlyCollection<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetCategorySuggestions(
+        [FromQuery] string? term,
+        CancellationToken cancellationToken)
+    {
+        LogStarting();
+
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            throw new ValidationException(nameof(term), "A category search term is required.");
+        }
+
+        var sanitizedTerm = CategoryHelper.SanitizeCategory(term);
+        if (sanitizedTerm.Length == 0)
+        {
+            throw new ValidationException(nameof(term), "A category search term is required.");
+        }
+        if (sanitizedTerm.Length > 200)
+        {
+            throw new ValidationException(nameof(term), "The category search term cannot exceed 200 characters.");
+        }
+
+        var suggestions = await transactionsFeature.GetCategorySuggestionsAsync(term, cancellationToken);
+
+        LogOkCount(suggestions.Count);
+        return Ok(suggestions);
     }
 
     /// <summary>
