@@ -239,14 +239,22 @@ function handleFocusOut(event: FocusEvent) {
 
 <style scoped>
 .category-picker-suggestions {
-  z-index: 1060;
+  z-index: 1070;
   max-height: 240px;
   margin-top: 2px;
   overflow-y: auto;
+  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.375rem;
   box-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 15%);
 }
 
 .category-picker-suggestions .list-group-item {
   cursor: pointer;
+  background: var(--bs-body-bg, #fff);
+}
+
+.category-picker-suggestions .list-group-item.active {
+  background: var(--bs-primary);
 }
 </style>
