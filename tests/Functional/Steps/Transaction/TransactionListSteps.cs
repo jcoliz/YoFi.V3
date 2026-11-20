@@ -78,11 +78,11 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     public async Task WhenIOpenTheSurface(string surface)
     {
         var surfaceNormalized = surface.Trim().ToLower();
+        var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
 
         if (surfaceNormalized == "quick edit pane")
         {
             var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
-            var payee = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
             await transactionsPage.OpenEditModalAsync(payee);
         }
         else if (surfaceNormalized == "filter pane")
@@ -99,6 +99,11 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
         {
             var detailsPage = _context.GetOrCreatePage<TransactionDetailsPage>();
             await detailsPage.OpenAddSplitDialogAsync();
+        }
+        else if (surfaceNormalized == "create rule dialog")
+        {
+            var transactionsPage = _context.GetOrCreatePage<TransactionsPage>();
+            await transactionsPage.OpenCreateRuleModalAsync(payee);
         }
         else
         {

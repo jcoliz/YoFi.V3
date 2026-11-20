@@ -1634,4 +1634,25 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     }
 
     #endregion
+
+    #region Create Payee Rule
+
+    public ILocator CreateRuleModal => Page.GetByTestId("rule-create-dialog");
+
+    public async Task OpenCreateRuleModalAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        await row.GetByTestId("row-actions-button").ClickAsync();
+        var createRuleButton = await GetCreateRuleButton(payeeName);
+        await createRuleButton.ClickAsync();
+        await CreateRuleModal.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    private async Task<ILocator> GetCreateRuleButton(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return row.GetByTestId("create-rule-button");
+    }
+
+    #endregion
 }

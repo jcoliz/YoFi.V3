@@ -167,6 +167,7 @@ Feature: Transaction Record Fields
             Examples:
                 | page     | surface            |
                 | list     | quick edit pane    |
+                | list     | create rule dialog |
                 | list     | filter pane        |
                 | details  | edit pane          |
                 | details  | add split dialog   |
