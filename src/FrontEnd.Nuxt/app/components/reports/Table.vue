@@ -98,7 +98,6 @@ function getRowHeaderLevelClass(depth: number, displayDepth: number): string {
         >
           <th
             scope="row"
-            :class="getRowHeaderLevelClass(row.depth ?? 1, report.displayDepth ?? 1)"
             :style="{ paddingLeft: `${0.5 + Math.max(0, (row.depth ?? 1) - 1) * 1.5}rem` }"
           >
             {{ row.categoryName }}
@@ -145,18 +144,26 @@ function getRowHeaderLevelClass(depth: number, displayDepth: number): string {
 </template>
 
 <style scoped>
-.report-header-level-4 {
+.report-header-level-4,
+.report-header-level-4 th,
+.report-header-level-4 td {
   background-color: #fff3cd;
+}
+.report-header-level-4 th {
   font-weight: 700;
 }
-.report-header-level-3 {
+.report-header-level-3,
+.report-header-level-3 th,
+.report-header-level-3 td {
   background-color: #f8f9fa;
+}
+.report-header-level-3 th {
   font-weight: 600;
 }
-.report-header-level-2 {
+.report-header-level-2 th {
   font-weight: 700;
 }
-.report-header-level-1 {
+.report-header-level-1 th {
   font-weight: 400;
 }
 .annual-percentage {
