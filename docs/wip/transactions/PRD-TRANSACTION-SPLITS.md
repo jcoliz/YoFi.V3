@@ -219,6 +219,12 @@ balancing rule, and shared Edit/Delete action-menu design.
 - [ ] Upload results are committed immediately, and UI updated. User cannot preview the import, as with bank importing.
 - [ ] User cannot upload any other format than Excel .xlsx
 
+**Acceptance Criteria** for Scenario 2310 Match upload sheet based on memo:
+
+- [ ] If the transaction under consideration has a memo, and the workbook has a sheet with a matching name, then that sheet is used instead of the first sheet.
+
+Matching rules: Both the memo and sheet names are trimmed for whitespace, and compared case-insensitive.
+
 **Performance Characteristics**
 Limits and constraints will be set during performance testing, as these constraints are functions of the system, not the feature.
 

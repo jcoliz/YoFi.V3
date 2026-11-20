@@ -686,3 +686,147 @@ validation presentation were resolved in [Design Decisions](#design-decisions).
 - [x] The Open Questions section is empty.
 - [x] All relative links point to existing source or document paths.
 - [x] The template author instruction block is not present.
+
+## Scenario 2310 Addendum
+
+### Scope
+
+This addendum implements Scenario 2310, **Match upload sheet based on memo**, for
+Story 2309. It changes only worksheet selection during a transaction split
+upload; workbook format, row validation, append behavior, balancing, API
+contracts, and the frontend workflow are unchanged.
+
+This addendum supersedes the base design's statements that only the first
+worksheet is always read. When a transaction has a non-blank memo, the selected
+worksheet is the first worksheet in workbook order whose name matches that memo
+after both values are trimmed and compared case-insensitively. If the memo is
+null, empty, or whitespace, or no worksheet name matches, the first worksheet
+is selected as before. Worksheets other than the selected worksheet are not
+inspected or validated.
+
+### Acceptance Criteria
+
+- [x] When the transaction memo is non-blank and a worksheet name matches it,
+  the matching worksheet is parsed instead of the first worksheet.
+- [x] Memo and worksheet-name matching trims surrounding whitespace and is
+  case-insensitive.
+- [x] If more than one worksheet name normalizes to the same memo, the first
+  matching worksheet in workbook order is used.
+- [x] When the memo is blank or no worksheet matches, the first worksheet is
+  used.
+
+### Worksheet-selection decision
+
+Keep worksheet selection in
+[`TransactionSplitWorkbookService`](../../../src/Application/Services/TransactionSplitWorkbookService.cs)
+so ClosedXML parsing, selection, and row validation remain one Application-layer
+concern. Change its parsing operation to accept the memo captured from the
+transaction being uploaded to:
+
+```csharp
+public IReadOnlyCollection<SplitUploadRowDto> Parse(
+    byte[] content,
+    string? transactionMemo);
+```
+
+After opening and verifying that the workbook contains at least one worksheet,
+select the worksheet with the following algorithm:
+
+1. Set `worksheet` to `workbook.Worksheets.First()` as the fallback.
+2. Trim `transactionMemo`. If it is blank, return the fallback selection.
+3. Enumerate worksheets in workbook order. For each worksheet, trim
+   `worksheet.Name` and compare it with the trimmed transaction memo using
+   `StringComparison.OrdinalIgnoreCase`.
+4. Select the first match. If none is found, retain the fallback selection.
+5. Apply the existing header, row-limit, formula, zero-row, and field-validation
+   rules only to the selected worksheet.
+
+Comparison must use normalized values without changing the worksheet or
+transaction. A memo is not matched by substring, prefix, culture-sensitive
+comparison, or any sheet order other than the workbook's own order. A workbook
+with duplicate normalized matches is valid; it is not rejected as ambiguous.
+
+`CreateTemplate` continues to create only the `Splits` worksheet and requires no
+change.
+
+### Transaction feature changes
+
+Update
+[`TransactionsFeature.UploadSplitsAsync`](../../../src/Application/Features/TransactionsFeature.cs)
+to obtain the tenant-scoped transaction before worksheet selection. The revised
+operation is:
+
+1. Start the existing serializable data operation and load the transaction with
+   its splits by tenant-scoped key. A missing transaction still produces
+   `TransactionNotFoundException`.
+2. Before changing any entity, call
+   `workbookService.Parse(workbook, transaction.Memo)`.
+3. Continue with the existing split-presence check, append, balance, and single
+   save operation exactly as designed above.
+
+Parsing still completes before any split is added, removed, or adjusted. A
+workbook or row validation failure leaves the transaction unchanged, rolls back
+without a save, and returns the existing `400 ValidationProblemDetails` shape.
+Moving parsing after the tenant-scoped load is necessary so selection uses the
+authoritative memo at the same serializable consistency point as persistence;
+it must not use a memo supplied by the client. The operation does not gain a
+preview or return the selected worksheet name.
+
+No controller, DTO, OpenAPI, frontend, database, or DI registration change is
+required. The upload endpoint continues to accept the same multipart request
+and return `TransactionDetailDto`.
+
+### Validation and errors
+
+Worksheet selection itself does not introduce a new validation failure. In
+particular, a blank memo or absent match is a fallback, not an error. Row
+numbers, grouped error keys, and error messages continue to refer to the
+selected worksheet as `Row {RowNumber}: {Field}` and do not expose other
+worksheets. The existing invalid-workbook, no-readable-workbook, required
+header, row-limit, and `empty_import` errors are evaluated for the selected
+worksheet.
+
+The `empty_import` text remains worksheet-oriented so it is accurate whether
+the selected worksheet is the first sheet or a memo-matched sheet.
+
+### Tests
+
+Add focused unit coverage in
+[`TransactionSplitWorkbookServiceTests`](../../../tests/Unit/Application/TransactionSplitWorkbookServiceTests.cs):
+
+- a transaction memo matching a later worksheet by exact name selects that
+  worksheet;
+- surrounding whitespace and letter case are normalized for both values;
+- the first normalized match is selected when several worksheet names
+  normalize to the memo;
+- a null, empty, or whitespace memo falls back to the first worksheet;
+- a non-blank memo without a match falls back to the first worksheet; and
+- rows in unselected worksheets are ignored even when they contain invalid
+  data.
+
+Extend
+[`TransactionsFeatureTests`](../../../tests/Integration.Application/TransactionsFeatureTests.cs)
+with persistence coverage proving that a later memo-matched sheet's rows are
+appended and the first sheet's rows are ignored. Assert unchanged transaction
+memo, balanced persisted splits, and row order from the selected worksheet.
+Retain the existing first-sheet tests as fallback regression coverage.
+
+The Scenario 2310 functional behavior is:
+
+```gherkin
+Scenario: Match upload sheet based on transaction memo
+    Given I have a workspace with a transaction having memo " Paystub "
+    And the transaction has an existing split
+    And I am on the transactions detail page for that transaction
+    When I upload a split workbook with these worksheets: # NEW
+        | Worksheet | Category | Amount |
+        | First     | Ignored  |  10.00 |
+        | pAyStUb   | Salary   |  80.00 |
+        | Bonus     | Bonus    |  20.00 |
+    Then the selected worksheet rows are displayed as split allocations # NEW
+    And rows from all unselected worksheets are not displayed
+```
+
+The precise step wording may be adapted to the existing functional-test DSL.
+No additional frontend component test is needed because the request and
+returned transaction contract do not change.
