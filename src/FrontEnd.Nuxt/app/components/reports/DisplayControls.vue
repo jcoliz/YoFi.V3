@@ -2,10 +2,13 @@
 import type { ReportDefinitionDto } from '~/utils/apiclient'
 import { MAX_REPORT_DISPLAY_DEPTH } from '~/utils/reportDisplay'
 
-/** Edits the category-depth and month-display settings for one report. */
+/** Selects a report and edits its year and display settings. */
 const props = withDefaults(
   defineProps<{
-    definition: ReportDefinitionDto
+    definitions: ReportDefinitionDto[]
+    years: number[]
+    selectedReportId: string
+    selectedYear: number | undefined
     displayDepth: number
     showMonths: boolean
     disabled?: boolean
@@ -14,12 +17,25 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
+  'update:selectedReportId': [string]
+  'update:selectedYear': [number]
   'update:displayDepth': [number]
   'update:showMonths': [boolean]
+  selectionChange: []
   reset: []
 }>()
 
 const depthOptions = Array.from({ length: MAX_REPORT_DISPLAY_DEPTH }, (_, index) => index + 1)
+
+function updateReport(event: Event) {
+  emit('update:selectedReportId', (event.target as HTMLSelectElement).value)
+  emit('selectionChange')
+}
+
+function updateYear(event: Event) {
+  emit('update:selectedYear', Number((event.target as HTMLSelectElement).value))
+  emit('selectionChange')
+}
 
 function updateDepth(event: Event) {
   emit('update:displayDepth', Number((event.target as HTMLSelectElement).value))
@@ -31,6 +47,55 @@ function updatePeriod(event: Event) {
 </script>
 
 <template>
+  <div
+    class="row g-3 mb-4"
+    data-test-id="report-selection-controls"
+  >
+    <div class="col-md-9">
+      <label
+        for="report-selection"
+        class="form-label"
+        >Report</label
+      >
+      <select
+        id="report-selection"
+        class="form-select"
+        :value="props.selectedReportId"
+        data-test-id="report-selector"
+        @change="updateReport"
+      >
+        <option
+          v-for="definition in props.definitions"
+          :key="definition.id"
+          :value="definition.id"
+        >
+          {{ definition.name }}
+        </option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label
+        for="report-year-selection"
+        class="form-label"
+        >Year</label
+      >
+      <select
+        id="report-year-selection"
+        class="form-select"
+        :value="props.selectedYear"
+        data-test-id="report-year-selector"
+        @change="updateYear"
+      >
+        <option
+          v-for="year in props.years"
+          :key="year"
+          :value="year"
+        >
+          {{ year }}
+        </option>
+      </select>
+    </div>
+  </div>
   <div
     class="row g-3 mb-4"
     data-test-id="report-display-controls"

@@ -277,61 +277,16 @@ function retry() {
         class="mb-4"
       />
       <template v-if="ready && tenantKey">
-        <div
-          v-if="definitions.length && selectedReportId"
-          class="row g-3 mb-4"
-        >
-          <div class="col-md-9">
-            <label
-              for="report-selection"
-              class="form-label"
-              >Report</label
-            >
-            <select
-              id="report-selection"
-              v-model="selectedReportId"
-              class="form-select"
-              data-test-id="report-selector"
-              @change="loadSelectedReport()"
-            >
-              <option
-                v-for="definition in definitions"
-                :key="definition.id"
-                :value="definition.id"
-              >
-                {{ definition.name }}
-              </option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label
-              for="report-year-selection"
-              class="form-label"
-              >Year</label
-            >
-            <select
-              id="report-year-selection"
-              v-model.number="selectedYear"
-              class="form-select"
-              data-test-id="report-year-selector"
-              @change="loadSelectedReport()"
-            >
-              <option
-                v-for="year in years"
-                :key="year"
-                :value="year"
-              >
-                {{ year }}
-              </option>
-            </select>
-          </div>
-        </div>
         <ReportsDisplayControls
           v-if="definitions.length && selectedReportId"
-          :definition="definitions.find((definition) => definition.id === selectedReportId)!"
+          v-model:selected-report-id="selectedReportId"
+          v-model:selected-year="selectedYear"
+          :definitions="definitions"
+          :years="years"
           :display-depth="displayDepth"
           :show-months="showMonths"
           :disabled="loading"
+          @selection-change="loadSelectedReport()"
           @update:display-depth="updateDisplayDepth"
           @update:show-months="updateShowMonths"
           @reset="resetDisplaySettings"
