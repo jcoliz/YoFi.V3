@@ -114,3 +114,5 @@ Rule: Access Control
             | /transactions |
             | /import |
             | /payee-rules |
+            | /workspaces |
+            | /reports |
