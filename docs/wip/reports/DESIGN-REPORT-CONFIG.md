@@ -1,5 +1,5 @@
 ---
-status: In Review
+status: Approved
 target_release: V3.0
 ado: Story 2249
 parent: Feature 2207 Reports
@@ -41,27 +41,28 @@ client-only filtering, because the backend currently truncates rows at the
 report definition's default depth. The frontend stores preferences only; the
 backend remains stateless with respect to user display settings.
 
-The category-depth maximum is initially four, as noted in the PRD, but the
-frontend does not hard-code four. One Application-layer constant controls
-validation, and `ReportDefinitionDto.MaximumDepth` advertises the supported
-range to the frontend. Increasing support to five later requires changing that
-single Application constant; category parsing, aggregation, DTOs, controls, and
-indentation do not assume a fixed maximum.
+The category-depth maximum offered to users is initially four, as noted in the
+PRD, but it is strictly a frontend presentation constraint. A single frontend
+constant controls the Depth control's range and persisted-setting validation.
+The backend accepts any positive integer depth and naturally returns no rows
+beyond the category paths present in the data. Increasing the offered range to
+five later requires changing only that frontend constant; controls, validation,
+aggregation, and indentation do not otherwise assume a fixed maximum.
 
-No new ADR is required. A maximum of four display levels is presentation
-policy, not a schema or architectural change.
+No new ADR is required. The offered maximum is presentation policy, not an API,
+schema, or domain constraint.
 
 ## Design Decisions
 
 | Decision | Alternatives considered | Rationale |
 | --- | --- | --- |
 | Send display overrides as optional query parameters to the existing report endpoint | Return every category level and always include monthly vectors, then filter client-side; add a second presentation endpoint | Optional parameters preserve one report request and preserve the existing backend as the authority for row truncation, subtotal flags, and response shape. Omitted parameters preserve the old contract and defaults. |
-| Use one frontend-advertised maximum depth, initially four | Hard-code 1–4 in the Vue controls; infer the maximum from rows in the current response | The BFF advertises valid input and uses the same value for validation. It avoids a backend/frontend mismatch and permits a later increase in one place. |
+| Keep the offered maximum depth in one frontend constant, initially four | Advertise and validate a maximum in the BFF; scatter 1–4 through Vue controls; infer the maximum from rows in the current response | The range is a presentation choice, while the backend can render any positive depth. A single frontend constant permits a later increase to five without changing the API or domain model. |
 | Count depth below the report filter root | Count from the absolute category root | This matches the PRD and Story 2248. `Income:Salary` is depth 1 for the Income report; `Income:Salary:Primary` is depth 2. |
 | Persist overrides under a report-specific localStorage key, separate from the workspace year | Put display fields in the existing workspace report settings object | A report-specific key naturally isolates defaults and Reset. The existing `reports:settings` object remains workspace-wide and retains the year unchanged. |
 | Reset removes the selected report's display-settings key | Write the definition defaults into localStorage | Removing the key means the definition remains the source of defaults, including after catalog defaults change, and satisfies “clear display settings.” |
 | Re-fetch the report after a control change | Mutate returned rows and month arrays in Vue | Re-fetching uses the same authoritative Application logic for depth, subtotals, ordering, and month omission. It also handles category data deeper than the previously returned default. |
-| Format hierarchy relative to the selected depth | Format only rows marked `IsSubtotal`; special-case only two levels | Relative formatting keeps a fixed visual hierarchy when the maximum grows: the deepest level is plain, its parent bold, the next ancestor highlighted, and the top ancestor more strongly highlighted. It also preserves the current two-level behavior. |
+| Centralize hierarchy formatting by relative level | Scatter appearance conditions in the template; format rows based on `IsSubtotal`; special-case only two levels | One classifier function assigns semantic scoped-style classes relative to the selected depth, and one scoped CSS block owns their appearance. Either behavior or styling can then be changed in one place without coupling it to the backend or monthly display. |
 
 ## Entities
 
@@ -87,24 +88,14 @@ Update the existing
 
 ### Catalog metadata
 
-Extend
-[`ReportDefinitionDto`](../../../src/Application/Dto/ReportsDto.cs) with:
+Keep the existing shape of
+[`ReportDefinitionDto`](../../../src/Application/Dto/ReportsDto.cs). Its
+`DefaultDepth` remains definition metadata and `HasMonthColumns` continues to
+mean the definition default, not the effective setting returned in a report
+result.
 
-```csharp
-public record ReportDefinitionDto(
-    string Id,
-    string Name,
-    int DefaultDepth,
-    int MaximumDepth,
-    bool HasMonthColumns,
-    bool IncludesUncategorized);
-```
-
-`MaximumDepth` is the greatest valid depth below the report filter root,
-initially `4`, and is the same for every definition. `ReportsFeature` owns the
-single constant used to populate this property and validate report requests.
-`HasMonthColumns` continues to mean the definition default, not the effective
-setting returned in a report result.
+Do not add a maximum-depth property to the catalog. The number of depths offered
+is a frontend presentation concern rather than report-definition metadata.
 
 ### Report query
 
@@ -127,7 +118,7 @@ Parameters:
 | --- | --- |
 | `reportId` | Stable built-in report ID. Unknown IDs throw `KeyNotFoundException`. |
 | `year` | Existing calendar-year parameter. `null` uses the current UTC year; values outside 1–9999 throw `ValidationException`. |
-| `displayDepth` | Number of category levels below the report filter root. `null` uses `DefaultDepth`; values below 1 or above `MaximumDepth` throw `ValidationException` with field `displayDepth` and message “Display depth must be between 1 and 4.” The range in the message is derived from the constant. |
+| `displayDepth` | Number of category levels below the report filter root. `null` uses `DefaultDepth`; values below 1 throw `ValidationException` with field `displayDepth` and message “Display depth must be at least 1.” Any positive `int` is valid; the backend does not impose the frontend's offered maximum. |
 | `showMonths` | `true` requests monthly vectors and month columns; `false` requests annual-only values; `null` uses `HasMonthColumns`. |
 
 Resolve the two presentation settings only after the report definition is
@@ -192,8 +183,10 @@ with:
    query parameters are omitted.” This verifies the previous frontend contract
    remains unchanged at the Application boundary.
 
-Validation below 1 or above `MaximumDepth`, plus non-existent report IDs, is
-unit-tested rather than duplicated in the PostgreSQL fixture.
+Validation below 1, plus non-existent report IDs, is unit-tested rather than
+duplicated in the PostgreSQL fixture. Add a unit case demonstrating that a
+large positive depth is accepted and only real category paths limit the emitted
+rows.
 
 ## Controllers
 
@@ -266,9 +259,9 @@ The stored JSON contains only recognized fields. Validate that
 `displayDepth`, when present, is an integer greater than zero and that
 `showMonths`, when present, is a boolean. Diagnose malformed JSON or an invalid
 object through the existing store logging convention and return `{}`. A valid
-depth greater than `definition.maximumDepth` is treated as obsolete on page
-load and the definition default is used. Updates merge with existing valid
-settings. Reset removes only this report-specific key.
+depth greater than the frontend `MAX_REPORT_DISPLAY_DEPTH` constant is treated
+as obsolete on page load and the definition default is used. Updates merge with
+existing valid settings. Reset removes only this report-specific key.
 
 Keep the workspace settings key
 `userPreferences:tenant:{tenantKey}:reports:settings` and its `year` behavior
@@ -277,6 +270,24 @@ the display reader recognizes only `displayDepth` and `showMonths`.
 
 Read, write, and remove failures must propagate to the page so a persistence
 failure is shown rather than claiming the preference changed.
+
+### Frontend depth policy
+
+Add `reportDisplay.ts` under the existing `src/FrontEnd.Nuxt/app/utils/` folder
+with JSDoc summary: “Defines the depth choices offered by report display
+controls.” Export one constant and one predicate:
+
+```ts
+export const MAX_REPORT_DISPLAY_DEPTH = 4
+export function isSupportedReportDisplayDepth(value: number): boolean
+```
+
+The predicate accepts integers from 1 through `MAX_REPORT_DISPLAY_DEPTH`.
+Only this constant determines the range currently offered to the user and the
+maximum restored from localStorage. Changing it to five enables five-level UI
+choices without a backend, DTO, OpenAPI, or database change. Unit tests verify
+both the current boundaries and that the predicate rejects non-integers and
+zero.
 
 ### Report display controls
 
@@ -288,7 +299,7 @@ Props:
 
 | Prop | Type | Meaning |
 | --- | --- | --- |
-| `definition` | `ReportDefinitionDto` | Current report metadata, including defaults and `maximumDepth`. |
+| `definition` | `ReportDefinitionDto` | Current report metadata, including default depth and default month display. |
 | `displayDepth` | `number` | Effective selected depth. |
 | `showMonths` | `boolean` | Effective month-column setting. |
 | `disabled` | `boolean` (default `false`) | Disables all controls while a report request is pending. |
@@ -302,10 +313,12 @@ Emits:
 | `reset` | none | User requested definition defaults. |
 
 Render a native **Depth** select with integer options from 1 through
-`definition.maximumDepth`; use the selected value, not zero-based numbering.
-Render a native **Display** select with “Annual only” (`false`) and “Months and
-total” (`true`). Render a **Reset** button. The controls remain visible while a
-report request is loading, disabled so rapid conflicting requests are avoided.
+`MAX_REPORT_DISPLAY_DEPTH`; use the selected value, not zero-based numbering.
+The component imports that shared frontend constant rather than accepting a
+maximum-depth prop. Render a native **Display** select with “Annual only”
+(`false`) and “Months and total” (`true`). Render a **Reset** button. The
+controls remain visible while a report request is loading, disabled so rapid
+conflicting requests are avoided.
 
 ### Reports page
 
@@ -313,9 +326,9 @@ Update [`reports.vue`](../../../src/FrontEnd.Nuxt/app/pages/reports.vue):
 
 1. On report selection, resolve `displayDepth` and `showMonths` from that
    report's display-settings key.
-2. Use `definition.maximumDepth`, `definition.defaultDepth`, and
-   `definition.hasMonthColumns` to validate and fill each missing/obsolete
-   setting. Do not reuse another report's override.
+2. Use the frontend `isSupportedReportDisplayDepth` predicate plus
+   `definition.defaultDepth` and `definition.hasMonthColumns` to validate and
+   fill each missing/obsolete setting. Do not reuse another report's override.
 3. Pass the resolved depth and month setting with year to the regenerated
    `getReport` client method, including on initial load, Retry, and every
    report/year/display change.
@@ -351,17 +364,35 @@ Month headers, cells, footer cells, and the empty-state colspan continue to use
 `report.hasMonthColumns`, which now reflects the user override. Category names
 and indent remain based on `row.depth` and `row.categoryName`.
 
-Hierarchy formatting is relative to the effective selected depth:
+Hierarchy formatting is centralized in one place in `Table.vue` rather than
+expressed through scattered Bootstrap or inline-style conditions. Add a local
+function with the following contract:
 
-- deepest displayed level: normal weight and no highlight;
-- one level above deepest: bold;
-- two levels above deepest: light highlight;
-- three or more levels above deepest: stronger highlight at the outermost level.
+```ts
+function getRowHeaderLevelClass(depth: number, displayDepth: number): string
+```
 
-Thus one-level reports are plain; two-level reports have bold level-one rows as
-today; a four-level report has strong level one, highlighted level two, bold
-level three, and plain level four. `IsSubtotal` and monthly visibility do not
-control formatting.
+It calculates the row's distance from the deepest displayed level and returns
+exactly one of these semantic scoped-style classes:
+
+- `report-header-level-4` — three or more levels above the deepest level;
+- `report-header-level-3` — two levels above the deepest level;
+- `report-header-level-2` — one level above the deepest level;
+- `report-header-level-1` — the deepest displayed level.
+
+The scoped `<style scoped>` block is the single owner of the visual mapping for
+those four semantic classes. Initially, levels 4 through 1 map respectively to
+strong highlight, light highlight, bold, and normal text. Thus one-level
+reports are plain; two-level reports have bold level-one rows as today; and a
+four-level report has strong level one, highlighted level two, bold level three,
+and plain level four.
+
+Changing color, weight, background, or other visual treatment for a category
+level requires editing only its corresponding scoped rule. If the semantic
+classification must change, edit only `getRowHeaderLevelClass`. Avoid putting
+hierarchy appearance in templates, utility-wide Bootstrap classes, or individual
+row metadata. Indentation remains calculated separately from `row.depth`.
+`IsSubtotal` and monthly visibility do not control formatting.
 
 ### Test IDs
 
@@ -387,14 +418,16 @@ dedicated `report-display-controls.test.ts` as follows:
 
 | Test | Required behavior |
 | --- | --- |
-| `emits the selected depth and month display` | Controls generate 1 through advertised `maximumDepth`, emit numeric depth and boolean month settings, and disable all actions while `disabled` is true. |
+| `emits the selected depth and month display` | Controls generate 1 through the shared frontend `MAX_REPORT_DISPLAY_DEPTH`, emit numeric depth and boolean month settings, and disable all actions while `disabled` is true. |
+| `validates frontend depth boundaries` | The report-display utility accepts the configured range and rejects zero, non-integers, and values above the frontend maximum. |
 | `passes effective display settings to the generated client` | Page calls `getReport` with report ID, year, resolved depth, resolved month flag, and tenant key. |
 | `restores per-report settings independently` | A depth/month override for one report is not used for another; reselecting and remounting restore the original report's settings. |
-| `uses definition defaults for missing or obsolete settings` | Missing settings, malformed settings, zero depth, and depth above `maximumDepth` recover to definition defaults. |
+| `uses definition defaults for missing or obsolete settings` | Missing settings, malformed settings, zero depth, and depth above the frontend maximum recover to definition defaults. |
 | `auto-saves each display change before loading` | Updating either control merges the field into the existing per-report key without writing the workspace-year key. |
 | `resets only one report without changing year` | Reset removes the current key, restores the catalog defaults, leaves other report keys and `year` intact, and re-requests the current report/year. |
 | `shows persistence failures` | Read, write, and remove failures use `Persistence Failed`; a failed Reset does not alter displayed settings. |
 | `uses the current response hierarchy and period` | Table receives effective `displayDepth` and `hasMonthColumns`, including annual-only responses with `monthlyAmounts` absent. |
+| `classifies hierarchy styling relative to display depth` | Rows receive the expected semantic scoped-style class from the classifier for one-, two-, and four-level configurations; appearance is not conditional on `IsSubtotal` or month visibility. |
 | `ignores stale display requests` | Rapid depth/month/report/workspace changes and unmount ignore older success or failure responses. |
 
 Prefer direct component/store tests for control contracts and functional tests
