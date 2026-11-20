@@ -1316,14 +1316,15 @@ an editable form under its existing workspace rules. No localStorage key changes
 #### Test IDs
 
 `CategoryPicker` keeps the caller-provided `data-test-id` on the text input.
-Popup identifiers are derived from `inputTestId` so multiple category pickers
-cannot collide on one page.
+Popup identifiers are nested underneath. Multiple category pickers
+cannot collide on one page, because they are disambiguated by parent test ID.
 
 | data-test-id | Element | Purpose |
 | ------------ | ------- | ------------ |
 | Existing IDs: `edit-transaction-category`, `edit-category`, `add-split-category`, `edit-split-category`, `create-transaction-category`, `category-input`, `category-filter` | Category text input | Identifies each existing editable field and remains unchanged. |
-| `<input-test-id>-suggestions` | Suggestion `ul`/`listbox` | Verifies the current picker has opened. |
-| `<input-test-id>-suggestion` | Suggestion option | Selects a suggestion; each picker has only one active list at a time. |
+| `suggestions` | Suggestion `ul`/`listbox` | Verifies the current picker has opened. |
+
+Note that we don't need data-test-ids for each suggestion. Playwright locators can simply look for options under `suggestions`
 
 No popup is displayed when the latest lookup has no matches, when the field is
 initially populated, or after the field is cleared before a request.

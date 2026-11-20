@@ -98,6 +98,61 @@ public class TransactionsFeature
     }
 
     /// <summary>
+    /// Gets case-insensitive prefix suggestions for categories persisted in the current tenant.
+    /// </summary>
+    /// <param name="term">The category text entered by the user.</param>
+    /// <param name="cancellationToken">Token to cancel the lookup.</param>
+    /// <returns>
+    /// Up to 20 distinct existing category values matching the sanitized term, ordered case-insensitively.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when the term is null, whitespace, sanitizes to an empty value, or exceeds 200 characters.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">Thrown when cancellation is requested.</exception>
+    public async Task<IReadOnlyCollection<string>> GetCategorySuggestionsAsync(
+        string term,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentException.ThrowIfNullOrWhiteSpace(term);
+
+        var sanitizedTerm = CategoryHelper.SanitizeCategory(term);
+        if (sanitizedTerm.Length == 0)
+        {
+            throw new ArgumentException(
+                "Category suggestion term cannot be empty after sanitization.",
+                nameof(term));
+        }
+        if (sanitizedTerm.Length > 200)
+        {
+            throw new ArgumentException(
+                "Category suggestion term cannot exceed 200 characters.",
+                nameof(term));
+        }
+
+        var normalizedTerm = sanitizedTerm.ToLowerInvariant();
+        var tenantId = _currentTenant.Id;
+        var query = dataProvider.Get<Split>()
+            .Where(split => split.Category != string.Empty
+                && split.Category.ToLower().StartsWith(normalizedTerm)
+                && dataProvider.Get<Transaction>().Any(transaction =>
+                    transaction.Id == split.TransactionId
+                    && transaction.TenantId == tenantId))
+            .Select(split => split.Category)
+            .Distinct();
+
+        var matches = await dataProvider.ToListNoTrackingAsync(query);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return matches
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(category => category, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(category => category, StringComparer.Ordinal)
+            .Take(20)
+            .ToArray();
+    }
+
+    /// <summary>
     /// Gets a specific transaction by its unique key with all fields.
     /// </summary>
     /// <param name="key">The unique identifier of the transaction.</param>
