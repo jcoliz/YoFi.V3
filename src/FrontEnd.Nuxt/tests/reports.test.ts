@@ -4,6 +4,7 @@ import { onMounted, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import ReportsPage from '~/pages/reports.vue'
 import ReportsTable from '~/components/reports/Table.vue'
+import ReportDisplayControls from '~/components/reports/DisplayControls.vue'
 import { ReportResultDto, TenantRoleResultDto } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 
@@ -30,6 +31,7 @@ function makeReport(id = 'income', detail = false, year = 2040) {
     name: detail ? 'Expenses Detail' : 'Income',
     categoryRoot: detail ? null : 'Income',
     year,
+    displayDepth: detail ? 2 : 1,
     hasMonthColumns: detail,
     rows: [
       {
@@ -77,6 +79,8 @@ function setupPage(key: string | undefined = 'first') {
     global: {
       components: {
         ReportsTable,
+        ReportDisplayControls,
+        DisplayControls: ReportDisplayControls,
         WorkspaceSelector: { template: '<div />' },
         BaseSpinner: { template: '<span />' },
         ErrorDisplay: {
@@ -97,9 +101,17 @@ beforeEach(() => {
   getAvailableYears.mockReset().mockResolvedValue(availability)
   getReport
     .mockReset()
-    .mockImplementation(async (id: string, year: number) =>
-      makeReport(id, id.endsWith('detail'), year),
-    )
+    .mockImplementation(async (
+      id: string,
+      year: number,
+      displayDepth: number,
+      showMonths: boolean,
+    ) => {
+      const report = makeReport(id, id.endsWith('detail'), year)
+      report.displayDepth = displayDepth
+      report.hasMonthColumns = showMonths
+      return report
+    })
 })
 
 describe('Reports table', () => {
@@ -132,7 +144,7 @@ describe('Reports table', () => {
 
   it('shows monthly report content and preserves parent-child row order', () => {
     const wrapper = mount(ReportsTable, {
-      props: { report: makeReport('expenses-detail', true), displayDepth: 2 },
+      props: { report: makeReport('expenses-detail', true) },
     })
     const headers = wrapper.findAll('thead th').map((header) => header.text())
     expect(headers).toContain('January')
@@ -185,19 +197,19 @@ describe('Reports page', () => {
     await flushPromises()
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2035')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 1, false, 'first')
     expect(wrapper.find('#report-heading').text()).toContain('2035')
     expect(store.getReportSettings('first')).toEqual({ year: 2035 })
 
     await wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 2, true, 'first')
     expect(wrapper.find('#report-heading').text()).toContain('2035')
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2042')
     await flushPromises()
     await wrapper.find('[data-test-id="report-selector"]').setValue('income')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2042, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2042, 1, false, 'first')
     expect(getAvailableYears).toHaveBeenCalledOnce()
     expect(getAvailableReports).toHaveBeenCalledOnce()
 
@@ -211,7 +223,7 @@ describe('Reports page', () => {
     ).toBe('2042')
     await returned.wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2042, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2042, 2, true, 'first')
   })
 
   it('restores independent workspace years and resets availability on workspace changes', async () => {
@@ -224,17 +236,17 @@ describe('Reports page', () => {
     expect(wrapper.find('[data-test-id="report-table"]').exists()).toBe(false)
     await flushPromises()
     expect(getAvailableYears).toHaveBeenLastCalledWith('second')
-    expect(getReport).toHaveBeenLastCalledWith('income', 2042, 'second')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2042, 1, false, 'second')
     store.currentTenant = new TenantRoleResultDto({ key: 'first' })
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 1, false, 'first')
   })
 
   it('replaces an unavailable saved year with the backend default', async () => {
     useUserPreferencesStore().updateReportSettings('first', { year: 2020 })
     const { store } = setupPage()
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'first')
     expect(store.getReportSettings('first')).toEqual({ year: 2040 })
   })
 
@@ -249,12 +261,12 @@ describe('Reports page', () => {
     )
     const { wrapper, store } = setupPage()
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'first')
     await wrapper.find('[data-test-id="report-year-selector"]').setValue('2035')
     await flushPromises()
     await wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2035, 2, true, 'first')
     expect(store.getReportSettings('first')).toEqual({ year: 2035 })
   })
 
@@ -300,7 +312,7 @@ describe('Reports page', () => {
     expect(wrapper.find('[data-test-id="report-table"]').exists()).toBe(false)
     await wrapper.find('button').trigger('click')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2035, 1, false, 'first')
     expect(getAvailableYears).toHaveBeenCalledOnce()
     expect(getAvailableReports).toHaveBeenCalledOnce()
     expect(wrapper.find('#report-heading').text()).toContain('2035')
@@ -322,7 +334,7 @@ describe('Reports page', () => {
       failure.mockRestore()
       await wrapper.find('button').trigger('click')
       await flushPromises()
-      expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+      expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'first')
     },
   )
 
@@ -357,7 +369,7 @@ describe('Reports page', () => {
     expect(store.getSelectedReportId('first')).toBeNull()
     expect(store.getReportSettings('first')).toEqual({})
     expect(getReport).toHaveBeenCalledTimes(action === 'workspace' ? 1 : 0)
-    if (action === 'workspace') expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'second')
+    if (action === 'workspace') expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'second')
   })
 
   it('uses Expenses when the backend lists it first, without overriding a saved selection', async () => {
@@ -367,14 +379,14 @@ describe('Reports page', () => {
     ])
     const { wrapper, store } = setupPage()
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses', 2040, 1, false, 'first')
     expect(store.getSelectedReportId('first')).toBe('expenses')
     wrapper.unmount()
 
     store.setSelectedReportId('first', 'income')
     setupPage()
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'first')
     expect(store.getSelectedReportId('first')).toBe('income')
   })
 
@@ -399,7 +411,7 @@ describe('Reports page', () => {
           'Failed to parse stored report settings:',
           expect.any(Error),
         )
-        expect(getReport).toHaveBeenLastCalledWith('income', 2040, 'first')
+        expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'first')
         expect(JSON.parse(localStorage.getItem(key)!)).toEqual({ year: 2040 })
       },
     )
@@ -421,7 +433,7 @@ describe('Reports page', () => {
     expect(getAvailableReports).toHaveBeenCalledOnce()
     expect(getAvailableReports).toHaveBeenCalledWith('first')
     expect(getAvailableYears).toHaveBeenCalledWith('first')
-    expect(getReport).toHaveBeenCalledWith('income', 2040, 'first')
+    expect(getReport).toHaveBeenCalledWith('income', 2040, 1, false, 'first')
     expect(store.getReportSettings('first')).toEqual({ year: 2040 })
     expect(
       wrapper
@@ -438,9 +450,9 @@ describe('Reports page', () => {
     await flushPromises()
     await wrapper.find('[data-test-id="report-selector"]').setValue('expenses-detail')
     await flushPromises()
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2040, 'first')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2040, 2, true, 'first')
     expect(store.getSelectedReportId('first')).toBe('expenses-detail')
-    expect(wrapper.findComponent(ReportsTable).props('displayDepth')).toBe(2)
+    expect(wrapper.findComponent(ReportsTable).props('report').displayDepth).toBe(2)
     wrapper.unmount()
     const returned = setupPage()
     await flushPromises()
@@ -453,7 +465,7 @@ describe('Reports page', () => {
     useUserPreferencesStore().setSelectedReportId('first', 'removed')
     const { store } = setupPage()
     await flushPromises()
-    expect(getReport).toHaveBeenCalledWith('income', 2040, 'first')
+    expect(getReport).toHaveBeenCalledWith('income', 2040, 1, false, 'first')
     expect(store.getSelectedReportId('first')).toBe('income')
   })
 
@@ -464,7 +476,7 @@ describe('Reports page', () => {
     store.currentTenant = new TenantRoleResultDto({ key: 'second' })
     await flushPromises()
     expect(getAvailableReports).toHaveBeenLastCalledWith('second')
-    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2040, 'second')
+    expect(getReport).toHaveBeenLastCalledWith('expenses-detail', 2040, 2, true, 'second')
     expect(store.getSelectedReportId('first')).toBe('income')
     store.currentTenant = undefined
     await flushPromises()
@@ -524,7 +536,7 @@ describe('Reports page', () => {
     pending.resolve(catalog)
     await flushPromises()
     expect(getReport).toHaveBeenCalledOnce()
-    expect(getReport).toHaveBeenCalledWith('income', 2040, 'second')
+    expect(getReport).toHaveBeenCalledWith('income', 2040, 1, false, 'second')
     expect(wrapper.find('[data-test-id="report-result"]').text()).toContain('Income')
   })
 

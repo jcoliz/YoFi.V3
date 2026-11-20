@@ -7,6 +7,7 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { handleApiError } from '~/utils/errorHandler'
+import { isSupportedReportDisplayDepth } from '~/utils/reportDisplay'
 
 definePageMeta({
   title: 'Reports',
@@ -25,6 +26,8 @@ const years = ref<number[]>([])
 const defaultYear = ref<number>()
 const selectedYear = ref<number>()
 const report = ref<ReportResultDto>()
+const displayDepth = ref(1)
+const showMonths = ref(false)
 const error = ref<IProblemDetails>()
 const showError = ref(false)
 const tenantKey = computed(() => preferences.getCurrentTenantKey)
@@ -118,22 +121,71 @@ async function loadSelectedReport() {
   showError.value = false
   if (!key || !id) return
   loading.value = true
+
   try {
     if (selectedYear.value === undefined) {
       const saved = preferences.getReportSettings(key).year
       selectedYear.value =
         saved !== undefined && years.value.includes(saved) ? saved : defaultYear.value
     }
+  } catch (err) {
+    if (version !== requestVersion) return
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to read report preferences')
+    showError.value = true
+    loading.value = false
+    return
+  }
+
+  const definition = definitions.value.find((item) => item.id === id)
+  if (!definition) {
+    error.value = handleApiError(
+      new Error('The selected report is unavailable.'),
+      'Load Failed',
+      'Failed to load the selected report',
+    )
+    showError.value = true
+    loading.value = false
+    return
+  }
+
+  try {
+    const savedDisplay = preferences.getReportDisplaySettings(key, id)
+    displayDepth.value =
+      savedDisplay.displayDepth !== undefined &&
+      isSupportedReportDisplayDepth(savedDisplay.displayDepth)
+        ? savedDisplay.displayDepth
+        : (definition.defaultDepth ?? 1)
+    showMonths.value =
+      savedDisplay.showMonths !== undefined
+        ? savedDisplay.showMonths
+        : (definition.hasMonthColumns ?? false)
+  } catch (err) {
+    if (version !== requestVersion) return
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to read report preferences')
+    showError.value = true
+    loading.value = false
+    return
+  }
+
+  try {
     preferences.setSelectedReportId(key, id)
     preferences.updateReportSettings(key, { year: selectedYear.value })
   } catch (err) {
+    if (version !== requestVersion) return
     error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
     showError.value = true
     loading.value = false
     return
   }
+
   try {
-    const result = await reportsClient.getReport(id, selectedYear.value, null, null, key)
+    const result = await reportsClient.getReport(
+      id,
+      selectedYear.value,
+      displayDepth.value,
+      showMonths.value,
+      key,
+    )
     if (version === requestVersion) report.value = result
   } catch (err) {
     if (version !== requestVersion) return
@@ -142,6 +194,53 @@ async function loadSelectedReport() {
   } finally {
     if (version === requestVersion) loading.value = false
   }
+}
+
+function updateDisplayDepth(depth: number) {
+  const key = tenantKey.value
+  const id = selectedReportId.value
+  if (!key || !id || !isSupportedReportDisplayDepth(depth)) return
+  try {
+    preferences.updateReportDisplaySettings(key, id, { displayDepth: depth })
+  } catch (err) {
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
+    showError.value = true
+    return
+  }
+  displayDepth.value = depth
+  void loadSelectedReport()
+}
+
+function updateShowMonths(months: boolean) {
+  const key = tenantKey.value
+  const id = selectedReportId.value
+  if (!key || !id) return
+  try {
+    preferences.updateReportDisplaySettings(key, id, { showMonths: months })
+  } catch (err) {
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
+    showError.value = true
+    return
+  }
+  showMonths.value = months
+  void loadSelectedReport()
+}
+
+function resetDisplaySettings() {
+  const key = tenantKey.value
+  const id = selectedReportId.value
+  const definition = definitions.value.find((item) => item.id === id)
+  if (!key || !id || !definition) return
+  try {
+    preferences.resetReportDisplaySettings(key, id)
+  } catch (err) {
+    error.value = handleApiError(err, 'Persistence Failed', 'Failed to save report preferences')
+    showError.value = true
+    return
+  }
+  displayDepth.value = definition.defaultDepth ?? 1
+  showMonths.value = definition.hasMonthColumns ?? false
+  void loadSelectedReport()
 }
 
 function retry() {
@@ -227,6 +326,16 @@ function retry() {
             </select>
           </div>
         </div>
+        <ReportsDisplayControls
+          v-if="definitions.length && selectedReportId"
+          :definition="definitions.find((definition) => definition.id === selectedReportId)!"
+          :display-depth="displayDepth"
+          :show-months="showMonths"
+          :disabled="loading"
+          @update:display-depth="updateDisplayDepth"
+          @update:show-months="updateShowMonths"
+          @reset="resetDisplaySettings"
+        />
         <div
           v-if="loading"
           class="text-center py-5"
@@ -248,12 +357,7 @@ function retry() {
             {{ report.name }} &mdash; {{ report.year }}
           </h2>
           <div class="card">
-            <ReportsTable
-              :report="report"
-              :display-depth="
-                definitions.find((definition) => definition.id === report?.id)?.defaultDepth
-              "
-            />
+            <ReportsTable :report="report" />
           </div>
         </section>
         <button

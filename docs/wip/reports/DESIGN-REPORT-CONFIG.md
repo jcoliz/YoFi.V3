@@ -291,7 +291,7 @@ zero.
 
 ### Report display controls
 
-Add `ReportDisplayControls.vue` under the existing `src/FrontEnd.Nuxt/app/components/reports/`
+Add `DisplayControls.vue` under the existing `src/FrontEnd.Nuxt/app/components/reports/`
 folder with JSDoc summary: “Edits the category-depth and month-display settings
 for one report.”
 

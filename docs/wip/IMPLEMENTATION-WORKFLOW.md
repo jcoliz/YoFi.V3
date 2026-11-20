@@ -331,7 +331,7 @@ Run from the repository root.
 
 Run all remaining commands in this phase from `src/FrontEnd.Nuxt/`.
 
-### 8.2 Implementation
+### 8.2 Front End Implementation
 
 - [ ] Implement the pages, components, composables, stores, and utils named in the design, with the
       documented props and emits.

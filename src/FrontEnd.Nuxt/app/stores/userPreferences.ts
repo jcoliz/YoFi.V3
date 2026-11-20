@@ -12,6 +12,11 @@ export interface ReportSettings {
   year?: number
 }
 
+export interface ReportDisplaySettings {
+  displayDepth?: number
+  showMonths?: boolean
+}
+
 export const useUserPreferencesStore = defineStore('userPreferences', () => {
   // State
   const currentTenant = ref<TenantRoleResultDto | undefined>(undefined)
@@ -108,6 +113,62 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     )
   }
 
+  /** Reads recognized display overrides for one tenant and report. */
+  function getReportDisplaySettings(tenantKey: string, reportId: string): ReportDisplaySettings {
+    if (typeof window === 'undefined') return {}
+    const key = `userPreferences:tenant:${tenantKey}:reports:${reportId}:display`
+    const stored = localStorage.getItem(key)
+    if (stored === null) return {}
+
+    try {
+      const settings: unknown = JSON.parse(stored)
+      if (typeof settings !== 'object' || settings === null || Array.isArray(settings)) {
+        throw new Error('Report display settings must be an object.')
+      }
+
+      const record = settings as Record<string, unknown>
+      const displayDepth = record.displayDepth
+      const showMonths = record.showMonths
+      if (
+        displayDepth !== undefined &&
+        (typeof displayDepth !== 'number' || !Number.isInteger(displayDepth) || displayDepth < 1)
+      ) {
+        throw new Error('Display depth must be a positive integer.')
+      }
+      if (showMonths !== undefined && typeof showMonths !== 'boolean') {
+        throw new Error('Show months must be a boolean.')
+      }
+
+      return {
+        ...(displayDepth !== undefined ? { displayDepth: displayDepth as number } : {}),
+        ...(showMonths !== undefined ? { showMonths: showMonths as boolean } : {}),
+      }
+    } catch (error) {
+      console.error('Failed to parse stored report display settings:', error)
+      return {}
+    }
+  }
+
+  /** Merges recognized display overrides for one tenant and report. */
+  function updateReportDisplaySettings(
+    tenantKey: string,
+    reportId: string,
+    settings: ReportDisplaySettings,
+  ) {
+    if (typeof window === 'undefined') return
+    const existing = getReportDisplaySettings(tenantKey, reportId)
+    localStorage.setItem(
+      `userPreferences:tenant:${tenantKey}:reports:${reportId}:display`,
+      JSON.stringify({ ...existing, ...settings }),
+    )
+  }
+
+  /** Removes display overrides for one tenant and report only. */
+  function resetReportDisplaySettings(tenantKey: string, reportId: string) {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(`userPreferences:tenant:${tenantKey}:reports:${reportId}:display`)
+  }
+
   return {
     // State
     currentTenant,
@@ -123,5 +184,8 @@ export const useUserPreferencesStore = defineStore('userPreferences', () => {
     setSelectedReportId,
     getReportSettings,
     updateReportSettings,
+    getReportDisplaySettings,
+    updateReportDisplaySettings,
+    resetReportDisplaySettings,
   }
 })

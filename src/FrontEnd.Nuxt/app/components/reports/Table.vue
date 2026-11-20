@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { ReportResultDto } from '~/utils/apiclient'
 
-defineProps<{ report: ReportResultDto; displayDepth?: number }>()
+/** Displays an annual report with optional monthly columns, category hierarchy, and totals. */
+defineProps<{ report: ReportResultDto }>()
 
 const months = [
   'January',
@@ -26,6 +27,14 @@ function formatAmount(amount: number | undefined) {
 
 function formatPercentage(value: number | null | undefined) {
   return value == null ? '\u2014' : percent.format(value)
+}
+
+function getRowHeaderLevelClass(depth: number, displayDepth: number): string {
+  const levelsAboveDeepest = displayDepth - depth
+  if (levelsAboveDeepest >= 3) return 'report-header-level-4'
+  if (levelsAboveDeepest === 2) return 'report-header-level-3'
+  if (levelsAboveDeepest === 1) return 'report-header-level-2'
+  return 'report-header-level-1'
 }
 </script>
 
@@ -84,12 +93,12 @@ function formatPercentage(value: number | null | undefined) {
         <tr
           v-for="(row, index) in report.rows"
           :key="index"
-          :class="{ 'fw-bold': displayDepth === 2 && row.depth === 1 }"
+          :class="getRowHeaderLevelClass(row.depth ?? 1, report.displayDepth ?? 1)"
           data-test-id="report-row"
         >
           <th
             scope="row"
-            :class="{ 'fw-normal': !(displayDepth === 2 && row.depth === 1) }"
+            :class="getRowHeaderLevelClass(row.depth ?? 1, report.displayDepth ?? 1)"
             :style="{ paddingLeft: `${0.5 + Math.max(0, (row.depth ?? 1) - 1) * 1.5}rem` }"
           >
             {{ row.categoryName }}
@@ -136,6 +145,20 @@ function formatPercentage(value: number | null | undefined) {
 </template>
 
 <style scoped>
+.report-header-level-4 {
+  background-color: #fff3cd;
+  font-weight: 700;
+}
+.report-header-level-3 {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+.report-header-level-2 {
+  font-weight: 700;
+}
+.report-header-level-1 {
+  font-weight: 400;
+}
 .annual-percentage {
   width: 1%;
   white-space: nowrap;
