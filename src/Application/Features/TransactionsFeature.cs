@@ -134,7 +134,7 @@ public class TransactionsFeature
         var tenantId = _currentTenant.Id;
         var query = dataProvider.Get<Split>()
             .Where(split => split.Category != string.Empty
-                && split.Category.ToLower().StartsWith(normalizedTerm)
+                && split.Category.ToLower().Contains(normalizedTerm)
                 && dataProvider.Get<Transaction>().Any(transaction =>
                     transaction.Id == split.TransactionId
                     && transaction.TenantId == tenantId))
