@@ -247,14 +247,18 @@ function handleFocusOut(event: FocusEvent) {
   border: 1px solid var(--bs-border-color, #dee2e6);
   border-radius: 0.375rem;
   box-shadow: 0 0.25rem 0.5rem rgb(0 0 0 / 15%);
+  list-style: none;
+  padding: 0;
 }
 
 .category-picker-suggestions .list-group-item {
   cursor: pointer;
   background: var(--bs-body-bg, #fff);
+  padding: 0.5rem 0.75rem;
 }
 
 .category-picker-suggestions .list-group-item.active {
-  background: var(--bs-primary);
+  background: rgba(var(--bs-emphasis-color-rgb, 33, 37, 41), 0.075);
+  color: var(--bs-body-color);
 }
 </style>
