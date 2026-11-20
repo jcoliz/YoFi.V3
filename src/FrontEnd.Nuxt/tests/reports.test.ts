@@ -79,7 +79,7 @@ function setupPage(key: string | undefined = 'first') {
     global: {
       components: {
         ReportsTable,
-        ReportDisplayControls,
+        ReportsDisplayControls: ReportDisplayControls,
         DisplayControls: ReportDisplayControls,
         WorkspaceSelector: { template: '<div />' },
         BaseSpinner: { template: '<span />' },
@@ -101,17 +101,14 @@ beforeEach(() => {
   getAvailableYears.mockReset().mockResolvedValue(availability)
   getReport
     .mockReset()
-    .mockImplementation(async (
-      id: string,
-      year: number,
-      displayDepth: number,
-      showMonths: boolean,
-    ) => {
-      const report = makeReport(id, id.endsWith('detail'), year)
-      report.displayDepth = displayDepth
-      report.hasMonthColumns = showMonths
-      return report
-    })
+    .mockImplementation(
+      async (id: string, year: number, displayDepth: number, showMonths: boolean) => {
+        const report = makeReport(id, id.endsWith('detail'), year)
+        report.displayDepth = displayDepth
+        report.hasMonthColumns = showMonths
+        return report
+      },
+    )
 })
 
 describe('Reports table', () => {
@@ -369,7 +366,8 @@ describe('Reports page', () => {
     expect(store.getSelectedReportId('first')).toBeNull()
     expect(store.getReportSettings('first')).toEqual({})
     expect(getReport).toHaveBeenCalledTimes(action === 'workspace' ? 1 : 0)
-    if (action === 'workspace') expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'second')
+    if (action === 'workspace')
+      expect(getReport).toHaveBeenLastCalledWith('income', 2040, 1, false, 'second')
   })
 
   it('uses Expenses when the backend lists it first, without overriding a saved selection', async () => {
