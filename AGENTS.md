@@ -17,6 +17,11 @@ This project tracks Epics, Features, Stories, Scenarios, and Bugs as work items 
 
 CI and deployment use Azure Pipelines; see [`.azure/pipelines/ci.yaml`](.azure/pipelines/ci.yaml). The GitHub repository also has a basic Actions workflow, but it is not the primary build or deployment system.
 
+## Scripting and Automation
+
+- Python is not available in this project environment. Do not create or run Python scripts for complex operations, one-off automation, or data processing.
+- Use PowerShell or Node.js instead, preferring existing project scripts and tooling when available.
+
 ## Logging
 
 - Always use `[LoggerMessage]`-attributed partial methods for logging. Do not call logger methods directly (for example, `_logger.LogInformation(...)`).
