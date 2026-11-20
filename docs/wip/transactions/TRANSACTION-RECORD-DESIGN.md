@@ -1068,3 +1068,346 @@ starting at Step 10 (Frontend). Steps 1-9 are complete and committed.
 **Backend implementation is fully complete.** Only frontend UI remains.
 
 Enjoy your break! 🎉
+
+## Scenario 2235 Addendum
+
+Addendum Status: In review
+
+### Scope
+
+This addendum covers Scenario 2235, **Drop-down picker for categories**. It adds
+category suggestions to every current user-editable category field:
+
+- transaction quick edit;
+- transaction detail edit, add-split, and edit-split forms;
+- transaction creation;
+- payee-rule creation and editing, including the rule dialog opened from a
+  transaction (the current UI's quick-edit and detail-page equivalents for payees);
+  and
+- the Transactions filter pane.
+
+The category remains free-form text. This change does not replace category values,
+create a Category entity, alter category sanitization, or change transaction
+filter semantics. Import review, reports, and worksheets remain unchanged because
+they do not currently provide editable category fields.
+
+### Acceptance Criteria
+
+- [x] Every current category-entry field uses the shared category picker described
+  below.
+- [x] The picker is available in transaction quick edit and on the transaction
+  detail page, including add-split and edit-split forms.
+- [x] The picker is available when creating or editing a payee matching rule and
+  when opening that dialog from a transaction.
+- [x] The picker is available in the Transactions filter pane.
+- [x] Suggestions are not loaded or displayed for an initially populated field.
+- [x] User entry of the first non-blank character loads suggestions; subsequent
+  edits refresh them, and clearing the field hides and cancels pending work.
+- [x] Suggestions contain existing tenant data and selecting one fills the field
+  without submitting the surrounding form.
+
+### Architectural Considerations
+
+Follow the existing tenant-scoped BFF pattern: a read-only Application feature
+queries persisted category values, a tenant-authorized controller exposes them,
+and a reusable Vue component owns suggestion interaction. No third-party
+autocomplete or component dependency is introduced.
+
+The picker is a reusable presentation component rather than duplicated logic in
+each form. It must not own or mutate any form's persistence state; it exposes a
+string through `v-model` and the surrounding form remains responsible for
+validation and saving.
+
+Category lookups can be issued on every input change, so the component debounces
+requests for 200 ms and ignores results from a superseded request. The response
+is capped at 20 suggestions. The endpoint returns only distinct non-empty values;
+it does not page results. No cache is added because recent edits must become
+visible to subsequent lookups without cache invalidation in both transaction and
+payee-rule write paths.
+
+### Design Decisions
+
+| Decision | Alternatives considered | Rationale |
+| -------- | ----------------------- | --------- |
+| Keep suggestions free-form and select only a full existing value | Suggest an automatically created hierarchy or require selection from the list | Categories are intentionally stored as free-form text; selection must not block new categories. |
+| Read categories from both tenant transaction splits and tenant payee matching rules | Read only splits, or read only the categories visible on the current transaction page | Both stores are sources of persisted category values and are the data users expect to reuse across transaction and payee workflows. |
+| Match the sanitized whole input as a case-insensitive prefix and sort results ordinally | Case-sensitive prefix or arbitrary substring search | Prefix matching is predictable for a type-ahead picker and supports hierarchical values such as `Food:Groceries`; case-insensitive matching avoids duplicate casing choices. |
+| Use one `GET /categories` endpoint for all consumers | Add category methods to both Transactions and Payee Rules controllers | Category suggestions span both domains and belong to the tenant, not either editor's request contract. |
+| Load only after an input event with at least one sanitized character | Load all choices when the component mounts or on focus | This preserves the specified behavior for prefilled fields and avoids unnecessary requests. |
+| On lookup failure, keep the entered text and hide the suggestion list | Show a blocking form error or require retry | Suggestions are assistive. Failure of the lookup must never prevent an otherwise valid category from being saved. |
+
+### Entities
+
+No entity changes are required. Categories remain on existing
+[`Split`](../../../src/Entities/Models/Split.cs) and
+[`PayeeMatchingRule`](../../../src/Entities/Models/PayeeMatchingRule.cs) records.
+No Category entity or relationship is introduced.
+
+### Data
+
+No database, `DbContext`, migration, index, or constraint changes are required.
+The existing transaction/split and payee-rule indexes are unaffected; this is a
+small, input-driven read whose result is capped after distinct values are found.
+
+[`CategoriesFeature`](../../../src/Application/Features/) must form two
+`IQueryable<string>` projections with `IDataProvider`:
+
+1. `Split.Category` for splits whose parent `Transaction.TenantId` equals the
+   current tenant.
+2. `PayeeMatchingRule.Category` whose `TenantId` equals the current tenant.
+
+Each projection excludes empty values, matches the lower-cased sanitized input
+as a prefix, selects only the value, and applies provider-side `Distinct`. The
+feature concatenates the two materialized, no-tracking sets, performs a final
+case-insensitive de-duplication, orders with `StringComparer.OrdinalIgnoreCase`
+(and then `Ordinal` to make casing variants deterministic before the prior
+step removes them), and returns at most 20 values. Normalization for lookup must
+not alter the text returned to or persisted by the caller.
+
+### Data Integration Tests
+
+No Data-layer configuration is added, so no schema or EF-configuration tests are
+required. Query translation and tenant isolation are covered by the Application
+integration tests below.
+
+### Application Features
+
+Add
+[`CategoriesFeature`](../../../src/Application/Features/) with the following
+public operation:
+
+```csharp
+public Task<IReadOnlyCollection<string>> GetSuggestionsAsync(
+    string term,
+    CancellationToken cancellationToken = default);
+```
+
+Its summary is "Gets case-insensitive prefix suggestions for the categories
+persisted in the current tenant." The `term` parameter is the current user input;
+the return value is an alphabetically ordered, case-insensitively distinct
+collection of at most 20 existing category strings. The method throws
+`ArgumentException` when `term` sanitizes to an empty value and
+`OperationCanceledException` when the cancellation token is canceled. It applies
+the tenant predicates described in [Data](#data) to both source queries.
+
+The operation does not invent parent category paths. A persisted
+`Food:Groceries` value is eligible when the sanitized term is, for example,
+`food`, `food:`, or `food:gr`. It remains free-form input, so no server validation
+change is made to any create or edit DTO.
+
+### Application Integration Tests
+
+Extend a new `CategoriesFeatureTests` fixture under
+[`tests/Integration.Application`](../../../tests/Integration.Application/) with
+these tests and Summary text:
+
+- `Gets suggestions from splits and rules for the current tenant only` - seeds both
+  sources in the current and another tenant, then proves the combined source set,
+  non-empty filtering, ordering, and tenant isolation;
+- `Matches category prefixes case-insensitively and sanitizes the term` - proves
+  normalized partial and hierarchical prefixes while excluding values that only
+  contain the term later in the string;
+- `De-duplicates category suggestions case-insensitively` - proves duplicates
+  across both sources produce one value;
+- `Limits category suggestions to twenty` - proves the response is bounded after
+  ordering; and
+- `Rejects a blank category search term` - proves the feature rejects blank or
+  whitespace-only input.
+
+These tests must use the real configured provider so EF translation is exercised.
+No Application-layer logging is added.
+
+### Controllers
+
+Add
+[`CategoriesController`](../../../src/Controllers/) with the following endpoint:
+
+| Method | Route | Tenant role | Request body | Success response | Error responses |
+| ------ | ----- | ----------- | ------------ | ---------------- | --------------- |
+| `GET` | `/api/tenant/{tenantKey:guid}/categories?term={term}` | Viewer | None; required query `term` | `200 OK`, `IReadOnlyCollection<string>` | `400` blank/whitespace term or sanitized term longer than 200 characters; `401`; `403`; `500` |
+
+Its endpoint summary is "Gets existing category suggestions for the current
+tenant." The controller action has the signature
+`Task<IActionResult> GetSuggestions([FromQuery] string? term, CancellationToken cancellationToken)`.
+`term` is a required query parameter. Controller validation must reject the
+null/blank value before calling the feature and map all errors to the standard
+`ProblemDetails` response. No new exception or exception-handler mapping is
+needed.
+
+Use `[LoggerMessage]`-attributed partial methods at this API boundary: a debug
+"Starting" event and an information event recording only the returned count. Do
+not log the term or category values. Add the generated client method
+`CategoriesClient.getSuggestions(term, tenantKey)` by running
+[`Generate-ApiClient.ps1`](../../../scripts/Generate-ApiClient.ps1); do not edit
+[`apiclient.ts`](../../../src/FrontEnd.Nuxt/app/utils/apiclient.ts) directly.
+
+The endpoint is additive and requires no frontend rollout guard: older frontends
+continue using their existing routes. New frontend calls use only the generated
+client.
+
+### Front End
+
+Add
+[`CategoryPicker.vue`](../../../src/FrontEnd.Nuxt/app/components/) as the shared
+input component. Its JSDoc summary is "Provides free-form category entry with
+accessible, tenant-scoped suggestions from persisted categories."
+
+```ts
+defineProps<{
+  modelValue: string
+  inputId: string
+  inputTestId: string
+  tenantKey: string
+  maxlength?: number
+  disabled?: boolean
+  placeholder?: string
+  invalid?: boolean
+  describedBy?: string
+}>()
+
+defineEmits<{
+  'update:modelValue': [value: string]
+  blur: [event: FocusEvent]
+  keydown: [event: KeyboardEvent]
+  keyup: [event: KeyboardEvent]
+}>()
+```
+
+Defaults are `maxlength: 200`, `disabled: false`, `placeholder: ''`,
+`invalid: false`, and `describedBy: undefined`. The component renders a text
+input with the existing Bootstrap validation classes. It preserves the input's
+current string exactly and makes no sanitization change to the form value.
+
+On an actual `input` event, the component emits the complete value. If the value
+sanitizes to empty, it immediately clears the list, closes it, and increments the
+request generation so any late response is ignored. Otherwise it debounces for
+200 ms and calls `CategoriesClient.getSuggestions(term, tenantKey)`. A sequence
+number rejects stale responses; changing tenant also clears all suggestions.
+Programmatic `v-model` initialization or prop updates do not issue a request, so a
+prefilled category does not open on first render. Typing, deleting to another
+non-blank value, or editing a prefilled value refreshes the suggestions.
+
+The popup is rendered only when the latest lookup succeeded with at least one
+suggestion. It is a `role="listbox"`; each option has `role="option"`, exposes
+`aria-selected`, and is selectable by mouse, Enter, or Tab. Up/Down moves the
+active option, Escape closes without changing text, and ordinary typing remains
+uninterrupted. Choosing an option emits that exact string, closes the list, and
+does not bubble a submit action. A failed request silently closes the list and
+does not add form-level validation because category input remains valid. The
+list closes on focus leaving the component.
+
+Replace category `<input>` elements with `CategoryPicker` while retaining each
+form's existing model, labels, maximum length, validation, save handler, and
+`data-test-id`:
+
+- [`EditModal.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/EditModal.vue)
+  for transaction quick edit;
+- [`EditPane.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/EditPane.vue),
+  the add-split form in
+  [`transactions/[key].vue`](../../../src/FrontEnd.Nuxt/app/pages/transactions/[key].vue),
+  and [`EditSplitDialog.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/EditSplitDialog.vue)
+  for transaction detail entry;
+- [`CreateModal.vue`](../../../src/FrontEnd.Nuxt/app/components/transaction/CreateModal.vue)
+  for new transactions;
+- [`Dialog.vue`](../../../src/FrontEnd.Nuxt/app/components/payee-rules/Dialog.vue)
+  for both create/edit rule uses; and
+- [`TransactionFilterPanel.vue`](../../../src/FrontEnd.Nuxt/app/components/TransactionFilterPanel.vue)
+  for filtering. Its picker forwards `blur` so the panel's existing `commitOnBlur`
+  and Enter handling remain unchanged.
+
+The category picker has no store dependency. Each caller supplies its current
+tenant key; when no tenant is available, the surrounding screen does not render
+an editable form under its existing workspace rules. No localStorage key changes.
+
+#### Test IDs
+
+`CategoryPicker` keeps the caller-provided `data-test-id` on the text input.
+Popup identifiers are derived from `inputTestId` so multiple category pickers
+cannot collide on one page.
+
+| data-test-id | Element | Purpose |
+| ------------ | ------- | ------------ |
+| Existing IDs: `edit-transaction-category`, `edit-category`, `add-split-category`, `edit-split-category`, `create-transaction-category`, `category-input`, `category-filter` | Category text input | Identifies each existing editable field and remains unchanged. |
+| `<input-test-id>-suggestions` | Suggestion `ul`/`listbox` | Verifies the current picker has opened. |
+| `<input-test-id>-suggestion` | Suggestion option | Selects a suggestion; each picker has only one active list at a time. |
+
+No popup is displayed when the latest lookup has no matches, when the field is
+initially populated, or after the field is cleared before a request.
+
+### Component Tests
+
+Add focused Vitest coverage in
+[`category-picker.test.ts`](../../../src/FrontEnd.Nuxt/tests/) for the new
+component, following the behavior contracts in
+[`tests/README.md`](../../../src/FrontEnd.Nuxt/tests/README.md):
+
+- an initially populated model makes no API call and displays no list;
+- typing the first non-blank character calls the generated client after debounce;
+- clearing the field cancels visibility and suppresses an older result;
+- every subsequent input refreshes the query, and only the latest response wins;
+- mouse selection and Enter emit the suggestion without submitting;
+- Escape and blur close the list while preserving the entered value;
+- changing tenant clears the prior tenant's suggestions;
+- API failure leaves the value editable and emits no form error; and
+- the component forwards `maxlength`, disabled, invalid, and `aria-describedby`
+  states to the input.
+
+Add one wiring test to the relevant existing test files for each integrated form,
+asserting that its current category test ID is the picker input and that selection
+updates the same value submitted by its existing save/filter behavior. This
+covers transaction quick edit, transaction detail edit, add/edit split, transaction
+create, payee-rule create/edit, and transaction filtering without testing page
+navigation or markup layout.
+
+### Functional Tests
+
+The Scenario 2235 user-visible behavior is specified with one scenario outline.
+Examples identify the required surfaces; the step implementation may reuse the
+existing workspace seeding and each page's current navigation steps.
+
+```gherkin
+Scenario Outline: Category picker suggests existing values while editing
+    Given the workspace contains category "Groceries"
+    And I am editing a category in the <surface>
+    And the category field currently contains ""
+    When I enter "g" in the category field # NEW
+    Then the "Groceries" category suggestion is displayed # NEW
+
+    Examples:
+        | surface                         |
+        | transaction quick edit          |
+        | transaction detail page         |
+        | payee rule quick edit           |
+        | payee rule detail page          |
+        | transaction filter pane         |
+```
+
+A separately seeded prefilled field is covered in the component tests. The
+functional outline intentionally tests the acceptance-criterion surfaces and the
+specified update/hide rules without coupling to a particular suggestion request
+implementation. Transaction creation is covered by the component wiring test;
+its category input uses the same picker even though it is not listed separately
+in the scenario's acceptance-criterion bullets.
+
+### Open Questions
+
+None.
+
+### Completion Checklist
+
+- [x] Every PRD acceptance criterion in scope is traceable to this addendum.
+- [x] Every affected layer is covered; untouched Entity, Data, and migration work
+  is explicitly identified.
+- [x] The category endpoint lists its tenant role, response type, and error
+  statuses.
+- [x] No new exception or status-code mapping is introduced.
+- [x] No index, constraint, conversion, migration, or data-provider capability is
+  introduced; query behavior has Application integration coverage.
+- [x] The additive endpoint preserves compatibility with the previous frontend.
+- [x] Every `data-test-id` used by the functional behavior is derived from the
+  test-ID contract above.
+- [x] The Gherkin scenario outline places all `When` steps before each subsequent
+  `Then` group and never starts a later action after the final assertions.
+- [x] No unresolved or deferred implementation text is present.
+- [x] Open Questions is empty.
+- [x] All links point to existing project files or directories.

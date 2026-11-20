@@ -86,12 +86,19 @@ All of these will be considered as separate features. The goal of this is to get
 
 **Acceptance Criteria: Scenario 2235 Drop-down picker for categories**
 
-- [ ] Anywhere user types in categories, a drop-down is provided with category suggestions based on existing data
+- [ ] Anywhere user enters categories, a drop-down is provided with category suggestions based on existing data
 - [ ] Available on the Transactions quick edit
 - [ ] Available on the Transactions detail page
 - [ ] Available on the Payees quick edit
 - [ ] Available on the Payees detail page
-- [ ] Available on the Transaction split editor
+- [ ] Available on the Transactions Filter pane
+
+Behavior rules:
+- Appears when at least 1 character is entered in the field by user
+- Does not appear initially when category is already filled.
+- Appears when user starts editing an already-filled category
+- Disappears when user changes the field to empty
+- Updates every time user changes the field
 
 ---
 
