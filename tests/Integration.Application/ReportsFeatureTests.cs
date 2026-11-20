@@ -93,6 +93,103 @@ public class ReportsFeatureTests : FeatureTestBase
         }
     }
 
+    [Test]
+    public async Task GetReportAsync_AppliesDisplayOverridesWithoutChangingTenantScopedAnnualTotals()
+    {
+        var currentTenant = await CreateTenantAsync("Display override tenant");
+        var otherTenant = await CreateTenantAsync("Other display override tenant");
+        var feature = new ReportsFeature(
+            new FixedTenantProvider(currentTenant),
+            _dataProvider,
+            TimeProvider.System);
+
+        // Given: Three category levels in the current tenant and matching data in another tenant
+        _context.Transactions.AddRange(
+            CreateTransaction(currentTenant.Id, new DateOnly(2024, 1, 15),
+                ("Home:Utilities:Electric", 10m)),
+            CreateTransaction(currentTenant.Id, new DateOnly(2024, 2, 15),
+                ("Home:Utilities:Gas", 15m)),
+            CreateTransaction(currentTenant.Id, new DateOnly(2024, 3, 15),
+                ("Home:Repairs", 5m)),
+            CreateTransaction(otherTenant.Id, new DateOnly(2024, 6, 15),
+                ("Home:Utilities:Electric", 1000m)));
+        await _context.SaveChangesAsync();
+
+        // When: Requesting depth 3 with months hidden, then depth 1 with months shown
+        var depthThree = await feature.GetReportAsync("all-detail", 2024, 3, false);
+        var depthOne = await feature.GetReportAsync("all-detail", 2024, 1, true);
+
+        // Then: Effective row shape and monthly settings are applied without cross-tenant roll-ups
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(depthThree.DisplayDepth, Is.EqualTo(3));
+            Assert.That(depthThree.HasMonthColumns, Is.False);
+            Assert.That(depthThree.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[]
+            {
+                "Home", "Home:Repairs", "Home:Utilities",
+                "Home:Utilities:Electric", "Home:Utilities:Gas"
+            }));
+            Assert.That(depthThree.Rows.Single(row => row.CategoryPath == "Home").IsSubtotal, Is.True);
+            Assert.That(depthThree.Rows.Single(row => row.CategoryPath == "Home:Utilities").IsSubtotal, Is.True);
+            Assert.That(depthThree.Rows.Where(row => row.CategoryName is "Electric" or "Gas" or "Repairs")
+                .All(row => row.MonthlyAmounts is null), Is.True);
+            Assert.That(depthThree.Totals.AnnualTotal, Is.EqualTo(30m));
+            Assert.That(depthThree.Totals.MonthlyAmounts, Is.Null);
+
+            Assert.That(depthOne.DisplayDepth, Is.EqualTo(1));
+            Assert.That(depthOne.HasMonthColumns, Is.True);
+            Assert.That(depthOne.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[] { "Home" }));
+            Assert.That(depthOne.Rows[0].IsSubtotal, Is.False);
+            Assert.That(depthOne.Rows[0].AnnualTotal, Is.EqualTo(30m));
+            Assert.That(depthOne.Rows[0].MonthlyAmounts, Is.Not.Null);
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![0], Is.EqualTo(10m));
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![1], Is.EqualTo(15m));
+            Assert.That(depthOne.Rows[0].MonthlyAmounts![2], Is.EqualTo(5m));
+            Assert.That(depthOne.Totals.AnnualTotal, Is.EqualTo(30m));
+            Assert.That(depthOne.Totals.MonthlyAmounts![0], Is.EqualTo(10m));
+            Assert.That(depthOne.Totals.MonthlyAmounts![1], Is.EqualTo(15m));
+            Assert.That(depthOne.Totals.MonthlyAmounts![2], Is.EqualTo(5m));
+        }
+    }
+
+    [Test]
+    public async Task GetReportAsync_DefaultsDisplaySettingsFromDefinition()
+    {
+        var tenant = await CreateTenantAsync("Report display default tenant");
+        var feature = new ReportsFeature(
+            new FixedTenantProvider(tenant),
+            _dataProvider,
+            TimeProvider.System);
+
+        // Given: A tenant with data for a report that defaults to category depth 2 and monthly columns
+        _context.Transactions.Add(
+            CreateTransaction(tenant.Id, new DateOnly(2024, 4, 15),
+                ("Income:Salary:Primary", 100m)));
+        await _context.SaveChangesAsync();
+
+        // When: Omitting display query parameters
+        var monthlyDetail = await feature.GetReportAsync("income-detail", 2024);
+        var annualSummary = await feature.GetReportAsync("income", 2024);
+
+        // Then: Each result uses its definition's depth and month defaults
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(monthlyDetail.DisplayDepth, Is.EqualTo(2));
+            Assert.That(monthlyDetail.HasMonthColumns, Is.True);
+            Assert.That(monthlyDetail.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[]
+            {
+                "Income:Salary", "Income:Salary:Primary"
+            }));
+            Assert.That(monthlyDetail.Rows.All(row => row.MonthlyAmounts is not null), Is.True);
+
+            Assert.That(annualSummary.DisplayDepth, Is.EqualTo(1));
+            Assert.That(annualSummary.HasMonthColumns, Is.False);
+            Assert.That(annualSummary.Rows.Select(row => row.CategoryPath), Is.EqualTo(new[] { "Income:Salary" }));
+            Assert.That(annualSummary.Rows.All(row => row.MonthlyAmounts is null), Is.True);
+            Assert.That(annualSummary.Totals.MonthlyAmounts, Is.Null);
+        }
+    }
+
     private async Task<Tenant> CreateTenantAsync(string name)
     {
         var tenant = new Tenant { Name = name, Description = name };
