@@ -57,12 +57,14 @@ public partial class ReportsController(
     }
 
     /// <summary>
-    /// Gets the selected built-in report for a calendar year.
+    /// Gets the selected built-in report for a calendar year with optional display overrides.
     /// </summary>
     /// <param name="reportId">Stable identifier of a built-in report.</param>
     /// <param name="year">Calendar year to report, defaulting to the current UTC year.</param>
+    /// <param name="displayDepth">Number of category levels below the report filter root.</param>
+    /// <param name="showMonths">Whether monthly amounts and month columns are included.</param>
     /// <exception cref="KeyNotFoundException">The report identifier is not in the built-in catalog.</exception>
-    /// <exception cref="YoFi.V3.Entities.Exceptions.ValidationException">The year is outside the supported calendar range.</exception>
+    /// <exception cref="YoFi.V3.Entities.Exceptions.ValidationException">The year or display depth is outside the supported range.</exception>
     [HttpGet("{reportId}")]
     [RequireTenantRole(TenantRole.Viewer)]
     [ProducesResponseType(typeof(ReportResultDto), StatusCodes.Status200OK)]
@@ -70,11 +72,13 @@ public partial class ReportsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetReport(
         string reportId,
-        [FromQuery] int? year = null)
+        [FromQuery] int? year = null,
+        [FromQuery] int? displayDepth = null,
+        [FromQuery] bool? showMonths = null)
     {
         LogStartingReport(reportId);
 
-        var result = await reportsFeature.GetReportAsync(reportId, year);
+        var result = await reportsFeature.GetReportAsync(reportId, year, displayDepth, showMonths);
 
         LogOkReport(reportId, result.Rows.Count);
         return Ok(result);
