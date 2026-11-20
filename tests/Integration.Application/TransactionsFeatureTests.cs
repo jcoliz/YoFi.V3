@@ -48,6 +48,77 @@ public class TransactionsFeatureTests : FeatureTestBase
     }
 
     [Test]
+    public async Task GetCategorySuggestionsAsync_CurrentTenantOnlyReturnsOrderedDistinctPrefixMatches()
+    {
+        // Given: Matching, duplicate, empty, hierarchical, and other-tenant split categories
+        var otherTenant = new Tenant
+        {
+            Name = "Other Tenant",
+            Description = "Category suggestion isolation test tenant"
+        };
+        _context.Tenants.Add(otherTenant);
+        await _context.SaveChangesAsync();
+
+        var currentTransaction = new Transaction
+        {
+            Date = new(2026, 2, 1),
+            Payee = "Category source",
+            Amount = -100m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -40m, Category = "Groceries", Order = 0 },
+                new Split { Amount = -30m, Category = "groceries", Order = 1 },
+                new Split { Amount = -20m, Category = "Garden", Order = 2 },
+                new Split { Amount = -10m, Category = "Home:Garden", Order = 3 }
+            ]
+        };
+        var emptyCategoryTransaction = new Transaction
+        {
+            Date = new(2026, 2, 2),
+            Payee = "Uncategorized source",
+            Amount = -5m,
+            TenantId = _testTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -5m, Category = "", Order = 0 }
+            ]
+        };
+        var otherTenantTransaction = new Transaction
+        {
+            Date = new(2026, 2, 3),
+            Payee = "Other tenant source",
+            Amount = -10m,
+            TenantId = otherTenant.Id,
+            Splits =
+            [
+                new Split { Amount = -10m, Category = "Gas", Order = 0 }
+            ]
+        };
+
+        _context.Transactions.AddRange(
+            currentTransaction,
+            emptyCategoryTransaction,
+            otherTenantTransaction);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        // When: A sanitized hierarchical prefix is requested
+        var result = await _feature.GetCategorySuggestionsAsync("home : g");
+
+        // Then: The real provider returns only the matching tenant category
+        Assert.That(result, Is.EqualTo(new[] { "Home:Garden" }));
+
+        // And: Duplicate categories from the current tenant are de-duplicated case-insensitively
+        var groceries = await _feature.GetCategorySuggestionsAsync("gRo");
+        Assert.That(groceries, Is.EqualTo(new[] { "Groceries" }));
+
+        // And: Empty and other-tenant categories are excluded
+        Assert.That(groceries, Does.Not.Contain(""));
+        Assert.That(groceries, Does.Not.Contain("Gas"));
+    }
+
+    [Test]
     public async Task AddSplitAsync_WithOneExistingSplit_RebalancesAndPreservesTransaction()
     {
         var transaction = new Transaction

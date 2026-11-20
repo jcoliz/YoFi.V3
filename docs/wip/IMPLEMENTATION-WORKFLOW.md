@@ -246,6 +246,8 @@ This is the primary test layer.
 
 - [ ] Implement every test listed in the design, in `tests/Integration.Application/`, extending the
       fixture the design names. Use `FeatureTestBase` and Given/When/Then comments.
+- [ ] Review unit tests for the feature. Avoid writing duplicate tests where the unit tests cover the functionality.
+      Limit application integration tests to tests where the underlying data truly impacts the result.
 - [ ] Cover tenant isolation for every query the feature adds.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Application -Filter "FullyQualifiedName~<Fixture>"`
 - [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Application`

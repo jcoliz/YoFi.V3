@@ -150,6 +150,10 @@ ado: [Link to ADO Item]
 > List the tests which must be added to test the boundary between Application Layer and Data layer.
 > These live in `tests/Integration.Application/`.
 >
+> Be thoughtful about what could be tested in unit tests. Limit application integration tests to
+> tests where the underlying data truly impacts the result. If you find tests which could be done
+> as unit tests instead, feel free to specify them in the previous section.
+>
 > Include the name of the test and its Summary XMLdoc tag. Focus on behavior that depends on real query
 > translation: tenant isolation, ordering, filtering, boundary dates, concurrency, cascade behavior.
 > Name the existing test fixture to extend, or the new fixture to create.
@@ -212,6 +216,11 @@ ado: [Link to ADO Item]
 > Include every element a user interacts with and every element whose content changes materially as a
 > result of user action. Functional tests will be written against these names; the implementer must
 > use them exactly.
+>
+> ![IMPORTANT]
+> data-test-ids are not required to be unique on a page. They are only required to be unique amongst their
+> siblings. When constructing Playwright locators in the functional tests, we will use a chain of
+> data-test-id's (or IDs or element tags, as appropriate.)
 
 ## Component Tests
 
