@@ -133,7 +133,7 @@ async function loadSelectedReport() {
     return
   }
   try {
-    const result = await reportsClient.getReport(id, selectedYear.value, key)
+    const result = await reportsClient.getReport(id, selectedYear.value, null, null, key)
     if (version === requestVersion) report.value = result
   } catch (err) {
     if (version !== requestVersion) return

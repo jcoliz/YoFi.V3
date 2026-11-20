@@ -1589,11 +1589,13 @@ export class ReportsClient {
     }
 
     /**
-     * Gets the selected built-in report for a calendar year.
+     * Gets the selected built-in report for a calendar year with optional display overrides.
      * @param reportId Stable identifier of a built-in report.
      * @param year (optional) Calendar year to report, defaulting to the current UTC year.
+     * @param displayDepth (optional) Number of category levels below the report filter root.
+     * @param showMonths (optional) Whether monthly amounts and month columns are included.
      */
-    getReport(reportId: string, year: number | null | undefined, tenantKey: string): Promise<ReportResultDto> {
+    getReport(reportId: string, year: number | null | undefined, displayDepth: number | null | undefined, showMonths: boolean | null | undefined, tenantKey: string): Promise<ReportResultDto> {
         let url_ = this.baseUrl + "/api/tenant/{tenantKey}/reports/{reportId}?";
         if (reportId === undefined || reportId === null)
             throw new globalThis.Error("The parameter 'reportId' must be defined.");
@@ -1603,6 +1605,10 @@ export class ReportsClient {
         url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
         if (year !== undefined && year !== null)
             url_ += "year=" + encodeURIComponent("" + year) + "&";
+        if (displayDepth !== undefined && displayDepth !== null)
+            url_ += "displayDepth=" + encodeURIComponent("" + displayDepth) + "&";
+        if (showMonths !== undefined && showMonths !== null)
+            url_ += "showMonths=" + encodeURIComponent("" + showMonths) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -6903,6 +6909,8 @@ export class ReportResultDto implements IReportResultDto {
     categoryRoot?: string | undefined;
     /** Calendar year represented by the report. */
     year?: number;
+    /** Effective number of category levels included below the report filter root. */
+    displayDepth?: number;
     /** Whether monthly amount columns are included. */
     hasMonthColumns?: boolean;
     /** Category rows included in the report. */
@@ -6925,6 +6933,7 @@ export class ReportResultDto implements IReportResultDto {
             this.name = _data["name"];
             this.categoryRoot = _data["categoryRoot"];
             this.year = _data["year"];
+            this.displayDepth = _data["displayDepth"];
             this.hasMonthColumns = _data["hasMonthColumns"];
             if (Array.isArray(_data["rows"])) {
                 this.rows = [] as any;
@@ -6948,6 +6957,7 @@ export class ReportResultDto implements IReportResultDto {
         data["name"] = this.name;
         data["categoryRoot"] = this.categoryRoot;
         data["year"] = this.year;
+        data["displayDepth"] = this.displayDepth;
         data["hasMonthColumns"] = this.hasMonthColumns;
         if (Array.isArray(this.rows)) {
             data["rows"] = [];
@@ -6969,6 +6979,8 @@ export interface IReportResultDto {
     categoryRoot?: string | undefined;
     /** Calendar year represented by the report. */
     year?: number;
+    /** Effective number of category levels included below the report filter root. */
+    displayDepth?: number;
     /** Whether monthly amount columns are included. */
     hasMonthColumns?: boolean;
     /** Category rows included in the report. */
