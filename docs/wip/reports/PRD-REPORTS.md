@@ -111,19 +111,18 @@ Following are the standard income/expense reports
   two is highlighted, and level one is highlighted more strongly. Deeper levels
   are not planned because the visual hierarchy stops making sense.
 
-### Story 2249: User - Configures report display
+### Story 2249: User - Configures report display (report-config)
 
 **As a** user
 **I want** customize how the report is shown to me
 **So that** I can drill into a certain area to understand more **or** zoom out to view the data at a higher conceptual level
-
 
 **Acceptance Criteria**:
 
 - [ ] User can choose whether to show independent month values with a row total, or show whole year only. The default is an aspect of report definition.
 - [ ] User can choose how many levels deep of categories to show. The default level is an aspect of the report definition.
 - [ ] Settings auto-save whenever changed
-- [ ] Display settings (depth and chart/table view) are persisted per-report, per-tenant in browser localStorage
+- [ ] Display settings are persisted per-report, per-tenant in browser localStorage
 - [ ] User can click "Reset" to clear display settings for that specific report and restore definition defaults, without changing the workspace's selected year
 
 #### Scenario 2228: User can select report year
@@ -132,10 +131,10 @@ Following are the standard income/expense reports
 
 **Acceptance Criteria**:
 
-- [ ] The selected year applies to all reports within the selected workspace; switching reports does not change it
-- [ ] The selected year auto-saves per-tenant in browser localStorage and is restored after reload or returning to that workspace; workspaces remember independent years
-- [ ] When no valid saved year is available, use the backend-provided current-year default
-- [ ] User can choose which year to display. Except as otherwise described later, reports are always in the context of a single calendar year
+- [X] The selected year applies to all reports within the selected workspace; switching reports does not change it
+- [X] The selected year auto-saves per-tenant in browser localStorage and is restored after reload or returning to that workspace; workspaces remember independent years
+- [X] When no valid saved year is available, use the backend-provided current-year default
+- [X] User can choose which year to display. Except as otherwise described later, reports are always in the context of a single calendar year
 
 ### Story 3: User - Views a report in chart form
 
@@ -151,6 +150,7 @@ Following are the standard income/expense reports
 - [ ] Charts are not interactive (no drill-down from charts)
 - [ ] User can choose between chart, table, or both (defaults to both)
 - [ ] No accessibility requirements for charts
+- [ ] Choice of whether to view with a chart or not is persisted per-report, per-tenant in browser localStorage
 
 ### Story 4: User - Views summary report
 
@@ -301,6 +301,17 @@ The requirements we will have on filtering:
 - CRUD operations: [`TransactionsController.cs`](../../../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../../../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
 - Testing: NUnit with Gherkin comments (Given/When/Then)
+
+### Depth Formatting
+The formatting applied to a row in a report relates to it's depth versus the depth of the report overall. Imagine a 3-level report. The lowest, 3rd, level uses normal formatting. The same that we would see for the top level in a 1-level report. The top level in this report shows a "Level 3" format. Only 4 levels of formatting are shown. In the case of a five-level report, the lowest two levels would both use normal formatting.
+
+This is currently implemented very roughly in `src\FrontEnd.Nuxt\app\components\reports\Table.vue` with the following:
+
+```html
+  :class="{ 'fw-bold': displayDepth === 2 && row.depth === 1 }"
+```
+
+We should improve this by applying a scoped style of `row-format-normal` for the bottom-most level, `row-format-level-1`, for one level up, and on up to `row-format-level-4` at the highest for the deepest reports.
 
 ---
 
