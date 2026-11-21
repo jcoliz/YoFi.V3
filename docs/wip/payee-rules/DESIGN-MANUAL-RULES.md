@@ -20,7 +20,7 @@ In scope:
 - Replace the transaction's single-split category with the winning rule's category when a rule matches.
 - Show the updated category immediately and report the outcome in a toast.
 - Hide the action for transactions already known to have multiple splits.
-- Reject a stale request when the transaction became split before the backend operation ran.
+- Return an expected stale-row outcome when the transaction became split before the backend operation ran.
 - Preserve the existing category when no rule matches.
 - Update the winning rule's usage statistics for a successful match.
 
@@ -43,12 +43,12 @@ No new cross-cutting component, third-party dependency, cache, authorization pol
 
 | Decision | Alternatives considered | Rationale |
 | --- | --- | --- |
-| A no-match result leaves every existing category unchanged and returns 200 with `Matched = false`. | Clear the category; return an error. | A manual match is best-effort categorization. Clearing a user-entered category when no rule applies would be destructive, while an error would misrepresent a valid no-match outcome. |
+| A no-match result leaves every existing category unchanged and returns 200 with `Outcome = NoMatch`. | Clear the category; return an error. | A manual match is best-effort categorization. Clearing a user-entered category when no rule applies would be destructive, while an error would misrepresent a valid no-match outcome. |
 | A successful manual match increments the winning rule's `MatchCount` and updates `LastUsedAt`. | Count only import-time matches. | Rule usage statistics should describe actual applications of the rule, regardless of entry point. This also preserves the existing behavior of `ApplyMatchingRulesAsync`. |
 | Use `POST /transactions/{key}/apply-payee-rules`, limited to the Editor tenant role. | PUT/PATCH of the whole transaction; endpoint under payee-rules. | This is an idempotent-looking but server-selected command: the chosen category depends on current rules. A POST command route avoids pretending the client supplies a transaction representation and keeps transaction actions together. |
-| Return a small BFF result containing the transaction key, matched flag, resulting category, and previous category. | Return the full transaction; reload the list. | The operation only changes one list field. The result supports precise toast wording and an immediate local update without a second API request or navigation-context loss. |
+| Return a small BFF result containing the transaction key, typed outcome, resulting category, and previous category. | Return the full transaction; reload the list. | The operation only changes one list field, while the typed outcome also represents a stale multi-split row without misusing HTTP error semantics. The result supports precise toast wording and an immediate local update without a second API request or navigation-context loss. |
 | Update the visible row in place and do not reload the whole query after a successful match. | Refresh pagination after every match. | The PRD requires the new category to be shown immediately. This also preserves the current page and any active filter. A later normal refresh reconciles the row with active filters, including `uncategorizedOnly`. |
-| A transaction with multiple splits is a 409 state conflict at the backend, including when the UI's copy was stale. | Treat it as 400 validation; silently do nothing. | The current user action is valid, but the persisted state no longer permits it. A specific 409 response gives the UI a friendly message and a reason to refresh. |
+| A transaction that became multi-split is an expected 200 outcome, not an HTTP error. | Return 409 Conflict; silently do nothing. | This race is an expected stale-UI state, not a server failure. A typed outcome lets the UI show a fixed friendly toast without rendering server-provided ProblemDetails, then refresh the row. Other failures use the normal page ErrorDisplay. |
 | Encapsulate the menu action in a focused Vue component. | Keep all request/toast state in the page. | It isolates the API contract and toast branches, makes pending/error behavior testable without mounting the Nuxt page, and keeps the Transactions page responsible only for row visibility and updating its local collection. |
 
 ## Entities
@@ -69,22 +69,29 @@ No Data integration tests are required because this story does not change the sc
 
 ### DTO
 
-Add `src/Application/Dto/PayeeRuleApplicationResultDto.cs`:
+Add `src/Application/Dto/PayeeRuleApplicationResultDto.cs` with an outcome enum and result record:
 
 ```csharp
+public enum PayeeRuleApplicationOutcome
+{
+    Applied,
+    NoMatch,
+    TransactionHasMultipleSplits
+}
+
 public record PayeeRuleApplicationResultDto(
     Guid TransactionKey,
-    bool Matched,
-    string Category,
-    string PreviousCategory);
+    PayeeRuleApplicationOutcome Outcome,
+    string? Category,
+    string? PreviousCategory);
 ```
 
-Summary: Represents the outcome of manually applying all current payee rules to one transaction.
+Summary: Represents the expected outcome of manually applying all current payee rules to one transaction.
 
-- `TransactionKey`: tenant-scoped transaction key for updating the visible row.
-- `Matched`: `true` when a rule was applied; otherwise `false`.
-- `Category`: resulting persisted category. This equals `PreviousCategory` for a no-match result.
-- `PreviousCategory`: category before the operation, including an empty string for an uncategorized transaction.
+- `TransactionKey`: tenant-scoped transaction key for updating or refreshing the visible row.
+- `Outcome`: `Applied` when a rule changed or explicitly confirmed the category, `NoMatch` when no rule applied, or `TransactionHasMultipleSplits` when the persisted state no longer permits categorization by a single rule result.
+- `Category`: resulting persisted category for `Applied` and `NoMatch`; null for `TransactionHasMultipleSplits`. For `NoMatch`, it equals `PreviousCategory`.
+- `PreviousCategory`: category before the operation for `Applied` and `NoMatch`, including an empty string for an uncategorized transaction; null for `TransactionHasMultipleSplits`.
 
 ### IPayee matching behavior
 
@@ -107,12 +114,11 @@ Parameters:
 - `transactionKey`: key of the transaction in the current tenant.
 - `cancellationToken`: token that cancels the operation.
 
-Returns `PayeeRuleApplicationResultDto` for both match and no-match outcomes.
+Returns `PayeeRuleApplicationResultDto` for `Applied`, `NoMatch`, and `TransactionHasMultipleSplits` outcomes.
 
 Exceptions:
 
 - `TransactionNotFoundException`: no transaction with the key exists in the current tenant. The controller maps this to 404.
-- `TransactionHasSplitsException`: the current persisted transaction has multiple splits. The controller middleware maps this to 409.
 - `ValidationException`: the transaction has no category split or otherwise cannot be represented by the required single-split invariant. The controller maps this to 400.
 - `OperationCanceledException`: cancellation was requested.
 - `DataConflictException`: a concurrent serializable transaction conflict occurred. The existing middleware maps this to 409 with the standard reload-and-retry message.
@@ -122,32 +128,17 @@ Operation order:
 1. Begin a serializable `IDataProvider.ExecuteInTransactionAsync` transaction and honor the cancellation token.
 2. Load the transaction, including splits, with `TenantId == current tenant Id` and `Key == transactionKey`.
 3. Throw `TransactionNotFoundException` when absent.
-4. When more than one split is persisted, throw `TransactionHasSplitsException` before evaluating any rule or changing usage statistics.
+4. When more than one split is persisted, return `TransactionHasMultipleSplits` before evaluating any rule or changing usage statistics. `Category` and `PreviousCategory` are null. Commit no changes and return HTTP 200.
 5. When exactly zero splits are persisted, throw `ValidationException` with message `The transaction does not have a category allocation.`
 6. Capture the category from the sole split as `PreviousCategory`.
 7. Apply the complete current rule set to the transaction's persisted payee using `ApplyMatchingRulesAsync`.
-8. If the result is null, return `Matched = false` with `Category = PreviousCategory`; do not update a split or save transaction state.
-9. If the result is non-null, sanitize it with `CategoryHelper.SanitizeCategory`, assign it to the sole split, save the transaction, and return `Matched = true`.
+8. If the result is null, return `NoMatch` with `Category = PreviousCategory`; do not update a split or save transaction state.
+9. If the result is non-null, sanitize it with `CategoryHelper.SanitizeCategory`, assign it to the sole split, save the transaction, and return `Applied`.
 10. Commit the category update and any `MatchCount`/`LastUsedAt` update together. A failure rolls back both.
 
 The operation reuses the existing conflict precedence implemented by [`PayeeMatchingHelper`](../../../src/Application/Helpers/PayeeMatchingHelper.cs): matching regex over substring, longer substring over shorter, and newer modification time for equal precedence. It must not duplicate precedence logic in `PayeeMatchingRuleFeature` or the controller.
 
-### Exception
-
-Add `src/Application/Exceptions/TransactionHasSplitsException.cs`:
-
-```csharp
-public sealed class TransactionHasSplitsException : Exception
-{
-    public Guid TransactionKey { get; }
-}
-```
-
-Summary: Reports that a requested single-category operation cannot run because the current transaction contains multiple splits.
-
-The constructor takes `Guid transactionKey` and sets the message to: `This transaction now has multiple splits. Reload it and remove the extra splits before applying payee rules.`
-
-The exception-to-status mapping is specified under [Controllers](#controllers) below.
+No new Application exceptions are required. Becoming multi-split is represented by `PayeeRuleApplicationOutcome.TransactionHasMultipleSplits` rather than by an exception or ProblemDetails response.
 
 ## Application Integration Tests
 
@@ -158,7 +149,7 @@ Add fixture `tests/Integration.Application/PayeeMatchingRuleFeature/PayeeMatchin
 | `ApplyRulesToTransactionAsync_MatchingRuleUpdatesSingleSplitAndReturnsPreviousCategory` | Applies the winning tenant rule to a single-split transaction and returns both old and new categories. |
 | `ApplyRulesToTransactionAsync_NoMatchLeavesCategoryUnchanged` | Returns an unmatched result and preserves an existing category when no rule applies. |
 | `ApplyRulesToTransactionAsync_UncategorizedMatchSetsCategory` | Categorizes an uncategorized single-split transaction. |
-| `ApplyRulesToTransactionAsync_MultipleSplitsThrowsWithoutChangingUsageStatistics` | Rejects a multi-split transaction before rule evaluation and leaves rules and transaction data unchanged. |
+| `ApplyRulesToTransactionAsync_MultipleSplitsReturnsExpectedOutcomeWithoutChangingUsageStatistics` | Returns the typed multi-split outcome before rule evaluation and leaves rules and transaction data unchanged. |
 | `ApplyRulesToTransactionAsync_OtherTenantTransactionThrowsNotFound` | Does not expose or modify a transaction belonging to another tenant. |
 | `ApplyRulesToTransactionAsync_MatchUpdatesUsageStatistics` | Atomically increments the winning rule's match count and updates its last-used timestamp. |
 | `ApplyRulesToTransactionAsync_UsesMatchingPrecedence` | Applies the same regex/substring/length/modified-time precedence as import matching. |
@@ -171,24 +162,21 @@ Update [`TransactionsController`](../../../src/Controllers/TransactionsControlle
 
 | Method | Route | Tenant role | Request body | Success response | Error responses |
 | --- | --- | --- | --- | --- | --- |
-| POST | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/apply-payee-rules` | Editor | None | 200 `PayeeRuleApplicationResultDto` | 400 transaction has no category split; 404 transaction absent from tenant; 409 current transaction has multiple splits or serializable conflict; 401 unauthenticated; 403 Viewer/outsider; 500 unexpected failure |
+| POST | `/api/tenant/{tenantKey:guid}/transactions/{key:guid}/apply-payee-rules` | Editor | None | 200 `PayeeRuleApplicationResultDto`, including stale multi-split outcome | 400 transaction has no category split; 404 transaction absent from tenant; 409 serializable conflict; 401 unauthenticated; 403 Viewer/outsider; 500 unexpected failure |
 
 Action summary: **Applies the current tenant's payee matching rules to one transaction.**
 
 Use the action name `ApplyPayeeRules`. Reuse the controller's existing `LogStartingKey` and `LogOkKey` `[LoggerMessage]` partial methods, so no new event IDs are added. Do not log payee, category, or other transaction contents.
 
-Add a case to [`CustomExceptionHandler`](../../../src/Controllers/Middleware/CustomExceptionHandler.cs) before the generic `DataConflictException` case:
+No exception-handler change is required. A stale multi-split state is serialized as the 200 result outcome above; it is not a ProblemDetails failure. Serializable update conflicts retain the existing generic 409 handling.
 
-- `TransactionHasSplitsException` -> 409 Conflict.
-- `Title`: `Transaction has multiple splits`.
-- `Detail`: the exception message.
-- Standard `ProblemDetails` trace information and request `Instance` remain populated by the existing helper.
-
-Controller integration tests are not enumerated here. The existing [`TransactionsControllerTests`](../../../tests/Integration.Controller/TransactionsControllerTests.cs) fixture covers the success serialization, 404 tenant isolation, Editor/Viewer/unauthenticated authorization, 400 no-split behavior, and 409 multi-split response for this route.
-
-The TypeScript client will be regenerated by [`Generate-ApiClient.ps1`](../../../scripts/Generate-ApiClient.ps1). The generated `TransactionsClient.applyPayeeRules(transactionKey, tenantKey)` method will be used by the frontend. No existing route or response shape changes, so the preceding frontend remains compatible with the new backend. There are no breaking changes.
+Controller integration tests are not enumerated here. The existing [`TransactionsControllerTests`](../../../tests/Integration.Controller/TransactionsControllerTests.cs) fixture covers applied/no-match/multi-split result serialization, 404 tenant isolation, Editor/Viewer/unauthenticated authorization, 400 no-split behavior, and the existing 409 serializable-conflict handling for this route.
 
 ## Front End
+
+### API Client
+
+The TypeScript client will be regenerated by [`Generate-ApiClient.ps1`](../../../scripts/Generate-ApiClient.ps1). The generated `TransactionsClient.applyPayeeRules(transactionKey, tenantKey)` method will be used by the frontend. No existing route or response shape changes, so the preceding frontend remains compatible with the new backend. There are no breaking changes.
 
 ### `TransactionPayeeRulesAction.vue`
 
@@ -208,20 +196,21 @@ Emits:
 
 | Event | Payload | Purpose |
 | --- | --- | --- |
-| `applied` | `(tenantKey: string, result: PayeeRuleApplicationResultDto)` | Lets the page update the matching row in place after a response. |
-| `failed` | `(tenantKey: string, problem: IProblemDetails)` | Lets the page refresh on a 409 stale-split response. |
+| `completed` | `(tenantKey: string, result: PayeeRuleApplicationResultDto)` | Lets the page update a successfully matched/no-match row, or refresh after the persisted transaction became multi-split. |
+| `failed` | `(tenantKey: string, problem: IProblemDetails)` | Lets the page display unexpected failures through its existing `ErrorDisplay`. |
 
 Behavior:
 
 - Render a Bootstrap dropdown item with the Feather `zap` icon and text `Apply Matching Rules`.
 - Disable while this component's request is in flight or `disabled` is true; guard duplicate clicks in code as well as markup.
 - Call `TransactionsClient.applyPayeeRules(transaction.key, tenantKey)` from a client-side click handler.
-- Capture the tenant key and clear any prior local failure state before starting.
-- On `Matched = false`, emit `applied` and publish an info toast with title `No matching rule` and message `No payee rule matched this transaction. Its category was not changed.`
-- On `Matched = true` with an empty `PreviousCategory`, publish a success toast: `Category set to “{Category}”.`
-- On `Matched = true` with a non-empty `PreviousCategory`, publish a success toast: `Replaced category “{PreviousCategory}” with “{Category}”.` This notification is shown even when the two values are equal; the user is informed that the rule was applied.
-- On any API failure, call `handleApiError(err, 'Apply Rules Failed', 'Payee rules could not be applied. Reload the page and try again.')`, emit `failed`, and publish a danger toast containing the returned ProblemDetails detail.
-- Do not navigate, close other modals, or modify global page error state. Toasts satisfy the Story 2266 failure and success presentation requirements.
+- Capture the tenant key before starting and ignore the response if the caller has moved to another workspace.
+- On `Outcome = NoMatch`, emit `completed` and publish an info toast with title `No matching rule` and fixed message `No payee rule matched this transaction. Its category was not changed.`
+- On `Outcome = Applied` with an empty `PreviousCategory`, publish a success toast: `Category set to “{Category}”.`
+- On `Outcome = Applied` with a non-empty `PreviousCategory`, publish a success toast: `Replaced category “{PreviousCategory}” with “{Category}”.` This notification is shown even when the two values are equal; the user is informed that the rule was applied.
+- On `Outcome = TransactionHasMultipleSplits`, emit `completed` and publish a warning toast with title `Transaction changed` and fixed message `This transaction now has multiple splits, so payee rules were not applied.` Do not display any server-provided detail for this expected outcome.
+- On an HTTP/API failure, call `handleApiError(err, 'Apply Rules Failed', 'Payee rules could not be applied. Reload the page and try again.')` and emit `failed` with that ProblemDetails value. Do not publish a toast for unexpected failures; the parent page displays the problem through its standard `ErrorDisplay`.
+- Do not navigate or close other modals.
 
 ### Transactions page
 
@@ -230,8 +219,8 @@ Update [`src/FrontEnd.Nuxt/app/pages/transactions/index.vue`](../../../src/Front
 - Keep the existing Editor/Owner-only actions menu. Viewer users continue to have neither the actions column nor this item.
 - Within the row action menu, render `TransactionPayeeRulesAction` only when `transaction.hasMultipleSplits === false`.
 - Pass the row transaction, current tenant key, and `loading` state as props.
-- Handle `applied` by confirming the tenant key still equals the current workspace, then replace that row's `category` with `result.category` while retaining all other row values and list position. Emit no page reload.
-- Handle `failed` by ignoring stale-workspace responses. For a 409 ProblemDetails status, reload the current page so the now-split row displays the existing split badge and loses the action. Other statuses are represented by the component toast and do not refresh the page.
+- Handle `completed` by confirming the tenant key still equals the current workspace. For `Applied` or `NoMatch`, replace that row's `category` with the non-null `result.category` while retaining all other row values and list position; do not reload. For `TransactionHasMultipleSplits`, reload the current page so the row displays the split badge and loses the action.
+- Handle `failed` by ignoring stale-workspace responses. Assign the emitted ProblemDetails to the page's existing `error`, set `showError = true`, and do not publish a toast or reload the page.
 - The `open/close` state of the portable dropdown continues to be owned by the existing dropdown component.
 
 No new store or `localStorage` key is introduced.
@@ -246,7 +235,7 @@ No new store or `localStorage` key is introduced.
 | `manual-rules-applied` | Toast body after a previously uncategorized match or equal-category application | Confirms a match was applied. |
 | `manual-rules-overwritten` | Toast body after replacing a non-empty category | Confirms the previous category was overwritten. |
 | `manual-rules-no-match` | Toast body after no rule matched | Confirms the category was preserved. |
-| `manual-rules-error` | Toast body after an API failure | Confirms a friendly failure notification for a stale split or other error. |
+| `manual-rules-outdated` | Toast body when the persisted transaction became multi-split | Confirms the fixed friendly message for the expected stale-row outcome. |
 
 A `transaction-split-badge` remains the existing hook for the multi-split state. No manual-rules button is rendered in a row containing that badge.
 
@@ -257,12 +246,13 @@ Add `src/FrontEnd.Nuxt/tests/transaction-payee-rules-action.test.ts` using Vites
 | Test description | Behavior contract |
 | --- | --- |
 | `it('calls applyPayeeRules once and emits the result')` | Guard duplicate pending requests, call the generated client with the transaction and tenant keys, and emit the exact result. |
-| `it('publishes a success toast for an uncategorized match')` | Publish the applied toast ID after `Matched = true` and empty `PreviousCategory`. |
+| `it('publishes a success toast for an uncategorized match')` | Publish the applied toast ID after `Outcome = Applied` and empty `PreviousCategory`. |
 | `it('publishes an overwrite toast when a category existed')` | Publish the overwritten toast ID and include both category values in the message. |
 | `it('publishes an info toast and preserves data when no rule matched')` | Publish the no-match toast ID and emit the unchanged result. |
-| `it('publishes a friendly error toast and emits the problem')` | Convert API errors through `handleApiError`, publish the danger test ID, and emit the ProblemDetails. |
+| `it('publishes a fixed stale-row toast for a multi-split outcome')` | Publish the outdated test ID with the fixed client message and emit the typed result, without inspecting or displaying server details. |
+| `it('emits converted ProblemDetails without publishing a toast on API failure')` | Convert the API error through `handleApiError`, emit it, and verify the toast store is untouched. |
 
-Page-level visibility, row replacement, and stale 409 refresh behavior are covered in functional tests rather than by mounting the Nuxt Transactions page.
+Page-level visibility, row replacement, unexpected-error `ErrorDisplay`, and stale-row refresh behavior are covered in functional tests rather than by mounting the Nuxt Transactions page.
 
 ## Functional Tests
 
@@ -329,7 +319,7 @@ Rule: Manual payee rule matching
     And I am on the transactions page
     When the transaction for "Transit Hub" is split after the page loads # NEW
     And I apply matching rules to the stale transaction row for "Transit Hub" # NEW
-    Then I should see the "manual-rules-error" notification # NEW
+    Then I should see the "manual-rules-outdated" notification # NEW
     And the transaction row for "Transit Hub" shows its split indicator
 ```
 
