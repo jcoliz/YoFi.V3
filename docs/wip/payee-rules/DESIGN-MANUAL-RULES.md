@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Approved
 target_release: Beta 3
 prd_document: PRD-PAYEE-RULES.md
 parent: https://dev.azure.com/jcoliz/YoFiV3/_workitems/edit/2205
@@ -146,15 +146,18 @@ Add fixture `tests/Integration.Application/PayeeMatchingRuleFeature/PayeeMatchin
 
 | Test | Summary XMLdoc |
 | --- | --- |
-| `ApplyRulesToTransactionAsync_MatchingRuleUpdatesSingleSplitAndReturnsPreviousCategory` | Applies the winning tenant rule to a single-split transaction and returns both old and new categories. |
-| `ApplyRulesToTransactionAsync_NoMatchLeavesCategoryUnchanged` | Returns an unmatched result and preserves an existing category when no rule applies. |
-| `ApplyRulesToTransactionAsync_UncategorizedMatchSetsCategory` | Categorizes an uncategorized single-split transaction. |
-| `ApplyRulesToTransactionAsync_MultipleSplitsReturnsExpectedOutcomeWithoutChangingUsageStatistics` | Returns the typed multi-split outcome before rule evaluation and leaves rules and transaction data unchanged. |
-| `ApplyRulesToTransactionAsync_OtherTenantTransactionThrowsNotFound` | Does not expose or modify a transaction belonging to another tenant. |
-| `ApplyRulesToTransactionAsync_MatchUpdatesUsageStatistics` | Atomically increments the winning rule's match count and updates its last-used timestamp. |
-| `ApplyRulesToTransactionAsync_UsesMatchingPrecedence` | Applies the same regex/substring/length/modified-time precedence as import matching. |
+| `ApplyRulesToTransactionAsync_MatchPersistsCategoryAndUsageStatistics` | Loads a real tenant rule and transaction, persists the new single-split category, increments the winning rule's statistics, and returns the previous/current categories. |
+| `ApplyRulesToTransactionAsync_MultipleSplitsReturnsExpectedOutcomeWithoutWriting` | Loads a persisted multi-split transaction, returns the typed stale-row outcome before rule evaluation, and verifies transaction and rule statistics remain unchanged. |
+| `ApplyRulesToTransactionAsync_OtherTenantTransactionThrowsNotFound` | Verifies the tenant predicate is translated by the real provider and does not load or modify another tenant's transaction. |
 
-The existing `PayeeMatchingHelperTests` continue to cover precedence as unit tests. The feature tests cover persistence, tenant isolation, split-state guarding, and the coordinated transaction/rule update.
+These are the only new Application integration tests because each depends on real persistence or translated tenant queries. Use two `TestCase` values on the successful-match test for an empty and an existing previous category; the output distinction does not warrant a duplicate fixture method. The test still verifies one persisted split update and the coordinated usage-statistics update for each case.
+
+Add or extend unit tests for the pure orchestration and mapping branches:
+
+- A no-match result maps to `Outcome = NoMatch`, preserves `PreviousCategory`, and performs no entity update or save.
+- A matched result with an empty previous category maps to `Outcome = Applied` and sanitizes the assigned category.
+- A matched result with an existing category maps to `Outcome = Applied` with the original category retained in `PreviousCategory`.
+- The existing [`PayeeMatchingHelperTests`](../../../tests/Unit/Application/PayeeRules/PayeeMatchingHelperTests.cs) continue to cover substring/regex matching and precedence; do not duplicate those cases in the data integration fixture.
 
 ## Controllers
 
@@ -317,8 +320,8 @@ Rule: Manual payee rule matching
       | Payee       | Amount | Category |
       | Transit Hub | -8.00  | Commute  |
     And I am on the transactions page
-    When the transaction for "Transit Hub" is split after the page loads # NEW
-    And I apply matching rules to the stale transaction row for "Transit Hub" # NEW
+    And another user split the transaction for "Transit Hub" # NEW
+    When I apply matching rules to the stale transaction row for "Transit Hub" # NEW
     Then I should see the "manual-rules-outdated" notification # NEW
     And the transaction row for "Transit Hub" shows its split indicator
 ```

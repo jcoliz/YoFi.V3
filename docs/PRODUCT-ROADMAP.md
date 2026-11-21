@@ -245,7 +245,7 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
 | Story 2211 - Establish Rules (CRUD)             | B2        |           | ✅ Implemented       |
 | Story 2212 - Auto-categorize on Import          | A1        | 3         | ✅ Implemented       |
-| Story 2266 - Manual Trigger Matching            | B2        | 6         | ✔️ Approved          |
+| Story 2266 - Manual Trigger Matching            | B2        | 6         | 🎨 Design Complete   |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✅ Implemented       |
@@ -257,16 +257,16 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
 | Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
 | Story 2249 - Configure Report Display           | B1        | 6         | ✅ Implemented       |
-| Story 3 - View Report in Chart Form             | V3.0      | 7         | ✔️ Approved          |
-| Story 4 - View Summary Report                   | B3        | 7         | ✔️ Approved          |
-| Story 5 - View Budget Reports                   | B2        | 8         | ✔️ Approved          |
-| Story 6 - View Complete History Over Time       | B3        | 7         | ✔️ Approved          |
-| Story 7 - Investigate Underlying Transactions   | V3.1      | 7         | ✔️ Approved          |
+| Story 3 - View Report in Chart Form             | B2        | 7         | ✔️ Approved          |
+| Story 4 - View Summary Report                   | B2        | 7         | ✔️ Approved          |
+| Story 5 - View Budget Reports                   | B3        | 8         | ✔️ Approved          |
+| Story 6 - View Complete History Over Time       | B2        | 7         | ✔️ Approved          |
+| Story 7 - Investigate Underlying Transactions   | B2        | 7         | ✔️ Approved          |
 | Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
 | **Feature 2208: Reports Export API**            |           |           | 🎨 Design Complete   |
-| Story 1 - Connect Excel to YoFi Reports         | B2        | 9         | 🎨 Design Complete   |
-| Story 2 - Access Multiple Workspaces from Excel | B2        | 9         | 🎨 Design Complete   |
-| Story 3 - Secure API Key Management             | B2        | 9         | 🎨 Design Complete   |
+| Story 1 - Connect Excel to YoFi Reports         | B3        | 9         | 🎨 Design Complete   |
+| Story 2 - Access Multiple Workspaces from Excel | B3        | 9         | 🎨 Design Complete   |
+| Story 3 - Secure API Key Management             | B3        | 9         | 🎨 Design Complete   |
 | Story 4 - Discover Available Reports            | Post V3   |           | 🎨 Design Complete   |
 | **Feature 2209: Transaction Receipts**          |           |           | ✔️ Approved          |
 | Story 1 - Direct Receipt Upload                 | B3        | 10        | ✔️ Approved          |
@@ -274,9 +274,9 @@ My general practice is to break release miletones down into iterations as it app
 | Story 3 - Automatic Matching Suggestions        | B3        | 10        | ✔️ Approved          |
 | Story 4 - Manual Match Review                   | B3        | 10        | ✔️ Approved          |
 | **Feature 2210: Budgets**                       |           |           | ✔️ Approved          |
-| Story 1 - Create/Edit Budget                    | B2        | 8         | ✔️ Approved          |
-| Story 2 - View Budget Status                    | B2        | 8         | ✔️ Approved          |
-| Story 3 - Allocate Budget at Any Category Level | B2        | 8         | ✔️ Approved          |
+| Story 1 - Create/Edit Budget                    | B3        | 8         | ✔️ Approved          |
+| Story 2 - View Budget Status                    | B3        | 8         | ✔️ Approved          |
+| Story 3 - Allocate Budget at Any Category Level | B3        | 8         | ✔️ Approved          |
 | Story 4 - Create Budget from Historical Data    | Post V3   |           | ✔️ Approved          |
 | Story 5 - Apply CAGR Growth to Trending Categories | Post V3 |          | ✔️ Approved          |
 
