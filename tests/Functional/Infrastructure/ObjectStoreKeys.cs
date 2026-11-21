@@ -184,6 +184,21 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string SelectedReport = "SelectedReport";
 
+    /// <summary>
+    /// The currently selected report year.
+    /// </summary>
+    public const string SelectedReportYear = "SelectedReportYear";
+
+    /// <summary>
+    /// The currently selected report granularity (e.g., "annual" or "monthly").
+    /// </summary>
+    public const string SelectedReportGranularity = "SelectedReportGranularity";
+
+    /// <summary>
+    /// The currently selected report depth.
+    /// </summary>
+    public const string SelectedReportDepth = "SelectedReportDepth";
+
     #endregion
 
     public const string ModalTitle = "ModalTitle";

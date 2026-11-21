@@ -30,10 +30,12 @@ public class ReportSteps(ITestContext _context)
     /// When I select report year {Year}
     /// </summary>
     [When("I select report year {Year}")]
+    [Provides(ObjectStoreKeys.SelectedReportYear)]
     public async Task ISelectReportYear(int Year)
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.SelectYearAsync(Year);
+        _context.ObjectStore.Add(ObjectStoreKeys.SelectedReportYear, Year.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -50,30 +52,36 @@ public class ReportSteps(ITestContext _context)
     /// When I select annual-only report display
     /// </summary>
     [When("I select annual-only report display")]
+    [Provides(ObjectStoreKeys.SelectedReportGranularity)]
     public async Task ISelectAnnualOnlyReportDisplay()
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.SelectReportPeriod(false);
+        _context.ObjectStore.Add(ObjectStoreKeys.SelectedReportGranularity, "annual");
     }
 
     /// <summary>
     /// When I select monthly report display
     /// </summary>
     [When("I select monthly report display")]
+    [Provides(ObjectStoreKeys.SelectedReportGranularity)]
     public async Task ISelectMonthlyReportDisplay()
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.SelectReportPeriod(true);
+        _context.ObjectStore.Add(ObjectStoreKeys.SelectedReportGranularity, "monthly");
     }
 
     /// <summary>
     /// When I select report depth {value1}
     /// </summary>
     [When("I select report depth {value1}")]
+    [Provides(ObjectStoreKeys.SelectedReportDepth)]
     public async Task ISelectReportDepth(int value1)
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.SelectReportDepthAsync(value1);
+        _context.ObjectStore.Add(ObjectStoreKeys.SelectedReportDepth, value1.ToString(CultureInfo.InvariantCulture));
     }
 
     #endregion
@@ -186,4 +194,26 @@ public class ReportSteps(ITestContext _context)
     public Task TheReportShouldShowMonthlyAmounts() =>
         TheReportShouldShowAmounts("monthly");
     #endregion
+
+    /// <summary>
+    /// Then the report configuration should match what I set earlier
+    /// </summary>
+    [Then("the report configuration should match what I set earlier")]
+    [Requires(ObjectStoreKeys.SelectedReportDepth)]
+    [Requires(ObjectStoreKeys.SelectedReportGranularity)]
+    [Requires(ObjectStoreKeys.SelectedReportYear)]
+    public async Task TheReportConfigurationShouldMatchWhatISetEarlier()
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+
+        var selectedReportDepth = int.Parse(_context.ObjectStore.Get<string>(ObjectStoreKeys.SelectedReportDepth), CultureInfo.InvariantCulture);
+        await page.ExpectDepthAsync(selectedReportDepth);
+
+        var selectedReportGranularity = _context.ObjectStore.Get<string>(ObjectStoreKeys.SelectedReportGranularity);
+        Assert.That(selectedReportGranularity, Is.AnyOf("annual", "monthly"), "Unsupported report granularity.");
+        await page.ExpectMonthlyAmountsAsync(selectedReportGranularity == "monthly");
+
+        var selectedReportYear = int.Parse(_context.ObjectStore.Get<string>(ObjectStoreKeys.SelectedReportYear), CultureInfo.InvariantCulture);
+        await page.ExpectYearAsync(selectedReportYear);
+    }
 }

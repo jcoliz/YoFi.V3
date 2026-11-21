@@ -145,4 +145,13 @@ public class ReportsPage(IPage page) : BasePage(page)
         }
     }
 
+    /// <summary>
+    /// Verifies that the report depth selector has the expected value.
+    /// </summary>
+    /// <param name="expectedReportDepth">The expected value of the report depth selector (1-4)</param>
+    /// <returns></returns>
+    public async Task ExpectDepthAsync(int expectedReportDepth)
+    {
+        await Assertions.Expect(ReportDepthSelector).ToHaveValueAsync(expectedReportDepth.ToString(CultureInfo.InvariantCulture));
+    }
 }

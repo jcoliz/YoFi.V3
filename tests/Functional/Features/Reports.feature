@@ -157,3 +157,18 @@ Feature: Reports
       Then the report should include the category Home
       And the report should not include the category Utilities
       And the report grand total should be -60.00
+
+    @id:8
+    Scenario: Restore report-specific display settings after reload
+      Given I have a workspace with a transaction:
+        | Date       | Payee  | Amount | Category             |
+        | 2024-03-15 | Grocer | -40.00 | Home:Utilities:Power |
+      When user visits the "Reports" page
+      And I select report year 2024
+      And I select the "Expenses Detail" report
+      And I select report depth 3
+      And I select annual-only report display
+      And I reload the reports page
+      Then the selected report should be "Expenses Detail"
+      And the report configuration should match what I set earlier
+      And the report should include the category Power
