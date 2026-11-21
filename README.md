@@ -130,13 +130,9 @@ It's quick and easy to run the app:
 
 1. Clone the repository
 2. Ensure Docker is installed and running
-3. Build the containers
+3. Build and run the docker compose project:
     ```
-    ./scripts/Build-Container.ps1
-    ```
-4. Run the containers
-    ```
-    ./scripts/Start-Container.ps1
+    ./scripts/Start-Container.ps1 -Build
     ```
 
-This will open a browser window to the running app.
+This will open a browser window to the running app, as well as the Scalar interface, and Aspire dashboard.
