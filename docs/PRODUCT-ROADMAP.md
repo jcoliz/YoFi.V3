@@ -256,7 +256,7 @@ My general practice is to break release miletones down into iterations as it app
 | Story 2225 - Handle Import Errors               | V3.1      |           | ✔️ Approved          |
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
 | Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
-| Story 2249 - Configure Report Display           | B1        | 6         | 🧪 Feature Complete  |
+| Story 2249 - Configure Report Display           | B1        | 6         | ✅ Implemented       |
 | Story 3 - View Report in Chart Form             | V3.0      | 7         | ✔️ Approved          |
 | Story 4 - View Summary Report                   | B3        | 7         | ✔️ Approved          |
 | Story 5 - View Budget Reports                   | B2        | 8         | ✔️ Approved          |

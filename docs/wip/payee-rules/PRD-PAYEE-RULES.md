@@ -96,7 +96,7 @@ to what transactions.
 - [ ] If a transaction exactly matches the regular expression, in case of a rule with regular expression, then it's a match
 - [ ] In case of conflict, a matching regular expression rule takes precedence over a substring match, regardless of length
 
-### Story 2266: User - Manually triggers rule matching
+### Story 2266: User - Manually triggers rule matching (manual-rules)
 
 **As a** User
 **I want** to trigger automatic categorization on a specific transaction
@@ -107,7 +107,8 @@ to what transactions.
 - [ ] On transactions display page, user can identify a specific transaction and apply rules to it
 - [ ] The updated category is immediately shown on transactions display page
 - [ ] If transaction already has a category, it is overwritten and a message shown to user
-- [ ] If transaction already has splits, no change is made to the transaction. Friendly error message is shown to the user explaining why we didn't do what they asked.
+- [ ] If transaction already has splits, the capability to manually trigger matching is not shown
+- [ ] In the corner case that some other user already split the transaction, so this operation is not permitted, a friendly error is shown
 
 **Limitations**:
 
@@ -115,6 +116,8 @@ to what transactions.
 
 Regarding splits, if user wants to remove splits and apply rule matching, this is something of a corner case. They can use existing tools
 for this. They can edit the transaction, remove the splits, and then trigger manual matching.
+
+**Technical Approach**: See below, "Story 2266 UX Considerations"
 
 ### Story 4: User - Advanced matching rules beyond payees
 
@@ -280,6 +283,12 @@ Payee matching rules will be implemented with a new `PayeeMatchingRule` entity t
 1. Main payee rule management screen will allow editing of payee, regex flag, and category. ("Quick edit", like transactions main screen)
 2. More detailed editing available on a details screen
 3. Main screen will show indicators if advanced matching aspects are also set (stories 4,5,6)
+
+### Story 2266 UX Considerations
+
+1. Manual matching should be offered on the "..." actions menu for transactions
+2. Success is shown as a toast
+3. Failure is shown as a toast
 
 ### Code Patterns to Follow
 
