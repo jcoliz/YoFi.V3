@@ -8,6 +8,18 @@ ado: [Link to ADO Item]
 
 # Product Requirements Document: [Feature Name]
 
+> [!NOTE]
+> Note to authors: Typically we write PRD's for a Feature. Features are parented to an Epic. The Epics are listed
+> in the PRODUCT-ROADMAP. There is a folder for each epic under docs\wip, which contains all related docs for
+> features under development. Features contain User Stories, which are listed herein.
+>
+> Often we implement at the level of a single user story, sometimes expanding to another related user story at the
+> same time. Other time, a user story is actually quite large, so we subdivide implementation into smaller "Scenario"
+> units, each with their own ADO item. In this case, the acceptance criteria for the user story will be divided
+> into those scenarios, to provide clear implementation boundaries.
+>
+> Delete this section when filling out the template for a new PRD.
+
 ## Problem Statement
 
 [1-3 sentences describing the problem this feature solves or the opportunity it addresses]
@@ -17,11 +29,13 @@ ado: [Link to ADO Item]
 ## Goals & Non-Goals
 
 ### Goals
+
 - [ ] [Primary goal 1]
 - [ ] [Primary goal 2]
 - [ ] [Primary goal 3]
 
 ### Non-Goals
+
 - [What this feature explicitly will NOT do]
 - [Scope boundaries]
 
@@ -30,15 +44,18 @@ ado: [Link to ADO Item]
 ## User Stories
 
 ### Story 1: [Actor] - [Action]
+
 **As a** [type of user]
 **I want** [to perform some action]
 **So that** [I can achieve some goal]
 
-**Acceptance Criteria**:
+#### Acceptance Criteria
+
 - [ ] [Specific, testable criterion 1]
 - [ ] [Specific, testable criterion 2]
 
 ### Story 2: [Actor] - [Action]
+
 [Repeat pattern above]
 
 ---
@@ -47,28 +64,32 @@ ado: [Link to ADO Item]
 
 [Brief description of the intended technical approach, if you have one in mind]
 
-**Layers Affected**:
+### Layers Affected
+
 - [ ] Frontend (Vue/Nuxt)
 - [ ] Controllers (API endpoints)
 - [ ] Application (Features/Business logic)
 - [ ] Entities (Domain models)
 - [ ] Database (Schema changes)
 
-**High-Level Entity Concepts**:
+### High-Level Entity Concepts
 
 **[EntityName] Entity** (new or modified):
+
 - PropertyName (description - what it represents, required/optional)
 - PropertyName (description)
 - PropertyName (description)
 
 [Add more entities as needed]
 
-**Key Business Rules**:
+### Key Business Rules
+
 1. **Rule Name** - Description of business rule that affects user experience
 2. **Rule Name** - Description of business rule
 3. [Add more business rules that belong in PRD scope]
 
-**Code Patterns to Follow**:
+### Code Patterns to Follow
+
 - Entity pattern: [`BaseTenantModel`](../src/Entities/Models/BaseTenantModel.cs) or [`BaseModel`](../src/Entities/Models/BaseModel.cs)
 - CRUD operations: [`TransactionsController.cs`](../src/Controllers/TransactionsController.cs) and [`TransactionsFeature.cs`](../src/Application/Features/TransactionsFeature.cs)
 - Tenant-scoped authorization: Existing pattern with `[RequireTenantRole]`
@@ -91,12 +112,12 @@ ado: [Link to ADO Item]
 
 ---
 
-## Dependencies & Constraints
+## Dependencies
 
-**Dependencies**:
 - [Other features or systems this depends on]
 
-**Constraints**:
+## Constraints
+
 - [Technical, time, or resource constraints]
 
 ---
@@ -105,7 +126,8 @@ ado: [Link to ADO Item]
 
 [Any additional context, links to related documents, or background information]
 
-**Related Documents**:
+### Related Documents
+
 - [Link to related PRDs]
 - [Link to analysis documents]
 
@@ -114,6 +136,7 @@ ado: [Link to ADO Item]
 ## Handoff Checklist (for AI implementation)
 
 When handing this off for detailed design/implementation:
+
 - [ ] Document stays within PRD scope (WHAT/WHY). If implementation details are needed, they are in a separate Design Document. See [`PRD-GUIDANCE.md`](PRD-GUIDANCE.md).
 - [ ] All user stories have clear acceptance criteria
 - [ ] Open questions are resolved or documented as design decisions
