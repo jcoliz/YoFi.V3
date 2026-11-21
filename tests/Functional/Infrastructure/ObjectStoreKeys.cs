@@ -177,5 +177,14 @@ public static class ObjectStoreKeys
 
     #endregion
 
+    #region Report Keys
+
+    /// <summary>
+    /// The currently selected report name, e.g. "Expenses Detail"
+    /// </summary>
+    public const string SelectedReport = "SelectedReport";
+
+    #endregion
+
     public const string ModalTitle = "ModalTitle";
 }

@@ -20,6 +20,10 @@ public class ReportsPage(IPage page) : BasePage(page)
     private ILocator JanuaryHeader => ReportTable.GetByRole(AriaRole.Columnheader, new() { Name = "January", Exact = true });
     private ILocator DecemberHeader => ReportTable.GetByRole(AriaRole.Columnheader, new() { Name = "December", Exact = true });
 
+    private ILocator ReportDisplayControls => Page.GetByTestId("report-display-controls");
+    private ILocator ReportPeriodSelector => ReportDisplayControls.GetByTestId("report-period-selector");
+    private ILocator ReportDepthSelector => ReportDisplayControls.GetByTestId("report-depth-selector");
+
     /// <summary>
     /// Reloads the page and waits for the restored report to finish loading.
     /// </summary>
@@ -47,6 +51,26 @@ public class ReportsPage(IPage page) : BasePage(page)
         await ReportTable.WaitForAsync(new() { State = WaitForSelectorState.Visible });
         await YearSelector.SelectOptionAsync(year.ToString(CultureInfo.InvariantCulture));
         await ExpectYearAsync(year);
+    }
+
+    /// <summary>
+    /// Selects the report display period (monthly or annual) and waits for the report to update.
+    /// </summary>
+    /// <param name="monthly">True for monthly report display, false for annual-only display</param>
+    /// <returns></returns>
+    public async Task SelectReportPeriod(bool monthly)
+    {
+        await ReportPeriodSelector.SelectOptionAsync(monthly.ToString().ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// Selects the report depth and waits for the report to update.
+    /// </summary>
+    /// <param name="depth">The desired report depth, from 1-4</param>
+    /// <returns></returns>
+    public async Task SelectReportDepthAsync(int depth)
+    {
+        await ReportDepthSelector.SelectOptionAsync(depth.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -87,6 +111,14 @@ public class ReportsPage(IPage page) : BasePage(page)
             .ToBeVisibleAsync();
 
     /// <summary>
+    /// Verifies an exact category label among the displayed report rows.
+    /// </summary>
+    public Task ExpectNotCategoryAsync(string category) =>
+        Assertions.Expect(CategoryLabels.Filter(new()
+            { HasTextRegex = new Regex($@"^\s*{Regex.Escape(category)}\s*$") }).First)
+            .ToHaveCountAsync(0);
+
+    /// <summary>
     /// Reads the explicit annual grand total as a number, independent of currency decoration.
     /// </summary>
     public async Task<decimal> GetGrandTotalAsync()
@@ -112,4 +144,5 @@ public class ReportsPage(IPage page) : BasePage(page)
             }
         }
     }
+
 }

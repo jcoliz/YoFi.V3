@@ -129,3 +129,31 @@ Feature: Reports
       Then the selected report should be "All Detail"
       And the report year should be 2024
       And the report grand total should be 115.00
+
+    @id:6
+    Scenario: Configure period display and retain the workspace year
+      Given I have a workspace with the following transactions:
+        | Date       | Payee   | Amount | Category       |
+        | 2024-01-15 | Employer | 125.00 | Income:Salary |
+        | 2024-02-15 | Grocery  | -40.00 | Food:Groceries |
+      When user visits the "Reports" page
+      And I select report year 2024
+      And I select the "Income Detail" report
+      And I select annual-only report display
+      Then the report year should be 2024
+      And the report should show annual amounts
+      And the report grand total should be 125.00
+
+    @id:7
+    Scenario: Configure category depth and preserve hidden roll-ups
+      Given I have a workspace with the following transactions:
+        | Date       | Payee  | Amount | Category             |
+        | 2024-03-15 | Grocer | -40.00 | Home:Utilities:Power |
+        | 2024-04-15 | Bank   | -20.00 | Home:Banking:Checking |
+      When user visits the "Reports" page
+      And I select report year 2024
+      And I select the "Expenses Detail" report
+      And I select report depth 1
+      Then the report should include the category Home
+      And the report should not include the category Utilities
+      And the report grand total should be -60.00

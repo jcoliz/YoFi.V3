@@ -18,10 +18,12 @@ public class ReportSteps(ITestContext _context)
     /// When I select the {Report} report
     /// </summary>
     [When("I select the {Report} report")]
+    [Provides(ObjectStoreKeys.SelectedReport)]
     public async Task ISelectTheReport(string Report)
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.SelectReportAsync(Report);
+        _context.ObjectStore.Add(ObjectStoreKeys.SelectedReport, Report);
     }
 
     /// <summary>
@@ -42,6 +44,36 @@ public class ReportSteps(ITestContext _context)
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
         await page.ReloadAsync();
+    }
+
+    /// <summary>
+    /// When I select annual-only report display
+    /// </summary>
+    [When("I select annual-only report display")]
+    public async Task ISelectAnnualOnlyReportDisplay()
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.SelectReportPeriod(false);
+    }
+
+    /// <summary>
+    /// When I select monthly report display
+    /// </summary>
+    [When("I select monthly report display")]
+    public async Task ISelectMonthlyReportDisplay()
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.SelectReportPeriod(true);
+    }
+
+    /// <summary>
+    /// When I select report depth {value1}
+    /// </summary>
+    [When("I select report depth {value1}")]
+    public async Task ISelectReportDepth(int value1)
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+        await page.SelectReportDepthAsync(value1);
     }
 
     #endregion
@@ -68,7 +100,6 @@ public class ReportSteps(ITestContext _context)
         await page.ExpectSelectedReportAsync(string1);
     }
 
-
     /// <summary>
     /// Then the displayed report should be {Report}
     /// </summary>
@@ -83,10 +114,32 @@ public class ReportSteps(ITestContext _context)
     /// Then the report should include the category {Category}
     /// </summary>
     [Then("the report should include the category {Category}")]
+    [Requires(ObjectStoreKeys.SelectedReport)]
     public async Task TheReportShouldIncludeTheCategory(string Category)
     {
         var page = _context.GetOrCreatePage<ReportsPage>();
+
+        // Make sure the report is fully loaded first
+        var selectedReport = _context.ObjectStore.Get<string>(ObjectStoreKeys.SelectedReport);
+        await TheDisplayedReportShouldBe(selectedReport);
+
         await page.ExpectCategoryAsync(Category);
+    }
+
+    /// <summary>
+    /// Then the report should not include the category {Category}
+    /// </summary>
+    [Then("the report should not include the category {Category}")]
+    [Requires(ObjectStoreKeys.SelectedReport)]
+    public async Task TheReportShouldNotIncludeTheCategory(string Category)
+    {
+        var page = _context.GetOrCreatePage<ReportsPage>();
+
+        // Make sure the report is fully loaded first
+        var selectedReport = _context.ObjectStore.Get<string>(ObjectStoreKeys.SelectedReport);
+        await TheDisplayedReportShouldBe(selectedReport);
+
+        await page.ExpectNotCategoryAsync(Category);
     }
 
     /// <summary>
