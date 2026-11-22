@@ -16,7 +16,6 @@ namespace YoFi.V3.Controllers;
 /// Manages financial transactions within a tenant workspace.
 /// </summary>
 /// <param name="transactionsFeature">Feature providing transaction operations.</param>
-/// <param name="payeeMatchingRuleFeature">Feature providing payee matching rule operations.</param>
 /// <param name="logger">Logger for diagnostic output.</param>
 /// <remarks>
 /// All operations are scoped to a specific tenant identified by the tenantKey route parameter.
@@ -30,7 +29,6 @@ namespace YoFi.V3.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public partial class TransactionsController(
     TransactionsFeature transactionsFeature,
-    PayeeMatchingRuleFeature payeeMatchingRuleFeature,
     ILogger<TransactionsController> logger) : ControllerBase
 {
     private const long MaxSplitWorkbookSizeBytes = 1 * 1024 * 1024;
@@ -339,6 +337,7 @@ public partial class TransactionsController(
     /// Applies the current tenant's payee matching rules to one transaction.
     /// </summary>
     /// <param name="key">The tenant-scoped transaction identifier.</param>
+    /// <param name="payeeMatchingRuleFeature">Feature providing payee matching rule operations.</param>
     /// <param name="cancellationToken">Token that cancels the operation.</param>
     /// <returns>The typed payee-rule application result.</returns>
     [HttpPost("{key:guid}/apply-payee-rules")]
@@ -349,6 +348,7 @@ public partial class TransactionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ApplyPayeeRules(
         Guid key,
+        [FromServices] PayeeMatchingRuleFeature payeeMatchingRuleFeature,
         CancellationToken cancellationToken)
     {
         LogStartingKey(key);
