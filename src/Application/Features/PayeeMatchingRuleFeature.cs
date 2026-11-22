@@ -1,5 +1,6 @@
 using DotNetNuxt.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
+using System.Data;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Services;
@@ -29,6 +30,75 @@ public class PayeeMatchingRuleFeature(
     TimeProvider timeProvider) : IPayeeMatchingService
 {
     private readonly Tenant _currentTenant = tenantProvider.CurrentTenant;
+
+    private sealed record ManualMatchableTransaction(string Payee) : IMatchableTransaction;
+
+    /// <summary>
+    /// Applies the current tenant's complete payee rule set to one persisted transaction.
+    /// </summary>
+    /// <param name="transactionKey">Key of the transaction in the current tenant.</param>
+    /// <param name="cancellationToken">Token that cancels the operation.</param>
+    /// <returns>The typed result of applying the rules.</returns>
+    /// <exception cref="TransactionNotFoundException">The transaction is not in the current tenant.</exception>
+    /// <exception cref="ValidationException">The transaction has no category split.</exception>
+    /// <exception cref="DataConflictException">A concurrent change prevented the serializable update.</exception>
+    public Task<PayeeRuleApplicationResultDto> ApplyRulesToTransactionAsync(
+        Guid transactionKey,
+        CancellationToken cancellationToken = default)
+        => dataProvider.ExecuteInTransactionAsync(async token =>
+        {
+            token.ThrowIfCancellationRequested();
+
+            var transaction = await dataProvider.SingleOrDefaultAsync(
+                dataProvider.GetIncluding((Transaction t) => t.Splits)
+                    .Where(t => t.TenantId == _currentTenant.Id && t.Key == transactionKey));
+
+            if (transaction is null)
+            {
+                throw new TransactionNotFoundException(transactionKey);
+            }
+
+            if (transaction.Splits.Count > 1)
+            {
+                return new PayeeRuleApplicationResultDto(
+                    transactionKey,
+                    PayeeRuleApplicationOutcome.TransactionHasMultipleSplits,
+                    null,
+                    null);
+            }
+
+            if (transaction.Splits.Count == 0)
+            {
+                throw new ValidationException(
+                    nameof(transactionKey),
+                    "The transaction does not have a category allocation.");
+            }
+
+            var split = transaction.Splits.Single();
+            var previousCategory = split.Category;
+            var matches = await ApplyMatchingRulesAsync(
+                [new ManualMatchableTransaction(transaction.Payee)]);
+
+            if (matches.Count == 0 || matches[0] is null)
+            {
+                return new PayeeRuleApplicationResultDto(
+                    transactionKey,
+                    PayeeRuleApplicationOutcome.NoMatch,
+                    previousCategory,
+                    previousCategory);
+            }
+
+            var category = CategoryHelper.SanitizeCategory(matches[0]!);
+            split.Category = category;
+            dataProvider.Update(split);
+            await dataProvider.SaveChangesAsync(token);
+
+            return new PayeeRuleApplicationResultDto(
+                transactionKey,
+                PayeeRuleApplicationOutcome.Applied,
+                category,
+                previousCategory);
+        }, cancellationToken, isolationLevel: IsolationLevel.Serializable);
 
     /// <summary>
     /// Gets paginated, sorted, and optionally filtered payee matching rules for the current tenant.
