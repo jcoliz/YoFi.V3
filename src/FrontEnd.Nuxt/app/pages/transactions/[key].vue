@@ -687,8 +687,7 @@ function formatCurrency(amount: number | undefined): string {
         class="alert alert-warning"
         data-test-id="delete-transaction-details"
       >
-        <strong>{{ transaction.payee }}</strong
-        ><br />
+        <strong>{{ transaction.payee }}</strong><br />
         {{ formatDateOnly(transaction.date) }} - {{ formatCurrency(transaction.amount) }}
       </div>
     </ModalDialog>

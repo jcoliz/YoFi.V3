@@ -62,7 +62,13 @@ const ModalDialogStub = {
 }
 
 const globalConfig = {
-  components: { ModalDialog: ModalDialogStub, ErrorDisplay, FeatherIcon, BaseSpinner, CategoryPicker },
+  components: {
+    ModalDialog: ModalDialogStub,
+    ErrorDisplay,
+    FeatherIcon,
+    BaseSpinner,
+    CategoryPicker,
+  },
 }
 
 describe('transaction/EditModal – split category protection', () => {

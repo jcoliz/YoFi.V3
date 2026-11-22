@@ -97,8 +97,7 @@ const numberedPages = computed((): Array<number> => {
         Displaying
         <span data-test-id="firstitem">{{ pageInfo.firstItem }}</span> through
         <span data-test-id="lastitem">{{ pageInfo.lastItem }}</span> of
-        <span data-test-id="totalitems">{{ pageInfo.totalCount }}</span
-        >.
+        <span data-test-id="totalitems">{{ pageInfo.totalCount }}</span>.
       </p>
     </div>
     <nav

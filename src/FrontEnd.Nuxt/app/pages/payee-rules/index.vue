@@ -597,8 +597,7 @@ function formatDate(date: Date | undefined): string {
         class="alert alert-warning"
         data-test-id="delete-rule-details"
       >
-        <strong>{{ selectedRule.payeePattern }}</strong
-        ><br />
+        <strong>{{ selectedRule.payeePattern }}</strong><br />
         Category: {{ selectedRule.category }}
       </div>
     </ModalDialog>

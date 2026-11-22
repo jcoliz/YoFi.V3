@@ -86,9 +86,7 @@ describe('CategoryPicker', () => {
   it('refreshes on later input and only accepts the latest response', async () => {
     const first = deferred<string[]>()
     const second = deferred<string[]>()
-    getCategorySuggestions
-      .mockReturnValueOnce(first.promise)
-      .mockReturnValueOnce(second.promise)
+    getCategorySuggestions.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const wrapper = mountPicker()
 
     await wrapper.get('[data-test-id="category-input"]').setValue('g')

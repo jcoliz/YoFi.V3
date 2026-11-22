@@ -86,8 +86,7 @@ const toggleMore = () => {
   >
     <strong data-test-id="title-display">{{
       problem?.title || 'Please fix the following errors:'
-    }}</strong
-    ><br />
+    }}</strong><br />
     <span
       v-if="problem?.detail"
       data-test-id="detail-display"

@@ -440,8 +440,7 @@ function downloadErrorReport() {
       />
       <p>
         Import the supported worksheets from <strong>{{ selectedFile?.name }}</strong> into
-        <strong>{{ workspace.name }}</strong
-        >.
+        <strong>{{ workspace.name }}</strong>.
       </p>
       <ul>
         <li

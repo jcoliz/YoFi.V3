@@ -193,7 +193,6 @@ describe('Payee rule dialog application option', () => {
       expect(rule.category).toBe('Groceries')
       wrapper.unmount()
     }
-
   })
 
   it.each([

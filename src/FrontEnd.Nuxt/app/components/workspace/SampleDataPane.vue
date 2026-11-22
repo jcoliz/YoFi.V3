@@ -493,8 +493,7 @@ async function downloadOfx() {
         This adds
         <strong>{{ preview?.counts?.transactions }}</strong> sample transactions and
         <strong>{{ preview?.counts?.payeeMatchingRules }}</strong> payee matching rules to
-        <strong data-test-id="load-sample-workspace-name">{{ workspace.name }}</strong
-        >.
+        <strong data-test-id="load-sample-workspace-name">{{ workspace.name }}</strong>.
       </p>
       <p
         v-if="(preview?.existingTransactionCount ?? 0) > 0"

@@ -118,7 +118,10 @@ describe('TransactionFilterPanel', () => {
   })
 
   it('emits a separate Clear All intent', async () => {
-    const wrapper = mountPanel({ expanded: true, filters: { ...initialFilters, amount: 'invalid' } })
+    const wrapper = mountPanel({
+      expanded: true,
+      filters: { ...initialFilters, amount: 'invalid' },
+    })
 
     await wrapper.get('[data-test-id="clear-filters-button"]').trigger('click')
 

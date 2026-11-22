@@ -147,8 +147,8 @@ async function confirmDelete() {
     <template v-if="isDataScope">
       <p>
         This permanently deletes all data in the workspace
-        <strong data-test-id="deleting-workspace-name">{{ workspaceName }}</strong
-        >, including transactions, payee matching rules, and pending bank imports.
+        <strong data-test-id="deleting-workspace-name">{{ workspaceName }}</strong>, including
+        transactions, payee matching rules, and pending bank imports.
       </p>
       <p>The workspace itself, its settings, and all of its members remain.</p>
       <p class="text-danger">
