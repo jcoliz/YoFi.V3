@@ -16,6 +16,7 @@ namespace YoFi.V3.Controllers;
 /// Manages financial transactions within a tenant workspace.
 /// </summary>
 /// <param name="transactionsFeature">Feature providing transaction operations.</param>
+/// <param name="payeeMatchingRuleFeature">Feature providing payee matching rule operations.</param>
 /// <param name="logger">Logger for diagnostic output.</param>
 /// <remarks>
 /// All operations are scoped to a specific tenant identified by the tenantKey route parameter.
@@ -27,7 +28,10 @@ namespace YoFi.V3.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-public partial class TransactionsController(TransactionsFeature transactionsFeature, ILogger<TransactionsController> logger) : ControllerBase
+public partial class TransactionsController(
+    TransactionsFeature transactionsFeature,
+    PayeeMatchingRuleFeature payeeMatchingRuleFeature,
+    ILogger<TransactionsController> logger) : ControllerBase
 {
     private const long MaxSplitWorkbookSizeBytes = 1 * 1024 * 1024;
     private const long SplitUploadRequestSizeBytes = 1 * 1024 * 1024 + 64 * 1024;
@@ -329,6 +333,31 @@ public partial class TransactionsController(TransactionsFeature transactionsFeat
             cancellationToken);
         LogOkKey(key);
         return Ok(updated);
+    }
+
+    /// <summary>
+    /// Applies the current tenant's payee matching rules to one transaction.
+    /// </summary>
+    /// <param name="key">The tenant-scoped transaction identifier.</param>
+    /// <param name="cancellationToken">Token that cancels the operation.</param>
+    /// <returns>The typed payee-rule application result.</returns>
+    [HttpPost("{key:guid}/apply-payee-rules")]
+    [RequireTenantRole(TenantRole.Editor)]
+    [ProducesResponseType(typeof(PayeeRuleApplicationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApplyPayeeRules(
+        Guid key,
+        CancellationToken cancellationToken)
+    {
+        LogStartingKey(key);
+
+        var result = await payeeMatchingRuleFeature
+            .ApplyRulesToTransactionAsync(key, cancellationToken);
+
+        LogOkKey(key);
+        return Ok(result);
     }
 
     [LoggerMessage(1, LogLevel.Debug, "{Location}: Starting")]
