@@ -1,7 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using YoFi.V3.Application.Dto;
+using YoFi.V3.Data;
+using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Models;
 using YoFi.V3.Tests.Integration.Controller.TestHelpers;
 
@@ -86,6 +92,213 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
         Assert.That(problemDetails, Is.Not.Null, "Response should be deserializable as ProblemDetails");
         Assert.That(problemDetails!.Status, Is.EqualTo(404));
+    }
+
+    #endregion
+
+    #region Payee Rule Application Tests
+
+    [Test]
+    public async Task ApplyPayeeRules_AsEditor_AppliedResultReturnsAndPersistsCategory()
+    {
+        // Given: A single-split transaction and a matching tenant payee rule
+        SwitchToEditor();
+        var transaction = await CreateTransactionAsync("Coffee Shop", "Dining");
+        await SeedPayeeRuleAsync("Coffee", "  cafes  ");
+
+        // When: Applying the current tenant's payee rules
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(transaction.Key), null);
+
+        // Then: HTTP 200 and the applied result are returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<PayeeRuleApplicationResultDto>();
+        Assert.That(result, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result!.TransactionKey, Is.EqualTo(transaction.Key));
+            Assert.That(result.Outcome, Is.EqualTo(PayeeRuleApplicationOutcome.Applied));
+            Assert.That(result.PreviousCategory, Is.EqualTo("Dining"));
+            Assert.That(result.Category, Is.EqualTo("Cafes"));
+        }
+
+        var persisted = await _client.GetFromJsonAsync<TransactionDetailDto>(
+            $"/api/tenant/{_testTenantKey}/transactions/{transaction.Key}");
+        Assert.That(persisted!.Category, Is.EqualTo("Cafes"));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_NoMatchReturnsPreservedCategory()
+    {
+        // Given: A categorized transaction and no matching tenant rule
+        SwitchToEditor();
+        await ClearPayeeRuleCacheAsync(_testTenantKey);
+        var transaction = await CreateTransactionAsync("Unknown Vendor", "Miscellaneous");
+
+        // When: Applying payee rules
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(transaction.Key), null);
+
+        // Then: The no-match result preserves the category
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<PayeeRuleApplicationResultDto>();
+        Assert.That(result, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result!.Outcome, Is.EqualTo(PayeeRuleApplicationOutcome.NoMatch));
+            Assert.That(result.Category, Is.EqualTo("Miscellaneous"));
+            Assert.That(result.PreviousCategory, Is.EqualTo("Miscellaneous"));
+        }
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_TransactionBecomesMultiSplitReturnsStaleOutcome()
+    {
+        // Given: A single-split transaction that becomes multi-split after page load
+        SwitchToEditor();
+        var transaction = await CreateTransactionAsync("Weekly Shop", "Groceries");
+        var splitResponse = await _client.PostAsJsonAsync(
+            $"{ApplyTransactionUrl(transaction.Key)}/splits",
+            new SplitEditDto(-20m, "Household", "Second category"));
+        Assert.That(splitResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // When: Applying rules to the stale row
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(transaction.Key), null);
+
+        // Then: The expected stale outcome is returned as HTTP 200
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<PayeeRuleApplicationResultDto>();
+        Assert.That(result, Is.Not.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result!.Outcome,
+                Is.EqualTo(PayeeRuleApplicationOutcome.TransactionHasMultipleSplits));
+            Assert.That(result.Category, Is.Null);
+            Assert.That(result.PreviousCategory, Is.Null);
+        }
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_TransactionWithoutSplitReturns400()
+    {
+        // Given: A tenant transaction without a category split
+        SwitchToEditor();
+        var transactionKey = await SeedTransactionAsync(
+            _testTenantKey, "No Split", "No split", -10m, Array.Empty<Split>());
+
+        // When: Applying payee rules
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(transactionKey), null);
+
+        // Then: The invariant violation is returned as HTTP 400
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+        Assert.That(problem, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_MissingTransactionReturns404()
+    {
+        // Given: An Editor and a transaction key that does not exist
+        SwitchToEditor();
+
+        // When: Applying payee rules
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(Guid.NewGuid()), null);
+
+        // Then: HTTP 404 with problem details is returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.That(problem, Is.Not.Null);
+        Assert.That(problem!.Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_AsViewerReturns403()
+    {
+        // Given: A Viewer attempts the Editor operation
+        SwitchToViewer();
+
+        // When: Applying payee rules
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(Guid.NewGuid()), null);
+
+        // Then: HTTP 403 Forbidden is returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_UnauthenticatedReturns401()
+    {
+        // Given: A request without authentication
+        using var factory = new BaseTestWebApplicationFactory(useTestAuthentication: false);
+        using var client = factory.CreateClient();
+
+        // When: Applying payee rules
+        using var response = await client.PostAsync(
+            $"/api/tenant/{_testTenantKey}/transactions/{Guid.NewGuid()}/apply-payee-rules",
+            null);
+
+        // Then: HTTP 401 Unauthorized is returned
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_OutsideTenantRouteReturns403()
+    {
+        // Given: A transaction and an Editor client with no access to another tenant
+        var transaction = await CreateTransactionAsync("Other", "Dining");
+        var otherTenantKey = await CreateTestTenantAsync("Other workspace");
+
+        // When: Calling that tenant's route with the transaction key
+        using var response = await _client.PostAsync(
+            $"/api/tenant/{otherTenantKey}/transactions/{transaction.Key}/apply-payee-rules",
+            null);
+
+        // Then: Tenant authorization rejects the request
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_OtherTenantTransactionReturns404()
+    {
+        // Given: A transaction owned by another tenant
+        var otherTenantKey = await CreateTestTenantAsync("Other workspace");
+        var otherTransactionKey = await SeedTransactionAsync(
+            otherTenantKey, "Coffee Shop", "Other tenant", -10m,
+            [new Split { Amount = -10m, Category = "Dining", Order = 0 }]);
+
+        // When: The current tenant route applies rules to that key
+        using var response = await _client.PostAsync(
+            ApplyPayeeRulesUrl(otherTransactionKey), null);
+
+        // Then: Tenant-scoped lookup returns 404
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task ApplyPayeeRules_OpenApiDescribesRouteAndResponseStatuses()
+    {
+        // Given: The running API
+        // When: Reading the OpenAPI document
+        using var document = JsonDocument.Parse(await _client.GetStringAsync("/openapi/v1.json"));
+        var path = document.RootElement.GetProperty("paths").EnumerateObject().Single(property =>
+            property.Name.Equals("/api/tenant/{tenantKey}/Transactions/{key}/apply-payee-rules",
+                StringComparison.OrdinalIgnoreCase));
+
+        // Then: The POST contract and all designed response statuses are documented
+        var operation = path.Value.GetProperty("post");
+        Assert.That(operation.TryGetProperty("requestBody", out _), Is.False);
+        var responses = operation.GetProperty("responses");
+        foreach (var status in new[] { "200", "400", "401", "403", "404", "409" })
+        {
+            Assert.That(responses.TryGetProperty(status, out _), Is.True,
+                $"Missing {status} response");
+        }
+        var schema = responses.GetProperty("200").GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString();
+        Assert.That(schema, Does.EndWith("/PayeeRuleApplicationResultDto"));
     }
 
     #endregion
@@ -1090,4 +1303,80 @@ public class TransactionsControllerTests : AuthenticatedTestBase
     }
 
     #endregion
+
+    private string ApplyTransactionUrl(Guid key)
+        => $"/api/tenant/{_testTenantKey}/transactions/{key}";
+
+    private string ApplyPayeeRulesUrl(Guid key)
+        => $"{ApplyTransactionUrl(key)}/apply-payee-rules";
+
+    private async Task<TransactionDetailDto> CreateTransactionAsync(
+        string payee,
+        string category)
+    {
+        var response = await _client.PostAsJsonAsync(
+            $"/api/tenant/{_testTenantKey}/transactions",
+            new TransactionEditDto(
+                new DateOnly(2026, 1, 1),
+                -10m,
+                payee,
+                null,
+                null,
+                null,
+                category));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        return (await response.Content.ReadFromJsonAsync<TransactionDetailDto>())!;
+    }
+
+    private async Task SeedPayeeRuleAsync(string payeePattern, string category)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.SingleAsync(t => t.Key == _testTenantKey);
+        dbContext.PayeeMatchingRules.Add(new PayeeMatchingRule
+        {
+            TenantId = tenant.Id,
+            PayeePattern = payeePattern,
+            PayeeIsRegex = false,
+            Category = category,
+            MatchCount = 0
+        });
+        await dbContext.SaveChangesAsync();
+        await ClearPayeeRuleCacheAsync(_testTenantKey);
+    }
+
+    private async Task<Guid> SeedTransactionAsync(
+        Guid tenantKey,
+        string payee,
+        string unusedCategory,
+        decimal amount,
+        IEnumerable<Split> splits)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = await dbContext.Tenants.SingleAsync(t => t.Key == tenantKey);
+        var splitList = splits.ToList();
+        var transaction = new Transaction
+        {
+            TenantId = tenant.Id,
+            Date = new DateOnly(2026, 1, 1),
+            Payee = payee,
+            Amount = amount,
+            Splits = splitList
+        };
+        dbContext.Transactions.Add(transaction);
+        await dbContext.SaveChangesAsync();
+        await ClearPayeeRuleCacheAsync(tenantKey);
+        return transaction.Key;
+    }
+
+    private Task ClearPayeeRuleCacheAsync(Guid tenantKey)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tenant = dbContext.Tenants.Single(t => t.Key == tenantKey);
+        var cache = scope.ServiceProvider.GetRequiredService<IMemoryCache>();
+        cache.Remove($"payee-rules:{tenant.Id}");
+        return Task.CompletedTask;
+    }
 }
