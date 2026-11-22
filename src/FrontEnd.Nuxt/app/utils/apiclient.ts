@@ -3382,6 +3382,93 @@ export class TransactionsClient {
         }
         return Promise.resolve<TransactionDetailDto>(null as any);
     }
+
+    /**
+     * Applies the current tenant's payee matching rules to one transaction.
+     * @param key The tenant-scoped transaction identifier.
+     * @return The typed payee-rule application result.
+     */
+    applyPayeeRules(key: string, tenantKey: string): Promise<PayeeRuleApplicationResultDto> {
+        let url_ = this.baseUrl + "/api/tenant/{tenantKey}/Transactions/{key}/apply-payee-rules";
+        if (key === undefined || key === null)
+            throw new globalThis.Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        if (tenantKey === undefined || tenantKey === null)
+            throw new globalThis.Error("The parameter 'tenantKey' must be defined.");
+        url_ = url_.replace("{tenantKey}", encodeURIComponent("" + tenantKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processApplyPayeeRules(_response);
+        });
+    }
+
+    protected processApplyPayeeRules(response: Response): Promise<PayeeRuleApplicationResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = PayeeRuleApplicationResultDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status === 500) {
+            return response.text().then((_responseText) => {
+            let result500: any = null;
+            let resultData500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result500 = ProblemDetails.fromJS(resultData500);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result500);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PayeeRuleApplicationResultDto>(null as any);
+    }
 }
 
 export class TransactionSplitTemplateClient {
@@ -8649,6 +8736,71 @@ export interface IHttpValidationProblemDetails extends IProblemDetails {
     errors?: { [key: string]: string[]; };
 
     [key: string]: any;
+}
+
+/** Represents the result of manually applying payee rules to one transaction. */
+export class PayeeRuleApplicationResultDto implements IPayeeRuleApplicationResultDto {
+    /** Tenant-scoped transaction key. */
+    transactionKey?: string;
+    /** The typed application outcome. */
+    outcome?: PayeeRuleApplicationOutcome;
+    /** The resulting category, or null for a stale multi-split transaction. */
+    category?: string | undefined;
+    /** The category before the operation, or null for a stale multi-split transaction. */
+    previousCategory?: string | undefined;
+
+    constructor(data?: IPayeeRuleApplicationResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transactionKey = _data["transactionKey"];
+            this.outcome = _data["outcome"];
+            this.category = _data["category"];
+            this.previousCategory = _data["previousCategory"];
+        }
+    }
+
+    static fromJS(data: any): PayeeRuleApplicationResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PayeeRuleApplicationResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transactionKey"] = this.transactionKey;
+        data["outcome"] = this.outcome;
+        data["category"] = this.category;
+        data["previousCategory"] = this.previousCategory;
+        return data;
+    }
+}
+
+/** Represents the result of manually applying payee rules to one transaction. */
+export interface IPayeeRuleApplicationResultDto {
+    /** Tenant-scoped transaction key. */
+    transactionKey?: string;
+    /** The typed application outcome. */
+    outcome?: PayeeRuleApplicationOutcome;
+    /** The resulting category, or null for a stale multi-split transaction. */
+    category?: string | undefined;
+    /** The category before the operation, or null for a stale multi-split transaction. */
+    previousCategory?: string | undefined;
+}
+
+/** The outcome of manually applying payee rules to a transaction. */
+export enum PayeeRuleApplicationOutcome {
+    Applied = 0,
+    NoMatch = 1,
+    TransactionHasMultipleSplits = 2,
 }
 
 export class BaseModel implements IBaseModel {
