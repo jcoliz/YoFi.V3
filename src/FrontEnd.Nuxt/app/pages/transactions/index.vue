@@ -18,6 +18,8 @@ import {
   type PaginatedResultDtoOfTransactionResultDto,
   type TransactionResultDto,
   type IProblemDetails,
+  PayeeRuleApplicationOutcome,
+  type PayeeRuleApplicationResultDto,
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
@@ -352,6 +354,44 @@ function handleRowClick(event: MouseEvent, key: string | undefined) {
   // Let Bootstrap's document-level handlers receive menu clicks without navigating the row.
   if (event.target instanceof Element && event.target.closest('[data-row-actions]')) return
   navigateToDetails(key)
+}
+
+/**
+ * Applies a completed manual match result to the current Transactions row.
+ *
+ * @param tenantKey Workspace that initiated the operation.
+ * @param result Typed server result for the transaction.
+ */
+function handlePayeeRulesCompleted(tenantKey: string, result: PayeeRuleApplicationResultDto) {
+  if (currentTenantKey.value !== tenantKey) return
+
+  if (result.outcome === PayeeRuleApplicationOutcome.TransactionHasMultipleSplits) {
+    void loadTransactions(currentPage.value)
+    return
+  }
+
+  if (
+    result.outcome !== PayeeRuleApplicationOutcome.Applied &&
+    result.outcome !== PayeeRuleApplicationOutcome.NoMatch
+  )
+    return
+
+  const transaction = paginatedResult.value?.items?.find(
+    (item) => item.key === result.transactionKey,
+  )
+  if (transaction) transaction.category = result.category ?? ''
+}
+
+/**
+ * Shows an unexpected manual-matching API failure in the page error display.
+ *
+ * @param tenantKey Workspace that initiated the operation.
+ * @param problem Converted API problem details.
+ */
+function handlePayeeRulesFailed(tenantKey: string, problem: IProblemDetails) {
+  if (currentTenantKey.value !== tenantKey) return
+  error.value = problem
+  showError.value = true
 }
 
 /**
@@ -825,6 +865,15 @@ function retryLoadTransactions() {
                             />
                             Create Rule
                           </button>
+                        </li>
+                        <li v-if="transaction.hasMultipleSplits === false">
+                          <TransactionPayeeRulesAction
+                            :transaction="transaction"
+                            :tenant-key="currentTenantKey || ''"
+                            :disabled="loading"
+                            @completed="handlePayeeRulesCompleted"
+                            @failed="handlePayeeRulesFailed"
+                          />
                         </li>
                       </ul>
                     </DropDownPortable>
