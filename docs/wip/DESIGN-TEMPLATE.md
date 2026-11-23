@@ -199,7 +199,10 @@ ado: [Link to ADO Item]
 >
 > Bias toward encapsulating functionality into components, even if not strictly required for reusability.
 >
-> For each file: path, JSDoc summary, and for components the `props` and `emits` with types.
+> For each file: path and JSDoc summary. For components, also provide the Nuxt auto-import name
+> derived from the full path below `app/components`, plus `props` and `emits` with types.
+> For example, `app/components/transaction/PayeeRulesAction.vue` is auto-imported as
+> `TransactionPayeeRulesAction`.
 > Describe the user-visible behavior for loading, empty, success, and error states, and what the
 > user sees when the API returns each error status listed in [Controllers](#controllers).
 > Identify which generated API client methods are called, and any store or localStorage keys read or written.

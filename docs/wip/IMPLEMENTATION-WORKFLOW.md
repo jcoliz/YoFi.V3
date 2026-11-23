@@ -337,6 +337,8 @@ Run all remaining commands in this phase from `src/FrontEnd.Nuxt/`.
 
 - [ ] Implement the pages, components, composables, stores, and utils named in the design, with the
       documented props and emits.
+- [ ] For every component under `app/components`, derive its Nuxt auto-import name from the complete
+      relative path and use that name in the template. Do not use only the filename for nested components.
 - [ ] Prefer small components. Extract discrete sections into components even when used once.
 - [ ] Apply **every** `data-test-id` from the design's Test IDs table, exactly as named. Add
       `data-test-id` to every interactive element and every element whose content changes materially
