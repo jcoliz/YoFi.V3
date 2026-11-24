@@ -6,8 +6,8 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
-import TransactionUnbalancedBadge from '~/components/transaction/TransactionUnbalancedBadge.vue'
-import TransactionSplitBalanceAlert from '~/components/transaction/TransactionSplitBalanceAlert.vue'
+import TransactionUnbalancedBadge from '~/components/transaction/UnbalancedBadge.vue'
+import TransactionSplitBalanceAlert from '~/components/transaction/SplitBalanceAlert.vue'
 
 enableAutoUnmount(afterEach)
 
