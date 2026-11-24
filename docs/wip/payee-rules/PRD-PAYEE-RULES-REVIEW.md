@@ -182,7 +182,7 @@ These items were called out as "gaps" in my initial review, but they **correctly
 - CRUD operations: [`TransactionsController.cs`](../../src/Controllers/TransactionsController.cs:1) and [`TransactionsFeature.cs`](../../src/Application/Features/TransactionsFeature.cs:1)
 - Tenant-scoped authorization: [`TenantController.cs`](../../src/Controllers/Tenancy/Api/TenantController.cs:1)
 - Entity pattern: [`BaseTenantModel`](../../src/Entities/Models/BaseTenantModel.cs:1)
-- Validation pattern: [`NotWhiteSpaceAttribute`](../../src/Application/Validation/NotWhiteSpaceAttribute.cs:1)
+- Validation pattern: [Validation policy](../../VALIDATION-POLICY.md)
 - Testing pattern: NUnit with Gherkin comments (Given/When/Then)
 ```
 

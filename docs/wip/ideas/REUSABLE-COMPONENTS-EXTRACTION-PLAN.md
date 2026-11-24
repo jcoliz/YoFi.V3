@@ -175,10 +175,13 @@ app.MapDefaultEndpoints();
 
 **Components to Extract:**
 
+Historical proposal: these attributes no longer exist in the current codebase.
+See the [validation policy](../../VALIDATION-POLICY.md) for current practices.
+
 | Component | Current Location | Description |
 |-----------|-----------------|-------------|
-| [`NotWhiteSpaceAttribute`](../../src/Application/Validation/NotWhiteSpaceAttribute.cs) | `src/Application/Validation/` | Validates string is not empty or whitespace |
-| [`DateRangeAttribute`](../../src/Application/Validation/DateRangeAttribute.cs) | `src/Application/Validation/` | Validates DateOnly within relative range from today |
+| `NotWhiteSpaceAttribute` | Formerly `src/Application/Validation/` | Validated string is not empty or whitespace |
+| `DateRangeAttribute` | Formerly `src/Application/Validation/` | Validated DateOnly within relative range from today |
 
 **Usage Pattern:**
 ```csharp

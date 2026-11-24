@@ -57,16 +57,18 @@ Located in [`src/Application/Validation`](../src/Application/Validation). These 
 model types**. It deliberately skips primitive/scalar types, so a `[FromQuery] int` or
 `[FromRoute] Guid` will never trigger a FluentValidation validator.
 
-### 2. DataAnnotations custom attributes — scalar parameter validation
+### 2. DataAnnotations — scalar parameter validation
 
-Custom scalar attributes declare `AttributeTargets.Parameter` so they can annotate
-individual action parameters. The current custom attribute is
-[`NotWhiteSpaceAttribute`](../src/Application/Validation/NotWhiteSpaceAttribute.cs),
-which validates that a string is not null, empty, or whitespace. Because every
-controller is marked `[ApiController]`, ASP.NET Core
-automatically enforces DataAnnotations on action parameters and returns `400` before
-the action runs — no manual `ModelState.IsValid` check needed. Custom attributes should
-return `Success` on null so `[Required]` owns null-checking.
+Use built-in DataAnnotations such as `[Range]` or `[Required]` to validate scalar
+action parameters where appropriate. ASP.NET Core's model-validation pipeline invokes
+applied attributes derived from `ValidationAttribute`; `[ApiController]` then returns
+`400` for invalid model state before the action runs, without a manual
+`ModelState.IsValid` check.
+
+For a reusable scalar constraint not covered by a built-in attribute, a custom
+`ValidationAttribute` can allow `AttributeTargets.Parameter` and implement the
+validation check. If null is permitted by the check, let `[Required]` handle null
+validation separately when needed.
 
 ### 3. Entity-level DataAnnotations — database schema
 

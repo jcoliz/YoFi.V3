@@ -51,7 +51,7 @@ See [`TENANCY.md`](TENANCY.md) for complete documentation of the multi-tenancy i
 
 **Current State:**
 - Manual validation in [`TransactionsFeature.ValidateTransactionEditDto()`](../src/Application/Features/TransactionsFeature.cs:159-197)
-- Attribute-based validation on DTOs ([`DateRangeAttribute`](../src/Application/Validation/DateRangeAttribute.cs), [`NotWhiteSpaceAttribute`](../src/Application/Validation/NotWhiteSpaceAttribute.cs))
+- Earlier attribute-based DTO validation has been superseded; see the [validation policy](VALIDATION-POLICY.md).
 - No standardized validation framework
 
 **Implement:**
