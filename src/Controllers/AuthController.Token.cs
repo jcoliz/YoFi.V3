@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using DotNetNuxt.Abstractions.Options;
 using NuxtIdentity.Core.Models;
 
 namespace YoFi.V3.Controllers;
@@ -13,6 +15,7 @@ public partial class AuthController
     /// <param name="username">The existing account's username.</param>
     /// <param name="password">The account password.</param>
     /// <param name="refreshToken">The refresh token to rotate when using the refresh_token grant.</param>
+    /// <param name="startupOptions">Startup options for the application.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
     /// <returns>An OAuth-style access token or error response.</returns>
     [AllowAnonymous]
@@ -27,9 +30,16 @@ public partial class AuthController
         [FromForm] string? username,
         [FromForm] string? password,
         [FromForm(Name = "refresh_token")] string? refreshToken,
+        [FromServices] IOptions<StartupOptions> startupOptions,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (!startupOptions.Value.EnableSwaggerUi)
+        {
+            LogTokenRequestRejected("not_enabled");
+            return NotFound();
+        }
 
         if (string.IsNullOrWhiteSpace(grantType))
         {

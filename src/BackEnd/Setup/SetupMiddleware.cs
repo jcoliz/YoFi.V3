@@ -1,9 +1,5 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using DotNetNuxt.Abstractions.Options;
 using YoFi.V3.BackEnd.Startup;
-using YoFi.V3.Controllers;
 using YoFi.V3.Controllers.Extensions;
 using YoFi.V3.Controllers.Tenancy;
 
@@ -18,7 +14,7 @@ public static class SetupMiddleware
     /// Configures the complete middleware pipeline for the application.
     /// </summary>
     /// <param name="app">The application builder.</param>
-    /// <param name="env">The hosting environment.</param>
+    /// <param name="startupOptions">Startup options for configuring middleware behavior.</param>
     /// <param name="logger">Logger for diagnostic output.</param>
     /// <returns>The application builder for chaining.</returns>
     /// <remarks>
@@ -35,18 +31,18 @@ public static class SetupMiddleware
     /// </remarks>
     public static WebApplication ConfigureMiddlewarePipeline(
         this WebApplication app,
-        IWebHostEnvironment env,
+        StartupOptions startupOptions,
         ILogger logger)
     {
         // Production-specific middleware
-        if (env.IsProduction())
+        if (startupOptions.AllowHttpInsecure == false)
         {
             app.UseHsts();
             app.UseHttpsRedirection();
         }
 
-        // API documentation (enabled in all environments during development phase)
-        if (ShouldEnableApiDocumentation(env))
+        // API documentation and (now) Scalar UI
+        if (startupOptions.EnableSwaggerUi)
         {
             logger.LogEnablingApiDocumentation();
             app.MapApiDocumentation();
@@ -78,11 +74,5 @@ public static class SetupMiddleware
         app.MapControllers();
 
         return app;
-    }
-
-    private static bool ShouldEnableApiDocumentation(IWebHostEnvironment env)
-    {
-        // During development phase, we keep swagger up even in non-development environments
-        return true; // TODO: Revisit when moving to production
     }
 }

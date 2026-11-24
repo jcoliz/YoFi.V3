@@ -8,9 +8,9 @@ using NuxtIdentity.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Identity;
 using static DotNetNuxt.Hosting.Logging.BootLoggerExtensions;
 using static DotNetNuxt.Hosting.VersionHelpers;
-using DotNetNuxt.Hosting.Logging;
-using DotNetNuxt.Hosting.Options;
+using DotNetNuxt.Abstractions.Options;
 using DotNetNuxt.Hosting;
+using DotNetNuxt.Hosting.Logging;
 
 ILogger? logger = default;
 try
@@ -79,7 +79,7 @@ try
     logger.LogCheckpointReached("Completed NuxtIdentity Seeding");
 
     // Configure the HTTP request pipeline
-    app.ConfigureMiddlewarePipeline(app.Environment, logger);
+    app.ConfigureMiddlewarePipeline(startupOptions, logger);
     logger.LogCheckpointReached("Configured Middleware Pipeline");
 
     logger.LogOkEnvironment(app.Environment.EnvironmentName);
