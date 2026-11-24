@@ -1,8 +1,10 @@
-# Validation Policy
+---
+status: Active
+last_updated: 2026-11-24
+applies_to: All YoFi.V3 request/input validation
+---
 
-**Status:** Active
-**Last Updated:** 2026-09-29
-**Applies To:** All YoFi.V3 request/input validation
+# Validation Policy
 
 ## Overview
 
@@ -12,6 +14,16 @@ API boundary down to database schema constraints at persistence time. The primar
 strategy for validating request bodies is **FluentValidation**, run automatically at
 the controller boundary.
 
+## Implementation Follow-ups
+
+- Ensure every client-originated `400 Bad Request` response uses
+  `ValidationProblemDetails` (or `HttpValidationProblemDetails`) with `errors` and a
+  trace ID. Plain `ProblemDetails` is not sufficient for validation failures.
+- The `InvalidModelStateResponseFactory` currently synthesizes a combined `detail`
+  string from the structured errors. This synthesis is deprecated: new code should rely
+  on `title`, `detail`, `errors`, and `traceId`, and keep existing behavior only until
+  the response factory is updated.
+
 ## Core Principles
 
 1. **Validate at the boundary** - Invalid requests are rejected before reaching
@@ -20,8 +32,10 @@ the controller boundary.
    `AbstractValidator<T>` classes in the Application layer.
 3. **DataAnnotations for scalars and schema** - Individual action parameters and EF
    Core entity constraints use DataAnnotations attributes.
-4. **Consistent error format** - All validation failures return RFC 9110
-   `application/problem+json` with a combined `detail` string and a `traceId`.
+4. **Consistent error format** - All `400 Bad Request` validation failures return RFC 9110
+   `application/problem+json` as `ValidationProblemDetails` (or
+   `HttpValidationProblemDetails`) with structured `errors`, a `traceId`, and
+   a user-facing `title` and `detail`.
 5. **Business rules live in validators** - Validators may inject services (e.g. regex
    safety) so validation enforces business rules, not just shape.
 
@@ -45,18 +59,14 @@ model types**. It deliberately skips primitive/scalar types, so a `[FromQuery] i
 
 ### 2. DataAnnotations custom attributes — scalar parameter validation
 
-Located alongside the validators:
-
-- [`DateRangeAttribute`](../src/Application/Validation/DateRangeAttribute.cs) - validates a
-  `DateOnly` is within a relative range of today.
-- [`NotWhiteSpaceAttribute`](../src/Application/Validation/NotWhiteSpaceAttribute.cs) - validates
-  a string is not null/empty/whitespace.
-
-Both declare `AttributeTargets.Parameter`, so they can annotate individual action
-parameters. Because every controller is marked `[ApiController]`, ASP.NET Core
+Custom scalar attributes declare `AttributeTargets.Parameter` so they can annotate
+individual action parameters. The current custom attribute is
+[`NotWhiteSpaceAttribute`](../src/Application/Validation/NotWhiteSpaceAttribute.cs),
+which validates that a string is not null, empty, or whitespace. Because every
+controller is marked `[ApiController]`, ASP.NET Core
 automatically enforces DataAnnotations on action parameters and returns `400` before
-the action runs — no manual `ModelState.IsValid` check needed. Both attributes return
-`Success` on null so `[Required]` owns null-checking.
+the action runs — no manual `ModelState.IsValid` check needed. Custom attributes should
+return `Success` on null so `[Required]` owns null-checking.
 
 ### 3. Entity-level DataAnnotations — database schema
 
@@ -66,11 +76,27 @@ the action runs — no manual `ModelState.IsValid` check needed. Both attributes
 sizes). They are a last line of defense at persistence time, not the primary
 request-validation mechanism.
 
-### 4. Manual controller-level validation — via exception
+### 4. Manual and application-level validation — via exception
 
-For checks that don't fit model binding (file uploads, format, size limits), throw
-[`ValidationException`](../src/Entities/Exceptions/ValidationException.cs) from the
-controller. The registered `CustomExceptionHandler` maps it to `400 Bad Request`.
+For checks that don't fit model binding, throw a validation exception rather than
+returning ad hoc responses:
+
+- Use [`ValidationException`](../src/Entities/Exceptions/ValidationException.cs) for
+  one simple validation failure, optionally with a parameter name and title. When
+  no title is supplied, the handler uses "The request failed validation."
+- Use [`ValidationProblemsException`](../src/Entities/Exceptions/ValidationProblemsException.cs)
+  for a failure with a user-facing title and
+  grouped field messages. Use it for application/service validation that already
+  knows every affected field, such as workbook row validation.
+
+Do not return domain-specific `400` response shapes or add domain-specific handlers
+for invalid input. Use these existing validation mechanisms and let
+`CustomExceptionHandler` produce `HttpValidationProblemDetails`. Resource, access,
+and concurrency errors use their appropriate non-`400` responses.
+
+As an example, the existing `TenantDataImportValidationException` retains its internal preview,
+but the standard `ValidationException` handler returns its title and message without
+exposing the preview. The preview remains available through the preview endpoint.
 
 ## How It's Wired In
 
@@ -100,9 +126,17 @@ services.AddFluentValidationAutoValidation();
 - **`AddFluentValidationAutoValidation`** connects validators into ASP.NET Core's
   model-binding pipeline, so they run at the controller boundary automatically.
 
-The error-response shape is customized via `InvalidModelStateResponseFactory` in the
-same file: it emits `application/problem+json`, combines all messages into a `detail`
-string for frontend convenience, and attaches a W3C `traceId` for diagnostics.
+FluentValidation participates in ASP.NET Core model binding. When model state is
+invalid, `InvalidModelStateResponseFactory` returns `ValidationProblemDetails`
+serialized as `application/problem+json` with structured `errors` and a W3C
+`traceId`. The factory currently also combines those messages into `detail`; that
+behavior is retained for compatibility but is deprecated. Clients should use `errors`
+as the source of field-specific messages and `detail` only as general explanatory text.
+
+The frontend `ErrorDisplay` component renders `errors` inline, by field, and displays
+additional diagnostic fields, including `traceId`, in an expandable support-details
+section. Users can provide the trace ID when reporting an issue so support can correlate
+it with server logs.
 
 ## Request Flow
 
@@ -112,7 +146,7 @@ flowchart TD
     B --> C{Bound complex DTO?}
     C -- yes --> D{FluentValidation<br/>AutoValidation}
     C -- scalar params --> E{DataAnnotations<br/>via ApiController}
-    D -- invalid --> F[400 problem+json<br/>detail + traceId]
+    D -- invalid --> F[400 problem+json<br/>title + detail + errors + traceId]
     E -- invalid --> F
     D -- valid --> G[Controller action]
     E -- valid --> G
@@ -139,9 +173,7 @@ automatically:
 ```csharp
 public async Task<IActionResult> GetTransactions(
     [FromRoute] Guid tenantKey,
-    [FromQuery, Range(1, int.MaxValue)] int? pageNumber = null,
-    [FromQuery, DateRange(50, 5)] DateOnly? fromDate = null,
-    [FromQuery, DateRange(50, 5)] DateOnly? toDate = null)
+    [FromQuery, Range(1, int.MaxValue)] int? pageNumber = null)
 ```
 
 ### ...a rule spanning multiple parameters
@@ -152,13 +184,16 @@ rules (e.g. `fromDate <= toDate`) can be expressed across its properties.
 
 ### ...something that isn't model-bound
 
-Throw `ValidationException` from the controller; the `CustomExceptionHandler` returns
-`400`.
+Throw `ValidationException` for a simple imperative failure. Use
+`ValidationProblemsException` when there is a title and a set of grouped field
+messages. The `CustomExceptionHandler` returns `400` with `ValidationProblemDetails`.
 
 ## Guidance Summary
 
 - Request body? → FluentValidation `AbstractValidator<T>` (auto-registered).
 - Independent scalar constraint? → DataAnnotations attribute on the parameter.
 - Cross-parameter rule? → wrap parameters in a model, validate with FluentValidation.
-- Non-bound / imperative check? → throw `ValidationException`.
+- Single non-bound / imperative failure? → throw `ValidationException`.
+- Multiple or grouped field failures? → throw `ValidationProblemsException`.
+- Any `400` validation response? → return `ValidationProblemDetails` with `errors` and `traceId`.
 - New open-generic validator? → add an explicit `AddTransient` registration per closed type.
