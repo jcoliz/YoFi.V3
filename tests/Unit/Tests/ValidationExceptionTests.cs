@@ -116,6 +116,33 @@ public class ValidationExceptionTests
     }
 
     [Test]
+    public void Title_CanBeProvidedOrOmitted()
+    {
+        var exception = new ValidationException("file", "Invalid file.") { Title = "Import failed." };
+        var defaultException = new ValidationException("Invalid input.");
+
+        Assert.That(exception.Title, Is.EqualTo("Import failed."));
+        Assert.That(defaultException.Title, Is.Null);
+    }
+
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Title_WhenBlank_Throws(string title)
+    {
+        Assert.Throws<ArgumentException>(() => _ = new ValidationException("Invalid input.") { Title = title });
+    }
+
+    [Test]
+    public void ValidationProblemsException_ExposesTitleOnBaseException()
+    {
+        ValidationException exception = new ValidationProblemsException(
+            "Workbook failed.", "Fix the rows.", new Dictionary<string, string[]> { ["row"] = ["Invalid value."] });
+
+        Assert.That(exception.Title, Is.EqualTo("Workbook failed."));
+        Assert.That(exception.Message, Is.EqualTo("Fix the rows."));
+    }
+
+    [Test]
     public void Message_PropertyGetter_ReturnsCorrectValue()
     {
         // Given: A validation exception with custom message

@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using ClosedXML.Excel;
 using YoFi.V3.Application.Dto;
-using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Entities.Exceptions;
 using YoFi.V3.Entities.Models;

@@ -1,14 +1,9 @@
-using YoFi.V3.Entities.Exceptions;
-
-namespace YoFi.V3.Application.Exceptions;
+namespace YoFi.V3.Entities.Exceptions;
 
 /// <summary>Carries a title and grouped field problems for one failed validation.</summary>
 public sealed class ValidationProblemsException
     : ValidationException
 {
-    /// <summary>Gets the user-facing validation title.</summary>
-    public string Title { get; }
-
     /// <summary>Gets grouped validation error messages.</summary>
     public IReadOnlyDictionary<string, string[]> Errors { get; }
 

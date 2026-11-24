@@ -2,7 +2,6 @@ using System.Data;
 using System.Linq.Expressions;
 using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
-using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Services;
 using YoFi.V3.Application.Validation;

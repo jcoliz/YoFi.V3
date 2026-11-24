@@ -194,6 +194,8 @@ public class TenantDataImportFeatureTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(exception!.Preview.Worksheets.Single().Errors.Single().RowNumber, Is.EqualTo(2));
+            Assert.That(exception.Title, Is.EqualTo("Import could not be completed."));
+            Assert.That(exception.Message, Does.Contain("Review the workbook preview"));
             Assert.That(_staged, Is.Empty);
         }
         _data.Verify(data => data.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);

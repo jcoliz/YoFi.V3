@@ -413,9 +413,12 @@ public class TenantDataAdminControllerTests : AuthenticatedTestBase
         {
             Assert.That(document.RootElement.GetProperty("status").GetInt32(), Is.EqualTo(400));
             Assert.That(document.RootElement.TryGetProperty("preview", out _), Is.False);
-            Assert.That(document.RootElement.GetProperty("detail").GetString(),
-                Is.EqualTo("Review the workbook preview for validation details, then try importing again."));
-            Assert.That(document.RootElement.TryGetProperty("errors", out _), Is.False);
+            Assert.That(document.RootElement.GetProperty("title").GetString(), Is.EqualTo("Import could not be completed."));
+            var detail = document.RootElement.GetProperty("detail").GetString();
+            Assert.That(detail, Does.Contain("Review the workbook preview for validation details"));
+            Assert.That(document.RootElement.GetProperty("errors").GetProperty("file")[0].GetString(),
+                Is.EqualTo(detail));
+            Assert.That(document.RootElement.GetProperty("traceId").GetString(), Is.Not.Null.And.Not.Empty);
         }
 
         Assert.That(await db.PayeeMatchingRules.CountAsync(item => item.TenantId == tenant.Id),

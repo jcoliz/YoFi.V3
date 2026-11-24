@@ -1,9 +1,9 @@
 using System.Globalization;
 using ClosedXML.Excel;
 using YoFi.V3.Application.Dto;
-using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Helpers;
 using YoFi.V3.Application.Validation;
+using YoFi.V3.Entities.Exceptions;
 
 namespace YoFi.V3.Application.Services;
 

@@ -1,6 +1,6 @@
 using ClosedXML.Excel;
-using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Services;
+using YoFi.V3.Entities.Exceptions;
 
 namespace YoFi.V3.Tests.Unit.Application;
 

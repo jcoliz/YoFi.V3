@@ -185,6 +185,33 @@ public class TransactionSplitUpdateControllerTests : AuthenticatedTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    [TestCase(null, "The request failed validation.")]
+    [TestCase("Custom validation title", "Custom validation title")]
+    public async Task ValidationExceptionHandler_UsesCustomOrDefaultTitle(string? title, string expectedTitle)
+    {
+        var handler = new CustomExceptionHandler(NullLogger<CustomExceptionHandler>.Instance);
+        var context = new DefaultHttpContext { RequestServices = _factory.Services };
+        context.Request.Path = "/validation-test";
+        using var body = new MemoryStream();
+        context.Response.Body = body;
+
+        var handled = await handler.TryHandleAsync(
+            context, new ValidationException("field", "Invalid value.") { Title = title }, CancellationToken.None);
+
+        body.Position = 0;
+        using var document = await System.Text.Json.JsonDocument.ParseAsync(body);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(handled, Is.True);
+            Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+            Assert.That(context.Response.ContentType, Does.StartWith("application/problem+json"));
+            Assert.That(document.RootElement.GetProperty("title").GetString(), Is.EqualTo(expectedTitle));
+            Assert.That(document.RootElement.GetProperty("detail").GetString(), Is.EqualTo("Invalid value."));
+            Assert.That(document.RootElement.GetProperty("errors").GetProperty("field")[0].GetString(), Is.EqualTo("Invalid value."));
+            Assert.That(document.RootElement.GetProperty("traceId").GetString(), Is.Not.Null.And.Not.Empty);
+        }
+    }
+
     [Test]
     public async Task UpdateSplit_WithConcurrentChange_ReturnsConflictProblem()
     {

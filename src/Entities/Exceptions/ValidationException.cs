@@ -11,6 +11,25 @@ namespace YoFi.V3.Entities.Exceptions;
 /// </remarks>
 public class ValidationException : Exception
 {
+    private string? _title;
+
+    /// <summary>
+    /// Gets or initializes an optional user-facing validation title.
+    /// </summary>
+    public string? Title
+    {
+        get => _title;
+        init
+        {
+            if (value is not null)
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(value);
+            }
+
+            _title = value;
+        }
+    }
+
     /// <summary>
     /// Gets the name of the parameter or field that failed validation.
     /// </summary>
