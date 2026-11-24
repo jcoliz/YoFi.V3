@@ -360,11 +360,11 @@ public class SampleDataControllerTests : AuthenticatedTestBase
     private static async Task AssertBadRequest(HttpResponseMessage response)
     {
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        var problem = await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>();
         using (Assert.EnterMultipleScope())
         {
             Assert.That(problem!.Status, Is.EqualTo(400));
-            Assert.That(problem.Detail, Is.Not.Empty);
+            Assert.That(problem.Errors, Is.Not.Empty);
             Assert.That(problem.Extensions.ContainsKey("traceId"), Is.True);
         }
     }

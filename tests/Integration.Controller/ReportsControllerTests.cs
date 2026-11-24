@@ -172,6 +172,8 @@ public class ReportsControllerTests : AuthenticatedTestBase
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
             Assert.That(problem, Is.Not.Null);
             Assert.That(problem!.Errors, Is.Not.Empty);
+            Assert.That(problem.Detail, Is.Null);
+            Assert.That(problem.Extensions.ContainsKey("traceId"), Is.True);
         }
     }
 

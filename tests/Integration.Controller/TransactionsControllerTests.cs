@@ -785,9 +785,12 @@ public class TransactionsControllerTests : AuthenticatedTestBase
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
 
         // And: Response should contain problem details
-        var problemDetails = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
         Assert.That(problemDetails, Is.Not.Null);
         Assert.That(problemDetails!.Status, Is.EqualTo(400));
+        Assert.That(problemDetails.Errors["Memo"], Is.Not.Empty);
+        Assert.That(problemDetails.Detail, Is.Null);
+        Assert.That(problemDetails.Extensions.ContainsKey("traceId"), Is.True);
     }
 
     [Test]

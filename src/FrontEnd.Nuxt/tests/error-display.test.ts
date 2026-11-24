@@ -98,6 +98,27 @@ describe('ErrorDisplay', () => {
     expect(text).not.toMatch(/:\s*Please check the form\./)
   })
 
+  it('renders model-state errors without a detail', async () => {
+    const problem = {
+      title: 'One or more validation errors occurred.',
+      status: 400,
+      errors: { Name: ['Name is required.'], Amount: ['Amount must be positive.'] },
+      traceId: 'trace-123',
+    }
+    const wrapper = mount(ErrorDisplay, {
+      props: { show: true, problem },
+      global: { stubs: { FeatherIcon } },
+    })
+
+    expect(wrapper.find('[data-test-id="title-display"]').text()).toBe(problem.title)
+    expect(wrapper.find('[data-test-id="detail-display"]').exists()).toBe(false)
+    const errors = wrapper.find('[data-test-id="validation-errors"]').text()
+    expect(errors).toContain('Name: Name is required.')
+    expect(errors).toContain('Amount: Amount must be positive.')
+    await wrapper.find('[data-test-id="more-button"]').trigger('click')
+    expect(wrapper.find('[data-test-id="more-text"]').text()).toContain('trace-123')
+  })
+
   it('hides validation section when errors object is empty', () => {
     // Given: a problem with an empty errors object
     const wrapper = mount(ErrorDisplay, {

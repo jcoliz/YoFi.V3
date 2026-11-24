@@ -51,8 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddSeedStage<TenantSeedStage>();
         services.AddSeedStage<TenantRoleSeedStage>();
 
-        // Customize validation error response format to include a "detail" field
-        // that combines all validation errors into a single string for frontend compatibility.
+        // Customize validation responses with a trace ID for diagnostics.
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = context =>
@@ -64,16 +63,6 @@ public static class ServiceCollectionExtensions
                     Status = StatusCodes.Status400BadRequest,
                     Instance = context.HttpContext.Request.Path
                 };
-
-                // Add a "detail" field that combines all error messages for frontend compatibility
-                var errorMessages = problemDetails.Errors
-                    .SelectMany(kvp => kvp.Value.Select(msg => $"{kvp.Key}: {msg}"))
-                    .ToList();
-
-                if (errorMessages.Count > 0)
-                {
-                    problemDetails.Detail = string.Join("; ", errorMessages);
-                }
 
                 // Add W3C trace context ID for diagnostics (format: 00-{trace-id}-{span-id}-{flags})
                 problemDetails.Extensions["traceId"] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier;

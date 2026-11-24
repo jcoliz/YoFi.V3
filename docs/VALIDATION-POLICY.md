@@ -19,10 +19,6 @@ the controller boundary.
 - Ensure every client-originated `400 Bad Request` response uses
   `ValidationProblemDetails` (or `HttpValidationProblemDetails`) with `errors` and a
   trace ID. Plain `ProblemDetails` is not sufficient for validation failures.
-- The `InvalidModelStateResponseFactory` currently synthesizes a combined `detail`
-  string from the structured errors. This synthesis is deprecated: new code should rely
-  on `title`, `detail`, `errors`, and `traceId`, and keep existing behavior only until
-  the response factory is updated.
 
 ## Core Principles
 
@@ -35,7 +31,8 @@ the controller boundary.
 4. **Consistent error format** - All `400 Bad Request` validation failures return RFC 9110
    `application/problem+json` as `ValidationProblemDetails` (or
    `HttpValidationProblemDetails`) with structured `errors`, a `traceId`, and
-   a user-facing `title` and `detail`.
+   a user-facing `title`. A `detail` may provide general explanatory text but is
+   not required.
 5. **Business rules live in validators** - Validators may inject services (e.g. regex
    safety) so validation enforces business rules, not just shape.
 
@@ -131,9 +128,9 @@ services.AddFluentValidationAutoValidation();
 FluentValidation participates in ASP.NET Core model binding. When model state is
 invalid, `InvalidModelStateResponseFactory` returns `ValidationProblemDetails`
 serialized as `application/problem+json` with structured `errors` and a W3C
-`traceId`. The factory currently also combines those messages into `detail`; that
-behavior is retained for compatibility but is deprecated. Clients should use `errors`
-as the source of field-specific messages and `detail` only as general explanatory text.
+`traceId`. It does not duplicate error messages in `detail`. Clients should use
+`errors` as the source of field-specific messages and treat `detail`, when present,
+as general explanatory text.
 
 The frontend `ErrorDisplay` component renders `errors` inline, by field, and displays
 additional diagnostic fields, including `traceId`, in an expandable support-details
@@ -148,7 +145,7 @@ flowchart TD
     B --> C{Bound complex DTO?}
     C -- yes --> D{FluentValidation<br/>AutoValidation}
     C -- scalar params --> E{DataAnnotations<br/>via ApiController}
-    D -- invalid --> F[400 problem+json<br/>title + detail + errors + traceId]
+    D -- invalid --> F[400 problem+json<br/>title + errors + traceId]
     E -- invalid --> F
     D -- valid --> G[Controller action]
     E -- valid --> G
