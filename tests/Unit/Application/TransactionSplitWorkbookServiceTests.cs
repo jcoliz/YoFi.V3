@@ -49,7 +49,7 @@ public class TransactionSplitWorkbookServiceTests
         var worksheet = workbook.Worksheet("Splits");
         worksheet.Cell(1, 1).Value = "Memo";
 
-        var exception = Assert.Throws<ValidationProblemsException>(
+        var exception = Assert.Throws<ValidationException>(
             () => _service.Parse(ToBytes(workbook)));
 
         Assert.That(exception!.Title, Is.EqualTo("The split workbook failed validation."));
@@ -68,7 +68,7 @@ public class TransactionSplitWorkbookServiceTests
         worksheet.Cell(2, 1).Value = "Food";
         worksheet.Cell(2, 2).Value = "0";
 
-        var exception = Assert.Throws<ValidationProblemsException>(
+        var exception = Assert.Throws<ValidationException>(
             () => _service.Parse(ToBytes(workbook)));
 
         Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
@@ -89,7 +89,7 @@ public class TransactionSplitWorkbookServiceTests
             worksheet.Cell(row, 2).Value = "1";
         }
 
-        var exception = Assert.Throws<ValidationProblemsException>(
+        var exception = Assert.Throws<ValidationException>(
             () => _service.Parse(ToBytes(workbook)));
 
         Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
@@ -99,7 +99,7 @@ public class TransactionSplitWorkbookServiceTests
     [Test]
     public void Parse_InvalidWorkbook_ThrowsGroupedValidation()
     {
-        var exception = Assert.Throws<ValidationProblemsException>(
+        var exception = Assert.Throws<ValidationException>(
             () => _service.Parse([1, 2, 3, 4]));
 
         Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
@@ -207,7 +207,7 @@ public class TransactionSplitWorkbookServiceTests
         Assert.That(worksheet.Cell(1, 3).GetString(), Is.EqualTo("Memo"));
         Assert.That(worksheet.LastRowUsed()!.RowNumber(), Is.EqualTo(1));
 
-        var exception = Assert.Throws<ValidationProblemsException>(
+        var exception = Assert.Throws<ValidationException>(
             () => _service.Parse(result.Content));
         Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
             Has.Some.Contains("does not contain any non-zero"));

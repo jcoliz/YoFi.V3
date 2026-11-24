@@ -55,11 +55,6 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
             KeyNotFoundException keyNotFound => await HandleKeyNotFoundExceptionAsync(
                 httpContext, keyNotFound, cancellationToken),
 
-            // 400 Bad Request - grouped workbook validation problems
-            ValidationProblemsException validationProblemsException
-                => await HandleValidationProblemsExceptionAsync(
-                    httpContext, validationProblemsException, cancellationToken),
-
             // 400 Bad Request - ValidationException (input validation errors)
             Entities.Exceptions.ValidationException validationException => await HandleValidationExceptionAsync(
                 httpContext, validationException, cancellationToken),
@@ -187,15 +182,23 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
     {
         httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-        // Create errors dictionary for HttpValidationProblemDetails
-        var errors = new Dictionary<string, string[]>();
+        var errors = exception.Errors.ToDictionary(
+            entry => entry.Key,
+            entry => entry.Value.ToArray(),
+            StringComparer.Ordinal);
         if (!string.IsNullOrEmpty(exception.ParameterName))
         {
-            errors[exception.ParameterName] = [exception.Message];
+            if (errors.TryGetValue(exception.ParameterName, out var messages))
+            {
+                errors[exception.ParameterName] = [.. messages, exception.Message];
+            }
+            else
+            {
+                errors[exception.ParameterName] = [exception.Message];
+            }
         }
-        else
+        else if (errors.Count == 0)
         {
-            // If no parameter name provided, use a generic key
             errors["validation"] = [exception.Message];
         }
 
@@ -211,40 +214,6 @@ public partial class CustomExceptionHandler(ILogger<CustomExceptionHandler> logg
         // Add W3C trace context ID for diagnostics
         var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
         problemDetails.Extensions["traceId"] = traceId;
-
-        await httpContext.Response.WriteAsJsonAsync(
-            problemDetails,
-            problemDetails.GetType(),
-            options: null,
-            contentType: "application/problem+json",
-            cancellationToken: cancellationToken);
-        return true;
-    }
-
-    /// <summary>
-    /// Handles grouped application validation problems.
-    /// </summary>
-    private static async ValueTask<bool> HandleValidationProblemsExceptionAsync(
-        HttpContext httpContext,
-        ValidationProblemsException exception,
-        CancellationToken cancellationToken)
-    {
-        httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-
-        var errors = exception.Errors.ToDictionary(
-            entry => entry.Key,
-            entry => entry.Value,
-            StringComparer.Ordinal);
-        var problemDetails = new HttpValidationProblemDetails(errors)
-        {
-            Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-            Title = exception.Title ?? "The request failed validation.",
-            Status = StatusCodes.Status400BadRequest,
-            Instance = httpContext.Request.Path,
-            Detail = exception.Message
-        };
-        problemDetails.Extensions["traceId"] =
-            Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
         await httpContext.Response.WriteAsJsonAsync(
             problemDetails,

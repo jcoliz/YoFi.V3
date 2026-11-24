@@ -80,13 +80,13 @@ request-validation mechanism.
 For checks that don't fit model binding, throw a validation exception rather than
 returning ad hoc responses:
 
-- Use [`ValidationException`](../src/Entities/Exceptions/ValidationException.cs) for
-  one simple validation failure, optionally with a parameter name and title. When
-  no title is supplied, the handler uses "The request failed validation."
-- Use [`ValidationProblemsException`](../src/Entities/Exceptions/ValidationProblemsException.cs)
-  for a failure with a user-facing title and
-  grouped field messages. Use it for application/service validation that already
-  knows every affected field, such as workbook row validation.
+Use [`ValidationException`](../src/Entities/Exceptions/ValidationException.cs) for
+simple or grouped failures, optionally with a parameter name, title, and `Errors`
+dictionary. When no title is supplied, the handler uses "The request failed validation."
+If a parameter name is supplied, the handler adds the exception message under that
+name, appending it to any existing messages for the same key. With no parameter name,
+the handler uses the grouped errors alone, or adds the message under `validation`
+when there are no grouped errors. The exception message is also returned as `detail`.
 
 Do not return domain-specific `400` response shapes or add domain-specific handlers
 for invalid input. Use these existing validation mechanisms and let
@@ -183,16 +183,15 @@ rules (e.g. `fromDate <= toDate`) can be expressed across its properties.
 
 ### ...something that isn't model-bound
 
-Throw `ValidationException` for a simple imperative failure. Use
-`ValidationProblemsException` when there is a title and a set of grouped field
-messages. The `CustomExceptionHandler` returns `400` with `ValidationProblemDetails`.
+Throw `ValidationException` for an imperative failure, optionally setting `Errors`
+for grouped field messages. The `CustomExceptionHandler` returns `400` with
+`HttpValidationProblemDetails`.
 
 ## Guidance Summary
 
 - Request body? → FluentValidation `AbstractValidator<T>` (auto-registered).
 - Independent scalar constraint? → DataAnnotations attribute on the parameter.
 - Cross-parameter rule? → wrap parameters in a model, validate with FluentValidation.
-- Single non-bound / imperative failure? → throw `ValidationException`.
-- Multiple or grouped field failures? → throw `ValidationProblemsException`.
+- Non-bound / imperative failure? → throw `ValidationException`, optionally with grouped errors.
 - Any `400` validation response? → return `ValidationProblemDetails` with `errors` and `traceId`.
 - New open-generic validator? → add an explicit `AddTransient` registration per closed type.

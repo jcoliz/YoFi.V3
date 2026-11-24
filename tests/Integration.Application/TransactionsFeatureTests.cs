@@ -1455,7 +1455,7 @@ public class TransactionsFeatureTests : FeatureTestBase
             (new string('x', 201), "20", new string('m', 501)));
 
         // When: The workbook validation encounters an invalid second row
-        var exception = await Assert.ThrowsAsync<ValidationProblemsException>(() =>
+        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             _feature.UploadSplitsAsync(transaction.Key, workbook));
 
         // Then: Validation is grouped and persisted state is unchanged

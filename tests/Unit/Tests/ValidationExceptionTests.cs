@@ -133,13 +133,37 @@ public class ValidationExceptionTests
     }
 
     [Test]
-    public void ValidationProblemsException_ExposesTitleOnBaseException()
+    public void Errors_DefaultsToEmptyAndCopiesSuppliedGroups()
     {
-        ValidationException exception = new ValidationProblemsException(
-            "Workbook failed.", "Fix the rows.", new Dictionary<string, string[]> { ["row"] = ["Invalid value."] });
+        var messages = new[] { "Invalid value." };
+        var errors = new Dictionary<string, string[]> { ["row"] = messages };
+        var exception = new ValidationException("Fix the rows.") { Title = "Workbook failed.", Errors = errors };
+        messages[0] = "Changed.";
+        errors["other"] = ["Other error."];
 
+        Assert.That(new ValidationException("Invalid input.").Errors, Is.Empty);
         Assert.That(exception.Title, Is.EqualTo("Workbook failed."));
         Assert.That(exception.Message, Is.EqualTo("Fix the rows."));
+        Assert.That(exception.Errors.Keys, Is.EquivalentTo(new[] { "row" }));
+        Assert.That(exception.Errors["row"], Is.EqualTo(new[] { "Invalid value." }));
+    }
+
+    [Test]
+    public void Errors_RejectsInvalidGroups()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            _ = new ValidationException("Invalid input.") { Errors = null! });
+        foreach (var errors in new[]
+        {
+            new Dictionary<string, string[]> { [""] = ["Error"] },
+            new Dictionary<string, string[]> { ["field"] = [] },
+            new Dictionary<string, string[]> { ["field"] = [" "] },
+            new Dictionary<string, string[]> { ["field"] = null! }
+        })
+        {
+            Assert.Throws<ArgumentException>(() =>
+                _ = new ValidationException("Invalid input.") { Errors = errors });
+        }
     }
 
     [Test]

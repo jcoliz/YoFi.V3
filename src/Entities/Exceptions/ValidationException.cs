@@ -12,6 +12,7 @@ namespace YoFi.V3.Entities.Exceptions;
 public class ValidationException : Exception
 {
     private string? _title;
+    private IReadOnlyDictionary<string, string[]> _errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets or initializes an optional user-facing validation title.
@@ -34,6 +35,32 @@ public class ValidationException : Exception
     /// Gets the name of the parameter or field that failed validation.
     /// </summary>
     public string? ParameterName { get; }
+
+    /// <summary>
+    /// Gets or initializes grouped field validation messages.
+    /// </summary>
+    public IReadOnlyDictionary<string, string[]> Errors
+    {
+        get => _errors;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Any(entry =>
+                string.IsNullOrWhiteSpace(entry.Key)
+                || entry.Value is not { Length: > 0 }
+                || entry.Value.Any(string.IsNullOrWhiteSpace)))
+            {
+                throw new ArgumentException(
+                    "Each validation problem must have a non-empty key and at least one non-empty message.",
+                    nameof(value));
+            }
+
+            _errors = value.ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.ToArray(),
+                StringComparer.Ordinal);
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationException"/> class.

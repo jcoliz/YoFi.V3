@@ -16,7 +16,7 @@ public sealed class TransactionSplitWorkbookService
     /// <summary>Parses and validates split rows, using the first worksheet when no memo match is available.</summary>
     /// <param name="content">Exact uploaded XLSX bytes.</param>
     /// <returns>Validated, non-zero rows in source order.</returns>
-    /// <exception cref="ValidationProblemsException">The workbook or one or more rows is invalid.</exception>
+    /// <exception cref="ValidationException">The workbook or one or more rows is invalid.</exception>
     public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content)
         => Parse(content, transactionMemo: null);
 
@@ -24,7 +24,7 @@ public sealed class TransactionSplitWorkbookService
     /// <param name="content">Exact uploaded XLSX bytes.</param>
     /// <param name="transactionMemo">The authoritative transaction memo used to select a worksheet.</param>
     /// <returns>Validated, non-zero rows in source order.</returns>
-    /// <exception cref="ValidationProblemsException">The workbook or one or more rows is invalid.</exception>
+    /// <exception cref="ValidationException">The workbook or one or more rows is invalid.</exception>
     public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content, string? transactionMemo)
     {
         ArgumentNullException.ThrowIfNull(content);
@@ -228,10 +228,12 @@ public sealed class TransactionSplitWorkbookService
                     group => group.Select(issue => issue.Message).ToArray(),
                     StringComparer.Ordinal);
 
-                throw new ValidationProblemsException(
-                    "The split workbook failed validation.",
-                    "Correct the workbook errors and upload it again. No splits were changed.",
-                    grouped);
+                throw new ValidationException(
+                    "Correct the workbook errors and upload it again. No splits were changed.")
+                {
+                    Title = "The split workbook failed validation.",
+                    Errors = grouped
+                };
             }
 
             return rows;
@@ -281,16 +283,18 @@ public sealed class TransactionSplitWorkbookService
             ?? fallback;
     }
 
-    private static ValidationProblemsException CreateInvalidWorkbookException()
+    private static ValidationException CreateInvalidWorkbookException()
     {
         var errors = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["Row 1: file"] = [InvalidWorkbookMessage]
         };
-        return new ValidationProblemsException(
-            "The split workbook failed validation.",
-            "Correct the workbook errors and upload it again. No splits were changed.",
-            errors);
+        return new ValidationException(
+            "Correct the workbook errors and upload it again. No splits were changed.")
+        {
+            Title = "The split workbook failed validation.",
+            Errors = errors
+        };
     }
 
     private static bool IsRecognizedHeader(string name)

@@ -281,8 +281,7 @@ public partial class TransactionsController(
     /// <param name="file">The uploaded XLSX workbook.</param>
     /// <param name="cancellationToken">Cancellation token for the request.</param>
     /// <returns>The committed transaction with ordered splits.</returns>
-    /// <exception cref="ValidationException">The multipart file or workbook upload is invalid.</exception>
-    /// <exception cref="ValidationProblemsException">Workbook parsing or row validation failed.</exception>
+    /// <exception cref="ValidationException">The multipart file, workbook, or its rows are invalid.</exception>
     /// <exception cref="TransactionNotFoundException">The transaction is not found in the tenant.</exception>
     [HttpPost("{key:guid}/splits/upload")]
     [Consumes("multipart/form-data")]

@@ -8,6 +8,10 @@ ado: "Story 2309: User - Upload splits (upload-splits)"
 
 # Technical Design Document: Upload Transaction Splits from Excel
 
+> Historical design note: `ValidationProblemsException` described below was
+> consolidated into `ValidationException`. See the current
+> [validation policy](../../VALIDATION-POLICY.md) for the exception contract.
+
 ## Scope
 
 This design covers Story 2309, **User - Upload splits (upload-splits)**, in

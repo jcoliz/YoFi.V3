@@ -212,6 +212,53 @@ public class TransactionSplitUpdateControllerTests : AuthenticatedTestBase
         }
     }
 
+    [TestCase(null, false)]
+    [TestCase(null, true)]
+    [TestCase("other", true)]
+    [TestCase("field", true)]
+    public async Task ValidationExceptionHandler_CombinesParameterAndGroupedErrors(string? parameterName, bool includeGroups)
+    {
+        var groupedErrors = includeGroups
+            ? new Dictionary<string, string[]> { ["field"] = ["First.", "Second."] }
+            : new Dictionary<string, string[]>();
+        var exception = parameterName is null
+            ? new ValidationException("Summary.") { Errors = groupedErrors }
+            : new ValidationException(parameterName, "Summary.") { Errors = groupedErrors };
+        var handler = new CustomExceptionHandler(NullLogger<CustomExceptionHandler>.Instance);
+        var context = new DefaultHttpContext { RequestServices = _factory.Services };
+        using var body = new MemoryStream();
+        context.Response.Body = body;
+
+        var handled = await handler.TryHandleAsync(context, exception, CancellationToken.None);
+
+        body.Position = 0;
+        using var document = await System.Text.Json.JsonDocument.ParseAsync(body);
+        var errors = document.RootElement.GetProperty("errors");
+        var expectedField = parameterName == "field"
+            ? new[] { "First.", "Second.", "Summary." }
+            : new[] { "First.", "Second." };
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(handled, Is.True);
+            Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status400BadRequest));
+            Assert.That(document.RootElement.GetProperty("detail").GetString(), Is.EqualTo("Summary."));
+            if (includeGroups)
+            {
+                Assert.That(errors.GetProperty("field").EnumerateArray().Select(value => value.GetString()),
+                    Is.EqualTo(expectedField));
+            }
+            if (parameterName == "other")
+            {
+                Assert.That(errors.GetProperty("other")[0].GetString(), Is.EqualTo("Summary."));
+            }
+            if (parameterName is null && !includeGroups)
+            {
+                Assert.That(errors.GetProperty("validation")[0].GetString(), Is.EqualTo("Summary."));
+            }
+            Assert.That(errors.EnumerateObject().Count(), Is.EqualTo(parameterName == "other" ? 2 : 1));
+        }
+    }
+
     [Test]
     public async Task UpdateSplit_WithConcurrentChange_ReturnsConflictProblem()
     {

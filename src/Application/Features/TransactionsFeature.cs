@@ -210,9 +210,8 @@ public class TransactionsFeature
     /// <param name="workbook">Exact uploaded XLSX bytes.</param>
     /// <param name="cancellationToken">Cancellation token for parsing and persistence.</param>
     /// <returns>The committed, ordered transaction detail.</returns>
-    /// <exception cref="ValidationProblemsException">The workbook is invalid or imports no non-zero splits.</exception>
+    /// <exception cref="ValidationException">The workbook, splits, or calculated balance are invalid.</exception>
     /// <exception cref="TransactionNotFoundException">The transaction is not in the current tenant.</exception>
-    /// <exception cref="ValidationException">The transaction has no split or the calculated balance is invalid.</exception>
     /// <exception cref="DataConflictException">A concurrent change prevented the serializable update.</exception>
     public Task<TransactionDetailDto> UploadSplitsAsync(
         Guid transactionKey,
