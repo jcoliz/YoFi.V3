@@ -12,7 +12,6 @@ import {
   TransactionsClient,
   TenantRole,
   type PaginatedResultDtoOfTransactionResultDto,
-  type TransactionResultDto,
   type IProblemDetails,
   PayeeRuleApplicationOutcome,
   type PayeeRuleApplicationResultDto,
@@ -23,6 +22,7 @@ import { handleApiError } from '~/utils/errorHandler'
 import { formatDateOnly, fromDateInputValue } from '~/utils/dateOnly'
 import type { TransactionAdvancedFilters } from '~/types/transactionFilters'
 import TransactionCreateRuleAction from '~/components/transaction/CreateRuleAction.vue'
+import TransactionQuickEditAction from '~/components/transaction/QuickEditAction.vue'
 
 definePageMeta({
   title: 'Transactions',
@@ -76,15 +76,7 @@ const showError = ref(false)
  */
 const showCreateModal = ref(false)
 
-/**
- * Whether the quick edit modal is visible.
- */
-const showEditModal = ref(false)
-
-/**
- * Currently selected transaction for quick edit.
- */
-const selectedTransaction = ref<TransactionResultDto | null>(null)
+const quickEditAction = ref<InstanceType<typeof TransactionQuickEditAction> | null>(null)
 const createRuleAction = ref<InstanceType<typeof TransactionCreateRuleAction> | null>(null)
 
 /**
@@ -149,7 +141,6 @@ watch(currentTenantKey, async (newKey) => {
   error.value = undefined
   showError.value = false
   loading.value = false
-  selectedTransaction.value = null
   filterPanel.value?.resetDraft()
   currentPage.value = 1
   if (newKey) {
@@ -301,16 +292,6 @@ function handlePageChange(pageNumber: number) {
 }
 
 /**
- * Opens the quick edit modal for a transaction.
- *
- * @param transaction - The transaction to edit
- */
-function openEditModal(transaction: TransactionResultDto) {
-  selectedTransaction.value = transaction
-  showEditModal.value = true
-}
-
-/**
  * Navigates to the transaction details page.
  *
  * @param key - The unique key of the transaction
@@ -362,6 +343,11 @@ function handlePayeeRulesFailed(tenantKey: string, problem: IProblemDetails) {
   if (currentTenantKey.value !== tenantKey) return
   error.value = problem
   showError.value = true
+}
+
+function handleQuickEditUpdated(tenantKey: string) {
+  if (currentTenantKey.value !== tenantKey) return
+  void loadTransactions(currentPage.value)
 }
 
 async function handleCreateRuleRefresh(
@@ -699,19 +685,10 @@ function retryLoadTransactions() {
                         data-test-id="row-actions-menu"
                       >
                         <li>
-                          <button
-                            type="button"
-                            class="dropdown-item"
-                            data-test-id="edit-transaction-button"
-                            @click="openEditModal(transaction)"
-                          >
-                            <FeatherIcon
-                              icon="edit"
-                              size="14"
-                              class="me-2"
-                            />
-                            Quick Edit
-                          </button>
+                          <TransactionQuickEditButton
+                            :disabled="loading"
+                            @click="quickEditAction?.open(transaction)"
+                          />
                         </li>
                         <li>
                           <TransactionCreateRuleButton
@@ -753,11 +730,10 @@ function retryLoadTransactions() {
       @created="loadTransactions()"
     />
 
-    <!-- Edit Modal (Quick Edit - Payee, Category, and Memo) -->
-    <TransactionEditModal
-      v-model:show="showEditModal"
-      :transaction="selectedTransaction"
-      @updated="loadTransactions()"
+    <TransactionQuickEditAction
+      ref="quickEditAction"
+      :tenant-key="currentTenantKey || ''"
+      @updated="handleQuickEditUpdated"
     />
     <TransactionCreateRuleAction
       ref="createRuleAction"
