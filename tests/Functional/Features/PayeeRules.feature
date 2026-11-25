@@ -258,3 +258,17 @@ Feature: Payee Matching Rules
       Then the rule should be applied successfully
       And I should be informed that the category was overwritten
       And I should see the updated category in the transaction list
+
+    @id:2
+    Scenario: User categorizes an uncategorized transaction
+      Given I have a payee rule:
+        | Payee    | Category  |
+        | Groceries | Food      |
+      And I have a workspace with a transaction:
+        | Payee             | Amount | Category |
+        | Groceries Market  | -42.00 |          |
+      And I am on the transactions page
+      When I apply matching rules to the that transaction
+      Then the rule should be applied successfully
+      And I should be informed that the category was applied normally
+      And I should see the updated category in the transaction list

@@ -1590,6 +1590,9 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     private ILocator ManualRuleOverwrittenToast => AppToast
         .GetByTestId("manual-rules-overwritten").Last;
 
+    private ILocator ManualRuleAppliedNormallyToast => AppToast
+        .GetByTestId("manual-rules-applied").Last;
+
     public async Task OpenCreateRuleModalAsync(string payeeName)
     {
         var row = await GetTransactionRowByPayeeAsync(payeeName);
@@ -1628,6 +1631,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     internal async Task ExpectRuleOverwrittenAsync()
     {
         await ManualRuleOverwrittenToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    internal async Task ExpectRuleAppliedNormallyAsync()
+    {
+        await ManualRuleAppliedNormallyToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
     #endregion

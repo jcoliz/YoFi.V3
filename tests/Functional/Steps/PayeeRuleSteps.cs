@@ -455,5 +455,16 @@ public class PayeeRuleSteps(ITestContext _context)
         await page.ExpectRuleOverwrittenAsync();
     }
 
+    /// <summary>
+    /// Then I should be informed that the category was applied normally
+    /// </summary>
+    [Then("I should be informed that the category was applied normally")]
+    public async Task IShouldBeInformedThatTheCategoryWasAppliedNormally()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+
+        await page.ExpectRuleAppliedNormallyAsync();
+    }
+
     #endregion
 }
