@@ -243,6 +243,7 @@ Feature: Payee Matching Rules
 
   @category:story-2266
   @category:manual-rules
+  @category:transaction-records
   Rule: Manual payee rule matching
 
     @id:1
