@@ -5,16 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using DotNetNuxt.Abstractions.Options;
 using NuxtIdentity.Core.Models;
+using NuxtIdentity.AspNetCore.Models;
 
 namespace YoFi.V3.Controllers;
 
 public partial class AuthController
 {
     /// <summary>Exchanges form-encoded credentials or a refresh token for tokens in Scalar.</summary>
-    /// <param name="grantType">The supported OAuth grant type: password or refresh_token.</param>
-    /// <param name="username">The existing account's username.</param>
-    /// <param name="password">The account password.</param>
-    /// <param name="refreshToken">The refresh token to rotate when using the refresh_token grant.</param>
+    /// <param name="request">The token request containing credentials or refresh token.</param>
     /// <param name="startupOptions">Startup options for the application.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
     /// <returns>An OAuth-style access token or error response.</returns>
@@ -26,10 +24,7 @@ public partial class AuthController
     [ProducesResponseType(typeof(ScalarTokenError), StatusCodes.Status400BadRequest)]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Token(
-        [FromForm(Name = "grant_type")] string? grantType,
-        [FromForm] string? username,
-        [FromForm] string? password,
-        [FromForm(Name = "refresh_token")] string? refreshToken,
+        [FromForm] ScalarTokenRequest request,
         [FromServices] IOptions<StartupOptions> startupOptions,
         CancellationToken cancellationToken)
     {
@@ -41,61 +36,7 @@ public partial class AuthController
             return NotFound();
         }
 
-        if (string.IsNullOrWhiteSpace(grantType))
-        {
-            LogTokenRequestRejected("invalid_request");
-            return BadRequest(new ScalarTokenError("invalid_request", "grant_type is required."));
-        }
-
-        if (grantType is not ("password" or "refresh_token"))
-        {
-            LogTokenRequestRejected("unsupported_grant_type");
-            return BadRequest(new ScalarTokenError("unsupported_grant_type", "Only password and refresh_token grants are supported."));
-        }
-
-        IActionResult result;
-        if (grantType == "refresh_token")
-        {
-            if (string.IsNullOrWhiteSpace(refreshToken))
-            {
-                LogTokenRequestRejected("invalid_request");
-                return BadRequest(new ScalarTokenError("invalid_request", "refresh_token is required."));
-            }
-
-            result = await RefreshTokens(new RefreshRequest { RefreshToken = refreshToken });
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                LogTokenRequestRejected("invalid_request");
-                return BadRequest(new ScalarTokenError("invalid_request", "username and password are required."));
-            }
-
-            result = await Login(new LoginRequest { Username = username, Password = password });
-        }
-
-        var tokens = result switch
-        {
-            OkObjectResult { Value: LoginResponse login } => login.Token,
-            OkObjectResult { Value: RefreshResponse refresh } => refresh.Token,
-            _ => null
-        };
-        if (tokens is not null)
-        {
-            LogTokenOk();
-            return Ok(new ScalarTokenResponse(tokens.AccessToken, "Bearer", tokens.RefreshToken));
-        }
-
-        if (result is ObjectResult { StatusCode: StatusCodes.Status401Unauthorized })
-        {
-            // RFC 6749 §5.2 specifies 400 Bad Request with error: "invalid_grant" when:
-            // - The user’s username/password is invalid.
-            // - A refresh token is invalid, expired, revoked, or already used.
-            return BadRequest(new ScalarTokenError("invalid_grant", "Invalid credentials or refresh token."));
-        }
-
-        return result;
+        return await base.ExchangeScalarToken(request, cancellationToken);
     }
 }
 
