@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
@@ -47,6 +46,7 @@ public static class SetupOpenApi
 
             options.AddOperationTransformer((operation, context, _) =>
             {
+                // Add action name to summary, to aid in finding the endpoints by name in the API documentation
                 if (context.Description.ActionDescriptor is ControllerActionDescriptor controllerAction)
                 {
                     var name = controllerAction.MethodInfo.Name;
@@ -55,6 +55,7 @@ public static class SetupOpenApi
                         : $"{name} — {operation.Summary}";
                 }
 
+                // Add security requirements for authorized endpoints
                 var endpointMetadata = context.Description.ActionDescriptor.EndpointMetadata;
                 if (endpointMetadata.OfType<IAuthorizeData>().Any() &&
                     !endpointMetadata.OfType<IAllowAnonymous>().Any())
@@ -70,6 +71,7 @@ public static class SetupOpenApi
                     });
                 }
 
+                // Customize the OFX download response to indicate binary content
                 if (context.Description.ActionDescriptor is ControllerActionDescriptor action &&
                     action.ControllerTypeInfo.AsType() == typeof(Controllers.SampleDataController) &&
                     action.MethodInfo.Name == nameof(Controllers.SampleDataController.DownloadOfx) &&
@@ -92,6 +94,7 @@ public static class SetupOpenApi
                     content["application/x-ofx"] = binaryContent;
                 }
 
+                // Customize the Excel export response to indicate binary content
                 if (context.Description.ActionDescriptor is ControllerActionDescriptor exportAction &&
                     exportAction.ControllerTypeInfo.AsType() == typeof(Controllers.TenantDataAdminController) &&
                     exportAction.MethodInfo.Name == nameof(Controllers.TenantDataAdminController.ExportData) &&
