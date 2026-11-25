@@ -1,10 +1,8 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using DotNetNuxt.Abstractions.Options;
-using NuxtIdentity.Core.Models;
 using NuxtIdentity.AspNetCore.Models;
 
 namespace YoFi.V3.Controllers;
@@ -39,19 +37,3 @@ public partial class AuthController
         return await base.ExchangeScalarToken(request, cancellationToken);
     }
 }
-
-/// <summary>An OAuth-style access token response for the API reference.</summary>
-/// <param name="AccessToken">JWT used to authorize API requests.</param>
-/// <param name="TokenType">Authorization header scheme.</param>
-/// <param name="RefreshToken">Refresh token replaced on every successful refresh.</param>
-public sealed record ScalarTokenResponse(
-    [property: JsonPropertyName("access_token")] string AccessToken,
-    [property: JsonPropertyName("token_type")] string TokenType,
-    [property: JsonPropertyName("refresh_token")] string RefreshToken);
-
-/// <summary>An OAuth-style token request error.</summary>
-/// <param name="Error">OAuth error code.</param>
-/// <param name="ErrorDescription">Non-sensitive explanation of the error.</param>
-public sealed record ScalarTokenError(
-    [property: JsonPropertyName("error")] string Error,
-    [property: JsonPropertyName("error_description")] string ErrorDescription);
