@@ -169,9 +169,9 @@ public class EndToEndAuthenticationTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(tokenOkLogs, Has.Length.EqualTo(3), "Only the login and two successful refreshes should log OK.");
-            Assert.That(tokenOkLogs.Select(e => e.EventId.Id), Is.All.EqualTo(4));
+            Assert.That(tokenOkLogs.Select(e => e.EventId.Id), Is.All.EqualTo(31));
             Assert.That(tokenOkLogs.Select(e => e.Level), Is.All.EqualTo(LogLevel.Information));
-            Assert.That(tokenOkLogs.Select(e => e.Message), Is.All.EqualTo("Token: OK"));
+            Assert.That(tokenOkLogs.Select(e => e.Message), Is.All.EqualTo("ExchangeScalarToken: OK"));
         }
     }
 
