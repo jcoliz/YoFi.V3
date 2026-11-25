@@ -245,7 +245,7 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2205: Payee Rules**                   |           |           | 🚧 In Progress       |
 | Story 2211 - Establish Rules (CRUD)             | B2        |           | ✅ Implemented       |
 | Story 2212 - Auto-categorize on Import          | A1        | 3         | ✅ Implemented       |
-| Story 2266 - Manual Trigger Matching            | B2        | 6         | 🎨 Design Complete   |
+| Story 2266 - Manual Trigger Matching            | B2        | 6         | 🧪 Feature Complete  |
 | Story 4 - Advanced Matching (Source/Amount)     | Post V3   |           | ✔️ Approved          |
 | Story 5 - Rule Cleanup                          | Post V3   |           | ✔️ Approved          |
 | **Feature 2206: Tenant Data Admin**             |           |           | ✅ Implemented       |

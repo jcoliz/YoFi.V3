@@ -229,16 +229,16 @@ This is an "income statement" made easier to use for lay users. The sections are
 ### Story 7: User - Investigates underlying transactions
 
 **As a** User
-**I want** discover which transactions exactly comprise one of the numbers shown
+**I want** discover which transactions exactly comprise one of the numbers shown on a report
 **So that** I can understand what underlying actions caused the result I'm seeing
 
 **Acceptance Criteria**:
 
 - [ ] User can select any number on a report and drill in, opening the Transactions page in a new browser tab
 - [ ] Clicking a monthly cell (e.g., "Home:Utilities" for March) applies category AND month filters
-- [ ] Clicking a row total applies category filter for the entire year
-- [ ] Clicking a column total filters to that month for all categories included in the report (e.g., Income report shows all Income:* categories)
-- [ ] Clicking subtotal rows (e.g., "Home") filters to all subcategories using wildcard pattern (e.g., "Home:*")
+- [ ] Clicking anywhere on a row OTHER than a monthly cell (e.g. row header or row total) applies category filter for the entire year
+- [ ] Clicking a column header or column total will filter to that month for all categories included in the report (e.g., Income report shows 'Income' and all 'Income:*' categories)
+- [ ] Clicking subtotal rows (e.g., "Home") filters to all subcategories using special category matching mode described below.
 - [ ] Filters are visible and editable on the transactions page
 
 #### Interaction with Transaction Filtering
@@ -246,9 +246,14 @@ This is an "income statement" made easier to use for lay users. The sections are
 The requirements we will have on filtering:
 
 - [ ] Reports can specify a date range
-- [ ] Reports can specify categories with wildcard, e.g. "Income:*" matches "Income" and "Income:Salary"
+- [ ] Reports can (and almost always will) specify *both* a date range and a category.
 - [ ] Reports can use special "Expenses" moniker to mean "all transactions not in Income, Taxes, Savings, or Transfer" top level categories
-- [ ] Reports can (and almost always will) specify *both* a date range and a category with wildcard.
+  - This moniker will not be used in conjunction with sub categories, e.g. we would not ask for "Expenses:Home". We would just send "Home"
+
+- [ ] Reports can specify a special matching model for categories
+  - "Some:Thing" should not match "Many:Some:Things", which it would today if we didn't change anything.
+  - "Some:Thing" should match "Some:Thing:Else" and (of course) "Some:Thing" directly, but not "Some:Things"
+  - This matching mode will be indicated with a special character on the search, e.g. "^Some:Thing"
 
 ### Story 2280: User - Defines a custom report [FUTURE]
 
@@ -404,18 +409,9 @@ current behavior and revisit this parity gap only if experience warrants it.
 
 **Review Result**: ✅ **APPROVED** - Ready for implementation
 
-**Checklist Status**:
-
 - ✅ All user stories have clear acceptance criteria (Stories 1-4, 6-7 complete; 5, 8 appropriately marked as future)
 - ✅ Open questions resolved and integrated into Technical Approach section
 - ✅ Technical approach clearly indicates affected layers (Frontend, Controllers, Application, Entities, Database)
 - ✅ Code patterns referenced with file links (all paths verified and corrected)
 - ✅ All related document links verified and corrected
 - ✅ Database layer properly marked with index requirements
-
-**Required Fixes Before Implementation**:
-None - all issues resolved.
-
-**Strengths**: Excellent WHAT/WHY focus per PRD-GUIDANCE.md patterns, comprehensive business rules, clear success metrics, strong product context.
-
-**Recommendation**: Ready for implementation.
