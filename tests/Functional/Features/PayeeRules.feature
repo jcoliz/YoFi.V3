@@ -181,7 +181,7 @@ Feature: Payee Matching Rules
       And I view my transactions
       Then the transaction should have category "Gas & Fuel"
 
-    @category:story-2212
+  @category:story-2212
   Rule: Matching rules handle conflicts with defined precedence
 
     @pri:2
@@ -240,3 +240,21 @@ Feature: Payee Matching Rules
         | Payee       | Category |
         | SHELL #1234 | Gas      |
         | SHELL STORE |          |
+
+  @category:story-2266
+  @category:manual-rules
+  Rule: Manual payee rule matching
+
+    @id:1
+    Scenario: User replaces an existing category with a matching rule
+      Given I have a payee rule:
+        | Payee  | Category  |
+        | Coffee | Cafes     |
+      And I have a workspace with a transaction:
+        | Payee       | Amount | Category |
+        | Coffee Shop | -6.50  | Dining   |
+      And I am on the transactions page
+      When I apply matching rules to the that transaction
+      Then the rule should be applied successfully
+      And I should be informed that the category was overwritten
+      And I should see the updated category in the transaction list

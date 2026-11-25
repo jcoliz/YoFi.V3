@@ -1578,11 +1578,17 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 
     #endregion
 
-    #region Create Rule from Transaction
+    #region Interact with Payee Rules for a Transaction
 
     private string? _ruleCreationToastTestId;
 
     public ILocator CreateRuleModal => Page.GetByTestId("rule-create-dialog");
+
+    private ILocator ManualRuleSuccessToast => AppToast
+        .GetByTestId(new Regex(@"^manual-rules-(applied|overwritten)$")).Last;
+
+    private ILocator ManualRuleOverwrittenToast => AppToast
+        .GetByTestId("manual-rules-overwritten").Last;
 
     public async Task OpenCreateRuleModalAsync(string payeeName)
     {
@@ -1597,6 +1603,31 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     {
         var row = await GetTransactionRowByPayeeAsync(payeeName);
         return row.GetByTestId("create-rule-button");
+    }
+
+    public async Task ApplyRuleAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        await row.GetByTestId("row-actions-button").ClickAsync();
+        var applyRuleButton = await GetApplyRuleButton(payeeName);
+        await applyRuleButton.ClickAsync();
+    }
+
+    private async Task<ILocator> GetApplyRuleButton(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        return row.GetByTestId("apply-payee-rules-button");
+    }
+
+
+    internal async Task ExpectRuleAppliedSuccessfullyAsync()
+    {
+        await ManualRuleSuccessToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+    }
+
+    internal async Task ExpectRuleOverwrittenAsync()
+    {
+        await ManualRuleOverwrittenToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
     }
 
     #endregion

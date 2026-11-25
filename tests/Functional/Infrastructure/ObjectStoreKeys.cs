@@ -175,6 +175,14 @@ public static class ObjectStoreKeys
     /// </summary>
     public const string DeletedPayee = "DeletedPayee";
 
+    /// <summary>
+    /// The category of the last created payee rule.
+    /// </summary>
+    /// <remarks>
+    /// If multiple rules are created in the same operation, this key provides the category of the FIRST rule in the sequence.
+    /// </remarks>
+    public const string PayeeRuleCategory = "PayeeRuleCategory";
+
     #endregion
 
     #region Report Keys

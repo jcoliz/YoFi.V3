@@ -28,6 +28,7 @@ public class PayeeRuleSteps(ITestContext _context)
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    [Provides(ObjectStoreKeys.PayeeRuleCategory)]
     public Task IHaveTheFollowingPayeeRules(DataTable table) =>
         SeedPayeeRulesAsync(table, forceRegex: false);
 
@@ -62,6 +63,7 @@ public class PayeeRuleSteps(ITestContext _context)
     [Requires(ObjectStoreKeys.LoggedInAs)]
     [Requires(ObjectStoreKeys.CurrentWorkspace)]
     [Provides(ObjectStoreKeys.ExpectedPayeeRules)]
+    [Provides(ObjectStoreKeys.PayeeRuleCategory)]
     public Task IHaveARegexPayeeRule(DataTable table) =>
         SeedPayeeRulesAsync(table, forceRegex: true);
 
@@ -104,6 +106,7 @@ public class PayeeRuleSteps(ITestContext _context)
             $"Expected to seed {items.Count} payee rules but seeded {seeded!.Count}");
 
         _context.ObjectStore.Add(ObjectStoreKeys.ExpectedPayeeRules, seeded);
+        _context.ObjectStore.Add(ObjectStoreKeys.PayeeRuleCategory, seeded.First().Category);
     }
 
     #endregion
@@ -406,6 +409,50 @@ public class PayeeRuleSteps(ITestContext _context)
         await page.NavigateAsync();
 
         await page.ExpectEmptyStateAsync();
+    }
+
+    #endregion
+
+    #region Manual matching rules
+
+    /// <summary>
+    /// When I apply matching rules to the that transaction
+    /// </summary>
+    [When("I apply matching rules to the that transaction")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Requires(ObjectStoreKeys.PayeeRuleCategory)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    public async Task IApplyMatchingRulesToTheThatTransaction()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        var payeeName = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        await page.ApplyRuleAsync(payeeName);
+
+        // Update the expected category to that of the current payee rule
+        var newCategory = _context.ObjectStore.Get<string>(ObjectStoreKeys.PayeeRuleCategory);
+        _context.ObjectStore.Add(ObjectStoreKeys.TransactionCategory, newCategory);
+    }
+
+    /// <summary>
+    /// Then the rule should be applied successfully
+    /// </summary>
+    [Then("the rule should be applied successfully")]
+    public async Task TheRuleShouldBeAppliedSuccessfully()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+
+        await page.ExpectRuleAppliedSuccessfullyAsync();
+    }
+
+    /// <summary>
+    /// Then I should be informed that the category was overwritten
+    /// </summary>
+    [Then("I should be informed that the category was overwritten")]
+    public async Task IShouldBeInformedThatTheCategoryWasOverwritten()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+
+        await page.ExpectRuleOverwrittenAsync();
     }
 
     #endregion
