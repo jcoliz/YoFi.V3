@@ -272,3 +272,13 @@ Feature: Payee Matching Rules
       Then the rule should be applied successfully
       And I should be informed that the category was applied normally
       And I should see the updated category in the transaction list
+
+    @id:3
+    Scenario: User cannot apply matching rules to a split transaction
+      Given I have a workspace with a transaction for payee "Weekly Shop" having these splits:
+        | Category  | Amount |
+        | Groceries | -30.00 |
+        | Household | -20.00 |
+      And I am on the transactions page
+      When I open the transaction actions for that transaction
+      Then I should not see an option to apply matching rules

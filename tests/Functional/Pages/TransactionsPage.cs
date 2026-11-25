@@ -1625,17 +1625,34 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
 
     internal async Task ExpectRuleAppliedSuccessfullyAsync()
     {
-        await ManualRuleSuccessToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await Assertions.Expect(ManualRuleSuccessToast).ToBeVisibleAsync();
     }
 
     internal async Task ExpectRuleOverwrittenAsync()
     {
-        await ManualRuleOverwrittenToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await Assertions.Expect(ManualRuleOverwrittenToast).ToBeVisibleAsync();
     }
 
     internal async Task ExpectRuleAppliedNormallyAsync()
     {
-        await ManualRuleAppliedNormallyToast.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await Assertions.Expect(ManualRuleAppliedNormallyToast).ToBeVisibleAsync();
+    }
+
+    internal async Task OpenActionsAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+        await row.GetByTestId("row-actions-button").ClickAsync();
+    }
+
+    internal async Task ExpectNoApplyMatchingRulesOptionAsync(string payeeName)
+    {
+        var row = await GetTransactionRowByPayeeAsync(payeeName);
+
+        // Wait for the "row actions menu" menu to be visible
+        await Assertions.Expect(row.GetByTestId("row-actions-menu")).ToBeVisibleAsync();
+
+        // And ensure the apply rule button is not visible
+        await Assertions.Expect(row.GetByTestId("apply-payee-rules-button")).Not.ToBeVisibleAsync();
     }
 
     #endregion

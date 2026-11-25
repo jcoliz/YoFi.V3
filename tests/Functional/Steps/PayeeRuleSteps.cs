@@ -466,5 +466,30 @@ public class PayeeRuleSteps(ITestContext _context)
         await page.ExpectRuleAppliedNormallyAsync();
     }
 
+    /// <summary>
+    /// When I open the transaction actions for that transaction
+    /// </summary>
+    [When("I open the transaction actions for that transaction")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    public async Task IOpenTheTransactionActionsForThatTransaction()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        var payeeName = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        await page.OpenActionsAsync(payeeName);
+    }
+
+    /// <summary>
+    /// Then I should not see an option to apply matching rules
+    /// </summary>
+    [Then("I should not see an option to apply matching rules")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    public async Task IShouldNotSeeAnOptionToApplyMatchingRules()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        var payeeName = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        await page.ExpectNoApplyMatchingRulesOptionAsync(payeeName);
+    }
+
+
     #endregion
 }
