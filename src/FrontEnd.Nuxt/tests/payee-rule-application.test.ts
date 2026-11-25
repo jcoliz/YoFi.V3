@@ -6,6 +6,8 @@ import PayeeRulesDialog from '~/components/payee-rules/Dialog.vue'
 import ModalDialog from '~/components/ModalDialog.vue'
 import ErrorDisplay from '~/components/ErrorDisplay.vue'
 import CategoryPicker from '~/components/CategoryPicker.vue'
+import TransactionCreateRuleAction from '~/components/transaction/CreateRuleAction.vue'
+import TransactionCreateRuleButton from '~/components/transaction/CreateRuleButton.vue'
 import TransactionsPage from '~/pages/transactions/index.vue'
 import {
   PayeeMatchingRulesClient,
@@ -43,6 +45,8 @@ const globalConfig = {
     ErrorDisplay,
     PayeeRulesDialog,
     CategoryPicker,
+    TransactionCreateRuleAction,
+    TransactionCreateRuleButton,
     FeatherIcon: { template: '<i />' },
     BaseSpinner: { template: '<span />' },
     WorkspaceSelector: { template: '<div />' },
@@ -426,6 +430,26 @@ describe('Create rule from transaction', () => {
       ' shopping : online ',
     )
     expect(wrapper.find('[data-test-id="apply-rule-result"]').exists()).toBe(false)
+    await wrapper.get('[data-test-id="save-button"]').trigger('click')
+    await flushPromises()
+    expect(createRule).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[data-test-id="rule-create-dialog"]').exists()).toBe(false)
+  })
+
+  it('keeps the dialog and entered values when a refresh removes the source row', async () => {
+    createRule.mockRejectedValueOnce(new Error('Invalid regex'))
+    const { wrapper } = await setupPage()
+    getTransactions.mockResolvedValueOnce({ items: [] })
+    await wrapper.get('[data-test-id="save-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test-id="row-source"]').exists()).toBe(false)
+    expect(wrapper.get('[data-test-id="rule-create-dialog"]').text()).toContain(
+      'The source transaction was updated, but the rule could not be created',
+    )
+    expect(wrapper.get<HTMLInputElement>('[data-test-id="category-input"]').element.value).toBe(
+      ' shopping : online ',
+    )
     await wrapper.get('[data-test-id="save-button"]').trigger('click')
     await flushPromises()
     expect(createRule).toHaveBeenCalledTimes(2)

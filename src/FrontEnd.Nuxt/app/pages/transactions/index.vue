@@ -10,10 +10,6 @@
 
 import {
   TransactionsClient,
-  PayeeMatchingRulesClient,
-  TransactionQuickEditDto,
-  PayeeMatchingRuleCreateDto,
-  type PayeeMatchingRuleEditDto,
   TenantRole,
   type PaginatedResultDtoOfTransactionResultDto,
   type TransactionResultDto,
@@ -23,10 +19,10 @@ import {
 } from '~/utils/apiclient'
 import { useUserPreferencesStore } from '~/stores/userPreferences'
 import { useTransactionSearchStore } from '~/stores/transactionSearch'
-import { useToastStore } from '~/stores/toast'
 import { handleApiError } from '~/utils/errorHandler'
 import { formatDateOnly, fromDateInputValue } from '~/utils/dateOnly'
 import type { TransactionAdvancedFilters } from '~/types/transactionFilters'
+import TransactionCreateRuleAction from '~/components/transaction/CreateRuleAction.vue'
 
 definePageMeta({
   title: 'Transactions',
@@ -39,17 +35,11 @@ definePageMeta({
  * User preferences store for managing current workspace selection.
  */
 const userPreferencesStore = useUserPreferencesStore()
-const toastStore = useToastStore()
 
 /**
  * API client for transactions endpoint.
  */
 const transactionsClient = useApiClient(TransactionsClient)
-
-/**
- * API client for payee matching rules endpoint.
- */
-const payeeRulesClient = useApiClient(PayeeMatchingRulesClient)
 
 /**
  * Whether the page is ready for interaction (signals client-side hydration is complete).
@@ -92,16 +82,10 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 
 /**
- * Whether the create rule dialog is visible.
- */
-const showCreateRuleModal = ref(false)
-const savingRule = ref(false)
-const ruleError = ref<IProblemDetails | undefined>(undefined)
-
-/**
- * Currently selected transaction for edit or rule creation.
+ * Currently selected transaction for quick edit.
  */
 const selectedTransaction = ref<TransactionResultDto | null>(null)
+const createRuleAction = ref<InstanceType<typeof TransactionCreateRuleAction> | null>(null)
 
 /**
  * Search term, filter criteria, and current page for transactions.
@@ -165,9 +149,7 @@ watch(currentTenantKey, async (newKey) => {
   error.value = undefined
   showError.value = false
   loading.value = false
-  showCreateRuleModal.value = false
   selectedTransaction.value = null
-  ruleError.value = undefined
   filterPanel.value?.resetDraft()
   currentPage.value = 1
   if (newKey) {
@@ -329,18 +311,6 @@ function openEditModal(transaction: TransactionResultDto) {
 }
 
 /**
- * Opens the payee rule creation dialog pre-populated with transaction's payee.
- *
- * @param transaction - The transaction to create a rule from
- */
-function openCreateRuleModal(transaction: TransactionResultDto) {
-  if (savingRule.value) return
-  selectedTransaction.value = transaction
-  ruleError.value = undefined
-  showCreateRuleModal.value = true
-}
-
-/**
  * Navigates to the transaction details page.
  *
  * @param key - The unique key of the transaction
@@ -394,6 +364,18 @@ function handlePayeeRulesFailed(tenantKey: string, problem: IProblemDetails) {
   showError.value = true
 }
 
+async function handleCreateRuleRefresh(
+  tenantKey: string,
+  failureDetail: string,
+  problem?: IProblemDetails,
+) {
+  if (currentTenantKey.value !== tenantKey) return
+  await loadTransactions(currentPage.value, failureDetail)
+  if (currentTenantKey.value !== tenantKey || !problem) return
+  error.value = problem
+  showError.value = true
+}
+
 /**
  * Formats a number as USD currency.
  *
@@ -406,126 +388,6 @@ function formatCurrency(amount: number | undefined): string {
     style: 'currency',
     currency: 'USD',
   }).format(amount)
-}
-
-/**
- * Creates a payee matching rule from a transaction.
- * Updates the source category first unless it has multiple splits.
- * Reloads transactions on success and closes the dialog.
- *
- * @param rule - The payee matching rule data to create
- * @param applyToUncategorizedTransactions - Whether to apply only the new rule across the workspace
- */
-async function createRuleFromTransaction(
-  rule: PayeeMatchingRuleEditDto,
-  applyToUncategorizedTransactions: boolean,
-) {
-  if (savingRule.value) return
-  const tenantKey = currentTenantKey.value
-  const transaction = selectedTransaction.value
-  if (!tenantKey || !transaction?.key) {
-    ruleError.value = handleApiError(
-      new Error('No transaction selected'),
-      'Create Rule Failed',
-      'Select a transaction in the current workspace before creating a rule',
-    )
-    return
-  }
-
-  savingRule.value = true
-  ruleError.value = undefined
-  let sourceUpdated = false
-  try {
-    if (!transaction.hasMultipleSplits) {
-      try {
-        await transactionsClient.quickEditTransaction(
-          transaction.key,
-          tenantKey,
-          new TransactionQuickEditDto({
-            payee: transaction.payee,
-            memo: transaction.memo,
-            category: rule.category?.trim(),
-          }),
-        )
-        sourceUpdated = true
-      } catch (err) {
-        if (currentTenantKey.value === tenantKey) {
-          ruleError.value = handleApiError(
-            err,
-            'Source Update Failed',
-            'The selected transaction could not be updated. No rule was created',
-          )
-        }
-        return
-      }
-    }
-
-    try {
-      const created = await payeeRulesClient.createRule(
-        tenantKey,
-        PayeeMatchingRuleCreateDto.fromJS({
-          payeePattern: rule.payeePattern,
-          payeeIsRegex: rule.payeeIsRegex,
-          category: rule.category,
-          applyToUncategorizedTransactions,
-        }),
-      )
-      if (currentTenantKey.value !== tenantKey) return
-      showCreateRuleModal.value = false
-
-      const count = created.transactionsCategorized
-      if (
-        applyToUncategorizedTransactions &&
-        (!Number.isInteger(count) || count === undefined || count < 0)
-      ) {
-        await loadTransactions(
-          currentPage.value,
-          'The rule was created, but refreshing the transaction list failed. Do not create the rule again',
-        )
-        if (currentTenantKey.value !== tenantKey) return
-        error.value = handleApiError(
-          new Error('Invalid categorized transaction count'),
-          'Rule Created',
-          'The rule was created, but the server did not return a valid categorized transaction count. Do not create the rule again',
-        )
-        showError.value = true
-        return
-      }
-      const message = applyToUncategorizedTransactions
-        ? count === 0
-          ? 'No additional uncategorized transactions matched.'
-          : `Categorized ${count} additional transaction${count === 1 ? '' : 's'}.`
-        : 'The payee matching rule was created.'
-      toastStore.success(
-        message,
-        'Rule created',
-        applyToUncategorizedTransactions ? `rule-categorized-${count}` : 'rule-created',
-      )
-    } catch (err) {
-      if (currentTenantKey.value !== tenantKey) return
-      ruleError.value = handleApiError(
-        err,
-        'Create Rule Failed',
-        sourceUpdated
-          ? 'The source transaction was updated, but the rule could not be created'
-          : 'Failed to create payee matching rule',
-      )
-      if (sourceUpdated) {
-        await loadTransactions(
-          currentPage.value,
-          'The source transaction was updated, but refreshing the transaction list failed',
-        )
-      }
-      return
-    }
-
-    await loadTransactions(
-      currentPage.value,
-      'The rule was created, but refreshing the transaction list failed. Do not create the rule again',
-    )
-  } finally {
-    savingRule.value = false
-  }
 }
 
 function retryLoadTransactions() {
@@ -852,19 +714,10 @@ function retryLoadTransactions() {
                           </button>
                         </li>
                         <li>
-                          <button
-                            type="button"
-                            class="dropdown-item"
-                            data-test-id="create-rule-button"
-                            @click="openCreateRuleModal(transaction)"
-                          >
-                            <FeatherIcon
-                              icon="zap"
-                              size="14"
-                              class="me-2"
-                            />
-                            Create Rule
-                          </button>
+                          <TransactionCreateRuleButton
+                            :disabled="loading || createRuleAction?.saving"
+                            @click="createRuleAction?.open(transaction)"
+                          />
                         </li>
                         <li v-if="transaction.hasMultipleSplits === false">
                           <TransactionPayeeRulesAction
@@ -906,20 +759,10 @@ function retryLoadTransactions() {
       :transaction="selectedTransaction"
       @updated="loadTransactions()"
     />
-
-    <!-- Create Rule from Transaction Dialog -->
-    <PayeeRulesDialog
-      v-model:show="showCreateRuleModal"
+    <TransactionCreateRuleAction
+      ref="createRuleAction"
       :tenant-key="currentTenantKey || ''"
-      mode="create"
-      :loading="savingRule"
-      :from-transaction="true"
-      :problem="ruleError"
-      :initial-payee-pattern="selectedTransaction?.payee || ''"
-      :initial-category="selectedTransaction?.category || ''"
-      :initial-is-regex="false"
-      @save="createRuleFromTransaction"
-      @cancel="showCreateRuleModal = false"
+      @refresh="handleCreateRuleRefresh"
     />
   </div>
 </template>
