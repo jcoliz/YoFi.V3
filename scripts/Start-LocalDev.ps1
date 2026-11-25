@@ -24,17 +24,24 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+Import-Module (Join-Path $PSScriptRoot "DockerUtilities.psm1") -Force
+
 try {
+    if (-not (Test-DockerRunning)) {
+        Write-Error "Docker is not running. Please start Docker Desktop and try again."
+        exit 1
+    }
+
     $Top = "$PSScriptRoot/.."
     $ProjectPath = "$Top/src/AppHost"
-    
+
     if (-not (Test-Path $ProjectPath)) {
         throw "AppHost project not found: $ProjectPath"
     }
-    
+
     Write-Host "Starting local development environment..." -ForegroundColor Cyan
     Write-Host "Using dotnet watch for hot reload" -ForegroundColor Cyan
-    
+
     dotnet watch --project $ProjectPath
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet watch failed with exit code $LASTEXITCODE"
