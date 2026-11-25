@@ -136,7 +136,7 @@ Following are the standard income/expense reports
 - [X] When no valid saved year is available, use the backend-provided current-year default
 - [X] User can choose which year to display. Except as otherwise described later, reports are always in the context of a single calendar year
 
-### Story 3: User - Views a report in chart form
+### Story 2343: User - Views a report in chart form
 
 **As a** user
 **I want** to visualize the report
@@ -152,7 +152,7 @@ Following are the standard income/expense reports
 - [ ] No accessibility requirements for charts
 - [ ] Choice of whether to view with a chart or not is persisted per-report, per-tenant in browser localStorage
 
-### Story 4: User - Views summary report
+### Story 2344: User - Views a report summarizing their financial situation
 
 **As a** user
 **I want** to view a top-level summary of my entire income/expense picture
@@ -214,7 +214,7 @@ This is an "income statement" made easier to use for lay users. The sections are
 - [ ] Parent categories without direct budgets automatically show rolled-up values from children
 - [ ] Users can adjust report hierarchy depth to drill into subcategories (follows existing report depth control from Story 2)
 
-### Story 6: User - Views complete history of income/expenses over time
+### Story 2345: User - Views complete history of income/expenses over multiple years
 
 **As a** user
 **I want** to see how my income/expenses compare over all known time
@@ -222,11 +222,13 @@ This is an "income statement" made easier to use for lay users. The sections are
 
 **Acceptance Criteria**:
 
-- [ ] Report shows columns of total values for each year
-- [ ] User can choose year range (start, end). Defaults to "beginning of recorded history" as start, and current year as end
+- [ ] This feature expands the "show months" selector to include a "multi-year" option
+- [ ] In this mode, columns are individual years
+- [ ] Same report configuration is otherwise available
+- [ ] User can choose year range (start, end). Defaults to timeframe covered by all known transactions
 - [ ] User cannot view a chart for this report
 
-### Story 7: User - Investigates underlying transactions
+### Story 2346: User - Investigates transactions comprising a row, column, or cell in a report
 
 **As a** User
 **I want** discover which transactions exactly comprise one of the numbers shown on a report
@@ -255,7 +257,7 @@ The requirements we will have on filtering:
   - "Some:Thing" should match "Some:Thing:Else" and (of course) "Some:Thing" directly, but not "Some:Things"
   - This matching mode will be indicated with a special character on the search, e.g. "^Some:Thing"
 
-### Story 2280: User - Defines a custom report [FUTURE]
+### Story 2280: User - Defines a custom report
 
 **As a** user
 **I want** define my own report
@@ -264,7 +266,7 @@ The requirements we will have on filtering:
 **Acceptance Criteria**:
 
 - [ ] User with "Editor" workspace permission can create a custom report
-- [ ] User with "Reader" workspace permission can custom reports
+- [ ] User with "Reader" workspace permission can view custom reports
 - [ ] User can customize any of the existing built-in report parameters
 - [ ] User has complete CRUD control of report definitions
 - [ ] Custom report definitions are included in tenant data export
@@ -394,8 +396,6 @@ current behavior and revisit this parity gap only if experience warrants it.
 - Category hierarchy with `:` delimiter proved intuitive and flexible
 
 **New in V3**: Drill-down to transactions (Story 7) is a new capability designed to address a gap from V1. When users saw unexpected values in reports, they had to manually search transactions to understand what drove those numbers. Direct drill-down eliminates this friction.
-
-**Future Extensibility**: While custom reports (Story 8) are deferred, the hard-coded report definitions are designed to be easily refactored into database-backed configurations when that capability is added. The report definition model (category filters, depth levels, month display) captures the parameters users would want to customize.
 
 **Related Documents**:
 

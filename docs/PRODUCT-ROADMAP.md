@@ -257,12 +257,12 @@ My general practice is to break release miletones down into iterations as it app
 | **Feature 2207: Reports**                       |           |           | 🚧 In Progress       |
 | Story 2248 - View Built-in Report               | A1        | 4         | ✅ Implemented       |
 | Story 2249 - Configure Report Display           | B1        | 6         | ✅ Implemented       |
-| Story 3 - View Report in Chart Form             | B2        | 7         | ✔️ Approved          |
-| Story 4 - View Summary Report                   | B2        | 7         | ✔️ Approved          |
+| Story 2343 - View Report in Chart Form          | B2        | 7         | ✔️ Approved          |
+| Story 2344 - View Summary Report                | B2        | 7         | ✔️ Approved          |
 | Story 5 - View Budget Reports                   | B3        | 8         | ✔️ Approved          |
-| Story 6 - View Complete History Over Time       | B2        | 7         | ✔️ Approved          |
-| Story 7 - Investigate Underlying Transactions   | B2        | 7         | ✔️ Approved          |
-| Story 8 - Define Custom Report                  | Post V3   |           | 💡 Future            |
+| Story 2345 - View Complete History Over Time    | B2        | 7         | ✔️ Approved          |
+| Story 2346 - Investigate Underlying Transactions | B2       | 7         | ✔️ Approved          |
+| Story 2280 - Define Custom Report               | B2        | 7         | ✔️ Approved          |
 | **Feature 2208: Reports Export API**            |           |           | 🎨 Design Complete   |
 | Story 1 - Connect Excel to YoFi Reports         | B3        | 9         | 🎨 Design Complete   |
 | Story 2 - Access Multiple Workspaces from Excel | B3        | 9         | 🎨 Design Complete   |
