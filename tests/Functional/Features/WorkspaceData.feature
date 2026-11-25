@@ -9,6 +9,7 @@ Feature: Workspace Data Administration
     And I am logged into my existing account
 
   @category:story-2223
+  @category:sample-data
   Rule: Sample Data
 
     @id:1
@@ -45,6 +46,7 @@ Feature: Workspace Data Administration
       And the first page of transactions have all been categorized
 
   @category:story-2222
+  @category:delete-data
   Rule: Delete all tenant data
 
     @id:5
@@ -58,6 +60,7 @@ Feature: Workspace Data Administration
       And the import review queue should be empty
 
   @category:story-2221
+  @category:data-import
   Rule: Import data into workspace
 
     @category:scenario-2233
@@ -66,9 +69,6 @@ Feature: Workspace Data Administration
       When I upload a file containing original YoFi Payees
       And I preview and confirm the upload
       Then I can see many payee matching rules
-
-  @category:story-2221
-  Rule: Native YoFi workbooks are detected automatically
 
     @id:2
     Scenario: Import native payee matching rules
@@ -88,6 +88,7 @@ Feature: Workspace Data Administration
       And I should see 1 transaction with a split indicator
 
   @category:story-2220
+  @category:data-export
   Rule: Export workspace data
 
     @id:1
