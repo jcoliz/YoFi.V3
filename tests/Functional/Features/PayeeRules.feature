@@ -282,3 +282,13 @@ Feature: Payee Matching Rules
       And I am on the transactions page
       When I open the transaction actions for that transaction
       Then I should not see an option to apply matching rules
+
+    @id:4
+    Scenario: No matching rule preserves an existing category
+      Given I have a workspace with a transaction:
+        | Payee          | Amount | Category     |
+        | Unknown Vendor | -10.00 | Miscellaneous |
+      And I am on the transactions page
+      When I try to apply matching rules to the that transaction
+      Then I should be informed that no matching rule was found
+      And the transaction category should remain unchanged

@@ -1593,6 +1593,9 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     private ILocator ManualRuleAppliedNormallyToast => AppToast
         .GetByTestId("manual-rules-applied").Last;
 
+    private ILocator ManualRuleNoMatchToast => AppToast
+        .GetByTestId("manual-rules-no-match").Last;
+
     public async Task OpenCreateRuleModalAsync(string payeeName)
     {
         var row = await GetTransactionRowByPayeeAsync(payeeName);
@@ -1626,6 +1629,11 @@ public partial class TransactionsPage(IPage page) : BasePage(page)
     internal async Task ExpectRuleAppliedSuccessfullyAsync()
     {
         await Assertions.Expect(ManualRuleSuccessToast).ToBeVisibleAsync();
+    }
+
+    internal async Task ExpectNoRuleAppliedAsync()
+    {
+        await Assertions.Expect(ManualRuleNoMatchToast).ToBeVisibleAsync();
     }
 
     internal async Task ExpectRuleOverwrittenAsync()

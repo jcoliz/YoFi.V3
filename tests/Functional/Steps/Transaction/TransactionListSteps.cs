@@ -377,12 +377,9 @@ public class TransactionListSteps(ITestContext context) : TransactionStepsBase(c
     /// <remarks>
     /// Retrieves the payee and new category from object store, waits for page to update,
     /// and verifies the category in the transaction list matches the updated value.
-    ///
-    /// Requires Objects
-    /// - TransactionPayee
-    /// - TransactionCategory
     /// </remarks>
     [Then("I should see the updated category in the transaction list")]
+    [Then("the transaction category should remain unchanged")]
     [Requires(ObjectStoreKeys.TransactionPayee)]
     [Requires(ObjectStoreKeys.TransactionCategory)]
     public async Task ThenIShouldSeeTheUpdatedCategoryInTheTransactionList()

@@ -434,6 +434,23 @@ public class PayeeRuleSteps(ITestContext _context)
     }
 
     /// <summary>
+    /// When I apply matching rules to the that transaction
+    /// </summary>
+    /// <remarks>
+    /// This variant does not expect to succeed, so doesn't try to copy over the category from the payee rule
+    /// </remarks>
+    [When("I try to apply matching rules to the that transaction")]
+    [Requires(ObjectStoreKeys.TransactionPayee)]
+    [Provides(ObjectStoreKeys.TransactionCategory)]
+    public async Task ITryToApplyMatchingRulesToTheThatTransaction()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+        var payeeName = _context.ObjectStore.Get<string>(ObjectStoreKeys.TransactionPayee);
+        await page.ApplyRuleAsync(payeeName);
+
+    }
+
+    /// <summary>
     /// Then the rule should be applied successfully
     /// </summary>
     [Then("the rule should be applied successfully")]
@@ -490,6 +507,16 @@ public class PayeeRuleSteps(ITestContext _context)
         await page.ExpectNoApplyMatchingRulesOptionAsync(payeeName);
     }
 
+    /// <summary>
+    /// Then I should be informed that no matching rule was found
+    /// </summary>
+    [Then("I should be informed that no matching rule was found")]
+    public async Task IShouldBeInformedThatNoMatchingRuleWasFound()
+    {
+        var page = _context.GetOrCreatePage<TransactionsPage>();
+
+        await page.ExpectNoRuleAppliedAsync();
+    }
 
     #endregion
 }
