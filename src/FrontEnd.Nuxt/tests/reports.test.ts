@@ -95,6 +95,7 @@ function setupPage(key: string | undefined = 'first') {
 }
 
 beforeEach(() => {
+  vi.restoreAllMocks()
   setActivePinia(createPinia())
   localStorage.clear()
   getAvailableReports.mockReset().mockResolvedValue(catalog)
@@ -416,12 +417,16 @@ describe('Reports page', () => {
 
     it.each(['getItem', 'setItem'] as const)('propagates localStorage %s errors', (method) => {
       const store = useUserPreferencesStore()
-      vi.spyOn(localStorage, method).mockImplementation(() => {
+      const storageSpy = vi.spyOn(localStorage, method).mockImplementation(() => {
         throw new Error('Storage unavailable')
       })
-      expect(() => store.updateReportSettings('first', { year: 2040 })).toThrow(
-        'Storage unavailable',
-      )
+      try {
+        expect(() => store.updateReportSettings('first', { year: 2040 })).toThrow(
+          'Storage unavailable',
+        )
+      } finally {
+        storageSpy.mockRestore()
+      }
     })
   })
 
