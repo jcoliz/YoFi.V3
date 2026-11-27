@@ -22,7 +22,7 @@ This folder contains scripts of many different kinds. Often these would be scatt
 |--------|----------|
 | [`Run-Tests.ps1`](Run-Tests.ps1) | Run selected test types with optional filtering (unit and frontend tests by default) |
 | [`Run-FunctionalTestsVsContainer.ps1`](Run-FunctionalTestsVsContainer.ps1) | Runs functional tests against the CI Docker containers |
-| [`Collect-CodeCoverage.ps1`](Collect-CodeCoverage.ps1) | Runs unit and controller integration tests and collects combined code coverage metrics with HTML report generation |
+| [`Collect-CodeCoverage.ps1`](Collect-CodeCoverage.ps1) | Runs unit tests and collects Application and Entities code coverage metrics with HTML report generation |
 | [`Analyze-StepPatterns.ps1`](Analyze-StepPatterns.ps1) | Analyzes functional test step definition patterns for duplicates |
 
 ### Database Management
