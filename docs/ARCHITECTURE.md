@@ -223,7 +223,8 @@ All tests use **Gherkin-style documentation** (Given/When/Then) for clear scenar
 ### Testing Tools
 
 - **Unit**: NUnit with constraint-based assertions and Moq for mocking
-- **Integration.Data / Integration.Application**: NUnit with PostgreSQL Testcontainers, a fresh database per test, and real EF migrations
+- **Integration.Data**: NUnit with PostgreSQL Testcontainers, a fresh database per test, and real EF migrations
+- **Integration.Application**: NUnit with PostgreSQL Testcontainers, one migrated database per fixture, table truncation between tests, and real EF migrations
 - **Integration.Controller**: NUnit with WebApplicationFactory, an isolated PostgreSQL database per factory, and test authentication handlers (real Identity/JWT for authentication workflow tests)
 - **Functional**: Playwright with C# bindings and SpecFlow-style Gherkin scenarios
 - **API Client**: NSwag-generated TypeScript client for type-safe frontend integration

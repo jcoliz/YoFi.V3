@@ -122,14 +122,16 @@ dotnet test --filter "FullyQualifiedName~WeatherFeatureTests.GetWeatherForecasts
 
 ## Database Lifecycle
 
-Docker must be running. The project links the PostgreSQL test helpers from
-`Integration.Data`, sharing their implementation without referencing another test
-assembly. Each test assembly starts its own `postgres:17-alpine` Testcontainers
-container. Each test gets a unique database with the real EF migrations applied.
-The database is dropped after the context is disposed, and the test container
-is disposed after the assembly finishes. Application containers are untouched.
+Docker must be running. The test assembly starts a shared `postgres:17-alpine`
+Testcontainers container. `FeatureTestBase` creates one unique database per derived
+fixture and applies EF migrations once for that fixture. Before every test, the
+fixture database's application tables are truncated and identities are reset;
+the database and test context are recreated so contexts cannot leak state.
 
-Feature tests initialize their dependencies after the inherited database setup.
+The database is dropped after the fixture finishes, and the test container is
+stopped after the assembly finishes. Application containers are untouched.
+
+Feature tests initialize their dependencies after the inherited setup.
 Failure-injection tests use PostgreSQL trigger functions to verify transaction
 rollback against the actual provider.
 

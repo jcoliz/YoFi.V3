@@ -51,10 +51,11 @@ Test counts should follow the risk and database contract, not a fixed distributi
 ### Integration Database Lifecycle
 
 All three integration projects require Docker and use PostgreSQL Testcontainers
-with real EF migrations. Data and Application tests get a fresh database per
-test; Controller tests get an isolated database per WebApplicationFactory.
-Test databases and their disposable test containers are cleaned up automatically.
-Application containers are separate and must not be stopped by test runs.
+with real EF migrations. Data and Controller tests retain their existing database
+lifecycle. Application tests use one migrated database per test fixture and truncate
+application tables between tests. Test databases and their disposable test containers
+are cleaned up automatically. Application containers are separate and must not be
+stopped by test runs.
 
 Run `.\scripts\Run-Tests.ps1 -Integration` from the repository root. The script
 checks Docker availability before starting any selected tests.

@@ -11,7 +11,7 @@
 
     Test projects included:
     - tests/Unit - Unit tests for Application layer
-    - tests/Integration.Application - Integration tests for Application layer (PRIMARY)
+    - tests/Integration.Application - Selective integration tests for Application database contracts
     - tests/Integration.Data - Integration tests for Data layer
     - tests/Integration.Controller - Integration tests for Controller layer
     - tests/Functional - Functional tests against running containers
