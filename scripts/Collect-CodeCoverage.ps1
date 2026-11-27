@@ -77,6 +77,68 @@ function Write-LowCoverageClasses {
     }
 }
 
+function Write-RiskHotspots {
+    param(
+        [string]$ReportPath
+    )
+
+    $html = Get-Content -LiteralPath $ReportPath -Raw
+
+    $riskHotspotsMatch = [regex]::Match(
+        $html,
+        '<risk-hotspots>(?<content>.*?)</risk-hotspots>',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+
+    if (-not $riskHotspotsMatch.Success) {
+        Write-Warning "Could not find <risk-hotspots> in $ReportPath"
+        return
+    }
+
+    $rowPattern = '<tr>(?<row>.*?)</tr>'
+    $rows = [regex]::Matches(
+        $riskHotspotsMatch.Groups['content'].Value,
+        $rowPattern,
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+
+    $riskHotspots = foreach ($rowMatch in $rows) {
+        $cells = [regex]::Matches(
+            $rowMatch.Groups['row'].Value,
+            '<td(?<attributes>[^>]*)>(?<value>.*?)</td>',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+        )
+
+        if ($cells.Count -eq 5) {
+            $methodCell = $cells[2].Groups['value'].Value
+            $titleMatch = [regex]::Match(
+                $cells[2].Groups['attributes'].Value,
+                'title="(?<title>[^"]*)"',
+                [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+            )
+
+            $classHtml = $cells[1].Groups['value'].Value
+            $methodHtml = if ($titleMatch.Success) { $titleMatch.Groups['title'].Value } else { $methodCell }
+
+            [PSCustomObject]@{
+                Assembly = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($cells[0].Groups['value'].Value, '<.*?>', '')).Trim())
+                Class = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($classHtml, '<.*?>', '')).Trim())
+                Method = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($methodHtml, '<.*?>', '')).Trim())
+                'Crap Score' = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($cells[3].Groups['value'].Value, '<.*?>', '')).Trim())
+                'Cyclomatic complexity' = [System.Net.WebUtility]::HtmlDecode(([regex]::Replace($cells[4].Groups['value'].Value, '<.*?>', '')).Trim())
+            }
+        }
+    }
+
+    if ($riskHotspots) {
+        Write-Host "`nRisk hotspots (all entries require remediation):" -ForegroundColor Yellow
+        $riskHotspots | Format-Table -AutoSize
+    }
+    else {
+        Write-Host "`nNo risk hotspots" -ForegroundColor Green
+    }
+}
+
 function Run-TestsWithCoverage {
     param(
         [string]$TestProjectPath,
@@ -152,6 +214,7 @@ try {
     }
 
     Write-LowCoverageClasses -ReportPath "$outputDir/index.html"
+    Write-RiskHotspots -ReportPath "$outputDir/index.html"
 
     Write-Host "`nOK Unit code coverage report generated successfully" -ForegroundColor Green
     Write-Host "`nCoverage report available at:" -ForegroundColor Cyan
