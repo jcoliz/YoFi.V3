@@ -131,6 +131,10 @@ the database and test context are recreated so contexts cannot leak state.
 The database is dropped after the fixture finishes, and the test container is
 stopped after the assembly finishes. Application containers are untouched.
 
+NUnit runs fixtures in parallel, but tests within a fixture remain serial. Each
+fixture owns a separate migrated database, so parallel fixtures cannot share table
+state.
+
 Feature tests initialize their dependencies after the inherited setup.
 Failure-injection tests use PostgreSQL trigger functions to verify transaction
 rollback against the actual provider.
