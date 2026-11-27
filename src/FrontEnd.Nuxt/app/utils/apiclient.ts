@@ -86,9 +86,9 @@ export class AuthClient {
         if (grant_type !== null && grant_type !== undefined)
             content_.append("grant_type", grant_type.toString());
         if (username !== null && username !== undefined)
-            content_.append("username", username.toString());
+            content_.append("Username", username.toString());
         if (password !== null && password !== undefined)
-            content_.append("password", password.toString());
+            content_.append("Password", password.toString());
         if (refresh_token !== null && refresh_token !== undefined)
             content_.append("refresh_token", refresh_token.toString());
 
@@ -552,6 +552,63 @@ export class AuthClient {
             });
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Exchanges form-encoded credentials or a refresh token for tokens in Scalar.
+     * @param grant_type (optional) 
+     * @param username (optional) 
+     * @param password (optional) 
+     * @param refresh_token (optional) 
+     * @return An IActionResult representing the outcome of the token exchange.
+     */
+    exchangeScalarToken(grant_type: string | null | undefined, username: string | null | undefined, password: string | null | undefined, refresh_token: string | null | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/auth";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (grant_type !== null && grant_type !== undefined)
+            content_.append("grant_type", grant_type.toString());
+        if (username !== null && username !== undefined)
+            content_.append("Username", username.toString());
+        if (password !== null && password !== undefined)
+            content_.append("Password", password.toString());
+        if (refresh_token !== null && refresh_token !== undefined)
+            content_.append("refresh_token", refresh_token.toString());
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExchangeScalarToken(_response);
+        });
+    }
+
+    protected processExchangeScalarToken(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
     }
 }
 
