@@ -1,5 +1,6 @@
 using System.Data;
 using System.Linq.Expressions;
+using ClosedXML.Excel;
 using DotNetNuxt.Abstractions;
 using Moq;
 using YoFi.V3.Application.Dto;
@@ -208,6 +209,82 @@ public class TransactionsTests
         Assert.That(
             async () => await _feature.DeleteSplitAsync(transaction.Key, transaction.Splits.First().Key),
             Throws.InstanceOf<ValidationException>());
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_AppendsRowsAndBalancesExistingSplit()
+    {
+        var transaction = CreateTransaction("Upload Payee", -100.25m, new(2026, 8, 1));
+        transaction.Splits.First().Amount = -60m;
+        transaction.Splits.First().Order = 4;
+        _transactions.Add(transaction);
+
+        var workbook = SplitWorkbook(
+            ("  groceries  ", "12.34", "  weekly buy  "),
+            ("Dining: OUT", "-52.59", "Lunch"));
+
+        var result = await _feature.UploadSplitsAsync(transaction.Key, workbook);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Splits.Select(split => split.Amount),
+                Is.EqualTo(new[] { -60m, 12.34m, -52.59m }));
+            Assert.That(result.Splits.Select(split => split.Category),
+                Is.EqualTo(new[] { "Groceries", "Groceries", "Dining:OUT" }));
+            Assert.That(result.Splits.Select(split => split.Order), Is.EqualTo(new[] { 4, 5, 6 }));
+            Assert.That(result.IsBalanced, Is.True);
+        }
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_EmptyExistingSplits_ThrowsValidationException()
+    {
+        var transaction = CreateTransaction("Payee", -100m, new(2026, 8, 2));
+        transaction.Splits.Clear();
+        _transactions.Add(transaction);
+
+        Assert.That(
+            async () => await _feature.UploadSplitsAsync(
+                transaction.Key, SplitWorkbook(("Food", "-100", null))),
+            Throws.InstanceOf<ValidationException>());
+    }
+
+    [Test]
+    public async Task UploadSplitsAsync_BalancingAmountZero_RemovesAndRenumbersOriginalSplit()
+    {
+        var transaction = CreateTransaction("Payee", -100m, new(2026, 8, 3));
+        _transactions.Add(transaction);
+
+        var result = await _feature.UploadSplitsAsync(
+            transaction.Key, SplitWorkbook(("Food", "-100", "uploaded")));
+
+        Assert.That(result.Splits, Is.Empty);
+        Assert.That(result.Category, Is.EqualTo("Food"));
+        Assert.That(result.Amount, Is.EqualTo(-100m));
+        Assert.That(transaction.Splits.First().Amount, Is.EqualTo(-100m));
+        Assert.That(transaction.Splits.First().Order, Is.EqualTo(0));
+        Assert.That(transaction.Splits.First().Category, Is.EqualTo("Food"));
+    }
+
+    private static byte[] SplitWorkbook(params (string Category, string Amount, string? Memo)[] rows)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.AddWorksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+        worksheet.Cell(1, 3).Value = "Memo";
+
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var rowNumber = index + 2;
+            worksheet.Cell(rowNumber, 1).Value = rows[index].Category;
+            worksheet.Cell(rowNumber, 2).Value = rows[index].Amount;
+            worksheet.Cell(rowNumber, 3).Value = rows[index].Memo;
+        }
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
     }
 
     private static Transaction CreateTransaction(string payee, decimal amount, DateOnly date)
