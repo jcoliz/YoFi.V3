@@ -51,58 +51,133 @@ public sealed class NativeYoFiTransactionWorksheetHandler(DataImportService data
         var errors = ImmutableArray.CreateBuilder<DataImportIssueDto>();
         var headers = ReadHeaders(worksheet);
         var required = new[] { "Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category" };
-        var ignored = headers.Names.Where(name => !required.Contains(name, StringComparer.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var ignored = headers.Names
+            .Where(name => !required.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        ValidateHeaders(headers, errors);
+        var transactions = errors.Count == 0
+            ? ParseTransactions(worksheet, headers, errors)
+            : ImmutableArray<NativeTransactionImportDto>.Empty;
+
+        return new Analysis(transactions, ignored, errors.ToImmutable(), []);
+    }
+
+    private static void ValidateHeaders(HeaderMap headers, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
         foreach (var name in new[] { "Date", "Payee", "Amount" })
         {
-            if (!headers.Columns.ContainsKey(name)) errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
+            if (!headers.Columns.ContainsKey(name))
+                errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
         }
-        if (headers.Duplicate("Key")) errors.Add(new DataImportIssueDto(1, "Key", "duplicate_header", "The Key column must appear at most once."));
+        if (headers.Duplicate("Key"))
+            errors.Add(new DataImportIssueDto(1, "Key", "duplicate_header", "The Key column must appear at most once."));
+    }
 
-        var seenKeys = new HashSet<Guid>();
+    private ImmutableArray<NativeTransactionImportDto> ParseTransactions(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
         var transactions = ImmutableArray.CreateBuilder<NativeTransactionImportDto>();
-        if (errors.Count == 0)
-        {
-            var validator = new TransactionEditDtoValidator(timeProvider);
-            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-            for (var row = 2; row <= lastRow; row++)
-            {
-                if (worksheet.Row(row).IsEmpty()) continue;
-                Guid? key = null;
-                if (headers.Columns.TryGetValue("Key", out var keyColumn))
-                {
-                    var keyText = worksheet.Cell(row, keyColumn).GetString().Trim();
-                    if (keyText.Length > 0)
-                    {
-                        if (!Guid.TryParse(keyText, out var parsed) || parsed == Guid.Empty)
-                        { errors.Add(new DataImportIssueDto(row, "Key", "invalid_guid", "Key must be a valid GUID.")); continue; }
-                        if (!seenKeys.Add(parsed))
-                        { errors.Add(new DataImportIssueDto(row, "Key", "duplicate_key", "Duplicate nonblank Keys are not allowed.")); continue; }
-                        key = parsed;
-                    }
-                }
-                if (!TryDate(worksheet, headers, row, out var date)) { errors.Add(new DataImportIssueDto(row, "Date", "invalid_value", "Date must be a valid date.")); continue; }
-                if (!TryText(worksheet, headers, row, "Payee", out var payee)) { errors.Add(new DataImportIssueDto(row, "Payee", "invalid_value", "Payee must be text.")); continue; }
-                if (!TryDecimal(worksheet, headers, row, "Amount", out var amount)) { errors.Add(new DataImportIssueDto(row, "Amount", "invalid_value", "Amount must be decimal.")); continue; }
+        var seenKeys = new HashSet<Guid>();
+        var validator = new TransactionEditDtoValidator(timeProvider);
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
-                TryText(worksheet, headers, row, "Source", out var source);
-                TryText(worksheet, headers, row, "ExternalId", out var externalId);
-                TryText(worksheet, headers, row, "Memo", out var memo);
-                TryText(worksheet, headers, row, "Category", out var rawCategory);
-                var category = string.IsNullOrWhiteSpace(rawCategory) ? null
-                    : (string.Equals(rawCategory.Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase) ? "SPLIT"
-                        : CategoryHelper.SanitizeCategory(rawCategory));
-                var dto = new TransactionEditDto(date, amount, payee.Trim(), Blank(memo), Blank(source), Blank(externalId), category);
-                var validation = validator.Validate(dto);
-                if (!validation.IsValid)
-                {
-                    foreach (var failure in validation.Errors)
-                        errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
-                    continue;
-                }
-                transactions.Add(new NativeTransactionImportDto(key, date, amount, payee.Trim(), Blank(memo), Blank(source), Blank(externalId), category));
-            }
+        for (var row = 2; row <= lastRow; row++)
+        {
+            if (worksheet.Row(row).IsEmpty())
+                continue;
+
+            var transaction = ParseTransaction(worksheet, headers, row, seenKeys, validator, errors);
+            if (transaction is not null)
+                transactions.Add(transaction);
         }
-        return new Analysis(transactions.ToImmutable(), ignored, errors.ToImmutable(), []);
+
+        return transactions.ToImmutable();
+    }
+
+    private static NativeTransactionImportDto? ParseTransaction(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        HashSet<Guid> seenKeys,
+        TransactionEditDtoValidator validator,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (!TryReadKey(worksheet, headers, row, seenKeys, out var key, errors))
+            return null;
+        if (!TryDate(worksheet, headers, row, out var date))
+        {
+            errors.Add(new DataImportIssueDto(row, "Date", "invalid_value", "Date must be a valid date."));
+            return null;
+        }
+        if (!TryText(worksheet, headers, row, "Payee", out var payee))
+        {
+            errors.Add(new DataImportIssueDto(row, "Payee", "invalid_value", "Payee must be text."));
+            return null;
+        }
+        if (!TryDecimal(worksheet, headers, row, "Amount", out var amount))
+        {
+            errors.Add(new DataImportIssueDto(row, "Amount", "invalid_value", "Amount must be decimal."));
+            return null;
+        }
+
+        TryText(worksheet, headers, row, "Source", out var source);
+        TryText(worksheet, headers, row, "ExternalId", out var externalId);
+        TryText(worksheet, headers, row, "Memo", out var memo);
+        TryText(worksheet, headers, row, "Category", out var rawCategory);
+        var category = ParseCategory(rawCategory);
+        var dto = new TransactionEditDto(date, amount, payee.Trim(), Blank(memo), Blank(source), Blank(externalId), category);
+        var validation = validator.Validate(dto);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+                errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
+            return null;
+        }
+
+        return new NativeTransactionImportDto(key, date, amount, payee.Trim(), Blank(memo), Blank(source), Blank(externalId), category);
+    }
+
+    private static bool TryReadKey(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        HashSet<Guid> seenKeys,
+        out Guid? key,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        key = null;
+        if (!headers.Columns.TryGetValue("Key", out var keyColumn))
+            return true;
+
+        var keyText = worksheet.Cell(row, keyColumn).GetString().Trim();
+        if (keyText.Length == 0)
+            return true;
+        if (!Guid.TryParse(keyText, out var parsed) || parsed == Guid.Empty)
+        {
+            errors.Add(new DataImportIssueDto(row, "Key", "invalid_guid", "Key must be a valid GUID."));
+            return false;
+        }
+        if (!seenKeys.Add(parsed))
+        {
+            errors.Add(new DataImportIssueDto(row, "Key", "duplicate_key", "Duplicate nonblank Keys are not allowed."));
+            return false;
+        }
+
+        key = parsed;
+        return true;
+    }
+
+    private static string? ParseCategory(string rawCategory)
+    {
+        if (string.IsNullOrWhiteSpace(rawCategory))
+            return null;
+        return string.Equals(rawCategory.Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase)
+            ? "SPLIT"
+            : CategoryHelper.SanitizeCategory(rawCategory);
     }
 
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
