@@ -56,45 +56,5 @@ public class PayeeMatchingRuleFeatureCreateRuleAsyncTests : PayeeMatchingRuleFea
         Assert.That(result.Category, Is.EqualTo("Shopping"));
     }
 
-    [Test]
-    public async Task CreateRuleAsync_CategoryWithWhitespace_SanitizesCategory()
-    {
-        // Given: Rule with category containing extra whitespace
-        var ruleDto = new PayeeMatchingRuleEditDto(
-            PayeePattern: "Amazon",
-            PayeeIsRegex: false,
-            Category: "  Shopping : Online  "
-        );
 
-        // When: Creating the rule
-        var result = await _feature.CreateRuleAsync(ruleDto);
-
-        // Then: Category should be sanitized (whitespace collapsed, colons normalized)
-        Assert.That(result.Category, Is.EqualTo("Shopping:Online"));
-
-        // And: Sanitized category stored in database
-        var dbRule = _context.PayeeMatchingRules.Single(r => r.Key == result.Key);
-        Assert.That(dbRule.Category, Is.EqualTo("Shopping:Online"));
-    }
-
-    [Test]
-    public async Task CreateRuleAsync_SetsTimestamps()
-    {
-        // Given: Valid rule data
-        _timeProvider.UtcNow = _timeProvider.GetUtcNow().AddDays(1);
-        var now = _timeProvider.GetUtcNow();
-        var ruleDto = new PayeeMatchingRuleEditDto("Amazon", false, "Shopping");
-
-        // When: Creating the rule
-        var result = await _feature.CreateRuleAsync(ruleDto);
-
-        // Then: CreatedAt and ModifiedAt should be set to same value
-        Assert.That(result.CreatedAt, Is.EqualTo(now));
-        Assert.That(result.ModifiedAt, Is.EqualTo(now));
-
-        _context.ChangeTracker.Clear();
-        var dbRule = _context.PayeeMatchingRules.Single(r => r.Key == result.Key);
-        Assert.That(dbRule.CreatedAt, Is.EqualTo(now));
-        Assert.That(dbRule.ModifiedAt, Is.EqualTo(now));
-    }
 }

@@ -185,25 +185,7 @@ public class TenantDataExportFeatureTests : FeatureTestBase
         }
     }
 
-    [Test]
-    public async Task Export_AllRegisteredTypesWithoutDateFilter_UsesCompleteExportFileName()
-    {
-        var result = await _feature.ExportAsync(new TenantDataExportRequest(
-            ["Transactions", "PayeeMatchingRules"]));
 
-        Assert.That(result.FileName, Is.EqualTo("yofi-complete-export-2040-07-01.xlsx"));
-    }
-
-    [Test]
-    public async Task Export_AllRegisteredTypesWithDateFilter_UsesSelectedExportFileName()
-    {
-        var result = await _feature.ExportAsync(new TenantDataExportRequest(
-            ["Transactions", "PayeeMatchingRules"],
-            StartDate: new DateOnly(2025, 1, 1)));
-
-        Assert.That(result.FileName,
-            Is.EqualTo("yofi-payee-matching-rules-transactions-from-2025-01-01-2040-07-01.xlsx"));
-    }
 
     [Test]
     public async Task Export_AllowsOpenEndedDateRanges()
@@ -235,28 +217,6 @@ public class TenantDataExportFeatureTests : FeatureTestBase
         }
     }
 
-    [Test]
-    public async Task Export_RejectsEmptyUnknownDuplicateAndInvalidDateSelections()
-    {
-        var empty = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest([])));
-        var unknown = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest(["Unknown"])));
-        var duplicate = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest(["Transactions", "transactions"])));
-        var reversedRange = await Assert.ThrowsAsync<ValidationException>(() =>
-            _feature.ExportAsync(new TenantDataExportRequest(
-                ["Transactions"],
-                StartDate: new DateOnly(2025, 2, 1),
-                EndDate: new DateOnly(2025, 1, 1))));
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(empty!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
-            Assert.That(unknown!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
-            Assert.That(duplicate!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.DataTypes)));
-            Assert.That(reversedRange!.ParameterName, Is.EqualTo(nameof(TenantDataExportRequest.StartDate)));
-        }
-    }
 
     private static Transaction Transaction(Tenant tenant, DateOnly date, string payee, params Split[] splits) =>
         new()

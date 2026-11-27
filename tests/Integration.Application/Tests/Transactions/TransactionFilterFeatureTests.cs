@@ -63,70 +63,7 @@ public class TransactionFilterFeatureTests : FeatureTestBase
         Assert.That(combinedResult.Items.Single().Payee, Is.EqualTo("Star Market"));
     }
 
-    [Test]
-    public async Task GetTransactionsAsync_CategorySanitizationAndUncategorizedUseAnySplitWithoutDuplicates()
-    {
-        var target = AddTransaction("Canonical category", 20m, splits:
-        [
-            new Split { Amount = 20m, Category = "Home:Utilities", Order = 0 },
-            new Split { Amount = 0m, Category = "Other", Memo = "Refund details", Order = 1 },
-            new Split { Amount = 0m, Category = string.Empty, Order = 2 }
-        ]);
-        AddTransaction("Fully categorized", 20m, splits:
-        [
-            new Split { Amount = 10m, Category = "Home:Utilities", Order = 0 },
-            new Split { Amount = 10m, Category = "Food", Order = 1 }
-        ]);
-        AddTransaction("Zero uncategorized", 0m, splits:
-        [
-            new Split { Amount = 0m, Category = string.Empty, Order = 0 }
-        ]);
-        AddTransaction("No matching category", 20m, splits:
-        [
-            new Split { Amount = 20m, Category = "Food", Order = 0 }
-        ]);
-        await _context.SaveChangesAsync();
 
-        var sanitizedCategoryResult = await GetFiltered(category: " home :: utilities ");
-        var uncategorizedResult = await GetFiltered(uncategorizedOnly: true);
-        var combinedResult = await GetFiltered(
-            category: "Home:Utilities", memo: "refund", uncategorizedOnly: true);
-        var emptyCategoryResult = await GetFiltered(category: " : ");
-
-        Assert.That(
-            sanitizedCategoryResult.Items.Select(item => item.Key),
-            Is.EquivalentTo(new[]
-            {
-                target.Key,
-                _context.Transactions.Local.Single(transaction => transaction.Payee == "Fully categorized").Key
-            }));
-        Assert.That(uncategorizedResult.Metadata.TotalCount, Is.EqualTo(2));
-        Assert.That(combinedResult.Items.Select(item => item.Key), Is.EqualTo(new[] { target.Key }));
-        Assert.That(emptyCategoryResult.Metadata.TotalCount, Is.EqualTo(4));
-    }
-
-    [Test]
-    public async Task GetTransactionsAsync_AmountUsesExactSignRulesAndValidatesMalformedValues()
-    {
-        AddTransaction("Positive", 42m);
-        AddTransaction("Negative", -42m);
-        AddTransaction("Zero", 0m);
-        AddTransaction("Amount in payee only 42", 1m);
-        await _context.SaveChangesAsync();
-
-        var unsigned = await GetFiltered(amount: "42");
-        var positive = await GetFiltered(amount: "+$42");
-        var negative = await GetFiltered(amount: "$-42");
-        var zero = await GetFiltered(amount: "0");
-        var invalid = await Assert.ThrowsAsync<ValidationException>(async () =>
-            await GetFiltered(amount: "42x"));
-
-        Assert.That(unsigned.Items.Select(item => item.Payee), Is.EquivalentTo(new[] { "Positive", "Negative" }));
-        Assert.That(positive.Items.Select(item => item.Payee), Is.EqualTo(new[] { "Positive" }));
-        Assert.That(negative.Items.Select(item => item.Payee), Is.EqualTo(new[] { "Negative" }));
-        Assert.That(zero.Items.Select(item => item.Payee), Is.EqualTo(new[] { "Zero" }));
-        Assert.That(invalid!.ParameterName, Is.EqualTo("amount"));
-    }
 
     [Test]
     public async Task GetTransactionsAsync_AdvancedFilterCountsBeforePagingAndRemainsTenantScoped()

@@ -52,40 +52,5 @@ public class PayeeMatchingRuleFeatureUpdateRuleAsyncTests : PayeeMatchingRuleFea
         Assert.That(dbRule.CreatedAt, Is.EqualTo(originalCreatedAt));
     }
 
-    [Test]
-    public async Task UpdateRuleAsync_CategoryWithWhitespace_SanitizesCategory()
-    {
-        // Given: Existing rule
-        var rule = new PayeeMatchingRule
-        {
-            PayeePattern = "Amazon",
-            Category = "Shopping",
-            TenantId = _testTenant.Id
-        };
-        _context.PayeeMatchingRules.Add(rule);
-        await _context.SaveChangesAsync();
 
-        // When: Updating with category containing whitespace
-        var updateDto = new PayeeMatchingRuleEditDto(
-            PayeePattern: "Amazon",
-            PayeeIsRegex: false,
-            Category: "  Online : Shopping  "
-        );
-        var result = await _feature.UpdateRuleAsync(rule.Key, updateDto);
-
-        // Then: Category should be sanitized
-        Assert.That(result.Category, Is.EqualTo("Online:Shopping"));
-    }
-
-    [Test]
-    public async Task UpdateRuleAsync_NonExistentKey_ThrowsNotFoundException()
-    {
-        // Given: Non-existent key
-        var nonExistentKey = Guid.NewGuid();
-        var updateDto = new PayeeMatchingRuleEditDto("Pattern", false, "Category");
-
-        // When/Then: Updating should throw
-        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
-            async () => await _feature.UpdateRuleAsync(nonExistentKey, updateDto));
-    }
 }

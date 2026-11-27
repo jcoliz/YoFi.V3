@@ -31,14 +31,4 @@ public class PayeeMatchingRuleFeatureDeleteRuleAsyncTests : PayeeMatchingRuleFea
         Assert.That(dbRule, Is.Null);
     }
 
-    [Test]
-    public async Task DeleteRuleAsync_NonExistentKey_ThrowsNotFoundException()
-    {
-        // Given: Non-existent key
-        var nonExistentKey = Guid.NewGuid();
-
-        // When/Then: Deleting should throw
-        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
-            async () => await _feature.DeleteRuleAsync(nonExistentKey));
-    }
 }

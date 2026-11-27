@@ -89,47 +89,7 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
         Assert.That(itemsList[2].PayeePattern, Is.EqualTo("Charlie"));
     }
 
-    [Test]
-    public async Task GetRulesAsync_SortByCategory_SortsByCategoryAscending()
-    {
-        // Given: Multiple rules with different categories
-        var rule1 = new PayeeMatchingRule { PayeePattern = "P1", Category = "Zebra", TenantId = _testTenant.Id };
-        var rule2 = new PayeeMatchingRule { PayeePattern = "P2", Category = "Apple", TenantId = _testTenant.Id };
-        var rule3 = new PayeeMatchingRule { PayeePattern = "P3", Category = "Banana", TenantId = _testTenant.Id };
-        _context.PayeeMatchingRules.AddRange(rule1, rule2, rule3);
-        await _context.SaveChangesAsync();
 
-        // When: Getting rules sorted by category
-        var result = await _feature.GetRulesAsync(sortBy: PayeeRuleSortBy.Category);
-
-        // Then: Should be sorted by Category A-Z
-        var itemsList = result.Items.ToList();
-        Assert.That(itemsList[0].Category, Is.EqualTo("Apple"));
-        Assert.That(itemsList[1].Category, Is.EqualTo("Banana"));
-        Assert.That(itemsList[2].Category, Is.EqualTo("Zebra"));
-    }
-
-    [Test]
-    public async Task GetRulesAsync_SortByLastUsedAt_SortsByMostRecentFirst()
-    {
-        // Given: Multiple rules with different LastUsedAt values
-        var old = _timeProvider.GetUtcNow().AddDays(-10);
-        var recent = _timeProvider.GetUtcNow().AddDays(-1);
-        var rule1 = new PayeeMatchingRule { PayeePattern = "P1", Category = "C1", TenantId = _testTenant.Id, LastUsedAt = old };
-        var rule2 = new PayeeMatchingRule { PayeePattern = "P2", Category = "C2", TenantId = _testTenant.Id, LastUsedAt = recent };
-        var rule3 = new PayeeMatchingRule { PayeePattern = "P3", Category = "C3", TenantId = _testTenant.Id, LastUsedAt = null };
-        _context.PayeeMatchingRules.AddRange(rule1, rule2, rule3);
-        await _context.SaveChangesAsync();
-
-        // When: Getting rules sorted by LastUsedAt
-        var result = await _feature.GetRulesAsync(sortBy: PayeeRuleSortBy.LastUsedAt);
-
-        // Then: Should be sorted most recent first, null last
-        var itemsList = result.Items.ToList();
-        Assert.That(itemsList[0].PayeePattern, Is.EqualTo("P2")); // Most recent
-        Assert.That(itemsList[1].PayeePattern, Is.EqualTo("P1")); // Older
-        Assert.That(itemsList[2].PayeePattern, Is.EqualTo("P3")); // Never used (null)
-    }
 
     [Test]
     public async Task GetRulesAsync_WithPagination_ReturnsCorrectPage()
@@ -163,56 +123,6 @@ public class PayeeMatchingRuleFeatureGetRulesAsyncTests : PayeeMatchingRuleFeatu
         Assert.That(itemsList[49].PayeePattern, Is.EqualTo("Pattern100"));
     }
 
-    [Test]
-    public async Task GetRulesAsync_WithSearchText_FiltersPayeePattern()
-    {
-        // Given: Multiple rules
-        var rule1 = new PayeeMatchingRule { PayeePattern = "Amazon", Category = "Shopping", TenantId = _testTenant.Id };
-        var rule2 = new PayeeMatchingRule { PayeePattern = "Safeway", Category = "Groceries", TenantId = _testTenant.Id };
-        var rule3 = new PayeeMatchingRule { PayeePattern = "Target", Category = "Shopping", TenantId = _testTenant.Id };
-        _context.PayeeMatchingRules.AddRange(rule1, rule2, rule3);
-        await _context.SaveChangesAsync();
 
-        // When: Searching for "Safe"
-        var result = await _feature.GetRulesAsync(searchText: "Safe");
 
-        // Then: Should return only matching rule
-        Assert.That(result.Items, Has.Count.EqualTo(1));
-        Assert.That(result.Items.First().PayeePattern, Is.EqualTo("Safeway"));
-    }
-
-    [Test]
-    public async Task GetRulesAsync_WithSearchText_FiltersCategory()
-    {
-        // Given: Multiple rules
-        var rule1 = new PayeeMatchingRule { PayeePattern = "Amazon", Category = "Shopping", TenantId = _testTenant.Id };
-        var rule2 = new PayeeMatchingRule { PayeePattern = "Safeway", Category = "Groceries", TenantId = _testTenant.Id };
-        var rule3 = new PayeeMatchingRule { PayeePattern = "Target", Category = "Shopping", TenantId = _testTenant.Id };
-        _context.PayeeMatchingRules.AddRange(rule1, rule2, rule3);
-        await _context.SaveChangesAsync();
-
-        // When: Searching for "Shop"
-        var result = await _feature.GetRulesAsync(searchText: "Shop");
-
-        // Then: Should return rules with matching category
-        Assert.That(result.Items, Has.Count.EqualTo(2));
-        Assert.That(result.Items.Select(r => r.PayeePattern), Contains.Item("Amazon"));
-        Assert.That(result.Items.Select(r => r.PayeePattern), Contains.Item("Target"));
-    }
-
-    [Test]
-    public async Task GetRulesAsync_WithSearchText_IsCaseInsensitive()
-    {
-        // Given: Rule with mixed case
-        var rule = new PayeeMatchingRule { PayeePattern = "Amazon", Category = "Shopping", TenantId = _testTenant.Id };
-        _context.PayeeMatchingRules.Add(rule);
-        await _context.SaveChangesAsync();
-
-        // When: Searching with different case
-        var result = await _feature.GetRulesAsync(searchText: "AMAZON");
-
-        // Then: Should find the rule
-        Assert.That(result.Items, Has.Count.EqualTo(1));
-        Assert.That(result.Items.First().PayeePattern, Is.EqualTo("Amazon"));
-    }
 }

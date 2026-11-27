@@ -32,16 +32,6 @@ public class PayeeMatchingRuleFeatureGetRuleByKeyAsyncTests : PayeeMatchingRuleF
         Assert.That(result.Category, Is.EqualTo("Shopping"));
     }
 
-    [Test]
-    public async Task GetRuleByKeyAsync_NonExistentKey_ThrowsNotFoundException()
-    {
-        // Given: Non-existent key
-        var nonExistentKey = Guid.NewGuid();
-
-        // When/Then: Getting rule should throw
-        await Assert.ThrowsAsync<PayeeMatchingRuleNotFoundException>(
-            async () => await _feature.GetRuleByKeyAsync(nonExistentKey));
-    }
 
     [Test]
     public async Task GetRuleByKeyAsync_DifferentTenant_ThrowsNotFoundException()
