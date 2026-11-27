@@ -817,6 +817,81 @@ public class ImportReviewFeatureTests
     }
 
     [Test]
+    public async Task CompleteReviewAsync_AcceptsSelectedAndDeletesAll()
+    {
+        var tenant = new YoFi.V3.Entities.Tenancy.Models.Tenant
+        {
+            Id = 42,
+            Name = "Tenant",
+            Key = Guid.NewGuid()
+        };
+        var tenantProvider = new Mock<ITenantProvider>();
+        tenantProvider.Setup(provider => provider.CurrentTenant).Returns(tenant);
+        var dataProvider = new Mock<IDataProvider>();
+        var selected = new[]
+        {
+            new ImportReviewTransaction
+            {
+                TenantId = 42,
+                Key = Guid.NewGuid(),
+                Date = new(2025, 1, 2),
+                Payee = "Coffee",
+                Amount = -5m,
+                Category = "Food",
+                Source = "Bank",
+                ExternalId = "fitid-1",
+                Memo = "memo",
+                IsSelected = true
+            }
+        };
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(selected.AsQueryable());
+        dataProvider.SetupSequence(dp => dp.CountAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .ReturnsAsync(3)
+            .ReturnsAsync(1);
+        dataProvider.Setup(dp => dp.ToListAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .Returns((IQueryable<ImportReviewTransaction> query) => Task.FromResult(query.ToList()));
+        dataProvider.Setup(dp => dp.BulkDeleteAsync(It.IsAny<IQueryable<ImportReviewTransaction>>())).ReturnsAsync(3);
+
+        dataProvider.Setup(dp => dp.AddRange(It.IsAny<IEnumerable<IModel>>()));
+        dataProvider.Setup(dp => dp.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var transactionsFeature = new TransactionsFeature(tenantProvider.Object, dataProvider.Object);
+
+        var matching = new Mock<YoFi.V3.Application.Services.IPayeeMatchingService>();
+        var time = new Mock<TimeProvider>();
+        time.Setup(item => item.GetUtcNow()).Returns(new DateTimeOffset(2040, 7, 1, 12, 0, 0, TimeSpan.Zero));
+        var feature = new ImportReviewFeature(tenantProvider.Object, dataProvider.Object,
+            transactionsFeature, matching.Object, time.Object);
+
+        var result = await feature.CompleteReviewAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.AcceptedCount, Is.EqualTo(1));
+            Assert.That(result.RejectedCount, Is.EqualTo(2));
+        }
+        dataProvider.Verify(dp => dp.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        dataProvider.Verify(dp => dp.BulkDeleteAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task CompleteReviewAsync_NoSelectionAcceptsNoneAndDeletesAll()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(Array.Empty<ImportReviewTransaction>().AsQueryable());
+        dataProvider.SetupSequence(dp => dp.CountAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .ReturnsAsync(2)
+            .ReturnsAsync(2);
+        dataProvider.Setup(dp => dp.ToListAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .ReturnsAsync([]);
+        dataProvider.Setup(dp => dp.BulkDeleteAsync(It.IsAny<IQueryable<ImportReviewTransaction>>())).ReturnsAsync(2);
+
+        var result = await feature.CompleteReviewAsync();
+
+        Assert.That(result.AcceptedCount, Is.Zero);
+        Assert.That(result.RejectedCount, Is.EqualTo(2));
+    }
+
+    [Test]
     public async Task GetPendingReviewAsync_NormalizesPageAndMapsRows()
     {
         var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
@@ -935,7 +1010,6 @@ public class ImportReviewFeatureTests
         var mockTransactionsFeature = new Mock<TransactionsFeature>(
             Mock.Of<ITenantProvider>(),
             Mock.Of<IDataProvider>());
-
         var mockPayeeMatchingService = new Mock<YoFi.V3.Application.Services.IPayeeMatchingService>();
         mockPayeeMatchingService
             .Setup(pms => pms.ApplyMatchingRulesAsync(It.IsAny<IReadOnlyCollection<YoFi.V3.Application.Services.IMatchableTransaction>>()))
