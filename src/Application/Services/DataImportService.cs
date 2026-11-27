@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -453,52 +454,74 @@ public sealed class DataImportService(
     /// <exception cref="ValidationException">A record fails validation; the message identifies its entity type.</exception>
     internal static void Validate(SampleDataSet dataset, IRegexValidationService regexValidationService, TimeProvider timeProvider)
     {
+        ValidateTransactions(dataset, timeProvider);
+        ValidateTransactionSplits(dataset);
+        ValidateRules(dataset.Rules, regexValidationService);
+    }
+
+    private static void ValidateTransactions(SampleDataSet dataset, TimeProvider timeProvider)
+    {
         var transactionValidator = new TransactionEditDtoValidator(timeProvider);
         foreach (var transaction in dataset.Transactions)
         {
             var result = transactionValidator.Validate(transaction);
             if (!result.IsValid)
-            {
                 throw new ValidationException(nameof(dataset.Transactions), result.ToString());
-            }
         }
-        var transactionsByExternalId = dataset.TransactionSplits.Count == 0 ? null
+    }
+
+    private static void ValidateTransactionSplits(SampleDataSet dataset)
+    {
+        var transactionsByExternalId = dataset.TransactionSplits.Count == 0
+            ? null
             : dataset.Transactions.ToLookup(t => t.ExternalId, StringComparer.Ordinal);
+
         foreach (var (externalId, splits) in dataset.TransactionSplits)
         {
             var matches = transactionsByExternalId![externalId].ToArray();
             if (matches.Length != 1 || splits.IsDefaultOrEmpty)
-            {
                 throw new ValidationException(nameof(dataset.TransactionSplits),
                     "Sample allocations require one matching transaction and a nonempty split collection.");
-            }
-            foreach (var split in splits)
-            {
-                if (split == null || split.Category == null || split.Category.Length > 200
-                    || split.Memo is { Length: > 500 }
-                    || (!string.IsNullOrWhiteSpace(split.Category)
-                        && CategoryHelper.SanitizeCategory(split.Category).Length == 0)
-                    || Math.Abs(split.Amount) > decimal.MaxValue / SampleDataGenerator.MaxTransactions)
-                {
-                    throw new ValidationException(nameof(dataset.TransactionSplits),
-                        "Sample split categories and amounts must satisfy transaction constraints.");
-                }
-            }
-            decimal total;
-            try
-            {
-                total = splits.Sum(s => s.Amount);
-            }
-            catch (OverflowException)
-            {
-                throw new ValidationException(nameof(dataset.TransactionSplits), "Sample split amounts exceed decimal bounds.");
-            }
-            if (total != matches[0].Amount)
-            {
-                throw new ValidationException(nameof(dataset.TransactionSplits), "Sample split amounts must equal the transaction amount.");
-            }
+
+            ValidateSplitConstraints(splits);
+            ValidateSplitTotal(splits, matches[0]);
         }
-        ValidateRules(dataset.Rules, regexValidationService);
+    }
+
+    private static void ValidateSplitConstraints(ImmutableArray<SampleSplitDto> splits)
+    {
+        foreach (var split in splits)
+        {
+            if (split == null
+                || split.Category == null
+                || split.Category.Length > 200
+                || split.Memo is { Length: > 500 }
+                || (!string.IsNullOrWhiteSpace(split.Category)
+                    && CategoryHelper.SanitizeCategory(split.Category).Length == 0)
+                || Math.Abs(split.Amount) > decimal.MaxValue / SampleDataGenerator.MaxTransactions)
+                throw new ValidationException(nameof(SampleDataSet.TransactionSplits),
+                    "Sample split categories and amounts must satisfy transaction constraints.");
+        }
+    }
+
+    private static void ValidateSplitTotal(
+        ImmutableArray<SampleSplitDto> splits,
+        TransactionEditDto transaction)
+    {
+        decimal total;
+        try
+        {
+            total = splits.Sum(split => split.Amount);
+        }
+        catch (OverflowException)
+        {
+            throw new ValidationException(nameof(SampleDataSet.TransactionSplits),
+                "Sample split amounts exceed decimal bounds.");
+        }
+
+        if (total != transaction.Amount)
+            throw new ValidationException(nameof(SampleDataSet.TransactionSplits),
+                "Sample split amounts must equal the transaction amount.");
     }
 
     private static void ValidateRules(
