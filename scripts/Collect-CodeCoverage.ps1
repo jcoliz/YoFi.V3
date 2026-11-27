@@ -107,10 +107,15 @@ try {
     }
 
     # Run all test projects with coverage (without rebuilding)
+
+    #
+    # NOTE: We are in the midst of reducing code coverage to focus on unit tests only
+    #
+
     Run-TestsWithCoverage -TestProjectPath $unitTestPath -TestName "unit tests" -SettingsPath $coverletSettingsPath
-    Run-TestsWithCoverage -TestProjectPath $appTestPath -TestName "application integration tests" -SettingsPath $coverletSettingsPath
-    Run-TestsWithCoverage -TestProjectPath $controllerTestPath -TestName "controller integration tests" -SettingsPath $coverletSettingsPath
-    Run-TestsWithCoverage -TestProjectPath $dataTestPath -TestName "data integration tests" -SettingsPath $coverletSettingsPath
+    #Run-TestsWithCoverage -TestProjectPath $appTestPath -TestName "application integration tests" -SettingsPath $coverletSettingsPath
+    #Run-TestsWithCoverage -TestProjectPath $controllerTestPath -TestName "controller integration tests" -SettingsPath $coverletSettingsPath
+    #Run-TestsWithCoverage -TestProjectPath $dataTestPath -TestName "data integration tests" -SettingsPath $coverletSettingsPath
 
     # Generate combined coverage report from all test layers
     Write-Host "`nGenerating combined coverage report from all test layers..." -ForegroundColor Cyan
