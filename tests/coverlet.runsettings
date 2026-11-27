@@ -5,8 +5,8 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <!-- Include assemblies -->
-          <Include>[YoFi.V3.Application]*,[YoFi.V3.Entities]*,[YoFi.V3.Controllers]YoFi.V3.Controllers.Middleware.*,[YoFi.V3.Controllers]YoFi.V3.Controllers.Tenancy.*</Include>
-          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*,[YoFi.V3.Application]System.*,[YoFi.V3.Controllers]YoFi.V3.Controllers.Tenancy.Api.*</Exclude>
+          <Include>[YoFi.V3.Application]*,[YoFi.V3.Entities]*</Include>
+          <Exclude>[YoFi.V3.Entities]YoFi.V3.Entities.Tenancy.Exceptions.*,[YoFi.V3.Entities]YoFi.V3.Entities.Options.*,[YoFi.V3.Application]System.*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>
