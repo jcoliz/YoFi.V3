@@ -4,49 +4,49 @@ How to test Application Features effectively in YoFi.V3
 
 ## The Testing Layers
 
-YoFi.V3 uses a **six-layer testing strategy** optimized for testing where the actual work happens: the Application layer interacting with the database.
+YoFi.V3 uses a six-layer testing strategy. Unit tests are the primary harness for Application Feature behavior; Integration.Application tests provide surgical evidence for database-boundary contracts that require PostgreSQL and EF Core.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ Functional Tests (10%)                                      │
+│ Functional Tests                                            │
 │ Browser → Frontend → Backend → Database                     │
 │ Purpose: E2E user workflows, critical paths                 │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Frontend Component Tests (5%)                               │
+│ Frontend Component Tests                                    │
 │ Vitest + @vue/test-utils, happy-dom                         │
 │ Purpose: Component logic, pure utility functions            │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Controller Integration Tests (20%)                          │
+│ Controller Integration Tests                                │
 │ HTTP → Controllers → (rest of stack)                        │
 │ Purpose: API contracts, auth, HTTP-specific concerns        │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Application Integration Tests (40%) ✨ PRIMARY              │
-│ Application Features → IDataContext → Database              │
-│ Purpose: Business logic + database integration              │
+│ Unit Tests ✨ PRIMARY                                        │
+│ Application Features + pure logic, mocks, LINQ-to-Objects    │
+│ Purpose: Branches, validation, orchestration, edge cases     │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Data Integration Tests (10%)                                │
+│ Application Integration Tests (SELECTIVE)                   │
+│ Application Features → IDataProvider → PostgreSQL            │
+│ Purpose: Real provider, query, persistence, and transaction  │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Data Integration Tests                                      │
 │ Direct DbContext → PostgreSQL (Testcontainers)              │
 │ Purpose: EF Core configurations, schema validation          │
 └─────────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────────┐
-│ Unit Tests (15%)                                            │
-│ Pure logic, no dependencies                                 │
-│ Purpose: Algorithms, validation, entities logic             │
-└─────────────────────────────────────────────────────────────┘
 ```
 
-**Target Distribution:** 10% Functional / 5% Frontend Component / 20% Controller / 40% Application / 10% Data / 15% Unit
+Test counts should follow the risk and database contract, not a fixed distribution. Functional, Controller, and Data Integration concerns remain as defined by their respective layers.
 
-**Key Insight:** "Most of the application's actual work happens between the app layer and the data context" - so test that boundary directly.
+**Key Insight:** Most Application behavior can be tested quickly and thoroughly without a database. Add Integration.Application coverage only when real EF Core or PostgreSQL semantics are what is being verified.
 
 ### Integration Database Lifecycle
 
@@ -164,28 +164,36 @@ describe('MyComponent', () => {
 
 **See:** [`src/FrontEnd.Nuxt/tests/README.md`](../src/FrontEnd.Nuxt/tests/README.md) for complete guidelines and patterns.
 
-## 2. Application Integration Tests (PRIMARY - 40%)
+## 2. Application Integration Tests (SELECTIVE)
 
 **Location:** [`tests/Integration.Application/`](../tests/Integration.Application/)
 
-**Purpose:** Test Application Features with real IDataContext to verify business logic + database integration.
+**Purpose:** Verify distinct Application-to-data contracts with real EF Core and PostgreSQL.
 
 ### When to Use Application Integration Tests
 
 ✅ **DO use Application Integration tests for:**
 
-- Any Feature method that uses IDataContext
-- Navigation property loading verification
-- Complex queries and filtering through Features
-- Multi-entity operations
-- Business rules requiring database state
-- Feature query builders (e.g., `GetTransactionsWithSplits()`)
+- Query shapes whose EF/PostgreSQL translation must be verified
+- Navigation property loading, tracking, and no-tracking behavior
+- Persistence of entity graphs and multi-entity operations
+- Bulk operations, transaction behavior, and rollback
+- Provider-specific filtering or tenant-scoped data behavior
+- One focused representative test for a distinct database contract, plus a focused failure test only when it adds meaningful coverage
 
 ❌ **DON'T use Application Integration tests for:**
 
-- HTTP contracts, status codes, auth → Use Controller Integration instead
-- Database schema, EF Core configs → Use Data Integration instead
-- Pure business logic without database → Use Unit tests instead
+- Pure business logic or calculations already testable without a database
+- Every branch of LINQ or DTO transformation
+- Repeating unit scenarios merely because a Feature happens to call `IDataProvider`
+- HTTP contracts, status codes, or auth → Use Controller Integration instead
+- Database schema or EF mapping configuration → Use Data Integration instead
+
+### Coverage Standard
+
+Application code should follow the project-wide generated-code standard: **90% line coverage per method**. Unit tests are the primary mechanism for reaching that target. One or more surgical Integration.Application tests may cover a database-dependent method, but they should test the provider contract rather than duplicate all unit branches.
+
+A general-purpose in-memory `IDataProvider` should not be added for this purpose. Unit tests should use Moq, narrow stubs, or small scenario-specific fakes. Mock terminal methods such as `ToListAsync` and `CountAsync` with LINQ-to-Objects when the unit under test needs collection behavior. LINQ-to-Objects success does not establish EF translation or SQL behavior.
 
 ### Speed of Application Integration Tests
 
@@ -251,9 +259,9 @@ public class WeatherFeatureTests : FeatureTestBase
 
 ❌ **DON'T use Controller Integration tests for:**
 
-- Testing business logic (use Application Integration instead)
-- Testing navigation property loading (use Application Integration)
-- Testing complex queries (use Application Integration)
+- Testing Application business logic (use Unit tests)
+- Testing navigation property loading or provider-specific queries (use a selective Application Integration test)
+- Testing complex EF or database behavior (use Data or Application Integration tests as appropriate)
 
 ### Speed of Controller Integration Tests
 
@@ -275,7 +283,7 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 }
 ```
 
-## 4. Data Integration Tests (SCHEMA VALIDATION - 10%)
+## 4. Data Integration Tests (SCHEMA VALIDATION)
 
 **Location:** [`tests/Integration.Data/`](../tests/Integration.Data/)
 
@@ -293,34 +301,43 @@ public async Task GetTransactions_Unauthenticated_Returns401()
 
 ❌ **DON'T use Data Integration tests for:**
 
-- Testing Feature business logic (use Application Integration instead)
-- Testing through Features (use Application Integration)
+- Testing Application Feature business logic (use Unit tests)
+- Testing through Features when the goal is the Application-to-provider contract (use a selective Application Integration test)
 
 ### Speed of Data Integration Tests
 
 ~10-20ms per test
 
-## 5. Unit Tests (PURE LOGIC - 15%)
+## 5. Unit Tests (PRIMARY APPLICATION HARNESS)
 
 **Location:** [`tests/Unit/`](../tests/Unit/)
 
-**Purpose:** Test pure business logic without any dependencies.
+**Purpose:** Test pure logic and Application behavior with no real database dependency.
 
 ### When to Use Unit Tests
 
 ✅ **DO use Unit tests for:**
 
 - Entities layer validation and logic
-- Application layer logic testable WITHOUT IDataContext
+- Application branch logic and edge cases
 - Algorithms, calculations, transformations
 - DTO mapping with complex rules
-- Validation rules with edge cases
-- Pure domain logic
+- Validation rules and failure paths
+- Tenant-scoping decisions before a query is sent
+- Command orchestration and whether the correct `IDataProvider` operations are invoked
+- Transaction/save behavior and cache invalidation
+- Query predicate and result behavior using Moq plus LINQ-to-Objects
 
 ❌ **DON'T use Unit tests for:**
 
-- Anything requiring IDataContext (use Application Integration)
-- Anything requiring HTTP context (use Controller Integration)
+- EF Core translation or provider-specific SQL semantics
+- Navigation loading or real persistence behavior
+- Database transaction and rollback behavior
+- HTTP concerns (use Controller Integration)
+
+### Coverage Standard
+
+Aim for **90% line coverage per method** in Application code, including the behavior of methods that interact with `IDataProvider`. This target is measured by meaningful branch and outcome coverage, not by mocks that merely execute code.
 
 ### Speed of Unit Tests
 
@@ -378,7 +395,7 @@ Some functional feature sets use tags for planning and traceability:
                         │ YES                   │ NO
                         ▼                       ▼
                 ┌───────────────────┐   ┌───────────────────────────────┐
-                │ ✅ CONTROLLER     │   │ Does it require IDataContext? │
+                │ ✅ CONTROLLER     │   │ Does it require IDataProvider?│
                 │ INTEGRATION       │   └───────────┬───────────────────┘
                 │                   │               │
                 │ Examples:         │   ┌───────────┴───────────┐
@@ -386,22 +403,21 @@ Some functional feature sets use tags for planning and traceability:
                 │ • 401/403 status  │   ▼                       ▼
                 │ • Serialization   │   ┌───────────────────┐   ┌───────────────────┐
                 └───────────────────┘   │ Is it testing     │   │ ✅ UNIT TEST      │
-                                        │ EF Core directly? │   │                   │
-                                        └───────┬───────────┘   │ Examples:         │
-                                                │               │ • Validation      │
-                                    ┌───────────┴───────────┐   │ • Algorithms      │
-                                    │ YES               NO  │   │ • Calculations    │
-                                    ▼                   ▼   │   └───────────────────┘
-                            ┌───────────────┐   ┌───────────────────┐
+                                        │ EF Core directly? │   │ PRIMARY HARNESS   │
+                                        └───────┬───────────┘   │                   │
+                                                │               │ Examples:         │
+                                    ┌───────────┴───────────┐   │ • Validation      │
+                                    │ YES               NO  │   │ • Algorithms      │
+                                    ▼                   ▼   │   • Orchestration  │
+                            ┌───────────────┐   ┌───────────────────┐   └───────────────────┘
                             │ ✅ DATA       │   │ ✅ APPLICATION    │
                             │ INTEGRATION   │   │ INTEGRATION       │
-                            │               │   │                   │
-                            │ Examples:     │   │ 🎯 PRIMARY LAYER  │
-                            │ • EF configs  │   │                   │
-                            │ • Schema      │   │ Examples:         │
-                            │ • Indexes     │   │ • Feature queries │
-                            └───────────────┘   │ • Nav properties  │
-                                                │ • Business logic  │
+                            │               │   │ SELECTIVE         │
+                            │ Examples:     │   │                   │
+                            │ • EF configs  │   │ • EF translation  │
+                            │ • Schema      │   │ • Nav properties  │
+                            │ • Indexes     │   │ • Persistence     │
+                            └───────────────┘   │ • Transactions    │
                                                 └───────────────────┘
 ```
 
@@ -456,15 +472,17 @@ Assert.That(value, Is.GreaterThan(0));
 | **Functional** | `tests/Functional/` | 2-5s | E2E Workflows |
 | **Frontend Component** | `src/FrontEnd.Nuxt/tests/` | 1-5ms | Component logic, utilities |
 | **Controller Integration** | `tests/Integration.Controller/` | 100-200ms | HTTP + Auth |
-| **Application Integration** ✨ | `tests/Integration.Application/` | 20-50ms | Feature + IDataProvider |
+| **Application Integration** | `tests/Integration.Application/` | 20-50ms | Real EF/PostgreSQL contracts |
 | **Data Integration** | `tests/Integration.Data/` | 10-20ms | EF Core + Schema |
-| **Unit** | `tests/Unit/` | 1-10ms | Pure Logic |
+| **Unit** ✨ | `tests/Unit/` | 1-10ms | Primary Application Feature behavior |
 
 ## When In Doubt
 
-**Default to Application Integration tests** - they test where the work happens (Features + Database) without HTTP overhead.
+**Default to Unit tests** for Application behavior. Use a mock or narrow test fake for `IDataProvider`; execute terminal query operations with LINQ-to-Objects when collection behavior is needed.
 
-Only use Controller Integration when you specifically need to test HTTP concerns (auth, status codes, serialization).
+Use Integration.Application tests only when the real EF/PostgreSQL provider must prove a distinct database contract. Data Integration tests remain responsible for EF mapping and schema behavior.
+
+Use Controller Integration tests only for concerns specific to that separate test layer, such as HTTP status, serialization, or authorization; the rest of Controller coverage is outside this Application testing change.
 
 ## Related Documentation
 

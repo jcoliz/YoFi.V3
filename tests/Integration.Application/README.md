@@ -1,33 +1,35 @@
 # Integration.Application Tests
 
-Tests Application Features with real database through IDataProvider interface.
+Verifies distinct database contracts between Application Features and `IDataProvider` using a real PostgreSQL database.
 
 ## Purpose
 
-Test that Application Features correctly use `IDataProvider` methods to interact with the database, including:
+Application Integration tests are a selective harness for database-boundary behavior that unit tests cannot prove, including:
 
-- Navigation property loading (e.g., Splits on Transactions)
-- Complex queries and filtering
-- Multi-entity operations
-- Business logic requiring database state
+- EF Core navigation property loading (for example, Splits on Transactions)
+- Provider-specific LINQ translation and filtering
+- Persistence of entity graphs
+- Transaction and rollback behavior
+- Bulk operations
+- Tenant-scoped query behavior that must be verified through the real provider
+
+This is no longer the primary harness for all Application Feature behavior.
 
 ## Why This Layer Exists
 
-**The Gap:** We need tests that verify Application Features work correctly with a real database, **without** the overhead of HTTP testing through Controllers.
+Unit tests provide fast, high-coverage verification of Application logic. Integration.Application tests supply the surgical database evidence needed when LINQ-to-Objects, in-memory collections, or mocks cannot establish provider behavior.
 
-**Key Insight:** "Most of the application's actual work happens between the app layer and the data context."
-
-This layer catches bugs at the Feature level without starting an HTTP host.
+For example, a unit test verifies branch logic and orchestration. A small Integration.Application test verifies that the resulting real query translates and that navigation properties or persistence behave correctly.
 
 ## When to Use
 
 ✅ **DO use Integration.Application tests for:**
 
-- Testing Feature methods that use IDataProvider
-- Verifying navigation properties load correctly
-- Testing complex queries and filtering through Features
-- Testing multi-entity operations
-- Testing business rules that require database state
+- A distinct query shape whose EF/PostgreSQL translation needs verification
+- Navigation property loading or tracking behavior
+- Persistence, bulk operations, or transaction semantics
+- Database-enforced or provider-specific tenant isolation
+- One representative happy path and, only where needed, a focused failure or rollback path
 
 ❌ **DON'T use Integration.Application tests for:**
 
@@ -135,16 +137,17 @@ rollback against the actual provider.
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Integration.Controller Tests (HTTP layer)  │  ← Test Controllers + HTTP
+│ Unit Tests                                  │  ← Primary Application Feature harness
+│ Application logic + IDataProvider mocks     │
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
-│ Integration.Application Tests ✨ (PRIMARY)  │  ← Test Features + IDataProvider
+│ Integration.Application Tests (boundary)    │  ← Distinct real-provider contracts
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
-│ Integration.Data Tests (Schema layer)      │  ← Test DbContext + Schema
+│ Integration.Data Tests (schema)             │  ← EF configuration + PostgreSQL schema
 └─────────────────────────────────────────────┘
 ```
 
-This layer tests the **primary work location** in YoFi.V3 - where Features interact with the database through IDataProvider.
+This layer should contain focused evidence about the Application-to-data boundary, not a duplicate copy of every unit scenario.
