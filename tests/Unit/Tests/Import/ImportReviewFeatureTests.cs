@@ -2,6 +2,7 @@ using Moq;
 using DotNetNuxt.Abstractions;
 using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Features;
+using YoFi.V3.Application.Helpers;
 using YoFi.V3.Entities.Models;
 using YoFi.V3.Entities.Tenancy.Providers;
 
@@ -719,6 +720,100 @@ public class ImportReviewFeatureTests
         // And: Remaining transactions should not be selected
         Assert.That(capturedTransactions[3].IsSelected, Is.False);
         Assert.That(capturedTransactions[4].IsSelected, Is.False);
+    }
+
+    [Test]
+    public async Task ImportFileAsync_EmptyStreamReturnsZeroCounts()
+    {
+        var (feature, _) = CreateFeatureWithMocks();
+        using var stream = new MemoryStream();
+
+        var result = await feature.ImportFileAsync(stream, "empty.ofx");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ImportedCount, Is.Zero);
+            Assert.That(result.NewCount, Is.Zero);
+            Assert.That(result.ExactDuplicateCount, Is.Zero);
+            Assert.That(result.PotentialDuplicateCount, Is.Zero);
+            Assert.That(result.Errors, Is.Empty);
+        }
+    }
+
+    [Test]
+    public async Task ImportFileAsync_StoresNewExactAndPotentialDuplicatesWithMatchedCategory()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        var transactions = new[]
+        {
+            new TransactionEditDto(new(2025, 1, 2), -10m, "Exact Store", null, "Bank", "exact", null),
+            new TransactionEditDto(new(2025, 1, 3), -20m, "Potential Store", null, "Bank", "potential", null),
+            new TransactionEditDto(new(2025, 1, 4), -30m, "New Store", null, "Bank", "new", null)
+        };
+        using var stream = SampleOfxWriter.Write(transactions, new(2025, 1, 1), new(2025, 1, 31));
+
+        var existing = new[]
+        {
+            new Transaction
+            {
+                TenantId = 42,
+                Date = new(2025, 1, 2),
+                Amount = -10m,
+                Payee = "Exact Store",
+                ExternalId = "exact",
+                Key = Guid.Parse("11111111-1111-1111-1111-111111111111")
+            },
+            new Transaction
+            {
+                TenantId = 42,
+                Date = new(2025, 1, 2),
+                Amount = -99m,
+                Payee = "Different",
+                ExternalId = "potential",
+                Key = Guid.Parse("22222222-2222-2222-2222-222222222222")
+            }
+        };
+        dataProvider.Setup(dp => dp.Get<Transaction>()).Returns(existing.AsQueryable());
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(Array.Empty<ImportReviewTransaction>().AsQueryable());
+        dataProvider.Setup(dp => dp.ToListNoTrackingAsync(It.IsAny<IQueryable<Transaction>>()))
+            .Returns((IQueryable<Transaction> query) => Task.FromResult(query.ToList()));
+        dataProvider.Setup(dp => dp.ToListNoTrackingAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .Returns((IQueryable<ImportReviewTransaction> query) => Task.FromResult(query.ToList()));
+
+        var staged = new List<ImportReviewTransaction>();
+        dataProvider.Setup(dp => dp.AddRange(It.IsAny<IEnumerable<IModel>>()))
+            .Callback((IEnumerable<IModel> models) => staged.AddRange(models.Cast<ImportReviewTransaction>()));
+
+        var result = await feature.ImportFileAsync(stream, "transactions.ofx");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ImportedCount, Is.EqualTo(3));
+            Assert.That(result.NewCount, Is.EqualTo(1));
+            Assert.That(result.ExactDuplicateCount, Is.EqualTo(1));
+            Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
+            Assert.That(result.Errors, Is.Empty);
+            Assert.That(staged, Has.Count.EqualTo(3));
+            Assert.That(staged.Count(t => t.DuplicateStatus == DuplicateStatus.New), Is.EqualTo(1));
+            Assert.That(staged.Count(t => t.DuplicateStatus == DuplicateStatus.ExactDuplicate), Is.EqualTo(1));
+            Assert.That(staged.Count(t => t.DuplicateStatus == DuplicateStatus.PotentialDuplicate), Is.EqualTo(1));
+            Assert.That(staged.All(t => t.TenantId == 42), Is.True);
+        }
+        dataProvider.Verify(dp => dp.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ImportFileAsync_InvalidOfxReturnsParsingErrorWithoutStaging()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks();
+        using var stream = new MemoryStream("not an OFX document"u8.ToArray());
+
+        var result = await feature.ImportFileAsync(stream, "invalid.ofx");
+
+        Assert.That(result.ImportedCount, Is.Zero);
+        Assert.That(result.Errors, Is.Not.Empty);
+        dataProvider.Verify(dp => dp.AddRange(It.IsAny<IEnumerable<IModel>>()), Times.Never);
+        dataProvider.Verify(dp => dp.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
