@@ -51,77 +51,156 @@ public sealed class OriginalYoFiTransactionWorksheetHandler(DataImportService da
         var skipped = ImmutableArray.CreateBuilder<DataImportIssueDto>();
         var headers = ReadHeaders(worksheet);
         var required = new[] { "Timestamp", "Payee", "Amount" };
-        var ignored = headers.Names.Where(name => !required.Concat(new[] { "ID", "Category", "Memo", "BankReference", "ReceiptUrl", "Hidden", "Imported", "Selected" }).Contains(name, StringComparer.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        foreach (var name in required)
-            if (!headers.Columns.ContainsKey(name)) errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
+        var supported = new[] { "ID", "Category", "Memo", "BankReference", "ReceiptUrl", "Hidden", "Imported", "Selected" };
+        var ignored = headers.Names
+            .Where(name => !required.Concat(supported).Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
-        var transactions = ImmutableArray.CreateBuilder<OriginalTransactionImportDto>();
-        if (errors.Count == 0)
-        {
-            var validator = new TransactionEditDtoValidator(timeProvider);
-            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-            for (var row = 2; row <= lastRow; row++)
-            {
-                if (worksheet.Row(row).IsEmpty()) continue;
-                if (!TryDate(worksheet, headers, row, out var date) || !TryDecimal(worksheet, headers, row, out var amount) ||
-                    !TryText(worksheet, headers, row, "Payee", out var payee))
-                {
-                    errors.Add(new DataImportIssueDto(row, "Timestamp/Payee/Amount", "invalid_value", "Timestamp, Payee, and Amount are required valid values."));
-                    continue;
-                }
-                TryText(worksheet, headers, row, "Memo", out var memo);
-                TryText(worksheet, headers, row, "BankReference", out var bankReference);
-                TryText(worksheet, headers, row, "Category", out var rawCategory);
-                bankReference = string.IsNullOrWhiteSpace(bankReference)
-                    ? DataImportService.GenerateLegacyExternalId(payee, amount, date)
-                    : bankReference.Trim();
-                var category = CategoryHelper.SanitizeCategory(rawCategory);
-                var dto = new TransactionEditDto(date, amount, payee.Trim(), Blank(memo), null, bankReference,
-                    string.IsNullOrEmpty(category) ? null : category);
-                var validation = validator.Validate(dto);
-                if (!validation.IsValid)
-                {
-                    foreach (var failure in validation.Errors) errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
-                    continue;
-                }
-                var splitRows = new List<OriginalSplitImportDto>();
-                if (_workbook is not null
-                    && _workbook.TryGetWorksheet("Split", out var splitWorksheet)
-                    && headers.Columns.TryGetValue("ID", out var legacyIdColumn)
-                    && long.TryParse(worksheet.Cell(row, legacyIdColumn).GetString().Trim(), out var legacyId))
-                {
-                    var splitHeaders = ReadHeaders(splitWorksheet);
-                    if (splitHeaders.Columns.TryGetValue("TransactionID", out var splitLinkColumn)
-                        && splitHeaders.Columns.TryGetValue("Amount", out var splitAmountColumn)
-                        && splitHeaders.Columns.TryGetValue("Category", out var splitCategoryColumn))
-                    {
-                        var lastSplitRow = splitWorksheet.LastRowUsed()?.RowNumber() ?? 1;
-                        for (var splitRow = 2; splitRow <= lastSplitRow; splitRow++)
-                        {
-                            if (!long.TryParse(splitWorksheet.Cell(splitRow, splitLinkColumn).GetString().Trim(), out var linkedId)
-                                || linkedId != legacyId) continue;
-                            if (!splitWorksheet.Cell(splitRow, splitAmountColumn).TryGetValue(out decimal splitAmount)) continue;
-                            var splitCategory = CategoryHelper.SanitizeCategory(splitWorksheet.Cell(splitRow, splitCategoryColumn).GetString());
-                            var splitMemo = splitHeaders.Columns.TryGetValue("Memo", out var splitMemoColumn)
-                                ? splitWorksheet.Cell(splitRow, splitMemoColumn).GetString().Trim() : string.Empty;
-                            splitRows.Add(new OriginalSplitImportDto(splitAmount, splitCategory,
-                                string.IsNullOrWhiteSpace(splitMemo) ? null : splitMemo));
-                        }
-                    }
-                }
-                if (splitRows.Count == 0)
-                    splitRows.Add(new OriginalSplitImportDto(amount, category, null));
-                if (splitRows.Sum(splitRow => splitRow.Amount) != amount)
-                {
-                    errors.Add(new DataImportIssueDto(row, "Split", "split_sum_mismatch",
-                        "Split amounts must sum to the transaction amount."));
-                    continue;
-                }
-                transactions.Add(new OriginalTransactionImportDto(date, amount, payee.Trim(), Blank(memo), bankReference, splitRows));
-            }
-        }
-        return new Analysis(transactions.ToImmutable(), ignored, errors.ToImmutable(), skipped.ToImmutable());
+        ValidateRequiredHeaders(headers, required, errors);
+        var transactions = errors.Count == 0
+            ? ParseTransactions(worksheet, headers, errors)
+            : ImmutableArray<OriginalTransactionImportDto>.Empty;
+
+        return new Analysis(transactions, ignored, errors.ToImmutable(), skipped.ToImmutable());
     }
+
+    private static void ValidateRequiredHeaders(
+        HeaderMap headers,
+        IReadOnlyCollection<string> required,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        foreach (var name in required)
+        {
+            if (!headers.Columns.ContainsKey(name))
+                errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
+        }
+    }
+
+    private IReadOnlyCollection<OriginalTransactionImportDto> ParseTransactions(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        var validator = new TransactionEditDtoValidator(timeProvider);
+        var transactions = ImmutableArray.CreateBuilder<OriginalTransactionImportDto>();
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+        for (var row = 2; row <= lastRow; row++)
+        {
+            if (worksheet.Row(row).IsEmpty())
+                continue;
+
+            var transaction = ParseTransaction(worksheet, headers, row, validator, errors);
+            if (transaction is not null)
+                transactions.Add(transaction);
+        }
+
+        return transactions.ToImmutable();
+    }
+
+    private OriginalTransactionImportDto? ParseTransaction(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        TransactionEditDtoValidator validator,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (!TryDate(worksheet, headers, row, out var date)
+            || !TryDecimal(worksheet, headers, row, out var amount)
+            || !TryText(worksheet, headers, row, "Payee", out var payee))
+        {
+            errors.Add(new DataImportIssueDto(row, "Timestamp/Payee/Amount", "invalid_value",
+                "Timestamp, Payee, and Amount are required valid values."));
+            return null;
+        }
+
+        TryText(worksheet, headers, row, "Memo", out var memo);
+        TryText(worksheet, headers, row, "BankReference", out var bankReference);
+        TryText(worksheet, headers, row, "Category", out var rawCategory);
+        var externalId = string.IsNullOrWhiteSpace(bankReference)
+            ? DataImportService.GenerateLegacyExternalId(payee, amount, date)
+            : bankReference.Trim();
+        var category = CategoryHelper.SanitizeCategory(rawCategory);
+        var dto = new TransactionEditDto(date, amount, payee.Trim(), Blank(memo), null, externalId,
+            string.IsNullOrEmpty(category) ? null : category);
+
+        var validation = validator.Validate(dto);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+                errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
+            return null;
+        }
+
+        var splitRows = ReadSplitRows(worksheet, headers, row, amount, category);
+        if (splitRows.Sum(splitRow => splitRow.Amount) != amount)
+        {
+            errors.Add(new DataImportIssueDto(row, "Split", "split_sum_mismatch",
+                "Split amounts must sum to the transaction amount."));
+            return null;
+        }
+
+        return new OriginalTransactionImportDto(date, amount, payee.Trim(), Blank(memo), externalId, splitRows);
+    }
+
+    private IReadOnlyCollection<OriginalSplitImportDto> ReadSplitRows(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int transactionRow,
+        decimal transactionAmount,
+        string transactionCategory)
+    {
+        var splitRows = new List<OriginalSplitImportDto>();
+        if (!TryReadLegacyId(worksheet, headers, transactionRow, out var legacyId))
+            return DefaultSplitRows(transactionAmount, transactionCategory);
+
+        if (_workbook is null || !_workbook.TryGetWorksheet("Split", out var splitWorksheet))
+            return DefaultSplitRows(transactionAmount, transactionCategory);
+
+        var splitHeaders = ReadHeaders(splitWorksheet);
+        if (!splitHeaders.Columns.TryGetValue("TransactionID", out var splitLinkColumn)
+            || !splitHeaders.Columns.TryGetValue("Amount", out var splitAmountColumn)
+            || !splitHeaders.Columns.TryGetValue("Category", out var splitCategoryColumn))
+            return DefaultSplitRows(transactionAmount, transactionCategory);
+
+        var lastSplitRow = splitWorksheet.LastRowUsed()?.RowNumber() ?? 1;
+        for (var splitRow = 2; splitRow <= lastSplitRow; splitRow++)
+        {
+            if (!long.TryParse(splitWorksheet.Cell(splitRow, splitLinkColumn).GetString().Trim(), out var linkedId)
+                || linkedId != legacyId)
+                continue;
+            if (!splitWorksheet.Cell(splitRow, splitAmountColumn).TryGetValue(out decimal splitAmount))
+                continue;
+
+            var splitCategory = CategoryHelper.SanitizeCategory(
+                splitWorksheet.Cell(splitRow, splitCategoryColumn).GetString());
+            var splitMemo = splitHeaders.Columns.TryGetValue("Memo", out var splitMemoColumn)
+                ? splitWorksheet.Cell(splitRow, splitMemoColumn).GetString().Trim()
+                : string.Empty;
+            splitRows.Add(new OriginalSplitImportDto(splitAmount, splitCategory,
+                string.IsNullOrWhiteSpace(splitMemo) ? null : splitMemo));
+        }
+
+        return splitRows.Count == 0
+            ? DefaultSplitRows(transactionAmount, transactionCategory)
+            : splitRows;
+    }
+
+    private static bool TryReadLegacyId(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        out long legacyId)
+    {
+        legacyId = 0;
+        return headers.Columns.TryGetValue("ID", out var legacyIdColumn)
+            && long.TryParse(worksheet.Cell(row, legacyIdColumn).GetString().Trim(), out legacyId);
+    }
+
+    private static IReadOnlyCollection<OriginalSplitImportDto> DefaultSplitRows(
+        decimal amount,
+        string category) => [new OriginalSplitImportDto(amount, category, null)];
 
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static bool TryText(IXLWorksheet worksheet, HeaderMap headers, int row, string name, out string value)
