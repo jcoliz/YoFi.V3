@@ -213,6 +213,130 @@ public class TransactionSplitWorkbookServiceTests
             Has.Some.Contains("does not contain any non-zero"));
     }
 
+    [Test]
+    public void Parse_NullContent_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => _service.Parse(null!));
+    }
+
+    [Test]
+    public void Parse_DuplicateHeaders_ThrowsGroupedValidation()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Category";
+        worksheet.Cell(1, 3).Value = "Amount";
+        worksheet.Cell(1, 4).Value = "Amount";
+
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.Parse(ToBytes(workbook)));
+
+        Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("appears more than once"));
+    }
+
+    [Test]
+    public void Parse_InvalidFormulaAndTextAmountRows_ReportDistinctErrors()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+        worksheet.Cell(2, 1).Value = "Formula";
+        worksheet.Cell(2, 2).FormulaA1 = "1/0";
+        worksheet.Cell(3, 1).Value = "Text";
+        worksheet.Cell(3, 2).Value = "not-a-decimal";
+
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.Parse(ToBytes(workbook)));
+
+        Assert.That(exception!.Errors.Keys, Has.Some.EqualTo("Row 2: Amount"));
+        Assert.That(exception.Errors.Keys, Has.Some.EqualTo("Row 3: Amount"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("formula"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("decimal"));
+    }
+
+    [Test]
+    public void Parse_CategoryAndMemoFormulaWithoutCachedText_ReportFormulaErrors()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+        worksheet.Cell(1, 3).Value = "Memo";
+        worksheet.Cell(2, 1).FormulaA1 = "1+1";
+        worksheet.Cell(2, 2).Value = 1m;
+        worksheet.Cell(2, 3).FormulaA1 = "2+2";
+
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.Parse(ToBytes(workbook)));
+
+        Assert.That(exception!.Errors.Keys, Has.Some.EqualTo("Row 2: Category"));
+        Assert.That(exception.Errors.Keys, Has.Some.EqualTo("Row 2: Memo"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages).Count(message => message.Contains("cached text")),
+            Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Parse_CategoryAndMemoOutsideLimits_ReportValidationErrors()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+        worksheet.Cell(1, 3).Value = "Memo";
+        worksheet.Cell(2, 1).Value = new string('c', 201);
+        worksheet.Cell(2, 2).Value = 1m;
+        worksheet.Cell(2, 3).Value = new string('m', 501);
+
+        var exception = Assert.Throws<ValidationException>(
+            () => _service.Parse(ToBytes(workbook)));
+
+        Assert.That(exception!.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("Category cannot exceed"));
+        Assert.That(exception.Errors.Values.SelectMany(messages => messages),
+            Has.Some.Contains("Memo cannot exceed"));
+    }
+
+    [Test]
+    public void Parse_Exactly200NonEmptyRows_IsAccepted()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+
+        for (var row = 2; row <= 201; row++)
+        {
+            worksheet.Cell(row, 1).Value = "Category";
+            worksheet.Cell(row, 2).Value = "1";
+        }
+
+        var rows = _service.Parse(ToBytes(workbook));
+
+        Assert.That(rows, Has.Count.EqualTo(200));
+    }
+
+    [Test]
+    public void Parse_UnrecognizedExtraHeader_IsIgnored()
+    {
+        var workbook = CreateWorkbook();
+        var worksheet = workbook.Worksheet("Splits");
+        worksheet.Cell(1, 1).Value = "Category";
+        worksheet.Cell(1, 2).Value = "Amount";
+        worksheet.Cell(1, 3).Value = "Unknown";
+        worksheet.Cell(2, 1).Value = "Food";
+        worksheet.Cell(2, 2).Value = 1m;
+        worksheet.Cell(2, 3).Value = "ignored";
+
+        var rows = _service.Parse(ToBytes(workbook));
+
+        Assert.That(rows, Has.Count.EqualTo(1));
+    }
+
     private static XLWorkbook CreateWorkbook()
     {
         var workbook = new XLWorkbook();
