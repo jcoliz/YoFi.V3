@@ -28,6 +28,55 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+function Write-LowCoverageClasses {
+    param(
+        [string]$ReportPath
+    )
+
+    $html = Get-Content -LiteralPath $ReportPath -Raw
+
+    $coverageInfoMatch = [regex]::Match(
+        $html,
+        '<coverage-info>(?<content>.*?)</coverage-info>',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+
+    if (-not $coverageInfoMatch.Success) {
+        Write-Warning "Could not find <coverage-info> in $ReportPath"
+        return
+    }
+
+    $classRowPattern = '<tr>\s*<td><a[^>]*>(?<name>.*?)</a></td>\s*<td[^>]*>(?<covered>\d+)</td>\s*<td[^>]*>(?<uncovered>\d+)</td>\s*<td[^>]*>\d+</td>\s*<td[^>]*>\d+</td>\s*<td[^>]*>(?<percentage>[\d.]+)%</td>'
+    $classRows = [regex]::Matches(
+        $coverageInfoMatch.Groups['content'].Value,
+        $classRowPattern,
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [System.Text.RegularExpressions.RegexOptions]::Singleline
+    )
+
+    $lowCoverageClasses = foreach ($row in $classRows) {
+        $uncovered = [int]$row.Groups['uncovered'].Value
+        $percentage = [double]$row.Groups['percentage'].Value
+
+        if ($uncovered -ge 10 -and $percentage -lt 90) {
+            [PSCustomObject]@{
+                Name = [System.Net.WebUtility]::HtmlDecode($row.Groups['name'].Value)
+                Uncovered = $uncovered
+                Percentage = $percentage
+            }
+        }
+    }
+
+    if ($lowCoverageClasses) {
+        Write-Host "`nClasses below coverage standard (>=10 uncovered lines and <90% line coverage):" -ForegroundColor Yellow
+        foreach ($class in $lowCoverageClasses) {
+            Write-Host "  $($class.Name): $($class.Uncovered) uncovered lines, $($class.Percentage)% line coverage" -ForegroundColor Yellow
+        }
+    }
+    else {
+        Write-Host "`nNo classes are below the coverage standard" -ForegroundColor Green
+    }
+}
+
 function Run-TestsWithCoverage {
     param(
         [string]$TestProjectPath,
@@ -101,6 +150,8 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Report generation failed with exit code $LASTEXITCODE"
     }
+
+    Write-LowCoverageClasses -ReportPath "$outputDir/index.html"
 
     Write-Host "`nOK Unit code coverage report generated successfully" -ForegroundColor Green
     Write-Host "`nCoverage report available at:" -ForegroundColor Cyan
