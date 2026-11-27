@@ -40,7 +40,7 @@ this is the order. A phase is not complete until its exit criterion is met and t
 | 1 | Planning | Work item Active, branch created, PRD and Design both `status: Approved`, scope agreed |
 | 2 | Entities | Domain model compiles in `src/Entities` |
 | 3 | Data & Migrations | DbContext configured, migration generated and reviewed, data integration tests from the design pass |
-| 4 | Application Features & Unit Tests | Features implemented, unit tests pass, coverage of modified paths meets threshold |
+| 4 | Application Features & Unit Tests | Features implemented, unit tests pass, code coverage and complexity meets standard |
 | 5 | Application Integration Tests | Tests listed in the design pass against the real database |
 | 6 | Controllers & API | Endpoints implemented, auth rules validated, controller integration tests pass |
 | 7 | Back End Validation | Existing functional tests still pass against the new backend with the unchanged frontend |
@@ -64,8 +64,8 @@ between Application Features and the database, so that boundary is tested direct
 
 | Layer | Use when | Location |
 | --- | --- | --- |
-| Unit | Pure logic with no data involvement: validation, calculations, algorithms, DTO mapping | `tests/Unit/` |
-| Application Integration | Feature behavior that depends on real queries: filtering, ordering, tenant isolation, navigation loading, multi-entity operations | `tests/Integration.Application/` |
+| Unit | Primary functionality tests, required to cover 90%+ of production code | `tests/Unit/` |
+| Application Integration | Data contracts between application and data layer. | `tests/Integration.Application/` |
 | Data Integration | As required: new schema, indexes, constraints, conversions, or data-provider capabilities | `tests/Integration.Data/` |
 | Controller Integration | As required: new routes, authorization policies, status-code mapping, HTTP-specific behavior | `tests/Integration.Controller/` |
 | Frontend Component | Component contracts (props in, events out, API calls), timezone-sensitive logic | `src/FrontEnd.Nuxt/tests/` |
@@ -226,14 +226,11 @@ Skip this phase if the design states no data changes.
 - [ ] Write unit tests in `tests/Unit/` covering normal, boundary, and error paths for logic that does
       not require a database. Update existing unit tests affected by signature changes.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Unit`; iterate until all pass.
+- [ ] Run: `.\scripts\Collect-CodeCoverage.ps1`; ensure the output does not contain any warnings of insufficient code coverage. Code Coverage standards are >=90% line coverage or <=10 uncovered lines, for each method. If such warnings are shown in the output, add tests to meet the coverage standard. Re-run the coverage script, and continue until no coverage warnings remain.
+- [ ] Run: `.\scripts\Collect-CodeCoverage.ps1`; ensure the output does not contain any warnings of risk hotspots. Do this **after** code coverage meets the standard. At this stage, risk hotspots show methods with too high cyclomatic complexity. If such warnings are shown, refactor the indicated methods to reduce the complexity. Re-run the coverage script, and continue until no risk hotspot warnings remain.
 
 **Commits:** `feat([feature-slug]): implement application layer`. If unit tests are written separately, they can be committed with
 `test(unit): add [feature] validation and logic tests`. If they're all together, include them with the `feat` commit.
-
-> ![NOTE]
-> Previous iterations of this guide directed developers to run the `.\scripts\Collect-CodeCoverage.ps1` and confirm the modified code paths are covered.
-> However, this script takes too long given how long it takes the integration tests to execute, and the sporadic
-> nature of our coverage, we will skip this step until we can re-think code coverage.
 
 ---
 
@@ -242,13 +239,12 @@ Skip this phase if the design states no data changes.
 **Read first:** the Application Integration Tests section of the design;
 [`tests/Integration.Application/README.md`](../../tests/Integration.Application/README.md).
 
-This is the primary test layer.
+Generally we implement one representative happy-path test for each data contract and, only where meaningful, one
+focused failure or rollback test. Different Application branches that use the same provider contract
+should normally be covered through unit tests, not additional database tests.
 
 - [ ] Implement every test listed in the design, in `tests/Integration.Application/`, extending the
       fixture the design names. Use `FeatureTestBase` and Given/When/Then comments.
-- [ ] Review unit tests for the feature. Avoid writing duplicate tests where the unit tests cover the functionality.
-      Limit application integration tests to tests where the underlying data truly impacts the result.
-- [ ] Cover tenant isolation for every query the feature adds.
 - [ ] Run: `.\scripts\Run-Tests.ps1 -Application -Filter "FullyQualifiedName~<Fixture>"`
 - [ ] Iterate until all pass, then run the whole project once: `.\scripts\Run-Tests.ps1 -Application`
 
