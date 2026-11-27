@@ -28,17 +28,35 @@ public sealed class TransactionSplitWorkbookService
     public IReadOnlyCollection<SplitUploadRowDto> Parse(byte[] content, string? transactionMemo)
     {
         ArgumentNullException.ThrowIfNull(content);
+        using var workbook = OpenWorkbook(content);
 
+        var worksheet = SelectWorksheet(workbook, transactionMemo);
         var issues = new List<SplitUploadIssueDto>();
-        if (content.Length == 0)
-        {
-            throw CreateInvalidWorkbookException();
-        }
+        var headers = ReadHeaders(worksheet, issues);
+        var (rows, rowLimitExceeded) = ParseRows(worksheet, headers, issues);
 
-        XLWorkbook workbook;
+        if (rowLimitExceeded)
+            issues.Add(new SplitUploadIssueDto(1, "file", "row_limit_exceeded",
+                "The worksheet contains more than 200 non-empty data rows."));
+        if (issues.Count == 0 && rows.Count == 0)
+            issues.Add(new SplitUploadIssueDto(1, "file", "empty_import",
+                "The worksheet does not contain any non-zero splits to import."));
+
+        ThrowIfInvalid(issues);
+        return rows;
+    }
+
+    private static XLWorkbook OpenWorkbook(byte[] content)
+    {
+        if (content.Length == 0)
+            throw CreateInvalidWorkbookException();
+
         try
         {
-            workbook = new XLWorkbook(new MemoryStream(content, writable: false));
+            var workbook = new XLWorkbook(new MemoryStream(content, writable: false));
+            return workbook.Worksheets.Count == 0
+                ? throw CreateInvalidWorkbookException()
+                : workbook;
         }
         catch (Exception exception) when (exception is InvalidDataException
             or IOException
@@ -51,15 +69,12 @@ public sealed class TransactionSplitWorkbookService
         {
             throw CreateInvalidWorkbookException();
         }
+    }
 
-        if (workbook.Worksheets.Count == 0)
-        {
-            throw CreateInvalidWorkbookException();
-        }
-
-        using (workbook)
-        {
-            var worksheet = SelectWorksheet(workbook, transactionMemo);
+    private static Dictionary<string, int> ReadHeaders(
+        IXLWorksheet worksheet,
+        List<SplitUploadIssueDto> issues)
+    {
         var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var duplicateHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var lastColumn = worksheet.LastColumnUsed()?.ColumnNumber() ?? 0;
@@ -68,34 +83,29 @@ public sealed class TransactionSplitWorkbookService
         {
             var name = worksheet.Cell(1, column).GetString().Trim();
             if (!IsRecognizedHeader(name))
-            {
                 continue;
-            }
-
             if (!headers.TryAdd(name, column))
-            {
                 duplicateHeaders.Add(name);
-            }
         }
 
         foreach (var required in new[] { "Category", "Amount" })
         {
             if (!headers.ContainsKey(required))
-            {
-                issues.Add(new SplitUploadIssueDto(1, "Header",
-                    "missing_header", $"The required {required} header is missing."));
-            }
+                issues.Add(new SplitUploadIssueDto(1, "Header", "missing_header",
+                    $"The required {required} header is missing."));
         }
-
         foreach (var duplicate in duplicateHeaders)
-        {
-            issues.Add(new SplitUploadIssueDto(1, "Header",
-                "duplicate_header", $"The {duplicate} header appears more than once."));
-        }
+            issues.Add(new SplitUploadIssueDto(1, "Header", "duplicate_header",
+                $"The {duplicate} header appears more than once."));
 
-        headers.TryGetValue("Category", out var categoryColumn);
-        headers.TryGetValue("Amount", out var amountColumn);
+        return headers;
+    }
 
+    private static (List<SplitUploadRowDto> Rows, bool RowLimitExceeded) ParseRows(
+        IXLWorksheet worksheet,
+        IReadOnlyDictionary<string, int> headers,
+        List<SplitUploadIssueDto> issues)
+    {
         var rows = new List<SplitUploadRowDto>();
         var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
         var nonEmptyCount = 0;
@@ -103,11 +113,8 @@ public sealed class TransactionSplitWorkbookService
 
         for (var rowNumber = 2; rowNumber <= lastRow; rowNumber++)
         {
-            var row = worksheet.Row(rowNumber);
-            if (row.IsEmpty())
-            {
+            if (worksheet.Row(rowNumber).IsEmpty())
                 continue;
-            }
 
             nonEmptyCount++;
             if (nonEmptyCount > 200)
@@ -116,128 +123,119 @@ public sealed class TransactionSplitWorkbookService
                 continue;
             }
 
-            if (!headers.ContainsKey("Amount"))
-            {
-                continue;
-            }
-
-            var amountCell = worksheet.Cell(rowNumber, amountColumn);
-            if (!TryReadAmount(amountCell, out var amount))
-            {
-                var code = amountCell.HasFormula
-                    ? "invalid_formula_result"
-                    : "invalid_amount";
-                issues.Add(new SplitUploadIssueDto(rowNumber, "Amount", code,
-                    amountCell.HasFormula
-                        ? "The formula in Amount does not have a usable cached numeric result."
-                        : "Amount must be a decimal number."));
-                continue;
-            }
-
-            if (amount == 0m)
-            {
-                continue;
-            }
-
-            string category;
-            if (categoryColumn == 0)
-            {
-                category = string.Empty;
-            }
-            else
-            {
-                var categoryCell = worksheet.Cell(rowNumber, categoryColumn);
-                if (categoryCell.HasFormula)
-                {
-                    if (!TryReadCachedText(categoryCell, out category))
-                    {
-                        issues.Add(new SplitUploadIssueDto(rowNumber, "Category",
-                            "invalid_formula_result",
-                            "The formula in Category does not have a usable cached text result."));
-                        category = string.Empty;
-                    }
-                }
-                else
-                {
-                    category = categoryCell.GetString();
-                }
-            }
-            category = CategoryHelper.SanitizeCategory(category);
-
-            string? memo = null;
-            if (headers.TryGetValue("Memo", out var memoColumn))
-            {
-                var memoCell = worksheet.Cell(rowNumber, memoColumn);
-                if (memoCell.HasFormula)
-                {
-                    if (!TryReadCachedText(memoCell, out var memoText))
-                    {
-                        issues.Add(new SplitUploadIssueDto(rowNumber, "Memo",
-                            "invalid_formula_result",
-                            "The formula in Memo does not have a usable cached text result."));
-                    }
-                    else
-                    {
-                        memo = NormalizeMemo(memoText);
-                    }
-                }
-                else
-                {
-                    memo = NormalizeMemo(memoCell.GetString());
-                }
-            }
-
-            var rowValidator = new SplitEditDtoValidator();
-            var validation = rowValidator.Validate(new SplitEditDto(amount, category, memo));
-            foreach (var failure in validation.Errors)
-            {
-                var field = failure.PropertyName switch
-                {
-                    nameof(SplitEditDto.Amount) => "Amount",
-                    nameof(SplitEditDto.Category) => "Category",
-                    nameof(SplitEditDto.Memo) => "Memo",
-                    _ => failure.PropertyName
-                };
-                issues.Add(new SplitUploadIssueDto(rowNumber, field,
-                    "invalid_value", failure.ErrorMessage));
-            }
-
-            rows.Add(new SplitUploadRowDto(rowNumber, amount, category, memo));
+            var row = ParseRow(worksheet, headers, rowNumber, issues);
+            if (row is not null)
+                rows.Add(row);
         }
 
-        if (rowLimitExceeded)
+        return (rows, rowLimitExceeded);
+    }
+
+    private static SplitUploadRowDto? ParseRow(
+        IXLWorksheet worksheet,
+        IReadOnlyDictionary<string, int> headers,
+        int rowNumber,
+        List<SplitUploadIssueDto> issues)
+    {
+        if (!headers.TryGetValue("Amount", out var amountColumn))
+            return null;
+
+        var amountCell = worksheet.Cell(rowNumber, amountColumn);
+        if (!TryReadAmount(amountCell, out var amount))
         {
-            issues.Add(new SplitUploadIssueDto(1, "file",
-                "row_limit_exceeded",
-                "The worksheet contains more than 200 non-empty data rows."));
+            var code = amountCell.HasFormula ? "invalid_formula_result" : "invalid_amount";
+            var message = amountCell.HasFormula
+                ? "The formula in Amount does not have a usable cached numeric result."
+                : "Amount must be a decimal number.";
+            issues.Add(new SplitUploadIssueDto(rowNumber, "Amount", code, message));
+            return null;
         }
+        if (amount == 0m)
+            return null;
 
-            if (issues.Count == 0 && rows.Count == 0)
+        var category = ReadCategory(worksheet, headers, rowNumber, issues);
+        var memo = ReadMemo(worksheet, headers, rowNumber, issues);
+        ValidateRow(rowNumber, amount, category, memo, issues);
+        return new SplitUploadRowDto(rowNumber, amount, category, memo);
+    }
+
+    private static string ReadCategory(
+        IXLWorksheet worksheet,
+        IReadOnlyDictionary<string, int> headers,
+        int rowNumber,
+        List<SplitUploadIssueDto> issues)
+    {
+        if (!headers.TryGetValue("Category", out var categoryColumn))
+            return string.Empty;
+
+        var categoryCell = worksheet.Cell(rowNumber, categoryColumn);
+        if (!categoryCell.HasFormula)
+            return CategoryHelper.SanitizeCategory(categoryCell.GetString());
+
+        if (TryReadCachedText(categoryCell, out var category))
+            return CategoryHelper.SanitizeCategory(category);
+
+        issues.Add(new SplitUploadIssueDto(rowNumber, "Category", "invalid_formula_result",
+            "The formula in Category does not have a usable cached text result."));
+        return string.Empty;
+    }
+
+    private static string? ReadMemo(
+        IXLWorksheet worksheet,
+        IReadOnlyDictionary<string, int> headers,
+        int rowNumber,
+        List<SplitUploadIssueDto> issues)
+    {
+        if (!headers.TryGetValue("Memo", out var memoColumn))
+            return null;
+
+        var memoCell = worksheet.Cell(rowNumber, memoColumn);
+        if (!memoCell.HasFormula)
+            return NormalizeMemo(memoCell.GetString());
+
+        if (TryReadCachedText(memoCell, out var memoText))
+            return NormalizeMemo(memoText);
+
+        issues.Add(new SplitUploadIssueDto(rowNumber, "Memo", "invalid_formula_result",
+            "The formula in Memo does not have a usable cached text result."));
+        return null;
+    }
+
+    private static void ValidateRow(int rowNumber, decimal amount, string category, string? memo,
+        List<SplitUploadIssueDto> issues)
+    {
+        var validation = new SplitEditDtoValidator().Validate(new SplitEditDto(amount, category, memo));
+        foreach (var failure in validation.Errors)
+        {
+            var field = failure.PropertyName switch
             {
-                issues.Add(new SplitUploadIssueDto(1, "file", "empty_import",
-                    "The worksheet does not contain any non-zero splits to import."));
-            }
-
-            if (issues.Count > 0)
-            {
-                var grouped = issues
-                .GroupBy(issue => $"Row {issue.RowNumber}: {issue.Field}",
-                    StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Select(issue => issue.Message).ToArray(),
-                    StringComparer.Ordinal);
-
-                throw new ValidationException(
-                    "Correct the workbook errors and upload it again. No splits were changed.")
-                {
-                    Title = "The split workbook failed validation.",
-                    Errors = grouped
-                };
-            }
-
-            return rows;
+                nameof(SplitEditDto.Amount) => "Amount",
+                nameof(SplitEditDto.Category) => "Category",
+                nameof(SplitEditDto.Memo) => "Memo",
+                _ => failure.PropertyName
+            };
+            issues.Add(new SplitUploadIssueDto(rowNumber, field, "invalid_value", failure.ErrorMessage));
         }
+    }
+
+    private static void ThrowIfInvalid(List<SplitUploadIssueDto> issues)
+    {
+        if (issues.Count == 0)
+            return;
+
+        var grouped = issues
+            .GroupBy(issue => $"Row {issue.RowNumber}: {issue.Field}", StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(issue => issue.Message).ToArray(),
+                StringComparer.Ordinal);
+
+        throw new ValidationException(
+            "Correct the workbook errors and upload it again. No splits were changed.")
+        {
+            Title = "The split workbook failed validation.",
+            Errors = grouped
+        };
     }
 
     /// <summary>Creates the supported transaction-split XLSX template.</summary>
