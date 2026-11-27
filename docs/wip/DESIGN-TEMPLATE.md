@@ -147,16 +147,41 @@ ado: [Link to ADO Item]
 
 ## Application Integration Tests
 
-> List the tests which must be added to test the boundary between Application Layer and Data layer.
-> These live in `tests/Integration.Application/`.
+> Identify the data contracts that this design introduces or changes at the boundary between the
+> Application and Data layers. These live in `tests/Integration.Application/`.
 >
-> Be thoughtful about what could be tested in unit tests. Limit application integration tests to
-> tests where the underlying data truly impacts the result. If you find tests which could be done
-> as unit tests instead, feel free to specify them in the previous section.
+> First inventory every Application method that calls `IDataProvider`. Then group those calls into
+> distinct data contracts rather than proposing one integration test per call or per line of code.
+> A contract is a meaningful provider behavior whose correctness depends on real EF Core or
+> PostgreSQL semantics, such as:
 >
-> Include the name of the test and its Summary XMLdoc tag. Focus on behavior that depends on real query
-> translation: tenant isolation, ordering, filtering, boundary dates, concurrency, cascade behavior.
-> Name the existing test fixture to extend, or the new fixture to create.
+> - A query shape that requires provider-specific LINQ translation
+> - Tenant-scoped filtering or isolation
+> - Navigation property loading or tracking behavior
+> - Ordering, pagination, filtering, grouping, or boundary dates
+> - Persistence of an entity graph or a multi-entity operation
+> - Bulk insert, update, or delete behavior
+> - Transaction semantics, cancellation, rollback, concurrency, or failure injection
+> - Database constraints or cascade behavior
+>
+> For each contract, specify one representative happy-path test and, only where meaningful, one
+> focused failure or rollback test. Different Application branches that use the same provider contract
+> should normally be covered through unit tests, not additional database tests.
+>
+> Keep pure business logic, validation, mapping, cache behavior, DTO construction, and provider
+> orchestration in unit tests. Use Moq or narrow scenario-specific stubs for `IDataProvider`; execute
+> collection behavior with LINQ-to-Objects only when appropriate. LINQ-to-Objects success is not
+> evidence of EF Core translation or PostgreSQL behavior.
+>
+> For each proposed integration test include:
+>
+> - The test name and its Summary XMLdoc tag
+> - The data contract it verifies
+> - The `IDataProvider` operations or entity graph involved
+> - The provider behavior that cannot be proven with unit tests
+> - The existing fixture to extend, or the new fixture to create
+>
+> Do not add an Application Integration test merely because Application code calls `IDataProvider`.
 
 ## Controllers
 
