@@ -74,101 +74,118 @@ public sealed class OriginalYoFiPayeeWorksheetHandler(
             .Where(name => !IsSupportedHeader(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        if (!headerColumns.HasName)
-        {
+
+        ValidateHeaders(headerColumns, errors);
+        var rules = errors.Count == 0
+            ? ParseRules(worksheet, headerColumns, errors, skippedRows)
+            : ImmutableArray<PayeeMatchingRuleEditDto>.Empty;
+
+        return new Analysis(rules, ignoredColumns, errors.ToImmutable(), skippedRows.ToImmutable());
+    }
+
+    private static void ValidateHeaders(HeaderColumns headers, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (!headers.HasName)
             errors.Add(new DataImportIssueDto(1, "Name", "missing_header", "The required Name column is missing."));
-        }
-        if (!headerColumns.HasCategory)
-        {
+        if (!headers.HasCategory)
             errors.Add(new DataImportIssueDto(1, "Category", "missing_header", "The required Category column is missing."));
-        }
-        if (headerColumns.DuplicateName)
-        {
+        if (headers.DuplicateName)
             errors.Add(new DataImportIssueDto(1, "Name", "duplicate_header", "The Name column must appear exactly once."));
-        }
-        if (headerColumns.DuplicateCategory)
-        {
+        if (headers.DuplicateCategory)
             errors.Add(new DataImportIssueDto(1, "Category", "duplicate_header", "The Category column must appear exactly once."));
-        }
+    }
+
+    private ImmutableArray<PayeeMatchingRuleEditDto> ParseRules(
+        IXLWorksheet worksheet,
+        HeaderColumns headers,
+        ImmutableArray<DataImportIssueDto>.Builder errors,
+        ImmutableArray<DataImportIssueDto>.Builder skippedRows)
+    {
+        if (headers.NameColumn is null || headers.CategoryColumn is null)
+            return ImmutableArray<PayeeMatchingRuleEditDto>.Empty;
 
         var rules = ImmutableArray.CreateBuilder<PayeeMatchingRuleEditDto>();
-        if (headerColumns.NameColumn is not null
-            && headerColumns.CategoryColumn is not null
-            && !headerColumns.DuplicateName
-            && !headerColumns.DuplicateCategory
-            && errors.Count == 0)
+        var validator = new PayeeMatchingRuleEditDtoValidator(regexValidationService);
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+
+        for (var rowNumber = 2; rowNumber <= lastRow; rowNumber++)
         {
-            var validator = new PayeeMatchingRuleEditDtoValidator(regexValidationService);
-            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-            for (var rowNumber = 2; rowNumber <= lastRow; rowNumber++)
-            {
-                var row = worksheet.Row(rowNumber);
-                if (row.IsEmpty())
-                {
-                    continue;
-                }
+            if (worksheet.Row(rowNumber).IsEmpty())
+                continue;
 
-                var nameCell = row.Cell(headerColumns.NameColumn.Value);
-                var categoryCell = row.Cell(headerColumns.CategoryColumn.Value);
-                if (nameCell.HasFormula)
-                {
-                    errors.Add(new DataImportIssueDto(rowNumber, "Name", "formula_not_allowed",
-                        "Formula cells are not supported for Name."));
-                    continue;
-                }
-                if (categoryCell.HasFormula)
-                {
-                    errors.Add(new DataImportIssueDto(rowNumber, "Category", "formula_not_allowed",
-                        "Formula cells are not supported for Category."));
-                    continue;
-                }
-
-                if (!TryReadText(nameCell, out var name))
-                {
-                    errors.Add(new DataImportIssueDto(rowNumber, "Name", "invalid_cell_type",
-                        "Name must be a text cell."));
-                    continue;
-                }
-                if (!TryReadText(categoryCell, out var category))
-                {
-                    errors.Add(new DataImportIssueDto(rowNumber, "Category", "invalid_cell_type",
-                        "Category must be a text cell."));
-                    continue;
-                }
-                if (string.IsNullOrWhiteSpace(category))
-                {
-                    skippedRows.Add(new DataImportIssueDto(rowNumber, "Category", "blank_category",
-                        "The row was skipped because Category is blank."));
-                    continue;
-                }
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    errors.Add(new DataImportIssueDto(rowNumber, "Name", "required", "Name is required."));
-                    continue;
-                }
-
-                var trimmedName = name.Trim();
-                var isRegex = trimmedName.Length >= 2 && trimmedName[0] == '/' && trimmedName[^1] == '/';
-                var pattern = isRegex ? trimmedName[1..^1] : trimmedName;
-                var dto = new PayeeMatchingRuleEditDto(pattern, isRegex, CategoryHelper.SanitizeCategory(category));
-                var validation = validator.Validate(dto);
-                if (!validation.IsValid)
-                {
-                    foreach (var failure in validation.Errors)
-                    {
-                        var field = failure.PropertyName == nameof(PayeeMatchingRuleEditDto.PayeePattern)
-                            ? "Name"
-                            : "Category";
-                        errors.Add(new DataImportIssueDto(rowNumber, field, "invalid_value", failure.ErrorMessage));
-                    }
-                    continue;
-                }
-
-                rules.Add(dto);
-            }
+            var rule = ParseRule(worksheet, headers, rowNumber, validator, errors, skippedRows);
+            if (rule is not null)
+                rules.Add(rule);
         }
 
-        return new Analysis(rules.ToImmutable(), ignoredColumns, errors.ToImmutable(), skippedRows.ToImmutable());
+        return rules.ToImmutable();
+    }
+
+    private static PayeeMatchingRuleEditDto? ParseRule(
+        IXLWorksheet worksheet,
+        HeaderColumns headers,
+        int rowNumber,
+        PayeeMatchingRuleEditDtoValidator validator,
+        ImmutableArray<DataImportIssueDto>.Builder errors,
+        ImmutableArray<DataImportIssueDto>.Builder skippedRows)
+    {
+        var nameCell = worksheet.Row(rowNumber).Cell(headers.NameColumn!.Value);
+        var categoryCell = worksheet.Row(rowNumber).Cell(headers.CategoryColumn!.Value);
+
+        if (nameCell.HasFormula)
+        {
+            errors.Add(new DataImportIssueDto(rowNumber, "Name", "formula_not_allowed",
+                "Formula cells are not supported for Name."));
+            return null;
+        }
+        if (categoryCell.HasFormula)
+        {
+            errors.Add(new DataImportIssueDto(rowNumber, "Category", "formula_not_allowed",
+                "Formula cells are not supported for Category."));
+            return null;
+        }
+        if (!TryReadText(nameCell, out var name))
+        {
+            errors.Add(new DataImportIssueDto(rowNumber, "Name", "invalid_cell_type",
+                "Name must be a text cell."));
+            return null;
+        }
+        if (!TryReadText(categoryCell, out var category))
+        {
+            errors.Add(new DataImportIssueDto(rowNumber, "Category", "invalid_cell_type",
+                "Category must be a text cell."));
+            return null;
+        }
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            skippedRows.Add(new DataImportIssueDto(rowNumber, "Category", "blank_category",
+                "The row was skipped because Category is blank."));
+            return null;
+        }
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errors.Add(new DataImportIssueDto(rowNumber, "Name", "required", "Name is required."));
+            return null;
+        }
+
+        var trimmedName = name.Trim();
+        var isRegex = trimmedName.Length >= 2 && trimmedName[0] == '/' && trimmedName[^1] == '/';
+        var pattern = isRegex ? trimmedName[1..^1] : trimmedName;
+        var dto = new PayeeMatchingRuleEditDto(pattern, isRegex, CategoryHelper.SanitizeCategory(category));
+        var validation = validator.Validate(dto);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+            {
+                var field = failure.PropertyName == nameof(PayeeMatchingRuleEditDto.PayeePattern)
+                    ? "Name"
+                    : "Category";
+                errors.Add(new DataImportIssueDto(rowNumber, field, "invalid_value", failure.ErrorMessage));
+            }
+            return null;
+        }
+
+        return dto;
     }
 
     private static HeaderColumns ReadHeaders(IXLWorksheet worksheet)
