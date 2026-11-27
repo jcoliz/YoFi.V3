@@ -49,114 +49,250 @@ public sealed class NativeYoFiSplitWorksheetHandler(DataImportService dataImport
         var errors = ImmutableArray.CreateBuilder<DataImportIssueDto>();
         var headers = ReadHeaders(worksheet);
         var required = new[] { "Key", "TransactionKey", "Amount", "Category", "Memo", "Order" };
-        var ignored = headers.Names.Where(name => !required.Contains(name, StringComparer.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        foreach (var name in required.Where(name => name != "Key"))
-            if (!headers.Columns.ContainsKey(name)) errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
-        if (headers.Duplicate("Key") || headers.Duplicate("TransactionKey")) errors.Add(new DataImportIssueDto(1, "Key", "duplicate_header", "Key and TransactionKey columns must appear at most once."));
+        var ignored = headers.Names
+            .Where(name => !required.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        ValidateHeaders(headers, errors);
+        var splits = ParseSplits(worksheet, headers, errors);
+        ValidateSplitTotals(splits, errors);
+        ValidateTransactionReferences(splits, errors);
+
+        return new Analysis(splits, ignored, errors.ToImmutable(), []);
+    }
+
+    private static void ValidateHeaders(HeaderMap headers, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        foreach (var name in new[] { "TransactionKey", "Amount", "Category", "Memo", "Order" })
+        {
+            if (!headers.Columns.ContainsKey(name))
+                errors.Add(new DataImportIssueDto(1, name, "missing_header", $"The required {name} column is missing."));
+        }
+
+        if (headers.Duplicate("Key") || headers.Duplicate("TransactionKey"))
+            errors.Add(new DataImportIssueDto(1, "Key", "duplicate_header", "Key and TransactionKey columns must appear at most once."));
+    }
+
+    private static IReadOnlyCollection<NativeSplitImportDto> ParseSplits(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (errors.Count != 0)
+            return [];
 
         var validator = new SplitEditDtoValidator();
         var seenKeys = new HashSet<Guid>();
         var seenOrders = new Dictionary<Guid, HashSet<int>>();
         var splits = ImmutableArray.CreateBuilder<NativeSplitImportDto>();
-        if (errors.Count == 0)
-        {
-            var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
-            for (var row = 2; row <= lastRow; row++)
-            {
-                if (worksheet.Row(row).IsEmpty()) continue;
-                Guid? key = null;
-                if (headers.Columns.TryGetValue("Key", out var keyColumn))
-                {
-                    var text = worksheet.Cell(row, keyColumn).GetString().Trim();
-                    if (text.Length > 0)
-                    {
-                        if (!Guid.TryParse(text, out var parsed) || parsed == Guid.Empty || !seenKeys.Add(parsed))
-                        { errors.Add(new DataImportIssueDto(row, "Key", "invalid_or_duplicate_key", "Key must be a unique valid GUID.")); continue; }
-                        key = parsed;
-                    }
-                }
-                if (!headers.Columns.TryGetValue("TransactionKey", out var transactionColumn) ||
-                    !Guid.TryParse(worksheet.Cell(row, transactionColumn).GetString().Trim(), out var transactionKey))
-                { errors.Add(new DataImportIssueDto(row, "TransactionKey", "invalid_guid", "TransactionKey must be a valid GUID.")); continue; }
-                if (!headers.Columns.TryGetValue("Amount", out var amountColumn) ||
-                    !worksheet.Cell(row, amountColumn).TryGetValue(out decimal amount))
-                { errors.Add(new DataImportIssueDto(row, "Amount", "invalid_value", "Amount must be decimal.")); continue; }
-                if (!headers.Columns.TryGetValue("Order", out var orderColumn) ||
-                    !int.TryParse(worksheet.Cell(row, orderColumn).GetString().Trim(), out var order) || order < 0)
-                { errors.Add(new DataImportIssueDto(row, "Order", "invalid_value", "Order must be a nonnegative integer.")); continue; }
-                var orders = seenOrders.GetOrAdd(transactionKey);
-                if (!orders.Add(order)) { errors.Add(new DataImportIssueDto(row, "Order", "duplicate_order", "Order must be unique within a transaction.")); continue; }
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
 
-                var category = CategoryHelper.SanitizeCategory(headers.Columns.TryGetValue("Category", out var categoryColumn)
-                    ? worksheet.Cell(row, categoryColumn).GetString() : string.Empty);
-                var memo = headers.Columns.TryGetValue("Memo", out var memoColumn)
-                    ? worksheet.Cell(row, memoColumn).GetString().Trim() : string.Empty;
-                var split = new SplitEditDto(amount, category, string.IsNullOrWhiteSpace(memo) ? null : memo);
-                var result = validator.Validate(split);
-                if (!result.IsValid)
-                {
-                    foreach (var failure in result.Errors) errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
-                    continue;
-                }
-                splits.Add(new NativeSplitImportDto(key, transactionKey, amount, category,
-                    string.IsNullOrWhiteSpace(memo) ? null : memo, order));
-            }
+        for (var row = 2; row <= lastRow; row++)
+        {
+            if (worksheet.Row(row).IsEmpty())
+                continue;
+
+            var split = ParseRow(worksheet, headers, row, seenKeys, seenOrders, validator, errors);
+            if (split is not null)
+                splits.Add(split);
         }
 
-        if (_workbook is not null && _workbook.TryGetWorksheet("Transactions", out var transactionsWorksheet))
+        return splits.ToImmutable();
+    }
+
+    private static NativeSplitImportDto? ParseRow(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        HashSet<Guid> seenKeys,
+        Dictionary<Guid, HashSet<int>> seenOrders,
+        SplitEditDtoValidator validator,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (!TryReadKey(worksheet, headers, row, seenKeys, out var key, errors))
+            return null;
+        if (!TryReadTransactionKey(worksheet, headers, row, out var transactionKey, errors))
+            return null;
+        if (!TryReadAmount(worksheet, headers, row, out var amount, errors))
+            return null;
+        if (!TryReadOrder(worksheet, headers, row, out var order, errors))
+            return null;
+
+        var orders = seenOrders.GetOrAdd(transactionKey);
+        if (!orders.Add(order))
         {
-            var transactionHeaders = ReadHeaders(transactionsWorksheet);
-            if (transactionHeaders.Columns.TryGetValue("Key", out var keyColumn)
-                && transactionHeaders.Columns.TryGetValue("Amount", out var amountColumn)
-                && transactionHeaders.Columns.TryGetValue("Category", out var categoryColumn))
-            {
-                var lastTransactionRow = transactionsWorksheet.LastRowUsed()?.RowNumber() ?? 1;
-                for (var row = 2; row <= lastTransactionRow; row++)
-                {
-                    if (!Guid.TryParse(transactionsWorksheet.Cell(row, keyColumn).GetString().Trim(), out var transactionKey)) continue;
-                    if (!transactionsWorksheet.Cell(row, amountColumn).TryGetValue(out decimal transactionAmount)) continue;
-                    var category = transactionsWorksheet.Cell(row, categoryColumn).GetString().Trim();
-                    if (!string.Equals(category, "SPLIT", StringComparison.OrdinalIgnoreCase)) continue;
-                    var splitTotal = splits.Where(split => split.TransactionKey == transactionKey).Sum(split => split.Amount);
-                    if (splitTotal != transactionAmount)
-                    {
-                        errors.Add(new DataImportIssueDto(row, "Amount", "split_sum_mismatch",
-                            "Split amounts must sum to the transaction amount."));
-                    }
-                }
-            }
+            errors.Add(new DataImportIssueDto(row, "Order", "duplicate_order", "Order must be unique within a transaction."));
+            return null;
         }
 
-        if (_workbook is not null && _workbook.TryGetWorksheet("Transactions", out var contextTransactionsWorksheet))
+        var category = ReadCategory(worksheet, headers, row);
+        var memo = ReadMemo(worksheet, headers, row);
+        var split = new SplitEditDto(amount, category, string.IsNullOrWhiteSpace(memo) ? null : memo);
+        var result = validator.Validate(split);
+        if (!result.IsValid)
         {
-            var transactionHeaders = ReadHeaders(contextTransactionsWorksheet);
-            var validTransactionKeys = new HashSet<Guid>();
-            if (transactionHeaders.Columns.TryGetValue("Key", out var transactionKeyColumn))
-            {
-                var lastTransactionRow = contextTransactionsWorksheet.LastRowUsed()?.RowNumber() ?? 1;
-                for (var row = 2; row <= lastTransactionRow; row++)
-                    if (Guid.TryParse(contextTransactionsWorksheet.Cell(row, transactionKeyColumn).GetString().Trim(), out var key)
-                        && validTransactionKeys.Add(key)) { }
-            }
-            foreach (var split in splits)
-            {
-                if (!validTransactionKeys.Contains(split.TransactionKey))
-                    errors.Add(new DataImportIssueDto(2, "TransactionKey", "transaction_key_mismatch",
-                        "TransactionKey must reference a row in Transactions."));
-
-                var transactionRow = transactionHeaders.Columns.TryGetValue("Key", out var splitLookupKeyColumn)
-                    ? contextTransactionsWorksheet.RowsUsed().Skip(1).FirstOrDefault(row =>
-                        Guid.TryParse(row.Cell(splitLookupKeyColumn).GetString().Trim(), out var key)
-                        && key == split.TransactionKey)
-                    : null;
-                if (transactionRow is not null
-                    && transactionHeaders.Columns.TryGetValue("Category", out var transactionCategoryColumn)
-                    && !string.Equals(transactionRow.Cell(transactionCategoryColumn).GetString().Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase))
-                    errors.Add(new DataImportIssueDto(2, "TransactionKey", "non_split_transaction",
-                        "Split rows may only reference transactions marked SPLIT."));
-            }
+            foreach (var failure in result.Errors)
+                errors.Add(new DataImportIssueDto(row, failure.PropertyName, "invalid_value", failure.ErrorMessage));
+            return null;
         }
-        return new Analysis(splits.ToImmutable(), ignored, errors.ToImmutable(), []);
+
+        return new NativeSplitImportDto(key, transactionKey, amount, category,
+            string.IsNullOrWhiteSpace(memo) ? null : memo, order);
+    }
+
+    private static bool TryReadKey(
+        IXLWorksheet worksheet,
+        HeaderMap headers,
+        int row,
+        HashSet<Guid> seenKeys,
+        out Guid? key,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        key = null;
+        if (!headers.Columns.TryGetValue("Key", out var keyColumn))
+            return true;
+
+        var text = worksheet.Cell(row, keyColumn).GetString().Trim();
+        if (text.Length == 0)
+            return true;
+        if (!Guid.TryParse(text, out var parsed) || parsed == Guid.Empty || !seenKeys.Add(parsed))
+        {
+            errors.Add(new DataImportIssueDto(row, "Key", "invalid_or_duplicate_key", "Key must be a unique valid GUID."));
+            return false;
+        }
+        key = parsed;
+        return true;
+    }
+
+    private static bool TryReadTransactionKey(IXLWorksheet worksheet, HeaderMap headers, int row,
+        out Guid transactionKey, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        transactionKey = Guid.Empty;
+        if (!headers.Columns.TryGetValue("TransactionKey", out var column)
+            || !Guid.TryParse(worksheet.Cell(row, column).GetString().Trim(), out transactionKey))
+        {
+            errors.Add(new DataImportIssueDto(row, "TransactionKey", "invalid_guid", "TransactionKey must be a valid GUID."));
+            return false;
+        }
+        return true;
+    }
+
+    private static bool TryReadAmount(IXLWorksheet worksheet, HeaderMap headers, int row,
+        out decimal amount, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        amount = 0;
+        if (!headers.Columns.TryGetValue("Amount", out var column)
+            || !worksheet.Cell(row, column).TryGetValue(out amount))
+        {
+            errors.Add(new DataImportIssueDto(row, "Amount", "invalid_value", "Amount must be decimal."));
+            return false;
+        }
+        return true;
+    }
+
+    private static bool TryReadOrder(IXLWorksheet worksheet, HeaderMap headers, int row,
+        out int order, ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        order = 0;
+        if (!headers.Columns.TryGetValue("Order", out var column)
+            || !int.TryParse(worksheet.Cell(row, column).GetString().Trim(), out order)
+            || order < 0)
+        {
+            errors.Add(new DataImportIssueDto(row, "Order", "invalid_value", "Order must be a nonnegative integer."));
+            return false;
+        }
+        return true;
+    }
+
+    private static string ReadCategory(IXLWorksheet worksheet, HeaderMap headers, int row) =>
+        CategoryHelper.SanitizeCategory(headers.Columns.TryGetValue("Category", out var column)
+            ? worksheet.Cell(row, column).GetString()
+            : string.Empty);
+
+    private static string ReadMemo(IXLWorksheet worksheet, HeaderMap headers, int row) =>
+        headers.Columns.TryGetValue("Memo", out var column)
+            ? worksheet.Cell(row, column).GetString().Trim()
+            : string.Empty;
+
+    private void ValidateSplitTotals(IReadOnlyCollection<NativeSplitImportDto> splits,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (_workbook is null || !_workbook.TryGetWorksheet("Transactions", out var transactionsWorksheet))
+            return;
+
+        var headers = ReadHeaders(transactionsWorksheet);
+        if (!headers.Columns.TryGetValue("Key", out var keyColumn)
+            || !headers.Columns.TryGetValue("Amount", out var amountColumn)
+            || !headers.Columns.TryGetValue("Category", out var categoryColumn))
+            return;
+
+        var lastRow = transactionsWorksheet.LastRowUsed()?.RowNumber() ?? 1;
+        for (var row = 2; row <= lastRow; row++)
+        {
+            if (!Guid.TryParse(transactionsWorksheet.Cell(row, keyColumn).GetString().Trim(), out var transactionKey)
+                || !transactionsWorksheet.Cell(row, amountColumn).TryGetValue(out decimal transactionAmount))
+                continue;
+
+            var category = transactionsWorksheet.Cell(row, categoryColumn).GetString().Trim();
+            if (!string.Equals(category, "SPLIT", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var splitTotal = splits.Where(split => split.TransactionKey == transactionKey).Sum(split => split.Amount);
+            if (splitTotal != transactionAmount)
+                errors.Add(new DataImportIssueDto(row, "Amount", "split_sum_mismatch",
+                    "Split amounts must sum to the transaction amount."));
+        }
+    }
+
+    private void ValidateTransactionReferences(IReadOnlyCollection<NativeSplitImportDto> splits,
+        ImmutableArray<DataImportIssueDto>.Builder errors)
+    {
+        if (_workbook is null || !_workbook.TryGetWorksheet("Transactions", out var transactionsWorksheet))
+            return;
+
+        var headers = ReadHeaders(transactionsWorksheet);
+        var validTransactionKeys = GetValidTransactionKeys(transactionsWorksheet, headers);
+        foreach (var split in splits)
+        {
+            if (!validTransactionKeys.Contains(split.TransactionKey))
+                errors.Add(new DataImportIssueDto(2, "TransactionKey", "transaction_key_mismatch",
+                    "TransactionKey must reference a row in Transactions."));
+
+            if (IsReferencedTransactionNonSplit(transactionsWorksheet, headers, split.TransactionKey))
+                errors.Add(new DataImportIssueDto(2, "TransactionKey", "non_split_transaction",
+                    "Split rows may only reference transactions marked SPLIT."));
+        }
+    }
+
+    private static HashSet<Guid> GetValidTransactionKeys(IXLWorksheet worksheet, HeaderMap headers)
+    {
+        var keys = new HashSet<Guid>();
+        if (!headers.Columns.TryGetValue("Key", out var keyColumn))
+            return keys;
+
+        var lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 1;
+        for (var row = 2; row <= lastRow; row++)
+        {
+            if (Guid.TryParse(worksheet.Cell(row, keyColumn).GetString().Trim(), out var key))
+                keys.Add(key);
+        }
+        return keys;
+    }
+
+    private static bool IsReferencedTransactionNonSplit(IXLWorksheet worksheet, HeaderMap headers, Guid transactionKey)
+    {
+        if (!headers.Columns.TryGetValue("Key", out var keyColumn)
+            || !headers.Columns.TryGetValue("Category", out var categoryColumn))
+            return false;
+
+        foreach (var row in worksheet.RowsUsed().Skip(1))
+        {
+            if (Guid.TryParse(row.Cell(keyColumn).GetString().Trim(), out var key)
+                && key == transactionKey)
+                return !string.Equals(row.Cell(categoryColumn).GetString().Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
     }
 
     private static HeaderMap ReadHeaders(IXLWorksheet worksheet)
