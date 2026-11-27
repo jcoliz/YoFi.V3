@@ -135,7 +135,7 @@ public sealed class TransactionExportWorksheetWriter(IDataProvider dataProvider)
         }
     }
 
-    private sealed record TransactionExportRow(
+    internal sealed record TransactionExportRow(
         int Id,
         Guid Key,
         DateOnly Date,
@@ -145,7 +145,7 @@ public sealed class TransactionExportWorksheetWriter(IDataProvider dataProvider)
         string? ExternalId,
         string? Memo);
 
-    private sealed record SplitExportRow(
+    internal sealed record SplitExportRow(
         Guid Key,
         int TransactionId,
         decimal Amount,
