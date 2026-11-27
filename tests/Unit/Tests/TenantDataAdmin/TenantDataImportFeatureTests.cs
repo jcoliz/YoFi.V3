@@ -358,6 +358,54 @@ public class TenantDataImportFeatureTests
     }
 
     [Test]
+    public async Task Import_ContextHandlerReceivesWorkbookAndCompletesSuccessfully()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        var detector = new Mock<IWorkbookImportFormatDetector>();
+        detector.Setup(detector => detector.FormatId).Returns("test");
+        detector.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var handler = new ContextImportHandler();
+        var feature = new TenantDataImportFeature([detector.Object], [handler]);
+        var sha = Convert.ToHexString(SHA256.HashData(file));
+
+        var result = await feature.ImportAsync(file, sha);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(handler.ContextSet, Is.True);
+            Assert.That(handler.ImportCalled, Is.True);
+            Assert.That(result.Worksheets, Has.Count.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task Import_DependencyNotYetCompletedThrowsStructuredValidation()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        using var workbook = new XLWorkbook();
+        workbook.Worksheets.Add("Payee");
+        workbook.Worksheets.Add("Second");
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        file = stream.ToArray();
+
+        var detector = new Mock<IWorkbookImportFormatDetector>();
+        detector.Setup(detector => detector.FormatId).Returns("test");
+        detector.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var handler = new Mock<IImportWorksheetHandler>();
+        handler.Setup(item => item.FormatId).Returns("test");
+        handler.Setup(item => item.WorksheetName).Returns("Payee");
+        handler.Setup(item => item.DependencyOrder).Returns(0);
+        handler.Setup(item => item.RequiresWorksheetNames).Returns(["Second"]);
+        handler.Setup(item => item.Preview(It.IsAny<IXLWorksheet>())).Returns(new ImportWorksheetPreviewDto(
+            "Payee", "Test", 1, 0, [], [], []));
+        var feature = new TenantDataImportFeature([detector.Object], [handler.Object]);
+        var sha = Convert.ToHexString(SHA256.HashData(file));
+
+        await Assert.ThrowsAsync<TenantDataImportValidationException>(() => feature.ImportAsync(file, sha));
+    }
+
+    [Test]
     public void Import_IgnoredWorksheetInPreviewReportsIgnoredNames()
     {
         var file = Workbook(["Name", "Category"], [["Coffee", "Food"]], worksheetName: "Other");
@@ -386,6 +434,29 @@ public class TenantDataImportFeatureTests
         Assert.That(handlers, Has.Some.TypeOf<NativeYoFiPayeeWorksheetHandler>());
         Assert.That(handlers, Has.Some.TypeOf<NativeYoFiTransactionWorksheetHandler>());
         Assert.That(handlers, Has.Some.TypeOf<NativeYoFiSplitWorksheetHandler>());
+    }
+
+    private sealed class ContextImportHandler : IImportWorksheetHandler, IWorkbookImportContextHandler
+    {
+        public string FormatId => "test";
+        public string WorksheetName => "Payee";
+        public string DataType => "Test";
+        public int DependencyOrder => 1;
+        public IReadOnlyCollection<string> RequiresWorksheetNames => [];
+        public bool ContextSet { get; private set; }
+        public bool ImportCalled { get; private set; }
+
+        public void SetWorkbookContext(XLWorkbook workbook) => ContextSet = workbook.Worksheets.Count > 0;
+
+        public ImportWorksheetPreviewDto Preview(IXLWorksheet worksheet) =>
+            new("Payee", "Test", 1, 0, [], [], []);
+
+        public Task<ImportWorksheetResultDto> ImportAsync(IXLWorksheet worksheet, CancellationToken cancellationToken)
+        {
+            ImportCalled = true;
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new ImportWorksheetResultDto("Payee", "Test", 1, 0, 0, 0));
+        }
     }
 
     private static byte[] Workbook(
