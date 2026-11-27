@@ -81,63 +81,90 @@ public sealed partial class SampleScenarioLoader
             throw Invalid(context, "patterns", "Expected a nonempty array of pattern tables.");
         }
 
+        var result = ReadPatterns(patterns, context);
+        return new SampleScenario(id, revision, name, description, result);
+    }
+
+    private static ImmutableArray<SamplePattern> ReadPatterns(TomlTableArray patterns, string context)
+    {
         var result = ImmutableArray.CreateBuilder<SamplePattern>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var merchants = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var pattern in patterns)
         {
-            var patternId = ReadString(pattern, "id", context);
-            var location = $"{context}, pattern '{patternId}'";
-            RejectUnknown(pattern, location, "id", "category", "payees", "annual_amount", "splits", "frequency",
-                "repeats", "amount_jitter", "date_jitter");
-            ValidateId(patternId, location);
-            if (!ids.Add(patternId))
-            {
-                throw Invalid(location, "id", "Duplicate pattern ID.");
-            }
-
-            var splits = ReadPatternSplits(pattern, location);
-            var category = splits[0].Category;
-            var annual = splits.Sum(s => s.AnnualAmount);
-
-            if (!pattern.TryGetValue("payees", out var rawPayees) || rawPayees is not TomlArray payees || payees.Count == 0)
-            {
-                throw Invalid(location, "payees", "Expected a nonempty merchant array.");
-            }
-            var typedPayees = ImmutableArray.CreateBuilder<string>();
-            foreach (var value in payees)
-            {
-                if (value is not string payee || string.IsNullOrWhiteSpace(payee) || payee.Length > 200 || payee.Any(char.IsControl))
-                {
-                    throw Invalid(location, "payees", "Merchants must be nonempty strings of at most 200 characters without control characters.");
-                }
-                var sanitizedCategory = CategoryHelper.SanitizeCategory(category);
-                if (merchants.TryGetValue(payee, out var existing) && existing != sanitizedCategory)
-                {
-                    throw Invalid(location, "payees", $"Merchant '{payee}' has conflicting categories.");
-                }
-                merchants[payee] = sanitizedCategory;
-                typedPayees.Add(payee);
-            }
-
-            var frequency = ReadChoice(pattern, "frequency", location, "weekly", "semi-monthly", "monthly", "quarterly", "yearly");
-            var repeats = ReadPositiveInt(pattern, "repeats", location);
-            if (repeats > SampleDataGenerator.MaxTransactions)
-            {
-                throw Invalid(location, "repeats", $"Cannot exceed {SampleDataGenerator.MaxTransactions}.");
-            }
-            var amountJitter = ReadChoice(pattern, "amount_jitter", location, "none", "low", "moderate", "high");
-            var dateJitter = ReadChoice(pattern, "date_jitter", location, "none", "low", "moderate", "high");
-            var definition = new SamplePattern(patternId, typedPayees.ToImmutable(), splits, frequency, repeats, amountJitter, dateJitter);
-            var minimumAmount = Math.Abs(annual / definition.PeriodsPerYear / repeats) * (1 - SampleDataGenerator.JitterProportion(amountJitter));
-            if (decimal.Round(minimumAmount, 2, MidpointRounding.AwayFromZero) == 0)
-            {
-                throw Invalid(location, "annual_amount", "Amount must remain nonzero after jitter and cent rounding, and within decimal arithmetic bounds.");
-            }
+            var definition = ParsePattern(pattern, context, ids, merchants);
             result.Add(definition);
         }
 
-        return new SampleScenario(id, revision, name, description, result.ToImmutable());
+        return result.ToImmutable();
+    }
+
+    private static SamplePattern ParsePattern(
+        TomlTable pattern,
+        string context,
+        HashSet<string> ids,
+        Dictionary<string, string> merchants)
+    {
+        var patternId = ReadString(pattern, "id", context);
+        var location = $"{context}, pattern '{patternId}'";
+        RejectUnknown(pattern, location, "id", "category", "payees", "annual_amount", "splits", "frequency",
+            "repeats", "amount_jitter", "date_jitter");
+        ValidateId(patternId, location);
+        if (!ids.Add(patternId))
+            throw Invalid(location, "id", "Duplicate pattern ID.");
+
+        var splits = ReadPatternSplits(pattern, location);
+        var payees = ReadPayees(pattern, location, splits[0].Category, merchants);
+        var frequency = ReadChoice(pattern, "frequency", location, "weekly", "semi-monthly", "monthly", "quarterly", "yearly");
+        var repeats = ReadPositiveInt(pattern, "repeats", location);
+        if (repeats > SampleDataGenerator.MaxTransactions)
+            throw Invalid(location, "repeats", $"Cannot exceed {SampleDataGenerator.MaxTransactions}.");
+
+        var amountJitter = ReadChoice(pattern, "amount_jitter", location, "none", "low", "moderate", "high");
+        var dateJitter = ReadChoice(pattern, "date_jitter", location, "none", "low", "moderate", "high");
+        var definition = new SamplePattern(patternId, payees, splits, frequency, repeats, amountJitter, dateJitter);
+        ValidateMinimumAmount(splits.Sum(split => split.AnnualAmount), definition, location);
+        return definition;
+    }
+
+    private static ImmutableArray<string> ReadPayees(
+        TomlTable pattern,
+        string location,
+        string category,
+        Dictionary<string, string> merchants)
+    {
+        if (!pattern.TryGetValue("payees", out var rawPayees)
+            || rawPayees is not TomlArray payees
+            || payees.Count == 0)
+            throw Invalid(location, "payees", "Expected a nonempty merchant array.");
+
+        var typedPayees = ImmutableArray.CreateBuilder<string>();
+        var sanitizedCategory = CategoryHelper.SanitizeCategory(category);
+        foreach (var value in payees)
+        {
+            if (value is not string payee
+                || string.IsNullOrWhiteSpace(payee)
+                || payee.Length > 200
+                || payee.Any(char.IsControl))
+                throw Invalid(location, "payees", "Merchants must be nonempty strings of at most 200 characters without control characters.");
+
+            if (merchants.TryGetValue(payee, out var existing) && existing != sanitizedCategory)
+                throw Invalid(location, "payees", $"Merchant '{payee}' has conflicting categories.");
+
+            merchants[payee] = sanitizedCategory;
+            typedPayees.Add(payee);
+        }
+
+        return typedPayees.ToImmutable();
+    }
+
+    private static void ValidateMinimumAmount(decimal annual, SamplePattern definition, string location)
+    {
+        var minimumAmount = Math.Abs(annual / definition.PeriodsPerYear / definition.Repeats)
+            * (1 - SampleDataGenerator.JitterProportion(definition.AmountJitter));
+        if (decimal.Round(minimumAmount, 2, MidpointRounding.AwayFromZero) == 0)
+            throw Invalid(location, "annual_amount", "Amount must remain nonzero after jitter and cent rounding, and within decimal arithmetic bounds.");
     }
 
     private static ImmutableArray<SamplePatternSplit> ReadPatternSplits(TomlTable pattern, string context)
