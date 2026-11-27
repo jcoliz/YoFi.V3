@@ -258,17 +258,41 @@ public sealed class DataImportService(
         cancellationToken.ThrowIfCancellationRequested();
 
         var tenantId = tenantProvider.CurrentTenant.Id;
-        var transactionKeys = transactions.Where(input => input.Key.HasValue).Select(input => input.Key!.Value).ToArray();
-        var existingTransactions = transactionKeys.Length == 0
-            ? []
-            : await dataProvider.ToListAsync(dataProvider.Get<Transaction>()
-                .Where(transaction => transaction.TenantId == tenantId && transactionKeys.Contains(transaction.Key)));
+        var existingByKey = await LoadExistingTransactionsAsync(tenantId, transactions);
+        var counts = new NativeUpsertCounts();
 
+        foreach (var input in transactions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var transaction = ResolveTransaction(input, tenantId, existingByKey, counts);
+            ApplyTransactionFields(transaction, input);
+            ApplyTransactionSplits(transaction, input, splits, counts);
+        }
+
+        await dataProvider.SaveChangesAsync(cancellationToken);
+        return new NativeTransactionImportResultDto(counts.CreatedTransactions, counts.UpdatedTransactions,
+            counts.CreatedSplits, counts.UpdatedSplits, 0);
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, Transaction>> LoadExistingTransactionsAsync(
+        long tenantId,
+        IReadOnlyCollection<NativeTransactionImportDto> transactions)
+    {
+        var transactionKeys = transactions
+            .Where(input => input.Key.HasValue)
+            .Select(input => input.Key!.Value)
+            .ToArray();
+        if (transactionKeys.Length == 0)
+            return new Dictionary<Guid, Transaction>();
+
+        var existingTransactions = await dataProvider.ToListAsync(dataProvider.Get<Transaction>()
+            .Where(transaction => transaction.TenantId == tenantId && transactionKeys.Contains(transaction.Key)));
         var existingIds = existingTransactions.Select(transaction => transaction.Id).ToArray();
         var existingSplits = existingIds.Length == 0
             ? []
             : await dataProvider.ToListAsync(dataProvider.Get<Split>()
                 .Where(split => existingIds.Contains(split.TransactionId)));
+
         foreach (var transaction in existingTransactions)
         {
             transaction.Splits = existingSplits
@@ -276,108 +300,146 @@ public sealed class DataImportService(
                 .ToList();
         }
 
-        var existingByKey = existingTransactions.ToDictionary(transaction => transaction.Key);
-        var createdTransactions = 0;
-        var updatedTransactions = 0;
-        var createdSplits = 0;
-        var updatedSplits = 0;
+        return existingTransactions.ToDictionary(transaction => transaction.Key);
+    }
 
-        foreach (var input in transactions)
+    private Transaction ResolveTransaction(
+        NativeTransactionImportDto input,
+        long tenantId,
+        IReadOnlyDictionary<Guid, Transaction> existingByKey,
+        NativeUpsertCounts counts)
+    {
+        if (input.Key.HasValue && existingByKey.TryGetValue(input.Key.Value, out var existing))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            Transaction transaction;
-            if (input.Key.HasValue && existingByKey.TryGetValue(input.Key.Value, out var existing))
-            {
-                transaction = existing;
-                updatedTransactions++;
-            }
-            else
-            {
-                transaction = new Transaction { TenantId = tenantId, Key = input.Key ?? Guid.NewGuid() };
-                dataProvider.Add(transaction);
-                createdTransactions++;
-            }
-
-            transaction.Date = input.Date;
-            transaction.Amount = input.Amount;
-            transaction.Payee = input.Payee;
-            transaction.Memo = input.Memo;
-            transaction.Source = input.Source;
-            transaction.ExternalId = input.ExternalId;
-
-            var isSplitGraph = string.Equals(input.Category?.Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase);
-            if (isSplitGraph)
-            {
-                var transactionSplits = splits
-                    .Where(split => split.TransactionKey == (input.Key ?? transaction.Key))
-                    .OrderBy(split => split.Order)
-                    .ToArray();
-                var representedKeys = transactionSplits.Where(split => split.Key.HasValue)
-                    .Select(split => split.Key!.Value).ToHashSet();
-
-                foreach (var existingSplit in transaction.Splits
-                    .Where(split => transactionSplits.Length > 0 && !representedKeys.Contains(split.Key)).ToArray())
-                {
-                    transaction.Splits.Remove(existingSplit);
-                    dataProvider.Remove(existingSplit);
-                }
-
-                foreach (var splitInput in transactionSplits)
-                {
-                    Split? split;
-                    if (splitInput.Key.HasValue)
-                    {
-                        split = transaction.Splits.FirstOrDefault(item => item.Key == splitInput.Key.Value);
-                        if (split is null)
-                        {
-                            split = new Split { Key = splitInput.Key.Value, TransactionId = transaction.Id };
-                            transaction.Splits.Add(split);
-                            dataProvider.Add(split);
-                            createdSplits++;
-                        }
-                        else updatedSplits++;
-                    }
-                    else
-                    {
-                        split = new Split { TransactionId = transaction.Id };
-                        transaction.Splits.Add(split);
-                        dataProvider.Add(split);
-                        createdSplits++;
-                    }
-
-                    split.Amount = splitInput.Amount;
-                    split.Category = CategoryHelper.SanitizeCategory(splitInput.Category);
-                    split.Memo = splitInput.Memo;
-                    split.Order = splitInput.Order;
-                }
-            }
-            else
-            {
-                var category = CategoryHelper.SanitizeCategory(input.Category);
-                foreach (var existingSplit in transaction.Splits.Skip(1).ToArray())
-                {
-                    transaction.Splits.Remove(existingSplit);
-                    dataProvider.Remove(existingSplit);
-                }
-                var split = transaction.Splits.FirstOrDefault();
-                if (split is null)
-                {
-                    split = new Split { TransactionId = transaction.Id };
-                    transaction.Splits.Add(split);
-                    dataProvider.Add(split);
-                    createdSplits++;
-                }
-                else updatedSplits++;
-                split.Amount = input.Amount;
-                split.Category = category;
-                split.Memo = null;
-                split.Order = 0;
-            }
+            counts.UpdatedTransactions++;
+            return existing;
         }
 
-        await dataProvider.SaveChangesAsync(cancellationToken);
-        return new NativeTransactionImportResultDto(createdTransactions, updatedTransactions,
-            createdSplits, updatedSplits, 0);
+        var transaction = new Transaction { TenantId = tenantId, Key = input.Key ?? Guid.NewGuid() };
+        dataProvider.Add(transaction);
+        counts.CreatedTransactions++;
+        return transaction;
+    }
+
+    private static void ApplyTransactionFields(Transaction transaction, NativeTransactionImportDto input)
+    {
+        transaction.Date = input.Date;
+        transaction.Amount = input.Amount;
+        transaction.Payee = input.Payee;
+        transaction.Memo = input.Memo;
+        transaction.Source = input.Source;
+        transaction.ExternalId = input.ExternalId;
+    }
+
+    private void ApplyTransactionSplits(
+        Transaction transaction,
+        NativeTransactionImportDto input,
+        IReadOnlyCollection<NativeSplitImportDto> splits,
+        NativeUpsertCounts counts)
+    {
+        if (string.Equals(input.Category?.Trim(), "SPLIT", StringComparison.OrdinalIgnoreCase))
+            ApplySplitGraph(transaction, input, splits, counts);
+        else
+            ApplySimpleSplit(transaction, input, counts);
+    }
+
+    private void ApplySplitGraph(
+        Transaction transaction,
+        NativeTransactionImportDto input,
+        IReadOnlyCollection<NativeSplitImportDto> splits,
+        NativeUpsertCounts counts)
+    {
+        var transactionSplits = splits
+            .Where(split => split.TransactionKey == (input.Key ?? transaction.Key))
+            .OrderBy(split => split.Order)
+            .ToArray();
+        var representedKeys = transactionSplits
+            .Where(split => split.Key.HasValue)
+            .Select(split => split.Key!.Value)
+            .ToHashSet();
+
+        foreach (var existingSplit in transaction.Splits
+                     .Where(split => transactionSplits.Length > 0 && !representedKeys.Contains(split.Key))
+                     .ToArray())
+        {
+            transaction.Splits.Remove(existingSplit);
+            dataProvider.Remove(existingSplit);
+        }
+
+        foreach (var splitInput in transactionSplits)
+        {
+            var split = ResolveSplit(transaction, splitInput, counts);
+            split.Amount = splitInput.Amount;
+            split.Category = CategoryHelper.SanitizeCategory(splitInput.Category);
+            split.Memo = splitInput.Memo;
+            split.Order = splitInput.Order;
+        }
+    }
+
+    private Split ResolveSplit(
+        Transaction transaction,
+        NativeSplitImportDto splitInput,
+        NativeUpsertCounts counts)
+    {
+        if (splitInput.Key.HasValue)
+        {
+            var existing = transaction.Splits.FirstOrDefault(item => item.Key == splitInput.Key.Value);
+            if (existing is not null)
+            {
+                counts.UpdatedSplits++;
+                return existing;
+            }
+
+            var created = new Split { Key = splitInput.Key.Value, TransactionId = transaction.Id };
+            transaction.Splits.Add(created);
+            dataProvider.Add(created);
+            counts.CreatedSplits++;
+            return created;
+        }
+
+        var newSplit = new Split { TransactionId = transaction.Id };
+        transaction.Splits.Add(newSplit);
+        dataProvider.Add(newSplit);
+        counts.CreatedSplits++;
+        return newSplit;
+    }
+
+    private void ApplySimpleSplit(
+        Transaction transaction,
+        NativeTransactionImportDto input,
+        NativeUpsertCounts counts)
+    {
+        foreach (var existingSplit in transaction.Splits.Skip(1).ToArray())
+        {
+            transaction.Splits.Remove(existingSplit);
+            dataProvider.Remove(existingSplit);
+        }
+
+        var split = transaction.Splits.FirstOrDefault();
+        if (split is null)
+        {
+            split = new Split { TransactionId = transaction.Id };
+            transaction.Splits.Add(split);
+            dataProvider.Add(split);
+            counts.CreatedSplits++;
+        }
+        else
+        {
+            counts.UpdatedSplits++;
+        }
+
+        split.Amount = input.Amount;
+        split.Category = CategoryHelper.SanitizeCategory(input.Category);
+        split.Memo = null;
+        split.Order = 0;
+    }
+
+    private sealed class NativeUpsertCounts
+    {
+        public int CreatedTransactions { get; set; }
+        public int UpdatedTransactions { get; set; }
+        public int CreatedSplits { get; set; }
+        public int UpdatedSplits { get; set; }
     }
 
     /// <summary>Reconciles a validated native split worksheet against existing transaction graphs.</summary>
