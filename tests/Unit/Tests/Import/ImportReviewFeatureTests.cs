@@ -816,6 +816,101 @@ public class ImportReviewFeatureTests
         dataProvider.Verify(dp => dp.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Test]
+    public async Task GetPendingReviewAsync_NormalizesPageAndMapsRows()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        var records = new[]
+        {
+            new ImportReviewTransaction
+            {
+                TenantId = 42,
+                Key = Guid.NewGuid(),
+                Date = new(2025, 1, 2),
+                Payee = "Coffee",
+                Category = "Food",
+                Amount = -5m,
+                DuplicateStatus = DuplicateStatus.New,
+                IsSelected = true
+            }
+        };
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(records.AsQueryable());
+        dataProvider.Setup(dp => dp.CountAsync(It.IsAny<IQueryable<ImportReviewTransaction>>())).ReturnsAsync(1);
+        dataProvider.Setup(dp => dp.ToListNoTrackingAsync(It.IsAny<IQueryable<ImportReviewTransactionDto>>()))
+            .Returns((IQueryable<ImportReviewTransactionDto> query) => Task.FromResult(query.ToList()));
+
+        var result = await feature.GetPendingReviewAsync(0);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Items, Has.Count.EqualTo(1));
+            Assert.That(result.Items.Single().Payee, Is.EqualTo("Coffee"));
+            Assert.That(result.Metadata.PageNumber, Is.EqualTo(1));
+            Assert.That(result.Metadata.TotalCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public async Task SetSelectionSelectAllAndDeselectAllAsyncBulkUpdateTenantQuery()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(Array.Empty<ImportReviewTransaction>().AsQueryable());
+        dataProvider.Setup(dp => dp.BulkUpdateAsync(
+                It.IsAny<IQueryable<ImportReviewTransaction>>(),
+                It.IsAny<System.Linq.Expressions.Expression<Func<ImportReviewTransaction, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+
+        await feature.SetSelectionAsync([Guid.NewGuid()], true);
+        await feature.SelectAllAsync();
+        await feature.DeselectAllAsync();
+
+        dataProvider.Verify(dp => dp.BulkUpdateAsync(
+            It.IsAny<IQueryable<ImportReviewTransaction>>(),
+            It.IsAny<System.Linq.Expressions.Expression<Func<ImportReviewTransaction, bool>>>(),
+            true,
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task DeleteAllAsyncReturnsCountAndBulkDeletesTenantRows()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(Array.Empty<ImportReviewTransaction>().AsQueryable());
+        dataProvider.Setup(dp => dp.CountAsync(It.IsAny<IQueryable<ImportReviewTransaction>>())).ReturnsAsync(4);
+        dataProvider.Setup(dp => dp.BulkDeleteAsync(It.IsAny<IQueryable<ImportReviewTransaction>>())).ReturnsAsync(4);
+
+        var count = await feature.DeleteAllAsync();
+
+        Assert.That(count, Is.EqualTo(4));
+        dataProvider.Verify(dp => dp.BulkDeleteAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetSummaryAsyncCountsAllStatusesAndSelection()
+    {
+        var (feature, dataProvider) = CreateFeatureWithMocks(tenantId: 42);
+        dataProvider.Setup(dp => dp.Get<ImportReviewTransaction>()).Returns(Array.Empty<ImportReviewTransaction>().AsQueryable());
+        dataProvider.SetupSequence(dp => dp.CountAsync(It.IsAny<IQueryable<ImportReviewTransaction>>()))
+            .ReturnsAsync(5)
+            .ReturnsAsync(3)
+            .ReturnsAsync(4)
+            .ReturnsAsync(2)
+            .ReturnsAsync(1);
+
+        var result = await feature.GetSummaryAsync();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.TotalCount, Is.EqualTo(5));
+            Assert.That(result.SelectedCount, Is.EqualTo(3));
+            Assert.That(result.NewCount, Is.EqualTo(4));
+            Assert.That(result.ExactDuplicateCount, Is.EqualTo(2));
+            Assert.That(result.PotentialDuplicateCount, Is.EqualTo(1));
+        }
+    }
+
     #endregion
 
     #region Helper Methods
