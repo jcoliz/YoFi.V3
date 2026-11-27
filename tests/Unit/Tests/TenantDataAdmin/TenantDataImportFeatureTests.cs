@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using YoFi.V3.Application;
+using YoFi.V3.Application.Dto;
 using YoFi.V3.Application.Exceptions;
 using YoFi.V3.Application.Features;
 using YoFi.V3.Application.Services;
@@ -274,6 +275,100 @@ public class TenantDataImportFeatureTests
         var exception = Assert.Throws<ValidationException>(() => _service.Preview(InvalidOpenXmlPackage()));
 
         Assert.That(exception!.Message, Does.Contain("readable XLSX"));
+    }
+
+    [Test]
+    public async Task Preview_NullFileAndImportNullArgumentsThrow()
+    {
+        Assert.Throws<ArgumentNullException>(() => _service.Preview(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => _service.ImportAsync(null!, "SHA"));
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.ImportAsync([1, 2, 3], ""));
+    }
+
+    [Test]
+    public void Preview_MultipleDetectorsThrowsValidationException()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        var first = new Mock<IWorkbookImportFormatDetector>();
+        var second = new Mock<IWorkbookImportFormatDetector>();
+        first.Setup(detector => detector.FormatId).Returns("first");
+        second.Setup(detector => detector.FormatId).Returns("second");
+        first.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        second.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var feature = new TenantDataImportFeature([first.Object, second.Object], []);
+
+        var exception = Assert.Throws<ValidationException>(() => feature.Preview(file));
+
+        Assert.That(exception!.Message, Does.Contain("multiple supported source formats"));
+    }
+
+    [Test]
+    public void Preview_MultipleHandlersForWorksheetThrowsInvalidOperationException()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        var detector = new Mock<IWorkbookImportFormatDetector>();
+        detector.Setup(detector => detector.FormatId).Returns("test");
+        detector.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var handlers = Enumerable.Range(0, 2).Select(index =>
+        {
+            var handler = new Mock<IImportWorksheetHandler>();
+            handler.Setup(item => item.FormatId).Returns("test");
+            handler.Setup(item => item.WorksheetName).Returns("Payee");
+            return handler.Object;
+        }).ToArray();
+        var feature = new TenantDataImportFeature([detector.Object], handlers);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => feature.Preview(file));
+
+        Assert.That(exception!.Message, Does.Contain("Multiple import handlers"));
+    }
+
+    [Test]
+    public async Task Import_CancelledTokenThrowsBeforeHandlerImport()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        var preview = _service.Preview(file);
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _service.ImportAsync(file, preview.Sha256, source.Token));
+
+        _data.Verify(data => data.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task Import_MissingRequiredWorksheetThrowsStructuredValidation()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]]);
+        var detector = new Mock<IWorkbookImportFormatDetector>();
+        detector.Setup(detector => detector.FormatId).Returns("test");
+        detector.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var handler = new Mock<IImportWorksheetHandler>();
+        handler.Setup(item => item.FormatId).Returns("test");
+        handler.Setup(item => item.WorksheetName).Returns("Payee");
+        handler.Setup(item => item.DependencyOrder).Returns(1);
+        handler.Setup(item => item.RequiresWorksheetNames).Returns(["Missing"]);
+        handler.Setup(item => item.Preview(It.IsAny<IXLWorksheet>())).Returns(new ImportWorksheetPreviewDto(
+            "Payee", "Test", 1, 0, [], [], []));
+        var feature = new TenantDataImportFeature([detector.Object], [handler.Object]);
+
+        var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(file));
+        await Assert.ThrowsAsync<TenantDataImportValidationException>(() => feature.ImportAsync(file, sha));
+    }
+
+    [Test]
+    public void Import_IgnoredWorksheetInPreviewReportsIgnoredNames()
+    {
+        var file = Workbook(["Name", "Category"], [["Coffee", "Food"]], worksheetName: "Other");
+        var detector = new Mock<IWorkbookImportFormatDetector>();
+        detector.Setup(detector => detector.FormatId).Returns("test");
+        detector.Setup(detector => detector.CanDetect(It.IsAny<XLWorkbook>())).Returns(true);
+        var feature = new TenantDataImportFeature([detector.Object], []);
+
+        var preview = feature.Preview(file);
+
+        Assert.That(preview.IgnoredWorksheets, Is.EqualTo(["Other"]));
     }
 
     [Test]
