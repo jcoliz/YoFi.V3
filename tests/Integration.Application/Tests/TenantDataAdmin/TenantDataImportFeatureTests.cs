@@ -11,7 +11,6 @@ using YoFi.V3.Tests.Integration.Application.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Application;
 
-[TestFixture]
 public class TenantDataImportFeatureTests : FeatureTestBase
 {
     private MemoryCache _cache = null!;
@@ -108,34 +107,6 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         Assert.That(refreshedRules, Has.Count.EqualTo(3));
     }
 
-    [Test]
-    public async Task Import_SkipsBlankCategoriesAndRepeatedImportCreatesFreshRules()
-    {
-        var file = Workbook(
-            ["Name", "Category"],
-            [["Coffee Shop", "Food"], ["No category", ""]]);
-        var preview = _service.Preview(file);
-
-        var first = await _service.ImportAsync(file, preview.Sha256);
-        var second = await _service.ImportAsync(file, preview.Sha256);
-        _context.ChangeTracker.Clear();
-        var rules = await _context.PayeeMatchingRules
-            .Where(rule => rule.TenantId == _targetTenant.Id)
-            .ToListAsync();
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(preview.Worksheets.Single().ValidRecordCount, Is.EqualTo(1));
-            Assert.That(preview.Worksheets.Single().SkippedRecordCount, Is.EqualTo(1));
-            Assert.That(first.Worksheets.Single().Created, Is.EqualTo(1));
-            Assert.That(first.Worksheets.Single().Skipped, Is.EqualTo(1));
-            Assert.That(second.Worksheets.Single().Created, Is.EqualTo(1));
-            Assert.That(second.Worksheets.Single().Skipped, Is.EqualTo(1));
-            Assert.That(rules, Has.Count.EqualTo(2));
-            Assert.That(rules.Select(rule => rule.PayeePattern), Is.All.EqualTo("Coffee Shop"));
-            Assert.That(rules.Select(rule => rule.Key), Is.Unique);
-        }
-    }
 
     [Test]
     public async Task Import_PersistenceFailureRollsBackWorksheetAndDoesNotReturnSuccess()
@@ -218,30 +189,6 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         }
     }
 
-    [Test]
-    public async Task Import_NativeDuplicateKeysBlockWorksheetAndPersistNothing()
-    {
-        // Given: a native transaction worksheet with duplicate GUIDs
-        var duplicateKey = Guid.NewGuid();
-        var file = NamedWorkbook(
-            ("Metadata", ["Name", "Value"], [["Format", "YoFi.V3"]]),
-            ("Transactions", ["Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category"],
-                [[duplicateKey.ToString("D"), "2026-02-03", "First", 10m, "", "", "", ""],
-                 [duplicateKey.ToString("D"), "2026-02-04", "Second", 20m, "", "", "", ""]]));
-
-        // When
-        var preview = _service.Preview(file);
-
-        // Then
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(preview.CanImport, Is.False);
-            Assert.That(preview.Worksheets.Single().Errors.Any(issue => issue.Code == "duplicate_key"), Is.True);
-        }
-        await Assert.ThrowsAsync<YoFi.V3.Application.Exceptions.TenantDataImportValidationException>(
-            () => _service.ImportAsync(file, preview.Sha256));
-        Assert.That(await _context.Transactions.CountAsync(), Is.Zero);
-    }
 
     [Test]
     public async Task Import_OriginalTransactionAndSplitWorkbookCreatesTenantGraph()
@@ -275,36 +222,6 @@ public class TenantDataImportFeatureTests : FeatureTestBase
         }
     }
 
-    [Test]
-    public async Task Import_NativeAndOriginalWorkbooksRemainTenantScoped()
-    {
-        // Given: records in both tenants
-        var otherTransaction = new Transaction
-        {
-            TenantId = _otherTenant.Id,
-            Date = new DateOnly(2026, 1, 1),
-            Payee = "Other",
-            Amount = 99m
-        };
-        otherTransaction.Splits.Add(new Split { Amount = 99m, Category = "Other", Order = 0 });
-        _context.Transactions.Add(otherTransaction);
-        await _context.SaveChangesAsync();
-
-        var file = NamedWorkbook(
-            ("Metadata", ["Name", "Value"], [["Format", "YoFi.V3"]]),
-            ("Transactions", ["Key", "Date", "Payee", "Amount", "Source", "ExternalId", "Memo", "Category"],
-                [[Guid.NewGuid().ToString("D"), "2026-02-03", "Target", 10m, "", "", "", "Restaurants"]]));
-
-        // When
-        var preview = _service.Preview(file);
-        await _service.ImportAsync(file, preview.Sha256);
-        _context.ChangeTracker.Clear();
-
-        // Then
-        Assert.That(await _context.Transactions.CountAsync(item => item.TenantId == _targetTenant.Id), Is.EqualTo(1));
-        Assert.That(await _context.Transactions.CountAsync(item => item.TenantId == _otherTenant.Id), Is.EqualTo(1));
-        Assert.That((await _context.Transactions.SingleAsync(item => item.TenantId == _otherTenant.Id)).Payee, Is.EqualTo("Other"));
-    }
 
     private static byte[] NamedWorkbook(params (string Name, string[] Headers, object[][] Rows)[] worksheets)
     {

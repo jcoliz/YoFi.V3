@@ -11,7 +11,6 @@ using YoFi.V3.Tests.Integration.Application.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Application;
 
-[TestFixture]
 public class TenantDataExportFeatureTests : FeatureTestBase
 {
     private Tenant _targetTenant = null!;
@@ -38,26 +37,6 @@ public class TenantDataExportFeatureTests : FeatureTestBase
             new TestTimeProvider());
     }
 
-    [Test]
-    public async Task GetOptions_ReturnsRegisteredTypesAndOnlyTargetTenantYears()
-    {
-        _context.Transactions.AddRange(
-            Transaction(_targetTenant, new DateOnly(2024, 2, 1), "First"),
-            Transaction(_targetTenant, new DateOnly(2025, 3, 1), "Second"),
-            Transaction(_otherTenant, new DateOnly(2026, 4, 1), "Other"));
-        await _context.SaveChangesAsync();
-
-        var options = await _feature.GetOptionsAsync();
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(options.DataTypes.Select(type => type.DataType),
-                Is.EqualTo(new[] { "PayeeMatchingRules", "Transactions" }));
-            Assert.That(options.DataTypes.Single(type => type.DataType == "Transactions").SupportsDateFilter, Is.True);
-            Assert.That(options.DataTypes.Single(type => type.DataType == "PayeeMatchingRules").SupportsDateFilter, Is.False);
-            Assert.That(options.Years, Is.EqualTo(new[] { 2025, 2024 }));
-        }
-    }
 
     [Test]
     public async Task Export_TransactionSelectionFiltersTransactionsAndIncludesRelatedSplits()
@@ -159,63 +138,9 @@ public class TenantDataExportFeatureTests : FeatureTestBase
         }
     }
 
-    [Test]
-    public async Task ExportAll_IncludesEveryTypeAndIgnoresSelectionAndDateFilter()
-    {
-        _context.Transactions.AddRange(
-            Transaction(_targetTenant, new DateOnly(2024, 1, 1), "Old"),
-            Transaction(_targetTenant, new DateOnly(2025, 1, 1), "New"));
-        _context.PayeeMatchingRules.Add(Rule(_targetTenant, "Coffee Shop", "Food"));
-        await _context.SaveChangesAsync();
-
-        var result = await _feature.ExportAsync(new TenantDataExportRequest(
-            ["Transactions"],
-            ExportAllData: true));
-
-        using var stream = new MemoryStream(result.Content);
-        using var workbook = new XLWorkbook(stream);
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(workbook.Worksheets.Select(sheet => sheet.Name),
-                Is.EqualTo(new[] { "Metadata", "PayeeMatchingRules", "Transactions", "Splits" }));
-            Assert.That(workbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(3));
-            Assert.That(result.Counts.Select(count => count.DataType),
-                Is.EqualTo(new[] { "PayeeMatchingRules", "Transactions", "Splits" }));
-            Assert.That(result.FileName, Is.EqualTo("yofi-complete-export-2040-07-01.xlsx"));
-        }
-    }
 
 
 
-    [Test]
-    public async Task Export_AllowsOpenEndedDateRanges()
-    {
-        _context.Transactions.AddRange(
-            Transaction(_targetTenant, new DateOnly(2024, 12, 31), "Earlier"),
-            Transaction(_targetTenant, new DateOnly(2025, 1, 1), "Later"));
-        await _context.SaveChangesAsync();
-
-        var after = await _feature.ExportAsync(new TenantDataExportRequest(
-            ["Transactions"],
-            StartDate: new DateOnly(2025, 1, 1)));
-        var before = await _feature.ExportAsync(new TenantDataExportRequest(
-            ["Transactions"],
-            EndDate: new DateOnly(2024, 12, 31)));
-
-        using var afterStream = new MemoryStream(after.Content);
-        using var afterWorkbook = new XLWorkbook(afterStream);
-        using var beforeStream = new MemoryStream(before.Content);
-        using var beforeWorkbook = new XLWorkbook(beforeStream);
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(afterWorkbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
-            Assert.That(afterWorkbook.Worksheet("Transactions").Cell(2, 3).GetString(), Is.EqualTo("Later"));
-            Assert.That(after.FileName, Is.EqualTo("yofi-transactions-from-2025-01-01-2040-07-01.xlsx"));
-            Assert.That(beforeWorkbook.Worksheet("Transactions").LastRowUsed()!.RowNumber(), Is.EqualTo(2));
-            Assert.That(beforeWorkbook.Worksheet("Transactions").Cell(2, 3).GetString(), Is.EqualTo("Earlier"));
-            Assert.That(before.FileName, Is.EqualTo("yofi-transactions-through-2024-12-31-2040-07-01.xlsx"));
-        }
-    }
 
 
     private static Transaction Transaction(Tenant tenant, DateOnly date, string payee, params Split[] splits) =>

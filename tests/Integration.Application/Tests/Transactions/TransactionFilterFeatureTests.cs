@@ -8,7 +8,6 @@ using YoFi.V3.Tests.Integration.Application.TestHelpers;
 
 namespace YoFi.V3.Tests.Integration.Application;
 
-[TestFixture]
 public class TransactionFilterFeatureTests : FeatureTestBase
 {
     private TransactionsFeature _feature = null!;

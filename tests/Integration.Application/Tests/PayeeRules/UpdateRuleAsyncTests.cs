@@ -7,7 +7,6 @@ namespace YoFi.V3.Tests.Integration.Application;
 /// <summary>
 /// Application Integration tests for PayeeMatchingRuleFeature.UpdateRuleAsync.
 /// </summary>
-[TestFixture]
 public class PayeeMatchingRuleFeatureUpdateRuleAsyncTests : PayeeMatchingRuleFeatureTestBase
 {
     [Test]
